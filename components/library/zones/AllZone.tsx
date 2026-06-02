@@ -174,6 +174,23 @@ function FollowPlanRow({ row }: { row: FollowRow }) {
   );
 }
 
+/** Authoring affordance under YOURS → Plans. Distinct from the subscribed
+ *  cards above it: following a Plan and publishing your own are different
+ *  intents, so this reads as a dashed "+" action, not another plan card. */
+function CreatePlanRow() {
+  return (
+    <Pressable
+      style={styles.createPlanRow}
+      onPress={() => router.push('/studio/blueprints/new' as never)}
+      accessibilityRole="button"
+      accessibilityLabel="Create a plan to publish"
+    >
+      <Ionicons name="add-circle-outline" size={20} color={IOS_COLORS.systemBlue} />
+      <Text style={styles.createPlanText}>Create a plan</Text>
+    </Pressable>
+  );
+}
+
 export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
   const { currentInterest, allInterests, userInterests } = useInterest();
   const { user } = useAuth();
@@ -280,6 +297,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
             ))}
           </View>
         )}
+        <CreatePlanRow />
       </View>
 
       <View style={styles.section}>
@@ -576,6 +594,24 @@ const styles = StyleSheet.create({
   },
   cardList: {
     gap: IOS_SPACING.md,
+  },
+  createPlanRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: IOS_SPACING.lg,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(10,132,255,0.4)',
+    backgroundColor: 'rgba(10,132,255,0.04)',
+  },
+  createPlanText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
   },
   conceptList: {
     gap: IOS_SPACING.md,

@@ -139,10 +139,32 @@ export function useProfileMenuData(): ProfileMenuData {
 
   const isAdmin = !!activeOrg?.is_admin;
   const isFaculty = !!activeOrg?.is_faculty;
+  const isSolo = memberships.length === 0;
+
+  // Independent authorship: anyone who owns a public.blueprints row is a
+  // creator regardless of org role — this is what makes the "Creator Studio"
+  // entry appear for solo authors who published to the marketplace.
+  const { data: authoredBlueprintsCount = 0 } = useQuery({
+    queryKey: ['profile-menu-authored', userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<number> => {
+      if (!userId) return 0;
+      const { count, error } = await supabase
+        .from('blueprints')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_user_id', userId);
+      if (error) {
+        console.warn('[useProfileMenuData] authored-blueprints count failed', error);
+        return 0;
+      }
+      return count ?? 0;
+    },
+  });
+
   // A faculty member at an institutional org is also an author by definition
   // of this design (Frame 2 caption: "Faculty · author · mentor").
-  const isAuthor = !!activeOrg?.is_author || isFaculty;
-  const isSolo = memberships.length === 0;
+  const isAuthor = !!activeOrg?.is_author || isFaculty || authoredBlueprintsCount > 0;
 
   // "Subscribed blueprints" count — must source from the same table the
   // Library Plans zone renders (blueprint_subscriptions), else the badge
@@ -230,11 +252,9 @@ export function useProfileMenuData(): ProfileMenuData {
     },
   });
 
-  // authoredBlueprints stays 0 — no blueprints table in the schema yet. Wire
-  // when the table lands.
   const counts = {
     subscribedBlueprints: subscribedBlueprintsCount,
-    authoredBlueprints: 0,
+    authoredBlueprints: authoredBlueprintsCount,
     cohortsMentored: cohortsMentoredCount,
     subscriberThreads: subscriberThreadsCount,
     seats: seatsCount,
