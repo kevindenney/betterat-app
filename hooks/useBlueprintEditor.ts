@@ -27,6 +27,7 @@ export interface CreateBlueprintInput {
   description?: string;
   accessMode: BlueprintAccessMode;
   orgId?: string | null;
+  interestId?: string | null;
   pricePerSeatCents?: number | null;
   authorUserId: string;
 }
@@ -44,6 +45,7 @@ export function useCreateBlueprint() {
         access_mode: input.accessMode,
         author_user_id: input.authorUserId,
         org_id: input.accessMode === 'independent' ? null : input.orgId ?? null,
+        interest_id: input.interestId ?? null,
         status: 'draft',
       };
       if (input.pricePerSeatCents != null) {

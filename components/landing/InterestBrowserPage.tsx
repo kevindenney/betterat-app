@@ -14,6 +14,7 @@ import { useInterest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { supabase } from '@/services/supabase';
+import { useMarketplaceBlueprints } from '@/hooks/useMarketplaceBlueprints';
 import type { BlueprintRecord } from '@/types/blueprint';
 
 interface InterestBrowserPageProps {
@@ -37,10 +38,9 @@ interface BlueprintTimelineRowProps {
     steps: { id: string; title: string; status: string; sort_order: number }[];
   };
   accentColor: string;
-  interestSlug: string;
 }
 
-function BlueprintTimelineRow({ blueprint, accentColor, interestSlug }: BlueprintTimelineRowProps) {
+function BlueprintTimelineRow({ blueprint, accentColor }: BlueprintTimelineRowProps) {
   const bp = blueprint;
   const authorDisplay = bp.author_name || 'Creator';
   const initials = authorDisplay
@@ -303,6 +303,11 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
   const dbInterest = allInterests.find((i) => i.slug === slug);
   const parentDomain = dbInterest ? getDomainForInterest(dbInterest.id) : null;
 
+  // Real subscribable plans from the authored-blueprint catalog (System B / Stripe),
+  // scoped to this interest. This is the catalog the marketplace + checkout read.
+  const { blueprints: marketPlans } = useMarketplaceBlueprints(dbInterest?.id ?? null);
+  const interestPlans = marketPlans.filter((p) => !dbInterest || p.interestSlug === slug);
+
   // Fetch real DB orgs for this interest (not just sample data)
   const [extraOrgs, setExtraOrgs] = useState<{ slug: string; name: string; groupLabel: string; groups: any[] }[]>([]);
   useEffect(() => {
@@ -320,6 +325,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
           .map((o) => ({ slug: o.slug, name: o.name, groupLabel: 'Programs' as const, groups: [] }));
         setExtraOrgs(extras);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, interest?.name]);
 
   // Merged organizations = sample + real DB orgs
@@ -400,7 +406,6 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
           }
         }
 
-        console.log('[InterestBrowserPage] Org blueprints map:', Object.entries(map).map(([k, v]) => `${k}: ${v.length}`));
         setOrgBlueprintsMap(map);
       } catch (err) {
         console.error('[InterestBrowserPage] Error loading org blueprints:', err);
@@ -409,6 +414,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
 
     loadOrgBlueprints();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interest?.name, extraOrgs.length]);
 
   // Fetch community (self-published) blueprints — no organization_id
@@ -474,6 +480,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
       }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbInterest?.id]);
 
   const handleAddInterest = async () => {
@@ -491,7 +498,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
         showAlert('Interest Active', `${interest?.name ?? slug} is now your active interest.`);
       } else {
         // Interest exists in sample data but not yet in DB — create it
-        const { data: created, error } = await supabase
+        const { error } = await supabase
           .from('interests')
           .insert({
             slug,
@@ -595,6 +602,58 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
       </View>
 
       <View style={[styles.body, isDesktop && styles.bodyDesktop]}>
+        {/* Plans — real subscribable catalog (System B / Stripe), scoped to this interest */}
+        {interestPlans.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.plansHeaderRow}>
+              <Text style={styles.sectionTitle}>Plans</Text>
+              <TouchableOpacity onPress={() => router.push(`/marketplace?interest=${slug}` as any)}>
+                <Text style={[styles.seeAllLink, { color: interest.color }]}>See all plans →</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={[styles.planGrid, isDesktop && styles.planGridDesktop]}>
+              {interestPlans.map((plan) => {
+                const priceLabel = plan.pricePerSeatCents > 0
+                  ? `$${(plan.pricePerSeatCents / 100).toFixed(plan.pricePerSeatCents % 100 === 0 ? 0 : 2)}${plan.billingCadence === 'monthly' ? '/mo' : plan.billingCadence === 'annual' ? '/yr' : ''}`
+                  : 'Free';
+                return (
+                  <TouchableOpacity
+                    key={plan.id}
+                    style={[styles.planCard, isDesktop && styles.planCardDesktop]}
+                    activeOpacity={0.7}
+                    onPress={() => router.push(`/marketplace/${plan.id}` as any)}
+                  >
+                    <View style={styles.planCardHeader}>
+                      <Text style={styles.planCardTitle} numberOfLines={2}>{plan.title}</Text>
+                      <View style={[styles.priceBadge, { backgroundColor: plan.pricePerSeatCents > 0 ? '#FEF3C7' : '#ECFDF5' }]}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: plan.pricePerSeatCents > 0 ? '#92400E' : '#059669' }}>
+                          {priceLabel}
+                        </Text>
+                      </View>
+                    </View>
+                    {plan.description ? (
+                      <Text style={styles.planCardDesc}>
+                        {plan.description.length > 72 ? `${plan.description.slice(0, 72).trimEnd()}…` : plan.description}
+                      </Text>
+                    ) : null}
+                    <View style={styles.planCardFooter}>
+                      <View style={[styles.avatar, { backgroundColor: interest.color + '18' }]}>
+                        <Text style={[styles.initials, { color: interest.color }]}>{plan.authorInitials}</Text>
+                      </View>
+                      <Text style={styles.planAuthorName} numberOfLines={1}>{plan.authorName}</Text>
+                      {plan.activeSubscriberCount > 0 && (
+                        <Text style={styles.planSubscribers}>
+                          {plan.activeSubscriberCount} {plan.activeSubscriberCount === 1 ? 'subscriber' : 'subscribers'}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Programs & Offerings (only when enriched data exists) */}
         {interest.programs && interest.programs.length > 0 && (
           <View style={styles.section}>
@@ -685,7 +744,6 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
                   key={bp.id}
                   blueprint={bp}
                   accentColor={interest.color}
-                  interestSlug={slug}
                 />
               ))}
             </View>
@@ -780,6 +838,72 @@ const styles = StyleSheet.create({
   },
   programGrid: {
     gap: 20,
+  },
+  plansHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  seeAllLink: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  planGrid: {
+    gap: 16,
+  },
+  planGridDesktop: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  planCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 18,
+    gap: 10,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      } as any,
+    }),
+  },
+  planCardDesktop: {
+    width: 320,
+  },
+  planCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  planCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    flex: 1,
+  },
+  planCardDesc: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  planCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planAuthorName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    flex: 1,
+  },
+  planSubscribers: {
+    fontSize: 12,
+    color: '#9CA3AF',
   },
   orgGrid: {
     gap: 20,

@@ -14,11 +14,12 @@ import { TabScreenToolbar, type ToolbarAction } from '@/components/ui/TabScreenT
 import { SailorSearchContent } from '@/components/search/SailorSearchContent';
 import { ClubSearchContent } from '@/components/search/ClubSearchContent';
 import { OrganizationSearchContent } from '@/components/search/OrganizationSearchContent';
+import { PlanSearchContent } from '@/components/search/PlanSearchContent';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { useInterestEventConfig } from '@/hooks/useInterestEventConfig';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 
-type SearchSegment = 'sailors' | 'clubs';
+type SearchSegment = 'sailors' | 'clubs' | 'plans';
 
 export default function SearchTab() {
   const insets = useSafeAreaInsets();
@@ -30,6 +31,7 @@ export default function SearchTab() {
   const segments = useMemo(() => ([
     {value: 'sailors' as const, label: isSailing ? 'Sailors' : 'People'},
     {value: 'clubs' as const, label: isSailing ? 'Clubs' : 'Organizations'},
+    {value: 'plans' as const, label: 'Plans'},
   ]), [isSailing]);
 
   // Toolbar actions (none — Search is a primary tab now)
@@ -70,6 +72,12 @@ export default function SearchTab() {
             onScroll={handleScroll}
           />
         )
+      )}
+      {activeSegment === 'plans' && (
+        <PlanSearchContent
+          toolbarOffset={toolbarHeight}
+          onScroll={handleScroll}
+        />
       )}
     </View>
   );

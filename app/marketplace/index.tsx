@@ -56,8 +56,9 @@ export default function MarketplacePage() {
   const signedIn = !!user && !isGuest;
   const { width } = useWindowDimensions();
   const isCompact = width < 640;
-  const params = useLocalSearchParams<{ stripe?: string; bp?: string; author?: string }>();
+  const params = useLocalSearchParams<{ stripe?: string; bp?: string; author?: string; interest?: string }>();
   const authorScope = (params.author as string | undefined) ?? null;
+  const interestScope = (params.interest as string | undefined) ?? null;
   const { blueprints, loading } = useMarketplaceBlueprints();
   const checkout = useMarketplaceCheckout();
   const [pendingId, setPendingId] = React.useState<string | null>(null);
@@ -72,6 +73,7 @@ export default function MarketplacePage() {
     const q = search.trim().toLowerCase();
     return blueprints.filter((bp) => {
       if (authorScope && bp.authorUserId !== authorScope) return false;
+      if (interestScope && bp.interestSlug !== interestScope) return false;
       if (trialOnly && (bp.trialDays <= 0 || bp.billingCadence === 'one_time')) return false;
       if (!q) return true;
       return (
@@ -81,7 +83,13 @@ export default function MarketplacePage() {
         (bp.description ?? '').toLowerCase().includes(q)
       );
     });
-  }, [blueprints, search, trialOnly, authorScope]);
+  }, [blueprints, search, trialOnly, authorScope, interestScope]);
+
+  const scopedInterestName = React.useMemo(() => {
+    if (!interestScope) return null;
+    const match = blueprints.find((b) => b.interestSlug === interestScope);
+    return match?.interestName ?? interestScope;
+  }, [interestScope, blueprints]);
 
   const scopedAuthor = React.useMemo(
     () => (authorScope ? blueprints.find((b) => b.authorUserId === authorScope) ?? null : null),
@@ -213,6 +221,21 @@ export default function MarketplacePage() {
             {scopedAuthor.authorBio ? (
               <Text style={s.scopeBio}>{scopedAuthor.authorBio}</Text>
             ) : null}
+          </>
+        ) : scopedInterestName ? (
+          <>
+            <Text style={[s.h1, isCompact && { fontSize: 22 }]}>
+              {scopedInterestName} plans
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
+              <Pressable onPress={() => router.replace('/marketplace' as any)} hitSlop={6}>
+                <Text style={s.scopeBack}>← Browse all plans</Text>
+              </Pressable>
+            </View>
+            <Text style={s.lede}>
+              Subscribable step-by-step playbooks for {scopedInterestName.toLowerCase()}. Cancel
+              anytime; payouts route via Stripe Connect.
+            </Text>
           </>
         ) : (
           <>

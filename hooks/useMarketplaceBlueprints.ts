@@ -22,6 +22,9 @@ export interface MarketplaceBlueprint {
   authorTone: AuthorTone;
   authorBio: string | null;
   orgName: string | null;
+  interestId: string | null;
+  interestName: string | null;
+  interestSlug: string | null;
   createdAt: string;
   ratingAvg: number | null;
   ratingCount: number;
@@ -45,6 +48,9 @@ interface Row {
   author_tone: string;
   author_bio: string | null;
   org_name: string | null;
+  interest_id: string | null;
+  interest_name: string | null;
+  interest_slug: string | null;
   created_at: string;
   rating_avg: number | string | null;
   rating_count: number;
@@ -54,12 +60,14 @@ interface Row {
   featured_blurb: string | null;
 }
 
-export function useMarketplaceBlueprints() {
+export function useMarketplaceBlueprints(interestId?: string | null) {
   const { data = [], isLoading, error } = useQuery({
-    queryKey: ['marketplace-blueprints'],
+    queryKey: ['marketplace-blueprints', interestId ?? null],
     staleTime: 60_000,
     queryFn: async (): Promise<MarketplaceBlueprint[]> => {
-      const { data, error } = await supabase.rpc('list_marketplace_blueprints');
+      const { data, error } = await supabase.rpc('list_marketplace_blueprints', {
+        p_interest_id: interestId ?? undefined,
+      });
       if (error) {
         console.warn('[useMarketplaceBlueprints] RPC failed', error);
         return [];
@@ -80,6 +88,9 @@ export function useMarketplaceBlueprints() {
         authorTone: (r.author_tone as AuthorTone) ?? 'navy',
         authorBio: r.author_bio ?? null,
         orgName: r.org_name,
+        interestId: r.interest_id ?? null,
+        interestName: r.interest_name ?? null,
+        interestSlug: r.interest_slug ?? null,
         createdAt: r.created_at,
         ratingAvg: r.rating_avg == null ? null : Number(r.rating_avg),
         ratingCount: r.rating_count ?? 0,

@@ -28,6 +28,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
+import { useInterest } from '@/providers/InterestProvider';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import {
   useStudioBlueprint,
@@ -71,6 +72,7 @@ export default function BlueprintEditorPage() {
   const router = useRouter();
   const blueprintId = typeof id === 'string' ? id : 'new';
   const { user, userProfile } = useAuth();
+  const { currentInterest } = useInterest();
   const menu = useProfileMenuData();
   const { blueprint, isInstitutional } = useStudioBlueprint(blueprintId);
   const isNew = blueprint.isNew;
@@ -126,6 +128,7 @@ export default function BlueprintEditorPage() {
         description,
         accessMode,
         orgId: blueprint.orgId,
+        interestId: currentInterest?.id ?? null,
         pricePerSeatCents: accessMode === 'independent' ? parsePriceCents() : null,
         authorUserId: user.id,
       });
