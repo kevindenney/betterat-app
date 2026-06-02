@@ -183,11 +183,32 @@ export function StepDiscussionInline({
     queryFn: async (): Promise<string | null> => {
       const { data } = await supabase
         .from('timeline_steps')
-        .select('source_blueprint_step_id')
+        .select('source_blueprint_step_id, source_blueprint_id, source_id')
         .eq('id', stepId)
         .maybeSingle();
-      return (data as { source_blueprint_step_id?: string | null } | null)
-        ?.source_blueprint_step_id ?? null;
+      const row = data as {
+        source_blueprint_step_id?: string | null;
+        source_blueprint_id?: string | null;
+        source_id?: string | null;
+      } | null;
+      if (row?.source_blueprint_step_id) return row.source_blueprint_step_id;
+      // Self-heal the cohort anchor. source_blueprint_step_id is the direct
+      // link, but it's ON DELETE SET NULL on blueprint_steps and is only set
+      // best-effort at adoption time — so it can be null even though this is a
+      // plan-derived step that other subscribers also adopted. As long as the
+      // canonical step still sits in the plan, recover the shared blueprint_step
+      // from the durable (source_blueprint_id, source_id) pair so the Cohort
+      // thread stays shared across all adopters.
+      if (row?.source_blueprint_id && row?.source_id) {
+        const { data: bs } = await supabase
+          .from('blueprint_steps')
+          .select('id')
+          .eq('blueprint_id', row.source_blueprint_id)
+          .eq('step_id', row.source_id)
+          .maybeSingle();
+        return (bs as { id?: string } | null)?.id ?? null;
+      }
+      return null;
     },
   });
   // The interest the viewer's current step sits in. A quoted step adopted
