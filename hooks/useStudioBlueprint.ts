@@ -133,6 +133,8 @@ interface BlueprintRow {
   version: string;
   status: string;
   description: string | null;
+  access_mode: string | null;
+  price_per_seat_cents: number | null;
   last_edited_at: string;
   published_at: string | null;
 }
@@ -179,7 +181,7 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
       const { data: bp, error } = await supabase
         .from('blueprints')
         .select(
-          'id, org_id, author_user_id, title, slug, category, version, status, description, last_edited_at, published_at',
+          'id, org_id, author_user_id, title, slug, category, version, status, description, access_mode, price_per_seat_cents, last_edited_at, published_at',
         )
         .eq('id', id)
         .maybeSingle();
@@ -247,7 +249,7 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
         orgShort: activeOrg?.org_short_name ?? null,
         orgName,
         accessMode: activeOrg ? 'institutional' : 'independent',
-        pricePerMonth: activeOrg ? null : 9,
+        pricePerMonth: null,
         authors: [
           {
             user_id: user?.id ?? 'self',
@@ -267,7 +269,13 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
   const bp = data?.bp ?? null;
   const org = data?.org ?? null;
   const author = data?.author ?? null;
-  const isInstitutional = !!org;
+  const rowAccessMode: BlueprintAccessMode =
+    bp?.access_mode === 'independent' || bp?.access_mode === 'institutional'
+      ? bp.access_mode
+      : org
+      ? 'institutional'
+      : 'independent';
+  const isInstitutional = rowAccessMode === 'institutional';
 
   const authorName = author
     ? (author.full_name?.trim() || author.email || 'Author')
@@ -292,8 +300,8 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
     orgId: bp?.org_id ?? null,
     orgShort: org?.name ? shortNameFor(org.name) : null,
     orgName: org?.name ?? null,
-    accessMode: isInstitutional ? 'institutional' : 'independent',
-    pricePerMonth: isInstitutional ? null : 9,
+    accessMode: rowAccessMode,
+    pricePerMonth: bp?.price_per_seat_cents != null ? bp.price_per_seat_cents / 100 : null,
     authors: author
       ? [
           {

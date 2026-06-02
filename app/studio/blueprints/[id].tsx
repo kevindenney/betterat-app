@@ -35,6 +35,9 @@ import {
   BlueprintAccessMode,
   BlueprintAuthor,
 } from '@/hooks/useStudioBlueprint';
+import { useCreateBlueprint, useUpdateBlueprintMeta } from '@/hooks/useBlueprintEditor';
+import { useBlueprintPricing } from '@/hooks/useBlueprintPricing';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   StudioShell,
   StudioHeader,
@@ -70,6 +73,11 @@ export default function BlueprintEditorPage() {
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
   const { blueprint, isInstitutional } = useStudioBlueprint(blueprintId);
+  const isNew = blueprint.isNew;
+
+  const createBlueprint = useCreateBlueprint();
+  const updateMeta = useUpdateBlueprintMeta(blueprintId);
+  const { syncStripe } = useBlueprintPricing(blueprintId, blueprint.orgId);
 
   const [tab, setTab] = useState<EditorTab>('overview');
   const [title, setTitle] = useState(blueprint.title);
@@ -78,6 +86,9 @@ export default function BlueprintEditorPage() {
   const [duration, setDuration] = useState(blueprint.durationLabel);
   const [accessMode, setAccessMode] = useState<BlueprintAccessMode>(
     blueprint.accessMode,
+  );
+  const [priceText, setPriceText] = useState(
+    blueprint.pricePerMonth != null ? String(blueprint.pricePerMonth) : '',
   );
   const [coverGradientIdx, setCoverGradientIdx] = useState(0);
 
@@ -88,6 +99,7 @@ export default function BlueprintEditorPage() {
     setDescription(blueprint.description);
     setDuration(blueprint.durationLabel);
     setAccessMode(blueprint.accessMode);
+    setPriceText(blueprint.pricePerMonth != null ? String(blueprint.pricePerMonth) : '');
   }, [
     blueprint.id,
     blueprint.title,
@@ -95,7 +107,57 @@ export default function BlueprintEditorPage() {
     blueprint.description,
     blueprint.durationLabel,
     blueprint.accessMode,
+    blueprint.pricePerMonth,
   ]);
+
+  function parsePriceCents(): number | null {
+    const parsed = parseFloat(priceText);
+    if (!isFinite(parsed) || parsed <= 0) return null;
+    return Math.round(parsed * 100);
+  }
+
+  const busy = createBlueprint.isPending || updateMeta.isPending || syncStripe.isPending;
+
+  async function handleCreate() {
+    if (!user) return;
+    try {
+      const { id: newId } = await createBlueprint.mutateAsync({
+        title,
+        description,
+        accessMode,
+        orgId: blueprint.orgId,
+        pricePerSeatCents: accessMode === 'independent' ? parsePriceCents() : null,
+        authorUserId: user.id,
+      });
+      router.replace(`/studio/blueprints/${newId}`);
+    } catch (err) {
+      showAlert('Could not create blueprint', err instanceof Error ? err.message : 'Please try again.');
+    }
+  }
+
+  async function handlePublish() {
+    try {
+      await updateMeta.mutateAsync({
+        title,
+        description,
+        accessMode,
+        orgId: blueprint.orgId,
+        pricePerSeatCents: accessMode === 'independent' ? parsePriceCents() : null,
+      });
+      if (accessMode === 'independent') {
+        if (parsePriceCents() == null) {
+          showAlert('Set a price first', 'Independent blueprints need a price above $0 before they can be listed.');
+          return;
+        }
+        await syncStripe.mutateAsync();
+        showAlert('Published', 'Saved and listed on Stripe. It will now appear in the marketplace catalog.');
+      } else {
+        showAlert('Saved', 'Your changes have been saved.');
+      }
+    } catch (err) {
+      showAlert('Publish failed', err instanceof Error ? err.message : 'Please try again.');
+    }
+  }
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -253,21 +315,23 @@ export default function BlueprintEditorPage() {
           }}
           actions={
             <>
-              <StudioButton variant="muted" icon="eye-outline" label="Preview" />
-              <StudioButton
-                variant="ghost"
-                icon="share-outline"
-                label="Request peer review"
-              />
+              {!isNew ? (
+                <StudioButton variant="muted" icon="eye-outline" label="Preview" />
+              ) : null}
               <StudioButton
                 variant="primary"
                 accent="purple"
-                icon="rocket-outline"
+                icon={isNew ? 'add-circle-outline' : 'rocket-outline'}
                 label={
-                  isInstitutional && orgShortName
+                  busy
+                    ? 'Working…'
+                    : isNew
+                    ? 'Create blueprint'
+                    : isInstitutional && orgShortName
                     ? `Publish to ${orgShortName}`
                     : 'Publish'
                 }
+                onPress={busy ? undefined : isNew ? handleCreate : handlePublish}
               />
             </>
           }
@@ -295,6 +359,8 @@ export default function BlueprintEditorPage() {
             onDuration={setDuration}
             accessMode={accessMode}
             onAccessMode={setAccessMode}
+            priceText={priceText}
+            onPriceText={setPriceText}
             coverGradientIdx={coverGradientIdx}
             onCoverGradient={setCoverGradientIdx}
           />
@@ -341,6 +407,8 @@ function OverviewBody({
   onDuration,
   accessMode,
   onAccessMode,
+  priceText,
+  onPriceText,
   coverGradientIdx,
   onCoverGradient,
 }: {
@@ -357,6 +425,8 @@ function OverviewBody({
   onDuration: (v: string) => void;
   accessMode: BlueprintAccessMode;
   onAccessMode: (m: BlueprintAccessMode) => void;
+  priceText: string;
+  onPriceText: (v: string) => void;
   coverGradientIdx: number;
   onCoverGradient: (i: number) => void;
 }) {
@@ -388,6 +458,8 @@ function OverviewBody({
         <PricingCard
           accessMode={accessMode}
           onAccessMode={onAccessMode}
+          priceText={priceText}
+          onPriceText={onPriceText}
           isInstitutional={isInstitutional}
           orgShortName={orgShortName}
           authors={blueprint.authors}
@@ -556,12 +628,16 @@ function Field({
 function PricingCard({
   accessMode,
   onAccessMode,
+  priceText,
+  onPriceText,
   isInstitutional,
   orgShortName,
   authors,
 }: {
   accessMode: BlueprintAccessMode;
   onAccessMode: (m: BlueprintAccessMode) => void;
+  priceText: string;
+  onPriceText: (v: string) => void;
   isInstitutional: boolean;
   orgShortName: string | null;
   authors: BlueprintAuthor[];
@@ -638,6 +714,8 @@ function PricingCard({
           <View style={pricing.independentRow}>
             <Field label="Price">
               <TextInput
+                value={priceText}
+                onChangeText={onPriceText}
                 placeholder="9"
                 style={about.input}
                 placeholderTextColor="rgba(60, 60, 67, 0.4)"
