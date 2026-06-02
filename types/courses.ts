@@ -203,3 +203,45 @@ export interface PositionedCourseResult {
     west: number;
   };
 }
+
+/**
+ * The small, persisted parameter set a full course is derivable from.
+ * Stored in venue_race_courses.course_geometry (JSONB); the overlay
+ * (windward/leeward marks, finish, laylines, beat corridor, start box)
+ * is derived at render time by lib/courseGeometry so geometry stays
+ * internally consistent when the wind axis changes.
+ */
+export interface CourseGeometryParams {
+  /** Starboard end of the start line. */
+  committee: { lat: number; lng: number };
+  /** Port end of the start line. */
+  pin: { lat: number; lng: number };
+  /** Direction the wind blows FROM, degrees (0 = N, 90 = E) — the course axis. */
+  windDirectionDeg: number;
+  /** Start → windward mark, nautical miles. */
+  legLengthNm: number;
+  /** Close-hauled half-angle off the wind, degrees. Default 42. */
+  tackAngleDeg: number;
+  /** Boat LOA in meters — drives start-box depth. */
+  boatLengthM: number;
+  /** Start-box depth in boat lengths. Default 5. */
+  startBoxDepthBoatLengths: number;
+  courseType: CourseType;
+}
+
+/**
+ * A venue/racing-area-scoped reusable race course (venue_race_courses row).
+ */
+export interface VenueRaceCourse {
+  id: string;
+  racingAreaId: string | null;
+  venueId: string | null;
+  name: string;
+  courseType: CourseType;
+  geometry: CourseGeometryParams;
+  classesUsed: string[];
+  isActive: boolean;
+  createdBy: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}

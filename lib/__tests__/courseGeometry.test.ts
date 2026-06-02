@@ -130,12 +130,12 @@ describe('deriveCourseOverlay', () => {
   });
 
   it('marks a favored side only when current is present and meaningful', () => {
-    expect(deriveCourseOverlay(input()).favoredSide).toBeNull();
+    expect(deriveCourseOverlay(input())!.favoredSide).toBeNull();
     expect(
-      deriveCourseOverlay(input({ currentDirection: 90, currentSpeed: 0 })).favoredSide,
+      deriveCourseOverlay(input({ currentDirection: 90, currentSpeed: 0 }))!.favoredSide,
     ).toBeNull();
     expect(
-      deriveCourseOverlay(input({ currentDirection: 90, currentSpeed: 1.2 })).favoredSide,
+      deriveCourseOverlay(input({ currentDirection: 90, currentSpeed: 1.2 }))!.favoredSide,
     ).not.toBeNull();
   });
 
