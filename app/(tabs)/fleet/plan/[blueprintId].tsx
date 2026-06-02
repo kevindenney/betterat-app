@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import {
@@ -26,6 +26,7 @@ import {
   getFleetPlanSteps,
   isSubscribedToFleetPlan,
   subscribeToFleetPlan,
+  unsubscribeFromFleetPlan,
 } from '@/services/fleetPlanService';
 
 const COLORS = {
@@ -116,6 +117,26 @@ export default function FleetPlanDetailScreen() {
     }
   }, [user?.id, blueprintId, load]);
 
+  const handleUnsubscribe = useCallback(() => {
+    if (!user?.id || !blueprintId) return;
+    showConfirm(
+      'Stop following this plan?',
+      'Steps already in your timeline stay there. You can subscribe again anytime.',
+      async () => {
+        setSubscribing(true);
+        try {
+          await unsubscribeFromFleetPlan(user.id, blueprintId);
+          setSubscribed(false);
+          await load();
+        } catch (err: any) {
+          showAlert('Could not unsubscribe', err?.message ?? 'Please try again.');
+        } finally {
+          setSubscribing(false);
+        }
+      },
+    );
+  }, [user?.id, blueprintId, load]);
+
   const handleAdopt = useCallback(
     async (step: FleetPlanStep) => {
       if (!user?.id || !blueprintId || !interestId) return;
@@ -170,7 +191,7 @@ export default function FleetPlanDetailScreen() {
           </TouchableOpacity>
         )}
 
-        {!subscribed && (
+        {!subscribed ? (
           <TouchableOpacity
             style={[styles.primaryButton, subscribing && styles.buttonDisabled]}
             onPress={handleSubscribe}
@@ -182,6 +203,15 @@ export default function FleetPlanDetailScreen() {
               <Text style={styles.primaryButtonText}>Subscribe to follow this plan</Text>
             )}
           </TouchableOpacity>
+        ) : (
+          <View style={styles.subscribedRow}>
+            <View style={styles.subscribedPill}>
+              <Text style={styles.subscribedPillText}>✓ Following this plan</Text>
+            </View>
+            <TouchableOpacity onPress={handleUnsubscribe} disabled={subscribing}>
+              <Text style={styles.unsubscribeText}>{subscribing ? 'Updating…' : 'Unsubscribe'}</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         <View style={styles.divider} />
@@ -277,6 +307,20 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: { fontSize: 15, fontWeight: '600', color: COLORS.activeBlue },
   buttonDisabled: { opacity: 0.6 },
+  subscribedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  subscribedPill: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  subscribedPillText: { fontSize: 13, fontWeight: '700', color: COLORS.successGreen },
+  unsubscribeText: { fontSize: 13, fontWeight: '600', color: COLORS.secondaryText },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: 20 },
   emptyText: { fontSize: 14, color: COLORS.tertiaryText, fontStyle: 'italic' },
   stepList: { backgroundColor: '#FFFFFF', borderRadius: 8, overflow: 'hidden' },

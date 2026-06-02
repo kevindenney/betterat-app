@@ -551,6 +551,8 @@ export async function adoptStep(
         description: (source as any).description,
         category: (source as any).category ?? 'general',
         status: 'pending',
+        starts_at: (source as any).starts_at ?? null,
+        ends_at: (source as any).ends_at ?? null,
         location_name: (source as any).location_name,
         location_lat: (source as any).location_lat,
         location_lng: (source as any).location_lng,
