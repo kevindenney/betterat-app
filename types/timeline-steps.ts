@@ -42,6 +42,11 @@ export type TimelineStepRecord = {
   /** Back-pointer to the canonical blueprint_steps join row. Null on
    *  older adopted rows (pre-fix) and on non-blueprint steps. */
   source_blueprint_step_id?: string | null;
+  /** True on fleet-plan template rows owned by the plan author. These rows back
+   *  the published plan but are hidden from the author's personal timeline so a
+   *  personal-timeline delete can't cascade them out of the plan. Members adopt
+   *  their own private copies instead. */
+  is_plan_template?: boolean;
   sort_order: number;
   metadata: Record<string, unknown>;
   collaborator_user_ids: string[];

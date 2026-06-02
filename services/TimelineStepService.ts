@@ -60,6 +60,7 @@ export async function getUserTimeline(
       .from('timeline_steps')
       .select('*')
       .eq('user_id', userId)
+      .eq('is_plan_template', false)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true })
       .limit(200);
@@ -78,6 +79,7 @@ export async function getUserTimeline(
       .select('*')
       .contains('collaborator_user_ids', [userId])
       .neq('user_id', userId)
+      .eq('is_plan_template', false)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true })
       .limit(200);
