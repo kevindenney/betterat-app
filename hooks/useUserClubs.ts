@@ -55,12 +55,20 @@ async function fetchClubsByIds(clubIds: string[]): Promise<UserClub[]> {
 
   const clubsResult = await supabase
     .from('clubs')
-    .select('id, name, short_name, logo_url, website, city, country')
+    .select('id, name, short_name, logo_url, website, location')
     .in('id', clubIds);
 
   if (!clubsResult.error && clubsResult.data) {
-    (clubsResult.data as UserClub[]).forEach((club) => {
-      if (club?.id) clubsById.set(club.id, club);
+    (clubsResult.data as any[]).forEach((club) => {
+      if (!club?.id) return;
+      clubsById.set(club.id, {
+        id: club.id,
+        name: club.name || 'Sailing Club',
+        short_name: club.short_name || undefined,
+        logo_url: club.logo_url || undefined,
+        website: club.website || undefined,
+        city: club.location || undefined,
+      });
     });
   }
 
@@ -69,7 +77,7 @@ async function fetchClubsByIds(clubIds: string[]): Promise<UserClub[]> {
     const idsToResolve = unresolvedAfterClubs.length > 0 ? unresolvedAfterClubs : clubIds;
     const profilesResult = await supabase
       .from('club_profiles')
-      .select('id, club_name, organization_name, logo_url, website_url, city, country')
+      .select('id, organization_name, acronym, logo_url, website')
       .in('id', idsToResolve);
 
     if (!profilesResult.error && profilesResult.data) {
@@ -77,11 +85,10 @@ async function fetchClubsByIds(clubIds: string[]): Promise<UserClub[]> {
         if (!profile?.id) return;
         clubsById.set(profile.id, {
           id: profile.id,
-          name: profile.organization_name || profile.club_name || 'Sailing Club',
+          name: profile.organization_name || 'Sailing Club',
+          short_name: profile.acronym || undefined,
           logo_url: profile.logo_url || undefined,
-          website: profile.website_url || undefined,
-          city: profile.city || undefined,
-          country: profile.country || undefined,
+          website: profile.website || undefined,
         });
       });
     }
@@ -92,7 +99,7 @@ async function fetchClubsByIds(clubIds: string[]): Promise<UserClub[]> {
     const idsToResolve = unresolvedAfterProfiles.length > 0 ? unresolvedAfterProfiles : clubIds;
     const yachtResult = await supabase
       .from('yacht_clubs')
-      .select('id, name, logo_url, website, location, country')
+      .select('id, name, short_name, website, formatted_address')
       .in('id', idsToResolve);
 
     if (!yachtResult.error && yachtResult.data) {
@@ -101,10 +108,9 @@ async function fetchClubsByIds(clubIds: string[]): Promise<UserClub[]> {
         clubsById.set(club.id, {
           id: club.id,
           name: club.name || 'Sailing Club',
-          logo_url: club.logo_url || undefined,
+          short_name: club.short_name || undefined,
           website: club.website || undefined,
-          city: club.location || undefined,
-          country: club.country || undefined,
+          city: club.formatted_address || undefined,
         });
       });
     }
@@ -333,7 +339,7 @@ export function useAllClubs(options: { enabled?: boolean; limit?: number } = {})
     queryFn: async () => {
       const clubsResult = await supabase
         .from('clubs')
-        .select('id, name, short_name, logo_url, city, country')
+        .select('id, name, short_name, logo_url, website, location')
         .order('name', { ascending: true })
         .limit(limit);
 
@@ -355,22 +361,30 @@ export function useAllClubs(options: { enabled?: boolean; limit?: number } = {})
         : [];
 
       if (!clubsResult.error && clubsResult.data && clubsResult.data.length > 0) {
-        const merged = [...globalClubs, ...(clubsResult.data as UserClub[])];
+        const mappedClubs = (clubsResult.data as any[]).map((club) => ({
+          id: club.id,
+          name: club.name || 'Sailing Club',
+          short_name: club.short_name || undefined,
+          logo_url: club.logo_url || undefined,
+          website: club.website || undefined,
+          city: club.location || undefined,
+        }));
+        const merged = [...globalClubs, ...mappedClubs];
         return Array.from(new Map(merged.map((club) => [club.id, club])).values());
       }
 
       const yachtResult = await supabase
         .from('yacht_clubs')
-        .select('id, name, logo_url, location, country')
+        .select('id, name, short_name, website, formatted_address')
         .order('name', { ascending: true })
         .limit(limit);
       if (!yachtResult.error && yachtResult.data && yachtResult.data.length > 0) {
         const mappedYacht = (yachtResult.data as any[]).map((club) => ({
           id: club.id,
-          name: club.name,
-          logo_url: club.logo_url || undefined,
-          city: club.location || undefined,
-          country: club.country || undefined,
+          name: club.name || 'Sailing Club',
+          short_name: club.short_name || undefined,
+          website: club.website || undefined,
+          city: club.formatted_address || undefined,
         }));
         const merged = [...globalClubs, ...mappedYacht];
         return Array.from(new Map(merged.map((club) => [club.id, club])).values());
@@ -378,16 +392,16 @@ export function useAllClubs(options: { enabled?: boolean; limit?: number } = {})
 
       const profilesResult = await supabase
         .from('club_profiles')
-        .select('id, club_name, organization_name, logo_url, city, country')
+        .select('id, organization_name, acronym, logo_url, website')
         .order('organization_name', { ascending: true })
         .limit(limit);
       if (!profilesResult.error && profilesResult.data && profilesResult.data.length > 0) {
         const mappedProfiles = (profilesResult.data as any[]).map((profile) => ({
           id: profile.id,
-          name: profile.organization_name || profile.club_name || 'Sailing Club',
+          name: profile.organization_name || 'Sailing Club',
+          short_name: profile.acronym || undefined,
           logo_url: profile.logo_url || undefined,
-          city: profile.city || undefined,
-          country: profile.country || undefined,
+          website: profile.website || undefined,
         }));
         const merged = [...globalClubs, ...mappedProfiles];
         return Array.from(new Map(merged.map((club) => [club.id, club])).values());
