@@ -183,8 +183,11 @@ export function ZoomLevelPicker({
 
   const scopeLabelFor = (l: ZoomLevel) =>
     l === 3 ? `Current ${periodNoun}` : ZOOM_LEVEL_SCOPE_LABELS[l];
-  const labelFor = (l: ZoomLevel) =>
-    l === 3 && periodNoun ? periodNoun.toUpperCase() : ZOOM_LEVEL_LABELS[l];
+  // Visible rail labels stay the fixed short tokens (STEP/NEAR/ARC/ALL) so
+  // they fit the 52pt segment. The persona-native noun ("sketchbook",
+  // "rotation"…) can be 10+ chars and overflows the pill; it lives in the
+  // season header + scope (a11y) label instead.
+  const labelFor = (l: ZoomLevel) => ZOOM_LEVEL_LABELS[l];
   const handlePress = (target: ZoomLevel) => {
     if (target === level) {
       if (target === 1 && onSnapToCurrent) {
