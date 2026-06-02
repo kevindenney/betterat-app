@@ -10,14 +10,13 @@
  * - Real-time results view
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Modal,
   FlatList,
   Vibration,
   Platform,
@@ -28,25 +27,19 @@ import { Text } from '@/components/ui/text';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import {
   Play,
-  Pause,
   RotateCcw,
   Flag,
   Clock,
   Users,
-  Bell,
   Settings,
   ChevronLeft,
   ChevronRight,
   Search,
   Check,
   X,
-  AlertTriangle,
-  Volume2,
   Send,
   Megaphone,
   Navigation,
-  Wind,
-  Anchor,
   Timer,
   Trophy,
 } from 'lucide-react-native';
@@ -58,14 +51,11 @@ import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
   withRepeat,
-  interpolateColor,
-  Easing,
 } from 'react-native-reanimated';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Types
 interface RaceEntry {
@@ -191,6 +181,7 @@ export default function RaceCommitteeConsole() {
     return () => {
       cleanup();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regattaId, raceNumber]);
 
   // Real-time subscription
@@ -203,6 +194,7 @@ export default function RaceCommitteeConsole() {
         event: '*',
         schema: 'public',
         table: 'race_results',
+        filter: `regatta_id=eq.${regattaId}`,
       }, () => {
         loadResults();
       })
@@ -211,6 +203,7 @@ export default function RaceCommitteeConsole() {
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regattaId, raceNumber]);
 
   const cleanup = () => {
@@ -829,7 +822,7 @@ export default function RaceCommitteeConsole() {
       {finishQueue.length > 0 && (
         <View style={styles.recentFinishes}>
           <Text style={styles.sectionTitle}>Recent Finishes</Text>
-          {sortedResults.slice(-5).reverse().map((result, index) => (
+          {sortedResults.slice(-5).reverse().map((result) => (
             <View key={result.entry_id} style={styles.finishRow}>
               <View style={styles.finishPosition}>
                 <Text style={styles.finishPositionText}>{result.finish_position}</Text>

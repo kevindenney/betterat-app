@@ -65,6 +65,7 @@ export default function RaceLeaderboard({
           event: '*',
           schema: 'public',
           table: 'race_results',
+          filter: `regatta_id=eq.${regattaId}`,
         },
         () => {
           loadResults();
@@ -75,6 +76,7 @@ export default function RaceLeaderboard({
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regattaId, raceNumber, sortBy]);
 
   const loadResults = async () => {

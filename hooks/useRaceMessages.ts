@@ -228,6 +228,7 @@ export function useRaceMessages({
           event: 'INSERT',
           schema: 'public',
           table: 'race_messages',
+          filter: `regatta_id=eq.${regattaId}`,
         },
         async (payload) => {
           const row = payload.new as RaceMessageRow;
