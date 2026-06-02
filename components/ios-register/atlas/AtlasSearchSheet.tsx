@@ -329,11 +329,6 @@ async function fetchSearchResults(
       .limit(10),
     fetchGroupMembershipIds(viewerId),
     supabase
-      .from('clubs')
-      .select('id, name, short_name, city, country, latitude, longitude, country_code')
-      .or(`name.ilike.${like},short_name.ilike.${like}`)
-      .limit(15),
-    supabase
       .from('sailing_pois')
       .select('id, kind, name, short_name, city, country, latitude, longitude, country_code')
       .or(`name.ilike.${like},short_name.ilike.${like}`)
