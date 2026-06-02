@@ -409,6 +409,26 @@ const DRAWING_VOCAB: InterestVocab = {
   capabilityHeader: 'STUDIO LOG',
   crewHeader: 'STUDIO',
   inputSubtitle: 'who shaped your work',
+  // Deliberate drawing palette — perceptually distinct capability
+  // families, same color across the app. Order matters: first match
+  // wins, so more-specific patterns lead. Without this, every raw
+  // capability goal ("Keep proportions believable", "Confident single
+  // line", "Read the form before drawing") becomes its own band with
+  // its own sentence-length colliding label — unreadable on the chart.
+  palette: [
+    { pattern: /proportion|measur|scale|relationship|sight.?siz/i, canonicalLabel: 'Proportion', color: '#C46E49' },
+    { pattern: /line(\s+(work|control|quality|weight|confidence))?|contour|single\s+stroke|mark.?making/i, canonicalLabel: 'Line control', color: '#5BA46F' },
+    { pattern: /perspective|foreshorten|vanishing|depth|three.?dimension|3d\b|space\b/i, canonicalLabel: 'Perspective', color: '#5A7A98' },
+    { pattern: /observ|see\b|seeing|look(ing)?\b|read\s+the\s+form|reference|from\s+life|negative\s+space/i, canonicalLabel: 'Observation', color: '#7E6FC8' },
+    { pattern: /shape|silhouette|form|construct|block.?in|massing/i, canonicalLabel: 'Shape', color: '#C99632' },
+    { pattern: /value|tone|tonal|shade|shading|light|shadow|contrast/i, canonicalLabel: 'Value', color: '#8A8A8A' },
+    { pattern: /gesture|movement|flow|rhythm|action|loose/i, canonicalLabel: 'Gesture', color: '#C4474A' },
+    { pattern: /composition|layout|framing|balance|focal/i, canonicalLabel: 'Composition', color: '#7BA0C4' },
+    { pattern: /anatomy|figure|skeleton|muscle|gesture\s+anatomy/i, canonicalLabel: 'Anatomy', color: '#B86EAA' },
+    { pattern: /detail|render|finish|texture|polish/i, canonicalLabel: 'Rendering', color: '#4F9DA6' },
+    { pattern: /color|colour|hue|palette|saturation/i, canonicalLabel: 'Color', color: '#A04CC4' },
+    { pattern: /habit|consisten|routine|discipline|daily\s+(practice|drawing|sketch)|mileage|regular/i, canonicalLabel: 'Discipline', color: '#8E8E93' },
+  ],
   phasePatterns: [
     { pattern: /anatomy/i, label: 'Anatomy' },
     { pattern: /portrait/i, label: 'Portrait' },
@@ -526,6 +546,19 @@ export function resolveCapabilityVisuals(
     canonicalLabel: rawLabel,
     color: FALLBACK_COLORS[Math.abs(h) % FALLBACK_COLORS.length]!,
   };
+}
+
+/**
+ * Cross-interest "combo" capability tags ("Sail Racing + Drawing") are
+ * emitted by the AI suggestion engine on cross-interest steps — they name
+ * an interest pair, not a skill family. Left in the capability river they
+ * create a phantom band that bleeds another interest into this one (the
+ * same leak the pinned-step exclusion guards against, arriving via
+ * suggestion steps instead of pins). Skip them from capability accounting;
+ * the step itself still shows in the Browse Weeks list below.
+ */
+export function isCrossInterestCapabilityLabel(label: string): boolean {
+  return /\s\+\s/.test(label);
 }
 
 /** Convenience — fully composed eyebrow line for the SeasonHeaderChips. */

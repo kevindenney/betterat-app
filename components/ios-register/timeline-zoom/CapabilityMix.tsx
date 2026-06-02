@@ -223,6 +223,14 @@ export function CapabilityMix({
   // is too narrow or too short to read.
   const labels: LabelPlacement[] = useMemo(() => {
     const placements: LabelPlacement[] = [];
+    // Approx glyph advance for 11px/600-weight SF text. Used both to fit
+    // the label inside its band run (truncate with ellipsis) and to give
+    // each placed label a bounding box for collision suppression.
+    const CHAR_W = 6.4;
+    const LABEL_H = 12;
+    const placedBoxes: { x0: number; x1: number; y0: number; y1: number }[] = [];
+    // Bands are pre-sorted largest-total first, so the dominant capability
+    // wins any collision and smaller bands' labels drop rather than pile up.
     bands.forEach((band) => {
       // Find longest non-zero run.
       let bestStart = -1;
@@ -260,11 +268,28 @@ export function CapabilityMix({
       const bandHeight = localScale(thisVol);
       if (bandHeight < MIN_LABEL_HEIGHT_PX) return;
 
+      // Truncate to fit the band's run width. Goal-text labels for
+      // palette-less interests can be full sentences; an unbounded
+      // SvgText overflows its band and collides with neighbours.
+      const raw = band.label || '·';
+      const maxChars = Math.max(1, Math.floor(runWidth / CHAR_W));
+      const text = raw.length > maxChars ? `${raw.slice(0, Math.max(1, maxChars - 1))}…` : raw;
+
+      const cx = padX + (midIdx + 0.5) * colWidth;
+      const cy = bandTopY + bandHeight / 2 + 3.5; // +3.5 for visual baseline center
+      const halfW = (text.length * CHAR_W) / 2;
+      const box = { x0: cx - halfW, x1: cx + halfW, y0: cy - LABEL_H, y1: cy + 2 };
+      const collides = placedBoxes.some(
+        (b) => box.x0 < b.x1 && box.x1 > b.x0 && box.y0 < b.y1 && box.y1 > b.y0,
+      );
+      if (collides) return;
+      placedBoxes.push(box);
+
       placements.push({
         bandId: band.id,
-        text: band.label || '·',
-        x: padX + (midIdx + 0.5) * colWidth,
-        y: bandTopY + bandHeight / 2 + 3.5, // +3.5 for visual baseline center
+        text,
+        x: cx,
+        y: cy,
         color: darkenHex(band.color, 0.32),
       });
     });

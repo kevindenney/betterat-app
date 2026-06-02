@@ -26,6 +26,7 @@ import type { Season } from '@/types/season';
 import type { TimelineStepRecord, TimelineStepStatus } from '@/types/timeline-steps';
 import { CAPABILITY_PALETTE } from './sampleData';
 import {
+  isCrossInterestCapabilityLabel,
   resolveCapabilityVisuals,
   resolveInterestVocab,
   type InterestVocab,
@@ -717,6 +718,10 @@ function computeSeasonAnalysis(
       }
     };
     for (const step of week.steps) {
+      // A step pinned in from another interest is a cross-link, not part
+      // of this sketchbook's capability development — its goals (e.g. a
+      // sailing step's "Sail Racing") must not bleed into this chart.
+      if (step.pinnedFromOtherInterest) continue;
       const caps = step.capabilities;
       const onlyFallback =
         !caps ||
@@ -726,6 +731,7 @@ function computeSeasonAnalysis(
       if (!onlyFallback) {
         for (const cap of caps!) {
           if (cap.label === 'Practice' || cap.label === 'General') continue;
+          if (isCrossInterestCapabilityLabel(cap.label)) continue;
           const v = resolveCapabilityVisuals(cap.label, interestVocab);
           bump(v.canonicalLabel, v.color, 'planned');
         }
@@ -985,10 +991,12 @@ function computeSeasonAnalysis(
   const seenCapabilityCounts = new Map<string, { label: string; count: number }>();
   for (const week of weeks.slice(0, currentWeekNumber)) {
     for (const step of week.steps) {
+      if (step.pinnedFromOtherInterest) continue;
       const caps = step.capabilities && step.capabilities.length > 0
         ? step.capabilities
         : [capabilityForStep(step)];
       for (const capability of caps) {
+        if (isCrossInterestCapabilityLabel(capability.label)) continue;
         const existing = seenCapabilityCounts.get(capability.id);
         if (existing) {
           existing.count += 1;
@@ -1062,6 +1070,7 @@ function buildWeekPlanningHint(
   for (const week of weeks.slice(0, currentWeekIdx + 1)) {
     for (const step of week.steps) {
       const capability = capabilityForStep(step);
+      if (isCrossInterestCapabilityLabel(capability.label)) continue;
       const existing = seenCounts.get(capability.id);
       if (existing) {
         existing.count += 1;

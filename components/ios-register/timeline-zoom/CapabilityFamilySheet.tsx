@@ -27,7 +27,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { TimelineSeason, TimelineStep } from './types';
-import { resolveCapabilityVisuals, type InterestVocab } from './interestVocab';
+import {
+  isCrossInterestCapabilityLabel,
+  resolveCapabilityVisuals,
+  type InterestVocab,
+} from './interestVocab';
 
 interface Props {
   visible: boolean;
@@ -67,6 +71,7 @@ export function CapabilityFamilySheet({
         const stepRawLabels: string[] = [];
         for (const cap of step.capabilities ?? []) {
           if (cap.label === 'Practice' || cap.label === 'General') continue;
+          if (isCrossInterestCapabilityLabel(cap.label)) continue;
           const v = resolveCapabilityVisuals(cap.label, interestVocab);
           const id = v.canonicalLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
           if (id === capabilityId) {
