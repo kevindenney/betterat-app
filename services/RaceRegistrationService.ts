@@ -158,7 +158,7 @@ export class RaceRegistrationService {
     // Get sailor details for notification
     const { data: sailor } = await supabase
       .from('users')
-      .select('name, email')
+      .select('full_name, email')
       .eq('id', userId)
       .single();
 
@@ -169,7 +169,7 @@ export class RaceRegistrationService {
         club_name: clubName || 'Club',
         club_email: clubEmail,
         notification_type: 'new_registration',
-        sailor_name: sailor?.name || 'Sailor',
+        sailor_name: sailor?.full_name || 'Sailor',
         regatta_name: regatta.event_name || 'Event',
         entry_number: entry.entry_number || 'TBD',
       });
@@ -440,10 +440,10 @@ export class RaceRegistrationService {
       if (entry?.sailor_id) {
         const { data: sailor } = await supabase
           .from('users')
-          .select('id, name, full_name, email')
+          .select('id, full_name, email')
           .eq('id', entry.sailor_id)
           .single();
-        sailorName = sailor?.name || (sailor as any)?.full_name;
+        sailorName = sailor?.full_name;
       }
 
       // Update entry with payment confirmation

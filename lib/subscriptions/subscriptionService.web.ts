@@ -259,7 +259,7 @@ export class SubscriptionService {
 
       const { data, error } = await supabase
         .from('users')
-        .select('subscription_status, subscription_tier, subscription_expires_at, subscription_platform')
+        .select('subscription_status, subscription_tier')
         .eq('id', user.id)
         .single();
 
@@ -278,7 +278,7 @@ export class SubscriptionService {
         isActive: data.subscription_status === 'active',
         productId: data.subscription_tier || null,
         tier,
-        expiresAt: data.subscription_expires_at ? new Date(data.subscription_expires_at) : null,
+        expiresAt: null,
         willRenew: data.subscription_status === 'active',
         platform: 'web',
       };

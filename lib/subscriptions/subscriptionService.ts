@@ -11,6 +11,11 @@
  * Using mock implementation until expo-iap is configured.
  */
 
+import { Platform } from 'react-native';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { supabase } from '@/services/supabase';
+import { createLogger } from '@/lib/utils/logger';
+
 // Mock InAppPurchases until expo-iap is properly configured
 const InAppPurchases = {
   IAPResponseCode: {
@@ -26,11 +31,6 @@ const InAppPurchases = {
   finishTransactionAsync: async (_purchase: any, _consume: boolean) => {},
   setPurchaseListener: (_callback: any) => {},
 };
-
-import { Platform } from 'react-native';
-import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
-import { supabase } from '@/services/supabase';
-import { createLogger } from '@/lib/utils/logger';
 
 export interface SubscriptionProduct {
   id: string;
@@ -249,7 +249,7 @@ export class SubscriptionService {
    * Set up purchase event listener
    */
   private setupPurchaseListener(): void {
-    InAppPurchases.setPurchaseListener(({ responseCode, results, errorCode }) => {
+    InAppPurchases.setPurchaseListener(({ responseCode, results }) => {
       if (responseCode === InAppPurchases.IAPResponseCode.OK) {
         results?.forEach(purchase => {
           this.handlePurchaseComplete(purchase);
@@ -293,7 +293,7 @@ export class SubscriptionService {
    */
   private async verifyPurchase(purchase: any): Promise<void> {
     try {
-      const { data, error } = await supabase.functions.invoke('verify-purchase', {
+      const { error } = await supabase.functions.invoke('verify-purchase', {
         body: {
           platform: Platform.OS,
           transactionId: purchase.transactionId,
@@ -433,7 +433,7 @@ export class SubscriptionService {
 
       const { data, error } = await supabase
         .from('users')
-        .select('subscription_status, subscription_tier, subscription_expires_at, subscription_platform')
+        .select('subscription_status, subscription_tier')
         .eq('id', user.id)
         .single();
 
