@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>betterat_l3_unified_surface</title>
+<style>
+:root {
+  --font-serif: 'Iowan Old Style', Georgia, serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  --bg-primary: #FAFAF7;
+  --bg-secondary: #F0EEE8;
+  --text-primary: #2A2824;
+  --text-secondary: #58544A;
+  --text-tertiary: #8A8478;
+  --text-info: #5A4078;
+  --info-bg: #E5E1F0;
+  --border-tertiary: #DDD8CA;
+  --now: #FF6B5A;
+  --lilac: #9D70C9;
+  --accent: #3478F6;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 28px 16px 60px;
+  background: #E8E4D8;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+.page-title { max-width: 920px; margin: 0 auto 6px; font-size: 15px; font-weight: 600; }
+.page-sub { max-width: 920px; margin: 0 auto 28px; font-size: 12px; color: #6B6558; line-height:1.5; }
+.frames { display: flex; gap: 36px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+.col { width: 392px; }
+.col-label { text-align: center; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6558; margin-bottom: 10px; }
+.phone {
+  position: relative;
+  background: var(--bg-primary); border-radius: 34px; overflow: hidden;
+  border: 0.5px solid var(--border-tertiary); box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+}
+.statusbar { padding: 13px 24px 6px; display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); }
+.dots { letter-spacing: 2px; }
+.topnav { padding: 4px 22px 2px; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--text-secondary);}
+.topnav .av { width:26px; height:26px; border-radius:999px; background:#5A7A98; color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.h-title { padding: 2px 22px 0; display:flex; align-items:baseline; justify-content:space-between; }
+.h-title h1 { font-size: 25px; margin: 2px 0 0; letter-spacing: -0.02em; }
+.h-title .tot { font-size:12px; color:var(--text-tertiary); }
+.h-step { padding: 0 22px 6px; font-size: 13px; color: var(--lilac); font-weight: 600; }
+.section { padding: 0 22px; }
+.eyebrow { font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-tertiary); margin: 16px 0 6px; font-weight: 600; display:flex; justify-content:space-between; align-items:baseline;}
+.eyebrow .sub { letter-spacing:0; text-transform:none; font-weight:400; font-style:italic; color:var(--text-tertiary); }
+
+.headline { font-family: var(--font-serif); font-size: 18px; line-height: 1.35; color: var(--text-primary); margin: 2px 0 10px; }
+.headline b { font-weight: 600; }
+
+.chartwrap { position: relative; }
+svg { display: block; width: 100%; }
+.now-label { font: 700 9px var(--font-sans); fill: var(--now); letter-spacing: 0.4px; }
+.tick { font: 400 9px var(--font-sans); fill: var(--text-tertiary); }
+.tick.now { fill: var(--now); font-weight: 700; }
+.spine-cap { font-size: 10px; color: var(--text-tertiary); margin: 3px 0 0; }
+.spine-cap b { color: var(--lilac); font-weight:600; }
+.marker { font: 600 8.5px var(--font-sans); fill: var(--lilac); }
+
+.callout {
+  position: absolute; pointer-events: none; min-width: 150px;
+  background: rgba(255,255,255,0.98); border: 0.5px solid var(--border-tertiary);
+  border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,0.16); padding: 9px 11px;
+  font-size: 11px; transform: translate(-50%, -100%); transition: opacity .1s; opacity: 0; z-index:5;
+}
+.callout .wk { font-size: 10px; color: var(--text-tertiary); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 5px; }
+.callout .row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+.callout .sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.callout .nm { color: var(--text-secondary); flex: 1; }
+.callout .vn { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+.callout .meta { margin-top:6px; padding-top:6px; border-top:0.5px solid var(--border-tertiary); color:var(--text-secondary); font-size:10.5px; }
+.callout .meta.pause { color: var(--lilac); }
+
+/* ---- the selector: one filter model for chart + log ---- */
+.selrow { margin: 4px 0 2px; }
+.sel-lab { font-size: 9.5px; letter-spacing:0.07em; text-transform:uppercase; color:var(--text-tertiary); font-weight:600; margin: 9px 0 5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 5px 9px 5px 8px; border-radius: 999px; background: var(--bg-secondary);
+  border: 0.5px solid var(--border-tertiary); font-size: 12px; color: var(--text-secondary);
+  transition: all .15s; user-select: none;
+}
+.chip .sw { width: 9px; height: 9px; border-radius: 3px; }
+.chip .av { width:17px; height:17px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:9px; font-weight:700; }
+.chip .vn { color: var(--text-tertiary); font-variant-numeric: tabular-nums; font-size: 11px; }
+.chip.dim { opacity: 0.32; }
+.chip.active { background: #fff; border-color: #B8B2A2; color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.chip.hot { border-color: #B8B2A2; box-shadow: 0 0 0 2px rgba(52,120,246,0.18); }
+.hint { font-size: 11px; color: var(--text-tertiary); margin: 9px 0 0; font-style: italic; }
+
+/* ---- the log: one list, driven by the selector ---- */
+.logbar {
+  display:flex; align-items:center; gap:8px; margin: 4px 0 8px;
+  min-height: 24px;
+}
+.logbar .count { font-size:12px; color:var(--text-secondary); }
+.logbar .count b { color:var(--text-primary); font-weight:600; }
+.filterpill {
+  display:inline-flex; align-items:center; gap:6px; padding:4px 6px 4px 9px;
+  border-radius:999px; background:#fff; border:0.5px solid #B8B2A2; font-size:11.5px; color:var(--text-primary);
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+}
+.filterpill .sw { width:8px; height:8px; border-radius:2px; }
+.filterpill .x { width:16px; height:16px; border-radius:999px; background:var(--bg-secondary); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; }
+
+.wkgroup { margin-top: 6px; }
+.wkhead { font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-tertiary); font-weight:600; padding: 9px 0 4px; position:sticky; top:0; background:linear-gradient(var(--bg-primary) 70%, rgba(250,250,247,0)); }
+.wkhead.now { color: var(--now); }
+.step { display:flex; align-items:center; gap:10px; padding:9px 6px 9px 0; border-bottom:0.5px solid #EDEAE0; cursor:pointer; border-radius:8px; transition:background .12s; }
+.step:hover { background:#F4F1E8; }
+.step .st { width:15px; height:15px; border-radius:999px; border:1.5px solid var(--border-tertiary); flex:none; display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; }
+.step .st.done { background:#5BA46F; border-color:#5BA46F; }
+.step .st.reflect { border-color: var(--lilac); border-style:dashed; }
+.step .st.prog { border-color: var(--now); border-style:dashed; }
+.step .body { flex:1; min-width:0; }
+.step .ti { font-size:13px; color:var(--text-primary); letter-spacing:-0.1px; }
+.step .meta { font-size:10.5px; color:var(--text-tertiary); margin-top:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.step .caps { display:inline-flex; gap:3px; }
+.step .cdot { width:7px; height:7px; border-radius:2px; }
+.step .ppl { display:inline-flex; gap:-4px; }
+.step .pdot { width:14px; height:14px; border-radius:999px; color:#fff; font-size:7.5px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-left:-3px; border:1px solid var(--bg-primary); }
+.step .go { color:var(--text-tertiary); font-size:15px; opacity:0; transition:opacity .12s; flex:none; }
+.step:hover .go { opacity:1; }
+.step.refl-dot .ti::after { content:' ✷'; color:var(--lilac); font-size:10px; }
+
+.libcard { margin: 16px 0 4px; background: var(--info-bg); border-radius: 14px; padding: 13px 15px; }
+.libcard .lab { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-info); font-weight: 600; }
+.libcard p { font-family: var(--font-serif); font-size: 14px; line-height: 1.5; color: #3A3550; margin: 6px 0 10px; }
+.libcard .cta { display:flex; gap:8px; }
+.libcard .cta button { font:600 12px var(--font-sans); padding:7px 13px; border-radius:999px; border:none; cursor:pointer; }
+.libcard .cta .go { background:var(--lilac); color:#fff; }
+.libcard .cta .skip { background:transparent; color:var(--text-info); }
+
+.tabbar { display: flex; justify-content: space-around; padding: 12px 0 22px; border-top: 0.5px solid var(--border-tertiary); margin-top: 16px; font-size: 10px; color: var(--text-tertiary); }
+.tabbar .t { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.tabbar .t.on { color: var(--accent); }
+.tabbar .dotic { width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; }
+
+.note { max-width: 920px; margin: 26px auto 0; font-size: 12.5px; line-height: 1.6; color: #4A463C; }
+.note b { color: #2A2824; }
+.note ul { margin: 6px 0 0; padding-left: 18px; }
+.note li { margin: 5px 0; }
+.toast { position:absolute; left:50%; bottom:84px; transform:translateX(-50%); background:#2A2824; color:#fff; font-size:11.5px; padding:8px 14px; border-radius:999px; opacity:0; transition:opacity .15s; pointer-events:none; white-space:nowrap; z-index:8;}
+</style>
+</head>
+<body>
+<div class="page-title">L3 — unified surface · the arc IS the selector for the log</div>
+<div class="page-sub">betterat redesign mockup · Nursing · Spring '26 clinical, week 7 of 14 · <b>Interactive:</b> tap a capability or a person → the spine isolates that thread <b>and</b> the log below filters to the exact steps that built it. Hover a step → its threads + people light up in the chart. One filter model, two-way.</div>
+
+<div class="frames">
+  <div class="col">
+    <div class="col-label">L3 redesigned as one piece — chart + log fused</div>
+    <div class="phone">
+      <div class="statusbar"><span>6:51</span><span class="dots">•••• ⏚ ▮</span></div>
+      <div class="topnav"><span>● Nursing ▾</span><span class="av">ES</span></div>
+      <div class="h-title"><h1>Spring '26 clinical ▾</h1><span class="tot">142 total</span></div>
+      <div class="h-step">Week 7 of 14 · this week</div>
+
+      <div class="section">
+        <!-- ===== THE ARC (analytics) ===== -->
+        <div class="eyebrow">This rotation <span class="sub" id="arcSub">tap to filter the log ↓</span></div>
+        <p class="headline" id="headline"></p>
+
+        <div class="chartwrap" id="spine">
+          <svg viewBox="0 0 346 176" id="bands"></svg>
+          <p class="spine-cap" id="reflCap"></p>
+          <svg viewBox="0 0 346 28" id="reflStrip"></svg>
+          <svg viewBox="0 0 346 84" id="peerChart"></svg>
+          <div class="callout" id="callout"></div>
+        </div>
+
+        <!-- ===== THE SELECTOR (one filter model) ===== -->
+        <div class="selrow">
+          <div class="sel-lab">Capabilities</div>
+          <div class="legend" id="capLegend"></div>
+          <div class="sel-lab">Who shaped it</div>
+          <div class="legend" id="peopleLegend"></div>
+        </div>
+        <p class="hint" id="hint">Tap a thread or a person to filter the log · hover the log to light up the chart</p>
+
+        <!-- ===== THE LOG (driven by selector) ===== -->
+        <div class="eyebrow" style="margin-top:20px;">The work</div>
+        <div class="logbar" id="logbar"></div>
+        <div id="log"></div>
+
+        <div class="libcard">
+          <div class="lab">✷ This rotation · preceptor's debrief</div>
+          <p id="libText">You're halfway through Spring '26. Cardio + handoff tightened sharply since Week 6 — the lasix catch was the turn. Procedural has cooled off. Want a comm-led week before this arc closes?</p>
+          <div class="cta"><button class="go">Open an arc check-in</button><button class="skip">Not now</button></div>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="t on"><div class="dotic"></div>Practice</div><div class="t"><div class="dotic"></div>Library</div>
+        <div class="t"><div class="dotic"></div>Watch</div><div class="t"><div class="dotic"></div>Atlas</div>
+      </div>
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>What makes this "one piece" instead of stacked widgets:</b>
+  <ul>
+    <li><b>The arc is the log's filter handle.</b> Today the capability chart, the peer lane and the BROWSE WEEKS list are three separate things. Here, tapping a capability chip or a person <i>isolates the thread in the spine</i> <b>and</b> filters the one step list below to exactly those steps — there's no second "drill-in" inset and no competing Sort/Capability/Select toolbar. The chart is the toolbar.</li>
+    <li><b>One shared spine.</b> Bands → reflection strip → people lane share the identical week axis + NOW rule, read as a single annotated timeline. Hover scrubs one callout per week (mix + "you paused" + who).</li>
+    <li><b>The log is the single source of truth.</b> Headline, chips, peer lane, reflection ticks, the "named the lasix" marker — all derive from the same step rows. Nothing is authored twice.</li>
+    <li><b>Two-way (forward ships first).</b> Forward = tap chart → filter log (low risk, reuses one filter state). Reciprocal = hover a step row → its capability + people chips glow in the chart (shown here on hover). Forward is the commit; reciprocal is the follow-up.</li>
+    <li><b>Persona-native vocab throughout.</b> "rotation", "preceptor", "the work", "cohort" for nursing; the same surface says "arc / crew / fleet" for a sailor, "sketchbook / studio" for a drawer — driven by the interest's vocab table, not hardcoded.</li>
+  </ul>
+</div>
+
+<script>
+const CAPS = [
+  { id:'proc',   label:'Procedural', color:'#A47A52' },
+  { id:'assess', label:'Assess',     color:'#C4474A' },
+  { id:'cardio', label:'Cardio',     color:'#A04CC4' },
+  { id:'comm',   label:'Comm',       color:'#2F8FB0' },
+  { id:'pharm',  label:'Pharm',      color:'#5BA46F' },
+  { id:'sbar',   label:'SBAR',       color:'#1F77B4' },
+];
+const CAP = Object.fromEntries(CAPS.map(c=>[c.id,c]));
+const PEOPLE = [
+  { id:'an',  initials:'AN',  name:'Peer AN',    rel:'preceptor', color:'#2E7D5B' },
+  { id:'mr',  initials:'MR',  name:'Peer MR',    rel:'cohort',    color:'#5A7A98' },
+  { id:'mur', initials:'DM',  name:'Dr. Murphy', rel:'faculty',   color:'#9D70C9' },
+];
+const PRS = Object.fromEntries(PEOPLE.map(p=>[p.id,p]));
+
+// Single source of truth — everything else derives from these.
+const STEPS = [
+  { id:1,  wk:1, title:'Orientation + unit safety check',          status:'done',    caps:['proc'],                  people:[] },
+  { id:2,  wk:1, title:'First IV insertion, supervised',           status:'done',    caps:['proc'],                  people:['an'] },
+  { id:3,  wk:2, title:'Focused respiratory assessment',           status:'done',    caps:['assess','proc'],         people:[] },
+  { id:4,  wk:2, title:'Med pass — shadowing the cart',            status:'done',    caps:['pharm'],                 people:['mr'] },
+  { id:5,  wk:3, title:'Foley insertion, sterile field',           status:'reflect', caps:['proc'],                  people:['an'] },
+  { id:6,  wk:3, title:'Head-to-toe assessment, solo',             status:'done',    caps:['assess'],                people:[] },
+  { id:7,  wk:4, title:'Wound care + dressing change',             status:'done',    caps:['proc','assess'],         people:[] },
+  { id:8,  wk:4, title:'Patient teaching — new diabetic',          status:'reflect', caps:['comm'],                  people:['mr'] },
+  { id:9,  wk:5, title:'High-alert med double-check workflow',     status:'reflect', caps:['pharm'],                 people:[] },
+  { id:10, wk:5, title:'Peripheral IV — second-attempt criteria',  status:'done',    caps:['proc'],                  people:['an'] },
+  { id:11, wk:6, title:'Pre-op skin assessment, vascular',         status:'done',    caps:['assess'],                people:[] },
+  { id:12, wk:6, title:'Difficult discharge teaching, low literacy',status:'done',   caps:['comm','assess'],         people:[] },
+  { id:13, wk:6, title:'Telemetry interpretation — afib',          status:'reflect', caps:['cardio','assess'],       people:['an'] },
+  { id:14, wk:7, title:'Cardio assessment — HF patient',           status:'done',    caps:['cardio','assess'],       people:['an'] },
+  { id:15, wk:7, title:'HF handoff in 4-South — SBAR',             status:'prog',    caps:['cardio','sbar','assess'],people:['an','mur'] },
+  { id:16, wk:7, title:'Diuretic titration — named the lasix',     status:'reflect', caps:['cardio','pharm'],        people:['an'] },
+];
+const TOTAL=14, CURRENT=7;
+const MARKER={ wk:7, label:'named the lasix' };
+
+// derive
+const WEEKS=Array.from({length:TOTAL},()=>({}));
+STEPS.forEach(s=>s.caps.forEach(c=>{WEEKS[s.wk-1][c]=(WEEKS[s.wk-1][c]||0)+1;}));
+const reflWeeks=[...new Set(STEPS.filter(s=>s.status==='reflect').map(s=>s.wk))];
+const peerWeeks={}; PEOPLE.forEach(p=>peerWeeks[p.id]=[...new Set(STEPS.filter(s=>s.people.includes(p.id)).map(s=>s.wk))]);
+const capTotals={}; CAPS.forEach(c=>capTotals[c.id]=STEPS.filter(s=>s.caps.includes(c.id)).length);
+const capWeeks={}; CAPS.forEach(c=>capWeeks[c.id]=WEEKS.slice(0,CURRENT).filter(w=>w[c.id]).length);
+const peerTotals={}; PEOPLE.forEach(p=>peerTotals[p.id]=STEPS.filter(s=>s.people.includes(p.id)).length);
+const capOrder=[...CAPS].sort((a,b)=>capTotals[b.id]-capTotals[a.id]);
+const peerOrder=[...PEOPLE].sort((a,b)=>peerTotals[b.id]-peerTotals[a.id]);
+
+let capIso=null, peerIso=null, hotStepCaps=null, hotStepPeople=null;
+
+// geometry
+const W=346, padX=14, padBottom=18;
+const iW=W-padX*2, col=iW/TOTAL;
+const nowX=padX+(CURRENT-0.5)*col;
+let maxStack=1; WEEKS.forEach(w=>{let s=0;CAPS.forEach(c=>s+=(w[c.id]||0));if(s>maxStack)maxStack=s;});
+
+function drawBands(){
+  const H=176, padTop=24, iH=H-padTop-padBottom, scale=v=>(v/maxStack)*iH;
+  let s='';
+  WEEKS.forEach((w,i)=>{
+    let y=padTop+iH;
+    capOrder.forEach(c=>{const v=w[c.id]||0; if(!v)return; const h=scale(v); y-=h;
+      const dim=(capIso&&capIso!==c.id)||(hotStepCaps&&!hotStepCaps.includes(c.id));
+      const hot=hotStepCaps&&hotStepCaps.includes(c.id);
+      s+=`<rect x="${padX+i*col+0.5}" y="${y}" width="${col-1}" height="${h}" fill="${c.color}" opacity="${dim?0.1:0.92}" ${hot?'stroke="#2A2824" stroke-width="0.75"':''}/>`;});
+  });
+  s+=`<line x1="${padX}" x2="${padX+iW}" y1="${padTop+iH+0.5}" y2="${padTop+iH+0.5}" stroke="rgba(0,0,0,0.12)"/>`;
+  // marker
+  const mx=padX+(MARKER.wk-0.5)*col;
+  s+=`<text class="marker" x="${mx-2}" y="${padTop-12}" text-anchor="end">✷ ${MARKER.label}</text>`;
+  s+=`<line x1="${nowX}" x2="${nowX}" y1="${padTop-6}" y2="${padTop+iH+4}" stroke="#FF6B5A" stroke-width="1" opacity="0.85"/>`;
+  s+=`<text class="now-label" x="${nowX+3}" y="${padTop-6}" text-anchor="start">NOW</text>`;
+  [1,CURRENT,TOTAL].forEach(wk=>{const x=padX+(wk-0.5)*col;s+=`<text class="tick ${wk===CURRENT?'now':''}" x="${x}" y="${H-4}" text-anchor="middle">wk ${wk}</text>`;});
+  document.getElementById('bands').innerHTML=s;
+}
+function drawRefl(){
+  let s=''; const y=4,h=15;
+  for(let wk=1;wk<=TOTAL;wk++){const x=padX+(wk-0.5)*col; const on=reflWeeks.includes(wk);
+    s+=`<rect x="${x-4}" y="${on?y:y+6}" width="8" height="${on?h:3}" rx="2" fill="${on?'#9D70C9':'#D8D2E4'}" opacity="${on?0.85:0.55}"/>`;}
+  s+=`<line x1="${nowX}" x2="${nowX}" y1="0" y2="24" stroke="#FF6B5A" stroke-width="1" opacity="0.3"/>`;
+  document.getElementById('reflStrip').innerHTML=s;
+  document.getElementById('reflCap').innerHTML=`<b>✷ Reflections</b> — you paused ${reflWeeks.map(w=>'wk '+w).join(' · ')}`;
+}
+function drawPeers(){
+  const H=84, top=6, rh=22; let s='';
+  peerOrder.forEach((p,r)=>{
+    const cy=top+r*rh+8; const wks=peerWeeks[p.id]; if(!wks.length)return;
+    const dim=(peerIso&&peerIso!==p.id)||(hotStepPeople&&!hotStepPeople.includes(p.id));
+    const op=dim?0.16:1;
+    const x0=padX+(wks[0]-0.5)*col;
+    s+=`<line x1="${x0}" x2="${nowX}" y1="${cy}" y2="${cy}" stroke="${p.color}" stroke-width="1" opacity="${dim?0.08:0.32}"/>`;
+    wks.forEach((wk,wi)=>{const x=padX+(wk-0.5)*col;
+      s+=`<circle cx="${x}" cy="${cy}" r="${wi===0?8:4.5}" fill="${p.color}" opacity="${op}"/>`;
+      if(wi===0)s+=`<text x="${x}" y="${cy+3}" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff" opacity="${op}">${p.initials}</text>`;});
+  });
+  s+=`<line x1="${nowX}" x2="${nowX}" y1="0" y2="${H-18}" stroke="#FF6B5A" stroke-width="1" opacity="0.45"/>`;
+  [1,CURRENT,TOTAL].forEach(wk=>{const x=padX+(wk-0.5)*col;s+=`<text class="tick ${wk===CURRENT?'now':''}" x="${x}" y="${H-4}" text-anchor="middle">wk ${wk}</text>`;});
+  document.getElementById('peerChart').innerHTML=s;
+}
+function drawCapLegend(){
+  document.getElementById('capLegend').innerHTML=capOrder.map(c=>{
+    const cls=capIso?(capIso===c.id?'active':'dim'):(hotStepCaps&&hotStepCaps.includes(c.id)?'hot':'');
+    return `<span class="chip ${cls}" data-cap="${c.id}"><span class="sw" style="background:${c.color}"></span>${c.label}<span class="vn">${capTotals[c.id]}</span></span>`;}).join('');
+  document.querySelectorAll('[data-cap]').forEach(c=>c.onclick=()=>{capIso=capIso===c.dataset.cap?null:c.dataset.cap; peerIso=null; render();});
+}
+function drawPeopleLegend(){
+  document.getElementById('peopleLegend').innerHTML=peerOrder.map(p=>{
+    const cls=peerIso?(peerIso===p.id?'active':'dim'):(hotStepPeople&&hotStepPeople.includes(p.id)?'hot':'');
+    return `<span class="chip ${cls}" data-peer="${p.id}"><span class="av" style="background:${p.color}">${p.initials}</span>${p.name} <span class="vn">· ${p.rel} ${peerTotals[p.id]}</span></span>`;}).join('');
+  document.querySelectorAll('[data-peer]').forEach(c=>c.onclick=()=>{peerIso=peerIso===c.dataset.peer?null:c.dataset.peer; capIso=null; render();});
+}
+function drawHeadline(){
+  const h=document.getElementById('headline');
+  if(capIso){const c=CAP[capIso];
+    h.innerHTML=`<b style="color:${c.color}">${c.label}</b> — in ${capWeeks[c.id]} of ${CURRENT} weeks so far.`;}
+  else if(peerIso){const p=PRS[peerIso];
+    h.innerHTML=`<b style="color:${p.color}">${p.name}</b> shaped ${peerWeeks[p.id].length} of ${CURRENT} weeks — your ${p.rel}.`;}
+  else {const top=capOrder[0];
+    h.innerHTML=`<b style="color:${top.color}">${top.label}</b> anchored this rotation — in ${capWeeks[top.id]} of ${CURRENT} weeks.`;}
+}
+
+// ---- the log, driven by the selector ----
+function activeSteps(){
+  let ss=STEPS.filter(s=>s.wk<=CURRENT);
+  if(capIso) ss=ss.filter(s=>s.caps.includes(capIso));
+  if(peerIso) ss=ss.filter(s=>s.people.includes(peerIso));
+  return ss;
+}
+function drawLogbar(){
+  const bar=document.getElementById('logbar'); const n=activeSteps().length;
+  if(capIso){const c=CAP[capIso];
+    bar.innerHTML=`<span class="filterpill"><span class="sw" style="background:${c.color}"></span>${c.label}<span class="x" onclick="clearFilter()">✕</span></span><span class="count"><b>${n}</b> steps built this thread</span>`;}
+  else if(peerIso){const p=PRS[peerIso];
+    bar.innerHTML=`<span class="filterpill"><span class="av" style="width:14px;height:14px;background:${p.color};font-size:7.5px">${p.initials}</span>${p.name}<span class="x" onclick="clearFilter()">✕</span></span><span class="count"><b>${n}</b> steps ${p.name} shaped</span>`;}
+  else bar.innerHTML=`<span class="count"><b>${n}</b> steps so far · newest first</span>`;
+}
+function capDotsHtml(s){return `<span class="caps">${s.caps.map(id=>`<span class="cdot" style="background:${CAP[id].color}"></span>`).join('')}</span>`;}
+function pplHtml(s){if(!s.people.length)return '';return `<span class="ppl">${s.people.map(id=>`<span class="pdot" style="background:${PRS[id].color}">${PRS[id].initials}</span>`).join('')}</span>`;}
+function stepRow(s){
+  const stc=s.status==='done'?'<span class="st done">✓</span>':s.status==='prog'?'<span class="st prog"></span>':'<span class="st reflect"></span>';
+  const stTag=s.status==='prog'?'<span style="color:#FF6B5A">in progress</span>':s.status==='reflect'?'reflected':'done';
+  return `<div class="step ${s.status==='reflect'?'refl-dot':''}" onmouseenter="hotStep(${s.id})" onmouseleave="coolStep()" onclick="jump(${s.id})">
+    ${stc}
+    <div class="body"><div class="ti">${s.title}</div>
+    <div class="meta">${capDotsHtml(s)} ${pplHtml(s)} <span>${stTag}</span></div></div>
+    <span class="go">›</span></div>`;
+}
+function drawLog(){
+  const ss=activeSteps(); const el=document.getElementById('log');
+  const weeks=[...new Set(ss.map(s=>s.wk))].sort((a,b)=>b-a);
+  el.innerHTML=weeks.map(wk=>{
+    const rows=ss.filter(s=>s.wk===wk).map(stepRow).join('');
+    const isNow=wk===CURRENT;
+    return `<div class="wkgroup"><div class="wkhead ${isNow?'now':''}">Week ${wk}${isNow?' · this week':''}</div>${rows}</div>`;
+  }).join('');
+}
+
+function clearFilter(){capIso=null;peerIso=null;render();}
+function hotStep(id){const s=STEPS.find(x=>x.id===id); hotStepCaps=s.caps; hotStepPeople=s.people; drawBands();drawPeers();drawCapLegend();drawPeopleLegend();}
+function coolStep(){hotStepCaps=null;hotStepPeople=null; drawBands();drawPeers();drawCapLegend();drawPeopleLegend();}
+function jump(id){const s=STEPS.find(x=>x.id===id);const t=document.getElementById('toast');
+  t.textContent=`→ Opens "${s.title}" at L1 (step detail)`; t.style.opacity=1;
+  clearTimeout(window._jt); window._jt=setTimeout(()=>t.style.opacity=0,1700);}
+
+function render(){drawBands();drawRefl();drawPeers();drawCapLegend();drawPeopleLegend();drawHeadline();drawLogbar();drawLog();
+  document.getElementById('arcSub').textContent=(capIso||peerIso)?'log filtered ↓ · tap again to clear':'tap to filter the log ↓';}
+
+// unified scrub
+const callout=document.getElementById('callout');
+function scrub(e){
+  const sp=document.getElementById('bands'); const r=sp.getBoundingClientRect();
+  const px=(e.clientX-r.left)/r.width*W; let idx=Math.floor((px-padX)/col);
+  if(idx<0||idx>=CURRENT){callout.style.opacity=0;return;}
+  const w=WEEKS[idx]; const rows=CAPS.filter(c=>w[c.id]).sort((a,b)=>(w[b.id]||0)-(w[a.id]||0));
+  if(!rows.length){callout.style.opacity=0;return;}
+  const wk=idx+1; const ppl=PEOPLE.filter(p=>peerWeeks[p.id].includes(wk)).map(p=>p.name);
+  let html=`<div class="wk">Week ${wk}</div>`+rows.map(c=>`<div class="row"><span class="sw" style="background:${c.color}"></span><span class="nm">${c.label}</span><span class="vn">${w[c.id]}</span></div>`).join('');
+  if(reflWeeks.includes(wk))html+=`<div class="meta pause">✷ You paused to reflect</div>`;
+  if(ppl.length)html+=`<div class="meta">● with ${ppl.join(', ')}</div>`;
+  callout.innerHTML=html;
+  callout.style.left=((padX+(idx+0.5)*col)/W*r.width)+'px';
+  callout.style.top='10px'; callout.style.opacity=1;
+}
+const spineEl=document.getElementById('bands');
+spineEl.addEventListener('mousemove',scrub);
+spineEl.addEventListener('mouseleave',()=>callout.style.opacity=0);
+
+render();
+</script>
+</body>
+</html>

@@ -43,7 +43,6 @@ import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
 import { ReflectionSparkline } from './ReflectionSparkline';
-import { CapabilityFamilySheet } from './CapabilityFamilySheet';
 import { VisionBlock } from './VisionBlock';
 import { VisionEditSheet } from './VisionEditSheet';
 import { useUpdateInterestVision } from '@/hooks/useInterestVision';
@@ -74,6 +73,14 @@ import type {
   TimelineSeason,
   TimelineStep,
 } from './types';
+
+interface CapabilityFamily {
+  id: string;
+  label: string;
+  color: string;
+  volume: number;
+  weeksPresent: number;
+}
 
 interface L3SeasonViewProps {
   dataset: TimelineDataset;
@@ -134,11 +141,18 @@ export function L3SeasonView({
   const [openPicker, setOpenPicker] = useState<
     'season' | 'step' | null
   >(null);
-  // Open capability family for the drill-down sheet — set when the
-  // user taps a band on the CapabilityMix chart.
-  const [openFamily, setOpenFamily] = useState<
+  // Active capability thread — set when the user taps a band on the
+  // CapabilityMix chart or a chip below it. Drives chart isolation AND
+  // inline filtering of the BROWSE WEEKS list (the unified surface: the
+  // chart is the selector for the log), replacing the old drill-in sheet.
+  const [activeThread, setActiveThread] = useState<
     { id: string; label: string; color: string } | null
   >(null);
+  const toggleThread = useCallback(
+    (next: { id: string; label: string; color: string }) =>
+      setActiveThread((prev) => (prev?.id === next.id ? null : next)),
+    [],
+  );
   // VISION lane edit sheet open state + handlers.
   const [visionEditOpen, setVisionEditOpen] = useState(false);
   const updateInterestVision = useUpdateInterestVision();
@@ -187,20 +201,23 @@ export function L3SeasonView({
     ),
   });
 
-  // Dominant capability family across the weeks elapsed so far — drives
-  // the serif takeaway headline above the band chart ("Proportion has
-  // anchored this sketchbook"). The chart becomes evidence for a
-  // sentence the user can read in one glance. Computed before the
-  // `!season` guard so the hook order stays stable.
-  const capabilityHeadline = useMemo(() => {
+  // Every capability family across the weeks elapsed so far, sorted by
+  // volume. Drives both the serif takeaway headline (families[0]) and
+  // the tappable chip row beneath the band chart — each chip isolates a
+  // thread (chart dimming + inline week-list filter), same as tapping
+  // the band itself. Keyed by `capabilityId ?? capabilityColor` to match
+  // CapabilityMix's band ids exactly, so chip taps and band taps drive
+  // the same thread.
+  // Computed before the `!season` guard so the hook order stays stable.
+  const capabilityFamilies = useMemo(() => {
     const a = season?.analysis;
-    if (!a) return null;
+    if (!a) return { families: [] as CapabilityFamily[], elapsed: 1 };
     const total = season!.weekOfTotal?.total ?? season!.weeks.length;
     const current = season!.weekOfTotal?.current ?? 1;
     const elapsed = Math.max(1, Math.min(current, total));
     const byFamily = new Map<
       string,
-      { label: string; color: string; volume: number; weeks: Set<number> }
+      { id: string; label: string; color: string; volume: number; weeks: Set<number> }
     >();
     for (const wk of a.weeklyCapabilities) {
       if (wk.weekNumber > elapsed) continue;
@@ -211,13 +228,14 @@ export function L3SeasonView({
           band.volume ??
           (band.plannedVolume ?? 0) + (band.provenVolume ?? 0);
         if (vol <= 0) continue;
-        const key = band.capabilityId ?? label;
-        const entry = byFamily.get(key);
+        const id = band.capabilityId ?? band.capabilityColor;
+        const entry = byFamily.get(id);
         if (entry) {
           entry.volume += vol;
           entry.weeks.add(wk.weekNumber);
         } else {
-          byFamily.set(key, {
+          byFamily.set(id, {
+            id,
             label,
             color: band.capabilityColor,
             volume: vol,
@@ -226,18 +244,18 @@ export function L3SeasonView({
         }
       }
     }
-    let top: { label: string; color: string; volume: number; weeks: Set<number> } | null =
-      null;
-    for (const e of byFamily.values()) {
-      if (!top || e.volume > top.volume) top = e;
-    }
-    if (!top) return null;
-    return {
-      label: top.label,
-      color: top.color,
-      weeksPresent: top.weeks.size,
-      elapsed,
-    };
+    const families: CapabilityFamily[] = Array.from(byFamily.values())
+      .map((f) => ({
+        id: f.id,
+        label: f.label,
+        color: f.color,
+        volume: f.volume,
+        weeksPresent: f.weeks.size,
+      }))
+      .sort((a, b) =>
+        b.volume !== a.volume ? b.volume - a.volume : a.label.localeCompare(b.label),
+      );
+    return { families, elapsed };
   }, [season]);
 
   // Most-present peer across elapsed weeks — drives the serif headline
@@ -273,11 +291,38 @@ export function L3SeasonView({
     return { name: top.name, color: top.color, weeks: top.weeks, elapsed };
   }, [season]);
 
+  // BROWSE WEEKS, filtered to the active capability thread. A step
+  // belongs to the thread when any of its capabilities shares the
+  // thread's id (clean palette case) or color (steps that author a
+  // bespoke capability sharing the family's hue, e.g. "Cardio
+  // assessment" under Cardio). Whole empty weeks drop out so the log
+  // collapses to just the weeks that touched the thread.
+  const visibleWeeks = useMemo(() => {
+    const weeks = season?.weeks ?? [];
+    if (!activeThread) return weeks;
+    return weeks
+      .map((w) => ({
+        ...w,
+        steps: w.steps.filter((s) =>
+          (s.capabilities ?? []).some(
+            (c) => c.id === activeThread.id || c.color === activeThread.color,
+          ),
+        ),
+      }))
+      .filter((w) => w.steps.length > 0);
+  }, [season?.weeks, activeThread]);
+
   if (!season) return null;
 
   const analysis = season.analysis;
   const totalWeeks = season.weekOfTotal?.total ?? season.weeks.length;
   const currentWeek = season.weekOfTotal?.current ?? 1;
+
+  // Dominant family drives the serif takeaway headline above the chart.
+  const capabilityHeadline =
+    capabilityFamilies.families.length > 0
+      ? { ...capabilityFamilies.families[0], elapsed: capabilityFamilies.elapsed }
+      : null;
 
   // Weeks where at least one reflection landed — drives the inline
   // "you paused wk 3 · wk 5" caption that replaces the old titled
@@ -307,12 +352,16 @@ export function L3SeasonView({
   // the analysis layer in the tree, we count the fixed children before
   // the per-week pairs and add per-week pairs from there.
   const hasAnalysis = Boolean(analysis);
+  const filtering = activeThread !== null;
   const fixedChildrenBeforeWeeks =
     // headerChips + browseWeeksEyebrow + toolbar
     3
     // analysis block (one wrapper View if present)
     + (hasAnalysis ? 1 : 0);
-  const stickyHeaderIndices = season.weeks.map(
+  // Sticky indices stride over the rendered week pairs. When a thread is
+  // active the list collapses to `visibleWeeks`, so the indices must
+  // track that filtered set or they'd point past the end.
+  const stickyHeaderIndices = visibleWeeks.map(
     (_w, i) => fixedChildrenBeforeWeeks + i * 2,
   );
 
@@ -415,10 +464,53 @@ export function L3SeasonView({
                 }))}
                 width={chartWidth}
                 height={188}
+                isolatedCapabilityId={activeThread?.id ?? null}
                 onCapabilityPress={(id, label, color) =>
-                  setOpenFamily({ id, label, color })
+                  toggleThread({ id, label, color })
                 }
               />
+              {capabilityFamilies.families.length > 0 ? (
+                <>
+                  <View style={styles.capChipsWrap}>
+                    {capabilityFamilies.families.slice(0, 6).map((f) => {
+                      const active = activeThread?.id === f.id;
+                      return (
+                        <Pressable
+                          key={f.id}
+                          style={[
+                            styles.capChip,
+                            active && [
+                              styles.capChipActive,
+                              { borderColor: f.color },
+                            ],
+                          ]}
+                          onPress={() =>
+                            toggleThread({ id: f.id, label: f.label, color: f.color })
+                          }
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                          accessibilityLabel={`${f.label}, ${f.weeksPresent} ${
+                            f.weeksPresent === 1 ? 'week' : 'weeks'
+                          } — ${active ? 'showing only this thread' : 'isolate this thread'}`}
+                        >
+                          <View
+                            style={[styles.capChipDot, { backgroundColor: f.color }]}
+                          />
+                          <Text style={styles.capChipLabel} numberOfLines={1}>
+                            {f.label}
+                          </Text>
+                          <Text style={styles.capChipCount}>{f.weeksPresent}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  <Text style={styles.capChipsCaption}>
+                    {filtering
+                      ? 'Showing only this thread below — tap again to clear'
+                      : 'Tap a thread to isolate + filter the weeks below'}
+                  </Text>
+                </>
+              ) : null}
             </>
           ) : (
             <View style={styles.riverEmpty}>
@@ -513,17 +605,38 @@ export function L3SeasonView({
 
       <Text style={styles.browseEyebrow}>BROWSE WEEKS</Text>
 
-      <View style={styles.toolbar}>
-        <ToolbarButton icon="swap-vertical-outline" label="Sort" />
-        <ToolbarButton icon="filter-outline" label="Capability" />
-        <ToolbarButton
-          icon="checkmark-circle-outline"
-          label="Select"
-          onPress={onEnterSelectMode}
-        />
-      </View>
+      {filtering && activeThread ? (
+        <View style={styles.filterBar}>
+          <Pressable
+            style={[styles.filterPill, { borderColor: activeThread.color }]}
+            onPress={() => setActiveThread(null)}
+            accessibilityRole="button"
+            accessibilityLabel={`Filtering by ${activeThread.label} — tap to clear`}
+          >
+            <View
+              style={[styles.filterPillDot, { backgroundColor: activeThread.color }]}
+            />
+            <Text style={styles.filterPillLabel} numberOfLines={1}>
+              {activeThread.label}
+            </Text>
+            <Ionicons name="close" size={13} color={IOS_REGISTER.labelSecondary} />
+          </Pressable>
+          <Text style={styles.filterCount}>
+            {visibleWeeks.reduce((n, w) => n + w.steps.length, 0)} steps
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.toolbar}>
+          <ToolbarButton icon="swap-vertical-outline" label="Sort" />
+          <ToolbarButton
+            icon="checkmark-circle-outline"
+            label="Select"
+            onPress={onEnterSelectMode}
+          />
+        </View>
+      )}
 
-      {season.weeks.flatMap((week) => [
+      {visibleWeeks.flatMap((week) => [
         <View
           key={`hdr-${week.id}`}
           style={styles.weekHeaderSticky}
@@ -558,6 +671,10 @@ export function L3SeasonView({
                   highlighted={step.id === focusStepId || selected}
                   selected={selected}
                   selectEnabled={selectEnabled}
+                  // Drag-reorder reasons in full-season flat coordinates;
+                  // filtering hides weeks, so disable lifting while a
+                  // thread is active to keep drop math honest.
+                  dragActive={!filtering}
                   onOpen={handlePress}
                   buildGesture={drag.buildItemGesture}
                   registerRowLayout={drag.registerRowLayout}
@@ -642,16 +759,6 @@ export function L3SeasonView({
         }}
       />
 
-      <CapabilityFamilySheet
-        visible={openFamily !== null}
-        onClose={() => setOpenFamily(null)}
-        season={season}
-        capabilityId={openFamily?.id ?? null}
-        capabilityLabel={openFamily?.label ?? null}
-        capabilityColor={openFamily?.color ?? null}
-        interestVocab={interestVocab}
-        onOpenStep={onOpenStep}
-      />
       <VisionEditSheet
         visible={visionEditOpen}
         onClose={() => setVisionEditOpen(false)}
@@ -702,6 +809,7 @@ interface DraggableCardSlotProps {
   highlighted: boolean;
   selected: boolean;
   selectEnabled: boolean;
+  dragActive: boolean;
   onOpen: () => void;
   buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
   registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
@@ -716,6 +824,7 @@ function DraggableCardSlot({
   highlighted,
   selected,
   selectEnabled,
+  dragActive,
   onOpen,
   buildGesture,
   registerRowLayout,
@@ -777,7 +886,7 @@ function DraggableCardSlot({
   return (
     <View style={styles.dropSlotWrap}>
       {showDropIndicatorBefore ? <View style={styles.dropIndicator} /> : null}
-      {selectEnabled ? (
+      {selectEnabled || !dragActive ? (
         cardBody
       ) : (
         <GestureDetector gesture={gesture}>{cardBody}</GestureDetector>
@@ -1064,6 +1173,56 @@ const styles = StyleSheet.create({
   sectionHeadlineAccent: {
     fontWeight: '600',
   },
+  // Tappable capability chips beneath the band chart — the drill-in
+  // "made explicit". Each chip isolates a thread (chart dimming + inline
+  // week-list filter).
+  capChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    marginHorizontal: 16,
+    marginTop: 12,
+  },
+  capChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.fillPill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+  },
+  capChipActive: {
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderWidth: 1.5,
+  },
+  capChipDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  capChipLabel: {
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+    flexShrink: 1,
+  },
+  capChipCount: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: IOS_REGISTER.labelSecondary,
+  },
+  capChipsCaption: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: IOS_REGISTER.labelTertiary,
+    marginLeft: 16,
+    marginTop: 8,
+    letterSpacing: 0.1,
+  },
   sectionSubeyebrow: {
     fontSize: 11,
     fontStyle: 'italic',
@@ -1164,6 +1323,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
     marginBottom: 12,
+  },
+  // Filter bar — replaces the toolbar while a capability thread is
+  // active. The pill names the thread and clears it on tap; the count
+  // confirms how much of the log the filter is showing.
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingLeft: 10,
+    paddingRight: 8,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderWidth: 1.5,
+  },
+  filterPillDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+  },
+  filterPillLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.2,
+    flexShrink: 1,
+  },
+  filterCount: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
   },
   toolBtn: {
     flex: 1,

@@ -53,6 +53,12 @@ interface CapabilityMixProps {
     capabilityColor: string,
   ) => void;
   /**
+   * When set, the chart isolates this capability: its band keeps full
+   * saturation while every other band dims to a faint context wash. The
+   * id matches the band id scheme (`capabilityId ?? capabilityColor`).
+   */
+  isolatedCapabilityId?: string | null;
+  /**
    * Override the tick label for the x-axis. L3 defaults to "wk N";
    * L4 passes a function that returns the session label ("Winter '26",
    * "Fall '24") for each unit.
@@ -112,6 +118,7 @@ export function CapabilityMix({
   height = 168,
   markers = [],
   onCapabilityPress,
+  isolatedCapabilityId = null,
   unitLabel = (n) => `wk ${n}`,
 }: CapabilityMixProps) {
   const padX = 12;
@@ -325,6 +332,12 @@ export function CapabilityMix({
         {rects.map((r) => {
           const solidY = r.yBottom - r.solidHeight;
           const ghostY = solidY - r.ghostHeight;
+          // When a band is isolated, every other band dims to a faint
+          // context wash so the chosen thread reads as a single stream.
+          const dimmed =
+            isolatedCapabilityId !== null && r.bandId !== isolatedCapabilityId;
+          const ghostOpacity = dimmed ? 0.06 : 0.22;
+          const solidOpacity = dimmed ? 0.16 : 0.95;
           return (
             <React.Fragment key={`${r.bandId}-${r.x}`}>
               {r.ghostHeight > 0 ? (
@@ -334,7 +347,7 @@ export function CapabilityMix({
                   width={r.w}
                   height={r.ghostHeight}
                   fill={r.bandColor}
-                  opacity={0.22}
+                  opacity={ghostOpacity}
                 />
               ) : null}
               {r.solidHeight > 0 ? (
@@ -344,7 +357,7 @@ export function CapabilityMix({
                   width={r.w}
                   height={r.solidHeight}
                   fill={r.bandColor}
-                  opacity={0.95}
+                  opacity={solidOpacity}
                 />
               ) : null}
             </React.Fragment>
@@ -412,6 +425,11 @@ export function CapabilityMix({
             fontWeight="600"
             fill={l.color}
             textAnchor="middle"
+            opacity={
+              isolatedCapabilityId !== null && l.bandId !== isolatedCapabilityId
+                ? 0.25
+                : 1
+            }
           >
             {l.text}
           </SvgText>

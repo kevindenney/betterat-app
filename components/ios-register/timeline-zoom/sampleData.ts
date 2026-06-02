@@ -133,6 +133,21 @@ function bricksFor(colors: string[]) {
   return colors.map((capabilityColor) => ({ capabilityColor }));
 }
 
+// Capability-mix band authored from a palette entry. Carries id + label
+// (not just color) so the L3 takeaway headline and the tappable chip row
+// can name the family — color alone leaves both blank.
+function band(
+  cap: { id: string; label: string; color: string },
+  volume: number,
+) {
+  return {
+    capabilityId: cap.id,
+    capabilityLabel: cap.label,
+    capabilityColor: cap.color,
+    volume,
+  };
+}
+
 // Spring '26 analysis layer — hand-authored to match the canonical
 // "REFLECTING ON NOW" surface (Screen 09). Drives the capability river
 // + peer journey + librarian prompt on L3.
@@ -143,20 +158,20 @@ function bricksFor(colors: string[]) {
 // the cardio block.
 const SPRING_26_ANALYSIS: SeasonAnalysis = {
   weeklyCapabilities: [
-    { weekNumber: 1,  bands: [{ capabilityColor: PALETTE.procedural.color, volume: 4 }, { capabilityColor: PALETTE.assess.color, volume: 1 }] },
-    { weekNumber: 2,  bands: [{ capabilityColor: PALETTE.procedural.color, volume: 3 }, { capabilityColor: PALETTE.comm.color, volume: 1 }] },
-    { weekNumber: 3,  bands: [{ capabilityColor: PALETTE.procedural.color, volume: 3 }, { capabilityColor: PALETTE.assess.color, volume: 2 }] },
-    { weekNumber: 4,  bands: [{ capabilityColor: PALETTE.assess.color, volume: 4 }, { capabilityColor: PALETTE.procedural.color, volume: 2 }] },
-    { weekNumber: 5,  bands: [{ capabilityColor: PALETTE.assess.color, volume: 3 }, { capabilityColor: PALETTE.pharm.color, volume: 2 }, { capabilityColor: PALETTE.procedural.color, volume: 1 }] },
-    { weekNumber: 6,  bands: [{ capabilityColor: PALETTE.assess.color, volume: 3 }, { capabilityColor: PALETTE.comm.color, volume: 2 }] },
-    { weekNumber: 7,  bands: [{ capabilityColor: PALETTE.cardio.color, volume: 4 }, { capabilityColor: PALETTE.sbar.color, volume: 2 }, { capabilityColor: PALETTE.assess.color, volume: 1 }] },
-    { weekNumber: 8,  bands: [{ capabilityColor: PALETTE.cardio.color, volume: 3 }, { capabilityColor: PALETTE.diuretic.color, volume: 2 }] },
-    { weekNumber: 9,  bands: [{ capabilityColor: PALETTE.cardio.color, volume: 3 }, { capabilityColor: PALETTE.sbar.color, volume: 1 }] },
-    { weekNumber: 10, bands: [{ capabilityColor: PALETTE.cardio.color, volume: 2 }, { capabilityColor: PALETTE.comm.color, volume: 2 }] },
-    { weekNumber: 11, bands: [{ capabilityColor: PALETTE.comm.color, volume: 3 }, { capabilityColor: PALETTE.pharm.color, volume: 2 }] },
-    { weekNumber: 12, bands: [{ capabilityColor: PALETTE.comm.color, volume: 2 }, { capabilityColor: PALETTE.assess.color, volume: 2 }] },
-    { weekNumber: 13, bands: [{ capabilityColor: PALETTE.pharm.color, volume: 3 }, { capabilityColor: PALETTE.comm.color, volume: 1 }] },
-    { weekNumber: 14, bands: [{ capabilityColor: PALETTE.assess.color, volume: 2 }, { capabilityColor: PALETTE.comm.color, volume: 1 }] },
+    { weekNumber: 1,  bands: [band(PALETTE.procedural, 4), band(PALETTE.assess, 1)] },
+    { weekNumber: 2,  bands: [band(PALETTE.procedural, 3), band(PALETTE.comm, 1)] },
+    { weekNumber: 3,  bands: [band(PALETTE.procedural, 3), band(PALETTE.assess, 2)] },
+    { weekNumber: 4,  bands: [band(PALETTE.assess, 4), band(PALETTE.procedural, 2)] },
+    { weekNumber: 5,  bands: [band(PALETTE.assess, 3), band(PALETTE.pharm, 2), band(PALETTE.procedural, 1)] },
+    { weekNumber: 6,  bands: [band(PALETTE.assess, 3), band(PALETTE.comm, 2)] },
+    { weekNumber: 7,  bands: [band(PALETTE.cardio, 4), band(PALETTE.sbar, 2), band(PALETTE.assess, 1)] },
+    { weekNumber: 8,  bands: [band(PALETTE.cardio, 3), band(PALETTE.diuretic, 2)] },
+    { weekNumber: 9,  bands: [band(PALETTE.cardio, 3), band(PALETTE.sbar, 1)] },
+    { weekNumber: 10, bands: [band(PALETTE.cardio, 2), band(PALETTE.comm, 2)] },
+    { weekNumber: 11, bands: [band(PALETTE.comm, 3), band(PALETTE.pharm, 2)] },
+    { weekNumber: 12, bands: [band(PALETTE.comm, 2), band(PALETTE.assess, 2)] },
+    { weekNumber: 13, bands: [band(PALETTE.pharm, 3), band(PALETTE.comm, 1)] },
+    { weekNumber: 14, bands: [band(PALETTE.assess, 2), band(PALETTE.comm, 1)] },
   ],
   phases: [
     { id: 'p-entry',      label: 'wk 1 · entry', startWeek: 1,  endWeek: 1,  color: PALETTE.procedural.color },
