@@ -15,9 +15,10 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { supabase } from '@/services/supabase';
+import { resequenceTimelineSortOrders } from '@/services/TimelineStepService';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
@@ -261,32 +262,58 @@ export function TimelineZoomPracticeScreen() {
   }, []);
 
   // Section D drag-reorder — the view resolves the post-drop neighbor
-  // step ids and hands them here; we look up their sort_orders and
-  // write a value between them. Neighbor-id (not index) lets both L2
-  // and L3 share this handler without the owner needing to know which
+  // step ids (beforeStepId = the lower-sort_order neighbour, afterStepId =
+  // the higher one) and hands them here. Neighbor-id (not index) lets both
+  // L2 and L3 share this handler without the owner needing to know which
   // view called.
+  //
+  // We resequence sort_order = index over the whole interest rather than
+  // writing a midpoint value. sort_order is an integer column and seeded /
+  // race-cluster steps frequently land on consecutive integers (or all on
+  // 0), so a midpoint between two neighbours has no room and silently
+  // collides — the drop wouldn't land. Index resequencing always has room.
   const updateStep = useUpdateStep();
+  const queryClient = useQueryClient();
   const handleReorderStep = useCallback(
     (stepId: string, beforeStepId: string | null, afterStepId: string | null) => {
-      const moved = steps.find((s) => s.id === stepId);
-      if (!moved) return;
-      const before = beforeStepId ? steps.find((s) => s.id === beforeStepId) : null;
-      const after = afterStepId ? steps.find((s) => s.id === afterStepId) : null;
+      if (!steps.some((s) => s.id === stepId)) return;
 
-      let nextSort: number;
-      if (before && after) {
-        nextSort = (before.sort_order + after.sort_order) / 2;
-      } else if (before) {
-        nextSort = before.sort_order + 1;
-      } else if (after) {
-        nextSort = after.sort_order - 1;
+      const ordered = [...steps]
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((s) => s.id)
+        .filter((id) => id !== stepId);
+
+      let insertAt: number;
+      if (afterStepId) {
+        const idx = ordered.indexOf(afterStepId);
+        insertAt = idx >= 0 ? idx : ordered.length;
+      } else if (beforeStepId) {
+        const idx = ordered.indexOf(beforeStepId);
+        insertAt = idx >= 0 ? idx + 1 : ordered.length;
       } else {
         return; // no neighbors at all = no list = nothing to do
       }
-      if (nextSort === moved.sort_order) return;
-      updateStep.mutate({ stepId, input: { sort_order: nextSort } });
+
+      ordered.splice(insertAt, 0, stepId);
+
+      const unchanged =
+        ordered.length === steps.length &&
+        ordered.every((id, i) => {
+          const s = steps.find((st) => st.id === id);
+          return s?.sort_order === i;
+        });
+      if (unchanged) return;
+
+      void resequenceTimelineSortOrders(ordered)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+          queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+        })
+        .catch(() => {
+          showAlert('Could not reorder', 'The step order could not be saved. Please try again.');
+        });
     },
-    [steps, updateStep],
+    [steps, queryClient],
   );
 
   // Drag a pending card left of the NOW bar to complete it (L2). 'completed'

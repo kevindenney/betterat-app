@@ -185,19 +185,65 @@ export function L3SeasonView({
     return season.weeks.flatMap((w) => w.steps);
   }, [season]);
 
+  // BROWSE WEEKS, filtered to the active capability thread. A step
+  // belongs to the thread when any of its capabilities shares the
+  // thread's id (clean palette case) or color (steps that author a
+  // bespoke capability sharing the family's hue, e.g. "Cardio
+  // assessment" under Cardio). Whole empty weeks drop out so the log
+  // collapses to just the weeks that touched the thread.
+  const visibleWeeks = useMemo(() => {
+    const weeks = season?.weeks ?? [];
+    if (!activeThread) return weeks;
+    return weeks
+      .map((w) => ({
+        ...w,
+        steps: w.steps.filter((s) =>
+          (s.capabilities ?? []).some(
+            (c) => c.id === activeThread.id || c.color === activeThread.color,
+          ),
+        ),
+      }))
+      .filter((w) => w.steps.length > 0);
+  }, [season?.weeks, activeThread]);
+
+  // THE WORK reads newest-first (latest week on top, latest step on top
+  // within each week) so recent work leads and history scrolls down.
+  // Steps arrive sort_order-ascending from the adapter, so this is a
+  // straight reverse at both levels. flatDisplaySteps is the visual-order
+  // flat list the drag hook reasons in — kept separate from chronological
+  // flatSteps, which still drives the "Step N of M" ordinal + jump picker.
+  // Declared before useDragReorder so the hook's items/deps don't hit the
+  // const temporal dead zone (would otherwise pass items: undefined).
+  const displayWeeks = useMemo(
+    () =>
+      [...visibleWeeks].reverse().map((w) => ({
+        ...w,
+        steps: [...w.steps].reverse(),
+      })),
+    [visibleWeeks],
+  );
+  const flatDisplaySteps = useMemo(
+    () => displayWeeks.flatMap((w) => w.steps),
+    [displayWeeks],
+  );
+
   const drag = useDragReorder<TimelineStep>({
-    items: flatSteps,
+    items: flatDisplaySteps,
     enabled: Boolean(onReorderStep),
     onReorder: useCallback(
       (id, from, to) => {
-        const without = flatSteps.filter((s) => s.id !== id);
+        const without = flatDisplaySteps.filter((s) => s.id !== id);
         const clamped = Math.max(0, Math.min(to, without.length));
-        const before = without[clamped - 1]?.id ?? null;
-        const after = without[clamped]?.id ?? null;
-        onReorderStep?.(id, before, after);
+        // Newest-first: the visually-above row is the *higher* sort_order
+        // (newer) and visually-below is *lower* (older). handleReorderStep
+        // expects (lowerSortNeighbor, higherSortNeighbor) to midpoint the
+        // moved step between them, so swap relative to visual position.
+        const visualAbove = without[clamped - 1]?.id ?? null;
+        const visualBelow = without[clamped]?.id ?? null;
+        onReorderStep?.(id, visualBelow, visualAbove);
         void from;
       },
-      [flatSteps, onReorderStep],
+      [flatDisplaySteps, onReorderStep],
     ),
   });
 
@@ -290,27 +336,6 @@ export function L3SeasonView({
     if (!top) return null;
     return { name: top.name, color: top.color, weeks: top.weeks, elapsed };
   }, [season]);
-
-  // BROWSE WEEKS, filtered to the active capability thread. A step
-  // belongs to the thread when any of its capabilities shares the
-  // thread's id (clean palette case) or color (steps that author a
-  // bespoke capability sharing the family's hue, e.g. "Cardio
-  // assessment" under Cardio). Whole empty weeks drop out so the log
-  // collapses to just the weeks that touched the thread.
-  const visibleWeeks = useMemo(() => {
-    const weeks = season?.weeks ?? [];
-    if (!activeThread) return weeks;
-    return weeks
-      .map((w) => ({
-        ...w,
-        steps: w.steps.filter((s) =>
-          (s.capabilities ?? []).some(
-            (c) => c.id === activeThread.id || c.color === activeThread.color,
-          ),
-        ),
-      }))
-      .filter((w) => w.steps.length > 0);
-  }, [season?.weeks, activeThread]);
 
   if (!season) return null;
 
@@ -633,7 +658,7 @@ export function L3SeasonView({
           <Text style={styles.logCaption}>
             {(() => {
               const n = flatSteps.length;
-              return `${n} ${n === 1 ? 'step' : 'steps'} in this arc`;
+              return `${n} ${n === 1 ? 'step' : 'steps'} so far · newest first`;
             })()}
           </Text>
           <View style={styles.toolbarActions}>
@@ -647,7 +672,7 @@ export function L3SeasonView({
         </View>
       )}
 
-      {visibleWeeks.flatMap((week) => [
+      {displayWeeks.flatMap((week) => [
         <View
           key={`hdr-${week.id}`}
           style={styles.weekHeaderSticky}
@@ -662,7 +687,7 @@ export function L3SeasonView({
         </View>,
         <View key={`body-${week.id}`} style={styles.weekBody}>
           {week.steps.map((step) => {
-            const flatIndex = flatSteps.findIndex((s) => s.id === step.id);
+            const flatIndex = flatDisplaySteps.findIndex((s) => s.id === step.id);
             const isLifted = drag.liftedId === step.id;
             const showDropIndicatorBefore =
               drag.dropTargetIndex === flatIndex && !isLifted;
