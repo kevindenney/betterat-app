@@ -51,6 +51,12 @@ interface CreateRaceCourseSheetProps {
   venueId?: string | null;
   /** Optional pre-filled boat class — usually the user's primary class. */
   defaultBoatClass?: string | null;
+  /**
+   * Initial WIND FROM value (degrees the wind blows from). Defaults to the
+   * live observed wind at the area so the course starts oriented correctly —
+   * windward upwind — rather than locked to due north. User can still dial it.
+   */
+  defaultWindDirectionDeg?: number;
   /** Pixels to push the sheet up to clear floating chrome (tab bar). */
   bottomOffset?: number;
   /**
@@ -84,13 +90,14 @@ export function CreateRaceCourseSheet({
   racingAreaId,
   venueId,
   defaultBoatClass,
+  defaultWindDirectionDeg = 0,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   onPreviewChange,
   onClose,
   onCreated,
 }: CreateRaceCourseSheetProps) {
   const [name, setName] = useState('');
-  const [windDirectionDeg, setWindDirectionDeg] = useState(0);
+  const [windDirectionDeg, setWindDirectionDeg] = useState(defaultWindDirectionDeg);
   const [startLineLengthM, setStartLineLengthM] = useState(DEFAULT_START_LINE_LENGTH_M);
   const [legLengthNm, setLegLengthNm] = useState(DEFAULT_LEG_LENGTH_NM);
   const [tackAngleDeg, setTackAngleDeg] = useState(DEFAULT_TACK_ANGLE_DEG);
@@ -102,13 +109,13 @@ export function CreateRaceCourseSheet({
   useEffect(() => {
     if (!visible) return;
     setName('');
-    setWindDirectionDeg(0);
+    setWindDirectionDeg(defaultWindDirectionDeg);
     setStartLineLengthM(DEFAULT_START_LINE_LENGTH_M);
     setLegLengthNm(DEFAULT_LEG_LENGTH_NM);
     setTackAngleDeg(DEFAULT_TACK_ANGLE_DEG);
     setStartBoxDepth(DEFAULT_START_BOX_DEPTH_BOAT_LENGTHS);
     setClassesText(defaultBoatClass ?? '');
-  }, [visible, defaultBoatClass]);
+  }, [visible, defaultBoatClass, defaultWindDirectionDeg]);
 
   // Derive the course params + overlay preview. Recomputed whenever the
   // tapped center or any geometry dial changes, so the on-map preview is

@@ -1916,6 +1916,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     () => conditionsLineFor(marineSnapshot?.current ?? null),
     [marineSnapshot],
   );
+  // Seed new race courses with the live wind direction (degrees the wind
+  // blows FROM) so authoring starts oriented to today's wind — windward
+  // upwind — instead of locking to due north and reading as flipped.
+  const defaultCourseWindDeg = useMemo(() => {
+    const deg = Number((windConditionsLine ?? '').split('|')[0]);
+    return Number.isFinite(deg) ? deg : 0;
+  }, [windConditionsLine]);
   const scrubWindows = useMemo(
     () => [
       {
@@ -2868,6 +2875,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         center={courseSheetCenter}
         racingAreaId={courseSheetArea?.id ?? null}
         defaultBoatClass={courseSheetArea?.defaultClass}
+        defaultWindDirectionDeg={defaultCourseWindDeg}
         bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         onPreviewChange={setCoursePreview}
         onClose={() => {
@@ -2936,6 +2944,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         visible={manageAreasOpen}
         onClose={() => setManageAreasOpen(false)}
         onEditArea={handleEditArea}
+        onFocusArea={({ lat, lng }) => {
+          setManageAreasOpen(false);
+          setSearchFocus({ lat, lng });
+        }}
         onAddArea={() => {
           setManageAreasOpen(false);
           // Seed the create sheet with the current camera focus when we

@@ -47,6 +47,9 @@ interface ManageRacingAreasSheetProps {
    *  CreateRacingAreaSheet at a sensible default center (current map
    *  camera or focused venue). */
   onAddArea?: () => void;
+  /** When provided, tapping a row's body recenters the map on that area.
+   *  Parent closes this sheet and flies the camera to the coords. */
+  onFocusArea?: (area: { lat: number; lng: number }) => void;
 }
 
 interface AreaRow {
@@ -67,7 +70,7 @@ function formatMeters(meters: number | null): string {
   return km % 1 === 0 ? `${km} km` : `${km.toFixed(1)} km`;
 }
 
-export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea }: ManageRacingAreasSheetProps) {
+export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea, onFocusArea }: ManageRacingAreasSheetProps) {
   const { user } = useAuth();
   const deleteArea = useDeleteRacingArea();
   // Inline confirm — the id of the row showing its [Cancel] [Delete]
@@ -156,22 +159,44 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea
                 const classes = (area.classes_used ?? []).join(' · ');
                 const subtitle = [radius, classes].filter(Boolean).join(' · ');
                 const isPending = pendingDeleteId === area.id;
+                const canFocus =
+                  Boolean(onFocusArea) &&
+                  !isPending &&
+                  area.center_lat != null &&
+                  area.center_lng != null;
+                const rowBody = (
+                  <>
+                    <Text style={styles.rowTitle} numberOfLines={2}>
+                      {area.area_name}
+                    </Text>
+                    {isPending ? (
+                      <Text style={styles.rowConfirmText} numberOfLines={2}>
+                        Delete this area? It hides from your Atlas; seeded official areas aren’t affected.
+                      </Text>
+                    ) : subtitle ? (
+                      <Text style={styles.rowMeta} numberOfLines={1}>
+                        {subtitle}
+                      </Text>
+                    ) : null}
+                  </>
+                );
                 return (
                   <View key={area.id} style={[styles.row, isPending && styles.rowPending]}>
-                    <View style={styles.rowBody}>
-                      <Text style={styles.rowTitle} numberOfLines={2}>
-                        {area.area_name}
-                      </Text>
-                      {isPending ? (
-                        <Text style={styles.rowConfirmText} numberOfLines={2}>
-                          Delete this area? It hides from your Atlas; seeded official areas aren’t affected.
-                        </Text>
-                      ) : subtitle ? (
-                        <Text style={styles.rowMeta} numberOfLines={1}>
-                          {subtitle}
-                        </Text>
-                      ) : null}
-                    </View>
+                    {canFocus ? (
+                      <Pressable
+                        onPress={() =>
+                          onFocusArea!({ lat: area.center_lat!, lng: area.center_lng! })
+                        }
+                        hitSlop={6}
+                        style={styles.rowBody}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Center map on ${area.area_name}`}
+                      >
+                        {rowBody}
+                      </Pressable>
+                    ) : (
+                      <View style={styles.rowBody}>{rowBody}</View>
+                    )}
                     {isPending ? (
                       <View style={styles.confirmRow}>
                         <Pressable
