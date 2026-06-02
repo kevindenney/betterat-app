@@ -147,6 +147,32 @@ function toggleReactionInTree(
   return rows.map(apply);
 }
 
+/**
+ * Splice a freshly-posted note into the cached thread so it shows instantly.
+ * postStepNote returns the fully-enriched row, so we can place it directly
+ * rather than refetch — getStepDiscussion swallows read-after-write lag by
+ * returning [], which would otherwise flash the empty state right after a post.
+ */
+function insertNoteInTree(
+  rows: StepDiscussionRow[],
+  note: StepDiscussionRow,
+): StepDiscussionRow[] {
+  const present = (list: StepDiscussionRow[]): boolean =>
+    list.some((n) => n.id === note.id || (n.replies ? present(n.replies) : false));
+  if (present(rows)) return rows;
+
+  if (note.parent_id) {
+    // Replies render oldest-first under their root, so append.
+    return rows.map((root) =>
+      root.id === note.parent_id
+        ? { ...root, replies: [...(root.replies ?? []), note] }
+        : root,
+    );
+  }
+  // Roots render newest-first, so prepend.
+  return [{ ...note, replies: note.replies ?? [] }, ...rows];
+}
+
 const REACTION_GLYPH: Record<StepDiscussionReactionKind, string> = {
   fire: '🔥',
   insight: '💡',
@@ -314,11 +340,20 @@ export function StepDiscussionInline({
         quoteBody: input.quoteBody ?? null,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['phase10-step-discussion', stepId] });
-      queryClient.invalidateQueries({
-        queryKey: ['phase10-blueprint-step-discussion', blueprintStepId],
-      });
+    onSuccess: (newRow) => {
+      // Write the returned row straight into the active thread cache. We do NOT
+      // invalidate the feed here: an immediate refetch can race the insert's
+      // read-after-write visibility and come back empty (getStepDiscussion
+      // returns [] on any read error), which would re-flash "No notes yet".
+      if (newRow) {
+        const activeKey =
+          effectiveScope === 'cohort'
+            ? ['phase10-blueprint-step-discussion', blueprintStepId, user?.id]
+            : ['phase10-step-discussion', stepId, user?.id];
+        queryClient.setQueryData<StepDiscussionRow[]>(activeKey, (prev) =>
+          insertNoteInTree(prev ?? [], newRow),
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ['step-discussion-peek', stepId] });
     },
   });
