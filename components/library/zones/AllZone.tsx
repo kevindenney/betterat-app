@@ -31,6 +31,7 @@ import { useSubscribedPlansForLibrary } from '@/hooks/useSubscribedPlansForLibra
 import { useLifecycleConcepts } from '@/hooks/usePlaybook';
 import { useLibraryResourcesPreview } from '@/hooks/useLibraryResourcesPreview';
 import { useDiscoverBlueprints } from '@/hooks/useBlueprint';
+import { useMarketplaceBlueprints, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
 import { useTopOrgsForInterest } from '@/hooks/useTopOrgsForInterest';
 import { useUserFleets } from '@/hooks/useFleetData';
 import { useInterest } from '@/providers/InterestProvider';
@@ -104,8 +105,29 @@ function LoadingRow() {
 
 /** Catalog plan row (a Plan you could follow), distinct from PlanRowCard
  *  which renders a Plan you've already subscribed to. */
-function FollowPlanRow({ bp }: { bp: DiscoveredBlueprint }) {
-  const author = bp.organization_name ?? bp.author_name ?? 'Author';
+interface FollowRow {
+  id: string;
+  title: string;
+  author: string;
+  subscriberCount: number;
+  badge: string | null;
+  route: string;
+}
+
+function marketplaceToFollowRow(p: MarketplaceBlueprint): FollowRow {
+  const cadence =
+    p.billingCadence === 'monthly' ? '/mo' : p.billingCadence === 'annual' ? '/yr' : '';
+  return {
+    id: p.id,
+    title: p.title,
+    author: p.orgName ?? p.authorName,
+    subscriberCount: p.activeSubscriberCount,
+    badge: p.pricePerSeatCents > 0 ? `$${Math.round(p.pricePerSeatCents / 100)}${cadence}` : 'Free',
+    route: `/marketplace/${p.id}`,
+  };
+}
+
+function discoveredToFollowRow(bp: DiscoveredBlueprint): FollowRow {
   const badge =
     bp.access_level === 'paid'
       ? bp.price_cents && bp.price_cents > 0
@@ -114,26 +136,36 @@ function FollowPlanRow({ bp }: { bp: DiscoveredBlueprint }) {
       : bp.access_level === 'org_members'
         ? 'Members'
         : null;
+  return {
+    id: bp.id,
+    title: bp.title,
+    author: bp.organization_name ?? bp.author_name ?? 'Author',
+    subscriberCount: bp.subscriber_count,
+    badge,
+    route: `/(tabs)/library/blueprints/${bp.id}`,
+  };
+}
 
+function FollowPlanRow({ row }: { row: FollowRow }) {
   return (
     <Pressable
       style={styles.followPlanRow}
-      onPress={() => router.push(`/(tabs)/library/blueprints/${bp.id}` as never)}
+      onPress={() => router.push(row.route as never)}
     >
       <View style={styles.followPlanText}>
         <Text style={styles.followPlanTitle} numberOfLines={2}>
-          {bp.title}
+          {row.title}
         </Text>
         <Text style={styles.followPlanMeta} numberOfLines={1}>
-          {author}
-          {bp.subscriber_count > 0
-            ? ` · ${bp.subscriber_count} subscriber${bp.subscriber_count !== 1 ? 's' : ''}`
+          {row.author}
+          {row.subscriberCount > 0
+            ? ` · ${row.subscriberCount} subscriber${row.subscriberCount !== 1 ? 's' : ''}`
             : ''}
         </Text>
       </View>
-      {badge ? (
+      {row.badge ? (
         <View style={styles.planBadge}>
-          <Text style={styles.planBadgeText}>{badge}</Text>
+          <Text style={styles.planBadgeText}>{row.badge}</Text>
         </View>
       ) : (
         <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
@@ -161,13 +193,30 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
     useLibraryResourcesPreview(interestId, PREVIEW_LIMIT);
   const { data: catalog, isLoading: catalogLoading } =
     useDiscoverBlueprints(interestId);
+  const { blueprints: marketPlans, loading: marketLoading } =
+    useMarketplaceBlueprints(interestId ?? null);
   const { data: topOrgs, isLoading: orgsLoading } =
     useTopOrgsForInterest(interestSlug, PREVIEW_LIMIT);
 
   const planPreview = (plans ?? []).slice(0, PREVIEW_LIMIT);
   const conceptPreview = (concepts ?? []).slice(0, PREVIEW_LIMIT);
   const resourcePreview = resources ?? [];
-  const followPreview = (catalog ?? []).slice(0, PREVIEW_LIMIT);
+  // "Plans to follow" unifies the real authored catalog (System B,
+  // marketplace) with System-A discover blueprints — marketplace first,
+  // deduped by title — so newly authored Plans surface here too.
+  const followPreview = React.useMemo(() => {
+    const rows: FollowRow[] = [];
+    const seen = new Set<string>();
+    const push = (row: FollowRow) => {
+      const key = row.title.trim().toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      rows.push(row);
+    };
+    for (const p of marketPlans) push(marketplaceToFollowRow(p));
+    for (const bp of catalog ?? []) push(discoveredToFollowRow(bp));
+    return rows.slice(0, PREVIEW_LIMIT);
+  }, [marketPlans, catalog]);
   const orgPreview = topOrgs ?? [];
 
   // Adjacent interests = the catalog minus what the user already practices.
@@ -329,7 +378,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
           dotColor="#0EA5E9"
           onSeeAll={() => onJumpToZone('follow')}
         />
-        {catalogLoading && !catalog ? (
+        {(catalogLoading || marketLoading) && followPreview.length === 0 ? (
           <LoadingRow />
         ) : followPreview.length === 0 ? (
           <EmptyHint>
@@ -338,8 +387,8 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
           </EmptyHint>
         ) : (
           <View style={styles.followList}>
-            {followPreview.map((bp) => (
-              <FollowPlanRow key={bp.id} bp={bp} />
+            {followPreview.map((row) => (
+              <FollowPlanRow key={`${row.route}:${row.id}`} row={row} />
             ))}
           </View>
         )}
