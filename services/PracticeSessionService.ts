@@ -317,29 +317,25 @@ class PracticeSessionServiceClass {
       throw sessionError;
     }
 
-    // Update focus area ratings (if provided)
-    if (reflection.focusAreaRatings) {
-      for (const [focusAreaId, rating] of Object.entries(reflection.focusAreaRatings)) {
-        await supabase
+    // Update focus area + drill ratings concurrently (independent rows)
+    await Promise.all([
+      ...Object.entries(reflection.focusAreaRatings ?? {}).map(([focusAreaId, rating]) =>
+        supabase
           .from('practice_session_focus_areas')
           .update({ post_session_rating: rating })
-          .eq('id', focusAreaId);
-      }
-    }
-
-    // Update drill ratings (if provided)
-    if (reflection.drillRatings) {
-      for (const [drillId, data] of Object.entries(reflection.drillRatings)) {
-        await supabase
+          .eq('id', focusAreaId)
+      ),
+      ...Object.entries(reflection.drillRatings ?? {}).map(([drillId, data]) =>
+        supabase
           .from('practice_session_drills')
           .update({
             rating: data.rating,
             notes: data.notes || null,
             completed: data.completed ?? true,
           })
-          .eq('id', drillId);
-      }
-    }
+          .eq('id', drillId)
+      ),
+    ]);
 
     logger.info('Completed practice session', { sessionId });
   }
