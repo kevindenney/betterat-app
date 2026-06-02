@@ -38,7 +38,7 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
-import { StepDigestCard } from './StepDigestCard';
+import { StepLogRow } from './StepLogRow';
 import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
@@ -603,7 +603,7 @@ export function L3SeasonView({
         <EmptySeasonInline periodNoun={interestVocab.periodNoun} />
       ) : null}
 
-      <Text style={styles.browseEyebrow}>BROWSE WEEKS</Text>
+      <Text style={styles.browseEyebrow}>THE WORK</Text>
 
       {filtering && activeThread ? (
         <View style={styles.filterBar}>
@@ -630,12 +630,20 @@ export function L3SeasonView({
         </View>
       ) : (
         <View style={styles.toolbar}>
-          <ToolbarButton icon="swap-vertical-outline" label="Sort" />
-          <ToolbarButton
-            icon="checkmark-circle-outline"
-            label="Select"
-            onPress={onEnterSelectMode}
-          />
+          <Text style={styles.logCaption}>
+            {(() => {
+              const n = flatSteps.length;
+              return `${n} ${n === 1 ? 'step' : 'steps'} in this arc`;
+            })()}
+          </Text>
+          <View style={styles.toolbarActions}>
+            <ToolbarButton icon="swap-vertical-outline" label="Sort" />
+            <ToolbarButton
+              icon="checkmark-circle-outline"
+              label="Select"
+              onPress={onEnterSelectMode}
+            />
+          </View>
         </View>
       )}
 
@@ -653,39 +661,36 @@ export function L3SeasonView({
           </View>
         </View>,
         <View key={`body-${week.id}`} style={styles.weekBody}>
-          <View style={styles.cardPair}>
-            {week.steps.slice(0, 2).map((step) => {
-              const flatIndex = flatSteps.findIndex((s) => s.id === step.id);
-              const isLifted = drag.liftedId === step.id;
-              const showDropIndicatorBefore =
-                drag.dropTargetIndex === flatIndex && !isLifted;
-              const selected = isSelected?.(step.id) ?? false;
-              const handlePress = selectEnabled
-                ? () => onToggleSelect?.(step.id)
-                : () => onOpenStep(step.id);
-              return (
-                <DraggableCardSlot
-                  key={step.id}
-                  step={step}
-                  flatIndex={flatIndex}
-                  isLifted={isLifted}
-                  showDropIndicatorBefore={showDropIndicatorBefore}
-                  liftedTranslateY={drag.liftedTranslate}
-                  highlighted={step.id === focusStepId || selected}
-                  selected={selected}
-                  selectEnabled={selectEnabled}
-                  // Drag-reorder reasons in full-season flat coordinates;
-                  // filtering hides weeks, so disable lifting while a
-                  // thread is active to keep drop math honest.
-                  dragActive={!filtering}
-                  onOpen={handlePress}
-                  buildGesture={drag.buildItemGesture}
-                  registerRowLayout={drag.registerRowLayout}
-                />
-              );
-            })}
-            {week.steps.length === 1 ? <View style={{ flex: 1 }} /> : null}
-          </View>
+          {week.steps.map((step) => {
+            const flatIndex = flatSteps.findIndex((s) => s.id === step.id);
+            const isLifted = drag.liftedId === step.id;
+            const showDropIndicatorBefore =
+              drag.dropTargetIndex === flatIndex && !isLifted;
+            const selected = isSelected?.(step.id) ?? false;
+            const handlePress = selectEnabled
+              ? () => onToggleSelect?.(step.id)
+              : () => onOpenStep(step.id);
+            return (
+              <DraggableRowSlot
+                key={step.id}
+                step={step}
+                flatIndex={flatIndex}
+                isLifted={isLifted}
+                showDropIndicatorBefore={showDropIndicatorBefore}
+                liftedTranslateY={drag.liftedTranslate}
+                highlighted={step.id === focusStepId || selected}
+                selected={selected}
+                selectEnabled={selectEnabled}
+                // Drag-reorder reasons in full-season flat coordinates;
+                // filtering hides weeks, so disable lifting while a
+                // thread is active to keep drop math honest.
+                dragActive={!filtering}
+                onOpen={handlePress}
+                buildGesture={drag.buildItemGesture}
+                registerRowLayout={drag.registerRowLayout}
+              />
+            );
+          })}
         </View>,
       ])}
     </ScrollView>
@@ -803,7 +808,7 @@ export function L3SeasonView({
   );
 }
 
-interface DraggableCardSlotProps {
+interface DraggableRowSlotProps {
   step: TimelineStep;
   flatIndex: number;
   isLifted: boolean;
@@ -818,7 +823,7 @@ interface DraggableCardSlotProps {
   registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
 }
 
-function DraggableCardSlot({
+function DraggableRowSlot({
   step,
   flatIndex,
   isLifted,
@@ -831,7 +836,7 @@ function DraggableCardSlot({
   onOpen,
   buildGesture,
   registerRowLayout,
-}: DraggableCardSlotProps) {
+}: DraggableRowSlotProps) {
   const gesture = useMemo(
     () => buildGesture(step.id, flatIndex),
     [buildGesture, step.id, flatIndex],
@@ -840,59 +845,42 @@ function DraggableCardSlot({
   const liftStyle = useAnimatedStyle(() => {
     if (!isLifted) return { transform: [] as never[] };
     return {
-      transform: [
-        { translateY: liftedTranslateY },
-        { scale: 1.04 },
-        { rotateZ: '1.5deg' },
-      ],
+      transform: [{ translateY: liftedTranslateY }, { scale: 1.02 }],
       zIndex: 10,
+      backgroundColor: IOS_REGISTER.groundBg,
       shadowColor: '#000',
-      shadowOpacity: 0.22,
-      shadowRadius: 14,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 12,
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 10,
     };
   }, [isLifted, liftedTranslateY]);
 
-  const cardBody = (
+  const rowBody = (
     <Animated.View
-      style={[styles.slotFlex, liftStyle]}
+      style={liftStyle}
       onLayout={(e) => {
         const { y, height } = e.nativeEvent.layout;
         registerRowLayout(step.id, { start: y, length: height });
       }}
     >
-      <StepDigestCard
+      <StepLogRow
         step={step}
-        compact
         highlighted={highlighted}
+        selected={selected}
+        selectEnabled={selectEnabled}
         onPress={onOpen}
       />
-      {selectEnabled ? (
-        <View style={[styles.selectBadge, selected && styles.selectBadgeOn]}>
-          {selected ? (
-            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-          ) : null}
-        </View>
-      ) : (
-        <View style={styles.dragHandle} pointerEvents="none">
-          <Ionicons
-            name="reorder-three-outline"
-            size={16}
-            color={IOS_REGISTER.labelTertiary}
-          />
-        </View>
-      )}
     </Animated.View>
   );
 
   return (
-    <View style={styles.dropSlotWrap}>
+    <View style={styles.rowSlotWrap}>
       {showDropIndicatorBefore ? <View style={styles.dropIndicator} /> : null}
       {selectEnabled || !dragActive ? (
-        cardBody
+        rowBody
       ) : (
-        <GestureDetector gesture={gesture}>{cardBody}</GestureDetector>
+        <GestureDetector gesture={gesture}>{rowBody}</GestureDetector>
       )}
     </View>
   );
@@ -1323,9 +1311,20 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     gap: 8,
     marginBottom: 12,
+  },
+  logCaption: {
+    flex: 1,
+    fontSize: 11.5,
+    color: IOS_REGISTER.labelTertiary,
+  },
+  toolbarActions: {
+    flexDirection: 'row',
+    gap: 8,
   },
   // Filter bar — replaces the toolbar while a capability thread is
   // active. The pill names the thread and clears it on tap; the count
@@ -1404,47 +1403,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: IOS_REGISTER.labelSecondary,
   },
-  cardPair: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  dropSlotWrap: {
-    flex: 1,
+  rowSlotWrap: {
     position: 'relative',
   },
-  slotFlex: { flex: 1 },
   dropIndicator: {
     position: 'absolute',
-    left: -6,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    borderRadius: 2,
+    left: 0,
+    right: 0,
+    top: -1,
+    height: 2,
+    borderRadius: 1,
     backgroundColor: IOS_REGISTER.accentUserAction,
     zIndex: 5,
-  },
-  selectBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderWidth: 1.5,
-    borderColor: IOS_REGISTER.separatorStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectBadgeOn: {
-    backgroundColor: IOS_REGISTER.accentUserAction,
-    borderColor: IOS_REGISTER.accentUserAction,
-  },
-  dragHandle: {
-    position: 'absolute',
-    top: 6,
-    right: 8,
-    opacity: 0.5,
   },
   // D6 anchor strip — horizontal scrolling row of persona-tuned time
   // pegs falling inside the season. Sits below VISION and above the
