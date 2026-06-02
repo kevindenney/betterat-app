@@ -1,0 +1,224 @@
+/**
+ * venueCourseGeoJSON — turn persisted CourseGeometryParams into the
+ * MapLibre-ready GeoJSON the Atlas canvas draws.
+ *
+ * Pipeline (all pure, no React / MapLibre):
+ *   CourseGeometryParams
+ *     → courseParamsToOverlayInput()   (derive windward mark + start line)
+ *     → deriveCourseOverlay()          (lib/courseGeometry — full overlay)
+ *     → courseOverlayToFeatures()      (tag each piece with properties.type)
+ *
+ * Emitted feature `properties.type` values (so the canvas can paint each
+ * differently): 'start-line', 'finish-line', 'layline', 'start-box',
+ * 'course-mark'. Laylines carry `tack: 'port'|'starboard'` and
+ * `anchor: 'windward'|'start'`; marks carry `markType`.
+ *
+ * Handedness caveat: port vs starboard layline sides are assigned
+ * parametrically about the wind axis here and must be verified against a
+ * known course diagram in the sim — see the spec's handedness note.
+ */
+
+import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
+
+import {
+  type Coord,
+  type CourseOverlayGeometry,
+  type CourseOverlayInput,
+  deriveCourseOverlay,
+} from '@/lib/courseGeometry';
+import { CoursePositioningService, destinationPoint } from '@/services/CoursePositioningService';
+import type { CourseGeometryParams, VenueRaceCourse } from '@/types/courses';
+
+export interface CourseEnvironment {
+  /** Live current set, degrees — drives favored-side shading. */
+  currentDirection?: number;
+  /** Live current drift, knots. */
+  currentSpeed?: number;
+}
+
+function toLngLat(c: Coord): [number, number] {
+  return [c.longitude, c.latitude];
+}
+
+function midpoint(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): { lat: number; lng: number } {
+  return { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
+}
+
+/**
+ * Derive the minimal mark set + start line deriveCourseOverlay needs from
+ * the stored params. We place only the windward mark explicitly (upwind
+ * of the start-line center along the wind axis) and let the overlay infer
+ * the leeward anchor from the start line — the beat runs start → windward.
+ */
+export function courseParamsToOverlayInput(
+  params: CourseGeometryParams,
+  env: CourseEnvironment = {},
+): CourseOverlayInput {
+  const center = midpoint(params.pin, params.committee);
+  // windDirectionDeg is the direction the wind blows FROM, so the windward
+  // mark sits upwind — toward the wind source — at that bearing.
+  const windward = destinationPoint(
+    center.lat,
+    center.lng,
+    params.windDirectionDeg,
+    params.legLengthNm,
+  );
+  return {
+    marks: [
+      {
+        id: 'windward',
+        name: 'Windward',
+        type: 'windward',
+        latitude: windward.lat,
+        longitude: windward.lng,
+        rounding: 'port',
+      },
+    ],
+    startLine: {
+      pin: { lat: params.pin.lat, lng: params.pin.lng },
+      committee: { lat: params.committee.lat, lng: params.committee.lng },
+    },
+    windDirection: params.windDirectionDeg,
+    currentDirection: env.currentDirection,
+    currentSpeed: env.currentSpeed,
+    tackAngleDeg: params.tackAngleDeg,
+    startBoxDepthBoatLengths: params.startBoxDepthBoatLengths,
+    boatLengthM: params.boatLengthM,
+  };
+}
+
+function lineFeature(
+  id: string,
+  points: Coord[],
+  props: Record<string, unknown>,
+): Feature<LineString> {
+  return {
+    type: 'Feature',
+    id,
+    properties: props,
+    geometry: { type: 'LineString', coordinates: points.map(toLngLat) },
+  };
+}
+
+function polygonFeature(
+  id: string,
+  ring: Coord[],
+  props: Record<string, unknown>,
+): Feature<Polygon> {
+  const closed = ring[0] === ring[ring.length - 1] ? ring : [...ring, ring[0]];
+  return {
+    type: 'Feature',
+    id,
+    properties: props,
+    geometry: { type: 'Polygon', coordinates: [closed.map(toLngLat)] },
+  };
+}
+
+function pointFeature(
+  id: string,
+  c: Coord,
+  props: Record<string, unknown>,
+): Feature<Point> {
+  return {
+    type: 'Feature',
+    id,
+    properties: props,
+    geometry: { type: 'Point', coordinates: toLngLat(c) },
+  };
+}
+
+/**
+ * Emit the tagged GeoJSON features for one derived overlay. `courseId`
+ * namespaces feature ids so multiple courses can share one collection.
+ */
+export function courseOverlayToFeatures(
+  overlay: CourseOverlayGeometry,
+  params: CourseGeometryParams,
+  courseId: string,
+): Feature[] {
+  const { W, P, C, portCorner, stbdCorner, startBox } = overlay;
+  const features: Feature[] = [];
+
+  // Start line (pin ↔ committee).
+  features.push(
+    lineFeature(`${courseId}:start-line`, [P, C], { type: 'start-line', courseId }),
+  );
+
+  // Finish line: committee ↔ finish buoy (pin reflected across committee).
+  const finish = CoursePositioningService.calculateFinishMark(
+    { pin: { lat: P.latitude, lng: P.longitude }, committee: { lat: C.latitude, lng: C.longitude } },
+    params.windDirectionDeg,
+  );
+  const finishCoord: Coord = { latitude: finish.lat, longitude: finish.lng };
+  features.push(
+    lineFeature(`${courseId}:finish-line`, [C, finishCoord], { type: 'finish-line', courseId }),
+  );
+
+  // Laylines — 4 segments, tagged tack + anchor. Mirrors the race-detail
+  // overlay: windward-anchored laylines run down to the corners, start-
+  // anchored laylines run up from the line ends to the same corners.
+  features.push(
+    lineFeature(`${courseId}:layline-wind-stbd`, [W, stbdCorner], {
+      type: 'layline',
+      tack: 'starboard',
+      anchor: 'windward',
+      courseId,
+    }),
+    lineFeature(`${courseId}:layline-start-stbd`, [P, stbdCorner], {
+      type: 'layline',
+      tack: 'starboard',
+      anchor: 'start',
+      courseId,
+    }),
+    lineFeature(`${courseId}:layline-wind-port`, [W, portCorner], {
+      type: 'layline',
+      tack: 'port',
+      anchor: 'windward',
+      courseId,
+    }),
+    lineFeature(`${courseId}:layline-start-port`, [C, portCorner], {
+      type: 'layline',
+      tack: 'port',
+      anchor: 'start',
+      courseId,
+    }),
+  );
+
+  // Starting box polygon.
+  if (startBox) {
+    features.push(
+      polygonFeature(`${courseId}:start-box`, startBox.outline, { type: 'start-box', courseId }),
+    );
+  }
+
+  // Marks: windward + the start-line buoys + finish buoy.
+  features.push(
+    pointFeature(`${courseId}:mark-windward`, W, { type: 'course-mark', markType: 'windward', courseId }),
+    pointFeature(`${courseId}:mark-pin`, P, { type: 'course-mark', markType: 'pin', courseId }),
+    pointFeature(`${courseId}:mark-committee`, C, { type: 'course-mark', markType: 'committee', courseId }),
+    pointFeature(`${courseId}:mark-finish`, finishCoord, { type: 'course-mark', markType: 'finish', courseId }),
+  );
+
+  return features;
+}
+
+/**
+ * Convert a list of venue race courses into a single FeatureCollection
+ * ready for the Atlas canvas. Courses whose geometry can't be derived
+ * (degenerate params) are skipped rather than aborting the whole layer.
+ */
+export function venueCoursesToFeatureCollection(
+  courses: VenueRaceCourse[],
+  env: CourseEnvironment = {},
+): FeatureCollection {
+  const features: Feature[] = [];
+  for (const course of courses) {
+    const overlay = deriveCourseOverlay(courseParamsToOverlayInput(course.geometry, env));
+    if (!overlay) continue;
+    features.push(...courseOverlayToFeatures(overlay, course.geometry, course.id));
+  }
+  return { type: 'FeatureCollection', features };
+}
