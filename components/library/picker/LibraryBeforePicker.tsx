@@ -207,7 +207,7 @@ export function LibraryBeforePicker({
                     ? 'Try a different term, or capture something new from the Library tab.'
                     : excludeSet.size > 0
                       ? 'Capture more from the Library tab to attach more items.'
-                      : 'Drop a link, PDF, or note into your library first, then attach it here.'}
+                      : 'Paste a link or type a note in the field above to add your first item and pin it here.'}
                 </Text>
               </View>
             ) : (
