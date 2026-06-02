@@ -14,6 +14,7 @@ import {
   updateStep,
   deleteStep,
   adoptStep,
+  adoptQuotedStep,
   createStepsFromCourse,
   pinStepToInterest,
   unpinStepFromInterest,
@@ -229,6 +230,30 @@ export function useAdoptStep() {
       // mutation must invalidate it explicitly or the Atlas picker /
       // pin set goes stale ("saved but didn't appear" pattern from
       // feedback_query_cache_key_invalidation_audit).
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 7b. Adopt the step quoted into a discussion note
+// ---------------------------------------------------------------------------
+
+export function useAdoptQuotedStep() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Awaited<ReturnType<typeof adoptQuotedStep>>,
+    Error,
+    { discussionId: string; interestId: string }
+  >({
+    mutationFn: ({ discussionId, interestId }) => {
+      if (!user?.id) throw new Error('Must be logged in to add a step');
+      return adoptQuotedStep(user.id, discussionId, interestId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
     },
   });

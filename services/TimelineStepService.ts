@@ -600,6 +600,145 @@ export async function adoptStep(
 }
 
 // ---------------------------------------------------------------------------
+// 6b. Adopt the step pull-quoted into a discussion note
+// ---------------------------------------------------------------------------
+
+export interface AdoptQuotedStepResult {
+  step: TimelineStepRecord;
+  /** True when the caller already had this source step in their timeline,
+   *  so nothing new was created. Lets the UI say "Already in your plan". */
+  alreadyAdopted: boolean;
+}
+
+/**
+ * Copy the step a discussion note quotes (quoted_step_id) into the caller's
+ * timeline. The source belongs to another user and is normally walled off by
+ * timeline_steps RLS, so we read its adoptable fields through the
+ * get_quoted_step_for_adoption SECURITY DEFINER RPC, which only returns a row
+ * when the caller can actually see the discussion the quote lives in. The
+ * insert itself runs under the caller's own RLS (they own the new row).
+ */
+export async function adoptQuotedStep(
+  userId: string,
+  discussionId: string,
+  interestId: string,
+): Promise<AdoptQuotedStepResult> {
+  try {
+    const { data: rows, error: rpcErr } = await supabase.rpc(
+      'get_quoted_step_for_adoption',
+      { p_discussion_id: discussionId },
+    );
+    if (rpcErr) throw rpcErr;
+    const source = (Array.isArray(rows) ? rows[0] : null) as
+      | {
+          source_step_id: string;
+          owner_id: string;
+          title: string | null;
+          description: string | null;
+          category: string | null;
+          organization_id: string | null;
+          location_name: string | null;
+          location_lat: number | null;
+          location_lng: number | null;
+          location_place_id: string | null;
+          visibility: string | null;
+          metadata: Record<string, any> | null;
+        }
+      | null;
+    if (!source) {
+      throw new Error('This quoted step is no longer available to add.');
+    }
+
+    // Idempotent: if the caller already adopted this source into this
+    // interest, return the existing copy rather than duplicating it.
+    const { data: existing } = await supabase
+      .from('timeline_steps')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('interest_id', interestId)
+      .eq('source_id', source.source_step_id)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      return { step: existing as TimelineStepRecord, alreadyAdopted: true };
+    }
+
+    const { data: maxRow } = await supabase
+      .from('timeline_steps')
+      .select('sort_order')
+      .eq('user_id', userId)
+      .eq('interest_id', interestId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextSort = (maxRow?.sort_order ?? 0) + 1;
+
+    // Strip author-specific brain_dump; re-point linked library resources to
+    // the adopter's own copies (cross-user reads handled by the same RPC
+    // adoptStep uses).
+    const sourceMetadata = { ...(source.metadata ?? {}) };
+    delete sourceMetadata.brain_dump;
+    const linkedIds: string[] = sourceMetadata.plan?.linked_resource_ids ?? [];
+    if (linkedIds.length > 0) {
+      try {
+        const { data: idMap, error: resErr } = await supabase.rpc(
+          'copy_library_resources_for_adoption',
+          {
+            p_source_resource_ids: linkedIds,
+            p_adopter_user_id: userId,
+            p_interest_id: interestId,
+          },
+        );
+        if (resErr) {
+          logger.warn('copy_library_resources_for_adoption failed (quoted adopt)', resErr);
+        } else if (idMap && Object.keys(idMap).length > 0) {
+          sourceMetadata.plan = {
+            ...(sourceMetadata.plan ?? {}),
+            linked_resource_ids: linkedIds.map((id) => (idMap as any)[id] ?? id),
+          };
+        }
+      } catch (err) {
+        logger.warn('Failed to copy library resources during quoted adoption', err);
+      }
+    }
+
+    const sourceTitle =
+      typeof source.title === 'string' ? source.title.trim() : '';
+    const adoptedTitle = sourceTitle.length > 0 ? sourceTitle : `Step ${nextSort}`;
+
+    const { data, error } = await supabase
+      .from('timeline_steps')
+      .insert({
+        user_id: userId,
+        interest_id: interestId,
+        organization_id: source.organization_id ?? null,
+        source_type: 'copied',
+        source_id: source.source_step_id,
+        copied_from_user_id: source.owner_id,
+        title: adoptedTitle,
+        description: source.description,
+        category: source.category ?? 'general',
+        status: 'pending',
+        location_name: source.location_name,
+        location_lat: source.location_lat,
+        location_lng: source.location_lng,
+        location_place_id: source.location_place_id,
+        visibility: 'private',
+        share_approximate_location: false,
+        sort_order: nextSort,
+        metadata: sourceMetadata,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return { step: data as TimelineStepRecord, alreadyAdopted: false };
+  } catch (err) {
+    logger.error('Failed to adopt quoted step', err);
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 7. Org template operations
 // ---------------------------------------------------------------------------
 

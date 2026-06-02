@@ -20,17 +20,19 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Check,
+  ChevronRight,
   CornerUpLeft,
   Link as LinkIcon,
   MessageCircle,
   MoreHorizontal,
   Pencil,
+  Plus,
   Send,
   Trash2,
   X,
 } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
-import { useMyTimeline } from '@/hooks/useTimelineSteps';
+import { useAdoptQuotedStep, useMyTimeline } from '@/hooks/useTimelineSteps';
 import { supabase } from '@/services/supabase';
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import {
@@ -43,6 +45,7 @@ import {
   toggleStepReaction,
   type StepDiscussionRow,
   type StepDiscussionReactionKind,
+  type StepDiscussionQuote,
 } from '@/services/StepDiscussionService';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 
@@ -187,6 +190,23 @@ export function StepDiscussionInline({
         ?.source_blueprint_step_id ?? null;
     },
   });
+  // The interest the viewer's current step sits in. A quoted step adopted
+  // from this thread lands in the same interest, since that's the context
+  // the viewer is already working in. Null until resolved → Add is disabled.
+  const { data: adopterInterestId = null } = useQuery({
+    queryKey: ['step-interest-id', stepId],
+    enabled: Boolean(stepId),
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<string | null> => {
+      const { data } = await supabase
+        .from('timeline_steps')
+        .select('interest_id')
+        .eq('id', stepId)
+        .maybeSingle();
+      return (data as { interest_id?: string | null } | null)?.interest_id ?? null;
+    },
+  });
+
   const hasCohort = Boolean(blueprintStepId);
   // Snap back to Private if the user is somehow on Cohort but the
   // link goes away (rename, delete, etc.).
@@ -512,6 +532,7 @@ export function StepDiscussionInline({
               key={note.id}
               note={note}
               viewerUserId={user?.id ?? null}
+              adopterInterestId={adopterInterestId}
               accessEntry={accessByUser.get(note.user_id) ?? null}
               onReact={(kind, isOn) => handleReact(note.id, kind, isOn)}
               onReply={() => handleReply(note)}
@@ -640,6 +661,7 @@ export function StepDiscussionInline({
 interface NoteCardProps {
   note: StepDiscussionRow;
   viewerUserId: string | null;
+  adopterInterestId: string | null;
   accessEntry: StepAccessPerson | null;
   onReact: (kind: StepDiscussionReactionKind, isOn: boolean) => void;
   onReply: () => void;
@@ -656,6 +678,7 @@ interface NoteCardProps {
 function NoteCard({
   note,
   viewerUserId,
+  adopterInterestId,
   accessEntry,
   onReact,
   onReply,
@@ -671,6 +694,7 @@ function NoteCard({
   const initials = note.author_initials ?? initialsFrom(note.author_name);
   const isMine = viewerUserId != null && note.user_id === viewerUserId;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [quoteDetailOpen, setQuoteDetailOpen] = useState(false);
   const isViewerReacted = (kind: StepDiscussionReactionKind) =>
     note.viewer_reactions.includes(kind);
   const pill = roleLabel(accessEntry?.role, accessEntry?.isOwner);
@@ -742,14 +766,40 @@ function NoteCard({
       </View>
 
       {note.quote ? (
-        <View style={styles.quoteBlock}>
-          <Text style={styles.quoteIntro}>
-            {note.quote.step_number != null
-              ? `From ${isMine ? 'my' : 'their'} Step ${note.quote.step_number}: `
-              : `From ${isMine ? 'my' : 'their'} step: `}
-            <Text style={styles.quoteBody}>“{note.quote.body}”</Text>
-          </Text>
-        </View>
+        <>
+          <Pressable
+            style={styles.quoteBlock}
+            onPress={() => setQuoteDetailOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isMine
+                ? 'View this step'
+                : 'View this step and add it to your plan'
+            }
+          >
+            <Text style={styles.quoteIntro}>
+              {note.quote.step_number != null
+                ? `From ${isMine ? 'my' : 'their'} Step ${note.quote.step_number}: `
+                : `From ${isMine ? 'my' : 'their'} step: `}
+              <Text style={styles.quoteBody}>“{note.quote.body}”</Text>
+            </Text>
+            <View style={styles.quoteCta}>
+              <Text style={styles.quoteCtaText}>
+                {isMine ? 'View step' : 'View & add to my plan'}
+              </Text>
+              <ChevronRight size={12} color={C.blue} />
+            </View>
+          </Pressable>
+          <QuotedStepDetailModal
+            visible={quoteDetailOpen}
+            onClose={() => setQuoteDetailOpen(false)}
+            discussionId={note.id}
+            quote={note.quote}
+            authorName={note.author_name}
+            isOwnStep={isMine}
+            adopterInterestId={adopterInterestId}
+          />
+        </>
       ) : null}
 
       {isEditing ? (
@@ -1018,6 +1068,190 @@ function QuoteStepPicker({ visible, onClose, excludeStepId, onPick }: QuoteStepP
               </View>
             </View>
           )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// QuotedStepDetailModal — tap a quoted step in the feed to see its details and
+// (when it's someone else's) add a private copy to your own plan.
+// ---------------------------------------------------------------------------
+
+interface QuotedStepDetailModalProps {
+  visible: boolean;
+  onClose: () => void;
+  /** The discussion note carrying the quote — gates the adoption RPC. */
+  discussionId: string;
+  quote: StepDiscussionQuote;
+  authorName: string | null;
+  /** True when the quoted step is the viewer's own (already in their plan). */
+  isOwnStep: boolean;
+  adopterInterestId: string | null;
+}
+
+interface AdoptableStepDetail {
+  title: string | null;
+  description: string | null;
+}
+
+function QuotedStepDetailModal({
+  visible,
+  onClose,
+  discussionId,
+  quote,
+  authorName,
+  isOwnStep,
+  adopterInterestId,
+}: QuotedStepDetailModalProps) {
+  const adoptMutation = useAdoptQuotedStep();
+  const [result, setResult] = useState<'idle' | 'added' | 'already'>('idle');
+
+  // Reset the success state each time the sheet reopens.
+  useEffect(() => {
+    if (visible) setResult('idle');
+  }, [visible]);
+
+  // Pull the full source-step detail (title + description) through the same
+  // access-gated RPC the adoption uses, so the popup shows real step content
+  // rather than just the one quoted line.
+  const { data: detail, isLoading } = useQuery<AdoptableStepDetail | null>({
+    queryKey: ['quoted-step-detail', discussionId],
+    enabled: visible,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase.rpc('get_quoted_step_for_adoption', {
+        p_discussion_id: discussionId,
+      });
+      const row = (Array.isArray(data) ? data[0] : null) as
+        | { title: string | null; description: string | null }
+        | null;
+      return row
+        ? { title: row.title, description: row.description }
+        : null;
+    },
+  });
+
+  const handleAdopt = useCallback(async () => {
+    if (!adopterInterestId) return;
+    const res = await adoptMutation.mutateAsync({
+      discussionId,
+      interestId: adopterInterestId,
+    });
+    setResult(res.alreadyAdopted ? 'already' : 'added');
+  }, [adopterInterestId, adoptMutation, discussionId]);
+
+  const title =
+    (detail?.title && detail.title.trim().length > 0
+      ? detail.title
+      : quote.step_title) ??
+    (quote.step_number != null ? `Step ${quote.step_number}` : 'Step');
+
+  const metaLine =
+    quote.step_number != null
+      ? `Step ${quote.step_number}${authorName ? ` · shared by ${authorName}` : ''}`
+      : authorName
+        ? `Shared by ${authorName}`
+        : null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Step details</Text>
+            <Pressable
+              onPress={onClose}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
+              <X size={18} color={C.label2} />
+            </Pressable>
+          </View>
+
+          <View style={styles.modalBody}>
+            <Text style={styles.detailTitle}>{title}</Text>
+            {metaLine ? (
+              <Text style={styles.detailMeta}>{metaLine}</Text>
+            ) : null}
+
+            <View style={styles.quoteBlock}>
+              <Text style={styles.quoteIntro}>
+                <Text style={styles.quoteBody}>“{quote.body}”</Text>
+              </Text>
+            </View>
+
+            {isLoading ? (
+              <ActivityIndicator color={C.label2} style={{ paddingVertical: 8 }} />
+            ) : detail?.description && detail.description.trim().length > 0 ? (
+              <Text style={styles.detailDesc}>{detail.description}</Text>
+            ) : null}
+
+            {adoptMutation.isError ? (
+              <Text style={styles.detailError}>
+                Couldn't add this step. Please try again.
+              </Text>
+            ) : null}
+
+            {result !== 'idle' ? (
+              <View style={styles.detailSuccessRow}>
+                <View style={styles.detailSuccessPill}>
+                  <Check size={13} color="#0A7C42" strokeWidth={2.6} />
+                  <Text style={styles.detailSuccessText}>
+                    {result === 'already'
+                      ? 'Already in your plan'
+                      : 'Added to your plan'}
+                  </Text>
+                </View>
+                <Pressable style={styles.pickerPrimary} onPress={onClose}>
+                  <Text style={styles.pickerPrimaryText}>Done</Text>
+                </Pressable>
+              </View>
+            ) : isOwnStep ? (
+              <View style={styles.detailActions}>
+                <Text style={styles.detailOwnNote}>This step is in your plan.</Text>
+                <Pressable style={styles.pickerPrimary} onPress={onClose}>
+                  <Text style={styles.pickerPrimaryText}>Close</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.detailActions}>
+                <Pressable
+                  style={styles.pickerSecondary}
+                  onPress={onClose}
+                  disabled={adoptMutation.isPending}
+                >
+                  <Text style={styles.pickerSecondaryText}>Not now</Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.adoptPrimary,
+                    (!adopterInterestId || adoptMutation.isPending) &&
+                      styles.pickerPrimaryDisabled,
+                  ]}
+                  onPress={handleAdopt}
+                  disabled={!adopterInterestId || adoptMutation.isPending}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add to my plan"
+                >
+                  {adoptMutation.isPending ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Plus size={15} color="#FFFFFF" strokeWidth={2.4} />
+                  )}
+                  <Text style={styles.adoptPrimaryText}>Add to my plan</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
         </View>
       </View>
     </Modal>
@@ -1664,6 +1898,86 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   pickerPrimaryText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  // -------- Tappable quote affordance --------
+  quoteCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 6,
+  },
+  quoteCtaText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: C.blue,
+  },
+  // -------- Quoted-step detail modal --------
+  detailTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: C.label,
+    letterSpacing: -0.2,
+  },
+  detailMeta: {
+    fontSize: 12,
+    color: C.label3,
+    marginTop: 2,
+  },
+  detailDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: C.label2,
+  },
+  detailError: {
+    fontSize: 12.5,
+    color: C.coral,
+  },
+  detailActions: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  detailOwnNote: {
+    flex: 1,
+    fontSize: 12.5,
+    color: C.label3,
+  },
+  detailSuccessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingTop: 8,
+  },
+  detailSuccessPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#E3F6EC',
+  },
+  detailSuccessText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#0A7C42',
+  },
+  adoptPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    backgroundColor: C.blue,
+    borderRadius: 10,
+  },
+  adoptPrimaryText: {
     fontSize: 13,
     color: '#FFFFFF',
     fontWeight: '600',
