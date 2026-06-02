@@ -318,13 +318,17 @@ export class FleetDiscoveryService {
     }
   ): Promise<Fleet | null> {
     try {
-      // Create fleet
+      // Create fleet. slug is generated DB-side by trg_fleets_set_slug;
+      // is_public is the crew-finder discovery flag, so derive it from the
+      // chosen access tier or a "public" fleet is born undiscoverable.
+      const visibility = fleet.visibility || 'public';
       const { data: newFleet, error: fleetError } = await supabase
         .from('fleets')
         .insert({
           ...fleet,
           created_by: creatorId,
-          visibility: fleet.visibility || 'public',
+          visibility,
+          is_public: visibility === 'public',
         })
         .select()
         .single();
