@@ -277,7 +277,6 @@ function SidebarBody({
             {org.role}
           </Text>
         </View>
-        <Ionicons name="chevron-down" size={16} color="rgba(60, 60, 67, 0.3)" />
       </View>
 
       {ctxLens ? (
