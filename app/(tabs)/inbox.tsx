@@ -664,17 +664,7 @@ function ReadPanel({
                 notification={n}
                 onPress={() => {
                   if (!n.isRead) onMarkNotificationRead(n.id);
-                  if (n.type === 'cohort_discussion_post') {
-                    void onCohortNotificationTap(n);
-                  } else if (n.type === 'step_discussion_post') {
-                    // Personal-step posts live on the same timeline_step
-                    // for owner + collaborators, so route straight to it
-                    // and land on the Discuss tab.
-                    const stepId = n.data?.step_id as string | undefined;
-                    if (stepId) {
-                      router.push(`/step/${stepId}?tab=discussion` as never);
-                    }
-                  }
+                  routeNotificationTap(n, onCohortNotificationTap);
                 }}
               />
             ))}
@@ -729,6 +719,55 @@ function ActivityCard({
       </View>
     </Pressable>
   );
+}
+
+// Activity-row tap routing. Mirrors the canonical per-type mapping in
+// app/social-notifications.tsx, plus the two discussion-post cases that
+// only the Inbox surfaces. Types with no meaningful destination
+// (step_suggested — acted on via the Act panel) intentionally no-op.
+function routeNotificationTap(
+  n: SocialNotification,
+  onCohortNotificationTap: (notification: SocialNotification) => void | Promise<void>,
+): void {
+  const stepId = n.data?.step_id as string | undefined;
+  switch (n.type) {
+    case 'cohort_discussion_post':
+      void onCohortNotificationTap(n);
+      return;
+    case 'step_discussion_post':
+      // Personal-step posts live on the same timeline_step for owner +
+      // collaborators, so route straight to it and land on Discuss.
+      if (stepId) router.push(`/step/${stepId}?tab=discussion` as never);
+      return;
+    case 'followed_user_step_completed':
+    case 'step_reviewed':
+      if (stepId) router.push(`/step/${stepId}` as never);
+      else router.push('/(tabs)/races' as never);
+      return;
+    case 'step_collaborator_added':
+      if (stepId) router.push(`/step/${stepId}` as never);
+      return;
+    case 'new_follower':
+      if (n.actorId) router.push(`/sailor/${n.actorId}` as never);
+      return;
+    case 'org_invite_received':
+      if (n.data?.invite_token) router.push(`/invite/${n.data.invite_token}` as never);
+      return;
+    case 'org_membership_approved':
+      router.push({
+        pathname: '/onboarding/org-welcome',
+        params: {
+          orgId: n.data?.organization_id,
+          orgName: n.data?.organization_name,
+        },
+      } as never);
+      return;
+    case 'org_invite_accepted':
+      if (n.data?.organization_id) router.push('/organization/members' as never);
+      return;
+    default:
+      if (n.regattaId) router.push(`/race/${n.regattaId}` as never);
+  }
 }
 
 function formatRelativeTime(iso: string): string {
