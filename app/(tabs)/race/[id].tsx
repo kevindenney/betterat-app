@@ -573,7 +573,7 @@ export default function RaceDetailScreen() {
         let strategyError: any = null;
         const primaryStrategy = await supabase
           .from('race_strategies')
-          .select('id, regatta_id, user_id, strategy_type, favored_end, start_line_bias, layline_approach, wind_strategy, confidence_score, strategy_content, ai_generated, ai_model, generated_at, created_at, updated_at')
+          .select('id, regatta_id, user_id, strategy_type, favored_end, start_line_bias, layline_approach, wind_strategy, confidence_score, strategy_content, ai_generated, created_at, updated_at')
           .eq('regatta_id', id)
           .eq('user_id', user?.id)
           .maybeSingle();
@@ -583,7 +583,7 @@ export default function RaceDetailScreen() {
         if (isMissingIdColumn(strategyError, 'race_strategies', 'regatta_id')) {
           const fallbackStrategy = await supabase
             .from('race_strategies')
-            .select('id, race_id, user_id, strategy_type, favored_end, start_line_bias, layline_approach, wind_strategy, confidence_score, strategy_content, ai_generated, ai_model, generated_at, created_at, updated_at')
+            .select('id, race_id, user_id, strategy_type, favored_end, start_line_bias, layline_approach, wind_strategy, confidence_score, strategy_content, ai_generated, created_at, updated_at')
             .eq('race_id', id)
             .eq('user_id', user?.id)
             .maybeSingle();
