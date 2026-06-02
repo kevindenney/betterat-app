@@ -126,12 +126,10 @@ export function useNotifications() {
             return getGroupedUnreadCountFromPages(cache);
           }
         );
-        queryClient.invalidateQueries({
-          queryKey: ['social-notifications', targetUserId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['unread-notification-count', targetUserId],
-        });
+        // NOTE: no invalidateQueries here. The setQueryData calls above already
+        // merge the (fully enriched) realtime notification into both caches, so
+        // a refetch is redundant. Invalidating per delivery caused a fetch storm
+        // on reconnect, when backfill replays each missed notification one-by-one.
 
         // When a mentor reviews a step, invalidate the step detail cache
         // so the mentee sees the feedback in real time.
@@ -315,9 +313,9 @@ export function useUnreadNotificationCount() {
             return getGroupedUnreadCountFromPages(nextData);
           }
         );
-        queryClient.invalidateQueries({
-          queryKey: ['unread-notification-count', targetUserId],
-        });
+        // No invalidateQueries: the setQueryData above is authoritative. See the
+        // note in useNotifications() — invalidating per delivery caused a refetch
+        // storm during reconnect backfill.
       }
     );
 

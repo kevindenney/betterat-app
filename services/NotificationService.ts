@@ -652,23 +652,24 @@ class NotificationServiceClass {
               avatarColor?: string;
             } = {};
             if (n.actor_id) {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name')
-                .eq('id', n.actor_id)
-                .maybeSingle();
-
-              const { data: userProfile } = await supabase
-                .from('users')
-                .select('full_name,email')
-                .eq('id', n.actor_id)
-                .maybeSingle();
-
-              const { data: sailorProfile } = await supabase
-                .from('sailor_profiles')
-                .select('avatar_emoji, avatar_color')
-                .eq('user_id', n.actor_id)
-                .maybeSingle();
+              const [{ data: profile }, { data: userProfile }, { data: sailorProfile }] =
+                await Promise.all([
+                  supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', n.actor_id)
+                    .maybeSingle(),
+                  supabase
+                    .from('users')
+                    .select('full_name,email')
+                    .eq('id', n.actor_id)
+                    .maybeSingle(),
+                  supabase
+                    .from('sailor_profiles')
+                    .select('avatar_emoji, avatar_color')
+                    .eq('user_id', n.actor_id)
+                    .maybeSingle(),
+                ]);
 
               actorInfo = {
                 name: profile?.full_name || userProfile?.full_name || userProfile?.email || 'User',

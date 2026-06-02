@@ -57,12 +57,30 @@ export function useStepBlueprintChrome(stepId: string | null | undefined) {
         ?.source_id;
       if (!blueprintId) return null;
 
-      // 2. Blueprint metadata
-      const { data: bp } = await supabase
-        .from('timeline_blueprints')
-        .select('id, title, slug, user_id')
-        .eq('id', blueprintId)
-        .maybeSingle();
+      // Steps 2, 4, 5 all key off blueprintId alone, so fire them together
+      // instead of three sequential round-trips. (Author lookup in step 3
+      // still has to wait — it needs the blueprint's user_id.)
+      const [{ data: bp }, { data: bpStepsRows }, { count: subscriberCount }] =
+        await Promise.all([
+          // 2. Blueprint metadata
+          supabase
+            .from('timeline_blueprints')
+            .select('id, title, slug, user_id')
+            .eq('id', blueprintId)
+            .maybeSingle(),
+          // 4. Step position within the blueprint
+          supabase
+            .from('blueprint_steps')
+            .select('step_id, sort_order')
+            .eq('blueprint_id', blueprintId)
+            .order('sort_order', { ascending: true }),
+          // 5. Subscriber count
+          supabase
+            .from('blueprint_subscriptions')
+            .select('id', { count: 'exact', head: true })
+            .eq('blueprint_id', blueprintId),
+        ]);
+
       if (!bp) return null;
       const blueprintRow = bp as {
         id: string;
@@ -96,12 +114,6 @@ export function useStepBlueprintChrome(stepId: string | null | undefined) {
       const authorName =
         (composedName || (looksLikeEmail(rawFullName) ? null : rawFullName)) || null;
 
-      // 4. Step position within the blueprint
-      const { data: bpStepsRows } = await supabase
-        .from('blueprint_steps')
-        .select('step_id, sort_order')
-        .eq('blueprint_id', blueprintId)
-        .order('sort_order', { ascending: true });
       const bpSteps =
         (bpStepsRows as { step_id: string; sort_order: number }[] | null) ?? [];
       const totalSteps = bpSteps.length;
@@ -122,12 +134,6 @@ export function useStepBlueprintChrome(stepId: string | null | undefined) {
         const sourceIdx = bpSteps.findIndex((r) => r.step_id === sourceStepId);
         if (sourceIdx >= 0) stepNumber = sourceIdx + 1;
       }
-
-      // 5. Subscriber count
-      const { count: subscriberCount } = await supabase
-        .from('blueprint_subscriptions')
-        .select('id', { count: 'exact', head: true })
-        .eq('blueprint_id', blueprintId);
 
       return {
         blueprintId: blueprintRow.id,
