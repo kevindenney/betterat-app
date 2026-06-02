@@ -31,7 +31,8 @@ export default function StepDetailScreen() {
     | undefined;
   const { vocab } = useVocabulary();
   const { data: blueprintChrome } = useStepBlueprintChrome(actualId);
-  const backLabel = sourceOrigin === 'atlas' ? 'Atlas' : 'Practice';
+  const backLabel =
+    sourceOrigin === 'atlas' ? 'Atlas' : sourceOrigin === 'watch' ? 'Watch' : 'Practice';
 
   if (!actualId) {
     return (
@@ -90,7 +91,7 @@ export default function StepDetailScreen() {
               </Pressable>
             ),
           headerRight: () => (
-            sourceOrigin === 'atlas' ? null : (
+            sourceOrigin === 'atlas' || sourceOrigin === 'watch' ? null : (
               <Pressable
                 onPress={() => router.push(`/race/ios/${actualId}` as any)}
                 style={styles.iosPreviewBtn}

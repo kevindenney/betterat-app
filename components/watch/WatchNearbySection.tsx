@@ -130,7 +130,7 @@ export function WatchNearbySection({
 function NearbyStepCard({ step }: { step: AtlasPeerStep }) {
   const rel = RELATIONSHIP_META[step.relationship];
   const handlePress = () => {
-    router.push(`/step/${step.step_id}` as never);
+    router.push(`/step/${step.step_id}?readOnly=true&origin=watch` as never);
   };
   const previewName = step.preview_name ?? 'Someone nearby';
   return (

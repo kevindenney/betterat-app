@@ -152,9 +152,17 @@ export default function WatchScreen() {
     () => Array.from(blueprintGroups.groups.keys()),
     [blueprintGroups],
   );
-  const { data: blueprintTitles } = useBlueprintTitles(
-    grouping === 'blueprint' ? blueprintIds : [],
-  );
+  // Resolve blueprint titles across the whole feed (not just the "By
+  // blueprint" grouping) so every card can show where it came from.
+  const allBlueprintIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of feed) if (item.sourceBlueprintId) set.add(item.sourceBlueprintId);
+    for (const item of fleetFeed) if (item.sourceBlueprintId) set.add(item.sourceBlueprintId);
+    return Array.from(set);
+  }, [feed, fleetFeed]);
+  const { data: blueprintTitles } = useBlueprintTitles(allBlueprintIds);
+  const blueprintTitleFor = (id: string | null): string | null =>
+    id ? blueprintTitles?.get(id)?.title ?? null : null;
 
   const hasFeed = feed.length > 0;
   const hasCohort = cohortStream.length > 0;
@@ -303,7 +311,11 @@ export default function WatchScreen() {
               ) : (
                 <View style={styles.feed}>
                   {fleetFeed.map((item) => (
-                    <WatchCard key={item.id} item={item} />
+                    <WatchCard
+                      key={item.id}
+                      item={item}
+                      blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
+                    />
                   ))}
                 </View>
               )}
@@ -368,7 +380,11 @@ export default function WatchScreen() {
         ) : (
           <View style={styles.feed}>
             {feed.map((item) => (
-              <WatchCard key={item.id} item={item} />
+              <WatchCard
+                key={item.id}
+                item={item}
+                blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
+              />
             ))}
           </View>
         )}
@@ -471,7 +487,13 @@ function CohortStreamCard({ item }: { item: CohortStreamItem }) {
   );
 }
 
-function WatchCard({ item }: { item: FollowedStepItem }) {
+function WatchCard({
+  item,
+  blueprintTitle,
+}: {
+  item: FollowedStepItem;
+  blueprintTitle?: string | null;
+}) {
   const statusMeta = STATUS_META[item.status];
   const subtitle = [
     item.organizationName,
@@ -483,7 +505,9 @@ function WatchCard({ item }: { item: FollowedStepItem }) {
   return (
     <Pressable
       style={styles.card}
-      onPress={() => router.push(`/step/${item.id}` as never)}
+      onPress={() =>
+        router.push(`/step/${item.id}?readOnly=true&origin=watch` as never)
+      }
     >
       <View style={styles.cardHeader}>
         <Pressable
@@ -519,14 +543,24 @@ function WatchCard({ item }: { item: FollowedStepItem }) {
         {item.stepTitle}
       </Text>
 
-      {item.locationName ? (
+      {item.locationName || blueprintTitle ? (
         <View style={styles.metaWrap}>
-          <View style={styles.metaPill}>
-            <Ionicons name="location-outline" size={13} color={IOS_COLORS.secondaryLabel} />
-            <Text style={styles.metaPillText} numberOfLines={1}>
-              {item.locationName}
-            </Text>
-          </View>
+          {blueprintTitle ? (
+            <View style={styles.metaPill}>
+              <Ionicons name="documents-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+              <Text style={styles.metaPillText} numberOfLines={1}>
+                {blueprintTitle}
+              </Text>
+            </View>
+          ) : null}
+          {item.locationName ? (
+            <View style={styles.metaPill}>
+              <Ionicons name="location-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+              <Text style={styles.metaPillText} numberOfLines={1}>
+                {item.locationName}
+              </Text>
+            </View>
+          ) : null}
         </View>
       ) : null}
 

@@ -12,7 +12,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -39,7 +38,6 @@ import {
   InCommonRow,
   ConceptCard,
   IOS_DETAIL_GROUND_BG,
-  IOSOnlyNotice,
   pickAvatarMarkColor,
 } from '@/components/discover/detail';
 import { useAuth } from '@/providers/AuthProvider';
@@ -63,7 +61,6 @@ type ProfileRow = {
 };
 
 export default function PersonDetailScreen() {
-  if (Platform.OS === 'web') return <IOSOnlyNotice surface="Person" />;
   return <PersonDetailScreenInner />;
 }
 

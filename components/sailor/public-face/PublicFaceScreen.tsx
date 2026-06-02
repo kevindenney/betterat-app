@@ -24,7 +24,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -44,7 +43,6 @@ import {
   IOSDetailSection,
   RelationshipButton,
   RelationshipMinePill,
-  IOSOnlyNotice,
 } from '@/components/discover/detail';
 import { initialsForName } from '@/components/discover/canonical';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
@@ -74,7 +72,6 @@ export interface PublicFaceScreenProps {
 }
 
 export function PublicFaceScreen({ userId }: PublicFaceScreenProps) {
-  if (Platform.OS === 'web') return <IOSOnlyNotice surface="Public face" />;
   return <PublicFaceScreenInner userId={userId} />;
 }
 
