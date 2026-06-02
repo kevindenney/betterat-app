@@ -937,6 +937,7 @@ class RaceCollaborationServiceClass {
           event: '*',
           schema: 'public',
           table: 'race_collaborators',
+          filter: `regatta_id=eq.${regattaId}`,
         },
         async (payload) => {
           const payloadRaceId =
@@ -979,6 +980,7 @@ class RaceCollaborationServiceClass {
           event: '*',
           schema: 'public',
           table: 'race_messages',
+          filter: `regatta_id=eq.${regattaId}`,
         },
         async (payload) => {
           const payloadRaceId =
