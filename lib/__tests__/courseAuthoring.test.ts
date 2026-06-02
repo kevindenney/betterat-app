@@ -19,12 +19,21 @@ describe('buildCourseParams', () => {
     expect(params.pin.lng).toBeLessThan(baseInput.center.lng);
   });
 
-  it('keeps the start-line midpoint at the tapped center', () => {
+  it('centers the beat on `center` — start line half a leg downwind, windward mark half a leg upwind', () => {
     const params = buildCourseParams(baseInput);
-    const midLat = (params.committee.lat + params.pin.lat) / 2;
-    const midLng = (params.committee.lng + params.pin.lng) / 2;
-    expect(midLat).toBeCloseTo(baseInput.center.lat, 5);
-    expect(midLng).toBeCloseTo(baseInput.center.lng, 5);
+    const startMidLat = (params.committee.lat + params.pin.lat) / 2;
+    const startMidLng = (params.committee.lng + params.pin.lng) / 2;
+    // Wind from north → downwind is south → the start line sits south of
+    // center (lower lat), same lng.
+    expect(startMidLat).toBeLessThan(baseInput.center.lat);
+    expect(startMidLng).toBeCloseTo(baseInput.center.lng, 5);
+    // Half a 0.5nm leg ≈ 0.25nm ≈ 0.00225° lat at this latitude.
+    expect(baseInput.center.lat - startMidLat).toBeCloseTo(0.25 / 60, 3);
+    // The windward mark lands a full leg (0.5nm) upwind of the start line,
+    // so the beat midpoint — half a leg above the start line — falls back
+    // on `center`.
+    const beatMidLat = startMidLat + (0.25 / 60);
+    expect(beatMidLat).toBeCloseTo(baseInput.center.lat, 3);
   });
 
   it('spreads the endpoints by roughly the requested start-line length', () => {

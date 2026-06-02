@@ -20,7 +20,12 @@ export const DEFAULT_BOAT_LENGTH_M = 8.9; // Dragon LOA
 export const DEFAULT_START_BOX_DEPTH_BOAT_LENGTHS = 5;
 
 export interface BuildCourseParamsInput {
-  /** Start-line center — where the user tapped/long-pressed on the water. */
+  /**
+   * Course center — the point the course should be centered on (the racing
+   * area's centroid, or where the user tapped). The start line is derived
+   * half a beat downwind of this so the windward leg straddles `center`
+   * rather than hanging upwind of it.
+   */
   center: { lat: number; lng: number };
   /** Direction the wind blows FROM (0=N, 90=E) — the course axis. */
   windDirectionDeg: number;
@@ -34,7 +39,14 @@ export interface BuildCourseParamsInput {
 }
 
 /**
- * Derive CourseGeometryParams from a tapped center + wind + line length.
+ * Derive CourseGeometryParams from a course center + wind + line length.
+ *
+ * `center` is the point the course is centered on. The beat (start line →
+ * windward mark) is the course's dominant extent, so we place the start
+ * line half a beat DOWNWIND of `center` — the windward mark then lands half
+ * a beat upwind, leaving the leg straddling `center`. Without this the start
+ * line sits on `center` and the whole course hangs upwind, reading as
+ * off-center inside a racing-area polygon.
  *
  * The start line is perpendicular to the wind axis. Facing upwind (toward
  * the wind source at windDirectionDeg), the committee boat sits at the
@@ -57,8 +69,16 @@ export function buildCourseParams(input: BuildCourseParamsInput): CourseGeometry
   } = input;
 
   const halfLineNm = startLineLengthM / 2 / M_PER_NM;
-  const committee = destinationPoint(center.lat, center.lng, windDirectionDeg + 90, halfLineNm);
-  const pin = destinationPoint(center.lat, center.lng, windDirectionDeg - 90, halfLineNm);
+  // Step half a beat downwind (windDirectionDeg + 180) so the windward leg
+  // is centered on `center`.
+  const startLineCenter = destinationPoint(
+    center.lat,
+    center.lng,
+    (windDirectionDeg + 180) % 360,
+    legLengthNm / 2,
+  );
+  const committee = destinationPoint(startLineCenter.lat, startLineCenter.lng, windDirectionDeg + 90, halfLineNm);
+  const pin = destinationPoint(startLineCenter.lat, startLineCenter.lng, windDirectionDeg - 90, halfLineNm);
 
   return {
     committee: { lat: committee.lat, lng: committee.lng },

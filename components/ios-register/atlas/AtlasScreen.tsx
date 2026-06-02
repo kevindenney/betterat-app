@@ -86,6 +86,7 @@ import { useMarineSnapshot, conditionsLineFor } from '@/hooks/useMarineSnapshot'
 import { useHKOObservations, isInHongKong } from '@/hooks/useHKOObservations';
 import { useWindOverlay } from '@/hooks/useWindOverlay';
 import { useTideOverlay } from '@/hooks/useTideOverlay';
+import { useWaveOverlay } from '@/hooks/useWaveOverlay';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
@@ -842,6 +843,7 @@ export type AtlasLayerKey =
   | 'sailing.course'
   | 'sailing.wind'
   | 'sailing.tide'
+  | 'sailing.waves'
   | 'sailing.marinas'
   | 'sailing.sail_services'
   | 'core.peer_steps'
@@ -887,6 +889,7 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
     return [
       { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed for next race day', defaultOn: true },
       { key: 'sailing.tide', label: 'Tidal current', sub: 'Set + drift around the course', defaultOn: true },
+      { key: 'sailing.waves', label: 'Swell', sub: 'Wave direction + height', defaultOn: true },
       { key: 'sailing.race_areas', label: 'Race areas', sub: 'Highlighted racing zones', defaultOn: true },
       { key: 'sailing.course', label: 'Race course', sub: 'Marks, laylines, start box · zoom ≥ 13', defaultOn: true },
       { key: 'sailing.race_marks', label: 'Race marks', sub: 'Visible at zoom ≥ 14', defaultOn: false },
@@ -1604,8 +1607,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showRaceMarks, setShowRaceMarks] = useState(true);
   const [showMarinas, setShowMarinas] = useState(true);
   const [showSailServices, setShowSailServices] = useState(false);
-  const [showWind, setShowWind] = useState(false);
-  const [showTide, setShowTide] = useState(false);
+  const [showWind, setShowWind] = useState(true);
+  const [showTide, setShowTide] = useState(true);
+  const [showWaves, setShowWaves] = useState(true);
   const [scrubIndex, setScrubIndex] = useState(0);
   const [showRaceAreas, setShowRaceAreas] = useState(true);
   const [showCourse, setShowCourse] = useState(true);
@@ -1836,16 +1840,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     if (showSailServices) out.add('sailing.sail_services');
     if (showWind) out.add('sailing.wind');
     if (showTide) out.add('sailing.tide');
+    if (showWaves) out.add('sailing.waves');
     if (showRaceAreas) out.add('sailing.race_areas');
     if (showCourse) out.add('sailing.course');
     return out;
-  }, [showRaceMarks, showMarinas, showSailServices, showWind, showTide, showRaceAreas, showCourse]);
+  }, [showRaceMarks, showMarinas, showSailServices, showWind, showTide, showWaves, showRaceAreas, showCourse]);
   const handleLayerToggle = useCallback((key: string, on: boolean) => {
     if (key === 'sailing.race_marks') setShowRaceMarks(on);
     if (key === 'sailing.marinas') setShowMarinas(on);
     if (key === 'sailing.sail_services') setShowSailServices(on);
     if (key === 'sailing.wind') setShowWind(on);
     if (key === 'sailing.tide') setShowTide(on);
+    if (key === 'sailing.waves') setShowWaves(on);
     if (key === 'sailing.race_areas') setShowRaceAreas(on);
     if (key === 'sailing.course') setShowCourse(on);
   }, []);
@@ -1862,7 +1868,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const { data: marineSnapshot } = useMarineSnapshot({
     lat: mapCenter.lat,
     lng: mapCenter.lng,
-    enabled: showWind || showTide,
+    enabled: showWind || showTide || showWaves,
   });
   const { user: authUser } = useAuth();
   // Racing-area feature collection — same query key as the canvas, so
@@ -1956,9 +1962,22 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     conditionsLine: scrubWindow.tide ?? '0|0',
     enabled: showTide && scrubWindow.tide !== null,
   });
+  const waveConditionsLine = useMemo(
+    () =>
+      marineSnapshot?.waves
+        ? `${marineSnapshot.waves.degrees}|${marineSnapshot.waves.heightMeters}`
+        : null,
+    [marineSnapshot],
+  );
+  const wavePins = useWaveOverlay({
+    centerLat: mapCenter.lat,
+    centerLng: mapCenter.lng,
+    conditionsLine: waveConditionsLine ?? '0|0',
+    enabled: showWaves && waveConditionsLine !== null,
+  });
   const windTidePins = useMemo<AtlasPinSpec[]>(
-    () => [...windPins, ...tidePins],
-    [windPins, tidePins],
+    () => [...windPins, ...tidePins, ...wavePins],
+    [windPins, tidePins, wavePins],
   );
   // Apply chip-driven peer-pin filtering: when "All" is off and one
   // or more relationship chips are active, hide peer pins whose kind
