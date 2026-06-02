@@ -99,22 +99,21 @@ export class RaceRegistrationService {
     if (regatta?.club_id) {
       const { data: clubData } = await supabase
         .from('clubs')
-        .select('id, name, club_name, contact_email, email')
+        .select('id, name, email')
         .eq('id', regatta.club_id)
         .single();
 
-      clubName = clubData?.name || (clubData as any)?.club_name;
-      clubEmail = (clubData as any)?.contact_email || clubData?.email;
+      clubName = clubData?.name;
+      clubEmail = clubData?.email;
 
-      if (!clubName || !clubEmail) {
+      if (!clubName) {
         const { data: yachtClubData } = await supabase
           .from('yacht_clubs')
-          .select('id, name, contact_email, email')
+          .select('id, name')
           .eq('id', regatta.club_id)
           .single();
 
         clubName = clubName || yachtClubData?.name;
-        clubEmail = clubEmail || (yachtClubData as any)?.contact_email || yachtClubData?.email;
       }
     }
 
@@ -409,30 +408,29 @@ export class RaceRegistrationService {
       if (entry?.regatta_id) {
         const { data: regatta } = await supabase
           .from('regattas')
-          .select('id, event_name, club_id')
+          .select('id, name, club_id')
           .eq('id', entry.regatta_id)
           .single();
-        regattaName = regatta?.event_name;
+        regattaName = regatta?.name;
 
         const clubId = (regatta as any)?.club_id;
         if (clubId) {
           const { data: club } = await supabase
             .from('clubs')
-            .select('id, name, club_name, contact_email, email')
+            .select('id, name, email')
             .eq('id', clubId)
             .single();
 
-          clubName = club?.name || (club as any)?.club_name;
-          clubEmail = (club as any)?.contact_email || club?.email;
+          clubName = club?.name;
+          clubEmail = club?.email;
 
-          if (!clubName || !clubEmail) {
+          if (!clubName) {
             const { data: yachtClub } = await supabase
               .from('yacht_clubs')
-              .select('id, name, contact_email, email')
+              .select('id, name')
               .eq('id', clubId)
               .single();
             clubName = clubName || yachtClub?.name;
-            clubEmail = clubEmail || (yachtClub as any)?.contact_email || yachtClub?.email;
           }
         }
       }
