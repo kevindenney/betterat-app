@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 const IOS_BLUE = '#007AFF';
 const GRAY_5 = '#E5E5EA';
-const GRAY_4 = '#D1D1D6';
 const LABEL = '#1C1C1E';
 const LABEL_2 = '#3C3C43';
 const LABEL_3 = 'rgba(60, 60, 67, 0.60)';
@@ -89,10 +88,6 @@ export function DoQuickNoteModal({
             onPress={(e: { stopPropagation?: () => void }) => e.stopPropagation?.()}
             style={styles.sheet}
           >
-            <View style={styles.grabberWrap}>
-              <View style={styles.grabber} />
-            </View>
-
             <View style={styles.head}>
               <View style={styles.titleWrap}>
                 <Text style={styles.title}>{title}</Text>
@@ -169,21 +164,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingBottom: 24,
   },
-  grabberWrap: {
-    height: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  grabber: {
-    width: 36,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: GRAY_4,
-    opacity: 0.55,
-  },
   head: {
     paddingHorizontal: 16,
-    paddingTop: 4,
+    paddingTop: 18,
     paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
