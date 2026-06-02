@@ -334,7 +334,7 @@ async function getUserOrgPrograms(userId: string, interestId: string): Promise<O
 
     const { data: programs } = await supabase
       .from('programs')
-      .select('id, name, description, status, organization_id, interest_id')
+      .select('id, title, description, status, organization_id, interest_id')
       .in('id', programIds);
 
     if (!programs?.length) return [];
@@ -356,7 +356,7 @@ async function getUserOrgPrograms(userId: string, interestId: string): Promise<O
 
     return relevant.map((p) => ({
       orgName: orgMap.get(p.organization_id) || '',
-      programName: p.name,
+      programName: p.title,
       description: p.description ?? undefined,
       status: p.status,
     }));

@@ -55,9 +55,9 @@ export function useNearbyBlueprints({
       if (orgIds.length === 0) return [];
       const { data, error } = await supabase
         .from('blueprints')
-        .select('id, slug, title, description, organization_id')
-        .in('organization_id', orgIds)
-        .eq('is_published', true);
+        .select('id, slug, title, description, org_id')
+        .in('org_id', orgIds)
+        .eq('status', 'live');
       if (error) {
         console.warn('[nearby-blueprints] query failed', error);
         return [];
@@ -67,18 +67,18 @@ export function useNearbyBlueprints({
         slug: string | null;
         title: string;
         description: string | null;
-        organization_id: string;
+        org_id: string;
       }[];
       // Map onto NearbyBlueprint shape; sort by host-org distance so the
       // closest club's blueprints lead.
       const out: NearbyBlueprint[] = rows.map((r) => {
-        const org = orgById.get(r.organization_id);
+        const org = orgById.get(r.org_id);
         return {
           id: r.id,
           slug: r.slug,
           title: r.title,
           description: r.description,
-          organizationId: r.organization_id,
+          organizationId: r.org_id,
           organizationName: org?.shortName ?? org?.name ?? 'Nearby club',
           organizationDistanceKm: org?.distanceKm ?? Infinity,
         };

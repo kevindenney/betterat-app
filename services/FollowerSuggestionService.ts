@@ -157,20 +157,14 @@ export class FollowerSuggestionService {
         }
       });
     } else {
-      const [profilesById, profilesByUserId] = await Promise.all([
-        supabase.from('profiles').select('id, user_id, full_name').in('id', suggesterIds),
-        supabase.from('profiles').select('id, user_id, full_name').in('user_id', suggesterIds),
-      ]);
+      // profiles is keyed by `id` (= auth user id); there is no user_id column.
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', suggesterIds);
 
-      const mergedProfiles = [
-        ...((profilesById.data || []) as { id?: string; user_id?: string; full_name?: string | null }[]),
-        ...((profilesByUserId.data || []) as { id?: string; user_id?: string; full_name?: string | null }[]),
-      ];
-
-      mergedProfiles.forEach((p) => {
-        if (!p?.full_name) return;
-        if (p.user_id) namesById.set(p.user_id, p.full_name);
-        else if (p.id) namesById.set(p.id, p.full_name);
+      ((profiles || []) as { id?: string; full_name?: string | null }[]).forEach((p) => {
+        if (p?.id && p?.full_name) namesById.set(p.id, p.full_name);
       });
     }
 

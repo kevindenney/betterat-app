@@ -73,11 +73,11 @@ export function useStepCompleteCelebration({
         // 2. Blueprint step list (for fleet math + next step)
         const { data: bpStepsRows } = await supabase
           .from('blueprint_steps')
-          .select('step_id, sort_order')
+          .select('id, step_id, sort_order')
           .eq('blueprint_id', blueprintId)
           .order('sort_order', { ascending: true });
         const bpSteps =
-          (bpStepsRows as { step_id: string; sort_order: number }[] | null) ?? [];
+          (bpStepsRows as { id: string; step_id: string; sort_order: number }[] | null) ?? [];
         const totalSteps = bpSteps.length;
         const currentIdx = sourceStepId
           ? bpSteps.findIndex((r) => r.step_id === sourceStepId)
@@ -153,7 +153,7 @@ async function computeFleetPosition(
   blueprintId: string,
   viewerId: string,
   viewerCurrentIdx: number,
-  bpSteps: { step_id: string; sort_order: number }[],
+  bpSteps: { id: string; step_id: string; sort_order: number }[],
 ): Promise<{ ahead: number; sameStep: number; behind: number }> {
   if (viewerCurrentIdx < 0 || bpSteps.length === 0) {
     return { ahead: 0, sameStep: 0, behind: 0 };
@@ -173,19 +173,20 @@ async function computeFleetPosition(
   }
 
   // Each peer's furthest done step = their position; pending steps don't
-  // advance position. Use status_user_progress (status='done').
-  const stepIds = bpSteps.map((s) => s.step_id);
+  // advance position. step_user_progress.blueprint_step_id references the
+  // blueprint_steps row id, so match on that — not the timeline step_id.
+  const blueprintStepIds = bpSteps.map((s) => s.id);
   const { data: progress } = await supabase
     .from('step_user_progress')
-    .select('user_id, step_id, status')
+    .select('user_id, blueprint_step_id, status')
     .in('user_id', subscriberIds)
-    .in('step_id', stepIds)
+    .in('blueprint_step_id', blueprintStepIds)
     .eq('status', 'done');
 
   // Determine each peer's farthest-completed sort_order
   const peerMaxIdx = new Map<string, number>();
-  for (const row of (progress as { user_id: string; step_id: string }[] | null) ?? []) {
-    const idx = bpSteps.findIndex((s) => s.step_id === row.step_id);
+  for (const row of (progress as { user_id: string; blueprint_step_id: string }[] | null) ?? []) {
+    const idx = bpSteps.findIndex((s) => s.id === row.blueprint_step_id);
     if (idx < 0) continue;
     const prev = peerMaxIdx.get(row.user_id) ?? -1;
     if (idx > prev) peerMaxIdx.set(row.user_id, idx);
