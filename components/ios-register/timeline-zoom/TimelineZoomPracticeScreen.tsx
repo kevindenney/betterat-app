@@ -539,6 +539,7 @@ export function TimelineZoomPracticeScreen() {
       <TimelineZoomCanvas
         dataset={dataset}
         initialLevel={initialLevelFromRoute}
+        routeFocusStepId={resolvedSelectedStepId}
         onOpenStepDetail={handleOpenStepDetail}
         embedFullDetailAtL1
         onReorderStep={handleReorderStep}

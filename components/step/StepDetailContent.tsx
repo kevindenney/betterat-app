@@ -156,10 +156,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   // scope=cohort implicitly also forces the active tab to Discussion
   // — landing on Do/Plan and making the user hunt for the thread
   // they were just told about defeats the deep-link.
-  const routeParams = useLocalSearchParams<{ scope?: string }>();
+  const routeParams = useLocalSearchParams<{ scope?: string; tab?: string }>();
   const initialDiscussionScope: 'private' | 'cohort' =
     routeParams?.scope === 'cohort' ? 'cohort' : 'private';
-  const routeForcesDiscussionTab = routeParams?.scope === 'cohort';
+  // scope=cohort or tab=discussion both land on the Discussion tab — the
+  // former from cohort_discussion_post taps, the latter from personal-step
+  // post taps (which carry no scope and default to Private).
+  const routeForcesDiscussionTab =
+    routeParams?.scope === 'cohort' || routeParams?.tab === 'discussion';
 
   const { data: step, isLoading, error } = useStepDetail(stepId);
   // Loaded for Section H StepCombinatorsRow's "N related" count. React

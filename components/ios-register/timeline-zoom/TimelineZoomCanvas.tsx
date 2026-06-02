@@ -62,6 +62,15 @@ interface TimelineZoomCanvasProps {
   /** Starting zoom level. Defaults to 1 (Step). */
   initialLevel?: ZoomLevel;
   /**
+   * The step id carried by an explicit `?selected=` deep-link (e.g. a
+   * discussion-notification tap). Distinct from the dataset's default
+   * focus: whenever this changes to a resolvable id, the canvas jumps to
+   * L1 on that step — even if the Practice tab is already mounted at L2/L3.
+   * `initialLevel` only applies at mount, so without this a deep-link
+   * arriving on the live tab re-focuses but never zooms in.
+   */
+  routeFocusStepId?: string;
+  /**
    * Optional handler invoked when the user taps the focused L1 card to
    * open the full step detail surface (existing `<StepDetailContent />`).
    * When omitted, the L1 card is non-interactive (preview routes). When
@@ -179,6 +188,7 @@ function makeZoomEntering(direction: 'in' | 'out') {
 export function TimelineZoomCanvas({
   dataset,
   initialLevel = 1,
+  routeFocusStepId,
   onOpenStepDetail,
   hideInterestHeader = false,
   embedFullDetailAtL1 = false,
@@ -221,6 +231,15 @@ export function TimelineZoomCanvas({
       current === dataset.focusStepId ? current : dataset.focusStepId,
     );
   }, [dataset.focusStepId]);
+  // Explicit `?selected=` deep-link (discussion-notification tap). Whenever
+  // it resolves to a step, jump to L1 on it — `initialLevel` only applies at
+  // mount, so a deep-link landing on the already-mounted Practice tab would
+  // otherwise re-focus but stay zoomed out at L2/L3.
+  React.useEffect(() => {
+    if (!routeFocusStepId) return;
+    setFocusStepId(routeFocusStepId);
+    setLevel(1);
+  }, [routeFocusStepId]);
   const select = useSelectMode();
   // Hide the floating zoom rail while a text input / composer is focused so
   // it never collides with a send button or the rising keyboard. Keyboard
