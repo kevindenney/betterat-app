@@ -582,7 +582,13 @@ export function StepDiscussionInline({
           </Text>
         </View>
       ) : (
-        <View style={styles.feed}>
+        <View
+          style={
+            composerRightInset > 0
+              ? [styles.feed, { paddingRight: composerRightInset }]
+              : styles.feed
+          }
+        >
           {notes.map((note) => (
             <NoteCard
               key={note.id}

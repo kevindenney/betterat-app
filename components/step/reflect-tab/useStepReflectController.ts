@@ -20,6 +20,7 @@ import {
   writeStepCapabilityEvidence,
 } from '@/services/CapabilityEvidenceService';
 import { dropInsight } from '@/services/QuickCaptureService';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { addConceptTrailQuote, getStepConceptLinks } from '@/services/PlaybookService';
 import { supabase } from '@/services/supabase';
 import { encodeHingeId } from '@/services/HingeBuildService';
@@ -413,12 +414,18 @@ export function useStepReflectController({
     const field = fields.find((item) => item.id === id);
     const content = field?.value.trim();
     if (!content) return;
-    await dropInsight({
-      userId: step.user_id,
-      interestId: step.interest_id,
-      payload: { kind: 'text', content },
-    });
-    router.push('/(tabs)/library' as any);
+    try {
+      await dropInsight({
+        userId: step.user_id,
+        interestId: step.interest_id,
+        payload: { kind: 'text', content },
+      });
+      showAlert('Saved to Playbook', 'Concept seed added to Recent insights.');
+      router.push('/(tabs)/library' as any);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save concept seed.';
+      showAlert('Save failed', message);
+    }
   }, [fields, readOnly, step]);
 
   const onAnswerConceptPrompt = useCallback((conceptId: string, answer: boolean) => {
