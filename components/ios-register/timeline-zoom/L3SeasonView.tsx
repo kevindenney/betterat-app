@@ -53,6 +53,7 @@ import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
 import { useDragReorder } from './useDragReorder';
+import { ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
 import { resolveInterestVocab } from './interestVocab';
 import {
   anchorIconName,
@@ -170,11 +171,18 @@ export function L3SeasonView({
   }, []);
 
   const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
-    // The rail's lane is now reserved by the canvas container (paddingRight),
-    // so this measured width already excludes it — use it as-is.
+    // Full block width — the floating zoom rail isn't reserved by the
+    // canvas (it hovers edge-to-edge), so charts subtract
+    // ZOOM_RAIL_RESERVED_WIDTH from this themselves (see riverWidth).
     const w = Math.max(0, e.nativeEvent.layout.width);
     if (w !== chartWidth) setChartWidth(w);
   }, [chartWidth]);
+
+  // Full-bleed charts must stop short of the floating zoom rail's lane so
+  // their right edge (latest-week axis tick, rightmost bands) isn't
+  // occluded by it. The block is measured edge-to-edge; subtract the
+  // rail's reserved lane here.
+  const riverWidth = Math.max(0, chartWidth - ZOOM_RAIL_RESERVED_WIDTH);
 
   // Flatten the current season's steps into one ordered list. The drag
   // hook reasons in this flat coordinate space; the UI still renders
@@ -460,7 +468,14 @@ export function L3SeasonView({
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
           {flatSteps.length >= 5 ? (
             <>
-              <Text style={styles.sectionEyebrow}>{interestVocab.capabilityHeader}</Text>
+              <View style={styles.eyebrowRow}>
+                <Text style={[styles.sectionEyebrow, styles.sectionEyebrowFlush]}>
+                  {interestVocab.capabilityHeader}
+                </Text>
+                {capabilityFamilies.families.length > 0 ? (
+                  <Text style={styles.filterHint}>tap to filter the log ↓</Text>
+                ) : null}
+              </View>
               {capabilityHeadline ? (
                 <Text style={styles.sectionHeadline}>
                   <Text
@@ -487,7 +502,7 @@ export function L3SeasonView({
                   label: m.label,
                   color: m.capabilityColor,
                 }))}
-                width={chartWidth}
+                width={riverWidth}
                 height={188}
                 isolatedCapabilityId={activeThread?.id ?? null}
                 onCapabilityPress={(id, label, color) =>
@@ -552,7 +567,7 @@ export function L3SeasonView({
                   density={analysis.reflectionDensity}
                   totalWeeks={totalWeeks}
                   currentWeekNumber={currentWeek}
-                  width={chartWidth}
+                  width={riverWidth}
                 />
               </View>
               <Text style={styles.reflectionCaption}>
@@ -600,7 +615,7 @@ export function L3SeasonView({
                   peers={analysis.peers}
                   totalWeeks={totalWeeks}
                   currentWeekNumber={currentWeek}
-                  width={chartWidth}
+                  width={riverWidth}
                   compact={analysis.peers.length <= 3}
                   showRole
                   peerSharedFleets={fleetCohort?.peerToFleets}
@@ -1175,6 +1190,26 @@ const styles = StyleSheet.create({
   },
   sectionEyebrowSpace: {
     marginTop: 18,
+  },
+  // Eyebrow + filter affordance on one baseline-aligned row. The hint
+  // tells the user the chart/chips below are tappable filters for THE
+  // WORK log, so the two-way selection isn't a hidden gesture.
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginLeft: 16,
+    marginRight: 16,
+    marginBottom: 6,
+  },
+  sectionEyebrowFlush: {
+    marginLeft: 0,
+    marginBottom: 0,
+  },
+  filterHint: {
+    fontSize: 10.5,
+    color: IOS_REGISTER.labelTertiary,
+    letterSpacing: 0.1,
   },
   sectionHeadline: {
     fontFamily: fontFamily.serif,
