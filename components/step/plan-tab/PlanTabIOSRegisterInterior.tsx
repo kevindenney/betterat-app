@@ -119,6 +119,13 @@ export interface PlanTabIOSRegisterInteriorProps {
     };
   };
   testID?: string;
+  /**
+   * Right gutter (pt) so the HOW-row + controls clear the floating zoom rail
+   * when this interior is embedded in the timeline-zoom canvas. Pass
+   * ZOOM_RAIL_RESERVED_WIDTH from RaceSummaryCard; standalone callers leave
+   * it 0 (no rail there).
+   */
+  rightInset?: number;
 }
 
 const WHAT_PLACEHOLDER = 'Race 4, holding right-side discipline in shifty light air…';
@@ -153,6 +160,7 @@ export function PlanTabIOSRegisterInterior({
   autoFocusWhat,
   libraryBefore,
   testID,
+  rightInset,
 }: PlanTabIOSRegisterInteriorProps) {
   const [coachOpen, setCoachOpen] = useState(false);
   const [moreExpanded, setMoreExpanded] = useState(false);
@@ -365,7 +373,10 @@ export function PlanTabIOSRegisterInterior({
     // parent's ScrollView owns vertical scroll (chrome + tabs scroll with
     // the body instead of staying pinned).
     return (
-      <View style={styles.embeddedBody} testID={testID}>
+      <View
+        style={[styles.embeddedBody, rightInset ? { paddingRight: 16 + rightInset } : null]}
+        testID={testID}
+      >
         {body}
       </View>
     );
@@ -374,7 +385,10 @@ export function PlanTabIOSRegisterInterior({
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        rightInset ? { paddingRight: 16 + rightInset } : null,
+      ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       testID={testID}

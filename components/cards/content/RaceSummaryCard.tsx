@@ -2172,6 +2172,7 @@ function RaceSummaryCardImpl({
               useConversationalCapture={isOwner}
               onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
               onNextTab={isOwner ? () => setSelectedPhase('on_water') : undefined}
+              rightInset={ZOOM_RAIL_RESERVED_WIDTH}
             />
           </>
         );

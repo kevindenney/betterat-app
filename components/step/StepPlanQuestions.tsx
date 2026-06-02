@@ -80,6 +80,12 @@ interface StepPlanQuestionsProps {
    * `() => setSelectedPhase('on_water')`.
    */
   onNextTab?: () => void;
+  /**
+   * Right gutter (pt) forwarded to PlanTabIOSRegisterInterior so the HOW-row
+   * controls clear the floating zoom rail when embedded in the timeline-zoom
+   * canvas. Pass ZOOM_RAIL_RESERVED_WIDTH from RaceSummaryCard.
+   */
+  rightInset?: number;
 }
 
 export function StepPlanQuestions({
@@ -88,6 +94,7 @@ export function StepPlanQuestions({
   isStructuring, interestSlug,
   useConversationalCapture, onConversationalCreate,
   onNextTab,
+  rightInset,
 }: StepPlanQuestionsProps) {
   const { data: step } = useStepDetail(stepId);
   const updateMetadata = useUpdateStepMetadata(stepId);
@@ -1079,6 +1086,7 @@ RULES:
       <>
         <PlanTabIOSRegisterInterior
           embedded
+          rightInset={rightInset}
           autoFocusWhat={autoFocusWhat}
           libraryBefore={libraryBefore}
           planData={canonicalPlanData}
