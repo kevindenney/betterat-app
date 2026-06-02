@@ -37,28 +37,43 @@ The target picture (Kevin's description, encoded below):
 | Course types | `types/courses.ts` | `Mark`, `MarkType`, `PositionedCourse`, `StartLinePosition` (pin + committee), `CourseMarkTemplate`, `CoursePositioningOptions`, `PositionedCourseResult` |
 | Positioning math | `services/CoursePositioningService.ts` | `calculateStartLine` (perpendicular-to-wind pin/committee), `calculateMarkPositions` (relX/relY leg-length templates), `calculateFinishMark` (buoy opposite pin across committee — **matches the brief**), `recalculateForWindChange`, `repositionCourse`, `toGeoJSON`, and geometry utils (`destinationPoint`, `calculateBearing`, `normalizeBearing`) |
 | Course templates | `COURSE_TEMPLATES` in same service | `windward_leeward`, `triangle`, `olympic`, `trapezoid`, `custom` |
-| Authoring editor | `components/races/CoursePositionEditor.{tsx,native,web}` | drag-to-adjust mark editor (currently regatta-scoped) |
+| **Full tactical overlay (THE WHOLE PICTURE)** | `components/races/NativeCourseOverlayMap.tsx` | **Already renders everything in §1**: start box (`outline: [P, C, committeeDown, pinDown]`, L259), start-end laylines (`windDirection ± 45`, L268–269) intersected via `rayIntersection` to the windward-mark laylines = the beat corridor (L273–277), thirds, side labels, favored-side current shading. Self-contained `@maplibre/maplibre-react-native` (same lib as Atlas). Takes a `PositionedCourse`. Regatta-scoped, read-only. |
+| Laylines overlay | `components/race-detail/map/LaylinesOverlay.tsx` | standalone layline map overlay (106 lines) |
+| Authoring editor | `components/races/CoursePositionEditor.{tsx,native,web}` | drag-to-adjust mark + start-box editor, 3063 lines (currently regatta-scoped) |
 | Existing renderer | `components/race-detail/map/CourseOverlay.{tsx,web.tsx}` | renders the course GeoJSON on the race-detail map (NOT Atlas) |
 | Atlas race areas | `hooks/useAtlasRacingAreas.ts`, `lib/atlas-race-areas.ts`, `venue_racing_areas` table | the current blob layer + the table where venue geometry lives |
 
-**Key reuse decision:** extend `CoursePositioningService` and `PositionedCourse`
-rather than inventing a parallel model. The service already derives start line +
-marks + finish point from `{ startLineCenter, windDirection, legLengthNm,
-courseType }`; we add layline/box derivation and emit them through `toGeoJSON`.
+**Key reuse decision:** the geometry is NOT new — `NativeCourseOverlayMap` already
+derives and renders the start box, both layline sets, and the beat corridor from a
+`PositionedCourse`. The Atlas work is to (a) source a venue-authored
+`PositionedCourse`, (b) mount that overlay (or lift its `courseOverlay` derivation,
+L152–306) onto the Atlas canvas, and (c) persist courses at venue scope. Extend
+`CoursePositioningService` only for the parameter gaps below.
 
 ## 3. The gap (genuinely new work)
 
-1. **Laylines as geometry** — none exist. Layline appears only as *strategy text*
-   (`types/raceStrategy.ts`, `TacticalAIService`), never as map lines.
-2. **Starting box polygon** — not modeled anywhere.
-3. **Finish line as a LineString** — `calculateFinishMark` returns the buoy point,
-   but `toGeoJSON` never emits the committee↔finish line.
-4. **Beat corridor** — the layline-intersection construction is new.
-5. **Atlas mounting** — the course GeoJSON is never added to the Atlas MapLibre
-   canvas; it only renders on race-detail.
-6. **Venue-scoped, reusable persistence** — `PositionedCourse` is keyed to a
+> **Correction (2026-06-03):** an earlier draft listed laylines, the starting box,
+> and the beat corridor as new. They are **not** — `NativeCourseOverlayMap.tsx`
+> already derives and renders all three (see §2). The real gap is narrower:
+
+1. **Atlas mounting** — the tactical overlay is never placed on the Atlas MapLibre
+   canvas; it only renders on race-detail / race-prep surfaces. Mount
+   `NativeCourseOverlayMap` (or lift its `courseOverlay` derivation) into
+   `AtlasMapLibreCanvas`, behind a layer toggle and zoom gate.
+2. **Venue-scoped, reusable persistence** — `PositionedCourse` is keyed to a
    `regattaId`; we need a course that belongs to a *venue / racing area* so it's
    reusable and authorable independent of a specific regatta.
+3. **Authoring entry from a venue** — `CoursePositionEditor` exists but is
+   regatta-scoped; add a venue-scoped entry that saves to the new store.
+4. **Parameter gaps in the existing derivation** (small, in `NativeCourseOverlayMap`):
+   - **Start-box depth** is hardcoded `legDistanceM * 0.15` (L226). Kevin's brief
+     wants **5 boat-lengths** — make depth a param (`startBoxDepthBoatLengths ×
+     boatLengthM`) with the 0.15·leg as fallback.
+   - **Tack angle** is hardcoded `45°` (L179, L268–269). Parameterize as
+     `tackAngleDeg` (default 42), later class-aware from polars.
+5. **Finish line** — the overlay draws the start box + laylines but (verify) does
+   not emit the committee↔finish-buoy line; `CoursePositioningService.calculateFinishMark`
+   gives the point. Add the finish LineString if missing.
 
 ## 4. Data model
 
@@ -177,14 +192,16 @@ Reuse `CoursePositionEditor` patterns, re-scoped to a venue:
 
 ## 8. Build phases (suggested commits)
 
-1. **Geometry core** — extend `CoursePositioningService`: `calculateLaylines`,
-   `calculateStartBox`, finish-line emission; unit tests on bearings/intersections
-   (pure functions, easy to test — no sim needed).
+1. **Extract + parameterize geometry** — lift the `courseOverlay` derivation out of
+   `NativeCourseOverlayMap` (L152–306) into a pure, testable function; make start-box
+   depth (boat-lengths) and tack angle params; add finish-line emission if missing.
+   Pure functions — unit-testable, no sim needed.
 2. **Persistence** — `venue_race_courses` table + migration + `useVenueRaceCourses`
    read hook (mirror `useAtlasRacingAreas`, public SELECT RLS).
-3. **Atlas render** — mount course GeoJSON layers in `AtlasMapLibreCanvas`, add the
-   `sailing.course` toggle, zoom-gate at 13.
-4. **Authoring** — venue-scoped course editor + save path.
+3. **Atlas render** — mount the overlay layers in `AtlasMapLibreCanvas` (reuse
+   `NativeCourseOverlayMap`'s GeoJSON layers), add the `sailing.course` toggle,
+   zoom-gate at 13.
+4. **Authoring** — venue-scoped entry into `CoursePositionEditor` + save path.
 5. **Seed** — Kevin authors the HK Dragon Worlds course(s) for Victoria Harbour /
    the relevant racing area (this also fixes the empty `venue_racing_areas` blob
    problem from the original audit).
