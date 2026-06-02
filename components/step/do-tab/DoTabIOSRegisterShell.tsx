@@ -41,6 +41,13 @@ export interface DoTabIOSRegisterShellProps {
   footer?: React.ReactNode;
   /** When true, render without flex:1 container + ScrollView so parent owns scroll. */
   embedded?: boolean;
+  /**
+   * Right gutter (pt) so content clears the floating zoom rail when this
+   * shell is embedded in the timeline-zoom canvas. Pass
+   * ZOOM_RAIL_RESERVED_WIDTH from RaceSummaryCard; standalone ActTab leaves
+   * it 0 (no rail there).
+   */
+  rightInset?: number;
 }
 
 export function DoTabIOSRegisterShell({
@@ -52,6 +59,7 @@ export function DoTabIOSRegisterShell({
   onMoveToReflect,
   footer,
   embedded,
+  rightInset,
 }: DoTabIOSRegisterShellProps) {
   const controller = useStepActCaptureController({
     stepId,
@@ -63,7 +71,12 @@ export function DoTabIOSRegisterShell({
   });
 
   return (
-    <View style={embedded ? styles.containerEmbedded : styles.container}>
+    <View
+      style={[
+        embedded ? styles.containerEmbedded : styles.container,
+        rightInset ? { paddingRight: rightInset } : null,
+      ]}
+    >
       <DoTabInterior {...controller.doTabInteriorProps} footer={footer} embedded={embedded} />
 
       <MarkAsEvidenceSheet

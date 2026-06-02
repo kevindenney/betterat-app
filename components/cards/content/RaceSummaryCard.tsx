@@ -2191,6 +2191,7 @@ function RaceSummaryCardImpl({
               interestName={currentInterest?.name}
               interestSlug={currentInterest?.slug}
               onMoveToReflect={() => setSelectedPhase('after_race')}
+              rightInset={ZOOM_RAIL_RESERVED_WIDTH}
             />
           );
         }
