@@ -397,7 +397,7 @@ export default function StepLoopPrimitivesDebug() {
               elapsedMs={14 * 60 * 1000 + 52 * 1000}
               nowMs={Date.parse('2026-05-16T14:23:12Z')}
               interestSlug="sail-racing"
-              onAddQuickNote={() => undefined}
+              onQuickNoteSubmit={() => undefined}
               onAddPhoto={() => undefined}
               onAddVoiceNote={() => undefined}
               onStopCapturing={() => undefined}
@@ -413,7 +413,7 @@ export default function StepLoopPrimitivesDebug() {
               elapsedMs={9 * 60 * 1000 + 12 * 1000}
               nowMs={Date.parse('2026-05-16T14:23:12Z')}
               interestSlug="nursing"
-              onAddQuickNote={() => undefined}
+              onQuickNoteSubmit={() => undefined}
               onAddPhoto={() => undefined}
               onAddVoiceNote={() => undefined}
               onStopCapturing={() => undefined}

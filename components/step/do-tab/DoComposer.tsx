@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const IOS_BLUE = '#007AFF';
@@ -15,38 +15,43 @@ export interface DoComposerProps {
   placeholder?: string;
   readOnly?: boolean;
   onAddMore?: () => void;
-  onAddQuickNote?: () => void;
   onAddPhoto?: () => void;
   onAddVoiceNote?: () => void;
+  /** Inline note submit — fired on Return / send tap with the trimmed body. */
+  onSubmitNote?: (text: string) => void;
 }
 
 /**
  * Frame 2 · F — Composer.
- * Three first-class affordances: typed note, photo, voice. Mic is the largest
- * target (44 — Apple's min hit). It is static — the pulsing coral ring was
- * removed because it read as a live "recording" indicator on a passive surface.
+ * The text field is inline: type and hit Return (or the send arrow) to add a
+ * note without opening a sheet. While the field is empty the right cluster
+ * shows photo + voice; once there's text it swaps to a send button. Mic stays
+ * the largest target (44 — Apple's min hit) and is static.
  */
 export function DoComposer({
   placeholder = 'Add a capture…',
   readOnly,
   onAddMore,
-  onAddQuickNote,
   onAddPhoto,
   onAddVoiceNote,
+  onSubmitNote,
 }: DoComposerProps) {
+  const [draft, setDraft] = useState('');
+  const trimmed = draft.trim();
+  const canSend = !readOnly && trimmed.length > 0;
+
+  const handleSend = () => {
+    if (!canSend) return;
+    onSubmitNote?.(trimmed);
+    setDraft('');
+  };
+
   return (
     <View
       style={[styles.composer, readOnly && styles.composerDisabled]}
       accessibilityLabel="Capture composer"
     >
-      <Pressable
-        onPress={readOnly ? undefined : onAddQuickNote}
-        disabled={readOnly}
-        accessibilityRole="button"
-        accessibilityLabel="Add a note"
-        accessibilityState={{ disabled: Boolean(readOnly) }}
-        style={styles.field}
-      >
+      <View style={styles.field}>
         <Pressable
           onPress={readOnly ? undefined : onAddMore}
           disabled={readOnly}
@@ -58,29 +63,54 @@ export function DoComposer({
         >
           <Ionicons name="add" size={13} color={IOS_BLUE} />
         </Pressable>
-        <Text style={styles.fieldText} numberOfLines={1}>
-          {placeholder}
-        </Text>
-      </Pressable>
+        <TextInput
+          value={draft}
+          onChangeText={setDraft}
+          placeholder={placeholder}
+          placeholderTextColor={LABEL_3}
+          editable={!readOnly}
+          multiline
+          maxLength={4000}
+          onSubmitEditing={handleSend}
+          blurOnSubmit
+          returnKeyType="send"
+          style={styles.fieldInput}
+          accessibilityLabel="Add a note"
+        />
+      </View>
 
       <View style={styles.actions}>
-        <CircleButton
-          icon="camera-outline"
-          onPress={onAddPhoto}
-          disabled={readOnly}
-          accessibilityLabel="Take a photo"
-        />
-        <Pressable
-          onPress={readOnly ? undefined : onAddVoiceNote}
-          disabled={readOnly}
-          accessibilityRole="button"
-          accessibilityLabel="Hold to record voice"
-          accessibilityState={{ disabled: Boolean(readOnly) }}
-          style={({ pressed }) => [styles.mic, pressed && !readOnly && styles.micPressed]}
-          hitSlop={4}
-        >
-          <Ionicons name="mic" size={19} color="#FFFFFF" />
-        </Pressable>
+        {canSend ? (
+          <Pressable
+            onPress={handleSend}
+            accessibilityRole="button"
+            accessibilityLabel="Add note"
+            style={({ pressed }) => [styles.send, pressed && styles.sendPressed]}
+            hitSlop={4}
+          >
+            <Ionicons name="arrow-up" size={19} color="#FFFFFF" />
+          </Pressable>
+        ) : (
+          <>
+            <CircleButton
+              icon="camera-outline"
+              onPress={onAddPhoto}
+              disabled={readOnly}
+              accessibilityLabel="Take a photo"
+            />
+            <Pressable
+              onPress={readOnly ? undefined : onAddVoiceNote}
+              disabled={readOnly}
+              accessibilityRole="button"
+              accessibilityLabel="Hold to record voice"
+              accessibilityState={{ disabled: Boolean(readOnly) }}
+              style={({ pressed }) => [styles.mic, pressed && !readOnly && styles.micPressed]}
+              hitSlop={4}
+            >
+              <Ionicons name="mic" size={19} color="#FFFFFF" />
+            </Pressable>
+          </>
+        )}
       </View>
     </View>
   );
@@ -151,16 +181,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fieldText: {
+  fieldInput: {
     flex: 1,
-    fontSize: 13,
-    color: LABEL_3,
+    fontSize: 14,
+    lineHeight: 19,
+    color: LABEL,
     letterSpacing: -0.1,
+    paddingVertical: 6,
+    paddingHorizontal: 0,
+    maxHeight: 96,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  send: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: IOS_BLUE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
+    shadowColor: IOS_BLUE,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  sendPressed: {
+    opacity: 0.86,
   },
   aBtn: {
     width: 34,

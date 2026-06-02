@@ -340,12 +340,6 @@ export function useStepActCaptureController({
 
   // ─── Callbacks for DoTabInterior ──────────────────────────────────────────
 
-  const handleQuickNote = useCallback(() => {
-    if (readOnly) return;
-    captureSubStepIdRef.current = null;
-    setQuickNoteVisible(true);
-  }, [readOnly]);
-
   const handleVoiceNote = useCallback(() => {
     if (readOnly) return;
     captureSubStepIdRef.current = null;
@@ -555,7 +549,6 @@ export function useStepActCaptureController({
     isTimed,
     onVoiceNote: handleVoiceNote,
     onPhotoOrVideo: handlePhotoOrVideo,
-    onQuickNote: handleQuickNote,
     onQuickNoteSubmit: submitQuickNote,
     onStopCapturing: handleStopCapturing,
     onMoveToReflect: handleMoveToReflect,

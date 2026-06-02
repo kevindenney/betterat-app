@@ -27,8 +27,8 @@ export interface DoLiveCardProps {
   nowMs?: number;
   /** Retained for callers; the live timer/stop chrome has been removed. */
   hideTimer?: boolean;
-  /** Composer add-quick-note button callback. */
-  onAddQuickNote?: () => void;
+  /** Inline composer note submit — fired with the trimmed body on Return/send. */
+  onQuickNoteSubmit?: (text: string) => void;
   /** Composer add-photo button callback. */
   onAddPhoto?: () => void;
   /** Composer add-voice (mic) button callback. */
@@ -63,7 +63,7 @@ export function DoLiveCard({
   interestName,
   interestSlug,
   nowMs,
-  onAddQuickNote,
+  onQuickNoteSubmit,
   onAddPhoto,
   onAddVoiceNote,
   onPressPlayVoice,
@@ -95,7 +95,7 @@ export function DoLiveCard({
         <StreamComposer
           readOnly={readOnly}
           onAddPress={() => setCaptureTypesVisible(true)}
-          onAddQuickNote={onAddQuickNote}
+          onSubmitNote={onQuickNoteSubmit}
           onAddPhoto={onAddPhoto}
           onAddVoiceNote={onAddVoiceNote}
         />

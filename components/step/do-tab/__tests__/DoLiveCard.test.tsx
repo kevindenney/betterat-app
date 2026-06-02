@@ -55,6 +55,7 @@ jest.mock('react-native', () => {
     ScrollView: 'ScrollView',
     StyleSheet,
     Text: 'Text',
+    TextInput: 'TextInput',
     View: 'View',
     Platform: {
       OS: 'ios',
@@ -173,17 +174,17 @@ describe('DoLiveCard — Frame 2 surface', () => {
   });
 
   it('forwards composer callbacks for all three first-class affordances', () => {
-    const onAddQuickNote = jest.fn();
+    const onQuickNoteSubmit = jest.fn();
     const onAddPhoto = jest.fn();
     const onAddVoiceNote = jest.fn();
-    const tree = renderCard({ onAddQuickNote, onAddPhoto, onAddVoiceNote });
+    const tree = renderCard({ onQuickNoteSubmit, onAddPhoto, onAddVoiceNote });
     const composer = tree.root.find(
       (n: ReactTestInstance) =>
         typeof n.type !== 'string' &&
         ((n.type as { name?: string }).name === 'StreamComposer' ||
           (n.type as { displayName?: string }).displayName === 'StreamComposer'),
     );
-    expect(composer.props.onAddQuickNote).toBe(onAddQuickNote);
+    expect(composer.props.onSubmitNote).toBe(onQuickNoteSubmit);
     expect(composer.props.onAddPhoto).toBe(onAddPhoto);
     expect(composer.props.onAddVoiceNote).toBe(onAddVoiceNote);
   });

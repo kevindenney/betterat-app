@@ -50,7 +50,6 @@ export interface DoTabInteriorProps {
   isTimed?: boolean;
   onVoiceNote?: () => void;
   onPhotoOrVideo?: () => void;
-  onQuickNote?: () => void;
   /** Direct text-submit for the inline quick-note composer. */
   onQuickNoteSubmit?: (text: string) => void;
   /** Toggle a "how" sub-step's completed flag — renders the plan's How list as a checklist. */
@@ -104,7 +103,6 @@ export function DoTabInterior({
   isTimed = true,
   onVoiceNote,
   onPhotoOrVideo,
-  onQuickNote,
   onQuickNoteSubmit,
   onToggleSubStep,
   onSubStepCapture,
@@ -235,7 +233,7 @@ export function DoTabInterior({
           interestSlug={interestSlug}
           nowMs={nowMs}
           hideTimer={!isTimed}
-          onAddQuickNote={onQuickNote}
+          onQuickNoteSubmit={onQuickNoteSubmit}
           onAddPhoto={onPhotoOrVideo}
           onAddVoiceNote={onVoiceNote}
           onStopCapturing={onStopCapturing}
