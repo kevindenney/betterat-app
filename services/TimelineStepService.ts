@@ -343,51 +343,23 @@ export async function createStep(
   }
 }
 
-export async function shiftTimelineSortOrdersAtOrAfter(
-  userId: string,
-  interestId: string,
-  atOrAfter: number,
-): Promise<void> {
-  try {
-    const { data, error } = await supabase
-      .from('timeline_steps')
-      .select('id, sort_order')
-      .eq('user_id', userId)
-      .eq('interest_id', interestId)
-      .gte('sort_order', atOrAfter)
-      .order('sort_order', { ascending: false });
-
-    if (error) throw error;
-
-    for (const row of (data ?? []) as Pick<TimelineStepRecord, 'id' | 'sort_order'>[]) {
-      const { error: updateError } = await supabase
-        .from('timeline_steps')
-        .update({ sort_order: row.sort_order + 1 })
-        .eq('id', row.id);
-      if (updateError) throw updateError;
-    }
-  } catch (err) {
-    logger.error('Failed to shift timeline sort orders', err);
-    throw err;
-  }
-}
-
 /**
  * Reassign sort_order = index for the given step ids, in order. Use this to
  * place a step at a precise position when stored sort_orders are degenerate
  * (e.g. seeded demo data where every step shares sort_order 0, so value-based
  * shifting can't create a gap between two tied neighbours). Only rows whose
  * sort_order actually changes are written.
+ *
+ * Backed by the resequence_timeline_sort_orders RPC, which does the whole
+ * reorder in one statement (the per-row UPDATE loop was an N+1 on every drag).
  */
 export async function resequenceTimelineSortOrders(orderedStepIds: string[]): Promise<void> {
+  if (orderedStepIds.length === 0) return;
   try {
-    for (let index = 0; index < orderedStepIds.length; index += 1) {
-      const { error } = await supabase
-        .from('timeline_steps')
-        .update({ sort_order: index })
-        .eq('id', orderedStepIds[index]);
-      if (error) throw error;
-    }
+    const { error } = await supabase.rpc('resequence_timeline_sort_orders', {
+      p_step_ids: orderedStepIds,
+    });
+    if (error) throw error;
   } catch (err) {
     logger.error('Failed to resequence timeline sort orders', err);
     throw err;

@@ -24,6 +24,7 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -36,8 +37,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { QuickCapturePayload } from '@/services/QuickCaptureService';
 import type { StepLocation } from '@/types/step-detail';
 import { VoiceComposerV3Sheet } from './VoiceComposerV3Sheet';
@@ -118,6 +121,7 @@ export function PlusComposerV3Sheet({
   const [activeFields, setActiveFields] = useState<ComposerFieldKey[]>([]);
   const [fieldValues, setFieldValues] = useState<Record<ComposerFieldKey, string>>(emptyFieldValues);
   const [whereLocation, setWhereLocation] = useState<StepLocation | undefined>(undefined);
+  const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [voiceVisible, setVoiceVisible] = useState(false);
   const voiceEnabled = FEATURE_FLAGS.VOICE_COMPOSER_V3;
   const whatInputRef = useRef<TextInput | null>(null);
@@ -128,6 +132,7 @@ export function PlusComposerV3Sheet({
     setActiveFields([]);
     setFieldValues(emptyFieldValues());
     setWhereLocation(undefined);
+    setPhotoUri(undefined);
   }, []);
 
   const handleSave = useCallback(() => {
@@ -146,9 +151,25 @@ export function PlusComposerV3Sheet({
       why: fieldValues.why.trim() || undefined,
       how: fieldValues.how.trim() || undefined,
       when: fieldValues.when.trim() || undefined,
+      imageUri: photoUri,
     });
     resetComposer();
-  }, [whatText, fieldValues, whereLocation, onSave, onDismiss, resetComposer]);
+  }, [whatText, fieldValues, whereLocation, photoUri, onSave, onDismiss, resetComposer]);
+
+  const handlePickPhoto = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      showAlert('Photo', 'Adding a photo is available on iOS and Android.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+      allowsMultipleSelection: false,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    setPhotoUri(result.assets[0].uri);
+  }, []);
 
   const handleCancel = useCallback(() => {
     resetComposer();
@@ -339,12 +360,30 @@ export function PlusComposerV3Sheet({
           {/* Voice-first affordance row. v1 is a visual placeholder — the
               full Screen-13 voice-first composer ships in a follow-up. */}
           <View style={styles.footerRow}>
-            <View style={[styles.footerAffordance, styles.footerAffordanceDisabled]}>
-              <View style={styles.footerIcon}>
-                <Ionicons name="image-outline" size={20} color={IOS_REGISTER.labelSecondary} />
-              </View>
-              <Text style={styles.footerLabel}>Photo</Text>
-            </View>
+            <Pressable
+              style={styles.footerAffordance}
+              accessibilityLabel={photoUri ? 'Change photo' : 'Add a photo'}
+              onPress={handlePickPhoto}
+            >
+              {photoUri ? (
+                <View style={styles.photoThumbWrap}>
+                  <Image source={{ uri: photoUri }} style={styles.photoThumb} />
+                  <Pressable
+                    style={styles.photoThumbRemove}
+                    accessibilityLabel="Remove photo"
+                    hitSlop={8}
+                    onPress={() => setPhotoUri(undefined)}
+                  >
+                    <Ionicons name="close" size={12} color="#FFFFFF" />
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.footerIcon}>
+                  <Ionicons name="image-outline" size={20} color={IOS_REGISTER.labelSecondary} />
+                </View>
+              )}
+              <Text style={styles.footerLabel}>{photoUri ? 'Photo added' : 'Photo'}</Text>
+            </Pressable>
             {voiceEnabled ? (
               <View style={styles.micWrap}>
                 <View style={styles.footerAffordance}>
@@ -614,11 +653,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  footerAffordanceDisabled: {
-    opacity: 0.45,
-  },
   footerIcon: {
     padding: 10,
+  },
+  photoThumbWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
+  photoThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  photoThumbRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: IOS_REGISTER.label,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footerLabel: {
     fontSize: 11,

@@ -15,7 +15,7 @@ import { supabase } from './supabase';
 import { logger } from '@/lib/logger';
 import { createStep } from './TimelineStepService';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
-import type { StepLocation, StepPlanData, SubStep } from '@/types/step-detail';
+import type { MediaUpload, StepLocation, StepPlanData, SubStep } from '@/types/step-detail';
 
 export type QuickCaptureKind = 'text' | 'voice';
 
@@ -32,6 +32,12 @@ export interface QuickCapturePayload {
   how?: string;
   /** Optional WHEN — free text, stored as the step description. */
   when?: string;
+  /**
+   * Local device URI for a photo picked in the composer (native only). Uploaded
+   * to the `step-media` bucket on save and attached as metadata.act.media_uploads
+   * so it surfaces in the step's Do tab.
+   */
+  imageUri?: string;
 }
 
 /**
@@ -98,6 +104,44 @@ export interface CreateDraftStepArgs {
   payload: QuickCapturePayload;
 }
 
+/**
+ * Uploads a composer-picked photo to the `step-media` bucket and returns the
+ * MediaUpload record to stash on the new step. Mirrors the Do-tab upload path
+ * (useStepActCaptureController.pickPhotoOrVideoNative) so both surfaces store
+ * identically-shaped rows. Throws on failure; the caller decides whether to
+ * abort the whole save or proceed without the image.
+ */
+async function uploadQuickCaptureImage(
+  userId: string,
+  localUri: string,
+): Promise<MediaUpload> {
+  const ext = localUri.split('.').pop()?.toLowerCase() || 'jpg';
+  const fileId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const fileName = `${userId}/quick-capture/${fileId}.${ext}`;
+
+  const response = await fetch(localUri);
+  const blob = await response.blob();
+  const arrayBuffer = await new Response(blob).arrayBuffer();
+  const { error: uploadError } = await supabase.storage
+    .from('step-media')
+    .upload(fileName, arrayBuffer, {
+      contentType: blob.type || `image/${ext}`,
+      upsert: false,
+    });
+  if (uploadError) throw uploadError;
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from('step-media').getPublicUrl(fileName);
+
+  return {
+    id: fileId,
+    uri: publicUrl,
+    type: 'photo',
+    created_at: new Date().toISOString(),
+  };
+}
+
 async function getOrderedTimelineSteps(
   userId: string,
   interestId: string,
@@ -144,6 +188,18 @@ export async function createDraftStep({
 
   const placement = await resolveQuickCapturePlacement(userId, interestId);
 
+  // Upload the composer photo (if any) before creating the row so the step
+  // lands with its media already attached. A failed upload shouldn't sink the
+  // whole step — log and continue without the image.
+  let mediaUpload: MediaUpload | null = null;
+  if (payload.imageUri) {
+    try {
+      mediaUpload = await uploadQuickCaptureImage(userId, payload.imageUri);
+    } catch (err) {
+      logger.error('Quick-capture photo upload failed; saving step without it', err);
+    }
+  }
+
   return createStep({
     user_id: userId,
     interest_id: interestId,
@@ -165,6 +221,8 @@ export async function createDraftStep({
       audio_uri: payload.audioUri ?? null,
       // Canonical source the Plan tab + timeline adapter read for WHAT/WHY/HOW/WHERE.
       ...(fields.plan ? { plan: fields.plan } : {}),
+      // Composer photo lands under act.media_uploads so the Do tab renders it.
+      ...(mediaUpload ? { act: { media_uploads: [mediaUpload] } } : {}),
     },
   });
 }
