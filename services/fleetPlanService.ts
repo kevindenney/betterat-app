@@ -15,17 +15,13 @@ import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 import { BlueprintRecord } from '@/types/blueprint';
 import {
-  addStepToBlueprint,
   createBlueprint,
   getSubscription,
   markStepAction,
-  removeStepFromBlueprint,
-  reorderBlueprintSteps,
   subscribe,
   unsubscribe,
-  updateBlueprint,
 } from './BlueprintService';
-import { adoptStep, createStep, deleteStep, updateStep } from './TimelineStepService';
+import { adoptStep, updateStep } from './TimelineStepService';
 
 const logger = createLogger('fleetPlanService');
 
@@ -109,8 +105,6 @@ export async function createFleetPlan(params: {
 
 export async function addPlanItem(params: {
   blueprintId: string;
-  captainId: string;
-  interestId: string;
   kind: PlanItemKind;
   title: string;
   details?: string | null;
@@ -118,25 +112,26 @@ export async function addPlanItem(params: {
   endsAt?: string | null;
   locationName?: string | null;
 }): Promise<string> {
-  const { blueprintId, captainId, interestId, kind, title, details, startsAt, endsAt, locationName } =
-    params;
-  // Author the step in the captain's own timeline. 'fleet' visibility so active
-  // fleet members can read it (and a subscriber, who auto-follows the captain,
-  // can adopt it — adoption reads the source step via timeline_steps RLS).
-  const step = await createStep({
-    user_id: captainId,
-    interest_id: interestId,
-    source_type: 'manual',
-    title: title.trim(),
-    description: details?.trim() || null,
-    category: kind,
-    starts_at: startsAt ?? null,
-    ends_at: endsAt ?? null,
-    location_name: locationName?.trim() || null,
-    visibility: 'fleet',
+  const { blueprintId, kind, title, details, startsAt, endsAt, locationName } = params;
+  // Co-edit: route through a SECURITY DEFINER RPC so ANY of the fleet's captains
+  // (owner/captain/coach) can add a step, not just the plan author. The RPC
+  // authors the step in the plan OWNER's timeline ('fleet' visibility) so member
+  // suggestions/adoption keep working (they filter ts.user_id = bp.user_id), then
+  // links it into blueprint_steps.
+  const { data, error } = await supabase.rpc('fleet_plan_add_step', {
+    p_blueprint_id: blueprintId,
+    p_kind: kind,
+    p_title: title.trim(),
+    p_details: details?.trim() || null,
+    p_starts_at: startsAt ?? null,
+    p_ends_at: endsAt ?? null,
+    p_location_name: locationName?.trim() || null,
   });
-  await addStepToBlueprint(blueprintId, step.id);
-  return step.id;
+  if (error) {
+    logger.error('Failed to add fleet plan step', error);
+    throw error;
+  }
+  return data as string;
 }
 
 export async function updatePlanItem(
@@ -163,25 +158,49 @@ export async function updatePlanItem(
 }
 
 export async function removePlanItem(blueprintId: string, stepId: string): Promise<void> {
-  await removeStepFromBlueprint(blueprintId, stepId);
-  // The step is the captain's authored plan item; remove it from their timeline too.
-  try {
-    await deleteStep(stepId);
-  } catch (err) {
-    logger.warn('Removed plan link but failed to delete source step', { stepId, err });
+  // Co-edit RPC: unlinks the step and deletes the underlying owner-authored step
+  // (gated on captain-role membership server-side).
+  const { error } = await supabase.rpc('fleet_plan_remove_step', {
+    p_blueprint_id: blueprintId,
+    p_step_id: stepId,
+  });
+  if (error) {
+    logger.error('Failed to remove fleet plan step', error);
+    throw error;
   }
 }
 
 export async function reorderPlanItems(blueprintId: string, orderedStepIds: string[]): Promise<void> {
-  await reorderBlueprintSteps(blueprintId, orderedStepIds);
+  const { error } = await supabase.rpc('fleet_plan_reorder_steps', {
+    p_blueprint_id: blueprintId,
+    p_step_ids: orderedStepIds,
+  });
+  if (error) {
+    logger.error('Failed to reorder fleet plan steps', error);
+    throw error;
+  }
 }
 
-export async function publishFleetPlan(blueprintId: string): Promise<BlueprintRecord> {
-  return updateBlueprint(blueprintId, { is_published: true });
+export async function publishFleetPlan(blueprintId: string): Promise<void> {
+  const { error } = await supabase.rpc('fleet_plan_set_published', {
+    p_blueprint_id: blueprintId,
+    p_published: true,
+  });
+  if (error) {
+    logger.error('Failed to publish fleet plan', error);
+    throw error;
+  }
 }
 
-export async function unpublishFleetPlan(blueprintId: string): Promise<BlueprintRecord> {
-  return updateBlueprint(blueprintId, { is_published: false });
+export async function unpublishFleetPlan(blueprintId: string): Promise<void> {
+  const { error } = await supabase.rpc('fleet_plan_set_published', {
+    p_blueprint_id: blueprintId,
+    p_published: false,
+  });
+  if (error) {
+    logger.error('Failed to unpublish fleet plan', error);
+    throw error;
+  }
 }
 
 export async function getFleetPlans(fleetId: string): Promise<FleetPlanSummary[]> {

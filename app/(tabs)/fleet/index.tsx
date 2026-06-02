@@ -306,6 +306,7 @@ export default function FleetOverviewScreen() {
                         fleetName: summaryFleet.name,
                         title: plan.title,
                         isAuthor: plan.viewer_is_author ? 'true' : 'false',
+                        canEdit: canManagePlans ? 'true' : 'false',
                       },
                     } as any)
                   }

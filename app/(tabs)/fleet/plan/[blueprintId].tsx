@@ -61,11 +61,15 @@ export default function FleetPlanDetailScreen() {
     fleetName?: string;
     title?: string;
     isAuthor?: string;
+    canEdit?: string;
   }>();
   const blueprintId = params.blueprintId ?? '';
   const fleetName = params.fleetName ?? 'fleet';
   const planTitle = params.title ?? 'Season plan';
   const isAuthor = params.isAuthor === 'true';
+  // Fleet plans are co-editable by any of the fleet's captains (owner/captain/
+  // coach), not just the author. The fleet hub passes canEdit based on role.
+  const canEdit = params.canEdit === 'true' || isAuthor;
   const interestId = currentInterest?.id ?? '';
 
   const [steps, setSteps] = useState<FleetPlanStep[]>([]);
@@ -83,13 +87,13 @@ export default function FleetPlanDetailScreen() {
         isSubscribedToFleetPlan(user.id, blueprintId),
       ]);
       setSteps(rows);
-      setSubscribed(sub || isAuthor);
+      setSubscribed(sub || canEdit);
     } catch (err: any) {
       showAlert('Could not load plan', err?.message ?? 'Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [blueprintId, user?.id, isAuthor]);
+  }, [blueprintId, user?.id, canEdit]);
 
   useEffect(() => {
     void load();
@@ -149,7 +153,7 @@ export default function FleetPlanDetailScreen() {
           own timeline. You don&apos;t have to take the whole season.
         </Text>
 
-        {isAuthor && (
+        {canEdit && (
           <TouchableOpacity
             style={styles.secondaryButton}
             onPress={() =>
@@ -163,7 +167,7 @@ export default function FleetPlanDetailScreen() {
           </TouchableOpacity>
         )}
 
-        {!subscribed && !isAuthor && (
+        {!subscribed && !canEdit && (
           <TouchableOpacity
             style={[styles.primaryButton, subscribing && styles.buttonDisabled]}
             onPress={handleSubscribe}

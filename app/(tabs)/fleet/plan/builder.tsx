@@ -140,7 +140,7 @@ export default function FleetPlanBuilderScreen() {
   }, [user?.id, fleetId, interestId, title, description]);
 
   const handleAddItem = useCallback(async () => {
-    if (!user?.id || !planId || !interestId) return;
+    if (!planId) return;
     if (!itemTitle.trim()) {
       showAlert('Name this step', 'Give the step a title.');
       return;
@@ -149,8 +149,6 @@ export default function FleetPlanBuilderScreen() {
     try {
       await addPlanItem({
         blueprintId: planId,
-        captainId: user.id,
-        interestId,
         kind,
         title: itemTitle,
         details: itemDetails,
@@ -167,7 +165,7 @@ export default function FleetPlanBuilderScreen() {
     } finally {
       setAddingItem(false);
     }
-  }, [user?.id, planId, interestId, kind, itemTitle, itemDetails, itemDate, itemLocation, loadSteps]);
+  }, [planId, kind, itemTitle, itemDetails, itemDate, itemLocation, loadSteps]);
 
   const handleRemoveItem = useCallback(
     (stepId: string, stepTitle: string | null) => {
