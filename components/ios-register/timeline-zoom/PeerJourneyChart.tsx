@@ -26,7 +26,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Text as SvgText } from 'react-native-svg';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import type { SeasonPeer } from './types';
@@ -34,12 +34,6 @@ import type { FleetRef } from '@/hooks/useViewerFleetCohort';
 
 const NOW_COLOR = '#FF6B5A';
 const NOW_BAND = 'rgba(255, 107, 90, 0.14)';
-const SERIF_FAMILY = Platform.select({
-  ios: 'Georgia',
-  android: 'serif',
-  web: 'Georgia, "Times New Roman", serif',
-  default: 'Georgia',
-}) as string;
 
 const OTHER_KEY = '__other__';
 
@@ -71,16 +65,6 @@ export function PeerJourneyChart({
   peerSharedFleets,
   viewerFleets,
 }: PeerJourneyChartProps) {
-  const maxAppearanceCount = useMemo(() => {
-    let max = 1;
-    for (const p of peers) {
-      for (const w of p.weeklyAppearances) {
-        if (w.count > max) max = w.count;
-      }
-    }
-    return max;
-  }, [peers]);
-
   // Build group buckets — keyed by fleet id, with OTHER_KEY for
   // peers that share no fleet with the viewer. The viewer's own
   // fleet order wins; OTHER always renders last.
@@ -133,7 +117,6 @@ export function PeerJourneyChart({
         width={width}
         compact={compact}
         showRole={showRole}
-        maxAppearanceCount={maxAppearanceCount}
       />
     );
   }
@@ -161,7 +144,6 @@ export function PeerJourneyChart({
               width={width}
               compact={compact}
               showRole={showRole}
-              maxAppearanceCount={maxAppearanceCount}
             />
           </View>
         );
@@ -177,7 +159,6 @@ interface BlockProps {
   width: number;
   compact: boolean;
   showRole: boolean;
-  maxAppearanceCount: number;
 }
 
 function PeerJourneyChartBlock({
@@ -187,7 +168,6 @@ function PeerJourneyChartBlock({
   width,
   compact,
   showRole,
-  maxAppearanceCount,
 }: BlockProps) {
   // padX must match CapabilityMix so the time axis lines up.
   const padX = 12;
@@ -204,7 +184,7 @@ function PeerJourneyChartBlock({
   }
 
   return (
-    <View style={[styles.wrap, { width, height: totalHeight }]}>
+    <View style={[styles.wrap, { width }]}>
       <Svg width={width} height={totalHeight}>
         {/* NOW band — soft pill on the time axis, behind everything else. */}
         <Line
@@ -263,58 +243,43 @@ function PeerJourneyChartBlock({
             />,
           );
 
-          // Letter-coded circle at each appearance week.
-          for (const w of peer.weeklyAppearances) {
-            if (w.count <= 0) continue;
-            const cx = padX + (w.weekNumber - 0.5) * colWidth;
-            const sizeBoost = (w.count - 1) / Math.max(1, maxAppearanceCount - 1);
-            const radius = dotRadius + sizeBoost * (compact ? 1.2 : 1.6);
-            elems.push(
-              <Circle
-                key={`dot-${peer.id}-${w.weekNumber}`}
-                cx={cx}
-                cy={rowY}
-                r={radius}
-                fill={dotColor}
-                opacity={0.95}
-              />,
-            );
-            elems.push(
-              <SvgText
-                key={`letter-${peer.id}-${w.weekNumber}`}
-                x={cx}
-                y={rowY + (compact ? 2.5 : 3)}
-                fontSize={compact ? 8 : 9}
-                fontWeight="700"
-                fill="#FFFFFF"
-                textAnchor="middle"
-                letterSpacing={0.1}
-              >
-                {letter}
-              </SvgText>,
-            );
-          }
-
-          // Optional role text floating left of the first dot.
-          if (showRole && peer.role) {
-            const roleX = firstX - dotRadius - 4;
-            if (roleX > padX + 4) {
-              elems.push(
-                <SvgText
-                  key={`role-${peer.id}`}
-                  x={roleX}
-                  y={rowY + (compact ? 2.5 : 3)}
-                  fontSize={compact ? 8.5 : 9.5}
-                  fontFamily={SERIF_FAMILY}
-                  fontStyle="italic"
-                  fill={IOS_REGISTER.labelTertiary}
-                  textAnchor="end"
-                >
-                  {peer.role}
-                </SvgText>,
-              );
-            }
-          }
+          // First-dot-only — a single letter-coded circle at the peer's
+          // first appearance, sized up modestly with total contribution.
+          // Drawing a dot at every appearance week piled letters along the
+          // row and forced the role text to float into the middle of the
+          // lane; one dot + the still-aboard hairline + the legend below
+          // reads far calmer and answers "who shaped this, and when did
+          // they first show up" without the clutter.
+          const totalCount = peer.weeklyAppearances.reduce(
+            (n, w) => n + (w.count > 0 ? w.count : 0),
+            0,
+          );
+          const sizeBoost = Math.min(1, (totalCount - 1) / 4);
+          const radius = dotRadius + sizeBoost * (compact ? 1.2 : 1.6);
+          elems.push(
+            <Circle
+              key={`dot-${peer.id}`}
+              cx={firstX}
+              cy={rowY}
+              r={radius}
+              fill={dotColor}
+              opacity={0.95}
+            />,
+          );
+          elems.push(
+            <SvgText
+              key={`letter-${peer.id}`}
+              x={firstX}
+              y={rowY + (compact ? 2.5 : 3)}
+              fontSize={compact ? 8 : 9}
+              fontWeight="700"
+              fill="#FFFFFF"
+              textAnchor="middle"
+              letterSpacing={0.1}
+            >
+              {letter}
+            </SvgText>,
+          );
 
           return <React.Fragment key={`row-${peer.id}`}>{elems}</React.Fragment>;
         })}
@@ -330,6 +295,39 @@ function PeerJourneyChartBlock({
           opacity={0.85}
         />
       </Svg>
+
+      {/* Legend — answers "who is each lettered dot" now that the role
+          text no longer floats inside the lane. Letter swatch matches the
+          dot above; name + role read like a logbook key. */}
+      {showRole ? (
+        <View style={styles.legend}>
+          {peers.map((peer) => {
+            const displayName = peer.name?.trim() || `Peer ${peer.initials}`;
+            return (
+              <View key={`legend-${peer.id}`} style={styles.legendItem}>
+                <View
+                  style={[
+                    styles.legendSwatch,
+                    { backgroundColor: peer.capabilityColor ?? peer.color },
+                  ]}
+                >
+                  <Text style={styles.legendSwatchText}>
+                    {peer.initials.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={styles.legendName} numberOfLines={1}>
+                  {displayName}
+                </Text>
+                {peer.role ? (
+                  <Text style={styles.legendRole} numberOfLines={1}>
+                    {peer.role}
+                  </Text>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -359,5 +357,39 @@ const styles = StyleSheet.create({
   },
   groupSpacer: {
     marginTop: 12,
+  },
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  legendSwatch: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  legendSwatchText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  legendName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+  },
+  legendRole: {
+    fontSize: 11.5,
+    color: IOS_REGISTER.labelSecondary,
+    fontStyle: 'italic',
   },
 });
