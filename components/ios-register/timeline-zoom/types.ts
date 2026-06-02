@@ -14,14 +14,14 @@ export type ZoomLevel = 1 | 2 | 3 | 4;
 
 export const ZOOM_LEVEL_LABELS: Record<ZoomLevel, string> = {
   1: 'STEP',
-  2: 'NEAR',
+  2: 'WEEK',
   3: 'ARC',
   4: 'ALL',
 };
 
 export const ZOOM_LEVEL_SCOPE_LABELS: Record<ZoomLevel, string> = {
   1: 'One step',
-  2: 'Nearby',
+  2: 'This week',
   3: 'Current arc',
   4: 'All time',
 };

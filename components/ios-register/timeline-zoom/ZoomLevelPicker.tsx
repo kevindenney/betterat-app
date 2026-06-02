@@ -183,10 +183,11 @@ export function ZoomLevelPicker({
 
   const scopeLabelFor = (l: ZoomLevel) =>
     l === 3 ? `Current ${periodNoun}` : ZOOM_LEVEL_SCOPE_LABELS[l];
-  // Visible rail labels stay the fixed short tokens (STEP/NEAR/ARC/ALL) so
-  // they fit the 52pt segment. The persona-native noun ("sketchbook",
-  // "rotation"…) can be 10+ chars and overflows the pill; it lives in the
-  // season header + scope (a11y) label instead.
+  // The rail is a fixed depth ladder (Apple-Photos-style STEP/WEEK/ARC/ALL),
+  // not a content surface — uniform short tokens that always fit the 52pt
+  // segment. The persona-native period noun ("sketchbook", "rotation"…) is
+  // 6–10 chars and lives where it has room: the season header eyebrow, the
+  // arc switcher, and the a11y scope label below ("Current sketchbook").
   const labelFor = (l: ZoomLevel) => ZOOM_LEVEL_LABELS[l];
   const handlePress = (target: ZoomLevel) => {
     if (target === level) {
@@ -260,9 +261,11 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   segmentLabel: {
+    maxWidth: SEGMENT_SIZE - 4,
     fontSize: 8.5,
     fontWeight: '700',
     letterSpacing: 0.6,
+    textAlign: 'center',
     color: IOS_REGISTER.labelSecondary,
   },
   segmentLabelActive: {
