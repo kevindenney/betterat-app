@@ -56,6 +56,8 @@ export interface DoTabInteriorProps {
   onToggleSubStep?: (subStepId: string, completed: boolean) => void;
   /** Log an observation / photo / voice note against a specific How sub-step. */
   onSubStepCapture?: (subStepId: string, kind: SubStepCaptureKind) => void;
+  /** Inline note submit anchored to a beat or How sub-step (no modal). */
+  onSubStepNoteSubmit?: (subStepId: string, text: string) => void;
   /** Captures already anchored to each How sub-step, newest-first, keyed by id. */
   subStepCaptures?: Record<string, DoCaptureItem[]>;
   onTagCapture?: (captureId: string) => void;
@@ -106,6 +108,7 @@ export function DoTabInterior({
   onQuickNoteSubmit,
   onToggleSubStep,
   onSubStepCapture,
+  onSubStepNoteSubmit,
   subStepCaptures,
   onStopCapturing,
   onPressPlayVoice,
@@ -142,6 +145,7 @@ export function DoTabInterior({
       onRemoveLibraryRef={readOnly ? undefined : library.onRemove}
       onAttachLibrary={readOnly ? undefined : library.onAddToBeat}
       onBeatCapture={onSubStepCapture}
+      onBeatNoteSubmit={onSubStepNoteSubmit}
     />
   );
   // Check-off read/watch list of library items attached to this step. Same
@@ -210,6 +214,7 @@ export function DoTabInterior({
       onAttachLibrary={readOnly ? undefined : library.onAddToSubStep}
       onRemoveLibraryRef={readOnly ? undefined : library.onRemove}
       onSubStepCapture={onSubStepCapture}
+      onSubStepNoteSubmit={onSubStepNoteSubmit}
       subStepCaptures={subStepCaptures}
       showWhoWhy={false}
     />

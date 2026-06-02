@@ -6,8 +6,8 @@
  * library chips, and the inline saved captures.
  */
 
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { FORMAT_ICON, FORMAT_TINT } from '@/components/library/resources/formatStyles';
@@ -79,6 +79,12 @@ interface RowAnnotationsProps {
   onRemoveLibraryRef?: (rowId: string) => void;
   onAttachLibrary?: () => void;
   onCapture?: (kind: SubStepCaptureKind) => void;
+  /**
+   * Inline note submit. When provided, "Add note" reveals a type-in-place
+   * field on the row instead of routing through onCapture('note') (which
+   * opened the quick-note modal). Photo/voice still go through onCapture.
+   */
+  onSubmitNote?: (text: string) => void;
 }
 
 export function RowAnnotations({
@@ -91,12 +97,35 @@ export function RowAnnotations({
   onRemoveLibraryRef,
   onAttachLibrary,
   onCapture,
+  onSubmitNote,
 }: RowAnnotationsProps) {
-  const hasMenu = !readOnly && Boolean(onAttachLibrary || onCapture);
+  const canCaptureNote = Boolean(onSubmitNote || onCapture);
+  const hasMenu = !readOnly && Boolean(onAttachLibrary || onCapture || onSubmitNote);
+
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [draft, setDraft] = useState('');
+  const canSubmitNote = draft.trim().length > 0;
 
   const pick = (fn?: () => void) => {
     onCloseMenu();
     fn?.();
+  };
+
+  const openNote = () => {
+    onCloseMenu();
+    setDraft('');
+    setNoteOpen(true);
+  };
+
+  const submitNote = () => {
+    const text = draft.trim();
+    if (!text) {
+      setNoteOpen(false);
+      return;
+    }
+    onSubmitNote?.(text);
+    setDraft('');
+    setNoteOpen(false);
   };
 
   return (
@@ -110,13 +139,15 @@ export function RowAnnotations({
               onPress={() => pick(onAttachLibrary)}
             />
           ) : null}
+          {canCaptureNote ? (
+            <MenuItem
+              icon="chatbubble-ellipses-outline"
+              label="Add note"
+              onPress={() => (onSubmitNote ? openNote() : pick(() => onCapture?.('note')))}
+            />
+          ) : null}
           {onCapture ? (
             <>
-              <MenuItem
-                icon="chatbubble-ellipses-outline"
-                label="Add note"
-                onPress={() => pick(() => onCapture('note'))}
-              />
               <MenuItem
                 icon="camera-outline"
                 label="Add photo"
@@ -129,6 +160,36 @@ export function RowAnnotations({
               />
             </>
           ) : null}
+        </View>
+      ) : null}
+
+      {noteOpen && !readOnly ? (
+        <View style={styles.noteComposer}>
+          <TextInput
+            style={styles.noteInput}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Add a note…"
+            placeholderTextColor={IOS_COLORS.tertiaryLabel}
+            autoFocus
+            multiline
+            maxLength={4000}
+            onSubmitEditing={submitNote}
+            blurOnSubmit
+            returnKeyType="send"
+            accessibilityLabel="Note text"
+          />
+          <Pressable
+            style={[styles.noteSend, !canSubmitNote ? styles.noteSendDisabled : null]}
+            onPress={submitNote}
+            disabled={!canSubmitNote}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Save note"
+            accessibilityState={{ disabled: !canSubmitNote }}
+          >
+            <Ionicons name="arrow-up" size={15} color="#FFFFFF" />
+          </Pressable>
         </View>
       ) : null}
 
@@ -241,6 +302,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: IOS_COLORS.label,
+  },
+  noteComposer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 6,
+    marginLeft: 22,
+    marginTop: 2,
+  },
+  noteInput: {
+    flex: 1,
+    minHeight: 34,
+    maxHeight: 96,
+    backgroundColor: IOS_COLORS.secondarySystemBackground,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 13,
+    lineHeight: 17,
+    color: IOS_COLORS.label,
+  },
+  noteSend: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: IOS_COLORS.systemBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noteSendDisabled: {
+    opacity: 0.4,
   },
   refChips: {
     gap: 4,

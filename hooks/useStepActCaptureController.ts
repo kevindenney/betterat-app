@@ -368,6 +368,18 @@ export function useStepActCaptureController({
     [readOnly, pickPhotoOrVideoNative],
   );
 
+  // Inline note path for beats + How rows — writes the observation anchored to
+  // the row directly, no modal. Photo/voice still route through
+  // handleSubStepCapture (native picker / quick-note modal for voice).
+  const handleSubStepNoteSubmit = useCallback(
+    (subStepId: string, text: string) => {
+      if (readOnly || !text.trim()) return;
+      addObservation(text, subStepId);
+      toast.show('Note added', 'success');
+    },
+    [readOnly, addObservation, toast],
+  );
+
   const handlePhotoOrVideo = useCallback(() => {
     if (readOnly) return;
     if (!IS_NATIVE) {
@@ -560,6 +572,7 @@ export function useStepActCaptureController({
     onMarkAsEvidence: handleMarkAsEvidence,
     onToggleSubStep: handleToggleSubStep,
     onSubStepCapture: handleSubStepCapture,
+    onSubStepNoteSubmit: handleSubStepNoteSubmit,
     subStepCaptures,
   };
 

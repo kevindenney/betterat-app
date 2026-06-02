@@ -24,6 +24,8 @@ interface PlanStartingFrameRowProps {
   onRemoveLibraryRef?: (rowId: string) => void;
   /** Capture an observation / photo / voice note against a How sub-step. */
   onSubStepCapture?: (subStepId: string, kind: SubStepCaptureKind) => void;
+  /** Inline note submit anchored to a How sub-step — replaces the modal path. */
+  onSubStepNoteSubmit?: (subStepId: string, text: string) => void;
   /** Captures already logged against each sub-step, newest-first, keyed by id. */
   subStepCaptures?: Record<string, DoCaptureItem[]>;
   /** Show the Who + Why sections. Off on the Do tab (How is the focus there). */
@@ -51,6 +53,7 @@ export function PlanStartingFrameRow({
   onAttachLibrary,
   onRemoveLibraryRef,
   onSubStepCapture,
+  onSubStepNoteSubmit,
   subStepCaptures,
   showWhoWhy = true,
 }: PlanStartingFrameRowProps) {
@@ -59,7 +62,8 @@ export function PlanStartingFrameRow({
   // Rich mode: each How row carries pinned library items + per-row capture
   // affordances. Renders full-width (the compact How|Who grid can't hold the
   // chips + action bar). Falls back to the simple checklist/list otherwise.
-  const richHow = asChecklist && Boolean(onAttachLibrary || onSubStepCapture);
+  const richHow =
+    asChecklist && Boolean(onAttachLibrary || onSubStepCapture || onSubStepNoteSubmit);
   const plannedSteps = compactList(
     (planData.how_sub_steps ?? []).map((step) => step.text),
     'No planned steps yet',
@@ -111,6 +115,9 @@ export function PlanStartingFrameRow({
                 onAttachLibrary={onAttachLibrary ? () => onAttachLibrary(step.id) : undefined}
                 onCapture={
                   onSubStepCapture ? (kind) => onSubStepCapture(step.id, kind) : undefined
+                }
+                onSubmitNote={
+                  onSubStepNoteSubmit ? (text) => onSubStepNoteSubmit(step.id, text) : undefined
                 }
               />
             ))}
@@ -197,6 +204,7 @@ interface RichHowRowProps {
   onRemoveLibraryRef?: (rowId: string) => void;
   onAttachLibrary?: () => void;
   onCapture?: (kind: SubStepCaptureKind) => void;
+  onSubmitNote?: (text: string) => void;
 }
 
 function RichHowRow({
@@ -209,9 +217,10 @@ function RichHowRow({
   onRemoveLibraryRef,
   onAttachLibrary,
   onCapture,
+  onSubmitNote,
 }: RichHowRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const hasMenu = !readOnly && Boolean(onAttachLibrary || onCapture);
+  const hasMenu = !readOnly && Boolean(onAttachLibrary || onCapture || onSubmitNote);
 
   return (
     <View style={styles.richRow}>
@@ -250,6 +259,7 @@ function RichHowRow({
         onRemoveLibraryRef={onRemoveLibraryRef}
         onAttachLibrary={onAttachLibrary}
         onCapture={onCapture}
+        onSubmitNote={onSubmitNote}
       />
     </View>
   );

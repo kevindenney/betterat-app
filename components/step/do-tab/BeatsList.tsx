@@ -55,6 +55,8 @@ interface Props {
   onRemoveLibraryRef?: (rowId: string) => void;
   onAttachLibrary?: (beatId: string) => void;
   onBeatCapture?: (beatId: string, kind: SubStepCaptureKind) => void;
+  /** Inline note submit anchored to a beat — replaces the modal note path. */
+  onBeatNoteSubmit?: (beatId: string, text: string) => void;
 }
 
 export function BeatsList({
@@ -74,6 +76,7 @@ export function BeatsList({
   onRemoveLibraryRef,
   onAttachLibrary,
   onBeatCapture,
+  onBeatNoteSubmit,
 }: Props) {
   const config = getInterestBeatsConfig({ interestSlug, interestName, interestId });
   const dragEnabled = !readOnly && !!onReorder && beats.length > 1;
@@ -121,6 +124,7 @@ export function BeatsList({
               onRemoveLibraryRef={onRemoveLibraryRef}
               onAttachLibrary={onAttachLibrary}
               onBeatCapture={onBeatCapture}
+              onBeatNoteSubmit={onBeatNoteSubmit}
             />
           ))}
         </View>
@@ -207,6 +211,7 @@ interface BeatRowProps {
   onRemoveLibraryRef?: (rowId: string) => void;
   onAttachLibrary?: (beatId: string) => void;
   onBeatCapture?: (beatId: string, kind: SubStepCaptureKind) => void;
+  onBeatNoteSubmit?: (beatId: string, text: string) => void;
 }
 
 function BeatRow({
@@ -223,13 +228,14 @@ function BeatRow({
   onRemoveLibraryRef,
   onAttachLibrary,
   onBeatCapture,
+  onBeatNoteSubmit,
 }: BeatRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [title, setTitle] = useState(beat.title);
   const [time, setTime] = useState(beat.time_label ?? '');
   const [body, setBody] = useState(beat.body ?? '');
-  const hasMenu = !readOnly && Boolean(onAttachLibrary || onBeatCapture);
+  const hasMenu = !readOnly && Boolean(onAttachLibrary || onBeatCapture || onBeatNoteSubmit);
 
   const commit = () => {
     if (readOnly) return;
@@ -306,6 +312,7 @@ function BeatRow({
         onRemoveLibraryRef={onRemoveLibraryRef}
         onAttachLibrary={onAttachLibrary ? () => onAttachLibrary(beat.id) : undefined}
         onCapture={onBeatCapture ? (kind) => onBeatCapture(beat.id, kind) : undefined}
+        onSubmitNote={onBeatNoteSubmit ? (text) => onBeatNoteSubmit(beat.id, text) : undefined}
       />
 
       {expanded && !readOnly ? (
