@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: '#6D5EF7',
+    color: '#2563EB',
   },
   coPractitionersLink: {
     fontSize: 13,
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   },
   adoptionFill: {
     height: '100%',
-    backgroundColor: '#6D5EF7',
+    backgroundColor: '#2563EB',
     borderRadius: 2,
   },
   scroll: {

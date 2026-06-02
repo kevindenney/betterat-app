@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    color: '#6D5EF7',
+    color: '#2563EB',
   },
   title: {
     fontSize: 26,

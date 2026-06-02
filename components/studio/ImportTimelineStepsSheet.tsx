@@ -89,7 +89,7 @@ export function ImportTimelineStepsSheet({
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Ionicons name="albums-outline" size={20} color="#6B5BBF" />
+            <Ionicons name="albums-outline" size={20} color={IOS_COLORS.systemBlue} />
             <Text style={styles.headerTitle}>Add from my timeline</Text>
           </View>
           <Pressable onPress={handleClose} style={styles.closeButton}>
@@ -104,7 +104,7 @@ export function ImportTimelineStepsSheet({
 
         {isLoading ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#6B5BBF" />
+            <ActivityIndicator size="large" color={IOS_COLORS.systemBlue} />
           </View>
         ) : sortedSteps.length === 0 ? (
           <View style={styles.centered}>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  rowOn: { borderColor: '#6B5BBF', backgroundColor: 'rgba(107, 91, 191, 0.06)' },
+  rowOn: { borderColor: IOS_COLORS.systemBlue, backgroundColor: 'rgba(0, 122, 255, 0.06)' },
   check: {
     width: 22,
     height: 22,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkOn: { backgroundColor: '#6B5BBF', borderColor: '#6B5BBF' },
+  checkOn: { backgroundColor: IOS_COLORS.systemBlue, borderColor: IOS_COLORS.systemBlue },
   rowBody: { flex: 1, gap: 2 },
   rowTitle: { fontSize: 15, fontWeight: '500', color: IOS_COLORS.label },
   rowMeta: { fontSize: 12, color: IOS_COLORS.secondaryLabel, textTransform: 'capitalize' },
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     borderTopColor: IOS_COLORS.systemGray4,
   },
   confirmButton: {
-    backgroundColor: '#6B5BBF',
+    backgroundColor: IOS_COLORS.systemBlue,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
