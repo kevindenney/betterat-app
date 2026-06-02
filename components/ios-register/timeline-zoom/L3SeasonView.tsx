@@ -192,6 +192,13 @@ export function L3SeasonView({
   const totalWeeks = season.weekOfTotal?.total ?? season.weeks.length;
   const currentWeek = season.weekOfTotal?.current ?? 1;
 
+  // Weeks where at least one reflection landed — drives the inline
+  // "you paused wk 3 · wk 5" caption that replaces the old titled
+  // REFLECTIONS chart header.
+  const pauseWeeks = (analysis?.reflectionDensity ?? [])
+    .filter((d) => d.count > 0)
+    .map((d) => d.weekNumber);
+
   // Resolve interest-native vocab — the eyebrow verb above the season
   // title and the librarian card eyebrow should speak the user's
   // domain (sailor → "TUNING UP", entrepreneur → "PLANNING") instead
@@ -320,13 +327,7 @@ export function L3SeasonView({
           )}
 
           {analysis.reflectionDensity && analysis.reflectionDensity.length > 0 ? (
-            <>
-              <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
-                REFLECTIONS
-              </Text>
-              <Text style={styles.sectionSubeyebrow}>
-                weeks you paused to think
-              </Text>
+            <View style={styles.reflectionSection}>
               <View style={styles.sparklineWrap}>
                 <ReflectionSparkline
                   density={analysis.reflectionDensity}
@@ -335,7 +336,15 @@ export function L3SeasonView({
                   width={chartWidth}
                 />
               </View>
-            </>
+              <Text style={styles.reflectionCaption}>
+                <Text style={styles.reflectionCaptionAccent}>✷ Reflections</Text>
+                {pauseWeeks.length > 0
+                  ? ` — you paused ${pauseWeeks
+                      .map((w) => `wk ${w}`)
+                      .join(' · ')}`
+                  : ` — no reflection pauses yet this ${interestVocab.periodNoun}`}
+              </Text>
+            </View>
           ) : null}
 
           {analysis.peers.length > 0 ? (
@@ -935,6 +944,20 @@ const styles = StyleSheet.create({
   },
   sparklineWrap: {
     marginHorizontal: 16,
+  },
+  reflectionSection: {
+    marginTop: 18,
+  },
+  reflectionCaption: {
+    fontSize: 11,
+    color: IOS_REGISTER.labelTertiary,
+    marginLeft: 16,
+    marginTop: 5,
+    letterSpacing: 0.1,
+  },
+  reflectionCaptionAccent: {
+    color: '#9D70C9',
+    fontWeight: '600',
   },
   riverEmpty: {
     marginHorizontal: 16,
