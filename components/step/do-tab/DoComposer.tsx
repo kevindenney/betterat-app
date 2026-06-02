@@ -65,12 +65,6 @@ export function DoComposer({
 
       <View style={styles.actions}>
         <CircleButton
-          icon="create-outline"
-          onPress={onAddQuickNote}
-          disabled={readOnly}
-          accessibilityLabel="Type a note"
-        />
-        <CircleButton
           icon="camera-outline"
           onPress={onAddPhoto}
           disabled={readOnly}

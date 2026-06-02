@@ -29,6 +29,7 @@ import { router } from 'expo-router';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useUpdateStep } from '@/hooks/useTimelineSteps';
 import { useAuth } from '@/providers/AuthProvider';
+import { useToast } from '@/components/ui/AppToast';
 import { supabase } from '@/services/supabase';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -128,6 +129,7 @@ export function useStepActCaptureController({
   const updateMetadata = useUpdateStepMetadata(stepId);
   const updateStep = useUpdateStep();
   const { user } = useAuth();
+  const toast = useToast();
 
   const metadata = (step?.metadata ?? {}) as StepMetadata;
   const planData: StepPlanData = metadata.plan ?? {};
@@ -295,11 +297,12 @@ export function useStepActCaptureController({
       };
       const currentUploads = metadataRef.current.act?.media_uploads ?? [];
       saveAct({ media_uploads: [...currentUploads, newUpload] });
+      toast.show(isVideo ? 'Video added' : 'Photo added', 'success');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       showAlert('Upload failed', message);
     }
-  }, [user?.id, stepId, saveAct]);
+  }, [user?.id, stepId, saveAct, toast]);
 
   const removeCapture = useCallback(
     (captureId: string) => {
@@ -488,16 +491,24 @@ export function useStepActCaptureController({
   }, []);
   const submitQuickNote = useCallback(
     (text: string) => {
+      if (!text.trim()) {
+        captureSubStepIdRef.current = null;
+        setQuickNoteVisible(false);
+        setEditingCaptureId(null);
+        return;
+      }
       if (editingCaptureId) {
         editObservation(editingCaptureId, text);
+        toast.show('Note updated', 'success');
       } else {
         addObservation(text, captureSubStepIdRef.current);
+        toast.show('Note added', 'success');
       }
       captureSubStepIdRef.current = null;
       setQuickNoteVisible(false);
       setEditingCaptureId(null);
     },
-    [editingCaptureId, editObservation, addObservation],
+    [editingCaptureId, editObservation, addObservation, toast],
   );
 
   const quickNoteInitialText = useMemo(() => {
