@@ -31,6 +31,7 @@ import { useSailorSuggestions } from '@/hooks/useSailorSuggestions';
 import { useAuth } from '@/providers/AuthProvider';
 import { CrewFinderService } from '@/services/CrewFinderService';
 import { supabase } from '@/services/supabase';
+import { routeCohortDiscussionNotification } from '@/lib/notifications/routeDiscussionNotification';
 import { type NotificationGroup } from '@/lib/notifications/dedupe';
 import { getInitials } from '@/components/account/accountStyles';
 import { triggerHaptic } from '@/lib/haptics';
@@ -419,6 +420,10 @@ export default function SocialNotificationsScreen() {
               } else if (latest.type === 'step_reviewed') {
                 // Review feedback visible on the step's Reflect tab
                 router.push('/(tabs)/races' as any);
+              } else if (latest.type === 'cohort_discussion_post') {
+                void routeCohortDiscussionNotification(latest, user?.id);
+              } else if (latest.type === 'step_discussion_post' && latest.data?.step_id) {
+                router.push(`/step/${latest.data.step_id}?tab=discussion` as any);
               } else if (latest.regattaId) {
                 router.push(`/race/${latest.regattaId}`);
               }
@@ -437,7 +442,7 @@ export default function SocialNotificationsScreen() {
         </View>
       );
     },
-    [followingMap, markAsRead, markGroupAsRead, deleteNotification, handleToggleFollow, router]
+    [followingMap, markAsRead, markGroupAsRead, deleteNotification, handleToggleFollow, router, user?.id]
   );
 
   const renderRawNotification = useCallback(
@@ -477,6 +482,10 @@ export default function SocialNotificationsScreen() {
               } else if (item.type === 'step_reviewed') {
                 // Review feedback visible on the step's Reflect tab
                 router.push('/(tabs)/races' as any);
+              } else if (item.type === 'cohort_discussion_post') {
+                void routeCohortDiscussionNotification(item, user?.id);
+              } else if (item.type === 'step_discussion_post' && item.data?.step_id) {
+                router.push(`/step/${item.data.step_id}?tab=discussion` as any);
               } else if (item.regattaId) {
                 router.push(`/race/${item.regattaId}`);
               }
@@ -495,7 +504,7 @@ export default function SocialNotificationsScreen() {
         </View>
       );
     },
-    [followingMap, markAsRead, deleteNotification, handleToggleFollow, router]
+    [followingMap, markAsRead, deleteNotification, handleToggleFollow, router, user?.id]
   );
 
   // Section header with unread count

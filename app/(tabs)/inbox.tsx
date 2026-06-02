@@ -41,7 +41,7 @@ import { useFleetInvites, FLEET_INVITES_QUERY_KEY } from '@/hooks/useFleetInvite
 import { useNotifications } from '@/hooks/useNotifications';
 import type { SocialNotification } from '@/services/NotificationService';
 import { useAuth } from '@/providers/AuthProvider';
-import { supabase } from '@/services/supabase';
+import { routeCohortDiscussionNotification } from '@/lib/notifications/routeDiscussionNotification';
 import { fleetService, type FleetInvite } from '@/services/fleetService';
 import { useInboxDoneItems } from '@/hooks/useInboxDoneItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
@@ -74,22 +74,8 @@ export default function InboxTabScreen() {
   // a no-op when the viewer has no forked copy (Cohort tab wouldn't
   // render there anyway).
   const handleCohortNotificationTap = useCallback(
-    async (notification: SocialNotification) => {
-      const viewerId = user?.id;
-      const blueprintStepId =
-        (notification.data?.blueprint_step_id as string | undefined) ?? null;
-      if (!viewerId || !blueprintStepId) return;
-      const { data } = await supabase
-        .from('timeline_steps')
-        .select('id')
-        .eq('user_id', viewerId)
-        .eq('source_blueprint_step_id', blueprintStepId)
-        .maybeSingle();
-      const viewerStepId = (data as { id?: string } | null)?.id;
-      if (viewerStepId) {
-        router.push(`/step/${viewerStepId}?scope=cohort` as never);
-      }
-    },
+    (notification: SocialNotification) =>
+      routeCohortDiscussionNotification(notification, user?.id),
     [user?.id],
   );
   const { data: fetched, isLoading } = useInboxItems();

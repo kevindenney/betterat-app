@@ -45,10 +45,30 @@ export function useStepDiscussionPeek(stepId: string | null | undefined) {
       try {
         if (!stepId) return null;
 
+        // Cohort posts live at the blueprint_step level (step_id NULL,
+        // blueprint_step_id set) and are SHARED across every plan member's
+        // forked copy. Resolve this step's blueprint_step link so the peek
+        // counts both the private per-step thread AND the cohort thread —
+        // otherwise a cohort-only conversation never lights the badge.
+        const { data: stepRow } = await supabase
+          .from('timeline_steps')
+          .select('source_blueprint_step_id')
+          .eq('id', stepId)
+          .maybeSingle();
+        const blueprintStepId =
+          (stepRow as { source_blueprint_step_id?: string | null } | null)
+            ?.source_blueprint_step_id ?? null;
+
+        // Match rows on either thread key. PostgREST `or` is combined with the
+        // other filters via AND, so the parent_id / unread filters still apply.
+        const threadFilter = blueprintStepId
+          ? `step_id.eq.${stepId},blueprint_step_id.eq.${blueprintStepId}`
+          : `step_id.eq.${stepId}`;
+
         const { count } = await supabase
           .from('step_discussions')
           .select('id', { count: 'exact', head: true })
-          .eq('step_id', stepId)
+          .or(threadFilter)
           .is('parent_id', null);
 
         if (!count || count === 0) return null;
@@ -67,7 +87,7 @@ export function useStepDiscussionPeek(stepId: string | null | undefined) {
           let unreadQuery = supabase
             .from('step_discussions')
             .select('id', { count: 'exact', head: true })
-            .eq('step_id', stepId)
+            .or(threadFilter)
             .neq('user_id', viewerId);
           if (lastSeenAt) unreadQuery = unreadQuery.gt('created_at', lastSeenAt);
           const { count: unread } = await unreadQuery;
@@ -77,7 +97,7 @@ export function useStepDiscussionPeek(stepId: string | null | undefined) {
         const { data: latestRow } = await supabase
           .from('step_discussions')
           .select('id, body, user_id, created_at')
-          .eq('step_id', stepId)
+          .or(threadFilter)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
