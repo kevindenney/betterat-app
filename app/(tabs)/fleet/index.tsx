@@ -208,16 +208,20 @@ export default function FleetOverviewScreen() {
                 ].filter(Boolean).join(' · ')}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => handleLeaveFleet(summaryFleet.id, summaryFleet.name)}
-              disabled={leavingFleetId === summaryFleet.id}
-            >
-              {leavingFleetId === summaryFleet.id ? (
-                <ActivityIndicator size="small" color={COLORS.leaveRed} />
-              ) : (
-                <Text style={styles.leaveText}>Leave</Text>
-              )}
-            </TouchableOpacity>
+            {/* Owners can't leave (it would orphan the fleet); they manage
+                it via the roster instead. Members/captains/coaches may leave. */}
+            {activeRole !== 'owner' && (
+              <TouchableOpacity
+                onPress={() => handleLeaveFleet(summaryFleet.id, summaryFleet.name)}
+                disabled={leavingFleetId === summaryFleet.id}
+              >
+                {leavingFleetId === summaryFleet.id ? (
+                  <ActivityIndicator size="small" color={COLORS.leaveRed} />
+                ) : (
+                  <Text style={styles.leaveText}>Leave</Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Stats Line */}

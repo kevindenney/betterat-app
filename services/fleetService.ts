@@ -469,6 +469,29 @@ class FleetService {
   }
 
   async leaveFleet(userId: string, fleetId: string): Promise<void> {
+    // A sole owner leaving would orphan the fleet (no owner left among
+    // members). Block it here so any caller is safe; the owner must transfer
+    // ownership or delete the fleet first.
+    const { data: me } = await supabase
+      .from('fleet_members')
+      .select('role')
+      .eq('fleet_id', fleetId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (me?.role === 'owner') {
+      const { count } = await supabase
+        .from('fleet_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('fleet_id', fleetId)
+        .eq('role', 'owner');
+      if ((count ?? 0) <= 1) {
+        throw new Error(
+          'You own this fleet. Transfer ownership or delete the fleet before leaving.',
+        );
+      }
+    }
+
     const { error } = await supabase
       .from('fleet_members')
       .delete()
