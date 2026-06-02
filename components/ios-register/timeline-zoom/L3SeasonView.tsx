@@ -36,6 +36,7 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import { StepDigestCard } from './StepDigestCard';
 import { CapabilityMix } from './CapabilityMix';
@@ -186,6 +187,92 @@ export function L3SeasonView({
     ),
   });
 
+  // Dominant capability family across the weeks elapsed so far — drives
+  // the serif takeaway headline above the band chart ("Proportion has
+  // anchored this sketchbook"). The chart becomes evidence for a
+  // sentence the user can read in one glance. Computed before the
+  // `!season` guard so the hook order stays stable.
+  const capabilityHeadline = useMemo(() => {
+    const a = season?.analysis;
+    if (!a) return null;
+    const total = season!.weekOfTotal?.total ?? season!.weeks.length;
+    const current = season!.weekOfTotal?.current ?? 1;
+    const elapsed = Math.max(1, Math.min(current, total));
+    const byFamily = new Map<
+      string,
+      { label: string; color: string; volume: number; weeks: Set<number> }
+    >();
+    for (const wk of a.weeklyCapabilities) {
+      if (wk.weekNumber > elapsed) continue;
+      for (const band of wk.bands) {
+        const label = band.capabilityLabel;
+        if (!label) continue;
+        const vol =
+          band.volume ??
+          (band.plannedVolume ?? 0) + (band.provenVolume ?? 0);
+        if (vol <= 0) continue;
+        const key = band.capabilityId ?? label;
+        const entry = byFamily.get(key);
+        if (entry) {
+          entry.volume += vol;
+          entry.weeks.add(wk.weekNumber);
+        } else {
+          byFamily.set(key, {
+            label,
+            color: band.capabilityColor,
+            volume: vol,
+            weeks: new Set([wk.weekNumber]),
+          });
+        }
+      }
+    }
+    let top: { label: string; color: string; volume: number; weeks: Set<number> } | null =
+      null;
+    for (const e of byFamily.values()) {
+      if (!top || e.volume > top.volume) top = e;
+    }
+    if (!top) return null;
+    return {
+      label: top.label,
+      color: top.color,
+      weeksPresent: top.weeks.size,
+      elapsed,
+    };
+  }, [season]);
+
+  // Most-present peer across elapsed weeks — drives the serif headline
+  // above the people lane ("Kevin shaped this sketchbook most"). Pairs
+  // with the first-dot-only chart + legend below it.
+  const peerHeadline = useMemo(() => {
+    const a = season?.analysis;
+    if (!a || a.peers.length === 0) return null;
+    const total = season!.weekOfTotal?.total ?? season!.weeks.length;
+    const current = season!.weekOfTotal?.current ?? 1;
+    const elapsed = Math.max(1, Math.min(current, total));
+    let top: { name: string; color: string; total: number; weeks: number } | null =
+      null;
+    for (const p of a.peers) {
+      let count = 0;
+      const weeks = new Set<number>();
+      for (const w of p.weeklyAppearances) {
+        if (w.weekNumber > elapsed || w.count <= 0) continue;
+        count += w.count;
+        weeks.add(w.weekNumber);
+      }
+      if (count === 0) continue;
+      if (!top || count > top.total) {
+        top = {
+          name: p.name?.trim() || `Peer ${p.initials}`,
+          color: p.capabilityColor ?? p.color,
+          total: count,
+          weeks: weeks.size,
+        };
+      }
+    }
+    if (!top) return null;
+    return { name: top.name, color: top.color, weeks: top.weeks, elapsed };
+  }, [season]);
+
   if (!season) return null;
 
   const analysis = season.analysis;
@@ -300,6 +387,21 @@ export function L3SeasonView({
           {flatSteps.length >= 5 ? (
             <>
               <Text style={styles.sectionEyebrow}>{interestVocab.capabilityHeader}</Text>
+              {capabilityHeadline ? (
+                <Text style={styles.sectionHeadline}>
+                  <Text
+                    style={[
+                      styles.sectionHeadlineAccent,
+                      { color: capabilityHeadline.color },
+                    ]}
+                  >
+                    {capabilityHeadline.label}
+                  </Text>
+                  {capabilityHeadline.elapsed > 1
+                    ? ` has anchored this ${interestVocab.periodNoun} — ${capabilityHeadline.weeksPresent} of ${capabilityHeadline.elapsed} weeks.`
+                    : ` is anchoring this ${interestVocab.periodNoun} so far.`}
+                </Text>
+              ) : null}
               <CapabilityMix
                 weeklyCapabilities={analysis.weeklyCapabilities}
                 totalWeeks={totalWeeks}
@@ -352,9 +454,25 @@ export function L3SeasonView({
               <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
                 {interestVocab.crewHeader}
               </Text>
-              <Text style={styles.sectionSubeyebrow}>
-                {interestVocab.inputSubtitle}
-              </Text>
+              {peerHeadline ? (
+                <Text style={styles.sectionHeadline}>
+                  <Text
+                    style={[
+                      styles.sectionHeadlineAccent,
+                      { color: peerHeadline.color },
+                    ]}
+                  >
+                    {peerHeadline.name}
+                  </Text>
+                  {peerHeadline.elapsed > 1
+                    ? ` shaped this ${interestVocab.periodNoun} most — ${peerHeadline.weeks} of ${peerHeadline.elapsed} weeks.`
+                    : ` has shaped this ${interestVocab.periodNoun} most so far.`}
+                </Text>
+              ) : (
+                <Text style={styles.sectionSubeyebrow}>
+                  {interestVocab.inputSubtitle}
+                </Text>
+              )}
               {isSparseCrew(analysis.peers) ? (
                 <CrewSparseList
                   peers={analysis.peers}
@@ -932,6 +1050,19 @@ const styles = StyleSheet.create({
   },
   sectionEyebrowSpace: {
     marginTop: 18,
+  },
+  sectionHeadline: {
+    fontFamily: fontFamily.serif,
+    fontSize: 16,
+    lineHeight: 21,
+    color: IOS_REGISTER.label,
+    marginLeft: 16,
+    marginRight: 16,
+    marginTop: 1,
+    marginBottom: 10,
+  },
+  sectionHeadlineAccent: {
+    fontWeight: '600',
   },
   sectionSubeyebrow: {
     fontSize: 11,
