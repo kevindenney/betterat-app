@@ -18,14 +18,12 @@ import React, { useCallback, useMemo, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { useDragReorder } from './useDragReorder';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { CapabilityMix } from './CapabilityMix';
-import type { CapabilityMixMarker } from './CapabilityMix';
-import { PeerJourneyChart } from './PeerJourneyChart';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import {
   detectMilestoneTitles,
@@ -45,12 +43,9 @@ import { hasHeadlineMetric, resolveHeadlineMetric } from './interestHeadline';
 import { LifetimeVisionEditSheet } from './LifetimeVisionEditSheet';
 import { useUpdateLifetimeVision } from '@/hooks/useInterestVision';
 import type {
-  LifetimeAnalysis,
   LifetimeFinance,
   LifetimePeer,
   LifetimeSession,
-  SeasonPeer,
-  SeasonReflection,
   TimelineDataset,
   TimelineSeason,
   WeeklyCapabilityMix,
@@ -85,101 +80,145 @@ function formatLifetimeDuration(isoStart: string | undefined): string | null {
 
 interface L4YearsViewProps {
   dataset: TimelineDataset;
-  onOpenStep: (stepId: string) => void;
   /**
-   * Section D reorder — same neighbor-id contract as L2/L3. Only the
-   * current-rotation lane is reorderable; archived lanes are placeholder
-   * bricks until the archive RPC ships.
+   * Drill into one chapter — whole-card tap navigates to that arc at L3.
+   * The lifetime surface is reflective, so its only primary action is
+   * "open this chapter"; week-granular step interaction (drag, select)
+   * lives at L3 where the brick wall earns its place.
    */
-  onReorderStep?: (
-    stepId: string,
-    beforeStepId: string | null,
-    afterStepId: string | null,
-  ) => void;
-  /** Frame 12 — tap a Select pill to enter multi-select. */
-  onEnterSelectMode?: () => void;
-  selectEnabled?: boolean;
-  isSelected?: (stepId: string) => boolean;
-  onToggleSelect?: (stepId: string) => void;
+  onOpenSeason?: (seasonId: string) => void;
   /** Lifetime librarian primary CTA — "Start a reflection". */
   onLibrarianPrimary?: () => void;
   /** Lifetime librarian "Not now" tap. */
   onLibrarianSecondary?: () => void;
-  /** "+ New arc" affordance in the BROWSE ARCS header. */
+  /** "+ New arc" affordance, surfaced inside Edit mode on the chapter list. */
   onAddArc?: () => void;
-  /** Per-arc edit affordance from the BROWSE ARCS list. */
+  /** Per-chapter edit affordance, surfaced inside Edit mode. */
   onEditArc?: (arcId: string) => void;
 }
 
 /**
- * Map a LifetimeAnalysis into the unit-agnostic shapes the river +
- * peer charts already consume. The charts use "weekNumber" naming
- * because they were built for L3 first; here "weekNumber" actually
- * means sessionIndex. Same math, different label.
+ * Build the lifetime "drift river" — one column per ARC (not per
+ * session), each column carrying the full capability mix of that arc.
+ * This is the L4-native representation: it shows how the dominant
+ * capability *drifted* between chapters. Reuses the CapabilityMix
+ * stacked-area chart, but feeds it arc-granularity columns so the
+ * streams join across arcs into a readable river.
+ *
+ * Distinct from the old per-session adapter, which gave each session a
+ * single dominant-color band — at one arc that read as an empty chart
+ * on a long ruler. Here each arc aggregates its bricks by capability
+ * label, so a single arc still has internal mix and two+ arcs show the
+ * genuine cross-chapter drift.
+ *
+ * `seasons` arrives newest-first; we reverse to chronological so the
+ * river reads left→right oldest→now. Returns null when fewer than two
+ * arcs carry labeled capability data (drift needs at least two points).
  */
-function adaptLifetimeForCharts(lifetime: LifetimeAnalysis | undefined): {
-  weeklyCapabilities: WeeklyCapabilityMix[];
-  peers: SeasonPeer[];
-  reflections: SeasonReflection[];
-  markers: CapabilityMixMarker[];
-  totalUnits: number;
-  currentUnit: number;
+function buildDriftMix(
+  seasons: TimelineSeason[],
+): { mix: WeeklyCapabilityMix[]; labelByColumn: Map<number, string> } | null {
+  const chronological = [...seasons].reverse();
+  const mix: WeeklyCapabilityMix[] = [];
+  const labelByColumn = new Map<number, string>();
+
+  chronological.forEach((season, idx) => {
+    const column = idx + 1;
+    labelByColumn.set(column, season.title);
+    const byLabel = new Map<
+      string,
+      { id: string; label: string; color: string; volume: number }
+    >();
+    for (const brick of season.bricks) {
+      const label = brick.capabilityLabel?.trim();
+      if (!label) continue;
+      const existing = byLabel.get(label);
+      if (existing) existing.volume += 1;
+      else
+        byLabel.set(label, {
+          id: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          label,
+          color: brick.capabilityColor,
+          volume: 1,
+        });
+    }
+    const bands = Array.from(byLabel.values())
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 5)
+      .map((b) => ({
+        capabilityId: b.id,
+        capabilityLabel: b.label,
+        capabilityColor: b.color,
+        volume: b.volume,
+      }));
+    mix.push({ weekNumber: column, bands });
+  });
+
+  const columnsWithData = mix.filter((m) => m.bands.length > 0).length;
+  if (columnsWithData < 2) return null;
+  return { mix, labelByColumn };
+}
+
+/**
+ * Aggregate every brick across every arc into the single dominant
+ * capability of the whole practice — the poster's "through-line". Also
+ * returns the latest arc's dominant so the drift caption can name a
+ * shift. Null when no labeled bricks exist anywhere.
+ */
+function resolveLifetimeDominant(seasons: TimelineSeason[]): {
+  label: string;
+  color: string;
+  latestLabel: string | null;
 } | null {
-  if (!lifetime || lifetime.sessions.length === 0) return null;
-  const totalUnits = lifetime.sessions.length;
-  // Current session = the newest non-future session. Sessions are
-  // chronological so the last one is the "now" anchor unless the
-  // caller has explicitly flagged a future stub (skipped for v1).
-  const currentUnit = totalUnits;
-
-  const weeklyCapabilities: WeeklyCapabilityMix[] = lifetime.sessions.map((s) => ({
-    weekNumber: s.sessionIndex,
-    bands: [{ capabilityColor: s.dominantCapabilityColor, volume: Math.max(1, s.volume) }],
-  }));
-
-  const peers: SeasonPeer[] = lifetime.peers.map((p) => ({
-    id: p.id,
-    initials: p.initials,
-    color: p.color,
-    role: p.role,
-    firstWeek: p.firstSessionIndex,
-    weeklyAppearances: p.sessionAppearances.map((a) => ({
-      weekNumber: a.sessionIndex,
-      count: a.count,
-    })),
-  }));
-
-  const reflections: SeasonReflection[] = lifetime.reflections.map((r) => ({
-    id: r.id,
-    weekNumber: r.sessionIndex,
-    quote: r.quote,
-    capabilityColor: r.capabilityColor,
-  }));
-
-  const markers: CapabilityMixMarker[] = lifetime.trophies.map((t) => ({
-    id: t.id,
-    weekNumber: t.sessionIndex,
-    label: t.label,
-    color: t.capabilityColor,
-  }));
-
-  return { weeklyCapabilities, peers, reflections, markers, totalUnits, currentUnit };
+  const totals = new Map<string, { label: string; color: string; count: number }>();
+  for (const season of seasons) {
+    for (const brick of season.bricks) {
+      const label = brick.capabilityLabel?.trim();
+      if (!label) continue;
+      const existing = totals.get(label);
+      if (existing) existing.count += 1;
+      else totals.set(label, { label, color: brick.capabilityColor, count: 1 });
+    }
+  }
+  let dominant: { label: string; color: string; count: number } | null = null;
+  for (const bucket of totals.values()) {
+    if (!dominant || bucket.count > dominant.count) dominant = bucket;
+  }
+  if (!dominant) return null;
+  // Latest arc dominant (seasons[0] is newest).
+  const latest = seasons[0];
+  let latestLabel: string | null = null;
+  if (latest) {
+    const latestTotals = new Map<string, number>();
+    for (const brick of latest.bricks) {
+      const label = brick.capabilityLabel?.trim();
+      if (!label) continue;
+      latestTotals.set(label, (latestTotals.get(label) ?? 0) + 1);
+    }
+    let best = 0;
+    for (const [label, count] of latestTotals) {
+      if (count > best) {
+        best = count;
+        latestLabel = label;
+      }
+    }
+  }
+  return { label: dominant.label, color: dominant.color, latestLabel };
 }
 
 export function L4YearsView({
   dataset,
-  onOpenStep,
-  onReorderStep,
-  onEnterSelectMode,
-  selectEnabled = false,
-  isSelected,
-  onToggleSelect,
+  onOpenSeason,
   onLibrarianPrimary,
   onLibrarianSecondary,
   onAddArc,
   onEditArc,
 }: L4YearsViewProps) {
   const [chartWidth, setChartWidth] = useState(0);
+  // Editing is deferred behind an "Edit" affordance the way Photos /
+  // Notes hide chapter management — the default state reads the
+  // practice; manage mode reveals "+ New arc" and per-chapter edit.
+  const [manageMode, setManageMode] = useState(false);
 
   const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
     // The rail's lane is now reserved by the canvas container (paddingRight),
@@ -200,11 +239,6 @@ export function L4YearsView({
   const [lifetimeVisionEditOpen, setLifetimeVisionEditOpen] = useState(false);
   const updateLifetimeVision = useUpdateLifetimeVision();
 
-  // Convert lifetime data into the existing chart shapes (the charts
-  // don't know about lifetime semantics — they operate on the generic
-  // "unit" axis whether that's weeks or sessions).
-  const adapted = useMemo(() => adaptLifetimeForCharts(lifetime), [lifetime]);
-
   // Resolve interest-native vocab — L4 is by definition the reflective
   // view, so we always use the late-tier verb and the persona's native
   // librarian eyebrow.
@@ -212,6 +246,29 @@ export function L4YearsView({
     dataset.interest.id,
     dataset.interest.label,
   );
+
+  // Lifetime "drift river" — per-ARC capability mix (only meaningful at
+  // 2+ arcs). Replaces the old per-session single-band chart that read
+  // as an empty ruler at one arc.
+  const drift = useMemo(
+    () => buildDriftMix(dataset.seasons),
+    [dataset.seasons],
+  );
+
+  // Whole-practice dominant capability + latest-arc dominant — powers
+  // the poster through-line sentence and the drift caption.
+  const lifetimeDominant = useMemo(
+    () => resolveLifetimeDominant(dataset.seasons),
+    [dataset.seasons],
+  );
+
+  // Poster scale figures. arcCount drives the adaptive one-arc vs
+  // many-arc copy; the metric trio reads steps · arcs · people.
+  const arcCount = dataset.seasons.length;
+  const peopleCount = lifetime?.peers.length ?? 0;
+  const lifetimeDuration = formatLifetimeDuration(dataset.sinceTimestamp);
+  const periodNoun = interestVocab.periodNoun;
+  const periodPlural = arcCount === 1 ? periodNoun : `${periodNoun}s`;
 
   // Trajectory arrow — D5 closer. Names the *change* the lifetime
   // ladder produced ("Started Spring '24 with Tactics → now in Race
@@ -257,10 +314,21 @@ export function L4YearsView({
           </Text>
         </View>
         <Text style={styles.subtitle}>
-          {formatLifetimeDuration(dataset.sinceTimestamp) ??
-            `${dataset.totalSeasons} arc${dataset.totalSeasons === 1 ? '' : 's'} · ${dataset.totalSteps} step${dataset.totalSteps === 1 ? '' : 's'}${dataset.sinceDate ? ` · since ${dataset.sinceDate}` : ''}`}
+          {`${dataset.totalSeasons} ${periodPlural} · ${dataset.totalSteps} step${dataset.totalSteps === 1 ? '' : 's'}${lifetimeDuration ? ` · ${lifetimeDuration}` : ''}`}
         </Text>
       </View>
+
+      <LifetimePoster
+        interestLabel={dataset.interest.label}
+        arcCount={arcCount}
+        totalSteps={dataset.totalSteps}
+        peopleCount={peopleCount}
+        periodNoun={periodNoun}
+        periodPlural={periodPlural}
+        duration={lifetimeDuration}
+        sinceDate={dataset.sinceDate}
+        dominant={lifetimeDominant}
+      />
 
       <Pressable
         style={styles.lifetimeVisionBanner}
@@ -349,109 +417,200 @@ export function L4YearsView({
         }}
       />
 
-      {adapted && lifetime ? (
-        <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
-          <Text style={styles.sectionEyebrow}>{interestVocab.capabilityHeader}</Text>
-          <CapabilityMix
-            weeklyCapabilities={adapted.weeklyCapabilities}
-            totalWeeks={adapted.totalUnits}
-            currentWeekNumber={adapted.currentUnit}
-            reflections={adapted.reflections}
-            markers={adapted.markers}
-            unitLabel={(unit) =>
-              lifetime.sessions.find((s) => s.sessionIndex === unit)?.label ?? `s${unit}`
-            }
-            width={chartWidth}
-            height={212}
-          />
-
-          {adapted.peers.length > 0 ? (
-            <>
-              <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
-                {interestVocab.crewHeader}
-              </Text>
-              <Text style={styles.sectionSubeyebrow}>
-                {interestVocab.inputSubtitle}
-              </Text>
-              <PeerJourneyChart
-                peers={adapted.peers}
-                totalWeeks={adapted.totalUnits}
-                currentWeekNumber={adapted.currentUnit}
-                width={chartWidth}
-                compact
-                showRole={false}
-              />
-              <PeerConstancyList
-                peers={lifetime.peers}
-                sessions={lifetime.sessions}
-                vocab={interestVocab}
-              />
-            </>
-          ) : null}
-
-          {lifetime.librarianPrompt ? (
-            <SeasonLibrarianPrompt
-              prompt={{
-                ...lifetime.librarianPrompt,
-                eyebrow: interestVocab.librarianEyebrow.replace(
-                  /^This arc/i,
-                  'Across your practice',
-                ),
-              }}
-              onPrimary={onLibrarianPrimary}
-              onSecondary={onLibrarianSecondary}
+      <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
+        {/* Drift river — how the dominant capability shifted between
+            arcs. Only at 2+ arcs (drift needs two points); one arc
+            shows the poster + chapter alone, never an empty chart. */}
+        {drift ? (
+          <>
+            <Text style={styles.sectionEyebrow}>How your focus drifted</Text>
+            <CapabilityMix
+              weeklyCapabilities={drift.mix}
+              totalWeeks={drift.mix.length}
+              currentWeekNumber={drift.mix.length}
+              unitLabel={(unit) => drift.labelByColumn.get(unit) ?? `arc ${unit}`}
+              width={chartWidth}
+              height={150}
             />
-          ) : null}
+            {lifetimeDominant ? (
+              <Text style={styles.driftCaption}>
+                <Text
+                  style={[styles.driftCaptionAccent, { color: lifetimeDominant.color }]}
+                >
+                  {lifetimeDominant.label}
+                </Text>
+                {lifetimeDominant.latestLabel &&
+                lifetimeDominant.latestLabel !== lifetimeDominant.label
+                  ? ` ran through your practice; ${lifetimeDominant.latestLabel} leads now.`
+                  : ` ran through your whole practice.`}
+              </Text>
+            ) : null}
+          </>
+        ) : null}
+
+        {/* People as constancy sentences — the genuine lifetime payoff.
+            Renders its own header + only the peers who span 2+ arcs;
+            empty at one arc, where the chapter chips carry "N with
+            people" instead. The faint per-session dot chart is gone. */}
+        {lifetime ? (
+          <PeerConstancyList
+            peers={lifetime.peers}
+            sessions={lifetime.sessions}
+            vocab={interestVocab}
+            header={interestVocab.crewHeader}
+          />
+        ) : null}
+
+        {lifetime?.librarianPrompt ? (
+          <SeasonLibrarianPrompt
+            prompt={{
+              ...lifetime.librarianPrompt,
+              eyebrow: interestVocab.librarianEyebrow.replace(
+                /^This arc/i,
+                'Across your practice',
+              ),
+            }}
+            onPrimary={onLibrarianPrimary}
+            onSecondary={onLibrarianSecondary}
+          />
+        ) : null}
+      </View>
+
+      <View style={styles.chaptersHeaderRow}>
+        <Text style={styles.chaptersTitle} numberOfLines={1}>
+          {capitalize(`${periodNoun}s`)}
+        </Text>
+        {onAddArc || onEditArc ? (
+          <Pressable
+            onPress={() => setManageMode((m) => !m)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={manageMode ? 'Done editing chapters' : 'Edit chapters'}
+          >
+            <Text style={styles.chaptersEditLabel}>
+              {manageMode ? 'Done' : 'Edit'}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {manageMode && onAddArc ? (
+        <View style={styles.manageActionsRow}>
+          <Pressable
+            style={styles.selectPill}
+            onPress={onAddArc}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={`New ${periodNoun}`}
+          >
+            <Ionicons name="add" size={14} color={IOS_REGISTER.accentUserAction} />
+            <Text style={styles.selectPillLabel}>New {periodNoun}</Text>
+          </Pressable>
         </View>
       ) : null}
 
-      <View style={styles.browseHeaderRow}>
-        <Text style={styles.browseEyebrow}>BROWSE ARCS</Text>
-        <View style={styles.browseHeaderActions}>
-          {onAddArc ? (
-            <Pressable
-              style={styles.selectPill}
-              onPress={onAddArc}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel="New arc"
-            >
-              <Ionicons
-                name="add"
-                size={14}
-                color={IOS_REGISTER.accentUserAction}
-              />
-              <Text style={styles.selectPillLabel}>New arc</Text>
-            </Pressable>
-          ) : null}
-          {onEnterSelectMode && !selectEnabled ? (
-            <Pressable style={styles.selectPill} onPress={onEnterSelectMode} hitSlop={6}>
-              <Ionicons
-                name="checkmark-circle-outline"
-                size={13}
-                color={IOS_REGISTER.accentUserAction}
-              />
-              <Text style={styles.selectPillLabel}>Select</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
-
       {dataset.seasons.map((season, idx) => (
-        <SeasonLane
+        <ChapterCard
           key={season.id}
           season={season}
           isCurrent={idx === 0}
           vocab={interestVocab}
-          onOpenStep={onOpenStep}
-          onReorderStep={idx === 0 ? onReorderStep : undefined}
-          selectEnabled={selectEnabled}
-          isSelected={isSelected}
-          onToggleSelect={onToggleSelect}
-          onEditArc={onEditArc}
+          manageMode={manageMode}
+          onOpen={() => onOpenSeason?.(season.id)}
+          onEdit={onEditArc ? () => onEditArc(season.id) : undefined}
         />
       ))}
     </ScrollView>
+  );
+}
+
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Lifetime poster — the L4 "Years" hero. Photos opens its Years view on
+ * a single hero image + a word, not a grid of thumbnails; this is the
+ * same move for a practice. A serif sentence states the scale of the
+ * whole thing ("You're 240 steps into sail racing — Tactics is the
+ * through-line so far") over a quiet gradient tinted by the dominant
+ * capability, with a metric trio (steps · arcs · people) beneath.
+ *
+ * The sentence is adaptive: at one arc it leans on the through-line
+ * capability ("…is the through-line so far"); at 2+ arcs it states the
+ * scale across chapters and elapsed time. Replaces the old per-session
+ * chart that led the view with an apologetic near-empty ruler.
+ */
+interface LifetimePosterProps {
+  interestLabel: string;
+  arcCount: number;
+  totalSteps: number;
+  peopleCount: number;
+  periodNoun: string;
+  periodPlural: string;
+  duration: string | null;
+  sinceDate: string | null;
+  dominant: { label: string; color: string; latestLabel: string | null } | null;
+}
+
+function LifetimePoster({
+  interestLabel,
+  arcCount,
+  totalSteps,
+  peopleCount,
+  periodNoun,
+  periodPlural,
+  duration,
+  sinceDate,
+  dominant,
+}: LifetimePosterProps) {
+  const tint = dominant?.color ?? '#9D70C9';
+  const stepsWord = totalSteps === 1 ? 'step' : 'steps';
+
+  // Adaptive headline. One arc → lean on the through-line capability so
+  // a young practice still reads as having a spine. Many arcs → state
+  // the scale across chapters + elapsed time.
+  const headline =
+    arcCount <= 1
+      ? dominant
+        ? `You're ${totalSteps} ${stepsWord} into ${interestLabel} — ${dominant.label} is the through-line so far.`
+        : `You're ${totalSteps} ${stepsWord} into ${interestLabel}.`
+      : `${totalSteps} ${stepsWord} across ${arcCount} ${periodPlural}${duration ? `, over ${duration}` : ''}.`;
+
+  const metrics: { value: string; label: string }[] = [
+    { value: String(totalSteps), label: stepsWord },
+    { value: String(arcCount), label: arcCount === 1 ? periodNoun : periodPlural },
+  ];
+  if (peopleCount > 0) {
+    metrics.push({
+      value: String(peopleCount),
+      label: peopleCount === 1 ? 'person' : 'people',
+    });
+  }
+
+  return (
+    <LinearGradient
+      colors={[withAlpha(tint, 0.22), withAlpha(tint, 0.06)]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.poster}
+    >
+      <Text style={styles.posterHeadline}>{headline}</Text>
+      <View style={styles.posterMetrics}>
+        {metrics.map((m, i) => (
+          <React.Fragment key={m.label}>
+            {i > 0 ? <View style={styles.posterMetricDivider} /> : null}
+            <View style={styles.posterMetric}>
+              <Text style={styles.posterMetricValue}>{m.value}</Text>
+              <Text style={styles.posterMetricLabel}>{m.label}</Text>
+            </View>
+          </React.Fragment>
+        ))}
+      </View>
+      {sinceDate ? (
+        <Text style={styles.posterSince}>since {sinceDate}</Text>
+      ) : null}
+    </LinearGradient>
   );
 }
 
@@ -468,9 +627,11 @@ interface PeerConstancyListProps {
   peers: LifetimePeer[];
   sessions: LifetimeSession[];
   vocab: InterestVocab;
+  /** Optional eyebrow rendered above the rows, only when rows exist. */
+  header?: string;
 }
 
-function PeerConstancyList({ peers, sessions, vocab }: PeerConstancyListProps) {
+function PeerConstancyList({ peers, sessions, vocab, header }: PeerConstancyListProps) {
   const rows = useMemo(() => {
     const sessionLabelByIndex = new Map(
       sessions.map((s) => [s.sessionIndex, s.label] as const),
@@ -502,6 +663,9 @@ function PeerConstancyList({ peers, sessions, vocab }: PeerConstancyListProps) {
 
   return (
     <View style={styles.constancyList}>
+      {header ? (
+        <Text style={styles.constancyHeader}>{header}</Text>
+      ) : null}
       {rows.map((row) => (
         <View key={row.id} style={styles.constancyRow}>
           <View style={[styles.constancyAvatar, { backgroundColor: row.color }]}>
@@ -606,53 +770,33 @@ function MoneyReadout({
   );
 }
 
-interface SeasonLaneProps {
+/**
+ * Chapter card — the L4 unit replacing the brick lane. Reads like a
+ * Photos/Notes chapter: persona-native title + date, one human subtitle
+ * ("14 steps · Gesture · solo"), a single proportional capability
+ * mix-strip (not a wall of bricks), and the chapter's first milestone.
+ * The whole card is the tap target → drill into that arc at L3, where
+ * week-granular bricks earn their place. Per-chapter editing hides
+ * behind the list's Edit toggle.
+ */
+interface ChapterCardProps {
   season: TimelineSeason;
   isCurrent: boolean;
   vocab: InterestVocab;
-  onOpenStep: (stepId: string) => void;
-  onReorderStep?: (
-    stepId: string,
-    beforeStepId: string | null,
-    afterStepId: string | null,
-  ) => void;
-  selectEnabled?: boolean;
-  isSelected?: (stepId: string) => boolean;
-  onToggleSelect?: (stepId: string) => void;
-  onEditArc?: (arcId: string) => void;
+  manageMode: boolean;
+  onOpen: () => void;
+  onEdit?: () => void;
 }
 
-function SeasonLane({
+function ChapterCard({
   season,
   isCurrent,
   vocab,
-  onOpenStep,
-  onReorderStep,
-  selectEnabled = false,
-  isSelected,
-  onToggleSelect,
-  onEditArc,
-}: SeasonLaneProps) {
-  // Bricks with a real stepId participate in drag-reorder; bricks without
-  // (archived placeholders) are display-only. The drag hook needs items
-  // with stable ids, so synthesize a stable id-list for the hook from
-  // those bricks that have step ids.
-  const reorderableItems = useMemo(
-    () =>
-      season.bricks
-        .map((b, i) => ({ id: b.stepId ?? `placeholder-${i}`, hasStepId: Boolean(b.stepId) }))
-        .filter((b) => b.hasStepId),
-    [season.bricks],
-  );
-
-  // Phase D D5 — chapter signal. Surface the dominant capability,
-  // people-constancy hint, and done progress as inline chips on each
-  // season lane so the L4 view starts reading as a flip-through-the-
-  // logbook ledger instead of an undifferentiated brick wall. Each
-  // chip is information-dense and uses signal the bricks already
-  // carry (capabilityLabel from D3, withOthers from earlier, status).
-  const chapterSummary = useMemo(() => {
-    if (season.bricks.length === 0) return null;
+  manageMode,
+  onOpen,
+  onEdit,
+}: ChapterCardProps) {
+  const summary = useMemo(() => {
     const labelCounts = new Map<
       string,
       { label: string; color: string; count: number }
@@ -675,310 +819,119 @@ function SeasonLane({
       if (brick.withOthers) withOthersCount += 1;
       if (brick.status === 'done' || brick.status === 'reflected') doneCount += 1;
     }
-    let categoryDominant: { label: string; color: string; count: number } | null = null;
+    let categoryDominant: { label: string; color: string; count: number } | null =
+      null;
     for (const bucket of labelCounts.values()) {
-      if (!categoryDominant || bucket.count > categoryDominant.count) categoryDominant = bucket;
+      if (!categoryDominant || bucket.count > categoryDominant.count)
+        categoryDominant = bucket;
     }
-    // Prefer title-pattern detection over category dominance — the
-    // category is often the generic interest name ("Sailing",
-    // "Nursing") which carries no signal at the chapter level. A
-    // title-pattern hit like "Tactics" / "Starts" / "Rig tuning"
-    // describes the *specific work* the season pushed.
+    // Prefer the title-pattern label ("Tactics", "Starts") over the
+    // often-generic category for the subtitle's middle phrase.
     const titleBasedLabel = detectPhaseLabelFromTitles(titles, vocab);
-    // Phase D D5 — milestone strip. Detect "moments worth marking"
-    // from step titles using the persona's milestonePatterns
-    // (sailors win/qualify; nurses pass/certify; entrepreneurs
-    // launch/register). We surface the *user's own title text* back
-    // verbatim so they see their words, not a synthesized label.
-    const milestoneTitles = detectMilestoneTitles(titles, vocab, 3);
+    const milestone = detectMilestoneTitles(titles, vocab, 1)[0] ?? null;
+    // Proportional mix-strip — top capabilities by share, normalized so
+    // the bar fills regardless of unlabeled bricks.
+    const sorted = Array.from(labelCounts.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+    const shownTotal = sorted.reduce((n, b) => n + b.count, 0);
+    const bands =
+      shownTotal > 0
+        ? sorted.map((b) => ({ color: b.color, fraction: b.count / shownTotal }))
+        : [];
     return {
       dominantLabel: titleBasedLabel ?? categoryDominant?.label ?? null,
-      dominantColor: categoryDominant?.color ?? null,
+      accentColor: categoryDominant?.color ?? null,
       withOthersCount,
       doneCount,
       totalCount: season.bricks.length,
-      milestoneTitles,
+      milestone,
+      bands,
     };
   }, [season.bricks, vocab]);
 
-  const drag = useDragReorder<{ id: string; hasStepId: boolean }>({
-    items: reorderableItems,
-    axis: 'horizontal',
-    enabled: Boolean(onReorderStep) && reorderableItems.length > 1,
-    onReorder: useCallback(
-      (id, from, to) => {
-        const without = reorderableItems.filter((b) => b.id !== id);
-        const clamped = Math.max(0, Math.min(to, without.length));
-        const before = without[clamped - 1]?.id ?? null;
-        const after = without[clamped]?.id ?? null;
-        onReorderStep?.(id, before, after);
-        void from;
-      },
-      [reorderableItems, onReorderStep],
-    ),
-  });
+  const accent = summary.accentColor ?? IOS_REGISTER.labelTertiary;
+  const stepCount = season.bricks.length;
+  const peoplePhrase =
+    summary.withOthersCount > 0
+      ? `${summary.withOthersCount} with people`
+      : 'solo';
+  const dateLabel = isCurrent
+    ? `${season.dateRange.split('—')[0].trim()} – now`
+    : season.dateRange;
 
   return (
-    <View style={[styles.lane, season.archived && styles.laneArchived]}>
-      <View style={styles.laneHeadRow}>
-        <View style={styles.laneTitleRow}>
-          {season.archived ? (
-            <Ionicons name="archive-outline" size={14} color={IOS_REGISTER.labelSecondary} />
-          ) : null}
-          <Text style={[styles.laneTitle, season.archived && styles.laneTitleArchived]}>
-            {season.title}
-          </Text>
-          <Text style={styles.laneDates}>
-            {isCurrent ? `${season.dateRange.split('—')[0].trim()} — present` : season.dateRange}
+    <Pressable
+      style={[styles.card, isCurrent && styles.cardCurrent]}
+      onPress={manageMode ? undefined : onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${season.title}`}
+    >
+      <View style={[styles.cardAccentBar, { backgroundColor: accent }]} />
+      <View style={styles.cardBody}>
+        <View style={styles.cardTopRow}>
+          <View style={styles.cardTitleWrap}>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {season.title}
+            </Text>
+            {isCurrent ? (
+              <Text style={[styles.currentFlag, { color: accent }]}>CURRENT</Text>
+            ) : null}
+          </View>
+          <Text style={styles.cardDate} numberOfLines={1}>
+            {dateLabel}
           </Text>
         </View>
-        <View style={styles.laneActions}>
-          {onEditArc ? (
-            <Pressable
-              onPress={() => onEditArc(season.id)}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Edit arc"
-              style={({ pressed }) => [
-                styles.laneEditBtn,
-                pressed && styles.lanePressed,
-              ]}
-            >
-              <Ionicons name="pencil-outline" size={14} color={IOS_REGISTER.labelSecondary} />
-            </Pressable>
-          ) : null}
-          <Text style={styles.laneCount}>{season.bricks.length}</Text>
-        </View>
+
+        <Text style={styles.cardSubtitle} numberOfLines={1}>
+          <Text style={styles.cardSubtitleStrong}>
+            {stepCount} step{stepCount === 1 ? '' : 's'}
+          </Text>
+          {summary.dominantLabel ? ` · ${summary.dominantLabel}` : ''}
+          {` · ${peoplePhrase}`}
+        </Text>
+
+        {summary.bands.length > 0 ? (
+          <View style={styles.mixStrip}>
+            {summary.bands.map((b, i) => (
+              <View
+                key={`${b.color}-${i}`}
+                style={{
+                  width: `${(b.fraction * 100).toFixed(2)}%`,
+                  backgroundColor: b.color,
+                  height: '100%',
+                }}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {summary.milestone ? (
+          <View style={styles.cardMilestoneRow}>
+            <Ionicons name="sparkles" size={11} color={accent} />
+            <Text style={styles.cardMilestoneText} numberOfLines={1}>
+              {summary.milestone}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
-      {chapterSummary ? (
-        <View style={styles.chapterChips}>
-          {chapterSummary.dominantLabel ? (
-            <View
-              style={[
-                styles.chapterChip,
-                chapterSummary.dominantColor
-                  ? { backgroundColor: withAlpha(chapterSummary.dominantColor, 0.14) }
-                  : null,
-              ]}
-            >
-              {chapterSummary.dominantColor ? (
-                <View
-                  style={[
-                    styles.chapterChipDot,
-                    { backgroundColor: chapterSummary.dominantColor },
-                  ]}
-                />
-              ) : null}
-              <Text style={styles.chapterChipText} numberOfLines={1}>
-                {chapterSummary.dominantLabel}
-              </Text>
-            </View>
-          ) : null}
-          {chapterSummary.withOthersCount > 0 ? (
-            <View style={styles.chapterChip}>
-              <Ionicons
-                name="people-outline"
-                size={11}
-                color={IOS_REGISTER.labelSecondary}
-              />
-              <Text style={styles.chapterChipText}>
-                {chapterSummary.withOthersCount} with people
-              </Text>
-            </View>
-          ) : null}
-          {chapterSummary.doneCount > 0 ? (
-            <View style={styles.chapterChip}>
-              <Ionicons
-                name="checkmark-circle-outline"
-                size={11}
-                color={IOS_REGISTER.labelSecondary}
-              />
-              <Text style={styles.chapterChipText}>
-                {chapterSummary.doneCount}/{chapterSummary.totalCount} done
-              </Text>
-            </View>
-          ) : null}
+      {manageMode && onEdit ? (
+        <Pressable
+          onPress={onEdit}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${season.title}`}
+          style={({ pressed }) => [styles.cardTrailing, pressed && styles.lanePressed]}
+        >
+          <Ionicons name="pencil-outline" size={16} color={IOS_REGISTER.labelSecondary} />
+        </Pressable>
+      ) : (
+        <View style={styles.cardTrailing}>
+          <Ionicons name="chevron-forward" size={16} color={IOS_REGISTER.labelTertiary} />
         </View>
-      ) : null}
-
-      {chapterSummary && chapterSummary.milestoneTitles.length > 0 ? (
-        <View style={styles.milestoneStrip}>
-          {chapterSummary.milestoneTitles.map((title) => (
-            <View key={title} style={styles.milestoneItem}>
-              <Ionicons
-                name="trophy"
-                size={11}
-                color={chapterSummary.dominantColor ?? IOS_REGISTER.accentUserAction}
-              />
-              <Text style={styles.milestoneText} numberOfLines={1}>
-                {title}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.bricksWrap}
-        style={styles.laneScroller}
-      >
-        {season.bricks.map((b, i) => {
-          // Status-aware fill: planned bricks dim to ~45%, in-flight stay
-          // saturated, done/reflected stay solid + carry a check overlay.
-          // Archived seasons dim everything regardless.
-          const planned = b.status === 'plan';
-          const baseAlpha = season.archived ? 0.45 : planned ? 0.45 : 1;
-          const fill =
-            baseAlpha < 1 ? withAlpha(b.capabilityColor, baseAlpha) : b.capabilityColor;
-          const showDoneGlyph = b.status === 'done' || b.status === 'reflected';
-          if (!b.stepId) {
-            return (
-              <View
-                key={`placeholder-${i}`}
-                style={[
-                  styles.brick,
-                  { backgroundColor: fill },
-                  b.withOthers && styles.brickWithOthers,
-                ]}
-              />
-            );
-          }
-          const isLifted = drag.liftedId === b.stepId;
-          const reorderableIndex = reorderableItems.findIndex(
-            (item) => item.id === b.stepId,
-          );
-          const showDrop =
-            drag.dropTargetIndex === reorderableIndex && !isLifted;
-          const selected = isSelected?.(b.stepId) ?? false;
-          const handlePress = selectEnabled
-            ? () => onToggleSelect?.(b.stepId!)
-            : () => onOpenStep(b.stepId!);
-          return (
-            <DraggableBrick
-              key={b.stepId}
-              stepId={b.stepId}
-              reorderableIndex={reorderableIndex}
-              fill={fill}
-              isLifted={isLifted}
-              showDropBefore={showDrop}
-              liftedTranslateX={drag.liftedTranslate}
-              onOpen={handlePress}
-              buildGesture={drag.buildItemGesture}
-              registerRowLayout={drag.registerRowLayout}
-              dragEnabled={Boolean(onReorderStep) && !selectEnabled}
-              selectEnabled={selectEnabled}
-              selected={selected}
-              withOthers={Boolean(b.withOthers)}
-              showDoneGlyph={showDoneGlyph}
-            />
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
-
-interface DraggableBrickProps {
-  stepId: string;
-  reorderableIndex: number;
-  fill: string;
-  isLifted: boolean;
-  showDropBefore: boolean;
-  liftedTranslateX: number;
-  onOpen: () => void;
-  buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
-  registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
-  dragEnabled: boolean;
-  selectEnabled: boolean;
-  selected: boolean;
-  withOthers: boolean;
-  showDoneGlyph: boolean;
-}
-
-function DraggableBrick({
-  stepId,
-  reorderableIndex,
-  fill,
-  isLifted,
-  showDropBefore,
-  liftedTranslateX,
-  onOpen,
-  buildGesture,
-  registerRowLayout,
-  dragEnabled,
-  selectEnabled,
-  selected,
-  withOthers,
-  showDoneGlyph,
-}: DraggableBrickProps) {
-  const gesture = useMemo(
-    () => buildGesture(stepId, reorderableIndex),
-    [buildGesture, stepId, reorderableIndex],
-  );
-
-  const liftStyle = useAnimatedStyle(() => {
-    if (!isLifted) return { transform: [] as never[] };
-    return {
-      transform: [
-        { translateX: liftedTranslateX },
-        { scale: 1.6 },
-        { rotateZ: '4deg' },
-      ],
-      zIndex: 10,
-      shadowColor: '#000',
-      shadowOpacity: 0.35,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 12,
-    };
-  }, [isLifted, liftedTranslateX]);
-
-  // Brick is small (22px) — wrap in a Pressable so tap-to-open still works,
-  // and overlay the gesture detector on top so long-press → drag wins.
-  // In select mode, a selected brick FLIPS to solid iOS-blue with a
-  // centered white check (the capability color hides while selected).
-  // This avoids reflowing the row and is unmissable on a 22px target.
-  const inner = (
-    <Animated.View
-      style={[
-        styles.brick,
-        {
-          backgroundColor: selectEnabled && selected ? IOS_REGISTER.accentUserAction : fill,
-        },
-        withOthers && !(selectEnabled && selected) && styles.brickWithOthers,
-        selectEnabled && selected && styles.brickSelected,
-        liftStyle,
-      ]}
-      onLayout={(e) => {
-        const { x, width } = e.nativeEvent.layout;
-        registerRowLayout(stepId, { start: x, length: width });
-      }}
-    >
-      {selectEnabled && selected ? (
-        <View style={styles.brickCheckCenter}>
-          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-        </View>
-      ) : showDoneGlyph ? (
-        <View style={styles.brickCheckCenter}>
-          <Ionicons name="checkmark" size={10} color="rgba(255,255,255,0.92)" />
-        </View>
-      ) : null}
-      {showDropBefore ? <View style={styles.brickDropIndicator} /> : null}
-    </Animated.View>
-  );
-
-  if (!dragEnabled) {
-    return (
-      <Pressable onPress={onOpen}>{inner}</Pressable>
-    );
-  }
-  return (
-    <GestureDetector gesture={gesture}>
-      <Pressable onPress={onOpen}>{inner}</Pressable>
-    </GestureDetector>
+      )}
+    </Pressable>
   );
 }
 
@@ -990,9 +943,6 @@ function withAlpha(hex: string, alpha: number): string {
   const b = parseInt(m[3], 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
-
-const BRICK_SIZE = 18;
-const BRICK_GAP = 2;
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
@@ -1057,64 +1007,201 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 0.1,
   },
-  browseHeaderRow: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 0,
+  // Lifetime poster — the L4 hero. Serif scale sentence over a quiet
+  // capability-tinted gradient + a metric trio. Leads the view the way
+  // Photos' Years view leads on a hero image, not a chart.
+  poster: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderRadius: 16,
+  },
+  posterHeadline: {
+    fontFamily: fontFamily.serif,
+    fontSize: 21,
+    lineHeight: 28,
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.3,
+  },
+  posterMetrics: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    opacity: 0.74,
+    marginTop: 16,
+    gap: 14,
   },
-  browseEyebrow: {
-    fontSize: 10,
+  posterMetric: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  posterMetricValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.4,
+  },
+  posterMetricLabel: {
+    fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
+  },
+  posterMetricDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    backgroundColor: IOS_REGISTER.separator,
+  },
+  posterSince: {
+    fontSize: 11.5,
+    color: IOS_REGISTER.labelTertiary,
+    marginTop: 10,
+    letterSpacing: 0.05,
+  },
+  // Drift caption — one sentence under the per-arc river naming the
+  // whole-practice through-line and, when it shifted, the latest lead.
+  driftCaption: {
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: IOS_REGISTER.labelSecondary,
+    marginHorizontal: 16,
+    marginTop: 8,
+    letterSpacing: -0.05,
+  },
+  driftCaptionAccent: {
+    fontWeight: '700',
+  },
+  // Eyebrow above the people-constancy rows; only rendered when at
+  // least one cross-arc peer exists.
+  constancyHeader: {
+    fontSize: 10.5,
     fontWeight: '700',
     letterSpacing: 0.6,
     color: IOS_REGISTER.labelSecondary,
+    marginBottom: 2,
   },
-  lane: {
+  // Chapter list header — persona-native section title ("Sketchbooks",
+  // "Rotations") + a deferred "Edit" toggle. Replaces the old uppercase
+  // "BROWSE ARCS" eyebrow with a heading you read, not jargon.
+  chaptersHeaderRow: {
+    paddingLeft: 16,
+    // Right inset keeps the Edit/Done affordance clear of the floating
+    // ZoomLevelPicker rail (which hovers over the right edge at every level).
+    paddingRight: 56,
+    paddingTop: 8,
+    paddingBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  chaptersTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+    color: IOS_REGISTER.label,
+    flexShrink: 1,
+  },
+  chaptersEditLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: IOS_REGISTER.accentUserAction,
+    letterSpacing: -0.1,
+  },
+  manageActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingBottom: 8,
   },
-  laneArchived: {
-    opacity: 0.8,
+  // Chapter card — the L4 unit. Capability-accent bar + body + trailing
+  // chevron (or pencil in manage mode). Whole card taps to the arc (L3).
+  card: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 14,
+    backgroundColor: IOS_REGISTER.cardBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+    overflow: 'hidden',
   },
-  laneHeadRow: {
+  cardCurrent: {
+    borderColor: 'rgba(123, 63, 176, 0.32)',
+  },
+  cardAccentBar: {
+    width: 3,
+  },
+  cardBody: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 6,
+  },
+  cardTopRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginBottom: 3,
+    gap: 8,
   },
-  laneTitleRow: {
+  cardTitleWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     flex: 1,
+    minWidth: 0,
   },
-  laneTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
     letterSpacing: -0.3,
     color: IOS_REGISTER.label,
+    flexShrink: 1,
   },
-  laneTitleArchived: {
+  currentFlag: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  cardDate: {
+    fontSize: 11.5,
+    color: IOS_REGISTER.labelTertiary,
+    letterSpacing: -0.05,
+  },
+  cardSubtitle: {
+    fontSize: 12.5,
     color: IOS_REGISTER.labelSecondary,
-    fontWeight: '500',
+    letterSpacing: -0.1,
   },
-  laneDates: {
-    fontSize: 10.5,
-    color: IOS_REGISTER.labelTertiary,
-    marginLeft: 4,
+  cardSubtitleStrong: {
+    fontWeight: '700',
+    color: IOS_REGISTER.label,
   },
-  laneCount: {
-    fontSize: 10.5,
-    color: IOS_REGISTER.labelTertiary,
-    fontWeight: '500',
+  mixStrip: {
+    flexDirection: 'row',
+    height: 5,
+    borderRadius: 3,
+    overflow: 'hidden',
+    backgroundColor: IOS_REGISTER.fillPill,
+    marginTop: 1,
   },
-  laneActions: {
+  cardMilestoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 5,
+  },
+  cardMilestoneText: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+    flexShrink: 1,
+  },
+  cardTrailing: {
+    paddingRight: 12,
+    paddingLeft: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   // Lifetime vision banner — D5 second cut. Italic-serif statement at
   // the top of L4 anchoring the chapter ledger beneath it. Quiet
@@ -1248,65 +1335,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
     letterSpacing: 0.05,
   },
-  // Chapter summary chips on each season lane — D5 first cut. Surface
-  // dominant capability + people-constancy + done progress so the L4
-  // surface starts reading as a logbook of chapters, not a wall of
-  // identical bricks.
-  chapterChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 2,
-    marginBottom: 6,
-    marginHorizontal: 16,
-  },
-  chapterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-    backgroundColor: IOS_REGISTER.fillPill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: IOS_REGISTER.separator,
-  },
-  chapterChipDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  chapterChipText: {
-    fontSize: 10.5,
-    fontWeight: '500',
-    color: IOS_REGISTER.labelSecondary,
-    letterSpacing: 0.1,
-  },
-  // Milestone strip — D5 third cut. Under the chapter chips, surface
-  // up to three "moments worth marking" detected from step titles
-  // ("Won FFG Spring", "Passed NCLEX", "First customer"). Same arc
-  // accent color as the chapter chip dot so the eye links them.
-  milestoneStrip: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 2,
-    marginBottom: 6,
-    marginHorizontal: 16,
-  },
-  milestoneItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    maxWidth: '100%',
-  },
-  milestoneText: {
-    fontSize: 11.5,
-    fontWeight: '500',
-    color: IOS_REGISTER.label,
-    letterSpacing: -0.1,
-    flexShrink: 1,
-  },
   // D7 lifetime money readout — ₹ per season bars + loan-tier
   // progression. Sits between the trajectory arrow and the analysis
   // block so the money story reads alongside the capability story.
@@ -1387,67 +1415,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#5BA46F',
   },
-  laneEditBtn: {
-    padding: 4,
-  },
   lanePressed: {
     opacity: 0.55,
-  },
-  browseHeaderActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  laneScroller: {
-    marginRight: -16,
-    opacity: 0.9,
-  },
-  bricksWrap: {
-    flexDirection: 'row',
-    gap: BRICK_GAP,
-    paddingTop: 1,
-    paddingRight: 16,
-  },
-  brick: {
-    width: BRICK_SIZE,
-    height: BRICK_SIZE,
-    borderRadius: 2.5,
-  },
-  // Soft outline on bricks where others were involved — reads as a
-  // "with people" beat at the all-time scale without needing a glyph.
-  brickWithOthers: {
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
-  },
-  brickSelected: {
-    // Slight inner ring for crispness against the blue fill; not a
-    // border (which would shrink the inner color area).
-    shadowColor: IOS_REGISTER.accentUserAction,
-    shadowOpacity: 0.6,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 4,
-  },
-  brickCheckCenter: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brickDropIndicator: {
-    position: 'absolute',
-    left: -BRICK_GAP / 2 - 1.5,
-    top: -2,
-    bottom: -2,
-    width: 2,
-    borderRadius: 1,
-    backgroundColor: IOS_REGISTER.accentUserAction,
-  },
-  selectRow: {
-    flexDirection: 'row',
   },
   selectPill: {
     flexDirection: 'row',

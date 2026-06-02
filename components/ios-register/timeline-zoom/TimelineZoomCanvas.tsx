@@ -343,6 +343,12 @@ export function TimelineZoomCanvas({
     setLevel(1);
   }, []);
 
+  // Whole-chapter-card tap on L4 → drill into that arc at L3.
+  const handleOpenSeason = useCallback((seasonId: string) => {
+    setSelectedSeasonId(seasonId);
+    setLevel(3);
+  }, []);
+
   const handleSnapToCurrent = useCallback(() => {
     setFocusStepId(dataset.focusStepId);
     setLevel(1);
@@ -481,12 +487,7 @@ export function TimelineZoomCanvas({
                 {level === 4 ? (
                   <L4YearsView
                     dataset={dataset}
-                    onOpenStep={handleOpenStep}
-                    onReorderStep={select.enabled ? undefined : onReorderStep}
-                    onEnterSelectMode={select.enter}
-                    selectEnabled={select.enabled}
-                    isSelected={select.isSelected}
-                    onToggleSelect={select.toggle}
+                    onOpenSeason={handleOpenSeason}
                     onAddArc={onAddArc}
                     onEditArc={onEditArc}
                   />
