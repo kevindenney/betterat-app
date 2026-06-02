@@ -423,7 +423,10 @@ export default function SocialNotificationsScreen() {
               } else if (latest.type === 'cohort_discussion_post') {
                 void routeCohortDiscussionNotification(latest, user?.id);
               } else if (latest.type === 'step_discussion_post' && latest.data?.step_id) {
-                router.push(`/step/${latest.data.step_id}?tab=discussion` as any);
+                router.push({
+                  pathname: '/(tabs)/races',
+                  params: { selected: latest.data.step_id, tab: 'discussion' },
+                } as any);
               } else if (latest.regattaId) {
                 router.push(`/race/${latest.regattaId}`);
               }
@@ -485,7 +488,10 @@ export default function SocialNotificationsScreen() {
               } else if (item.type === 'cohort_discussion_post') {
                 void routeCohortDiscussionNotification(item, user?.id);
               } else if (item.type === 'step_discussion_post' && item.data?.step_id) {
-                router.push(`/step/${item.data.step_id}?tab=discussion` as any);
+                router.push({
+                  pathname: '/(tabs)/races',
+                  params: { selected: item.data.step_id, tab: 'discussion' },
+                } as any);
               } else if (item.regattaId) {
                 router.push(`/race/${item.regattaId}`);
               }

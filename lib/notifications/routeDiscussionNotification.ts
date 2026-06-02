@@ -7,9 +7,12 @@
  * blueprint_step_id set) and are SHARED across every plan member's forked
  * copy. To open the thread the notification points at, we resolve the
  * viewer's own forked timeline_step for that blueprint_step, then route to
- * /step/[id]?scope=cohort so the Discussion tab lands directly on the Cohort
- * scope. Returns false (no navigation) when the viewer has no forked copy —
- * the Cohort tab wouldn't render there anyway.
+ * the real timeline surface — /(tabs)/races?selected=<id>&tab=discussion&
+ * scope=cohort — so the step's card opens with the Cohort discussion active.
+ * (Routing to the standalone /step/[id] screen lands on the wrong detail
+ * view; the timeline card is the canonical step surface.) Returns false (no
+ * navigation) when the viewer has no forked copy — the Cohort tab wouldn't
+ * render there anyway.
  */
 
 import { router } from 'expo-router';
@@ -38,6 +41,9 @@ export async function routeCohortDiscussionNotification(
   const viewerStepId = (data as { id?: string } | null)?.id;
   if (!viewerStepId) return false;
 
-  router.push(`/step/${viewerStepId}?scope=cohort` as never);
+  router.push({
+    pathname: '/(tabs)/races',
+    params: { selected: viewerStepId, tab: 'discussion', scope: 'cohort' },
+  } as never);
   return true;
 }

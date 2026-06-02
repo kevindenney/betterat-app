@@ -845,8 +845,13 @@ function routeNotificationTap(
       return;
     case 'step_discussion_post':
       // Personal-step posts live on the same timeline_step for owner +
-      // collaborators, so route straight to it and land on Discuss.
-      if (stepId) router.push(`/step/${stepId}?tab=discussion` as never);
+      // collaborators. Route to the timeline card (the canonical step
+      // surface) with the Discussion tab open, not the standalone screen.
+      if (stepId)
+        router.push({
+          pathname: '/(tabs)/races',
+          params: { selected: stepId, tab: 'discussion' },
+        } as never);
       return;
     case 'followed_user_step_completed':
     case 'step_reviewed':

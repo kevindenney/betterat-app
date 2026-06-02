@@ -29,7 +29,7 @@ import { STEP_PALETTE } from '@/lib/step-theme';
 import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { AddToBlueprintSheet } from '@/components/blueprint/AddToBlueprintSheet';
 import { triggerHaptic } from '@/lib/haptics';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { CrewHub } from '@/components/crew';
 import type { CrewHubTab } from '@/components/crew';
@@ -568,6 +568,29 @@ function RaceSummaryCardImpl({
   const [discussionTabActive, setDiscussionTabActive] = useState(false);
   const showDiscussionTab =
     FEATURE_FLAGS.STEP_DISCUSSION_V1 && Boolean(blueprintChrome);
+
+  // Deep-link handoff: a cohort_discussion_post notification (or Watch item)
+  // routes to /(tabs)/races?selected=<id>&tab=discussion&scope=cohort. When
+  // this card is the targeted step, auto-open the Discussion tab on the
+  // requested scope so the user lands on the thread that triggered the
+  // notification — not the standalone /step screen. Fires once per match.
+  const deepLinkParams = useLocalSearchParams<{
+    selected?: string;
+    tab?: string;
+    scope?: string;
+  }>();
+  const isDeepLinkTarget =
+    isTimelineStep &&
+    deepLinkParams?.selected === race.id &&
+    deepLinkParams?.tab === 'discussion';
+  const deepLinkScope: 'private' | 'cohort' =
+    deepLinkParams?.scope === 'cohort' ? 'cohort' : 'private';
+  const deepLinkAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!isDeepLinkTarget || deepLinkAppliedRef.current) return;
+    deepLinkAppliedRef.current = true;
+    setDiscussionTabActive(true);
+  }, [isDeepLinkTarget]);
 
   // Phase 10 PR-4 — step-complete celebration data. Resolved whenever this
   // step is part of a subscribed blueprint; gated at render time by
@@ -1976,6 +1999,7 @@ function RaceSummaryCardImpl({
           stepId={race.id}
           access={accessList}
           composerRightInset={ZOOM_RAIL_RESERVED_WIDTH}
+          initialScope={isDeepLinkTarget ? deepLinkScope : 'private'}
         />
       );
     }
