@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TimelinePlacement } from '@/services/AddToTimelineService';
 
 interface AddToTimelineSheetProps {
@@ -11,8 +11,8 @@ interface AddToTimelineSheetProps {
     capabilities: string[];
   };
   defaultPlacement?: TimelinePlacement;
-  onAdd: (placement: TimelinePlacement, date?: string) => void;
-  onSaveToDeck: () => void;
+  onAdd: (placement: TimelinePlacement, date?: string) => void | Promise<void>;
+  onSaveToDeck: () => void | Promise<void>;
   onDismiss: () => void;
 }
 
@@ -32,11 +32,13 @@ export function AddToTimelineSheet({
 }: AddToTimelineSheetProps) {
   const [placement, setPlacement] = useState<TimelinePlacement>(defaultPlacement);
   const [date, setDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
       setPlacement(defaultPlacement);
       setDate('');
+      setSubmitting(false);
     }
   }, [visible, defaultPlacement]);
 
@@ -44,6 +46,16 @@ export function AddToTimelineSheet({
     () => placement !== 'specific-date' || /^\d{4}-\d{2}-\d{2}$/.test(date),
     [placement, date],
   );
+
+  const runAction = async (action: () => void | Promise<void>) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await action();
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
@@ -98,13 +110,21 @@ export function AddToTimelineSheet({
           )}
 
           <Pressable
-            style={[styles.primary, !canSubmit && styles.primaryDisabled]}
-            disabled={!canSubmit}
-            onPress={() => onAdd(placement, date || undefined)}
+            style={[styles.primary, (!canSubmit || submitting) && styles.primaryDisabled]}
+            disabled={!canSubmit || submitting}
+            onPress={() => runAction(() => onAdd(placement, date || undefined))}
           >
-            <Text style={styles.primaryText}>Add to my timeline</Text>
+            {submitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.primaryText}>Add to my timeline</Text>
+            )}
           </Pressable>
-          <Pressable style={styles.secondary} onPress={onSaveToDeck}>
+          <Pressable
+            style={styles.secondary}
+            disabled={submitting}
+            onPress={() => runAction(onSaveToDeck)}
+          >
             <Text style={styles.secondaryText}>Save to deck for later</Text>
           </Pressable>
         </Pressable>

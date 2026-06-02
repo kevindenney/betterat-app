@@ -246,37 +246,55 @@ export function BlueprintTimeline({ blueprintId }: { blueprintId: string }) {
         }
         onDismiss={() => setPendingRow(null)}
         onAdd={async (placement, date) => {
-          if (!pendingRow || !user?.id || !pendingRow.step.interest_id) return;
-          await addToTimeline({
-            userId: user.id,
-            interestId: pendingRow.step.interest_id,
-            preview: extractPreview(
-              pendingRow.step,
-              blueprint?.title ? `From ${blueprint.title}` : 'From blueprint',
-            ),
-            placement,
-            sourceType: 'blueprint',
-            sourceId: pendingRow.blueprintStepId,
-            date,
-          });
-          setPendingRow(null);
-          await refetch();
-          toast.show('Added to timeline', 'success');
+          if (!pendingRow || !user?.id) return;
+          if (!pendingRow.step.interest_id) {
+            toast.show("This step isn't linked to an interest yet — can't add it.", 'error');
+            return;
+          }
+          try {
+            await addToTimeline({
+              userId: user.id,
+              interestId: pendingRow.step.interest_id,
+              preview: extractPreview(
+                pendingRow.step,
+                blueprint?.title ? `From ${blueprint.title}` : 'From blueprint',
+              ),
+              placement,
+              sourceType: 'blueprint',
+              sourceId: pendingRow.blueprintStepId,
+              date,
+            });
+            setPendingRow(null);
+            await refetch();
+            toast.show('Added to timeline', 'success');
+          } catch (err) {
+            console.warn('[BlueprintTimeline] add to timeline failed', err);
+            toast.show('Could not add to timeline. Please try again.', 'error');
+          }
         }}
         onSaveToDeck={async () => {
-          if (!pendingRow || !user?.id || !pendingRow.step.interest_id) return;
-          await saveToDeck({
-            userId: user.id,
-            interestId: pendingRow.step.interest_id,
-            preview: extractPreview(
-              pendingRow.step,
-              blueprint?.title ? `From ${blueprint.title}` : 'From blueprint',
-            ),
-            sourceType: 'blueprint',
-            sourceId: pendingRow.blueprintStepId,
-          });
-          setPendingRow(null);
-          toast.show('Saved to deck', 'success');
+          if (!pendingRow || !user?.id) return;
+          if (!pendingRow.step.interest_id) {
+            toast.show("This step isn't linked to an interest yet — can't add it.", 'error');
+            return;
+          }
+          try {
+            await saveToDeck({
+              userId: user.id,
+              interestId: pendingRow.step.interest_id,
+              preview: extractPreview(
+                pendingRow.step,
+                blueprint?.title ? `From ${blueprint.title}` : 'From blueprint',
+              ),
+              sourceType: 'blueprint',
+              sourceId: pendingRow.blueprintStepId,
+            });
+            setPendingRow(null);
+            toast.show('Saved to deck', 'success');
+          } catch (err) {
+            console.warn('[BlueprintTimeline] save to deck failed', err);
+            toast.show('Could not save to deck. Please try again.', 'error');
+          }
         }}
       />
     </View>
