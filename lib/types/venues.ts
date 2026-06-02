@@ -396,14 +396,3 @@ export interface VenueFeatures {
   multiVenueClubs?: boolean;
   offshoreRacing?: boolean;
 }
-
-// Component prop types
-export interface VenueIntelligenceDisplayProps {
-  venue?: VenueData;
-  selectedClub?: YachtClubData;
-  visibleCourses?: RaceCourse[];
-  showLogistics?: boolean;
-  onClubSelect?: (club: YachtClubData) => void;
-  onCourseToggle?: (courseId: string) => void;
-  onLogisticsToggle?: (show: boolean) => void;
-}
