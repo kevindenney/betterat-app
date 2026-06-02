@@ -122,6 +122,14 @@ export default function FleetOverviewScreen() {
   if (!fleetsLoading && fleets.length === 0) {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <TouchableOpacity
+          style={styles.backRow}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/library'))}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
+          <Text style={styles.backText}>‹ Back</Text>
+        </TouchableOpacity>
         <Text style={styles.sectionLabel}>FLEETS</Text>
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>No fleets yet</Text>
@@ -156,6 +164,14 @@ export default function FleetOverviewScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity
+        style={styles.backRow}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/library'))}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+      >
+        <Text style={styles.backText}>‹ Back</Text>
+      </TouchableOpacity>
       {/* Fleet Selector */}
       <Text style={styles.sectionLabel}>YOUR FLEETS</Text>
       <View style={styles.fleetList}>
@@ -391,6 +407,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  backRow: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingRight: 12,
+    marginBottom: 4,
+  },
+  backText: {
+    fontSize: 16,
+    color: COLORS.activeBlue,
+    fontWeight: '500',
   },
 
   // Section labels (Tufte style)
