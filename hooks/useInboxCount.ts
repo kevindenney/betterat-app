@@ -14,17 +14,21 @@
  */
 
 import { useInboxItems } from '@/hooks/useInboxItems';
+import { useFleetInvites } from '@/hooks/useFleetInvites';
 import { useNotifications } from '@/hooks/useNotifications';
 
 export function useInboxCount() {
   const itemsQuery = useInboxItems();
+  const fleetInvitesQuery = useFleetInvites();
   const { rawNotifications } = useNotifications();
 
   const itemsCount = itemsQuery.data?.length ?? 0;
+  // Pending fleet invites render as actionable cards in the Act panel.
+  const fleetInviteCount = fleetInvitesQuery.data?.length ?? 0;
   // RAW unread count (every individual unread row), not grouped — must
   // match what the Read panel actually renders inside the Inbox.
   const notifUnread = rawNotifications.filter((n) => !n.isRead).length;
-  const total = itemsCount + notifUnread;
+  const total = itemsCount + fleetInviteCount + notifUnread;
   // Preserve the shape callers depend on by wrapping the merged total
   // back into the original query result.
   return { ...itemsQuery, data: total };

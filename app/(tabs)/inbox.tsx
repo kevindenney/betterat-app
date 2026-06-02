@@ -35,11 +35,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { useQueryClient } from '@tanstack/react-query';
 import { useInboxItems } from '@/hooks/useInboxItems';
+import { useFleetInvites, FLEET_INVITES_QUERY_KEY } from '@/hooks/useFleetInvites';
 import { useNotifications } from '@/hooks/useNotifications';
 import type { SocialNotification } from '@/services/NotificationService';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
+import { fleetService, type FleetInvite } from '@/services/fleetService';
 import { useInboxDoneItems } from '@/hooks/useInboxDoneItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
 import type { InboxItem } from '@/components/practice/types';
@@ -88,7 +91,9 @@ export default function InboxTabScreen() {
     [user?.id],
   );
   const { data: fetched, isLoading } = useInboxItems();
+  const { data: fleetInvitesFetched, isLoading: invitesLoading } = useFleetInvites();
   const inboxActions = useInboxActions();
+  const queryClient = useQueryClient();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   const { data: doneFetched, isLoading: doneLoading } = useInboxDoneItems();
@@ -129,11 +134,15 @@ export default function InboxTabScreen() {
     () => items.filter((it) => it.kind !== 'reflection'),
     [items],
   );
+  const fleetInvites = useMemo(
+    () => (fleetInvitesFetched ?? []).filter((iv) => !dismissedIds.has(iv.membershipId)),
+    [fleetInvitesFetched, dismissedIds],
+  );
   const readItems = useMemo(
     () => items.filter((it) => it.kind === 'reflection'),
     [items],
   );
-  const actCount = actItems.length;
+  const actCount = actItems.length + fleetInvites.length;
   // Read segment count = active reflections + unread notifications, so the
   // segment-pill total stays in sync with the bottom Inbox tab badge
   // (which sums inbox_items + unread notifications). Without this, the
@@ -196,6 +205,28 @@ export default function InboxTabScreen() {
       });
     });
   };
+
+  const respondToInvite = (
+    invite: FleetInvite,
+    respond: (fleetId: string) => Promise<void>,
+  ) => {
+    optimisticHide(invite.membershipId);
+    respond(invite.fleetId)
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: FLEET_INVITES_QUERY_KEY });
+      })
+      .catch(() => {
+        setDismissedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(invite.membershipId);
+          return next;
+        });
+      });
+  };
+  const handleAcceptInvite = (invite: FleetInvite) =>
+    respondToInvite(invite, (id) => fleetService.acceptFleetInvite(id));
+  const handleDeclineInvite = (invite: FleetInvite) =>
+    respondToInvite(invite, (id) => fleetService.declineFleetInvite(id));
 
   // Hide-on-scroll wiring for the in-screen header. The header is
   // overlaid (position:absolute) so when it translates up the body
@@ -276,12 +307,15 @@ export default function InboxTabScreen() {
         >
           {segment === 'act' && (
             <ActPanel
-              isLoading={isLoading}
-              count={actCount}
+              isLoading={isLoading || invitesLoading}
+              suggestionCount={actItems.length}
               groups={groups}
+              invites={fleetInvites}
               onAccept={handleAccept}
               onDecline={handleDecline}
               onArchive={handleArchive}
+              onAcceptInvite={handleAcceptInvite}
+              onDeclineInvite={handleDeclineInvite}
             />
           )}
           {segment === 'read' && (
@@ -395,18 +429,24 @@ function SegmentPill({
 
 function ActPanel({
   isLoading,
-  count,
+  suggestionCount,
   groups,
+  invites,
   onAccept,
   onDecline,
   onArchive,
+  onAcceptInvite,
+  onDeclineInvite,
 }: {
   isLoading: boolean;
-  count: number;
+  suggestionCount: number;
   groups: { title: string; items: InboxItem[] }[];
+  invites: FleetInvite[];
   onAccept: (it: InboxItem) => void;
   onDecline: (it: InboxItem) => void;
   onArchive: (it: InboxItem) => void;
+  onAcceptInvite: (iv: FleetInvite) => void;
+  onDeclineInvite: (iv: FleetInvite) => void;
 }) {
   if (isLoading) {
     return (
@@ -415,7 +455,7 @@ function ActPanel({
       </View>
     );
   }
-  if (count === 0) {
+  if (invites.length === 0 && groups.length === 0) {
     return (
       <View style={styles.emptyWrap}>
         <Text style={styles.emptyTitle}>Nothing waiting.</Text>
@@ -428,29 +468,102 @@ function ActPanel({
 
   return (
     <View>
-      <View style={styles.eyebrowRow}>
-        <Text style={styles.eyebrow}>SUGGESTIONS WAITING</Text>
-        <View style={styles.eyebrowPip}>
-          <Text style={styles.eyebrowPipText}>{count}</Text>
-        </View>
-      </View>
-      {groups.map((g, idx) => (
-        <View key={idx} style={styles.group}>
-          <Text style={styles.groupHeader}>
-            re: <Text style={styles.groupHeaderTitle}>{g.title}</Text>
-            {g.items.length > 1 ? ` · ${g.items.length} suggestions` : ''}
-          </Text>
-          {g.items.map((it) => (
-            <SuggestionCard
-              key={it.id}
-              item={it}
-              onAccept={() => onAccept(it)}
-              onDecline={() => onDecline(it)}
-              onArchive={() => onArchive(it)}
+      {invites.length > 0 ? (
+        <>
+          <View style={styles.eyebrowRow}>
+            <Text style={styles.eyebrow}>FLEET INVITES</Text>
+            <View style={styles.eyebrowPip}>
+              <Text style={styles.eyebrowPipText}>{invites.length}</Text>
+            </View>
+          </View>
+          {invites.map((iv) => (
+            <FleetInviteCard
+              key={iv.membershipId}
+              invite={iv}
+              onAccept={() => onAcceptInvite(iv)}
+              onDecline={() => onDeclineInvite(iv)}
             />
           ))}
+        </>
+      ) : null}
+      {groups.length > 0 ? (
+        <>
+          <View style={styles.eyebrowRow}>
+            <Text style={styles.eyebrow}>SUGGESTIONS WAITING</Text>
+            <View style={styles.eyebrowPip}>
+              <Text style={styles.eyebrowPipText}>{suggestionCount}</Text>
+            </View>
+          </View>
+          {groups.map((g, idx) => (
+            <View key={idx} style={styles.group}>
+              <Text style={styles.groupHeader}>
+                re: <Text style={styles.groupHeaderTitle}>{g.title}</Text>
+                {g.items.length > 1 ? ` · ${g.items.length} suggestions` : ''}
+              </Text>
+              {g.items.map((it) => (
+                <SuggestionCard
+                  key={it.id}
+                  item={it}
+                  onAccept={() => onAccept(it)}
+                  onDecline={() => onDecline(it)}
+                  onArchive={() => onArchive(it)}
+                />
+              ))}
+            </View>
+          ))}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+function fleetInviteInitials(name: string | null): string {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) return '·';
+  const parts = trimmed.split(/\s+/);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase() || '·';
+}
+
+function FleetInviteCard({
+  invite,
+  onAccept,
+  onDecline,
+}: {
+  invite: FleetInvite;
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  const inviter = invite.inviterName?.trim() || 'A fleet captain';
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.avatar, { backgroundColor: IOS_COLORS.systemGray3 }]}>
+          <Text style={styles.avatarText}>{fleetInviteInitials(invite.inviterName)}</Text>
         </View>
-      ))}
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.cardFrom}>
+            <Text style={styles.cardFromName}>{inviter}</Text>
+            <Text style={styles.cardFromVerb}> invited you to a fleet</Text>
+          </Text>
+        </View>
+        <Text style={styles.cardWhen}>{formatRelativeTime(invite.invitedAt)}</Text>
+      </View>
+
+      <Text style={styles.cardTitle}>{invite.fleetName}</Text>
+      <Text style={styles.cardAttach}>
+        join as <Text style={styles.cardAttachTitle}>{invite.role}</Text>
+      </Text>
+
+      <View style={styles.cardActions}>
+        <Pressable onPress={onAccept} style={styles.actionPrimary}>
+          <Text style={styles.actionPrimaryText}>Accept</Text>
+        </Pressable>
+        <Pressable onPress={onDecline} style={styles.actionSecondary}>
+          <Text style={styles.actionSecondaryText}>Decline</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }

@@ -124,6 +124,27 @@ export type EmailInviteResult =
   | 'invited_email'
   | 'already_member';
 
+/** A pending fleet invite addressed to the current user, for the Inbox. */
+export interface FleetInvite {
+  membershipId: string;
+  fleetId: string;
+  fleetName: string;
+  role: FleetMembership['role'];
+  inviterId: string | null;
+  inviterName: string | null;
+  invitedAt: string;
+}
+
+interface RawFleetInvite {
+  membership_id: string;
+  invite_fleet_id: string;
+  fleet_name: string;
+  member_role: FleetMembership['role'];
+  inviter_id: string | null;
+  inviter_name: string | null;
+  invited_at: string;
+}
+
 class FleetService {
   private boatClassNameCache = new Map<string, string | null>();
 
@@ -388,6 +409,42 @@ class FleetService {
     });
     if (error) {
       logger.error('Error deleting fleet:', error);
+      throw error;
+    }
+  }
+
+  /** Pending fleet invites addressed to the current user (for the Inbox). */
+  async getMyFleetInvites(): Promise<FleetInvite[]> {
+    const { data, error } = await supabase.rpc('get_my_fleet_invites');
+    if (error) {
+      logger.error('Error loading fleet invites:', error);
+      throw error;
+    }
+    return ((data ?? []) as RawFleetInvite[]).map((r) => ({
+      membershipId: r.membership_id,
+      fleetId: r.invite_fleet_id,
+      fleetName: r.fleet_name,
+      role: r.member_role,
+      inviterId: r.inviter_id,
+      inviterName: r.inviter_name,
+      invitedAt: r.invited_at,
+    }));
+  }
+
+  /** Invitee accepts their own pending invite (status invited → active). */
+  async acceptFleetInvite(fleetId: string): Promise<void> {
+    const { error } = await supabase.rpc('accept_fleet_invite', { p_fleet_id: fleetId });
+    if (error) {
+      logger.error('Error accepting fleet invite:', error);
+      throw error;
+    }
+  }
+
+  /** Invitee declines their own pending invite (row removed). */
+  async declineFleetInvite(fleetId: string): Promise<void> {
+    const { error } = await supabase.rpc('decline_fleet_invite', { p_fleet_id: fleetId });
+    if (error) {
+      logger.error('Error declining fleet invite:', error);
       throw error;
     }
   }
