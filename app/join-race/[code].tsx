@@ -22,6 +22,9 @@ import { Button, ButtonText } from '@/components/ui/button';
 import { RaceCollaborationService } from '@/services/RaceCollaborationService';
 import { IOS_COLORS } from '@/components/cards/constants';
 import { Users, Sailboat, AlertCircle } from 'lucide-react-native';
+import { createLogger } from '@/lib/utils/logger';
+
+const logger = createLogger('JoinRaceScreen');
 
 type JoinStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -40,9 +43,9 @@ export default function JoinRaceScreen() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const { data: profile } = await supabase
-            .from('sailor_profiles')
+            .from('profiles')
             .select('full_name')
-            .eq('user_id', user.id)
+            .eq('id', user.id)
             .single();
 
           if (profile?.full_name) {
@@ -51,7 +54,7 @@ export default function JoinRaceScreen() {
         }
       } catch (error) {
         // Silently fail - user can enter name manually
-        console.log('Could not load user profile:', error);
+        logger.debug('Could not load user profile:', error);
       }
     };
 
