@@ -106,7 +106,7 @@ export function useNearbyOrganizations({
       // Step 2: pull org metadata.
       const { data: orgs, error: orgErr } = await supabase
         .from('organizations')
-        .select('id, name, short_name, slug, type')
+        .select('id, name, slug, organization_type')
         .in('id', orgIds);
       if (orgErr) {
         console.warn('[nearby-orgs] org query failed', orgErr);
@@ -116,9 +116,8 @@ export function useNearbyOrganizations({
         ((orgs ?? []) as {
           id: string;
           name: string;
-          short_name: string | null;
           slug: string | null;
-          type: string | null;
+          organization_type: string | null;
         }[]).map((o) => [o.id, o]),
       );
 
@@ -133,9 +132,9 @@ export function useNearbyOrganizations({
         out.push({
           id: org.id,
           name: org.name,
-          shortName: org.short_name,
+          shortName: null,
           slug: org.slug,
-          type: org.type,
+          type: org.organization_type,
           locationName: loc.name,
           lat: loc.lat,
           lng: loc.lng,

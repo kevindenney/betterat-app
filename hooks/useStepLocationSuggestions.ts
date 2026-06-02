@@ -56,16 +56,6 @@ function kindsForTitle(title: string): string[] {
   return Array.from(kinds);
 }
 
-interface ClubRow {
-  id: string;
-  name: string;
-  short_name: string | null;
-  city: string | null;
-  country: string | null;
-  latitude: number | null;
-  longitude: number | null;
-}
-
 interface SailingPoiRow {
   id: string;
   kind: string;
@@ -106,17 +96,22 @@ async function fetchSuggestions(args: {
     .maybeSingle<{ home_club_id: string | null }>();
 
   if (sailor?.home_club_id) {
-    const { data: club } = await supabase
-      .from('clubs')
-      .select('id, name, short_name, city, country, latitude, longitude')
-      .eq('id', sailor.home_club_id)
-      .maybeSingle<ClubRow>();
-    if (club && club.latitude != null && club.longitude != null) {
+    // Coordinates live on `sailing_pois` (keyed by club_id), not `clubs` —
+    // the clubs table only carries a free-text `location`/`address`.
+    const { data: poi } = await supabase
+      .from('sailing_pois')
+      .select('id, name, short_name, latitude, longitude')
+      .eq('club_id', sailor.home_club_id)
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
+      .limit(1)
+      .maybeSingle<SailingPoiRow>();
+    if (poi && poi.latitude != null && poi.longitude != null) {
       pushIfNew({
-        id: `home:${club.id}`,
-        name: club.short_name ?? club.name,
-        lat: Number(club.latitude),
-        lng: Number(club.longitude),
+        id: `home:${poi.id}`,
+        name: poi.short_name ?? poi.name,
+        lat: Number(poi.latitude),
+        lng: Number(poi.longitude),
         reason: 'home_venue',
       });
     }
