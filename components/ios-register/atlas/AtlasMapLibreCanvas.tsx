@@ -366,6 +366,10 @@ export interface AtlasPinSpec {
     | 'crew'
     | 'fleet'
     | 'following'
+    // peer-focus — one sailor broken out of a privacy cluster (Nearby tap
+    // or cluster drill-down). Renders as a prominent named, haloed marker so
+    // the focused peer is unmistakable against the faint relationship dots.
+    | 'peer-focus'
     | 'own'
     | 'candidate'
     | 'race-mark'
@@ -608,6 +612,7 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'crew',
   'fleet',
   'following',
+  'peer-focus',
   'own',
   'poi-club',
   'poi-club-anchor',
@@ -2110,6 +2115,10 @@ const PIN_TONE: Record<
   crew: { size: 11, color: '#FF3B30', shape: 'circle' },
   fleet: { size: 10, color: 'rgba(40, 50, 70, 0.85)', shape: 'circle' },
   following: { size: 8, color: 'rgba(60, 70, 90, 0.55)', shape: 'circle' },
+  // peer-focus — a single sailor pulled out of a privacy cluster. Large,
+  // saturated, white-ringed so it reads as "this is the one you tapped"
+  // over the faint relationship dots; LabeledPin also gives it a name + halo.
+  'peer-focus': { size: 20, color: '#FF9500', shape: 'circle' },
   own: { size: 10, color: 'rgba(0, 122, 255, 0.9)', shape: 'circle' },
   // Compose-at-location: coral drop (per design grammar key)
   candidate: { size: 22, color: '#FF3B30', shape: 'drop' },
@@ -2535,6 +2544,26 @@ function LabeledPin({
           {'⬢'}
         </Text>
         <Text style={[styles.hexCount, { lineHeight: diameter }]}>{count}</Text>
+      </View>
+    );
+  }
+  // peer-focus — the one sailor a Nearby tap / cluster drill-down broke out
+  // of the privacy cluster. A pulse halo + saturated dot + always-on name so
+  // the tap visibly lands on something instead of a faint relationship dot.
+  if (kind === 'peer-focus') {
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.glyphCol}>
+          <View pointerEvents="none" style={styles.peerFocusHalo} />
+          <View style={styles.peerFocusDot} />
+        </View>
+        {label ? (
+          <View style={styles.peerFocusLabelPill}>
+            <Text style={styles.peerFocusLabelText} numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -3002,6 +3031,37 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 122, 255, 1)',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+  },
+  peerFocusHalo: {
+    position: 'absolute',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    top: -9,
+    left: -9,
+    backgroundColor: 'rgba(255, 149, 0, 0.24)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 149, 0, 0.85)',
+  },
+  peerFocusDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FF9500',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+  },
+  peerFocusLabelPill: {
+    marginLeft: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255, 149, 0, 0.95)',
+  },
+  peerFocusLabelText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   myStepDoneJustHalo: {
     position: 'absolute',

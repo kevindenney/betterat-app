@@ -1060,9 +1060,9 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
     // can't render at the current zoom is honest about it via the
     // sub-label rather than silently no-op'ing.
     return [
-      { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed for next race day', defaultOn: true },
-      { key: 'sailing.tide', label: 'Tidal current', sub: 'Set + drift around the course', defaultOn: true },
-      { key: 'sailing.waves', label: 'Swell', sub: 'Wave direction + height', defaultOn: true },
+      { key: 'sailing.wind', label: 'Wind forecast', sub: 'Direction + speed for next race day', defaultOn: false },
+      { key: 'sailing.tide', label: 'Tidal current', sub: 'Set + drift around the course', defaultOn: false },
+      { key: 'sailing.waves', label: 'Swell', sub: 'Wave direction + height', defaultOn: false },
       { key: 'sailing.race_areas', label: 'Race areas', sub: 'Highlighted racing zones', defaultOn: true },
       { key: 'sailing.course', label: 'Race course', sub: 'Marks, laylines, start box · zoom ≥ 13', defaultOn: true },
       { key: 'sailing.race_marks', label: 'Race marks', sub: 'Visible at zoom ≥ 14', defaultOn: false },
@@ -1789,9 +1789,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showRaceMarks, setShowRaceMarks] = useState(true);
   const [showMarinas, setShowMarinas] = useState(false);
   const [showSailServices, setShowSailServices] = useState(false);
-  const [showWind, setShowWind] = useState(true);
-  const [showTide, setShowTide] = useState(true);
-  const [showWaves, setShowWaves] = useState(true);
+  const [showWind, setShowWind] = useState(false);
+  const [showTide, setShowTide] = useState(false);
+  const [showWaves, setShowWaves] = useState(false);
   const [scrubIndex, setScrubIndex] = useState(0);
   const [showRaceAreas, setShowRaceAreas] = useState(true);
   const [showCourse, setShowCourse] = useState(true);
@@ -1903,6 +1903,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [focusedPeer, setFocusedPeer] = useState<AtlasPeerMember | null>(null);
   const focusPeerMember = useCallback((member: AtlasPeerMember) => {
     setLayersOpen(false);
+    // Clear any open area-sheet center — it outranks searchFocus in the
+    // canvas's focusLocation, so a stale value would swallow the fly-to.
+    setAreaSheetCenter(null);
     setFocusedPeer(member);
     setSearchFocus({ lat: member.lat, lng: member.lng });
     setSelectedPin({
@@ -2315,7 +2318,8 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             id: `peer-focus:${focusedPeer.stepId}`,
             lat: focusedPeer.lat,
             lng: focusedPeer.lng,
-            kind: relationshipToPeerKind(focusedPeer.relationship),
+            kind: 'peer-focus',
+            label: focusedPeer.name ?? undefined,
             peer: focusedPeer,
           }
         : null,
