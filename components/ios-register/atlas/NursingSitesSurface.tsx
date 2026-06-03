@@ -22,6 +22,7 @@ import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAtlasPois, type AtlasPoi } from '@/hooks/useAtlasPois';
+import { useNursingSiteCoverage, type CoverageCluster } from '@/hooks/useNursingSiteCoverage';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { AtlasNextEvent } from '@/components/ios-register/atlas/AtlasScreen';
 
@@ -42,6 +43,21 @@ interface CoverageSegment {
   cluster: ClusterKey;
   /** 0–1 fraction of the bar width. */
   fraction: number;
+}
+
+// Turn the coverage hook's per-cluster distinct-competency counts into bar
+// segments. Each segment's fraction is its share of the unit's framework total,
+// so the filled width equals evidenced/total and the colors split by cluster.
+const CLUSTER_ORDER: CoverageCluster[] = ['cardiac', 'resp', 'assess', 'med', 'general'];
+function buildSegments(
+  byCluster: Record<CoverageCluster, number>,
+  total: number,
+): CoverageSegment[] {
+  const denom = total > 0 ? total : 1;
+  return CLUSTER_ORDER.filter((c) => byCluster[c] > 0).map((cluster) => ({
+    cluster,
+    fraction: byCluster[cluster] / denom,
+  }));
 }
 
 interface NursingSiteCard {
@@ -162,6 +178,15 @@ export interface NursingSitesSurfaceProps {
   toolbarOffset?: number;
   bottomOffset?: number;
   onSitePress?: (site: { id: string; name: string; lat?: number; lng?: number }) => void;
+  /** Open the log-shift sheet for a site. Preferred over onSitePress when set. */
+  onLogShift?: (site: {
+    id: string;
+    name: string;
+    lat?: number;
+    lng?: number;
+    unit?: string;
+    specialty?: string;
+  }) => void;
   onPlanStep?: () => void;
   onPrepPress?: () => void;
 }
@@ -171,10 +196,12 @@ export function NursingSitesSurface({
   toolbarOffset = 0,
   bottomOffset = 0,
   onSitePress,
+  onLogShift,
   onPlanStep,
   onPrepPress,
 }: NursingSitesSurfaceProps) {
   const { pois } = useAtlasPois();
+  const { coverage } = useNursingSiteCoverage();
 
   // Bind each demo card to a real POI by name substring so the cards carry
   // real coordinates (for the map handoff) and the canonical site name.
@@ -235,13 +262,36 @@ export function NursingSitesSurface({
       {groups.map((group) => (
         <View key={group.eyebrow}>
           <Text style={styles.eyebrow}>{group.eyebrow}</Text>
-          {group.cards.map((card) => (
+          {group.cards.map((card) => {
+            // Real located coverage (from logged shifts) wins over the demo
+            // shape when this site POI has evidenced attempts. The bar total is
+            // the unit's framework target — keep the demo total when present,
+            // else a sensible default so a single logged shift reads as progress.
+            const real = coverage[card.id];
+            const total = card.coverage?.total ?? 12;
+            const display = real
+              ? {
+                  evidenced: real.evidenced,
+                  total,
+                  weekLabel: `${real.shifts} shift${real.shifts === 1 ? '' : 's'} logged`,
+                  segments: buildSegments(real.byCluster, total),
+                }
+              : card.coverage ?? null;
+            const press = () =>
+              onLogShift
+                ? onLogShift({
+                    id: card.id,
+                    name: card.name,
+                    lat: card.lat,
+                    lng: card.lng,
+                    unit: card.unit,
+                  })
+                : onSitePress?.({ id: card.id, name: card.name, lat: card.lat, lng: card.lng });
+            return (
             <Pressable
               key={card.id}
               style={styles.site}
-              onPress={() =>
-                onSitePress?.({ id: card.id, name: card.name, lat: card.lat, lng: card.lng })
-              }
+              onPress={press}
               accessibilityRole="button"
               accessibilityLabel={`${card.name}, ${card.unit}`}
             >
@@ -264,17 +314,17 @@ export function NursingSitesSurface({
                 </View>
               </View>
 
-              {card.coverage ? (
+              {display ? (
                 <View style={styles.cov}>
                   <View style={styles.covLab}>
                     <Text style={styles.covLabText}>
-                      <Text style={styles.covLabBold}>{card.coverage.evidenced}</Text> of{' '}
-                      {card.coverage.total} competencies evidenced
+                      <Text style={styles.covLabBold}>{display.evidenced}</Text> of{' '}
+                      {display.total} competencies evidenced
                     </Text>
-                    <Text style={styles.covLabMuted}>{card.coverage.weekLabel}</Text>
+                    <Text style={styles.covLabMuted}>{display.weekLabel}</Text>
                   </View>
                   <View style={styles.track}>
-                    {card.coverage.segments.map((seg, i) => (
+                    {display.segments.map((seg, i) => (
                       <View
                         key={`${seg.cluster}-${i}`}
                         style={{
@@ -305,7 +355,8 @@ export function NursingSitesSurface({
                 </View>
               ) : null}
             </Pressable>
-          ))}
+            );
+          })}
         </View>
       ))}
 
@@ -313,8 +364,8 @@ export function NursingSitesSurface({
       <View style={styles.demoNote}>
         <Ionicons name="lock-closed" size={11} color={IOS_COLORS.tertiaryLabel} />
         <Text style={styles.demoNoteText}>
-          Sites are live; coverage & cohort presence are demo values until you log shifts.
-          Site-level only — no patient, room, or unit detail.
+          Sites are live; coverage fills in from the shifts you log — cohort presence stays
+          demo until your cohort logs too. Site-level only — no patient, room, or unit detail.
         </Text>
       </View>
     </ScrollView>

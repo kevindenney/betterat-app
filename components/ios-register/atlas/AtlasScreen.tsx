@@ -94,6 +94,8 @@ import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
 import { useCompetencyGlow } from '@/hooks/useCompetencyGlow';
 import { NursingSitesSurface } from '@/components/ios-register/atlas/NursingSitesSurface';
+import { LogShiftSheet, type LogShiftSite } from '@/components/ios-register/atlas/LogShiftSheet';
+import { useAtlasPois } from '@/hooks/useAtlasPois';
 import {
   YACHT_CLUB_DEMO_LOCATION,
   YACHT_CLUB_DEMO_NAME,
@@ -3723,6 +3725,25 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // street map is near content-free for a nursing student, so it's demoted to
   // a secondary toggle (kept for cold first-run POI discovery + orientation).
   const [f4View, setF4View] = useState<'sites' | 'map'>('sites');
+  // Log-a-shift (N2) — the located-evidence write path. Opening sets the
+  // target site; null closes the sheet.
+  const [logShiftSite, setLogShiftSite] = useState<LogShiftSite | null>(null);
+  const { pois: nursingPois } = useAtlasPois();
+  // Default Log-shift target = the "now" rotation site (JHH 4 South). Resolves
+  // to a real POI so the shift carries site_poi_id (the coverage link).
+  const defaultShiftSite = useMemo<LogShiftSite>(() => {
+    const jhh = nursingPois.find(
+      (p) => p.is_healthcare_site && p.name.toLowerCase().includes('johns hopkins hospital'),
+    );
+    return {
+      id: jhh?.id ?? null,
+      name: jhh?.name ?? 'Johns Hopkins Hospital',
+      unit: '4 South · Cardiac telemetry',
+      specialty: 'Cardiac telemetry',
+      lat: jhh?.lat ?? 39.2966,
+      lng: jhh?.lng ?? -76.5919,
+    };
+  }, [nursingPois]);
   // Chip state — cohort hexes, faculty diamonds, followed individuals.
   // "All" toggles everything on. Defaults are heatmap + faculty on.
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -3849,6 +3870,16 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 setF4View('map');
               }
             }}
+            onLogShift={(site) =>
+              setLogShiftSite({
+                id: site.id,
+                name: site.name,
+                unit: site.unit,
+                specialty: site.specialty,
+                lat: site.lat,
+                lng: site.lng,
+              })
+            }
             onPlanStep={() => handlers.onPrimaryAction?.(
               nextNursing.lat != null && nextNursing.lng != null
                 ? { lat: nextNursing.lat, lng: nextNursing.lng, place: nextNursing.where }
@@ -4159,11 +4190,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           primary={{
             label: 'Log shift',
             icon: 'add',
-            onPress: () =>
-              comingSoonAlert(
-                'Log shift',
-                'This will open the completed-shift capture flow for the clinical site, not the generic Practice tab. Atlas-to-shift logging is queued in Phase A.3.',
-              ),
+            onPress: () => setLogShiftSite(defaultShiftSite),
           }}
           secondary={{
             label: 'See heatmap',
@@ -4195,6 +4222,19 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         onClose={() => setSearchOpen(false)}
         onSelect={handleSearchSelect}
         viewerId={authUser?.id ?? null}
+      />
+
+      <LogShiftSheet
+        visible={logShiftSite !== null}
+        site={logShiftSite}
+        onClose={() => setLogShiftSite(null)}
+        onLogged={(count) =>
+          showAlert(
+            'Shift logged',
+            `${count} competenc${count === 1 ? 'y' : 'ies'} added to this site. Coverage updated.`,
+          )
+        }
+        bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
       />
     </View>
   );
