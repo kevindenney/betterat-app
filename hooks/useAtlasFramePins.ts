@@ -70,7 +70,13 @@ export function mapPoiToPinKind(poi: AtlasPoi): AtlasPinSpec['kind'] | null {
       if (poi.name === 'Royal Hong Kong Yacht Club') return 'poi-club-anchor';
       return 'poi-club';
     case 'racing_area':
-      return 'poi-racing-area';
+      // Racing areas render as shaded polygons (with pressable labels) via
+      // the venue_racing_areas layer in useAtlasRacingAreas — the atlas_pois
+      // racing_area rows are the institution catalog and would draw a second,
+      // redundant blue-dot pin on top of each polygon (e.g. the RHKYC club
+      // catalog showing areas the viewer never added). Drop them so the map
+      // reflects the polygon layer only.
+      return null;
     case 'hospital':
       return 'poi-hospital';
     case 'sim_lab':

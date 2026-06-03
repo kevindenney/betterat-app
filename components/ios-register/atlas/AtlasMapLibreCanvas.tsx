@@ -758,6 +758,7 @@ export function AtlasMapLibreCanvas({
       onPinPress?.(pin);
       cameraRef.current?.flyTo({
         center: [pin.lng, pin.lat],
+        zoomLevel: 15,
         padding: { top: 120, bottom: 380 },
         duration: 400,
       });
@@ -2291,7 +2292,7 @@ function LabeledPin({
         <View style={[isField ? styles.fieldArrowDisc : styles.arrowDisc, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
           <Ionicons
             name="arrow-up"
-            size={isField ? fieldSize : 32}
+            size={isField ? fieldSize : 22}
             color={isField ? `rgba(113, 143, 168, ${fieldOpacity.toFixed(2)})` : primaryColor}
           />
         </View>
@@ -2327,7 +2328,7 @@ function LabeledPin({
         >
           <Ionicons
             name="chevron-up"
-            size={isField ? 18 : 32}
+            size={isField ? 18 : 22}
             color={isField ? 'rgba(96, 130, 138, 0.78)' : 'rgba(0, 168, 168, 0.95)'}
           />
         </View>
@@ -2357,7 +2358,7 @@ function LabeledPin({
         >
           <Ionicons
             name="chevron-up"
-            size={isField ? 18 : 32}
+            size={isField ? 18 : 22}
             color={isField ? 'rgba(110, 108, 200, 0.78)' : 'rgba(94, 92, 230, 0.95)'}
           />
         </View>
