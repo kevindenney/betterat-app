@@ -201,9 +201,10 @@ const COURSE_MIN_ZOOM = 13;
  */
 const COURSE_WEB_LAYERS: {
   id: string;
-  type: 'fill' | 'line' | 'circle';
+  type: 'fill' | 'line' | 'circle' | 'symbol';
   filter: unknown[];
   paint: Record<string, unknown>;
+  layout?: Record<string, unknown>;
 }[] = [
   {
     // Favored-side shading sits at the bottom of the course stack. The
@@ -229,6 +230,23 @@ const COURSE_WEB_LAYERS: {
       'line-color': 'rgba(20, 33, 61, 0.35)',
       'line-width': 1,
       'line-dasharray': [2, 3],
+    },
+  },
+  {
+    id: 'atlas-web-course-third-labels',
+    type: 'symbol',
+    filter: ['==', ['get', 'type'], 'course-third-label'],
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': 9,
+      'text-letter-spacing': 0.08,
+      'text-allow-overlap': true,
+    },
+    paint: {
+      'text-color': 'rgba(20, 33, 61, 0.55)',
+      'text-halo-color': 'rgba(241, 233, 216, 0.9)',
+      'text-halo-width': 1.2,
     },
   },
   {
@@ -887,6 +905,22 @@ export function AtlasMapLibreCanvas({
                 lineColor: 'rgba(20, 33, 61, 0.35)',
                 lineWidth: 1,
                 lineDasharray: [2, 3],
+              }}
+            />
+            <MLLayer
+              id="atlas-course-third-labels"
+              type="symbol"
+              minZoomLevel={COURSE_MIN_ZOOM}
+              filter={['==', ['get', 'type'], 'course-third-label']}
+              style={{
+                textField: ['get', 'label'],
+                textFont: ['Noto Sans Regular'],
+                textSize: 9,
+                textLetterSpacing: 0.08,
+                textAllowOverlap: true,
+                textColor: 'rgba(20, 33, 61, 0.55)',
+                textHaloColor: 'rgba(241, 233, 216, 0.9)',
+                textHaloWidth: 1.2,
               }}
             />
             <MLLayer

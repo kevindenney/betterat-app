@@ -147,8 +147,19 @@ export function courseOverlayToFeatures(
   params: CourseGeometryParams,
   courseId: string,
 ): Feature[] {
-  const { W, P, C, portCorner, stbdCorner, startBox, leftPoly, rightPoly, thirdDividers, favoredSide } =
-    overlay;
+  const {
+    W,
+    P,
+    C,
+    portCorner,
+    stbdCorner,
+    startBox,
+    leftPoly,
+    rightPoly,
+    thirdDividers,
+    thirdLabels,
+    favoredSide,
+  } = overlay;
   const features: Feature[] = [];
 
   // Favored-side shading — the two halves of the beat (looking upwind). The
@@ -172,6 +183,19 @@ export function courseOverlayToFeatures(
   thirdDividers.forEach((divider, i) => {
     features.push(
       lineFeature(`${courseId}:third-${i}`, divider, { type: 'course-third', courseId }),
+    );
+  });
+
+  // Thirds labels — tie each band on the map back to the strategy card's
+  // BOTTOM/MIDDLE/UPPER ⅓ rows. Anchored at the band centers (1/6, 1/2, 5/6
+  // of the beat). ASCII labels only — the ⅓ glyph isn't in the map font.
+  (['bottom', 'middle', 'upper'] as const).forEach((band) => {
+    features.push(
+      pointFeature(`${courseId}:third-label-${band}`, thirdLabels[band], {
+        type: 'course-third-label',
+        label: band.toUpperCase(),
+        courseId,
+      }),
     );
   });
 
