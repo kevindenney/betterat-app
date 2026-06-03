@@ -567,6 +567,51 @@ export function L3SeasonView({
             </View>
           )}
 
+          {/* CAPABILITIES pills — the river chart's legend AND its drill-in
+              filter. Docked directly under the chart (rather than bundled
+              with the people pills at the bottom) because the bands carry no
+              inline labels: these dot·name·count chips are the only thing that
+              tells a sailor or nursing student what each colour means. Tap to
+              isolate a thread (chart dims + THE WORK filters). */}
+          {capabilityFamilies.families.length > 0 &&
+          flatSteps.length >= ANALYSIS_MIN_STEPS ? (
+            <View style={styles.cluster}>
+              <View style={styles.capChipsWrap}>
+                {capabilityFamilies.families.slice(0, 6).map((f) => {
+                  const active = activeThread?.id === f.id;
+                  return (
+                    <Pressable
+                      key={f.id}
+                      style={[
+                        styles.capChip,
+                        active && [styles.capChipActive, { borderColor: f.color }],
+                      ]}
+                      onPress={() =>
+                        toggleThread({ id: f.id, label: f.label, color: f.color })
+                      }
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={`${f.label}, ${f.volume} ${
+                        f.volume === 1 ? 'step' : 'steps'
+                      } — ${active ? 'showing only this thread' : 'isolate this thread'}`}
+                    >
+                      <View style={[styles.capChipDot, { backgroundColor: f.color }]} />
+                      <Text style={styles.capChipLabel} numberOfLines={1}>
+                        {f.label}
+                      </Text>
+                      <Text style={styles.capChipCount}>{f.volume}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.capChipsCaption}>
+                {activeThread
+                  ? 'Showing only this thread below — tap it again to clear'
+                  : 'Tap a capability to filter the log'}
+              </Text>
+            </View>
+          ) : null}
+
           {analysis.reflectionDensity && analysis.reflectionDensity.length > 0 ? (
             <View style={styles.reflectionSection}>
               <View style={styles.sparklineWrap}>
@@ -628,71 +673,12 @@ export function L3SeasonView({
                   isolatedPeerId={activePerson?.id ?? null}
                 />
               )}
-            </>
-          ) : null}
 
-          {/* Unified filter cluster — the people half of mockup 19's
-              "tap a thread or a person to filter the log". Mirrors the
-              capability chips: avatar · name · role · count pills that
-              isolate one person and filter THE WORK to the steps they
-              touched. Grouped with the capability pills under one caption
-              so the two-way selection reads as one surface. */}
-          {(() => {
-            // CAPABILITIES pills mirror the river, so they share its
-            // maturity gate. WHO SHAPED IT pills mirror the FLEET lane
-            // (which shows from a single peer), so they're decoupled —
-            // a coach who reflected on step 3 gets a tappable pill even
-            // before the river fills in.
-            const showCapPills =
-              capabilityFamilies.families.length > 0 &&
-              flatSteps.length >= ANALYSIS_MIN_STEPS;
-            const showPeoplePills = peopleFamilies.length > 0;
-            return showCapPills || showPeoplePills ? (
-            <View style={styles.cluster}>
-              {showCapPills ? (
-                <>
-                  <Text style={styles.clusterEyebrow}>CAPABILITIES</Text>
-                  <View style={styles.capChipsWrap}>
-                    {capabilityFamilies.families.slice(0, 6).map((f) => {
-                      const active = activeThread?.id === f.id;
-                      return (
-                        <Pressable
-                          key={f.id}
-                          style={[
-                            styles.capChip,
-                            active && [
-                              styles.capChipActive,
-                              { borderColor: f.color },
-                            ],
-                          ]}
-                          onPress={() =>
-                            toggleThread({ id: f.id, label: f.label, color: f.color })
-                          }
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: active }}
-                          accessibilityLabel={`${f.label}, ${f.volume} ${
-                            f.volume === 1 ? 'step' : 'steps'
-                          } — ${active ? 'showing only this thread' : 'isolate this thread'}`}
-                        >
-                          <View
-                            style={[styles.capChipDot, { backgroundColor: f.color }]}
-                          />
-                          <Text style={styles.capChipLabel} numberOfLines={1}>
-                            {f.label}
-                          </Text>
-                          <Text style={styles.capChipCount}>{f.volume}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </>
-              ) : null}
-
+              {/* WHO SHAPED IT pills — docked under the cohort chart they
+                  legend, mirroring the capability pills under the river. Each
+                  isolates one person and filters THE WORK to their steps. */}
               {peopleFamilies.length > 0 ? (
-                <>
-                  <Text style={[styles.clusterEyebrow, styles.clusterEyebrowSpace]}>
-                    WHO SHAPED IT
-                  </Text>
+                <View style={styles.cluster}>
                   <View style={styles.capChipsWrap}>
                     {peopleFamilies.slice(0, 8).map((p) => {
                       const active = activePerson?.id === p.id;
@@ -701,10 +687,7 @@ export function L3SeasonView({
                           key={p.id}
                           style={[
                             styles.personChip,
-                            active && [
-                              styles.capChipActive,
-                              { borderColor: p.color },
-                            ],
+                            active && [styles.capChipActive, { borderColor: p.color }],
                           ]}
                           onPress={() =>
                             togglePerson({ id: p.id, name: p.name, color: p.color })
@@ -735,17 +718,15 @@ export function L3SeasonView({
                       );
                     })}
                   </View>
-                </>
+                  <Text style={styles.capChipsCaption}>
+                    {activePerson
+                      ? 'Showing only this person below — tap it again to clear'
+                      : 'Tap a person to filter the log'}
+                  </Text>
+                </View>
               ) : null}
-
-              <Text style={styles.capChipsCaption}>
-                {filtering
-                  ? 'Showing only this filter below — tap it again to clear'
-                  : 'Tap a thread or a person to filter the log'}
-              </Text>
-            </View>
-            ) : null;
-          })()}
+            </>
+          ) : null}
 
           {analysis.librarianPrompt ? (
             <SeasonLibrarianPrompt
@@ -1326,23 +1307,11 @@ const styles = StyleSheet.create({
   sectionHeadlineAccent: {
     fontWeight: '600',
   },
-  // Unified filter cluster — capability pills + people pills under one
-  // caption. Mirrors mockup 19's "tap a thread or a person to filter the
-  // log": the two pill rows are the two halves of one selector for THE
-  // WORK list below.
+  // Pill cluster — wraps a row of filter chips + its caption. Used twice:
+  // capability chips docked under the river chart, people chips under the
+  // cohort chart. Each chip both legends its chart and filters THE WORK.
   cluster: {
     marginTop: 18,
-  },
-  clusterEyebrow: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: IOS_REGISTER.labelSecondary,
-    marginLeft: 16,
-    marginBottom: 2,
-  },
-  clusterEyebrowSpace: {
-    marginTop: 16,
   },
   // Tappable capability chips beneath the band chart — the drill-in
   // "made explicit". Each chip isolates a thread (chart dimming + inline
