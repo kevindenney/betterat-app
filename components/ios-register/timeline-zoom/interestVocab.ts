@@ -150,22 +150,26 @@ const SAILING_VOCAB: InterestVocab = {
   capabilityHeader: 'PRACTICE LOG',
   crewHeader: 'FLEET',
   inputSubtitle: 'who shaped this arc',
-  // Deliberate sailing palette — 8 capability families, perceptually
-  // distinct, with the same family color across the app. Order matters:
-  // first match wins, so more-specific patterns lead.
+  // Deliberate sailing palette — 13 capability families, vivid and
+  // perceptually distinct (same family color across the app). Tuned to
+  // match the nursing-design palette's separation: no two co-occurring
+  // families share a hue. Order matters — first match wins, so more-
+  // specific patterns lead. "Boat handling" is the most-tagged sailing
+  // capability, so it leads and owns the warm orange the eye lands on.
   palette: [
     { pattern: /\bsail\b|\bsails\b|sail\s+(selection|design|trim|measurement|inventory|set|change)/i, canonicalLabel: 'Sails', color: '#2F8FB0' },
-    { pattern: /rig|rake|shroud|forestay|mast\s+(step|base|partner|bend)|tune/i, canonicalLabel: 'Rig', color: '#A47A52' },
+    { pattern: /boat\s?handl|maneuver|manoeuvr|\bhelm|steer|spinnaker|hoist|douse|roll\s?tack|\bgyb|\bjibe/i, canonicalLabel: 'Boat handling', color: '#E2792E' },
+    { pattern: /\brig\b|rigging|rake|shroud|forestay|\bmast\b|\bram\b|spreader|tension|tune/i, canonicalLabel: 'Rig', color: '#B86EAA' },
     { pattern: /boat.?speed|points\s+of\s+sail|optim|hull/i, canonicalLabel: 'Boatspeed', color: '#5BA46F' },
     { pattern: /start|line\s+work/i, canonicalLabel: 'Starts', color: '#C99632' },
-    { pattern: /tactic|mark\s+round|shift|cover|lane/i, canonicalLabel: 'Tactics', color: '#C46E49' },
-    { pattern: /crew|comm|handoff|brief|debrief|teamwork|alignment/i, canonicalLabel: 'Crew', color: '#7BA0C4' },
+    { pattern: /tactic|(windward|leeward)\s+mark|mark\s+(round|trap|combination|approach)|shift|cover|\blane|situational\s+awareness|lee.?bow|\bduck\b/i, canonicalLabel: 'Tactics', color: '#C4474A' },
+    { pattern: /crew|comm|radio|coordination|handoff|brief|debrief|teamwork|alignment/i, canonicalLabel: 'Crew', color: '#7BA0C4' },
     { pattern: /weather|wind|breeze|forecast|conditions|venue|local/i, canonicalLabel: 'Conditions', color: '#7E6FC8' },
-    { pattern: /fitness|strength|endurance|nutrition|recovery|sleep/i, canonicalLabel: 'Fitness', color: '#C4474A' },
+    { pattern: /fitness|strength|endurance|nutrition|recovery|sleep/i, canonicalLabel: 'Fitness', color: '#C46E49' },
     { pattern: /tactical\s+recovery|race\s+execution|race\s+(history|rules?|culture)/i, canonicalLabel: 'Race craft', color: '#A04CC4' },
-    { pattern: /goal|commit|decision|plan|register|entry/i, canonicalLabel: 'Planning', color: '#5A7A98' },
+    { pattern: /goal|commit|decision|plan|register|entry/i, canonicalLabel: 'Planning', color: '#5BA4A6' },
     { pattern: /logistics|ship|trailer|travel|gear/i, canonicalLabel: 'Logistics', color: '#8A8A8A' },
-    { pattern: /navigation|chart|gps|safety|survival/i, canonicalLabel: 'Safety & Nav', color: '#4F9DA6' },
+    { pattern: /navigation|chart|gps|safety|survival/i, canonicalLabel: 'Safety & Nav', color: '#2E6CA8' },
   ],
   phasePatterns: [
     // Named events — most specific first so they win against
