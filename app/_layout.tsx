@@ -482,6 +482,16 @@ function AuthGate() {
     // sign-in. The community screen redirects signed-out visitors to
     // `/(auth)/login?returnTo=...` itself.
     const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share', 'auth-welcome-ios', 'redeem', 'r', 'officiating', 'sports-photography', 'org', 'schools', 'marketplace', 'demo'];
+    // Interest landing pages are public marketing surfaces (InterestBrowserPage):
+    // the dedicated per-interest folders plus the `[interest]` catch-all all
+    // render pre-login content (orgs, plans from the marketplace catalog) for
+    // anonymous visitors arriving from the landing grid or a shared link.
+    publicSegments.push(
+      'nursing', 'design', 'golf', 'drawing', 'fitness', 'health-and-fitness',
+      'sail-racing', 'knitting', 'fiber-arts', 'global-health',
+      'lifelong-learning', 'painting-printing', 'regenerative-agriculture',
+      '[interest]',
+    );
     // `dev`/`debug` are internal preview surfaces — public only in dev builds.
     // In production they must require auth so unauthenticated visitors can't
     // reach them via deep-link or the web sitemap.
