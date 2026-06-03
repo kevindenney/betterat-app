@@ -158,8 +158,15 @@ export function PlusComposerV3Sheet({
     setPhotoUri(undefined);
   }, []);
 
+  // A fully-specified race already names itself (area · course), so don't force
+  // a separate WHAT title — fall back to the race plan when WHAT is blank.
+  const raceTitleFallback =
+    showRaceSelector && isRace
+      ? [racePlan.area_name, racePlan.course_label].filter(Boolean).join(' · ')
+      : '';
+
   const handleSave = useCallback(() => {
-    const trimmedWhat = whatText.trim();
+    const trimmedWhat = whatText.trim() || raceTitleFallback;
     if (!trimmedWhat) {
       onDismiss();
       return;
@@ -179,7 +186,7 @@ export function PlusComposerV3Sheet({
       imageUri: photoUri,
     });
     resetComposer();
-  }, [whatText, fieldValues, whereLocation, photoUri, showRaceSelector, isRace, racePlan, onSave, onDismiss, resetComposer]);
+  }, [whatText, raceTitleFallback, fieldValues, whereLocation, photoUri, showRaceSelector, isRace, racePlan, onSave, onDismiss, resetComposer]);
 
   const handlePickPhoto = useCallback(async () => {
     if (Platform.OS === 'web') {
@@ -229,7 +236,7 @@ export function PlusComposerV3Sheet({
     setFieldValues((prev) => ({ ...prev, where: next?.name ?? '' }));
   }, []);
 
-  const trimmedLength = whatText.trim().length;
+  const canSave = (whatText.trim() || raceTitleFallback).length > 0;
 
   return (
     <Modal
@@ -250,8 +257,8 @@ export function PlusComposerV3Sheet({
             <Text style={styles.navTitle}>
               Add a <Text style={styles.navTitleItalic}>{showRaceSelector && isRace ? 'race' : 'step'}</Text>
             </Text>
-            <Pressable onPress={handleSave} hitSlop={8} disabled={trimmedLength === 0}>
-              <Text style={[styles.saveText, trimmedLength === 0 && styles.saveTextDisabled]}>
+            <Pressable onPress={handleSave} hitSlop={8} disabled={!canSave}>
+              <Text style={[styles.saveText, !canSave && styles.saveTextDisabled]}>
                 Save
               </Text>
             </Pressable>
