@@ -2110,9 +2110,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     }
     // Step-kind filter applies only to my-step pins (they carry stepKind);
     // POIs / peers / wind / tide are not "kinds" and always pass through.
+    // The next-step pin is exempt: it backs the persistent cockpit HUD, so
+    // hiding it here while the cockpit still shows that step would make the
+    // map and cockpit disagree. Your next step is always on the map.
     if (stepKindFilter) {
       out = out.filter((p) => {
         if (!p.kind.startsWith('my-step')) return true;
+        if (p.kind === 'my-step-next') return true;
         return p.stepKind ? stepKindFilter.has(p.stepKind) : false;
       });
     }
