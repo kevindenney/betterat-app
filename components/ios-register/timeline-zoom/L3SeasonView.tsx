@@ -594,6 +594,21 @@ export function L3SeasonView({
               <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
                 {interestVocab.crewHeader}
               </Text>
+              {analysis.cohortHeadline ? (
+                <Text style={styles.sectionHeadline}>
+                  <Text
+                    style={[
+                      styles.sectionHeadlineAccent,
+                      { color: analysis.cohortHeadline.color },
+                    ]}
+                  >
+                    {analysis.cohortHeadline.name}
+                  </Text>
+                  {analysis.cohortHeadline.elapsed > 1
+                    ? ` shaped this ${interestVocab.periodNoun} most — ${analysis.cohortHeadline.weeksPresent} of ${analysis.cohortHeadline.elapsed} weeks.`
+                    : ` is shaping this ${interestVocab.periodNoun} so far.`}
+                </Text>
+              ) : null}
               {isSparseCrew(analysis.peers) ? (
                 <CrewSparseList
                   peers={analysis.peers}
@@ -607,7 +622,7 @@ export function L3SeasonView({
                   currentWeekNumber={currentWeek}
                   width={riverWidth}
                   compact={analysis.peers.length <= 3}
-                  showRole={false}
+                  showRole={true}
                   peerSharedFleets={fleetCohort?.peerToFleets}
                   viewerFleets={fleetCohort?.fleets}
                   isolatedPeerId={activePerson?.id ?? null}

@@ -37,7 +37,12 @@ import type { CreateSeasonInput, UpdateSeasonInput, Season } from '@/types/seaso
 
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import type { ZoomLevel } from './types';
-import { mapToTimelineDataset, type BlueprintLookup, type BusinessOutcomeInput } from './realDataAdapter';
+import {
+  mapToTimelineDataset,
+  type BlueprintLookup,
+  type BusinessOutcomeInput,
+  type CompetencyProgressInput,
+} from './realDataAdapter';
 import { resolveInterestVocab } from './interestVocab';
 import { MoveToSeasonSheet, buildMoveTargets } from './MoveToSeasonSheet';
 import { TagBulkSheet } from './TagBulkSheet';
@@ -154,6 +159,44 @@ export function TimelineZoomPracticeScreen() {
       }));
     },
   });
+  // PROGRAM headline (nursing only) — preceptor attestations from the
+  // real betterat_competency_progress table, joined to the framework so
+  // the lifetime denominator is the full competency catalogue for this
+  // interest. Two cheap reads, gated on the resolved vocab so other
+  // personas never issue them.
+  const isNursing = interestVocab.id === 'nursing';
+  const { data: competencyProgress } = useQuery<CompetencyProgressInput>({
+    queryKey: ['competency-progress-headline', user?.id ?? 'none', interestId],
+    enabled: Boolean(user?.id) && isNursing,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const [{ count, error: countError }, { data: rows, error: rowsError }] =
+        await Promise.all([
+          supabase
+            .from('betterat_competencies')
+            .select('id', { count: 'exact', head: true })
+            .eq('interest_id', interestId),
+          supabase
+            .from('betterat_competency_progress')
+            .select(
+              'status, validated_at, last_attempt_at, betterat_competencies!inner(interest_id)',
+            )
+            .eq('user_id', user!.id)
+            .eq('betterat_competencies.interest_id', interestId),
+        ]);
+      if (countError) throw countError;
+      if (rowsError) throw rowsError;
+      return {
+        totalCompetencies: count ?? 0,
+        rows: (rows ?? []).map((row) => ({
+          status: row.status,
+          validatedAt: row.validated_at,
+          lastAttemptAt: row.last_attempt_at,
+        })),
+      };
+    },
+  });
+
   const effectiveVision = useMemo(() => {
     if (activePlan) {
       return {
@@ -237,6 +280,7 @@ export function TimelineZoomPracticeScreen() {
         interestVision: effectiveVision,
         activePlanId: activePlan?.id ?? null,
         businessOutcomes,
+        competencyProgress,
       }),
     [
       interestId,
@@ -254,6 +298,7 @@ export function TimelineZoomPracticeScreen() {
       effectiveVision,
       activePlan?.id,
       businessOutcomes,
+      competencyProgress,
     ],
   );
 

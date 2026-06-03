@@ -44,6 +44,7 @@ import type {
   LifetimeTrophy,
   SeasonAnalysis,
   SeasonLibrarianPrompt,
+  SeasonMarker,
   SeasonPeer,
   SeasonPhase,
   StepHowItem,
@@ -454,6 +455,7 @@ function collabToAvatar(c: StepCollaborator): CohortAvatar {
     initials: initialsFromName(c.display_name || ''),
     color: c.avatar_color || '#8E8E93',
     name: c.display_name?.trim() || undefined,
+    role: c.role?.trim() || undefined,
   };
 }
 
@@ -613,6 +615,11 @@ function recordToStep(
     from,
     cohortAvatars,
     cohortLabel,
+    roleCollaborator: roleCollab ? collabToAvatar(roleCollab) : undefined,
+    marker:
+      typeof (rec.metadata as { season_marker?: unknown } | null)?.season_marker === 'string'
+        ? ((rec.metadata as { season_marker?: string }).season_marker || undefined)
+        : undefined,
     pinnedFromOtherInterest,
   };
 }
@@ -864,11 +871,22 @@ function computeSeasonAnalysis(
     const weekNumber = weekIdx + 1;
     for (const step of week.steps) {
       const capColor = stepCapabilityColor(step);
-      // Channel 1 — direct "with who?" tags.
-      for (const avatar of step.cohortAvatars ?? []) {
+      // Channel 1 — direct "with who?" tags. The honorific collaborator
+      // (preceptor / coach) is excluded from the card crowd but carried
+      // on `roleCollaborator`, so fold them back in here: the season
+      // cohort lane wants the preceptor as a first-class peer (they
+      // often shaped the rotation most), and their role drives the
+      // legend ("Peer AN · preceptor").
+      const channelOne = [
+        ...(step.cohortAvatars ?? []),
+        ...(step.roleCollaborator ? [step.roleCollaborator] : []),
+      ];
+      for (const avatar of channelOne) {
         bumpPeer(avatar.id, weekNumber, {
           initials: avatar.initials,
+          name: avatar.name,
           color: avatar.color,
+          role: avatar.role,
           capabilityColor: capColor,
         });
       }
@@ -1019,12 +1037,45 @@ function computeSeasonAnalysis(
 
   const phases = computeSeasonPhases(weeks, interestVocab);
 
+  // Markers — named moments the user stamped on a step (metadata.season_marker),
+  // floated above the river at that step's week.
+  const markers: SeasonMarker[] = [];
+  weeks.forEach((week, weekIdx) => {
+    for (const step of week.steps) {
+      if (!step.marker) continue;
+      markers.push({
+        id: `mk:${step.id}`,
+        weekNumber: weekIdx + 1,
+        kind: 'trophy',
+        label: step.marker,
+        capabilityColor: stepCapabilityColor(step),
+      });
+    }
+  });
+
+  // Cohort headline — the peer who shaped this season most. peers is
+  // already sorted by total appearances, so peers[0] is the lead. Count
+  // distinct weeks they showed up in for the "N of M weeks" framing.
+  let cohortHeadline: SeasonAnalysis['cohortHeadline'];
+  const lead = peers[0];
+  if (lead && lead.name) {
+    const weeksPresent = lead.weeklyAppearances.filter((w) => w.count > 0).length;
+    cohortHeadline = {
+      name: lead.name,
+      weeksPresent,
+      elapsed: currentWeekNumber,
+      color: lead.capabilityColor ?? lead.color,
+    };
+  }
+
   return {
     weeklyCapabilities,
     phases,
     peers,
     reflections: [],
     reflectionDensity,
+    markers: markers.length > 0 ? markers : undefined,
+    cohortHeadline,
     librarianPrompt: {
       eyebrow: interestVocab.librarianEyebrow,
       body: promptBody,
@@ -1446,12 +1497,31 @@ interface AdapterInput {
    * the smallest currency unit (paise for INR) — turnover, not net.
    */
   businessOutcomes?: BusinessOutcomeInput[];
+  /**
+   * Optional competency-attestation progress (nursing interest only).
+   * Drives the PROGRAM headline: "6 of 8 signed" on L3 (competencies
+   * worked this rotation that a preceptor validated) and "32% through
+   * the program · 28 of 86 attested" on L4. Real accounts without
+   * attestations leave this undefined → headline slot stays hidden.
+   */
+  competencyProgress?: CompetencyProgressInput;
 }
 
 export interface BusinessOutcomeInput {
   weekStart: string;
   revenueMinor: number;
   currency: string;
+}
+
+export interface CompetencyProgressInput {
+  /** Total competencies in the interest's framework — the lifetime denominator. */
+  totalCompetencies: number;
+  /** One row per competency the user has any progress on. */
+  rows: {
+    status: string;
+    validatedAt: string | null;
+    lastAttemptAt: string | null;
+  }[];
 }
 
 export function mapToTimelineDataset({
@@ -1470,6 +1540,7 @@ export function mapToTimelineDataset({
   interestVision,
   activePlanId,
   businessOutcomes,
+  competencyProgress,
 }: AdapterInput): TimelineDataset {
   // Sort steps by sort_order, then starts_at. Stable ordering matters for
   // week bucketing fallback and L4 brick layout.
@@ -1492,9 +1563,20 @@ export function mapToTimelineDataset({
 
   // Group steps into rotation-relative buckets of 3, ordered by sort_order.
   const seasonIdForSteps = currentSeason?.id ?? 'current';
+  // The NOW anchor tracks the *viewer's own* progression. A step shared by
+  // a collaborator (a peer's in_progress step surfaced via
+  // collaborator_user_ids) must never reset the viewer's rotation clock —
+  // otherwise a peer who is early in their own arc drags NOW back to week 1
+  // and throttles the elapsed-week analysis. Prefer the viewer's own active
+  // step, then fall back to any active step, then the first step.
+  const isViewerStep = (s: TimelineStepRecord) =>
+    !user.id || s.user_id === user.id;
+  const isActive = (s: TimelineStepRecord) =>
+    s.status === 'in_progress' || s.status === 'pending';
   const actualFocusId =
     focusStepId ??
-    sorted.find((s) => s.status === 'in_progress' || s.status === 'pending')?.id ??
+    sorted.find((s) => isViewerStep(s) && isActive(s))?.id ??
+    sorted.find(isActive)?.id ??
     sorted[0]?.id ??
     '';
 
@@ -1711,6 +1793,74 @@ export function mapToTimelineDataset({
       seasonHeadline = {
         value: `${formatMoney(seasonTurnover, moneyConfig)} earned`,
         caption: `${seasonRows.length} ${seasonRows.length === 1 ? 'week' : 'weeks'} · ${formatMoney(weeklyAvg, moneyConfig)}/wk avg`,
+        tone: 'positive',
+      };
+    }
+  }
+
+  // PROGRAM headline (nursing only) — preceptor attestations from the
+  // real betterat_competency_progress table. "Signed" = a competency
+  // whose progress row has been validated/attested by a preceptor
+  // (status validated|competent, with validated_by + validated_at set).
+  // Season scope counts attestations whose validated_at falls inside the
+  // rotation window; lifetime counts all attested rows against the full
+  // competency framework for the interest.
+  if (interestVocab.id === 'nursing' && competencyProgress) {
+    const ATTESTED = new Set(['validated', 'competent']);
+    const attestedRows = competencyProgress.rows.filter((r) =>
+      ATTESTED.has(r.status),
+    );
+
+    // Lifetime: attested competencies vs the full framework.
+    const totalCompetencies = Math.max(
+      competencyProgress.totalCompetencies,
+      attestedRows.length,
+    );
+    if (totalCompetencies > 0) {
+      const pct = Math.round((attestedRows.length / totalCompetencies) * 100);
+      lifetimeHeadline = {
+        value: `${pct}% through program`,
+        caption: `${attestedRows.length} of ${totalCompetencies} competencies attested`,
+        tone: 'positive',
+      };
+    }
+
+    // Season: competencies worked this rotation (last attempt inside the
+    // window) and how many of those were signed off inside the window.
+    const seasonStart = currentSeason?.start_date
+      ? Date.parse(currentSeason.start_date)
+      : null;
+    const seasonEnd = currentSeason?.end_date
+      ? Date.parse(currentSeason.end_date)
+      : null;
+    const inWindow = (iso: string | null): boolean => {
+      if (!iso) return false;
+      const t = Date.parse(iso);
+      if (Number.isNaN(t)) return false;
+      if (seasonStart != null && t < seasonStart) return false;
+      if (seasonEnd != null && t > seasonEnd) return false;
+      return true;
+    };
+    const hasWindow = seasonStart != null && seasonEnd != null;
+    const workedThisRotation = hasWindow
+      ? competencyProgress.rows.filter((r) => inWindow(r.lastAttemptAt))
+      : competencyProgress.rows;
+    const signedThisRotation = workedThisRotation.filter(
+      (r) =>
+        ATTESTED.has(r.status) &&
+        (hasWindow ? inWindow(r.validatedAt) : r.validatedAt != null),
+    );
+    if (workedThisRotation.length > 0) {
+      seasonHeadline = {
+        value: `${signedThisRotation.length} of ${workedThisRotation.length} signed`,
+        caption: 'rotation competencies attested by preceptor',
+        delta:
+          signedThisRotation.length > 0
+            ? {
+                direction: 'up',
+                text: `+${signedThisRotation.length} this ${interestVocab.periodNoun}`,
+              }
+            : undefined,
         tone: 'positive',
       };
     }

@@ -48,6 +48,10 @@ export interface CohortAvatar {
    *  arcs"). Optional because some peer sources (blueprint authors
    *  surfaced as bp:foo) only carry initials. */
   name?: string;
+  /** Collaborator role in this person's own vernacular — "preceptor",
+   *  "cohort", "faculty", "crew". Carried forward so the L3 cohort lane
+   *  can show "Peer AN · preceptor" in the role legend. */
+  role?: string;
 }
 
 export interface BlueprintProvenance {
@@ -116,6 +120,14 @@ export interface TimelineStep {
     avatarInitials?: string;
     avatarColor?: string;
   };
+  /** The honorific collaborator (preceptor / coach / mentor) called out
+   *  on the step card's meta row, carried separately so the L3 cohort
+   *  lane can still place them as a peer even though they're excluded
+   *  from the card's `cohortAvatars` crowd. */
+  roleCollaborator?: CohortAvatar;
+  /** Named moment pinned to this step's week on the L3 capability river
+   *  ("named the lasix"). Sourced from metadata.season_marker. */
+  marker?: string;
 }
 
 export interface TimelineWeek {
@@ -276,6 +288,15 @@ export interface SeasonAnalysis {
   reflectionDensity?: { weekNumber: number; count: number }[];
   /** Trophy / milestone markers floated above the river. */
   markers?: SeasonMarker[];
+  /** Cohort headline — the peer who shaped this season most, with a
+   *  presence count. Drives the "Peer AN shaped this rotation most —
+   *  7 of 7 weeks" sentence above the peer chart. */
+  cohortHeadline?: {
+    name: string;
+    weeksPresent: number;
+    elapsed: number;
+    color: string;
+  };
   /** Mid-season lilac prompt at the bottom of L3. */
   librarianPrompt?: SeasonLibrarianPrompt;
 }
