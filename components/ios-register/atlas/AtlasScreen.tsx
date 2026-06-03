@@ -84,6 +84,7 @@ import { useUniversalPlus } from '@/components/capture';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
 import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
+import { STEP_KIND_CONFIG, stepKindLabel, type StepKind } from '@/lib/step-kind-config';
 import { useNearestPlace, formatNearLabel } from '@/hooks/useNearestPlace';
 import { useMarineSnapshot, conditionsLineFor } from '@/hooks/useMarineSnapshot';
 import { useHKOObservations, isInHongKong } from '@/hooks/useHKOObservations';
@@ -515,6 +516,12 @@ interface FilterChipItem {
   icon?: keyof typeof Ionicons.glyphMap;
   active?: boolean;
   tone?: 'you' | 'crew' | 'fleet' | 'following' | 'cohort' | 'sim';
+  /**
+   * Explicit dot color, used by the step-kind filter row where the dot is
+   * a kind tint (race/boat work/practice/…) rather than one of the fixed
+   * peer tones. Takes precedence over `tone`.
+   */
+  dotColor?: string;
   dim?: boolean;
   /**
    * Cross-interest chip — renders a small compound-glyph swatch (three
@@ -651,6 +658,7 @@ function FilterChip({
   icon,
   active,
   tone,
+  dotColor,
   dim,
   crossInterest,
   compact,
@@ -683,12 +691,12 @@ function FilterChip({
           style={{ marginRight: compact ? 3 : 4 }}
         />
       ) : null}
-      {tone && !crossInterest ? (
+      {(dotColor || tone) && !crossInterest ? (
         <View
           style={[
             shellStyles.chipDot,
             compact && shellStyles.chipDotCompact,
-            { backgroundColor: toneDot[tone] },
+            { backgroundColor: dotColor ?? (tone ? toneDot[tone] : 'transparent') },
           ]}
         />
       ) : null}
@@ -1838,6 +1846,16 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     );
     setPeerRelationshipFilter(all || peerChips.length === 0 ? null : new Set(peerChips));
   }, []);
+  // Step-kind filter — null = "All steps" (show every kind). Otherwise an
+  // allow-list of StepKinds; my-step pins not in the set are hidden so the
+  // user can isolate, e.g., just boat-work or just learning steps.
+  const [stepKindFilter, setStepKindFilter] = useState<Set<StepKind> | null>(null);
+  const handleKindChipsChange = useCallback((activeIds: string[]) => {
+    const kinds = activeIds.filter((id): id is StepKind => id !== 'all-kinds');
+    setStepKindFilter(
+      activeIds.includes('all-kinds') || kinds.length === 0 ? null : new Set(kinds),
+    );
+  }, []);
   const filterPillLabel = useMemo(() => {
     if (activeFilterIds.length === 0 || activeFilterIds.includes('all')) return 'Filter';
     const map: Record<string, string> = { you: 'You', crew: 'Crew', fleet: 'Fleet', following: 'Following' };
@@ -2037,13 +2055,24 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // isn't in the allow-list. POIs / race-marks / wind / tide always
   // show — they're not "peer" data.
   const filteredFramePins = useMemo(() => {
-    if (!peerRelationshipFilter) return visibleFramePins;
-    return visibleFramePins.filter((p) => {
-      const isPeerKind = ['you', 'crew', 'fleet', 'following'].includes(p.kind);
-      if (!isPeerKind) return true;
-      return peerRelationshipFilter.has(p.kind);
-    });
-  }, [visibleFramePins, peerRelationshipFilter]);
+    let out = visibleFramePins;
+    if (peerRelationshipFilter) {
+      out = out.filter((p) => {
+        const isPeerKind = ['you', 'crew', 'fleet', 'following'].includes(p.kind);
+        if (!isPeerKind) return true;
+        return peerRelationshipFilter.has(p.kind);
+      });
+    }
+    // Step-kind filter applies only to my-step pins (they carry stepKind);
+    // POIs / peers / wind / tide are not "kinds" and always pass through.
+    if (stepKindFilter) {
+      out = out.filter((p) => {
+        if (!p.kind.startsWith('my-step')) return true;
+        return p.stepKind ? stepKindFilter.has(p.stepKind) : false;
+      });
+    }
+    return out;
+  }, [visibleFramePins, peerRelationshipFilter, stepKindFilter]);
   // Overview keeps the geography + race-mark vocabulary only. The older
   // wind/tide arrow field was too noisy and conflicted with the course
   // frame, which owns the richer conditions treatment.
@@ -2384,6 +2413,25 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               <ProfileDropdown size={30} variant="light" menuAlign="right" />
             </View>
           </View>
+          {/* Step-kind filter — Apple-Maps-style slim segmented row under
+              the capsule. Toggles which KINDS of step show on the map
+              (race / boat work / practice / learn / coach) so the user can
+              isolate "just the boat work near me" from on-water racing.
+              Labels are interest-aware (sailor "Boat work" = nurse "Prep"). */}
+          <FilterChipsRow
+            chips={[
+              { id: 'all-kinds', label: 'All steps', active: !stepKindFilter },
+              ...(['race', 'boat_work', 'practice', 'learn', 'coach'] as StepKind[]).map((k) => ({
+                id: k,
+                label: stepKindLabel(k, currentInterest?.slug),
+                dotColor: STEP_KIND_CONFIG[k].color,
+                active: stepKindFilter?.has(k) ?? false,
+              })),
+            ]}
+            onActiveIdsChange={handleKindChipsChange}
+            rightInset={10}
+            compact
+          />
           {/* Headless InterestSwitcher hosts the modal so the imperative
               opener inside the capsule can pop it. Atlas doesn't mount
               the global NavigationHeader, so the sheet lives here. */}
