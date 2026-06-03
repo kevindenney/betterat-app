@@ -114,6 +114,9 @@ import {
 
 export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6' | 'f7';
 
+/** Phase N.4 — royal blue for the "Races" filter dot, matching the ⛵ pin. */
+const RACE_FILTER_DOT = '#2563EB';
+
 /**
  * Stub for unwired CTAs. Tells the user what the action WILL do once
  * built, rather than silently bouncing them to the wrong tab. Honest
@@ -1699,26 +1702,24 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     () => framePinsWithDemo.find((pin) => pin.kind === 'my-step-next') ?? null,
     [framePinsWithDemo],
   );
-  // Kind-adaptive cockpit — racing is one kind of step among many. When the
-  // viewer's next step is ASHORE (boat work / learn / coach), wind & tide
-  // gauges are noise; the cockpit instead shows that step's "how" checklist.
-  // On-water kinds (race / practice) and unknown ('other') keep the
-  // wind/tide scrubber. We only fetch the focused step's sub-steps when it's
-  // actually ashore, so on-water frames pay nothing.
+  // Phase N.4 binary cockpit — wind & tide are race grammar. When the
+  // viewer's next step is a RACE it keeps the wind/tide scrubber (course +
+  // conditions); every other step shows that step's "how" checklist instead,
+  // since gauges are noise for a non-race step. We only fetch the focused
+  // step's sub-steps when the checklist owns the cockpit, so race frames pay
+  // nothing. cockpitStepKind still feeds StepKindCockpit's header icon/label.
   const cockpitStepKind = myNextStepPin?.stepKind ?? null;
-  const isAshoreCockpit =
-    cockpitStepKind === 'boat_work' ||
-    cockpitStepKind === 'learn' ||
-    cockpitStepKind === 'coach';
+  const cockpitIsRace = myNextStepPin?.isRace ?? false;
+  const cockpitShowsChecklist = !!myNextStepPin && !cockpitIsRace;
   const cockpitStep = useAtlasCockpitStep(
-    isAshoreCockpit ? (myNextStepPin?.stepId ?? null) : null,
+    cockpitShowsChecklist ? (myNextStepPin?.stepId ?? null) : null,
   );
-  // When the ashore cockpit owns the next step, it IS the single step
+  // When the checklist cockpit owns the next step, it IS the single step
   // surface — every "YOUR NEXT STEP" / "YOUR STEP" my-step bottom sheet is
   // suppressed so no second step card stacks under the cockpit (the user
   // reaches other steps via the cockpit's "Pick another"). Non-step pins
   // (club / POI / peer / race-mark) still open their own sheet.
-  const cockpitOwnsNext = isAshoreCockpit && !!myNextStepPin;
+  const cockpitOwnsNext = cockpitShowsChecklist;
   // Auto-center on the viewer's next step the first time it appears.
   // The point of Atlas is "show me where I'm going" — landing on the
   // bbox centroid is a useless default when we already know which
@@ -1918,15 +1919,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     );
     setPeerRelationshipFilter(all || peerChips.length === 0 ? null : new Set(peerChips));
   }, []);
-  // Step-kind filter — null = "All steps" (show every kind). Otherwise an
-  // allow-list of StepKinds; my-step pins not in the set are hidden so the
-  // user can isolate, e.g., just boat-work or just learning steps.
-  const [stepKindFilter, setStepKindFilter] = useState<Set<StepKind> | null>(null);
+  // Phase N.4 binary step filter — a step is just a step, so the only lens
+  // worth isolating is race vs everything. false = "All steps"; true = show
+  // only race pins (the steps that carry course/marks/conditions).
+  const [raceOnly, setRaceOnly] = useState(false);
   const handleKindChipsChange = useCallback((activeIds: string[]) => {
-    const kinds = activeIds.filter((id): id is StepKind => id !== 'all-kinds');
-    setStepKindFilter(
-      activeIds.includes('all-kinds') || kinds.length === 0 ? null : new Set(kinds),
-    );
+    setRaceOnly(activeIds.includes('races') && !activeIds.includes('all-kinds'));
   }, []);
   const filterPillLabel = useMemo(() => {
     if (activeFilterIds.length === 0 || activeFilterIds.includes('all')) return 'Filter';
@@ -2135,20 +2133,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         return peerRelationshipFilter.has(p.kind);
       });
     }
-    // Step-kind filter applies only to my-step pins (they carry stepKind);
-    // POIs / peers / wind / tide are not "kinds" and always pass through.
+    // Race-only filter applies only to my-step pins (they carry isRace);
+    // POIs / peers / wind / tide are not steps and always pass through.
     // The next-step pin is exempt: it backs the persistent cockpit HUD, so
     // hiding it here while the cockpit still shows that step would make the
     // map and cockpit disagree. Your next step is always on the map.
-    if (stepKindFilter) {
+    if (raceOnly) {
       out = out.filter((p) => {
         if (!p.kind.startsWith('my-step')) return true;
         if (p.kind === 'my-step-next') return true;
-        return p.stepKind ? stepKindFilter.has(p.stepKind) : false;
+        return Boolean(p.isRace);
       });
     }
     return out;
-  }, [visibleFramePins, peerRelationshipFilter, stepKindFilter]);
+  }, [visibleFramePins, peerRelationshipFilter, raceOnly]);
   // Overview keeps the geography + race-mark vocabulary only. The older
   // wind/tide arrow field was too noisy and conflicted with the course
   // frame, which owns the richer conditions treatment.
@@ -2489,20 +2487,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               <ProfileDropdown size={30} variant="light" menuAlign="right" />
             </View>
           </View>
-          {/* Step-kind filter — Apple-Maps-style slim segmented row under
-              the capsule. Toggles which KINDS of step show on the map
-              (race / boat work / practice / learn / coach) so the user can
-              isolate "just the boat work near me" from on-water racing.
-              Labels are interest-aware (sailor "Boat work" = nurse "Prep"). */}
+          {/* Phase N.4 binary step filter — Apple-Maps-style slim segmented
+              row under the capsule. A step is just a step, so the only lens
+              is race vs everything: "All steps" or "Races" (the pins that
+              carry course/marks/conditions). */}
           <FilterChipsRow
             chips={[
-              { id: 'all-kinds', label: 'All steps', active: !stepKindFilter },
-              ...(['race', 'boat_work', 'practice', 'learn', 'coach'] as StepKind[]).map((k) => ({
-                id: k,
-                label: stepKindLabel(k, currentInterest?.slug),
-                dotColor: STEP_KIND_CONFIG[k].color,
-                active: stepKindFilter?.has(k) ?? false,
-              })),
+              { id: 'all-kinds', label: 'All steps', active: !raceOnly },
+              { id: 'races', label: 'Races', dotColor: RACE_FILTER_DOT, active: raceOnly },
             ]}
             onActiveIdsChange={handleKindChipsChange}
             rightInset={10}
@@ -2678,7 +2670,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           }}
         />
 
-        {isAshoreCockpit && myNextStepPin ? (
+        {cockpitShowsChecklist && myNextStepPin ? (
           <StepKindCockpit
             stepKind={cockpitStepKind!}
             title={

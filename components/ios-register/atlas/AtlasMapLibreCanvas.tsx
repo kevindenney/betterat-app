@@ -60,7 +60,7 @@ import {
 } from '@/lib/atlas-map-styles';
 import { ensureMapLibreCss, ensureMapLibreScript } from '@/lib/maplibreWeb';
 import { windColorForKnots } from '@/lib/wind-color';
-import { STEP_KIND_CONFIG, type StepKind } from '@/lib/step-kind-config';
+import { type StepKind } from '@/lib/step-kind-config';
 import { useAtlasRacingAreas } from '@/hooks/useAtlasRacingAreas';
 import { useAtlasRaceCourses } from '@/hooks/useAtlasRaceCourses';
 import type { CourseEnvironment } from '@/lib/venueCourseGeoJSON';
@@ -1126,7 +1126,7 @@ export function AtlasMapLibreCanvas({
             <LabeledPin
               kind={pin.kind}
               label={pin.label}
-              stepKind={pin.stepKind}
+              isRace={pin.isRace}
               clusterCount={pin.clusterCount}
               clusterUnit={clusterUnit}
               glowCluster={pin.glowCluster}
@@ -1786,15 +1786,16 @@ function createWebPinElement({
     marker.textContent = pin.label.match(/\d+/)?.[0] ?? '';
   }
 
-  // my-step pins tint by activity kind + carry the kind glyph, mirroring
-  // the native LabeledPin path. done-old fades; the rest stay solid.
-  if (pin.stepKind && pin.kind.startsWith('my-step')) {
-    const cfg = STEP_KIND_CONFIG[pin.stepKind];
+  // Phase N.4 binary — a step is just a step. The one first-class
+  // distinction is race vs not: a race carries course/marks/conditions, so
+  // it gets the ⛵ blue pin. Every other my-step pin keeps its neutral blue
+  // relationship dot (time-graded by kind, no activity glyph).
+  if (pin.isRace && pin.kind.startsWith('my-step')) {
     marker.style.background =
-      pin.kind === 'my-step-done-old' ? hexWithAlpha(cfg.color, 0.4) : cfg.color;
+      pin.kind === 'my-step-done-old' ? hexWithAlpha(RACE_PIN_COLOR, 0.4) : RACE_PIN_COLOR;
     if (!pin.clusterCount && (pin.kind === 'my-step-next' || pin.kind === 'my-step-done-just' || pin.kind === 'my-step-planned')) {
-      marker.textContent = cfg.glyph;
-      marker.style.fontSize = '9px';
+      marker.textContent = '⛵';
+      marker.style.fontSize = '10px';
     }
   }
 
@@ -2051,6 +2052,14 @@ const COHORT_CLUSTER_TONE: Record<string, string> = {
   general: 'rgba(140, 140, 150, 0.30)',
 };
 
+/**
+ * Phase N.4 — the one step distinction Atlas draws: race ⛵. A race carries
+ * venue/course/marks/conditions, so its pin gets this royal blue + sail glyph.
+ * Matches the composer's PlanStepRaceSelector RACE tone and mockup 27.
+ */
+const RACE_PIN_COLOR = '#2563EB';
+const RACE_PIN_GLYPH = '⛵';
+
 /** "#2563EB" + 0.4 → "rgba(37, 99, 235, 0.4)". Tints kind colors for faded pins. */
 function hexWithAlpha(hex: string, alpha: number): string {
   const h = hex.replace('#', '');
@@ -2145,7 +2154,7 @@ const PIN_TONE: Record<
 function LabeledPin({
   kind,
   label,
-  stepKind,
+  isRace,
   clusterCount,
   clusterUnit,
   glowCluster,
@@ -2154,8 +2163,8 @@ function LabeledPin({
 }: {
   kind: AtlasPinSpec['kind'];
   label?: string;
-  /** Activity kind for my-step-* pins — tints the dot + adds a glyph. */
-  stepKind?: StepKind;
+  /** Phase N.4 — true on race my-step pins; gives the ⛵ blue dot + glyph. */
+  isRace?: boolean;
   clusterCount?: number;
   /** Interest-aware noun for the cluster pill ("session"/"shift"/…). */
   clusterUnit?: string;
@@ -2378,12 +2387,11 @@ function LabeledPin({
   // Hero treatment for the "next" step — the one right of the timeline
   // NOW bar. Bold blue dot inside an amber halo with a NEXT badge so the
   // viewer can spot their next move at a glance.
-  // my-step pins are tinted by activity kind (race ⛵ / boat_work 🔧 /
-  // practice 🎯 / learn 📖 / coach 🧭) so the map reads as mixed activity.
-  // Status (next/done/planned) still drives size + halo + badge; kind owns
-  // the dot color + glyph. When stepKind is absent (legacy/peer), the dot
-  // falls back to the original systemBlue.
-  const kindCfg = stepKind ? STEP_KIND_CONFIG[stepKind] : null;
+  // Phase N.4 binary — only races get a tinted dot + glyph (⛵ royal blue).
+  // Status (next/done/planned) still drives size + halo + badge; race owns
+  // the dot color + glyph. Non-race steps fall back to the systemBlue
+  // relationship dot with no activity glyph.
+  const raceCfg = isRace ? { color: RACE_PIN_COLOR, glyph: RACE_PIN_GLYPH } : null;
   if (kind === 'my-step-next') {
     const titleLabel = (label ?? '').split('|')[0] ?? '';
     return (
@@ -2393,10 +2401,10 @@ function LabeledPin({
           <View
             style={[
               styles.myStepNextDot,
-              kindCfg ? { backgroundColor: kindCfg.color } : null,
+              raceCfg ? { backgroundColor: raceCfg.color } : null,
             ]}
           >
-            {kindCfg ? <Text style={styles.myStepGlyphHero}>{kindCfg.glyph}</Text> : null}
+            {raceCfg ? <Text style={styles.myStepGlyphHero}>{raceCfg.glyph}</Text> : null}
           </View>
         </View>
         <View style={styles.myStepHeroLabelCol}>
@@ -2423,10 +2431,10 @@ function LabeledPin({
           <View
             style={[
               styles.myStepDoneJustDot,
-              kindCfg ? { backgroundColor: kindCfg.color } : null,
+              raceCfg ? { backgroundColor: raceCfg.color } : null,
             ]}
           >
-            {kindCfg ? <Text style={styles.myStepGlyph}>{kindCfg.glyph}</Text> : null}
+            {raceCfg ? <Text style={styles.myStepGlyph}>{raceCfg.glyph}</Text> : null}
           </View>
         </View>
         <View style={styles.myStepHeroLabelCol}>
@@ -2456,14 +2464,14 @@ function LabeledPin({
             width: 16,
             height: 16,
             borderRadius: 8,
-            backgroundColor: kindCfg ? kindCfg.color : 'rgba(0, 122, 255, 0.95)',
+            backgroundColor: raceCfg ? raceCfg.color : 'rgba(0, 122, 255, 0.95)',
             borderWidth: 2,
             borderColor: '#FFFFFF',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          {kindCfg ? <Text style={styles.myStepGlyph}>{kindCfg.glyph}</Text> : null}
+          {raceCfg ? <Text style={styles.myStepGlyph}>{raceCfg.glyph}</Text> : null}
         </View>
         {showLabel && titleLabel ? (
           <Text style={styles.pinLabel} numberOfLines={1}>
@@ -2509,8 +2517,8 @@ function LabeledPin({
   // tint by activity kind so they stay color-coded with the hero pins,
   // softened to read as "older / settled".
   const tone =
-    kindCfg && kind.startsWith('my-step')
-      ? { ...baseTone, color: hexWithAlpha(kindCfg.color, kind === 'my-step-done-old' ? 0.4 : 0.85) }
+    raceCfg && kind.startsWith('my-step')
+      ? { ...baseTone, color: hexWithAlpha(raceCfg.color, kind === 'my-step-done-old' ? 0.4 : 0.85) }
       : baseTone;
   const glowColor = glowCluster ? COHORT_CLUSTER_TONE[glowCluster] : undefined;
   return (
