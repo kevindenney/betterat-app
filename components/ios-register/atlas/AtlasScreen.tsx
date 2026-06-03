@@ -256,6 +256,13 @@ export interface AtlasFrameHandlers {
    */
   initialFocus?: { lat: number; lng: number } | null;
   /**
+   * When a Nearby-list tap carries peer identity, F1 breaks that one peer out
+   * of the privacy cluster: it flies to the (jittered) point, drops a single
+   * highlighted pin, and opens the peer callout — so the tap lands on
+   * something visible instead of the merged "+N" badge.
+   */
+  initialPeerFocus?: AtlasPeerMember | null;
+  /**
    * Opens the "people & sites nearby" overlay. F4 nursing passes this so
    * Nearby surfaces as a quiet TopChrome action; sailing frames keep the
    * wrapper-level floating pill and don't pass it.
@@ -313,6 +320,7 @@ export function AtlasScreen({
   nextEvent,
   avatarInitial,
   initialFocus,
+  initialPeerFocus,
   onNearbyPress,
   useMapLibre = false,
   initialCommitMode = false,
@@ -334,6 +342,7 @@ export function AtlasScreen({
     nextEvent,
     avatarInitial,
     initialFocus,
+    initialPeerFocus,
     onNearbyPress,
     useMapLibre,
     initialCommitMode,
@@ -815,12 +824,33 @@ function relativeSetAt(iso: string | null): string | null {
 }
 
 /**
+ * Map a peer relationship to the pin kind used when one peer is broken out of
+ * a cluster (focused from a list row). Mirrors mapPeerToPinKind in the frame-
+ * pins hook so the de-clustered pin reads the same tone as it would in a thin
+ * (<5) cluster.
+ */
+function relationshipToPeerKind(rel: string): AtlasPinSpec['kind'] {
+  switch (rel) {
+    case 'self': return 'you';
+    case 'crew': return 'crew';
+    case 'fleet': return 'fleet';
+    default: return 'following';
+  }
+}
+
+/**
  * Phase N.2 — the privacy-safe member list behind a "+N" peer cluster badge.
  * Most-recent first, capped so a dense cluster doesn't produce a giant sheet;
  * the tail collapses to "+N more nearby". Names may be approximate or hidden
  * (server-jittered), so a missing name falls back to "Someone nearby".
  */
-function PeerMemberList({ members }: { members: AtlasPeerMember[] }) {
+function PeerMemberList({
+  members,
+  onSelectMember,
+}: {
+  members: AtlasPeerMember[];
+  onSelectMember?: (member: AtlasPeerMember) => void;
+}) {
   const CAP = 8;
   const sorted = [...members].sort((a, b) =>
     (b.setAt ?? '').localeCompare(a.setAt ?? ''),
@@ -832,7 +862,13 @@ function PeerMemberList({ members }: { members: AtlasPeerMember[] }) {
       {shown.map((m, i) => {
         const when = relativeSetAt(m.setAt);
         return (
-          <View key={`${m.stepId}-${i}`} style={shellStyles.peerListRow}>
+          <Pressable
+            key={`${m.stepId}-${i}`}
+            style={shellStyles.peerListRow}
+            onPress={onSelectMember ? () => onSelectMember(m) : undefined}
+            disabled={!onSelectMember}
+            hitSlop={4}
+          >
             <View
               style={[
                 shellStyles.peerListDot,
@@ -850,7 +886,15 @@ function PeerMemberList({ members }: { members: AtlasPeerMember[] }) {
               {peerRelationshipLabel(m.relationship)}
               {when ? ` · ${when}` : ''}
             </Text>
-          </View>
+            {onSelectMember ? (
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color="rgba(60, 60, 67, 0.3)"
+                style={shellStyles.peerListChevron}
+              />
+            ) : null}
+          </Pressable>
         );
       })}
       {extra > 0 ? (
@@ -1022,7 +1066,7 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
       { key: 'sailing.race_areas', label: 'Race areas', sub: 'Highlighted racing zones', defaultOn: true },
       { key: 'sailing.course', label: 'Race course', sub: 'Marks, laylines, start box · zoom ≥ 13', defaultOn: true },
       { key: 'sailing.race_marks', label: 'Race marks', sub: 'Visible at zoom ≥ 14', defaultOn: false },
-      { key: 'sailing.marinas', label: 'Marinas & clubs', sub: 'Sailing venues nearby', defaultOn: true },
+      { key: 'sailing.marinas', label: 'Marinas & clubs', sub: 'Sailing venues nearby', defaultOn: false },
       { key: 'sailing.sail_services', label: 'Sail services', sub: 'Lofts, chandlers, repair · zoom ≥ 13', defaultOn: false },
     ];
   }
@@ -1743,7 +1787,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // lives on the dedicated course frame; leaving it here made the chip
   // advertise data the overview no longer renders.
   const [showRaceMarks, setShowRaceMarks] = useState(true);
-  const [showMarinas, setShowMarinas] = useState(true);
+  const [showMarinas, setShowMarinas] = useState(false);
   const [showSailServices, setShowSailServices] = useState(false);
   const [showWind, setShowWind] = useState(true);
   const [showTide, setShowTide] = useState(true);
@@ -1852,7 +1896,32 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setLayersOpen(false);
     setSelectedPin(pin);
   }, []);
-  const clearSelectedPin = useCallback(() => setSelectedPin(null), []);
+  // A peer broken out of a privacy cluster on demand (tapped in the cluster
+  // drill-down list or the Nearby list). Rendered as one extra highlighted
+  // pin so "8 nearby" stops being a dead-end count — you can see exactly
+  // where that one sailor is and open their callout.
+  const [focusedPeer, setFocusedPeer] = useState<AtlasPeerMember | null>(null);
+  const focusPeerMember = useCallback((member: AtlasPeerMember) => {
+    setLayersOpen(false);
+    setFocusedPeer(member);
+    setSearchFocus({ lat: member.lat, lng: member.lng });
+    setSelectedPin({
+      id: `peer-focus:${member.stepId}`,
+      lat: member.lat,
+      lng: member.lng,
+      kind: relationshipToPeerKind(member.relationship),
+      peer: member,
+    });
+  }, []);
+  const clearSelectedPin = useCallback(() => {
+    setSelectedPin(null);
+    setFocusedPeer(null);
+  }, []);
+  // When the Nearby list passes peer identity through the route params, break
+  // that one peer out of the cluster the same way a drill-down tap does.
+  React.useEffect(() => {
+    if (handlers.initialPeerFocus) focusPeerMember(handlers.initialPeerFocus);
+  }, [handlers.initialPeerFocus, focusPeerMember]);
   // Ashore cockpit ⇄ pill. The cockpit and any bottom sheet both anchor to
   // the bottom, so a tall sheet (a tapped POI / dropped pin) grows up into
   // the cockpit and covers its buttons. Fix: the cockpit yields the bottom
@@ -2236,13 +2305,30 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Overview keeps the geography + race-mark vocabulary only. The older
   // wind/tide arrow field was too noisy and conflicted with the course
   // frame, which owns the richer conditions treatment.
+  // A peer focused from a list breaks out of its cluster as one extra
+  // highlighted pin (its server-jittered point), so the map shows where that
+  // sailor is instead of just the merged "+N" badge.
+  const focusedPeerPin = useMemo<AtlasPinSpec | null>(
+    () =>
+      focusedPeer
+        ? {
+            id: `peer-focus:${focusedPeer.stepId}`,
+            lat: focusedPeer.lat,
+            lng: focusedPeer.lng,
+            kind: relationshipToPeerKind(focusedPeer.relationship),
+            peer: focusedPeer,
+          }
+        : null,
+    [focusedPeer],
+  );
   const pins = useMemo(
     () => [
       ...filteredFramePins,
       ...(showRaceMarks ? raceMarkPins : []),
       ...windTidePins,
+      ...(focusedPeerPin ? [focusedPeerPin] : []),
     ],
-    [filteredFramePins, raceMarkPins, showRaceMarks, windTidePins],
+    [filteredFramePins, raceMarkPins, showRaceMarks, windTidePins, focusedPeerPin],
   );
   const exitCommit = useCallback(() => {
     setCommitMode(false);
@@ -3002,7 +3088,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             }
             expandedContent={
               selectedPin.peerMembers && selectedPin.peerMembers.length > 0 ? (
-                <PeerMemberList members={selectedPin.peerMembers} />
+                <PeerMemberList
+                  members={selectedPin.peerMembers}
+                  onSelectMember={focusPeerMember}
+                />
               ) : null
             }
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
@@ -7011,6 +7100,9 @@ const shellStyles = StyleSheet.create({
     color: IOS_REGISTER.labelTertiary,
     fontStyle: 'italic',
     letterSpacing: -0.05,
+  },
+  peerListChevron: {
+    marginLeft: -2,
   },
   statsRow: {
     marginTop: 8,

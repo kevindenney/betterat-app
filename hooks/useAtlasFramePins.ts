@@ -431,6 +431,8 @@ export function useAtlasFramePins({
         relationship: step.relationship,
         name: step.preview_name ?? step.set_by_name ?? null,
         setAt: step.set_at ?? null,
+        lat: step.lat,
+        lng: step.lng,
       },
     }));
     out.push(...clusterPeerPins(peerPins));

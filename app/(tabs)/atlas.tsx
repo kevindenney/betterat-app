@@ -452,6 +452,10 @@ export default function AtlasTab() {
     frame?: string;
     lat?: string;
     lng?: string;
+    focusPeerStep?: string;
+    focusPeerRel?: string;
+    focusPeerName?: string;
+    focusPeerSetAt?: string;
   }>();
   const isFromPlan = params.fromPlan === '1';
   const orgSlug = typeof params.orgSlug === 'string' ? params.orgSlug.trim() : '';
@@ -475,6 +479,36 @@ export default function AtlasTab() {
     }
     return null;
   }, [params.lat, params.lng, orgContext]);
+
+  // When a Nearby-list tap carries peer identity (focusPeerStep + lat/lng),
+  // build the focus payload so F1 can break that one peer out of the privacy
+  // cluster — drop a single highlighted pin + open its callout — instead of
+  // just panning to a spot where the merged "+N" badge sits.
+  const initialPeerFocus = React.useMemo(() => {
+    const stepId = typeof params.focusPeerStep === 'string' ? params.focusPeerStep : '';
+    const lat = parseFloat(String(params.lat ?? ''));
+    const lng = parseFloat(String(params.lng ?? ''));
+    if (!stepId || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return {
+      stepId,
+      relationship:
+        typeof params.focusPeerRel === 'string' ? params.focusPeerRel : 'public',
+      name:
+        typeof params.focusPeerName === 'string' && params.focusPeerName.length > 0
+          ? params.focusPeerName
+          : null,
+      setAt: typeof params.focusPeerSetAt === 'string' ? params.focusPeerSetAt : null,
+      lat,
+      lng,
+    };
+  }, [
+    params.focusPeerStep,
+    params.focusPeerRel,
+    params.focusPeerName,
+    params.focusPeerSetAt,
+    params.lat,
+    params.lng,
+  ]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -929,6 +963,7 @@ export default function AtlasTab() {
           onOrgLensPress={handleOpenOrgLens}
           focusOrgSlug={orgSlug || null}
           initialFocus={initialFocus}
+          initialPeerFocus={initialPeerFocus}
           onNearbyPress={frame === 'f4' ? () => setNearbyOpen(true) : undefined}
           bottomSheetOffset={tabBarSpace}
         />
@@ -975,11 +1010,25 @@ export default function AtlasTab() {
               homeVenueLabel={nearbyLabel}
               interestSlug={atlasInterestSlug}
               toolbarOffset={insets.top + 44}
-              onStepFocus={(lat, lng) => {
+              onStepFocus={(lat, lng, peer) => {
                 // Fly the map to the tapped sailor's step, then drop back
                 // to the chart. AtlasScreen re-derives its camera focus
                 // from these lat/lng params (initialFocus → searchFocus).
-                router.setParams({ lat: String(lat), lng: String(lng) } as never);
+                // When peer identity rides along, F1 breaks that one sailor
+                // out of the privacy cluster (highlighted pin + callout) so
+                // the tap lands on something visible, not the merged badge.
+                router.setParams({
+                  lat: String(lat),
+                  lng: String(lng),
+                  ...(peer
+                    ? {
+                        focusPeerStep: peer.stepId,
+                        focusPeerRel: peer.relationship,
+                        focusPeerName: peer.name ?? '',
+                        focusPeerSetAt: peer.setAt ?? '',
+                      }
+                    : {}),
+                } as never);
                 setNearbyOpen(false);
               }}
             />

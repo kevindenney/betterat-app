@@ -335,6 +335,10 @@ export interface AtlasPeerMember {
   name: string | null;
   /** ISO timestamp the step location was set, for a relative "2d ago" line. */
   setAt: string | null;
+  /** Server-jittered latitude — lets the drill-down focus this one peer. */
+  lat: number;
+  /** Server-jittered longitude. */
+  lng: number;
 }
 
 export interface AtlasPinSpec {

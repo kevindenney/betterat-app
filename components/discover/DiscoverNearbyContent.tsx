@@ -39,7 +39,16 @@ interface DiscoverNearbyContentProps {
    * navigating into the step editor. Absent on the Discover tab, where
    * there's no map to focus — those taps fall back to /step/[id].
    */
-  onStepFocus?: (lat: number, lng: number) => void;
+  onStepFocus?: (
+    lat: number,
+    lng: number,
+    peer?: {
+      stepId: string;
+      relationship: string;
+      name: string | null;
+      setAt: string | null;
+    },
+  ) => void;
 }
 
 export function DiscoverNearbyContent({
@@ -199,7 +208,12 @@ export function DiscoverNearbyContent({
                       Number.isFinite(step.lat) &&
                       Number.isFinite(step.lng)
                     ) {
-                      onStepFocus(step.lat, step.lng);
+                      onStepFocus(step.lat, step.lng, {
+                        stepId: step.step_id,
+                        relationship: step.relationship,
+                        name: step.preview_name ?? step.set_by_name ?? null,
+                        setAt: step.set_at ?? null,
+                      });
                       return;
                     }
                     router.push(`/step/${step.step_id}` as never);
