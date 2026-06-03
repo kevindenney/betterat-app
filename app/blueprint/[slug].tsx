@@ -476,7 +476,7 @@ export default function BlueprintPage() {
         if (!allSkills.includes(skill)) allSkills.push(skill);
       }
     }
-    return { totalSubSteps, skills: allSkills.slice(0, 6) };
+    return { totalSubSteps, skills: allSkills };
   }, [steps]);
 
   // Sticky header on scroll
@@ -948,11 +948,16 @@ export default function BlueprintPage() {
             </View>
             {includedSummary.skills.length > 0 && (
               <View style={styles.includedSkillsRow}>
-                {includedSummary.skills.map((skill, i) => (
+                {includedSummary.skills.slice(0, 6).map((skill, i) => (
                   <View key={i} style={[styles.includedSkillBadge, { maxWidth: screenWidth - 96 }]}>
                     <Text style={styles.includedSkillText} numberOfLines={1}>{skill}</Text>
                   </View>
                 ))}
+                {includedSummary.skills.length > 6 && (
+                  <View style={styles.includedSkillBadge}>
+                    <Text style={styles.includedSkillText}>+{includedSummary.skills.length - 6} more</Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
