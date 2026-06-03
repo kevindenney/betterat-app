@@ -4,7 +4,7 @@
 > - `atlas-tab-brief.md` — overall vision
 > - `atlas-phase-8-pin-provenance-brief.md` — provenance model
 >
-> Authors: Kevin + Claude · last updated 2026-05-25
+> Authors: Kevin + Claude · last updated 2026-06-03
 >
 > Convention: phases are unordered (number is identity, not sequence).
 > Status legend: ⬜ not started · 🟨 in flight · ✅ shipped · ⏸ paused
@@ -85,6 +85,15 @@ When a user taps "Reach out" on a mentor/peer/preceptor/mentee pin, surface a ch
 - India/SEA/Africa community → WhatsApp primary, in-app secondary
 - Same-cohort peers → in-app message primary
 Needs profile contact fields + mailto/WhatsApp deep-link helpers + the in-app messaging surface (none of which exist yet). Until shipped, mentor/preceptor pins use the honest "Open profile" CTA.
+
+### ✅ Phase M — Step-kind lens (universal activity kinds)
+From v23 mockup (`docs/redesign/mockups/23_betterat_atlas_steps_redesign.html`). Atlas no longer shows only on-water racing — every step kind (race / practice / boat work / learn / coach) gets a kind-colored glyph pin, a kind filter row, and a kind-adaptive cockpit. Kind is derived from the freeform `category` (+ title) via `stepKindFor()` in `lib/step-kind-config.ts` — no `step_kind` DB column yet (v1 keyword match). Per-interest vocab via `stepKindLabel()` (sailing → Race/Practice/Boat work/Learn/Coach; default → Event/Practice/Prep/Learn/Coach; nursing → Shift/Practice/Prep/Study/Mentor).
+
+- ✅ M.1 — Step-kind resolver + kind-colored glyph pins (`my-step-*` pins carry `stepKind` driving color + glyph). `a9573991`.
+- ✅ M.2 — Kind filter row in f1 top chrome; `filteredFramePins` applies peer + kind filters together (my-step pins filtered by `stepKind`, non-my-step always pass). `2f52409d`.
+- ✅ M.3 — Kind-adaptive cockpit: ashore kinds (boat_work / learn / coach) swap the wind/tide scrubber for `StepKindCockpit` — real `metadata.plan.how_sub_steps[]` checklist via `useAtlasCockpitStep`. No fabricated target numbers (mockup's shroud-tension/mast-rake have no schema). On-water (race / practice) keeps the scrubber. `7d890847`.
+- ✅ M.4 — Ashore cockpit *replaces* the redundant "YOUR NEXT STEP" sheet (was rendering the title twice): cockpit absorbs Open step / Pick another (kind-tinted primary). f4 nursing surfaces Nearby as a TopChrome action + drops the floating pill. `677cbda4`.
+- ⬜ M.5 (future) — promote kind to a real `step_kind` column once the keyword resolver's misclassifications justify it; extend the lens to f4/f7 cockpits.
 
 ### ⏸ Phase D — Atlas round-trip with /races timeline rebuild
 Deferred until the parallel /races rebuild lands (`project_races_rebuild_in_flight`). Then verify atlas pins → races timeline → atlas restores state.
