@@ -3116,8 +3116,16 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 .join(' · ')
             }
             body={
-              'A peer in your crew, fleet, following graph, or cohort has a step near here. Locations are privacy-jittered, so this marks the neighborhood, not an exact spot.'
+              'A peer in your crew, fleet, following graph, or cohort has a step near here. The pin is privacy-jittered to the neighborhood, but the step itself is shared with you — open it to see what they did.'
             }
+            primary={{
+              label: 'Open step',
+              icon: 'open-outline',
+              onPress: () => {
+                const id = selectedPin.peer?.stepId;
+                if (id) handlers.onStepPress?.(id);
+              },
+            }}
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
