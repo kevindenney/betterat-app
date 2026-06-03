@@ -1134,13 +1134,13 @@ export function AtlasMapLibreCanvas({
           <MLMarker
             id="atlas-next-event"
             lngLat={[nextEvent.lng, nextEvent.lat]}
+            anchor={{ x: 0.5, y: 1 }}
           >
             {onNextEventPress ? (
               <Pressable onPress={onNextEventPress} hitSlop={4}>
                 <NextEventMarker
                   label={nextEvent.label}
                   when={nextEvent.when}
-                  conditions={nextEvent.conditions}
                 />
               </Pressable>
             ) : (
@@ -1151,7 +1151,6 @@ export function AtlasMapLibreCanvas({
                 <NextEventMarker
                   label={nextEvent.label}
                   when={nextEvent.when}
-                  conditions={nextEvent.conditions}
                 />
               </View>
             )}
@@ -1518,7 +1517,7 @@ function WebAtlasMapLibreCanvas({
     if (!nextEvent) return;
 
     const element = createWebNextEventElement(nextEvent, onNextEventPress);
-    nextMarkerRef.current = new Marker({ element })
+    nextMarkerRef.current = new Marker({ element, anchor: 'bottom' })
       .setLngLat([nextEvent.lng, nextEvent.lat])
       .addTo(map);
   }, [isLoaded, nextEvent, onNextEventPress]);
@@ -2602,11 +2601,9 @@ function PinGlyph({
 function NextEventMarker({
   label,
   when,
-  conditions,
 }: {
   label: string;
   when?: string;
-  conditions?: string;
 }) {
   const eyebrow = `NEXT · ${label.toUpperCase()}${when ? ` · ${when.toUpperCase()}` : ''}`;
   return (
@@ -2614,11 +2611,6 @@ function NextEventMarker({
       <Text style={styles.nextTagEyebrow} numberOfLines={1}>
         {eyebrow}
       </Text>
-      {conditions ? (
-        <Text style={styles.nextTagDetail} numberOfLines={1}>
-          {conditions}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -2967,13 +2959,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#8A4B00',
     letterSpacing: 0.7,
-  },
-  nextTagDetail: {
-    marginTop: 1,
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#5A3000',
-    letterSpacing: 0.2,
   },
   areaLabelPill: {
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
