@@ -58,8 +58,8 @@ import {
 } from './AtlasMapLibreCanvas';
 import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
 import { CreateRaceCourseSheet } from './CreateRaceCourseSheet';
-import { CourseStrategyCard } from './CourseStrategyCard';
-import { deriveCourseStrategy } from '@/lib/courseStrategy';
+import { CourseStrategyCard, strategyHeadline } from './CourseStrategyCard';
+import { deriveCourseStrategy, type CourseStrategy } from '@/lib/courseStrategy';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
@@ -2541,6 +2541,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             ]
               .filter(Boolean)
               .join(' · ')}
+            strategy={courseStrategy}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           />
         )}
@@ -4866,14 +4867,17 @@ function WindTideScrubber({
   value,
   onChange,
   summary,
+  strategy,
   bottomOffset = 0,
 }: {
   windows: string[];
   value: number;
   onChange: (value: number) => void;
   summary: string;
+  strategy: CourseStrategy | null;
   bottomOffset?: number;
 }) {
+  const [strategyOpen, setStrategyOpen] = useState(false);
   if (windows.length === 0) return null;
   return (
     <View
@@ -4913,10 +4917,71 @@ function WindTideScrubber({
             </Text>
           ))}
         </View>
+        {strategy ? (
+          <>
+            <Pressable
+              onPress={() => setStrategyOpen((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={strategyOpen ? 'Hide strategy' : 'Show strategy'}
+              style={scrubberStrategyStyles.toggle}
+              hitSlop={6}
+            >
+              <Text style={scrubberStrategyStyles.toggleLabel}>STRATEGY</Text>
+              <Text style={scrubberStrategyStyles.toggleHeadline} numberOfLines={1}>
+                {strategyHeadline(strategy)}
+              </Text>
+              <Ionicons
+                name={strategyOpen ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color={IOS_REGISTER.labelTertiary}
+              />
+            </Pressable>
+            {strategyOpen ? (
+              <ScrollView
+                style={scrubberStrategyStyles.scroll}
+                contentContainerStyle={scrubberStrategyStyles.scrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <CourseStrategyCard strategy={strategy} />
+              </ScrollView>
+            ) : null}
+          </>
+        ) : null}
       </View>
     </View>
   );
 }
+
+const scrubberStrategyStyles = StyleSheet.create({
+  toggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+  },
+  toggleLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: '#D2691E',
+  },
+  toggleHeadline: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+  },
+  scroll: {
+    maxHeight: 240,
+  },
+  scrollContent: {
+    paddingBottom: 4,
+  },
+});
 
 /**
  * Compact callout for a step tapped on the map. Replaces the wider

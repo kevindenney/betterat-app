@@ -25,6 +25,16 @@ const END_LABEL: Record<StartEnd, string> = {
   even: 'EVEN',
 };
 
+/** One-line headline for the collapsed scrubber row, e.g. "LEFT side · PIN start". */
+export function strategyHeadline(strategy: CourseStrategy): string {
+  const side = strategy.upwind.favoredSide;
+  const end = strategy.start.favoredEnd;
+  if (side === 'even' && end === 'even') return 'Even — play the shifts';
+  const sidePart = side === 'even' ? 'Even sides' : `${SIDE_LABEL[side]} side`;
+  const endPart = end === 'even' ? 'open start' : `${END_LABEL[end]} start`;
+  return `${sidePart} · ${endPart}`;
+}
+
 function FavoredTag({ favored, label }: { favored: boolean; label: string }) {
   return (
     <View style={[styles.tag, favored && styles.tagFavored]}>
