@@ -147,8 +147,33 @@ export function courseOverlayToFeatures(
   params: CourseGeometryParams,
   courseId: string,
 ): Feature[] {
-  const { W, P, C, portCorner, stbdCorner, startBox } = overlay;
+  const { W, P, C, portCorner, stbdCorner, startBox, leftPoly, rightPoly, thirdDividers, favoredSide } =
+    overlay;
   const features: Feature[] = [];
+
+  // Favored-side shading — the two halves of the beat (looking upwind). The
+  // current-favored side is tagged `favored` so the canvas can tint it.
+  features.push(
+    polygonFeature(`${courseId}:side-left`, leftPoly, {
+      type: 'course-side',
+      side: 'left',
+      favored: favoredSide === 'left',
+      courseId,
+    }),
+    polygonFeature(`${courseId}:side-right`, rightPoly, {
+      type: 'course-side',
+      side: 'right',
+      favored: favoredSide === 'right',
+      courseId,
+    }),
+  );
+
+  // Thirds dividers — the bottom/middle/upper splits across the beat.
+  thirdDividers.forEach((divider, i) => {
+    features.push(
+      lineFeature(`${courseId}:third-${i}`, divider, { type: 'course-third', courseId }),
+    );
+  });
 
   // Start line (pin ↔ committee).
   features.push(

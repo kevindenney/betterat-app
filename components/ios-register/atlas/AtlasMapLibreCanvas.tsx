@@ -205,6 +205,32 @@ const COURSE_WEB_LAYERS: {
   paint: Record<string, unknown>;
 }[] = [
   {
+    // Favored-side shading sits at the bottom of the course stack. The
+    // current-favored half tints green; the other half stays faint so the
+    // split down the wind axis still reads.
+    id: 'atlas-web-course-sides',
+    type: 'fill',
+    filter: ['==', ['get', 'type'], 'course-side'],
+    paint: {
+      'fill-color': [
+        'case',
+        ['get', 'favored'],
+        'rgba(34, 197, 94, 0.18)',
+        'rgba(20, 33, 61, 0.05)',
+      ],
+    },
+  },
+  {
+    id: 'atlas-web-course-thirds',
+    type: 'line',
+    filter: ['==', ['get', 'type'], 'course-third'],
+    paint: {
+      'line-color': 'rgba(20, 33, 61, 0.35)',
+      'line-width': 1,
+      'line-dasharray': [2, 3],
+    },
+  },
+  {
     id: 'atlas-web-course-start-box',
     type: 'fill',
     filter: ['==', ['get', 'type'], 'start-box'],
@@ -823,6 +849,31 @@ export function AtlasMapLibreCanvas({
             circles (committee distinct from buoys). */}
         {showCourse && courseCollection && courseCollection.features.length > 0 ? (
           <MLGeoJSONSource id="atlas-race-course" data={courseCollection}>
+            <MLLayer
+              id="atlas-course-sides"
+              type="fill"
+              minZoomLevel={COURSE_MIN_ZOOM}
+              filter={['==', ['get', 'type'], 'course-side']}
+              style={{
+                fillColor: [
+                  'case',
+                  ['get', 'favored'],
+                  'rgba(34, 197, 94, 0.18)',
+                  'rgba(20, 33, 61, 0.05)',
+                ],
+              }}
+            />
+            <MLLayer
+              id="atlas-course-thirds"
+              type="line"
+              minZoomLevel={COURSE_MIN_ZOOM}
+              filter={['==', ['get', 'type'], 'course-third']}
+              style={{
+                lineColor: 'rgba(20, 33, 61, 0.35)',
+                lineWidth: 1,
+                lineDasharray: [2, 3],
+              }}
+            />
             <MLLayer
               id="atlas-course-start-box"
               type="fill"
