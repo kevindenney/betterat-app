@@ -1936,6 +1936,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     const deg = Number((windConditionsLine ?? '').split('|')[0]);
     return Number.isFinite(deg) ? deg : 0;
   }, [windConditionsLine]);
+  // Live current (SET, knots) parsed from the tide line — drives the
+  // favored-side shading on the drawn course so the map's green half matches
+  // the strategy card. Without it deriveCourseOverlay leaves favoredSide null
+  // and both halves render at the same faint tint (no left/right read).
+  const courseCurrent = useMemo(() => parseConditionsLine(tideConditionsLine), [tideConditionsLine]);
   // Which side of the beat the shore/shoaling is on, from GEBCO bathymetry —
   // feeds the strategy's shore-bend note. Keyed to the base (now) wind axis so
   // it stays put as the scrub slider veers the projected breeze.
@@ -2273,6 +2278,8 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             showCourse={showCourse}
             coursePreviewCollection={coursePreview}
             courseWindDirectionDeg={defaultCourseWindDeg}
+            courseCurrentDirectionDeg={courseCurrent?.deg}
+            courseCurrentSpeedKn={courseCurrent?.kn}
             basemap={basemap}
           />
         ) : (

@@ -62,6 +62,7 @@ import { ensureMapLibreCss, ensureMapLibreScript } from '@/lib/maplibreWeb';
 import { windColorForKnots } from '@/lib/wind-color';
 import { useAtlasRacingAreas } from '@/hooks/useAtlasRacingAreas';
 import { useAtlasRaceCourses } from '@/hooks/useAtlasRaceCourses';
+import type { CourseEnvironment } from '@/lib/venueCourseGeoJSON';
 import { useUserBoatClasses } from '@/hooks/useUserBoatClasses';
 import { useVocabulary } from '@/hooks/useVocabulary';
 
@@ -472,6 +473,14 @@ interface AtlasMapLibreCanvasProps {
    */
   courseWindDirectionDeg?: number;
   /**
+   * Live current set (degrees the current flows TO) and drift (knots). When
+   * supplied, the drawn course shades its current-favored half green so the
+   * map matches the strategy card. Absent → favoredSide stays null and both
+   * halves render at the same faint tint.
+   */
+  courseCurrentDirectionDeg?: number;
+  courseCurrentSpeedKn?: number;
+  /**
    * Fires when the user long-presses the map. Atlas uses this to open
    * the racing-area create sheet — the user marks where racing happens
    * even when their club isn't yet in BetterAt.
@@ -541,6 +550,8 @@ export function AtlasMapLibreCanvas({
   showCourse = false,
   coursePreviewCollection = null,
   courseWindDirectionDeg,
+  courseCurrentDirectionDeg,
+  courseCurrentSpeedKn,
   onNextEventPress,
   onMapLongPress,
   racingAreaPreviewPolygon = null,
@@ -581,9 +592,13 @@ export function AtlasMapLibreCanvas({
     enabled: showRaceAreas,
     userClasses: userBoatClasses,
   });
-  const courseEnv = useMemo(
-    () => (courseWindDirectionDeg != null ? { windDirection: courseWindDirectionDeg } : {}),
-    [courseWindDirectionDeg],
+  const courseEnv = useMemo<CourseEnvironment>(
+    () => ({
+      ...(courseWindDirectionDeg != null ? { windDirection: courseWindDirectionDeg } : {}),
+      ...(courseCurrentDirectionDeg != null ? { currentDirection: courseCurrentDirectionDeg } : {}),
+      ...(courseCurrentSpeedKn != null ? { currentSpeed: courseCurrentSpeedKn } : {}),
+    }),
+    [courseWindDirectionDeg, courseCurrentDirectionDeg, courseCurrentSpeedKn],
   );
   const { featureCollection: courseCollection } = useAtlasRaceCourses({
     enabled: showCourse,
