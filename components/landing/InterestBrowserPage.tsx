@@ -21,6 +21,18 @@ interface InterestBrowserPageProps {
   slug: string;
 }
 
+// Marketing/route slug → DB interest-catalog slug. The app routes and code maps
+// (vocabulary, interestContext, skillTaxonomy) use the richer left-hand slugs,
+// but the interests table stores the coarser right-hand ones. Without this,
+// these pages can't resolve their interest row and would leak the whole catalog.
+const INTEREST_SLUG_ALIASES: Record<string, string> = {
+  'health-and-fitness': 'fitness',
+  'fiber-arts': 'creative-arts',
+  'painting-printing': 'painting',
+  'lifelong-learning': 'education-learning',
+  'regenerative-agriculture': 'agriculture-environment',
+};
+
 // ── Blueprint Timeline Row (mirrors PersonTimelineRow for real blueprint data) ──
 
 interface BlueprintTimelineRowProps {
@@ -290,23 +302,29 @@ const bpRowStyles = StyleSheet.create({
 
 export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
   const interest = getInterest(slug);
+  // Marketing/route slugs are richer than the DB interest catalog (the code
+  // canonicalizes on these, the DB rows are coarser). Resolve the route slug
+  // to its DB-catalog slug so interest lookups + plan scoping line up.
+  const dbSlug = INTEREST_SLUG_ALIASES[slug] ?? slug;
   const { width } = useWindowDimensions();
   const isDesktop = width > 768;
   const { userInterests, allInterests, addInterest, switchInterest, currentInterest, refreshInterests, getDomainForInterest } = useInterest();
   const { user, isGuest } = useAuth();
   const isLoggedIn = !!user && !isGuest;
-  const isInUserInterests = userInterests.some((i) => i.slug === slug);
-  const existsInDb = allInterests.some((i) => i.slug === slug);
-  const isCurrent = currentInterest?.slug === slug;
+  const isInUserInterests = userInterests.some((i) => i.slug === dbSlug);
+  const existsInDb = allInterests.some((i) => i.slug === dbSlug);
+  const isCurrent = currentInterest?.slug === dbSlug;
 
   // Resolve parent domain for breadcrumb
-  const dbInterest = allInterests.find((i) => i.slug === slug);
+  const dbInterest = allInterests.find((i) => i.slug === dbSlug);
   const parentDomain = dbInterest ? getDomainForInterest(dbInterest.id) : null;
 
   // Real subscribable plans from the authored-blueprint catalog (System B / Stripe),
-  // scoped to this interest. This is the catalog the marketplace + checkout read.
+  // scoped to this interest by id. The RPC already filters to this interest, so
+  // when it resolves we show its plans; an unresolved interest shows none (never
+  // the whole catalog).
   const { blueprints: marketPlans } = useMarketplaceBlueprints(dbInterest?.id ?? null);
-  const interestPlans = marketPlans.filter((p) => !dbInterest || p.interestSlug === slug);
+  const interestPlans = dbInterest ? marketPlans : [];
 
   // Fetch real DB orgs for this interest (not just sample data)
   const [extraOrgs, setExtraOrgs] = useState<{ slug: string; name: string; groupLabel: string; groups: any[] }[]>([]);
@@ -492,16 +510,16 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
       if (existsInDb) {
         // If hidden, un-hide it first
         if (!isInUserInterests) {
-          await addInterest(slug);
+          await addInterest(dbSlug);
         }
-        await switchInterest(slug);
+        await switchInterest(dbSlug);
         showAlert('Interest Active', `${interest?.name ?? slug} is now your active interest.`);
       } else {
         // Interest exists in sample data but not yet in DB — create it
         const { error } = await supabase
           .from('interests')
           .insert({
-            slug,
+            slug: dbSlug,
             name: interest?.name ?? slug,
             status: 'active',
             visibility: 'public',
@@ -523,7 +541,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
         // Small delay for the query to propagate
         setTimeout(async () => {
           try {
-            await switchInterest(slug);
+            await switchInterest(dbSlug);
           } catch {
             // May not be available yet in the provider cache
           }
@@ -607,7 +625,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
           <View style={styles.section}>
             <View style={styles.plansHeaderRow}>
               <Text style={styles.sectionTitle}>Plans</Text>
-              <TouchableOpacity onPress={() => router.push(`/marketplace?interest=${slug}` as any)}>
+              <TouchableOpacity onPress={() => router.push(`/marketplace?interest=${dbInterest?.slug ?? slug}` as any)}>
                 <Text style={[styles.seeAllLink, { color: interest.color }]}>See all plans →</Text>
               </TouchableOpacity>
             </View>
