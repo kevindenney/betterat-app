@@ -15,7 +15,13 @@ import { supabase } from './supabase';
 import { logger } from '@/lib/logger';
 import { createStep } from './TimelineStepService';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
-import type { MediaUpload, StepLocation, StepPlanData, SubStep } from '@/types/step-detail';
+import type {
+  MediaUpload,
+  RacePlan,
+  StepLocation,
+  StepPlanData,
+  SubStep,
+} from '@/types/step-detail';
 
 export type QuickCaptureKind = 'text' | 'voice';
 
@@ -38,6 +44,13 @@ export interface QuickCapturePayload {
    * Defaults to a plain step.
    */
   isRace?: boolean;
+  /**
+   * Sailing only — the race-area + course choice authored in the composer's
+   * inline "Race area & course" reveal. Persisted to metadata.race_plan; the
+   * area centroid backfills location when no WHERE is set so the race pins
+   * inside its racing-area polygon. Ignored unless isRace is true.
+   */
+  racePlan?: RacePlan;
   /**
    * Local device URI for a photo picked in the composer (native only). Uploaded
    * to the `step-media` bucket on save and attached as metadata.act.media_uploads
@@ -86,6 +99,12 @@ export function buildQuickCaptureStepFields(
   const location = payload.location;
   const hasLocationName = Boolean(location?.name?.trim());
 
+  // When a race has no explicit WHERE, anchor it to the chosen racing area so
+  // its ⛵ Atlas pin lands inside the area polygon rather than nowhere.
+  const racePlan = payload.isRace ? payload.racePlan : undefined;
+  const raceCenter = racePlan?.center;
+  const raceAreaName = racePlan?.area_name?.trim();
+
   const plan: StepPlanData = {};
   if (title) plan.what_will_you_do = title;
   if (why) plan.why_reasoning = why;
@@ -94,13 +113,47 @@ export function buildQuickCaptureStepFields(
     plan.where_location = { ...location!, name: location!.name.trim() };
   }
 
+  const fallbackToRaceArea = !hasLocationName && Boolean(raceCenter);
+
   return {
     title,
     description: when || null,
-    locationName: hasLocationName ? location!.name.trim() : null,
-    locationLat: location?.lat ?? null,
-    locationLng: location?.lng ?? null,
+    locationName: hasLocationName
+      ? location!.name.trim()
+      : fallbackToRaceArea
+        ? raceAreaName ?? null
+        : null,
+    locationLat: hasLocationName ? location?.lat ?? null : raceCenter?.lat ?? null,
+    locationLng: hasLocationName ? location?.lng ?? null : raceCenter?.lng ?? null,
     plan: Object.keys(plan).length > 0 ? plan : null,
+  };
+}
+
+/**
+ * Builds the race-specific metadata for a flagged race: the canonical
+ * `race_plan` plus the display-only `atlas.race_course_context` chips the
+ * timeline card + Atlas pin read. Returns an empty object when there's no
+ * race plan so it spreads cleanly into a plain step's metadata.
+ */
+export function buildRaceMetadata(
+  racePlan?: RacePlan,
+): { race_plan?: RacePlan; atlas?: { race_course_context: { scrub_title?: string; scrub_label?: string } } } {
+  if (!racePlan || (!racePlan.area_id && !racePlan.course_type)) return {};
+
+  const lapSuffix =
+    racePlan.course_label && racePlan.laps ? ` · ${racePlan.laps} laps` : '';
+  const scrubLabel = racePlan.course_label
+    ? `${racePlan.course_label}${lapSuffix}`
+    : undefined;
+
+  return {
+    race_plan: racePlan,
+    atlas: {
+      race_course_context: {
+        ...(racePlan.area_name ? { scrub_title: racePlan.area_name } : {}),
+        ...(scrubLabel ? { scrub_label: scrubLabel } : {}),
+      },
+    },
   };
 }
 
@@ -194,6 +247,11 @@ export async function createDraftStep({
 
   const placement = await resolveQuickCapturePlacement(userId, interestId);
 
+  // A flagged race carries its area/course choice as the canonical race_plan,
+  // plus the display-only race_course_context chips the timeline + Atlas read.
+  const racePlan = payload.isRace ? payload.racePlan : undefined;
+  const raceMeta = buildRaceMetadata(racePlan);
+
   // Upload the composer photo (if any) before creating the row so the step
   // lands with its media already attached. A failed upload shouldn't sink the
   // whole step — log and continue without the image.
@@ -228,6 +286,8 @@ export async function createDraftStep({
       audio_uri: payload.audioUri ?? null,
       // Canonical source the Plan tab + timeline adapter read for WHAT/WHY/HOW/WHERE.
       ...(fields.plan ? { plan: fields.plan } : {}),
+      // Race area/course choice + derived Atlas course-context chips.
+      ...raceMeta,
       // Composer photo lands under act.media_uploads so the Do tab renders it.
       ...(mediaUpload ? { act: { media_uploads: [mediaUpload] } } : {}),
     },

@@ -219,6 +219,26 @@ export interface AtlasRaceCourseContext {
   slack?: string;
 }
 
+/**
+ * Structured race plan authored in the + composer when a step is flagged a
+ * Race (mockup 27). Source of truth for the race-area + course choice; the
+ * display-only `race_course_context` chips above are derived from it. Marks
+ * geometry and live conditions are layered later on the on-water screen.
+ */
+export interface RacePlan {
+  /** venue_racing_areas.id of the chosen racing area, when picked. */
+  area_id?: string;
+  area_name?: string;
+  /** Centroid of the racing-area geometry — drives the ⛵ Atlas pin placement. */
+  center?: { lat: number; lng: number };
+  /** Course-type key, e.g. 'windward_leeward'. */
+  course_type?: string;
+  /** Display label for the course type, e.g. 'Windward–Leeward'. */
+  course_label?: string;
+  /** Lap count for lap-based courses (windward-leeward, triangle). */
+  laps?: number;
+}
+
 export type AtlasCourseSource =
   | 'official'
   | 'community'
@@ -501,5 +521,7 @@ export interface StepMetadata {
   brain_dump?: BrainDumpData;
   /** Entrepreneur vocab — the money/sales this step produced. */
   outcome?: BusinessOutcomeData;
+  /** Sailing — race-area + course choice when the step is_race (mockup 27). */
+  race_plan?: RacePlan;
   [key: string]: unknown;
 }

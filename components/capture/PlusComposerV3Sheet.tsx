@@ -42,10 +42,11 @@ import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { QuickCapturePayload } from '@/services/QuickCaptureService';
-import type { StepLocation } from '@/types/step-detail';
+import type { RacePlan, StepLocation } from '@/types/step-detail';
 import { VoiceComposerV3Sheet } from './VoiceComposerV3Sheet';
 import { ComposerWhereField } from './ComposerWhereField';
 import { PlanStepRaceSelector } from '@/components/step/plan-tab/PlanStepRaceSelector';
+import { RaceCoursePicker } from './RaceCoursePicker';
 
 const SERIF_FAMILY = Platform.select({
   ios: 'Georgia',
@@ -77,6 +78,13 @@ interface PlusComposerV3SheetProps {
    * authored later in the step's Plan tab; here we only set the flag.
    */
   showRaceSelector?: boolean;
+  /**
+   * The user's home venue — keys the racing-area lookup in the inline "Race
+   * area & course" reveal. Only consumed when showRaceSelector is true and the
+   * step is flagged a Race.
+   */
+  venueId?: string | null;
+  venueName?: string | null;
   /**
    * AI librarian hint surfaced when the typed input looks like it belongs
    * under an existing step. v1 = absent; v2 = real AI routing. When passed,
@@ -125,9 +133,12 @@ export function PlusComposerV3Sheet({
   suggestedFields = DEFAULT_SUGGESTED_FIELDS,
   librarianHint,
   showRaceSelector = false,
+  venueId,
+  venueName,
 }: PlusComposerV3SheetProps) {
   const [whatText, setWhatText] = useState('');
   const [isRace, setIsRace] = useState(false);
+  const [racePlan, setRacePlan] = useState<RacePlan>({});
   const [activeFields, setActiveFields] = useState<ComposerFieldKey[]>([]);
   const [fieldValues, setFieldValues] = useState<Record<ComposerFieldKey, string>>(emptyFieldValues);
   const [whereLocation, setWhereLocation] = useState<StepLocation | undefined>(undefined);
@@ -140,6 +151,7 @@ export function PlusComposerV3Sheet({
   const resetComposer = useCallback(() => {
     setWhatText('');
     setIsRace(false);
+    setRacePlan({});
     setActiveFields([]);
     setFieldValues(emptyFieldValues());
     setWhereLocation(undefined);
@@ -163,10 +175,11 @@ export function PlusComposerV3Sheet({
       how: fieldValues.how.trim() || undefined,
       when: fieldValues.when.trim() || undefined,
       isRace: showRaceSelector ? isRace : undefined,
+      racePlan: showRaceSelector && isRace ? racePlan : undefined,
       imageUri: photoUri,
     });
     resetComposer();
-  }, [whatText, fieldValues, whereLocation, photoUri, showRaceSelector, isRace, onSave, onDismiss, resetComposer]);
+  }, [whatText, fieldValues, whereLocation, photoUri, showRaceSelector, isRace, racePlan, onSave, onDismiss, resetComposer]);
 
   const handlePickPhoto = useCallback(async () => {
     if (Platform.OS === 'web') {
@@ -268,6 +281,16 @@ export function PlusComposerV3Sheet({
             {showRaceSelector ? (
               <View style={styles.raceSelectorSlot}>
                 <PlanStepRaceSelector isRace={isRace} onChange={setIsRace} />
+                {isRace ? (
+                  <View style={styles.raceCourseSlot}>
+                    <RaceCoursePicker
+                      venueId={venueId}
+                      venueName={venueName}
+                      value={racePlan}
+                      onChange={setRacePlan}
+                    />
+                  </View>
+                ) : null}
               </View>
             ) : null}
 
@@ -516,6 +539,9 @@ const styles = StyleSheet.create({
   },
   raceSelectorSlot: {
     marginBottom: 18,
+  },
+  raceCourseSlot: {
+    marginTop: 12,
   },
   eyebrow: {
     fontSize: 10.5,

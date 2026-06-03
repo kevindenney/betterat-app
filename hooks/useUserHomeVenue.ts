@@ -37,6 +37,8 @@ export function isSailingInterest(slug?: string | null): boolean {
 }
 
 export interface UserHomeVenue {
+  /** sailing_venues.id of the home venue — keys racing-area lookups. */
+  id: string | null;
   region: string | null;
   venue: string | null;
   /** Home venue coords — drive the Nearby bbox queries. */
@@ -59,12 +61,13 @@ async function fetchHomeVenue(userId: string): Promise<UserHomeVenue> {
     .maybeSingle<SailorProfileRow>();
 
   if (!sailor?.home_venue_id) {
-    return { region: null, venue: null, lat: null, lng: null };
+    return { id: null, region: null, venue: null, lat: null, lng: null };
   }
 
   const lat = Number.isFinite(sailor.home_venue_lat) ? (sailor.home_venue_lat as number) : null;
   const lng = Number.isFinite(sailor.home_venue_lng) ? (sailor.home_venue_lng as number) : null;
   return {
+    id: sailor.home_venue_id,
     region: null,
     venue: sailor.home_venue_name ?? null,
     lat,

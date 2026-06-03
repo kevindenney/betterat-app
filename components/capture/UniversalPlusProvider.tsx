@@ -26,10 +26,12 @@ import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { logger } from '@/lib/logger';
 import {
   buildQuickCaptureStepFields,
+  buildRaceMetadata,
   createDraftStep,
   dropInsight,
   type QuickCapturePayload,
 } from '@/services/QuickCaptureService';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import { UniversalPlusSheet } from './UniversalPlusSheet';
 import { PlusComposerV3Sheet } from './PlusComposerV3Sheet';
@@ -89,6 +91,8 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
   const { user } = useAuth();
   const { currentInterest } = useInterest();
   const queryClient = useQueryClient();
+  const homeVenue = useUserHomeVenue();
+  const isSailRacing = (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing';
 
   const open = useCallback(() => {
     if (!enabled) return;
@@ -153,6 +157,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           capture_kind: payload.kind,
           audio_uri: payload.audioUri ?? null,
           ...(fields.plan ? { plan: fields.plan } : {}),
+          ...buildRaceMetadata(payload.isRace ? payload.racePlan : undefined),
         },
         collaborator_user_ids: [],
         completed_at: null,
@@ -302,9 +307,9 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
             onStartFromLink={handleStartFromLink}
             interestLabel={currentInterest?.name ?? null}
             sessionLabel={null}
-            showRaceSelector={
-              (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing'
-            }
+            showRaceSelector={isSailRacing}
+            venueId={isSailRacing ? homeVenue?.id ?? null : null}
+            venueName={isSailRacing ? homeVenue?.venue ?? null : null}
           />
         ) : (
           <UniversalPlusSheet
