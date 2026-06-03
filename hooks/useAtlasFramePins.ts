@@ -14,7 +14,7 @@ import { useAtlasPeerSteps, type AtlasPeerStep } from './useAtlasPeerSteps';
 import { useUserAtlasSteps, type PickerStep, type UserAtlasStep } from './useUserAtlasSteps';
 import { useSailingPoisNear, type SailingPoiRow } from './useSailingPoisNear';
 import type { AtlasPinSpec } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
-import { stepKindFor } from '@/lib/step-kind-config';
+import { stepKindFor, isRaceStep } from '@/lib/step-kind-config';
 
 interface UseAtlasFramePinsArgs {
   /** bbox center lat — taken from the frame's camera preset */
@@ -459,7 +459,8 @@ export function useAtlasFramePins({
         label,
         subtitle: subtitleParts.join(' · ') || undefined,
         stepId: step.step_id,
-        stepKind: stepKindFor({ category: step.category, title: step.title }),
+        isRace: isRaceStep({ category: step.category, title: step.title, is_race: step.is_race }),
+        stepKind: stepKindFor({ category: step.category, title: step.title, isRace: step.is_race }),
       });
     }
 

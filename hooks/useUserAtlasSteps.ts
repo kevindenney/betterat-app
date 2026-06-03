@@ -31,6 +31,8 @@ export interface UserAtlasStep {
   title: string;
   /** Freeform activity category — fed to stepKindFor() for the Atlas kind lens. */
   category: string | null;
+  /** Phase N.4 — explicit race flag; drives the ⛵ race pin + race cockpit. */
+  is_race: boolean;
   location_name: string | null;
   status: UserStepStatus;
   /** ISO timestamp the row carries — either starts_at (planned) or updated_at (done). */
@@ -115,7 +117,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       if (interestErr || !interestRow) return [];
       const { data: rows, error } = await supabase
         .from('timeline_steps')
-        .select('id, title, category, status, starts_at, created_at, updated_at, location_lat, location_lng, location_name, metadata')
+        .select('id, title, category, is_race, status, starts_at, created_at, updated_at, location_lat, location_lng, location_name, metadata')
         .eq('user_id', userId)
         .eq('interest_id', interestRow.id)
         .limit(200);
@@ -160,6 +162,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         lng,
         title: row.title,
         category: (row as { category?: string | null }).category ?? null,
+        is_race: (row as { is_race?: boolean | null }).is_race ?? false,
         location_name:
           row.location_name ??
           (typeof whereLocation?.name === 'string' ? whereLocation.name : null),

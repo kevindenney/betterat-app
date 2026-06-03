@@ -118,15 +118,41 @@ const KEYWORDS: { kind: StepKind; terms: string[] }[] = [
  * Resolve a step's kind from its freeform category + title. Pure keyword
  * matching — no DB column. Returns `other` when nothing matches so the
  * caller always gets a concrete kind to tone the pin with.
+ *
+ * Pass `isRace` to honor the explicit `timeline_steps.is_race` flag: a step
+ * flagged as a race always resolves to `race`, no keyword guessing. This is
+ * the Phase N.4 binary entering through the back of the old 5-kind lens —
+ * the flag wins, the keyword tables only fill in for unflagged legacy rows.
  */
 export function stepKindFor(args: {
   category?: string | null;
   title?: string | null;
+  isRace?: boolean | null;
 }): StepKind {
+  if (args.isRace === true) return 'race';
   const haystack = `${args.category ?? ''} ${args.title ?? ''}`.toLowerCase();
   if (!haystack.trim()) return 'other';
   for (const { kind, terms } of KEYWORDS) {
     if (terms.some((t) => haystack.includes(t))) return kind;
   }
   return 'other';
+}
+
+/**
+ * Phase N.4 — the only step distinction that changes Atlas behavior.
+ *
+ * A step is just a step; a race is the one kind that carries a venue, course
+ * geometry, marks and on-water conditions, so Atlas treats it specially. The
+ * explicit `is_race` flag wins; we keep a keyword fallback so legacy rows that
+ * were never flagged (default false) still read as races on the map until the
+ * planner sets the flag in the composer. Once the keyword fallback is no longer
+ * needed it collapses to `is_race === true`.
+ */
+export function isRaceStep(args: {
+  category?: string | null;
+  title?: string | null;
+  is_race?: boolean | null;
+}): boolean {
+  if (args.is_race === true) return true;
+  return stepKindFor({ category: args.category, title: args.title }) === 'race';
 }

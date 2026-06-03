@@ -429,6 +429,13 @@ export interface AtlasPinSpec {
    */
   stepKind?: StepKind;
   /**
+   * Phase N.4 — the only first-class step distinction. True when this step is
+   * a race (carries course/marks/conditions); drives the ⛵ race pin + race
+   * cockpit. `stepKind` stays populated for the still-live Phase M lens, but
+   * new binary code should branch on `isRace`, not the 5-kind taxonomy.
+   */
+  isRace?: boolean;
+  /**
    * Optional connector line for non-pin annotations such as walk-time
    * labels. Coordinates are [lng, lat]. The map renders these as dashed
    * GeoJSON line features beneath markers.
