@@ -250,6 +250,28 @@ const COURSE_WEB_LAYERS: {
     },
   },
   {
+    id: 'atlas-web-course-side-labels',
+    type: 'symbol',
+    filter: ['==', ['get', 'type'], 'course-side-label'],
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': 10,
+      'text-letter-spacing': 0.1,
+      'text-allow-overlap': true,
+    },
+    paint: {
+      'text-color': [
+        'case',
+        ['get', 'favored'],
+        'rgba(22, 130, 60, 0.95)',
+        'rgba(20, 33, 61, 0.5)',
+      ],
+      'text-halo-color': 'rgba(241, 233, 216, 0.9)',
+      'text-halo-width': 1.2,
+    },
+  },
+  {
     id: 'atlas-web-course-start-box',
     type: 'fill',
     filter: ['==', ['get', 'type'], 'start-box'],
@@ -919,6 +941,27 @@ export function AtlasMapLibreCanvas({
                 textLetterSpacing: 0.08,
                 textAllowOverlap: true,
                 textColor: 'rgba(20, 33, 61, 0.55)',
+                textHaloColor: 'rgba(241, 233, 216, 0.9)',
+                textHaloWidth: 1.2,
+              }}
+            />
+            <MLLayer
+              id="atlas-course-side-labels"
+              type="symbol"
+              minZoomLevel={COURSE_MIN_ZOOM}
+              filter={['==', ['get', 'type'], 'course-side-label']}
+              style={{
+                textField: ['get', 'label'],
+                textFont: ['Noto Sans Regular'],
+                textSize: 10,
+                textLetterSpacing: 0.1,
+                textAllowOverlap: true,
+                textColor: [
+                  'case',
+                  ['get', 'favored'],
+                  'rgba(22, 130, 60, 0.95)',
+                  'rgba(20, 33, 61, 0.5)',
+                ],
                 textHaloColor: 'rgba(241, 233, 216, 0.9)',
                 textHaloWidth: 1.2,
               }}

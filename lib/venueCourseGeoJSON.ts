@@ -158,6 +158,8 @@ export function courseOverlayToFeatures(
     rightPoly,
     thirdDividers,
     thirdLabels,
+    leftLabel,
+    rightLabel,
     favoredSide,
   } = overlay;
   const features: Feature[] = [];
@@ -198,6 +200,24 @@ export function courseOverlayToFeatures(
       }),
     );
   });
+
+  // Side labels — LEFT/RIGHT at the two half-centers, echoing the strategy
+  // card's favored-side language. The current-favored side is tagged so the
+  // canvas can tint it the same green as its shading.
+  features.push(
+    pointFeature(`${courseId}:side-label-left`, leftLabel, {
+      type: 'course-side-label',
+      label: 'LEFT',
+      favored: favoredSide === 'left',
+      courseId,
+    }),
+    pointFeature(`${courseId}:side-label-right`, rightLabel, {
+      type: 'course-side-label',
+      label: 'RIGHT',
+      favored: favoredSide === 'right',
+      courseId,
+    }),
+  );
 
   // Start line (pin ↔ committee).
   features.push(
