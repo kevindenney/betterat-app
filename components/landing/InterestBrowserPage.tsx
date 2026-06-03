@@ -224,6 +224,47 @@ function GroupCard({ group, onJoin }: { group: GroupVM; onJoin: () => void }) {
   );
 }
 
+// react-native-web makes <body> the scroll container while
+// document.scrollingElement stays <html> (which isn't scrollable here), so
+// window.scrollTo and even native smooth scrollIntoView/scrollTo silently
+// no-op on the document. Resolve the real scrollable ancestor and animate its
+// scrollTop ourselves so tier-tab clicks reliably jump to their section.
+function scrollAnchorIntoView(el: HTMLElement, offset = 0) {
+  let scroller: HTMLElement | null = el.parentElement;
+  while (scroller) {
+    const oy = getComputedStyle(scroller).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && scroller.scrollHeight > scroller.clientHeight) break;
+    scroller = scroller.parentElement;
+  }
+  const container: HTMLElement = scroller ?? document.body;
+  const target =
+    el.getBoundingClientRect().top -
+    container.getBoundingClientRect().top +
+    container.scrollTop -
+    offset;
+  const start = container.scrollTop;
+  const max = container.scrollHeight - container.clientHeight;
+  const end = Math.max(0, Math.min(target, max));
+  const dist = end - start;
+  if (Math.abs(dist) < 2) return;
+  // Backgrounded tabs throttle requestAnimationFrame to zero, so the smooth
+  // animation below would never tick. Jump instantly when hidden; a focused
+  // user (the only one who can click a tab) still gets the animation.
+  if (typeof document !== 'undefined' && document.hidden) {
+    container.scrollTop = end;
+    return;
+  }
+  const duration = 320;
+  const t0 = performance.now();
+  const step = (now: number) => {
+    const p = Math.min(1, (now - t0) / duration);
+    const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+    container.scrollTop = start + dist * eased;
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
   const interest = getInterest(slug);
   // Marketing/route slugs are richer than the DB interest catalog (the code
@@ -249,7 +290,8 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
     setActiveTab(key);
     if (Platform.OS === 'web') {
       if (typeof document !== 'undefined') {
-        document.getElementById(`ip-section-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const el = document.getElementById(`ip-section-${key}`);
+        if (el) scrollAnchorIntoView(el, 16);
       }
       return;
     }
