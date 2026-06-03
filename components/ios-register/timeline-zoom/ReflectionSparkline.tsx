@@ -54,7 +54,11 @@ export function ReflectionSparkline({
   }
 
   const barMaxHeight = height - 4;
-  const barWidth = Math.max(2, colWidth * 0.42);
+  // Cap the bar width so reflections read as thin "you paused here" ticks
+  // rather than a competing bar chart — the design keeps them small and
+  // quiet under the capability bands. Without the cap, a 4-week arc gives
+  // each bar a fat column and the lane shouts louder than the river above.
+  const barWidth = Math.min(5, Math.max(2, colWidth * 0.32));
 
   return (
     <View style={[styles.host, { height }]}>

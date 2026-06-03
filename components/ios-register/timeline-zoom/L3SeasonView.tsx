@@ -574,6 +574,7 @@ export function L3SeasonView({
                   totalWeeks={totalWeeks}
                   currentWeekNumber={currentWeek}
                   width={riverWidth}
+                  height={16}
                 />
               </View>
               <Text style={styles.reflectionCaption}>
@@ -605,7 +606,7 @@ export function L3SeasonView({
                   currentWeekNumber={currentWeek}
                   width={riverWidth}
                   compact={analysis.peers.length <= 3}
-                  showRole
+                  showRole={false}
                   peerSharedFleets={fleetCohort?.peerToFleets}
                   viewerFleets={fleetCohort?.fleets}
                   isolatedPeerId={activePerson?.id ?? null}
