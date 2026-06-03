@@ -1713,10 +1713,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const cockpitStep = useAtlasCockpitStep(
     isAshoreCockpit ? (myNextStepPin?.stepId ?? null) : null,
   );
-  // When the ashore cockpit owns the next step, it IS the surface — the
-  // redundant "YOUR NEXT STEP" / "YOUR STEP" bottom sheets for that same
-  // step are suppressed so the step isn't shown twice. A sheet for any
-  // OTHER tapped pin still shows.
+  // When the ashore cockpit owns the next step, it IS the single step
+  // surface — every "YOUR NEXT STEP" / "YOUR STEP" my-step bottom sheet is
+  // suppressed so no second step card stacks under the cockpit (the user
+  // reaches other steps via the cockpit's "Pick another"). Non-step pins
+  // (club / POI / peer / race-mark) still open their own sheet.
   const cockpitOwnsNext = isAshoreCockpit && !!myNextStepPin;
   // Auto-center on the viewer's next step the first time it appears.
   // The point of Atlas is "show me where I'm going" — landing on the
@@ -2809,12 +2810,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           secondary={{ label: 'Cancel', onPress: exitCommit }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
-      ) : selectedPin &&
-        !(
-          cockpitOwnsNext &&
-          (selectedPin.stepId ?? selectedPin.id) ===
-            (myNextStepPin?.stepId ?? myNextStepPin?.id)
-        ) ? (
+      ) : selectedPin && !(cockpitOwnsNext && isUserStepPin(selectedPin)) ? (
         // Race-marks are organizer-set artifacts of an upcoming race — the
         // user can't "plan a step" at one. Surface a richer eyebrow that
         // names the regatta they belong to, swap the CTA to "Open <race>"
