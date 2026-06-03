@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { WebMeta } from '@/components/marketplace/WebMeta';
+import { BlueprintCoverArt } from '@/components/blueprint/BlueprintCoverArt';
 import {
   useMarketplaceBlueprints,
   useMarketplaceCheckout,
@@ -456,6 +457,7 @@ export default function MarketplacePage() {
               <View key={bp.id} style={[s.card, isCompact && s.cardCompact]}>
                 <View style={s.cardCover}>
                   <View style={[s.cardCoverInk, { backgroundColor: aviTone(bp.authorTone) }]} />
+                  <BlueprintCoverArt slug={bp.interestSlug} />
                   <Text style={s.cardCoverTitle} numberOfLines={3}>
                     {bp.title}
                   </Text>
@@ -575,6 +577,7 @@ function FeaturedHero({
   return (
     <Pressable onPress={onOpen} style={[s.featuredCard, isCompact && s.featuredCardCompact]}>
       <View style={[s.featuredCover, { backgroundColor: aviTone(bp.authorTone) }]}>
+        <BlueprintCoverArt slug={bp.interestSlug} />
         <View style={s.featuredFlag}>
           <Ionicons name="sparkles" size={11} color="#FFFFFF" />
           <Text style={s.featuredFlagText}>Featured</Text>

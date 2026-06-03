@@ -40,6 +40,7 @@ import { getBlueprintAccessInfo, checkBlueprintPurchase, getPeerSubscriberTimeli
 import { blueprintPaymentService } from '@/services/BlueprintPaymentService';
 import { NotificationService } from '@/services/NotificationService';
 import { PublishBlueprintSheet } from '@/components/blueprint/PublishBlueprintSheet';
+import { SimpleLandingNav } from '@/components/landing/SimpleLandingNav';
 import { StudentProgressSection } from '@/components/blueprint/StudentProgressSection';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type { PeerTimeline } from '@/types/blueprint';
@@ -564,8 +565,15 @@ export default function BlueprintPage() {
 
   return (
     <Container style={containerStyle}>
+      {/* Marketing chrome — gives cold visitors a way into the rest of BetterAt */}
+      {Platform.OS === 'web' && (
+        <SimpleLandingNav
+          currentInterestSlug={allInterests.find((i) => i.id === (blueprint as any).interest_id)?.slug}
+        />
+      )}
+
       {/* Navigation header */}
-      <View style={styles.navHeader}>
+      <View style={[styles.navHeader, Platform.OS === 'web' && styles.navHeaderWeb]}>
         <Pressable
           style={styles.backBtn}
           onPress={() => router.canGoBack() ? router.back() : router.replace(getEventTabRoute() as any)}
@@ -1038,6 +1046,15 @@ export default function BlueprintPage() {
                 </Pressable>
               );
             })}
+          </View>
+        )}
+
+        {Platform.OS === 'web' && (
+          <View style={styles.webFooter}>
+            <Text style={styles.webFooterBrand}>BetterAt</Text>
+            <Text style={styles.webFooterText}>
+              Get better at what matters to you.
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -1646,6 +1663,30 @@ const styles = StyleSheet.create({
     maxWidth: 640,
     width: '100%',
     alignSelf: 'center',
+  },
+  // Clear the fixed SimpleLandingNav (≈56px) so the Back row isn't hidden under it.
+  navHeaderWeb: {
+    marginTop: 56,
+  },
+  webFooter: {
+    marginTop: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    backgroundColor: '#1A1A1A',
+    alignItems: 'center',
+    gap: 4,
+  },
+  webFooterBrand: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  webFooterText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
   },
   backBtn: {
     flexDirection: 'row',

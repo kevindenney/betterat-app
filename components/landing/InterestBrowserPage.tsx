@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWind
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { SimpleLandingNav } from './SimpleLandingNav';
+import { BlueprintCoverArt } from '@/components/blueprint/BlueprintCoverArt';
 import { ScrollFix } from './ScrollFix';
 import { getInterest } from '@/lib/landing/sampleData';
 import { useInterest } from '@/providers/InterestProvider';
@@ -116,7 +117,9 @@ function BlueprintMarketCard({ plan, wide }: { plan: MarketplaceBlueprint; wide:
           { backgroundColor: tone },
           Platform.select({ web: { backgroundImage: `linear-gradient(135deg, ${tone}, ${tone}CC)` } as any }),
         ]}
-      />
+      >
+        <BlueprintCoverArt slug={plan.interestSlug} />
+      </View>
       <View style={styles.bpBody}>
         <Text style={styles.bpTitle} numberOfLines={2}>{plan.title}</Text>
         <View style={styles.bpAuthorRow}>
