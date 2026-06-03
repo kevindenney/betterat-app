@@ -84,6 +84,7 @@ import { useUniversalPlus } from '@/components/capture';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
 import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
+import { useAtlasCockpitStep, type CockpitSubStep } from '@/hooks/useAtlasCockpitStep';
 import { STEP_KIND_CONFIG, stepKindLabel, type StepKind } from '@/lib/step-kind-config';
 import { useNearestPlace, formatNearLabel } from '@/hooks/useNearestPlace';
 import { useMarineSnapshot, conditionsLineFor } from '@/hooks/useMarineSnapshot';
@@ -250,6 +251,12 @@ export interface AtlasFrameHandlers {
    * deep-links to a specific lat/lng.
    */
   initialFocus?: { lat: number; lng: number } | null;
+  /**
+   * Opens the "people & sites nearby" overlay. F4 nursing passes this so
+   * Nearby surfaces as a quiet TopChrome action; sailing frames keep the
+   * wrapper-level floating pill and don't pass it.
+   */
+  onNearbyPress?: () => void;
 }
 
 interface AtlasScreenProps extends Omit<AtlasFrameHandlers, 'initialCommitMode'> {
@@ -302,6 +309,7 @@ export function AtlasScreen({
   nextEvent,
   avatarInitial,
   initialFocus,
+  onNearbyPress,
   useMapLibre = false,
   initialCommitMode = false,
   bottomSheetOffset = 0,
@@ -322,6 +330,7 @@ export function AtlasScreen({
     nextEvent,
     avatarInitial,
     initialFocus,
+    onNearbyPress,
     useMapLibre,
     initialCommitMode,
     bottomSheetOffset,
@@ -385,6 +394,7 @@ function TopChrome({
   subtitle,
   onLayersPress,
   onSearchPress,
+  onNearbyPress,
 }: {
   title: string;
   /**
@@ -402,6 +412,12 @@ function TopChrome({
    * default. Frames opt in by passing a handler.
    */
   onSearchPress?: () => void;
+  /**
+   * Optional "Nearby" glyph (list icon) — opens the people-&-sites-nearby
+   * overlay. F4 nursing passes this so Nearby lives as a quiet header action
+   * instead of a floating pill covering the map. Frames opt in.
+   */
+  onNearbyPress?: () => void;
   /** Unused — kept for callsite compat; ProfileDropdown owns its own tap. */
   onAvatarPress?: () => void;
 }) {
@@ -466,6 +482,16 @@ function TopChrome({
               </Text>
             ) : null}
           </View>
+          {onNearbyPress ? (
+            <Pressable
+              style={shellStyles.capsuleAction}
+              hitSlop={6}
+              onPress={onNearbyPress}
+              accessibilityLabel="People and sites nearby"
+            >
+              <Ionicons name="list" size={16} color="rgba(60, 60, 67, 0.85)" />
+            </Pressable>
+          ) : null}
           {onSearchPress ? (
             <Pressable
               style={shellStyles.capsuleAction}
@@ -1673,6 +1699,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     () => framePinsWithDemo.find((pin) => pin.kind === 'my-step-next') ?? null,
     [framePinsWithDemo],
   );
+  // Kind-adaptive cockpit — racing is one kind of step among many. When the
+  // viewer's next step is ASHORE (boat work / learn / coach), wind & tide
+  // gauges are noise; the cockpit instead shows that step's "how" checklist.
+  // On-water kinds (race / practice) and unknown ('other') keep the
+  // wind/tide scrubber. We only fetch the focused step's sub-steps when it's
+  // actually ashore, so on-water frames pay nothing.
+  const cockpitStepKind = myNextStepPin?.stepKind ?? null;
+  const isAshoreCockpit =
+    cockpitStepKind === 'boat_work' ||
+    cockpitStepKind === 'learn' ||
+    cockpitStepKind === 'coach';
+  const cockpitStep = useAtlasCockpitStep(
+    isAshoreCockpit ? (myNextStepPin?.stepId ?? null) : null,
+  );
   // Auto-center on the viewer's next step the first time it appears.
   // The point of Atlas is "show me where I'm going" — landing on the
   // bbox centroid is a useless default when we already know which
@@ -2602,7 +2642,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           }}
         />
 
-        {(showWind || showTide) && (
+        {isAshoreCockpit && myNextStepPin ? (
+          <StepKindCockpit
+            stepKind={cockpitStepKind!}
+            title={
+              cockpitStep?.title ??
+              myNextStepPin.label?.split('|')[0]?.trim() ??
+              'Next step'
+            }
+            locationName={cockpitStep?.locationName ?? null}
+            subSteps={cockpitStep?.subSteps ?? []}
+            interestSlug={currentInterest?.slug ?? null}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          />
+        ) : (showWind || showTide) ? (
           <WindTideScrubber
             windows={scrubWindows.map((w) => w.label)}
             value={scrubIndex}
@@ -2621,7 +2674,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             strategy={courseStrategy}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           />
-        )}
+        ) : null}
       </View>
 
       {/* All bottom-sheet variants are suppressed while Layers is open
@@ -3965,6 +4018,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             }
             avatarInitial={handlers.avatarInitial ?? 'E'}
             onSearchPress={() => setSearchOpen(true)}
+            onNearbyPress={handlers.onNearbyPress}
           />
           {/* Sites | Coverage | Map segment — the reframe's spine. */}
           <View style={shellStyles.f4Segment}>
@@ -4240,7 +4294,12 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             initialState="expanded"
           />
         )
-      ) : anchorPromptDismissed ? (
+      ) : f4View !== 'map' ? null : anchorPromptDismissed ? (
+        // Sites & Coverage are self-contained read surfaces — the persistent
+        // fallback CTA sheets (PLAN A STEP / COHORT) only belong over the Map,
+        // where there's no other anchor affordance. On Sites, logging a shift
+        // lives on the active "Now" site card; prep stays reachable via the
+        // hero "What to prep" (nextEventSheetOpen, above).
         <BottomSheet
           eyebrow="PLAN A STEP"
           title="Anchor your next step to a place."
@@ -5150,6 +5209,173 @@ function WindTideScrubber({
     </View>
   );
 }
+
+/**
+ * StepKindCockpit — the ashore counterpart to WindTideScrubber. When the
+ * viewer's next step is boat work / learn / coach, the wind & tide gauges
+ * are irrelevant, so the cockpit shows the step's kind, title, place, and
+ * its real "how" checklist (metadata.plan.how_sub_steps) with live done
+ * state. No fabricated target numbers — only what the step actually carries.
+ */
+function StepKindCockpit({
+  stepKind,
+  title,
+  locationName,
+  subSteps,
+  interestSlug,
+  bottomOffset = 0,
+}: {
+  stepKind: StepKind;
+  title: string;
+  locationName: string | null;
+  subSteps: CockpitSubStep[];
+  interestSlug: string | null;
+  bottomOffset?: number;
+}) {
+  const cfg = STEP_KIND_CONFIG[stepKind];
+  const label = stepKindLabel(stepKind, interestSlug);
+  const doneCount = subSteps.filter((s) => s.completed).length;
+  return (
+    <View
+      style={[shellStyles.windTideScrubber, { bottom: bottomOffset + 116 }]}
+      pointerEvents="box-none"
+    >
+      <View style={shellStyles.windTideScrubberCard}>
+        <View style={stepCockpitStyles.eyebrowRow}>
+          <View style={[stepCockpitStyles.kindDot, { backgroundColor: cfg.color }]} />
+          <Text style={[stepCockpitStyles.eyebrowText, { color: cfg.color }]} numberOfLines={1}>
+            {cfg.glyph} {label.toUpperCase()}
+          </Text>
+          <Text style={stepCockpitStyles.whenBadge}>NEXT</Text>
+        </View>
+        <Text style={stepCockpitStyles.title} numberOfLines={2}>
+          {title}
+        </Text>
+        {locationName ? (
+          <Text style={stepCockpitStyles.subtitle} numberOfLines={1}>
+            {locationName}
+          </Text>
+        ) : null}
+        {subSteps.length > 0 ? (
+          <>
+            <Text style={stepCockpitStyles.checklistLead}>
+              {doneCount} of {subSteps.length} done
+            </Text>
+            <ScrollView
+              style={stepCockpitStyles.checklist}
+              showsVerticalScrollIndicator={false}
+            >
+              {subSteps.map((s) => (
+                <View key={s.id} style={stepCockpitStyles.checkRow}>
+                  <View
+                    style={[
+                      stepCockpitStyles.checkBox,
+                      s.completed && { backgroundColor: cfg.color, borderColor: cfg.color },
+                    ]}
+                  >
+                    {s.completed ? (
+                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                    ) : null}
+                  </View>
+                  <Text
+                    style={[
+                      stepCockpitStyles.checkText,
+                      s.completed && stepCockpitStyles.checkTextDone,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {s.text}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+const stepCockpitStyles = StyleSheet.create({
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  kindDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  eyebrowText: {
+    flex: 1,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  whenBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    color: '#007AFF',
+    backgroundColor: 'rgba(0, 122, 255, 0.10)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 7,
+    overflow: 'hidden',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    color: IOS_REGISTER.label,
+  },
+  subtitle: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.labelSecondary,
+    marginTop: 2,
+  },
+  checklistLead: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    color: IOS_REGISTER.labelSecondary,
+    marginTop: 10,
+    marginBottom: 2,
+  },
+  checklist: {
+    maxHeight: 168,
+  },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+  },
+  checkBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: IOS_REGISTER.labelTertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkText: {
+    flex: 1,
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  checkTextDone: {
+    color: IOS_REGISTER.labelSecondary,
+    textDecorationLine: 'line-through',
+  },
+});
 
 const cockpitStyles = StyleSheet.create({
   gaugeRow: {
