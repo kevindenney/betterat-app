@@ -47,6 +47,9 @@ export type TimelineStepRecord = {
    *  personal-timeline delete can't cascade them out of the plan. Members adopt
    *  their own private copies instead. */
   is_plan_template?: boolean;
+  /** Phase N.4 — true when this step is a race (gets Atlas course/marks/
+   *  conditions). The only first-class step distinction; set in the composer. */
+  is_race?: boolean;
   sort_order: number;
   metadata: Record<string, unknown>;
   collaborator_user_ids: string[];
@@ -88,6 +91,8 @@ export type CreateTimelineStepInput = {
   due_at?: string | null;
   metadata?: Record<string, unknown>;
   is_timed?: boolean;
+  /** Phase N.4 — mark this step a race. Drives the ⛵ Atlas pin + race cockpit. */
+  is_race?: boolean;
 };
 
 export type UpdateTimelineStepInput = Partial<

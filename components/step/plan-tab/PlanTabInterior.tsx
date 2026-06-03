@@ -21,6 +21,7 @@ import { PlanCoachCard } from './PlanCoachCard';
 import { PlanFieldCard } from './PlanFieldCard';
 import { PlanOptionalAddOns } from './PlanOptionalAddOns';
 import { PlanTimedToggleRow } from './PlanTimedToggleRow';
+import { PlanStepRaceSelector } from './PlanStepRaceSelector';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import {
   BeforeTheShiftCard,
@@ -54,6 +55,15 @@ interface PlanTabInteriorProps {
    */
   isTimed?: boolean;
   onToggleTimed?: (next: boolean) => void;
+  /**
+   * Phase N.4 Step/Race selector. When provided, renders the Step ⟷ Race
+   * choice at the top of the composer (sailing only). `onToggleRace` persists
+   * to timeline_steps.is_race; `onOpenRaceCourse` opens the course authoring
+   * flow when Race is selected.
+   */
+  isRace?: boolean;
+  onToggleRace?: (next: boolean) => void;
+  onOpenRaceCourse?: () => void;
   /**
    * D37 "Before the shift" library checklist. When items exist, renders
    * a card above the manual fields. Pass items + onToggle from the
@@ -89,8 +99,12 @@ export function PlanTabInterior({
   footer,
   isTimed,
   onToggleTimed,
+  isRace,
+  onToggleRace,
+  onOpenRaceCourse,
   libraryBefore,
 }: PlanTabInteriorProps) {
+  const showRaceSelector = typeof isRace === 'boolean' && Boolean(onToggleRace);
   const showTimedToggle =
     FEATURE_FLAGS.PRACTICE_DO_TAB_PER_STEP_TIMING &&
     typeof isTimed === 'boolean' &&
@@ -147,6 +161,17 @@ export function PlanTabInterior({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
+      {showRaceSelector && (
+        <View style={styles.raceSelectorSlot}>
+          <PlanStepRaceSelector
+            isRace={isRace!}
+            onChange={onToggleRace!}
+            readOnly={readOnly}
+            onOpenRaceCourse={onOpenRaceCourse}
+          />
+        </View>
+      )}
+
       <View style={styles.header}>
         <View>
           <Text style={styles.eyebrow}>Plan</Text>
@@ -344,6 +369,9 @@ const styles = StyleSheet.create({
   },
   libraryBeforeSlot: {
     marginBottom: IOS_SPACING.sm,
+  },
+  raceSelectorSlot: {
+    marginBottom: IOS_SPACING.xs,
   },
   textArea: {
     fontSize: 14,

@@ -41,6 +41,7 @@ import { FieldCard } from './FieldCard';
 import { CapabilityChipSet, type CapabilityChip } from './CapabilityChipSet';
 import { SuggestionsRow, type SuggestionRowItem } from './SuggestionsRow';
 import { BottomCTA } from './BottomCTA';
+import { PlanStepRaceSelector } from './PlanStepRaceSelector';
 import { deriveAIHelperState } from './aiHelperState';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { WorkingWithConcepts } from './WorkingWithConcepts';
@@ -80,6 +81,15 @@ export interface PlanTabIOSRegisterInteriorProps {
   /** Per-step timing. Both must be set for the quiet toggle to render in More Options. */
   isTimed?: boolean;
   onToggleTimed?: (next: boolean) => void;
+  /**
+   * Phase N.4 — Step ⟷ Race selector at the top of the composer. Both must be
+   * set for the selector to render (gated to the sailing interest by the
+   * caller). Flipping to Race persists is_race and gives Atlas the ⛵ pin.
+   */
+  isRace?: boolean;
+  onToggleRace?: (next: boolean) => void;
+  /** Opens the race area & course authoring flow when Race is selected. */
+  onOpenRaceCourse?: () => void;
   /** Additional rows rendered inside More Options below the timed-row. */
   optionalAddOns?: React.ReactNode;
   /** Pressed on the bottom CTA when enabled. */
@@ -153,6 +163,9 @@ export function PlanTabIOSRegisterInterior({
   belowWhatCard,
   isTimed,
   onToggleTimed,
+  isRace,
+  onToggleRace,
+  onOpenRaceCourse,
   optionalAddOns,
   onNextPhase,
   footer,
@@ -178,6 +191,9 @@ export function PlanTabIOSRegisterInterior({
     typeof onToggleTimed === 'function';
 
   const canUseCoach = Boolean(interestId && onConversationalCreate && !readOnly);
+
+  const showRaceSelector =
+    typeof isRace === 'boolean' && typeof onToggleRace === 'function';
 
   const handleSubStepsChange = (next: SubStep[]) => {
     onUpdate({ how_sub_steps: next });
@@ -214,6 +230,17 @@ export function PlanTabIOSRegisterInterior({
 
   const body = (
     <>
+      {showRaceSelector ? (
+        <View style={styles.raceSelectorSlot}>
+          <PlanStepRaceSelector
+            isRace={isRace!}
+            onChange={onToggleRace!}
+            readOnly={readOnly}
+            onOpenRaceCourse={onOpenRaceCourse}
+          />
+        </View>
+      ) : null}
+
       {libraryBefore ? (
         <BeforeTheShiftCard
           items={libraryBefore.items}
@@ -411,6 +438,9 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 24,
     gap: 10,
+  },
+  raceSelectorSlot: {
+    marginBottom: 2,
   },
   timedRow: {
     flexDirection: 'row',

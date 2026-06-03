@@ -213,6 +213,9 @@ export function StepPlanQuestions({
   // Load org-defined locations for quick pick — only for interests with org-scoped locations (e.g. nursing clinical sites)
   const normalizedSlug = String(interestSlug || currentInterest?.slug || '').toLowerCase();
   const isOrgLocationInterest = normalizedSlug === 'nursing';
+  // Phase N.4 — the Step ⟷ Race selector is sailing-only: a race is the one
+  // step distinction that carries venue/course/marks/conditions for Atlas.
+  const showRaceSelector = normalizedSlug === 'sail-racing';
   useEffect(() => {
     if (!user?.id || !isOrgLocationInterest) return;
     const loadOrgLocations = async () => {
@@ -1309,6 +1312,21 @@ RULES:
             );
             updateStep.mutate({ stepId: step.id, input: { is_timed: next } });
           }}
+          isRace={showRaceSelector ? Boolean(step.is_race) : undefined}
+          onToggleRace={
+            showRaceSelector
+              ? (next) => {
+                  queryClient.setQueryData<TimelineStepRecord | undefined>(
+                    ['timeline-steps', 'detail', step.id],
+                    (prev) => (prev ? { ...prev, is_race: next } : prev),
+                  );
+                  updateStep.mutate({ stepId: step.id, input: { is_race: next } });
+                }
+              : undefined
+          }
+          onOpenRaceCourse={
+            showRaceSelector ? () => router.push(`/race/ios/water/${step.id}` as any) : undefined
+          }
         />
 
         {!readOnly && (
@@ -1857,6 +1875,21 @@ RULES:
           );
           updateStep.mutate({ stepId: step.id, input: { is_timed: next } });
         }}
+        isRace={showRaceSelector ? Boolean(step.is_race) : undefined}
+        onToggleRace={
+          showRaceSelector
+            ? (next) => {
+                queryClient.setQueryData<TimelineStepRecord | undefined>(
+                  ['timeline-steps', 'detail', step.id],
+                  (prev) => (prev ? { ...prev, is_race: next } : prev),
+                );
+                updateStep.mutate({ stepId: step.id, input: { is_race: next } });
+              }
+            : undefined
+        }
+        onOpenRaceCourse={
+          showRaceSelector ? () => router.push(`/race/ios/water/${step.id}` as any) : undefined
+        }
       />
     );
   }
