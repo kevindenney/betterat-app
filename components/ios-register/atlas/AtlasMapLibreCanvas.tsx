@@ -370,6 +370,10 @@ export interface AtlasPinSpec {
     // or cluster drill-down). Renders as a prominent named, haloed marker so
     // the focused peer is unmistakable against the faint relationship dots.
     | 'peer-focus'
+    // org-event — a located step PUBLISHED BY an organization (race briefing,
+    // learn-to-sail session). Attendable activity at an exact spot, not a peer
+    // person. Calendar marker + always-on title so it reads as "go to this."
+    | 'org-event'
     | 'own'
     | 'candidate'
     | 'race-mark'
@@ -613,6 +617,7 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'fleet',
   'following',
   'peer-focus',
+  'org-event',
   'own',
   'poi-club',
   'poi-club-anchor',
@@ -2119,6 +2124,7 @@ const PIN_TONE: Record<
   // saturated, white-ringed so it reads as "this is the one you tapped"
   // over the faint relationship dots; LabeledPin also gives it a name + halo.
   'peer-focus': { size: 20, color: '#FF9500', shape: 'circle' },
+  'org-event': { size: 22, color: '#0A84FF', shape: 'circle' },
   own: { size: 10, color: 'rgba(0, 122, 255, 0.9)', shape: 'circle' },
   // Compose-at-location: coral drop (per design grammar key)
   candidate: { size: 22, color: '#FF3B30', shape: 'drop' },
@@ -2560,6 +2566,27 @@ function LabeledPin({
         {label ? (
           <View style={styles.peerFocusLabelPill}>
             <Text style={styles.peerFocusLabelText} numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+  // org-event — an org-published located step (race briefing, learn-to-sail).
+  // Calendar glyph in a saturated square + always-on title so attendable
+  // activity reads as "go to this," distinct from the faint peer dots.
+  if (kind === 'org-event') {
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.glyphCol}>
+          <View style={styles.orgEventMarker}>
+            <Ionicons name="calendar" size={13} color="#FFFFFF" />
+          </View>
+        </View>
+        {label ? (
+          <View style={styles.orgEventLabelPill}>
+            <Text style={styles.orgEventLabelText} numberOfLines={1}>
               {label}
             </Text>
           </View>
@@ -3059,6 +3086,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 149, 0, 0.95)',
   },
   peerFocusLabelText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  orgEventMarker: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    backgroundColor: '#0A84FF',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orgEventLabelPill: {
+    marginLeft: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 11,
+    backgroundColor: 'rgba(10, 132, 255, 0.95)',
+  },
+  orgEventLabelText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',

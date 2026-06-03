@@ -3102,6 +3102,30 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
+        ) : selectedPin.kind === 'org-event' ? (
+          <BottomSheet
+            key="org-event"
+            eyebrow="ORGANIZATION SESSION"
+            title={selectedPin.label ?? 'Organization session'}
+            source={
+              [selectedPin.provenance, selectedPin.subtitle]
+                .filter(Boolean)
+                .join(' · ')
+            }
+            body={
+              'An organization you belong to published this as an attendable session at this exact spot. Open it to see the plan, timing, and what to bring.'
+            }
+            primary={{
+              label: 'Open step',
+              icon: 'open-outline',
+              onPress: () => {
+                if (selectedPin.stepId) handlers.onStepPress?.(selectedPin.stepId);
+              },
+            }}
+            secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
+          />
         ) : selectedPin.peer ? (
           <BottomSheet
             key="peer-step"

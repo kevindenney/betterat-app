@@ -11,6 +11,7 @@
 import { useMemo } from 'react';
 import { useAtlasPois, type AtlasPoi } from './useAtlasPois';
 import { useAtlasPeerSteps, type AtlasPeerStep } from './useAtlasPeerSteps';
+import { useAtlasOrgSteps } from './useAtlasOrgSteps';
 import { useUserAtlasSteps, type PickerStep, type UserAtlasStep } from './useUserAtlasSteps';
 import { useSailingPoisNear, type SailingPoiRow } from './useSailingPoisNear';
 import type { AtlasPinSpec, AtlasPeerMember } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
@@ -280,6 +281,15 @@ export function useAtlasFramePins({
     interestSlug,
     restrictUserIds,
   });
+  // Org-published located steps ("what's my org doing here") — rendered as
+  // exact, never-jittered calendar pins so attendable activity is something
+  // a Nearby-list tap can fly to and land on, not empty water.
+  const { data: orgSteps = [], isLoading: orgStepsLoading } = useAtlasOrgSteps({
+    lat,
+    lng,
+    radiusKm,
+    interestSlug,
+  });
   const { steps: userSteps, pickerSteps, loading: userStepsLoading } = useUserAtlasSteps({
     interestSlug,
   });
@@ -437,6 +447,27 @@ export function useAtlasFramePins({
     }));
     out.push(...clusterPeerPins(peerPins));
 
+    // Org-event pins — located steps an organization published nearby. Exact
+    // coords (you need the spot to show up), carrying org + blueprint
+    // provenance so the callout reads "RHKYC · Keelboat Skipper," not a bare
+    // address. Never clustered: each attendable event is its own destination.
+    for (const ev of orgSteps) {
+      if (!Number.isFinite(ev.lat) || !Number.isFinite(ev.lng)) continue;
+      out.push({
+        id: `org-event:${ev.step_id}`,
+        lat: ev.lat,
+        lng: ev.lng,
+        kind: 'org-event',
+        label: ev.title?.trim() || 'Organization session',
+        subtitle: [ev.place_name?.trim(), ev.blueprint_title?.trim()]
+          .filter(Boolean)
+          .join(' · ') || undefined,
+        provenance: ev.org_name ? `From ${ev.org_name}` : undefined,
+        orgSlug: ev.org_slug,
+        stepId: ev.step_id,
+      });
+    }
+
     // Phase A — viewer's own steps with location, status-encoded as a
     // colored dot (planned/done-recent/done-old). planned-week pins
     // carry a "|MON" tail so the canvas renders the day-of-week badge
@@ -480,7 +511,11 @@ export function useAtlasFramePins({
     }
 
     return out;
-  }, [pois, peers, userSteps, sailingPois, interestSlug]);
+  }, [pois, peers, orgSteps, userSteps, sailingPois, interestSlug]);
 
-  return { pins, pickerSteps, loading: poisLoading || peersLoading || userStepsLoading };
+  return {
+    pins,
+    pickerSteps,
+    loading: poisLoading || peersLoading || orgStepsLoading || userStepsLoading,
+  };
 }
