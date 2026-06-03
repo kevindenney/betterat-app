@@ -45,6 +45,7 @@ import type { QuickCapturePayload } from '@/services/QuickCaptureService';
 import type { StepLocation } from '@/types/step-detail';
 import { VoiceComposerV3Sheet } from './VoiceComposerV3Sheet';
 import { ComposerWhereField } from './ComposerWhereField';
+import { PlanStepRaceSelector } from '@/components/step/plan-tab/PlanStepRaceSelector';
 
 const SERIF_FAMILY = Platform.select({
   ios: 'Georgia',
@@ -69,6 +70,13 @@ interface PlusComposerV3SheetProps {
   sessionLabel?: string | null;
   /** Suggested field chips. v1 = hand-authored. v2 = AI-suggested from context. */
   suggestedFields?: string[];
+  /**
+   * Sailing only — renders the Step ⟷ Race selector at the top of the composer
+   * (mockup 27). Choosing Race flags the new step `is_race`, giving it the ⛵
+   * Atlas pin + course/marks/conditions cockpit. The course geometry itself is
+   * authored later in the step's Plan tab; here we only set the flag.
+   */
+  showRaceSelector?: boolean;
   /**
    * AI librarian hint surfaced when the typed input looks like it belongs
    * under an existing step. v1 = absent; v2 = real AI routing. When passed,
@@ -116,8 +124,10 @@ export function PlusComposerV3Sheet({
   sessionLabel,
   suggestedFields = DEFAULT_SUGGESTED_FIELDS,
   librarianHint,
+  showRaceSelector = false,
 }: PlusComposerV3SheetProps) {
   const [whatText, setWhatText] = useState('');
+  const [isRace, setIsRace] = useState(false);
   const [activeFields, setActiveFields] = useState<ComposerFieldKey[]>([]);
   const [fieldValues, setFieldValues] = useState<Record<ComposerFieldKey, string>>(emptyFieldValues);
   const [whereLocation, setWhereLocation] = useState<StepLocation | undefined>(undefined);
@@ -129,6 +139,7 @@ export function PlusComposerV3Sheet({
 
   const resetComposer = useCallback(() => {
     setWhatText('');
+    setIsRace(false);
     setActiveFields([]);
     setFieldValues(emptyFieldValues());
     setWhereLocation(undefined);
@@ -151,10 +162,11 @@ export function PlusComposerV3Sheet({
       why: fieldValues.why.trim() || undefined,
       how: fieldValues.how.trim() || undefined,
       when: fieldValues.when.trim() || undefined,
+      isRace: showRaceSelector ? isRace : undefined,
       imageUri: photoUri,
     });
     resetComposer();
-  }, [whatText, fieldValues, whereLocation, photoUri, onSave, onDismiss, resetComposer]);
+  }, [whatText, fieldValues, whereLocation, photoUri, showRaceSelector, isRace, onSave, onDismiss, resetComposer]);
 
   const handlePickPhoto = useCallback(async () => {
     if (Platform.OS === 'web') {
@@ -222,7 +234,9 @@ export function PlusComposerV3Sheet({
             <Pressable onPress={handleCancel} hitSlop={8}>
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
-            <Text style={styles.navTitle}>Add a <Text style={styles.navTitleItalic}>step</Text></Text>
+            <Text style={styles.navTitle}>
+              Add a <Text style={styles.navTitleItalic}>{showRaceSelector && isRace ? 'race' : 'step'}</Text>
+            </Text>
             <Pressable onPress={handleSave} hitSlop={8} disabled={trimmedLength === 0}>
               <Text style={[styles.saveText, trimmedLength === 0 && styles.saveTextDisabled]}>
                 Save
@@ -248,6 +262,12 @@ export function PlusComposerV3Sheet({
                     <Text style={styles.laneChipText}>{sessionLabel}</Text>
                   </View>
                 ) : null}
+              </View>
+            ) : null}
+
+            {showRaceSelector ? (
+              <View style={styles.raceSelectorSlot}>
+                <PlanStepRaceSelector isRace={isRace} onChange={setIsRace} />
               </View>
             ) : null}
 
@@ -493,6 +513,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: IOS_REGISTER.label,
+  },
+  raceSelectorSlot: {
+    marginBottom: 18,
   },
   eyebrow: {
     fontSize: 10.5,

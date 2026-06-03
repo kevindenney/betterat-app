@@ -145,6 +145,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         share_approximate_location: false,
         copied_from_user_id: null,
         source_blueprint_id: null,
+        is_race: payload.isRace ?? false,
         sort_order: Date.now(),
         metadata: {
           draft: true,
@@ -301,6 +302,9 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
             onStartFromLink={handleStartFromLink}
             interestLabel={currentInterest?.name ?? null}
             sessionLabel={null}
+            showRaceSelector={
+              (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing'
+            }
           />
         ) : (
           <UniversalPlusSheet

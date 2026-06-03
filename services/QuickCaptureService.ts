@@ -33,6 +33,12 @@ export interface QuickCapturePayload {
   /** Optional WHEN — free text, stored as the step description. */
   when?: string;
   /**
+   * Sailing only — flags the new step a Race, which gives it the ⛵ Atlas pin
+   * inside its race-area polygon plus the course/marks/conditions cockpit.
+   * Defaults to a plain step.
+   */
+  isRace?: boolean;
+  /**
    * Local device URI for a photo picked in the composer (native only). Uploaded
    * to the `step-media` bucket on save and attached as metadata.act.media_uploads
    * so it surfaces in the step's Do tab.
@@ -209,6 +215,7 @@ export async function createDraftStep({
     starts_at: placement.startsAt,
     sort_order: placement.sortOrder,
     visibility: 'private',
+    is_race: payload.isRace ?? false,
     // Denormalized columns power Atlas pins + map feeds; the RPC reads
     // these straight off p_input.
     location_name: fields.locationName,
