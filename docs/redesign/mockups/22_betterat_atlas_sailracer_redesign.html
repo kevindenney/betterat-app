@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Atlas redesign for sail racers</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --serif:'Iowan Old Style',Georgia,serif;
+  --grouped:#F2F2F7;
+  --card:#FFFFFF;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);
+  --label3:rgba(60,60,67,0.32);
+  --sep:rgba(60,60,67,0.13);
+  --blue:#007AFF;
+  --navy:#14213D;
+  --wind:#2563EB;       /* breeze */
+  --current:#0E7490;    /* tide / set */
+  --wave:#7C3AED;       /* sea state */
+  --fav:#16A34A;        /* favored side green */
+  --fav-bg:rgba(34,197,94,.16);
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1320px;margin:0 auto 4px;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1320px;margin:0 auto 26px;font-size:13px;color:#41495A;line-height:1.6;}
+.page-sub b{color:#1a1f29;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1320px;margin:0 auto;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+.col-cap .tag.fix{background:#B42318;}
+.col-cap .tag.new{background:#1B7A3D;}
+
+/* phone shell */
+.phone{position:relative;background:#0B1A2E;border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.30);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:#fff;z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+
+/* ===== MAP CANVAS (decluttered nautical chart) ===== */
+.map{position:absolute;inset:0;background:
+  radial-gradient(120% 80% at 50% 18%, #1C3A5E 0%, #16314F 45%, #0E2138 100%);}
+.map .depth{position:absolute;inset:0;opacity:.5;background:
+  repeating-linear-gradient(125deg, transparent 0 38px, rgba(255,255,255,.025) 38px 39px);}
+.map .shore{position:absolute;left:-10%;top:-8%;width:46%;height:42%;
+  background:linear-gradient(135deg,#33506E,#26405A);border-radius:0 0 80% 0;opacity:.85;}
+.map .shore-lbl{position:absolute;left:18px;top:64px;color:rgba(255,255,255,.5);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transform:rotate(-18deg);}
+
+/* course geometry */
+.course{position:absolute;left:50%;top:300px;transform:translateX(-50%);width:200px;height:300px;}
+.side{position:absolute;top:0;width:50%;height:100%;}
+.side.left{left:0;background:linear-gradient(180deg,rgba(20,33,61,.04),rgba(20,33,61,.02));
+  clip-path:polygon(50% 0,100% 100%,0 100%);}
+.side.right{right:0;background:var(--fav-bg);clip-path:polygon(50% 0,100% 100%,0 100%);}
+.beat{position:absolute;left:50%;top:0;bottom:0;width:2px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.55) 0 5px,transparent 5px 10px);transform:translateX(-50%);}
+.third{position:absolute;left:9%;right:9%;height:0;border-top:1.5px dotted rgba(255,255,255,.34);}
+.mark{position:absolute;width:13px;height:13px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);}
+.mark.w{background:#F4A23B;left:50%;top:0;}
+.mark.p{background:#E5484D;left:0;top:100%;}
+.mark.c{background:#fff;left:100%;top:100%;}
+.mark-lbl{position:absolute;font-size:9px;font-weight:800;color:#fff;letter-spacing:.04em;text-shadow:0 1px 3px rgba(0,0,0,.7);transform:translate(-50%,-50%);}
+.side-lbl{position:absolute;font-size:10px;font-weight:800;letter-spacing:.08em;transform:translate(-50%,-50%);text-shadow:0 1px 3px rgba(0,0,0,.6);}
+.band-lbl{position:absolute;font-size:8px;font-weight:800;letter-spacing:.07em;color:rgba(255,255,255,.6);transform:translate(-50%,-50%);text-shadow:0 1px 2px rgba(0,0,0,.7);}
+
+/* wind field — arrows encode pressure by opacity/length, not uniform */
+.wind-arrow{position:absolute;color:#fff;font-size:15px;opacity:.32;transform:rotate(8deg);}
+
+/* ===== TOP CHROME (Apple-Maps style, consolidated) ===== */
+.topchrome{position:absolute;top:52px;left:14px;right:14px;z-index:40;display:flex;gap:9px;align-items:center;}
+.search{flex:1;height:38px;border-radius:11px;background:rgba(255,255,255,.92);backdrop-filter:blur(18px);display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13.5px;color:var(--label2);box-shadow:0 2px 10px rgba(0,0,0,.25);}
+.iconbtn{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.92);backdrop-filter:blur(18px);display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+.layerseg{position:absolute;top:100px;left:14px;z-index:40;display:flex;background:rgba(11,26,46,.62);backdrop-filter:blur(14px);border-radius:10px;padding:3px;}
+.layerseg div{font-size:11px;font-weight:700;color:rgba(255,255,255,.55);padding:5px 11px;border-radius:8px;}
+.layerseg div.on{background:rgba(255,255,255,.95);color:var(--navy);}
+
+/* ===== COCKPIT CARD (conditions + strategy, the hero) ===== */
+.cockpit{position:absolute;left:0;right:0;bottom:64px;z-index:45;background:var(--card);
+  border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.28);padding:8px 0 14px;}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--label3);margin:0 auto 10px;}
+.cp-head{display:flex;align-items:center;justify-content:space-between;padding:0 18px 11px;border-bottom:0.5px solid var(--sep);}
+.cp-head .ttl{font-size:16px;font-weight:700;letter-spacing:-.2px;}
+.cp-head .ttl small{display:block;font-size:11.5px;font-weight:500;color:var(--label2);margin-top:1px;}
+.cp-head .when{font-size:11px;font-weight:700;color:var(--blue);background:rgba(0,122,255,.10);padding:5px 10px;border-radius:8px;}
+
+/* conditions strip — three legible gauges, color-coded by domain */
+.cond{display:flex;padding:13px 14px 4px;gap:9px;}
+.gauge{flex:1;border-radius:13px;padding:10px 11px;border:0.5px solid var(--sep);}
+.gauge .k{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:5px;}
+.gauge .v{font-size:21px;font-weight:800;letter-spacing:-.5px;margin-top:5px;line-height:1;}
+.gauge .v small{font-size:11px;font-weight:700;color:var(--label2);}
+.gauge .sub{font-size:11px;color:var(--label2);margin-top:4px;display:flex;align-items:center;gap:4px;}
+.dot{width:7px;height:7px;border-radius:50%;}
+.g-wind{background:rgba(37,99,235,.05);} .g-wind .k{color:var(--wind);} .g-wind .dot{background:var(--wind);}
+.g-cur{background:rgba(14,116,144,.05);} .g-cur .k{color:var(--current);} .g-cur .dot{background:var(--current);}
+.g-wave{background:rgba(124,58,237,.05);} .g-wave .k{color:var(--wave);} .g-wave .dot{background:var(--wave);}
+.arrow{display:inline-block;font-weight:900;}
+
+/* strategy call — plain-language, persona vernacular */
+.strat{margin:12px 14px 0;border-radius:14px;background:var(--fav-bg);border:0.5px solid rgba(34,197,94,.30);padding:12px 13px;}
+.strat .lead{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--fav);}
+.strat h4{margin:7px 0 0;font-size:15px;font-weight:700;line-height:1.35;color:#0F3D22;}
+.strat p{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:#235437;}
+.strat .seg{display:flex;gap:7px;margin-top:10px;}
+.strat .seg span{flex:1;font-size:10px;font-weight:700;color:#2B6B41;background:rgba(255,255,255,.55);border-radius:7px;padding:6px 5px;text-align:center;}
+.strat .seg span b{display:block;font-size:9px;font-weight:800;letter-spacing:.05em;color:#16A34A;opacity:.8;margin-bottom:2px;}
+
+/* ===== NEXT-STEP chip (collapsed, doesn't collide) ===== */
+.nextchip{position:absolute;left:14px;right:14px;bottom:74px;z-index:44;background:rgba(255,255,255,.96);backdrop-filter:blur(18px);border-radius:15px;box-shadow:0 6px 22px rgba(0,0,0,.25);padding:11px 13px;display:flex;align-items:center;gap:11px;}
+.nextchip .spine{width:4px;align-self:stretch;border-radius:3px;background:var(--blue);}
+.nextchip .body{flex:1;min-width:0;}
+.nextchip .klabel{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);}
+.nextchip h5{margin:3px 0 0;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nextchip p{margin:2px 0 0;font-size:11.5px;color:var(--label2);}
+.nextchip .go{width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;}
+
+/* ===== NEARBY (fixed: real names, deduped, tap-to-map) ===== */
+.sheet{position:absolute;left:0;right:0;bottom:64px;top:150px;z-index:45;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;}
+.sheet-h{padding:8px 18px 10px;border-bottom:0.5px solid var(--sep);}
+.sheet-h .grab{margin-bottom:9px;}
+.sheet-h .row{display:flex;align-items:center;justify-content:space-between;}
+.sheet-h h3{margin:0;font-size:18px;font-weight:800;letter-spacing:-.3px;}
+.sheet-h .sub{font-size:12px;color:var(--label2);margin-top:2px;}
+.sheet-h .close{width:30px;height:30px;border-radius:50%;background:rgba(118,118,128,.12);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--label2);}
+.scope{display:flex;gap:7px;margin-top:11px;}
+.scope span{font-size:11px;font-weight:700;padding:6px 11px;border-radius:8px;background:rgba(118,118,128,.12);color:var(--label2);}
+.scope span.on{background:var(--navy);color:#fff;}
+.nlist{flex:1;overflow:hidden;padding:8px 0;}
+.nrow{display:flex;align-items:center;gap:12px;padding:11px 18px;}
+.nrow .av{width:42px;height:42px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;position:relative;}
+.nrow .av .ping{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;background:var(--fav);border:2px solid #fff;}
+.nrow .b{flex:1;min-width:0;}
+.nrow .b h5{margin:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p{margin:2px 0 0;font-size:12px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p .verb{font-weight:700;color:var(--fav);}
+.nrow .dist{font-size:11px;font-weight:700;color:var(--label2);text-align:right;flex:none;}
+.nrow .dist small{display:block;font-weight:500;color:var(--label3);font-size:10px;margin-top:2px;}
+.nrow .pin{width:32px;height:32px;border-radius:9px;background:rgba(0,122,255,.10);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;}
+.nsep{height:0.5px;background:var(--sep);margin:0 18px 0 72px;}
+
+/* ===== PICK-A-STEP / course list (real names + anchoring) ===== */
+.picker{position:absolute;left:0;right:0;bottom:64px;top:330px;z-index:45;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;}
+.prow{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid var(--sep);}
+.prow .ic{width:40px;height:40px;border-radius:11px;background:rgba(244,162,59,.14);color:#C2700E;display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;}
+.prow .b{flex:1;min-width:0;}
+.prow .b h5{margin:0;font-size:15px;font-weight:600;}
+.prow .b p{margin:2px 0 0;font-size:11.5px;color:var(--label2);display:flex;align-items:center;gap:7px;}
+.prow .b .chip{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:5px;background:rgba(37,99,235,.12);color:var(--wind);}
+.prow .chev{color:var(--label3);font-size:16px;}
+
+/* tab bar */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(248,248,250,.94);border-top:0.5px solid var(--sep);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;backdrop-filter:blur(20px);z-index:55;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--label3);}
+.tab.on{color:var(--blue);}
+.tab .ic{font-size:19px;}
+
+.legend{max-width:1320px;margin:36px auto 0;background:#fff;border-radius:14px;padding:20px 24px;font-size:13px;line-height:1.65;color:#2a2f3a;}
+.legend h2{font-size:15px;margin:0 0 12px;}
+.legend h3{font-size:13px;margin:18px 0 6px;color:#111;}
+.legend ul{margin:4px 0 0;padding-left:20px;}
+.legend li{margin:5px 0;}
+.legend b{color:#111;}
+.legend .pill{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-right:5px;}
+.legend .pill.fix{background:#FEE4E2;color:#B42318;}
+.legend .pill.new{background:#D1FADF;color:#1B7A3D;}
+.legend .pill.keep{background:#E0EAFF;color:#2547B5;}
+</style>
+</head>
+<body>
+<div class="page-h">Atlas, re-rigged for sail racers</div>
+<div class="page-sub">
+  The current Atlas treats the map as a generic pin board. Racers don't read a chart that way — they read it as a <b>cockpit</b>:
+  where's the breeze, where's the current, which side pays, and what's my next move on the water. This redesign pulls the
+  <b>conditions + strategy</b> out of the thin bottom strip into a legible cockpit card, declutters the chart so the
+  <b>course geometry</b> (favored side, thirds, marks) reads at a glance, and fixes the broken <b>Nearby</b> surface
+  (real names, deduped, tap-to-fly-to-map).
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME A — First open, decluttered ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">RHKYC · Victoria Hbr ▾</span></div>
+      <div class="map">
+        <div class="depth"></div>
+        <div class="shore"></div>
+        <div class="shore-lbl">Kowloon shore</div>
+        <span class="wind-arrow" style="left:24%;top:30%;font-size:13px;opacity:.22;">↗</span>
+        <span class="wind-arrow" style="left:60%;top:26%;font-size:17px;opacity:.4;">↗</span>
+        <span class="wind-arrow" style="left:78%;top:40%;font-size:15px;opacity:.3;">↗</span>
+        <span class="wind-arrow" style="left:40%;top:55%;font-size:18px;opacity:.42;">↗</span>
+        <div class="course">
+          <div class="side left"></div>
+          <div class="side right"></div>
+          <div class="beat"></div>
+          <div class="third" style="top:33.3%;"></div>
+          <div class="third" style="top:66.6%;"></div>
+          <div class="band-lbl" style="left:50%;top:16%;">UPPER</div>
+          <div class="band-lbl" style="left:50%;top:50%;">MIDDLE</div>
+          <div class="band-lbl" style="left:50%;top:83%;">BOTTOM</div>
+          <div class="side-lbl" style="left:23%;top:62%;color:rgba(255,255,255,.7);">LEFT</div>
+          <div class="side-lbl" style="left:77%;top:62%;color:#7BE8A6;">RIGHT ✓</div>
+          <div class="mark w"></div><div class="mark-lbl" style="left:50%;top:-16px;">WIND</div>
+          <div class="mark p"></div>
+          <div class="mark c"></div>
+        </div>
+      </div>
+      <div class="topchrome">
+        <div class="search">🔍 Search venues, clubs, sailors…</div>
+        <div class="iconbtn">⚲</div>
+      </div>
+      <div class="layerseg">
+        <div class="on">Course</div><div>Wind</div><div>Current</div><div>Nearby</div>
+      </div>
+
+      <!-- collapsed cockpit + next-step chip together, NO collision -->
+      <div class="cockpit" style="bottom:64px;padding-bottom:10px;">
+        <div class="grab"></div>
+        <div class="cp-head">
+          <div class="ttl">Today's racing<small>Saturday Series · Race 1 start 14:00</small></div>
+          <div class="when">in 2h</div>
+        </div>
+        <div class="cond">
+          <div class="gauge g-wind">
+            <div class="k"><span class="dot"></span>WIND</div>
+            <div class="v">12<small> kn</small></div>
+            <div class="sub"><span class="arrow" style="color:var(--wind)">↑</span> 180° S · building</div>
+          </div>
+          <div class="gauge g-cur">
+            <div class="k"><span class="dot"></span>CURRENT</div>
+            <div class="v">0.8<small> kn</small></div>
+            <div class="sub"><span class="arrow" style="color:var(--current)">→</span> flood, sets W</div>
+          </div>
+          <div class="gauge g-wave">
+            <div class="k"><span class="dot"></span>SEA</div>
+            <div class="v">0.4<small> m</small></div>
+            <div class="sub">short chop</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">A</span><b>First open — decluttered chart.</b>
+      Top chrome consolidated to one search + filter row (Apple-Maps pattern). Course geometry reads instantly:
+      green <b>RIGHT</b> side favored, BOTTOM/MIDDLE/UPPER thirds, marks labeled. Wind arrows encode pressure by
+      length + opacity instead of a uniform field. Conditions live in a real card, not a 1-line strip.</div>
+  </div>
+
+  <!-- ============ FRAME B — Cockpit expanded (strategy) ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">RHKYC · Victoria Hbr ▾</span></div>
+      <div class="map">
+        <div class="depth"></div>
+        <div class="shore" style="height:30%;"></div>
+        <span class="wind-arrow" style="left:60%;top:18%;font-size:16px;opacity:.38;">↗</span>
+        <span class="wind-arrow" style="left:30%;top:22%;font-size:13px;opacity:.22;">↗</span>
+        <div class="course" style="top:150px;height:170px;width:150px;">
+          <div class="side left"></div><div class="side right"></div>
+          <div class="beat"></div>
+          <div class="mark w"></div><div class="mark p"></div><div class="mark c"></div>
+          <div class="side-lbl" style="left:77%;top:60%;color:#7BE8A6;font-size:9px;">RIGHT ✓</div>
+        </div>
+      </div>
+      <div class="cockpit" style="bottom:64px;top:300px;overflow:hidden;">
+        <div class="grab"></div>
+        <div class="cp-head">
+          <div class="ttl">Beat strategy<small>Looking upwind · right side pays</small></div>
+          <div class="when">live</div>
+        </div>
+        <div class="cond">
+          <div class="gauge g-wind"><div class="k"><span class="dot"></span>WIND</div><div class="v">12<small> kn</small></div><div class="sub"><span class="arrow" style="color:var(--wind)">↑</span> 180° S</div></div>
+          <div class="gauge g-cur"><div class="k"><span class="dot"></span>CURRENT</div><div class="v">0.8<small> kn</small></div><div class="sub"><span class="arrow" style="color:var(--current)">→</span> flood W</div></div>
+          <div class="gauge g-wave"><div class="k"><span class="dot"></span>SEA</div><div class="v">0.4<small> m</small></div><div class="sub">chop</div></div>
+        </div>
+        <div class="strat">
+          <div class="lead">⛵ Right side favored</div>
+          <h4>Go right off the line — the flood relief and the Kowloon shore bend both pay on the right.</h4>
+          <p>Current sets you down the course, so protect the right and tack on the headers. Watch the right shore for pressure.</p>
+          <div class="seg">
+            <span><b>BOTTOM ⅓</b>Start at boat end, punch right</span>
+            <span><b>MIDDLE ⅓</b>Consolidate, tack on headers</span>
+            <span><b>UPPER ⅓</b>Lay the mark on starboard</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">B</span><b>Cockpit expanded — strategy in plain sailor English.</b>
+      Drag the card up: conditions stay pinned, the <b>favored-side call</b> expands with the why (current relief +
+      shore bend) and a <b>per-third game plan</b> tied to the same BOTTOM/MIDDLE/UPPER bands drawn on the chart.
+      No jargon, no buried strip.</div>
+  </div>
+
+  <!-- ============ FRAME C — Nearby FIXED ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">RHKYC · Victoria Hbr ▾</span></div>
+      <div class="map">
+        <div class="depth"></div><div class="shore" style="height:34%;"></div>
+        <span class="wind-arrow" style="left:55%;top:18%;font-size:15px;opacity:.3;">↗</span>
+      </div>
+      <div class="sheet">
+        <div class="sheet-h">
+          <div class="grab"></div>
+          <div class="row">
+            <div><h3>Sailors nearby</h3><div class="sub">7 racing this venue · within 25 km</div></div>
+            <div class="close">✕</div>
+          </div>
+          <div class="scope"><span class="on">Sailing</span><span>Following</span><span>All</span></div>
+        </div>
+        <div class="nlist">
+          <div class="nrow">
+            <div class="av" style="background:#3F6FA8;">MH<span class="ping"></span></div>
+            <div class="b"><h5>Markus Holt</h5><p><span class="verb">Tuning</span> rig for Race 1 · J/80</p></div>
+            <div class="dist">0.4 km<small>RHKYC</small></div>
+            <div class="pin">⊙</div>
+          </div>
+          <div class="nsep"></div>
+          <div class="nrow">
+            <div class="av" style="background:#9A5B9E;">EC</div>
+            <div class="b"><h5>Elena Cruz</h5><p><span class="verb">Logged</span> a practice beat · 2h ago</p></div>
+            <div class="dist">1.1 km<small>Middle Is.</small></div>
+            <div class="pin">⊙</div>
+          </div>
+          <div class="nsep"></div>
+          <div class="nrow">
+            <div class="av" style="background:#C2700E;">TK<span class="ping"></span></div>
+            <div class="b"><h5>Tom Kwok</h5><p><span class="verb">Planning</span> start-line approach</p></div>
+            <div class="dist">0.6 km<small>RHKYC</small></div>
+            <div class="pin">⊙</div>
+          </div>
+          <div class="nsep"></div>
+          <div class="nrow">
+            <div class="av" style="background:#2B7A4B;">SL</div>
+            <div class="b"><h5>Sophie Lam</h5><p><span class="verb">Reviewed</span> last race upwind</p></div>
+            <div class="dist">2.3 km<small>Causeway</small></div>
+            <div class="pin">⊙</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag fix">C · FIX</span><b>Nearby — real names, deduped, tap-to-map.</b>
+      Was showing <i>demo-markus@regattaflow.app</i> twice per person. Now: merged profile name + avatar, one row each,
+      a <b>verb-state</b> line in sailor vernacular, distance + venue. The <b>⊙ pin</b> flies the chart to that sailor's
+      location instead of opening the step editor.</div>
+  </div>
+
+  <!-- ============ FRAME D — Pick-a-step / course picker ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">RHKYC · Victoria Hbr ▾</span></div>
+      <div class="map">
+        <div class="depth"></div><div class="shore" style="height:30%;"></div>
+        <div class="course" style="top:150px;height:140px;width:120px;">
+          <div class="side left"></div><div class="side right"></div><div class="beat"></div>
+          <div class="mark w"></div><div class="mark p"></div><div class="mark c"></div>
+        </div>
+      </div>
+      <div class="nextchip" style="bottom:auto;top:104px;">
+        <div class="spine"></div>
+        <div class="body">
+          <div class="klabel">Your next step</div>
+          <h5>Pre-start: nail the boat-end approach</h5>
+          <p>Saturday Series · Race 1 · starts 14:00</p>
+        </div>
+        <div class="go">→</div>
+      </div>
+      <div class="picker">
+        <div class="sheet-h"><div class="grab"></div>
+          <div class="row"><div><h3>Pick a course</h3><div class="sub">Tap to overlay on the chart</div></div><div class="close">✕</div></div>
+        </div>
+        <div style="flex:1;overflow:hidden;">
+          <div class="prow"><div class="ic">⛵</div><div class="b"><h5>Saturday Series — Race 1</h5><p><span class="chip">W/L · 1.2nm</span>Windward-leeward · 180°</p></div><div class="chev">›</div></div>
+          <div class="prow"><div class="ic">⛵</div><div class="b"><h5>Saturday Series — Race 2</h5><p><span class="chip">Triangle</span>Olympic · 175°</p></div><div class="chev">›</div></div>
+          <div class="prow"><div class="ic">🏁</div><div class="b"><h5>Spring Regatta — Coastal</h5><p><span class="chip">Distance</span>Round the islands</p></div><div class="chev">›</div></div>
+          <div class="prow"><div class="ic">📐</div><div class="b"><h5>Draw a custom course</h5><p>Set marks + wind by hand</p></div><div class="chev">›</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag fix">D · FIX</span><b>Course picker — real names + course type.</b>
+      Was a generic <i>Race 1 / Race 2 / Race 3</i> list. Now each row carries the <b>series + course name</b>, a type
+      chip (W/L, triangle, distance), wind axis, and leg length — so a racer knows what they're overlaying before they tap.
+      Next-step chip stays a slim glance, never colliding with the sheet.</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>Per-surface assessment &amp; what changed</h2>
+
+  <h3>What's broken today (from the screenshots)</h3>
+  <ul>
+    <li><span class="pill fix">FIX</span><b>Nearby shows raw emails, duplicated.</b> Rows render <code>demo-markus@regattaflow.app</code> twice. Root cause: demo sailors' <code>profiles.full_name</code> holds the email, and the list isn't deduped per person. The <code>atlas_peer_steps_near</code> RPC already <code>COALESCE</code>s name fields — the fix is seeding real names into <code>profiles</code> + a per-sailor dedupe in <code>DiscoverNearbyContent</code>.</li>
+    <li><span class="pill fix">FIX</span><b>Tapping a nearby step opens the editor, not the map.</b> <code>DiscoverNearbyContent.tsx:164</code> hardcodes <code>router.push('/step/{id}')</code>. It should close the overlay and fly the chart to the step's lat/lng. Add an <code>onNearbyStepPress(lat,lng)</code> callback from AtlasScreen.</li>
+    <li><span class="pill fix">FIX</span><b>Strategy + conditions buried in a 1-line strip.</b> The single most valuable thing for a racer (which side pays + why) was a thin band. Promoted to the cockpit card.</li>
+    <li><span class="pill fix">FIX</span><b>Generic "Race 1 / 2 / 3" picker</b> and <b>"000° / 0° N" default wind.</b> Racers can't tell courses apart; a 0° wind draws a nonsense course. Picker now names series + course type; wind defaults to the venue's live observation.</li>
+    <li><span class="pill fix">FIX</span><b>Map clutter.</b> Overlapping condition chips, uniform wind arrows with no pressure encoding, collided sheets. Decluttered to one top row + pressure-encoded arrows + a single bottom card.</li>
+  </ul>
+
+  <h3>What's already right (keep)</h3>
+  <ul>
+    <li><span class="pill keep">KEEP</span><b>Favored-side green handedness</b> — verified correct in the sim (tactical right reads screen-left on a north-up map under southerly wind; that's the sailor's upwind view, not a bug).</li>
+    <li><span class="pill keep">KEEP</span><b>BOTTOM/MIDDLE/UPPER thirds + LEFT/RIGHT labels</b> drawn on the chart, tied to the strategy card's per-segment advice.</li>
+    <li><span class="pill keep">KEEP</span><b>Atlas as the universal "where" lens</b> — the cockpit pattern generalizes (a nurse's clinical site, a runner's route) even though sailing is the first vertical.</li>
+  </ul>
+
+  <h3>The core move: chart → cockpit</h3>
+  <ul>
+    <li><span class="pill new">NEW</span><b>Cockpit card</b> replaces the strip: three domain-colored gauges (wind / current / sea) + a plain-language favored-side call + a per-third game plan. Drag to expand.</li>
+    <li><span class="pill new">NEW</span><b>Pressure-encoded wind field</b> — arrow length + opacity show where the breeze is, not a uniform grid.</li>
+    <li><span class="pill new">NEW</span><b>Consolidated top chrome</b> (search + layer filter), edge-to-edge chart below — the queued Apple-Maps redesign.</li>
+    <li><span class="pill new">NEW</span><b>Slim next-step chip</b> that never collides with the Nearby / picker sheets.</li>
+  </ul>
+</div>
+
+</body>
+</html>
