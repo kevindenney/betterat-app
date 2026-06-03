@@ -27,6 +27,13 @@ interface DiscoverNearbyContentProps {
   homeVenueLng: number | null;
   homeVenueLabel: string | null;
   toolbarOffset?: number;
+  /**
+   * When provided (Atlas embeds this list over a live map), tapping a
+   * nearby sailor flies the map to their step's coordinates instead of
+   * navigating into the step editor. Absent on the Discover tab, where
+   * there's no map to focus — those taps fall back to /step/[id].
+   */
+  onStepFocus?: (lat: number, lng: number) => void;
 }
 
 export function DiscoverNearbyContent({
@@ -34,6 +41,7 @@ export function DiscoverNearbyContent({
   homeVenueLng,
   homeVenueLabel,
   toolbarOffset = 0,
+  onStepFocus,
 }: DiscoverNearbyContentProps) {
   const { vocab } = useVocabulary();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -52,7 +60,20 @@ export function DiscoverNearbyContent({
     radiusKm: 25,
     enabled: hasVenue,
   });
-  const visiblePeerSteps = peerSteps.filter((s) => s.relationship !== 'self');
+  // One row per sailor: a person working several steps nearby returned a
+  // row each, so the list showed the same person two or three times. Keep
+  // the first (nearest/most-recent per the RPC's order) step per sailor.
+  const visiblePeerSteps = (() => {
+    const seen = new Set<string>();
+    const out: typeof peerSteps = [];
+    for (const s of peerSteps) {
+      if (s.relationship === 'self') continue;
+      if (seen.has(s.set_by)) continue;
+      seen.add(s.set_by);
+      out.push(s);
+    }
+    return out;
+  })();
 
   if (!hasVenue) {
     return (
@@ -161,7 +182,20 @@ export function DiscoverNearbyContent({
                 <Pressable
                   key={step.step_id}
                   style={styles.row}
-                  onPress={() => router.push(`/step/${step.step_id}` as never)}
+                  onPress={() => {
+                    // Over a live map (Atlas), fly to the sailor's step
+                    // instead of opening the editor. Elsewhere (Discover),
+                    // drill into the step.
+                    if (
+                      onStepFocus &&
+                      Number.isFinite(step.lat) &&
+                      Number.isFinite(step.lng)
+                    ) {
+                      onStepFocus(step.lat, step.lng);
+                      return;
+                    }
+                    router.push(`/step/${step.step_id}` as never);
+                  }}
                 >
                   {step.set_by_avatar ? (
                     <Image source={{ uri: step.set_by_avatar }} style={styles.avatar} />

@@ -949,6 +949,13 @@ export default function AtlasTab() {
               homeVenueLng={nearbyLng}
               homeVenueLabel={nearbyLabel}
               toolbarOffset={insets.top + 44}
+              onStepFocus={(lat, lng) => {
+                // Fly the map to the tapped sailor's step, then drop back
+                // to the chart. AtlasScreen re-derives its camera focus
+                // from these lat/lng params (initialFocus → searchFocus).
+                router.setParams({ lat: String(lat), lng: String(lng) } as never);
+                setNearbyOpen(false);
+              }}
             />
             <Pressable
               style={[styles.backPill, { top: insets.top + 4 }]}
