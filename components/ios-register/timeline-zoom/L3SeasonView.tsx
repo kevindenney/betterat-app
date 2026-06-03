@@ -83,6 +83,18 @@ interface CapabilityFamily {
   weeksPresent: number;
 }
 
+interface PersonFamily {
+  id: string;
+  name: string;
+  initials: string;
+  /** Identity color for the avatar bubble (stable per person). */
+  color: string;
+  /** "preceptor", "cohort", "faculty", "crew"… — small meta after the name. */
+  role?: string;
+  /** Total contributions across elapsed weeks — the pill's count. */
+  count: number;
+}
+
 interface L3SeasonViewProps {
   dataset: TimelineDataset;
   focusStepId: string;
@@ -149,9 +161,24 @@ export function L3SeasonView({
   const [activeThread, setActiveThread] = useState<
     { id: string; label: string; color: string } | null
   >(null);
+  // Active person filter — set when the user taps a WHO SHAPED IT pill.
+  // Mutually exclusive with activeThread: the log filters by capability
+  // OR by person, never both, so the filter bar reads as one clear lens.
+  const [activePerson, setActivePerson] = useState<
+    { id: string; name: string; color: string } | null
+  >(null);
   const toggleThread = useCallback(
-    (next: { id: string; label: string; color: string }) =>
-      setActiveThread((prev) => (prev?.id === next.id ? null : next)),
+    (next: { id: string; label: string; color: string }) => {
+      setActivePerson(null);
+      setActiveThread((prev) => (prev?.id === next.id ? null : next));
+    },
+    [],
+  );
+  const togglePerson = useCallback(
+    (next: { id: string; name: string; color: string }) => {
+      setActiveThread(null);
+      setActivePerson((prev) => (prev?.id === next.id ? null : next));
+    },
     [],
   );
   // VISION lane edit sheet open state + handlers.
@@ -201,18 +228,34 @@ export function L3SeasonView({
   // collapses to just the weeks that touched the thread.
   const visibleWeeks = useMemo(() => {
     const weeks = season?.weeks ?? [];
-    if (!activeThread) return weeks;
-    return weeks
-      .map((w) => ({
-        ...w,
-        steps: w.steps.filter((s) =>
-          (s.capabilities ?? []).some(
-            (c) => c.id === activeThread.id || c.color === activeThread.color,
+    if (activeThread) {
+      return weeks
+        .map((w) => ({
+          ...w,
+          steps: w.steps.filter((s) =>
+            (s.capabilities ?? []).some(
+              (c) => c.id === activeThread.id || c.color === activeThread.color,
+            ),
           ),
-        ),
-      }))
-      .filter((w) => w.steps.length > 0);
-  }, [season?.weeks, activeThread]);
+        }))
+        .filter((w) => w.steps.length > 0);
+    }
+    if (activePerson) {
+      // A step belongs to a person when they're tagged on it (cohort
+      // avatar id matches the peer id) or — for blueprint-author peers
+      // (`bp:<name>`) — when the step came from a blueprint they wrote.
+      const pid = activePerson.id;
+      const matchesPerson = (s: TimelineStep) => {
+        if ((s.cohortAvatars ?? []).some((a) => a.id === pid)) return true;
+        const author = s.from?.suggestedBy?.trim().toLowerCase();
+        return Boolean(author) && `bp:${author}` === pid;
+      };
+      return weeks
+        .map((w) => ({ ...w, steps: w.steps.filter(matchesPerson) }))
+        .filter((w) => w.steps.length > 0);
+    }
+    return weeks;
+  }, [season?.weeks, activeThread, activePerson]);
 
   // THE WORK reads newest-first (latest week on top, latest step on top
   // within each week) so recent work leads and history scrolls down.
@@ -312,37 +355,33 @@ export function L3SeasonView({
     return { families, elapsed };
   }, [season]);
 
-  // Most-present peer across elapsed weeks — drives the serif headline
-  // above the people lane ("Kevin shaped this sketchbook most"). Pairs
-  // with the first-dot-only chart + legend below it.
-  const peerHeadline = useMemo(() => {
+  // WHO SHAPED IT — every person who had input across elapsed weeks,
+  // sorted by contribution count. Drives the tappable people pills that
+  // mirror the capability chips: each pill isolates that person and
+  // filters THE WORK log to the steps they touched (the people half of
+  // the unified-surface "tap a thread or a person to filter the log").
+  const peopleFamilies = useMemo<PersonFamily[]>(() => {
     const a = season?.analysis;
-    if (!a || a.peers.length === 0) return null;
+    if (!a || a.peers.length === 0) return [];
     const total = season!.weekOfTotal?.total ?? season!.weeks.length;
     const current = season!.weekOfTotal?.current ?? 1;
     const elapsed = Math.max(1, Math.min(current, total));
-    let top: { name: string; color: string; total: number; weeks: number } | null =
-      null;
-    for (const p of a.peers) {
-      let count = 0;
-      const weeks = new Set<number>();
-      for (const w of p.weeklyAppearances) {
-        if (w.weekNumber > elapsed || w.count <= 0) continue;
-        count += w.count;
-        weeks.add(w.weekNumber);
-      }
-      if (count === 0) continue;
-      if (!top || count > top.total) {
-        top = {
-          name: p.name?.trim() || `Peer ${p.initials}`,
-          color: p.capabilityColor ?? p.color,
-          total: count,
-          weeks: weeks.size,
-        };
-      }
-    }
-    if (!top) return null;
-    return { name: top.name, color: top.color, weeks: top.weeks, elapsed };
+    return a.peers
+      .map((p) => ({
+        id: p.id,
+        name: p.name?.trim() || `Peer ${p.initials}`,
+        initials: p.initials,
+        color: p.color,
+        role: p.role,
+        count: p.weeklyAppearances.reduce(
+          (n, w) => (w.weekNumber <= elapsed ? n + w.count : n),
+          0,
+        ),
+      }))
+      .filter((p) => p.count > 0)
+      .sort((a, b) =>
+        b.count !== a.count ? b.count - a.count : a.name.localeCompare(b.name),
+      );
   }, [season]);
 
   if (!season) return null;
@@ -385,7 +424,22 @@ export function L3SeasonView({
   // the analysis layer in the tree, we count the fixed children before
   // the per-week pairs and add per-week pairs from there.
   const hasAnalysis = Boolean(analysis);
-  const filtering = activeThread !== null;
+  const filtering = activeThread !== null || activePerson !== null;
+  // The single active lens (capability thread or person) — drives the
+  // filter bar pill above THE WORK regardless of which kind is active.
+  const activeFilter = activeThread
+    ? {
+        label: activeThread.label,
+        color: activeThread.color,
+        clear: () => setActiveThread(null),
+      }
+    : activePerson
+      ? {
+          label: activePerson.name,
+          color: activePerson.color,
+          clear: () => setActivePerson(null),
+        }
+      : null;
   const fixedChildrenBeforeWeeks =
     // headerChips + browseWeeksEyebrow + toolbar
     3
@@ -468,14 +522,7 @@ export function L3SeasonView({
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
           {flatSteps.length >= 5 ? (
             <>
-              <View style={styles.eyebrowRow}>
-                <Text style={[styles.sectionEyebrow, styles.sectionEyebrowFlush]}>
-                  {interestVocab.capabilityHeader}
-                </Text>
-                {capabilityFamilies.families.length > 0 ? (
-                  <Text style={styles.filterHint}>tap to filter the log ↓</Text>
-                ) : null}
-              </View>
+              <Text style={styles.sectionEyebrow}>{interestVocab.capabilityHeader}</Text>
               {capabilityHeadline ? (
                 <Text style={styles.sectionHeadline}>
                   <Text
@@ -509,48 +556,6 @@ export function L3SeasonView({
                   toggleThread({ id, label, color })
                 }
               />
-              {capabilityFamilies.families.length > 0 ? (
-                <>
-                  <View style={styles.capChipsWrap}>
-                    {capabilityFamilies.families.slice(0, 6).map((f) => {
-                      const active = activeThread?.id === f.id;
-                      return (
-                        <Pressable
-                          key={f.id}
-                          style={[
-                            styles.capChip,
-                            active && [
-                              styles.capChipActive,
-                              { borderColor: f.color },
-                            ],
-                          ]}
-                          onPress={() =>
-                            toggleThread({ id: f.id, label: f.label, color: f.color })
-                          }
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: active }}
-                          accessibilityLabel={`${f.label}, ${f.weeksPresent} ${
-                            f.weeksPresent === 1 ? 'week' : 'weeks'
-                          } — ${active ? 'showing only this thread' : 'isolate this thread'}`}
-                        >
-                          <View
-                            style={[styles.capChipDot, { backgroundColor: f.color }]}
-                          />
-                          <Text style={styles.capChipLabel} numberOfLines={1}>
-                            {f.label}
-                          </Text>
-                          <Text style={styles.capChipCount}>{f.weeksPresent}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                  <Text style={styles.capChipsCaption}>
-                    {filtering
-                      ? 'Showing only this thread below — tap again to clear'
-                      : 'Tap a thread to isolate + filter the weeks below'}
-                  </Text>
-                </>
-              ) : null}
             </>
           ) : (
             <View style={styles.riverEmpty}>
@@ -586,25 +591,6 @@ export function L3SeasonView({
               <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
                 {interestVocab.crewHeader}
               </Text>
-              {peerHeadline ? (
-                <Text style={styles.sectionHeadline}>
-                  <Text
-                    style={[
-                      styles.sectionHeadlineAccent,
-                      { color: peerHeadline.color },
-                    ]}
-                  >
-                    {peerHeadline.name}
-                  </Text>
-                  {peerHeadline.elapsed > 1
-                    ? ` shaped this ${interestVocab.periodNoun} most — ${peerHeadline.weeks} of ${peerHeadline.elapsed} weeks.`
-                    : ` has shaped this ${interestVocab.periodNoun} most so far.`}
-                </Text>
-              ) : (
-                <Text style={styles.sectionSubeyebrow}>
-                  {interestVocab.inputSubtitle}
-                </Text>
-              )}
               {isSparseCrew(analysis.peers) ? (
                 <CrewSparseList
                   peers={analysis.peers}
@@ -623,6 +609,113 @@ export function L3SeasonView({
                 />
               )}
             </>
+          ) : null}
+
+          {/* Unified filter cluster — the people half of mockup 19's
+              "tap a thread or a person to filter the log". Mirrors the
+              capability chips: avatar · name · role · count pills that
+              isolate one person and filter THE WORK to the steps they
+              touched. Grouped with the capability pills under one caption
+              so the two-way selection reads as one surface. */}
+          {(capabilityFamilies.families.length > 0 ||
+            peopleFamilies.length > 0) &&
+          flatSteps.length >= 5 ? (
+            <View style={styles.cluster}>
+              {capabilityFamilies.families.length > 0 ? (
+                <>
+                  <Text style={styles.clusterEyebrow}>CAPABILITIES</Text>
+                  <View style={styles.capChipsWrap}>
+                    {capabilityFamilies.families.slice(0, 6).map((f) => {
+                      const active = activeThread?.id === f.id;
+                      return (
+                        <Pressable
+                          key={f.id}
+                          style={[
+                            styles.capChip,
+                            active && [
+                              styles.capChipActive,
+                              { borderColor: f.color },
+                            ],
+                          ]}
+                          onPress={() =>
+                            toggleThread({ id: f.id, label: f.label, color: f.color })
+                          }
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                          accessibilityLabel={`${f.label}, ${f.volume} ${
+                            f.volume === 1 ? 'step' : 'steps'
+                          } — ${active ? 'showing only this thread' : 'isolate this thread'}`}
+                        >
+                          <View
+                            style={[styles.capChipDot, { backgroundColor: f.color }]}
+                          />
+                          <Text style={styles.capChipLabel} numberOfLines={1}>
+                            {f.label}
+                          </Text>
+                          <Text style={styles.capChipCount}>{f.volume}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}
+
+              {peopleFamilies.length > 0 ? (
+                <>
+                  <Text style={[styles.clusterEyebrow, styles.clusterEyebrowSpace]}>
+                    WHO SHAPED IT
+                  </Text>
+                  <View style={styles.capChipsWrap}>
+                    {peopleFamilies.slice(0, 8).map((p) => {
+                      const active = activePerson?.id === p.id;
+                      return (
+                        <Pressable
+                          key={p.id}
+                          style={[
+                            styles.personChip,
+                            active && [
+                              styles.capChipActive,
+                              { borderColor: p.color },
+                            ],
+                          ]}
+                          onPress={() =>
+                            togglePerson({ id: p.id, name: p.name, color: p.color })
+                          }
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                          accessibilityLabel={`${p.name}${
+                            p.role ? `, ${p.role}` : ''
+                          }, ${p.count} ${p.count === 1 ? 'step' : 'steps'} — ${
+                            active ? 'showing only their steps' : 'isolate their steps'
+                          }`}
+                        >
+                          <View
+                            style={[styles.personAvatar, { backgroundColor: p.color }]}
+                          >
+                            <Text style={styles.personAvatarText}>{p.initials}</Text>
+                          </View>
+                          <Text style={styles.personName} numberOfLines={1}>
+                            {p.name}
+                          </Text>
+                          {p.role ? (
+                            <Text style={styles.personRole} numberOfLines={1}>
+                              {p.role}
+                            </Text>
+                          ) : null}
+                          <Text style={styles.capChipCount}>{p.count}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}
+
+              <Text style={styles.capChipsCaption}>
+                {filtering
+                  ? 'Showing only this filter below — tap it again to clear'
+                  : 'Tap a thread or a person to filter the log'}
+              </Text>
+            </View>
           ) : null}
 
           {analysis.librarianPrompt ? (
@@ -645,19 +738,19 @@ export function L3SeasonView({
 
       <Text style={styles.browseEyebrow}>THE WORK</Text>
 
-      {filtering && activeThread ? (
+      {filtering && activeFilter ? (
         <View style={styles.filterBar}>
           <Pressable
-            style={[styles.filterPill, { borderColor: activeThread.color }]}
-            onPress={() => setActiveThread(null)}
+            style={[styles.filterPill, { borderColor: activeFilter.color }]}
+            onPress={activeFilter.clear}
             accessibilityRole="button"
-            accessibilityLabel={`Filtering by ${activeThread.label} — tap to clear`}
+            accessibilityLabel={`Filtering by ${activeFilter.label} — tap to clear`}
           >
             <View
-              style={[styles.filterPillDot, { backgroundColor: activeThread.color }]}
+              style={[styles.filterPillDot, { backgroundColor: activeFilter.color }]}
             />
             <Text style={styles.filterPillLabel} numberOfLines={1}>
-              {activeThread.label}
+              {activeFilter.label}
             </Text>
             <Ionicons name="close" size={13} color={IOS_REGISTER.labelSecondary} />
           </Pressable>
@@ -1191,26 +1284,6 @@ const styles = StyleSheet.create({
   sectionEyebrowSpace: {
     marginTop: 18,
   },
-  // Eyebrow + filter affordance on one baseline-aligned row. The hint
-  // tells the user the chart/chips below are tappable filters for THE
-  // WORK log, so the two-way selection isn't a hidden gesture.
-  eyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginLeft: 16,
-    marginRight: 16,
-    marginBottom: 6,
-  },
-  sectionEyebrowFlush: {
-    marginLeft: 0,
-    marginBottom: 0,
-  },
-  filterHint: {
-    fontSize: 10.5,
-    color: IOS_REGISTER.labelTertiary,
-    letterSpacing: 0.1,
-  },
   sectionHeadline: {
     fontFamily: fontFamily.serif,
     fontSize: 16,
@@ -1223,6 +1296,24 @@ const styles = StyleSheet.create({
   },
   sectionHeadlineAccent: {
     fontWeight: '600',
+  },
+  // Unified filter cluster — capability pills + people pills under one
+  // caption. Mirrors mockup 19's "tap a thread or a person to filter the
+  // log": the two pill rows are the two halves of one selector for THE
+  // WORK list below.
+  cluster: {
+    marginTop: 18,
+  },
+  clusterEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: IOS_REGISTER.labelSecondary,
+    marginLeft: 16,
+    marginBottom: 2,
+  },
+  clusterEyebrowSpace: {
+    marginTop: 16,
   },
   // Tappable capability chips beneath the band chart — the drill-in
   // "made explicit". Each chip isolates a thread (chart dimming + inline
@@ -1266,21 +1357,51 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: IOS_REGISTER.labelSecondary,
   },
+  // WHO SHAPED IT people pills — sibling to capChip but lead with an
+  // avatar bubble (initials on the person's identity color) so the row
+  // reads as "who" at a glance, then name · role · count.
+  personChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 4,
+    paddingRight: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.fillPill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+  },
+  personAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  personName: {
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+    flexShrink: 1,
+  },
+  personRole: {
+    fontSize: 11,
+    color: IOS_REGISTER.labelTertiary,
+    letterSpacing: -0.1,
+  },
   capChipsCaption: {
     fontSize: 11,
     fontStyle: 'italic',
     color: IOS_REGISTER.labelTertiary,
     marginLeft: 16,
     marginTop: 8,
-    letterSpacing: 0.1,
-  },
-  sectionSubeyebrow: {
-    fontSize: 11,
-    fontStyle: 'italic',
-    color: IOS_REGISTER.labelTertiary,
-    marginLeft: 16,
-    marginTop: -2,
-    marginBottom: 8,
     letterSpacing: 0.1,
   },
   sparklineWrap: {
