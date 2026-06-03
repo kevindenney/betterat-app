@@ -1766,6 +1766,32 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setSelectedPin(pin);
   }, []);
   const clearSelectedPin = useCallback(() => setSelectedPin(null), []);
+  // Ashore cockpit ⇄ pill. The cockpit and any bottom sheet both anchor to
+  // the bottom, so a tall sheet (a tapped POI / dropped pin) grows up into
+  // the cockpit and covers its buttons. Fix: the cockpit yields the bottom
+  // slot — it collapses to a slim top pill whenever a bottom sheet is open
+  // (auto), or when the user taps its collapse chevron (manual). Tapping the
+  // pill restores the full cockpit (and dismisses any open POI sheet so the
+  // two don't immediately re-collide).
+  const [cockpitManuallyCollapsed, setCockpitManuallyCollapsed] = useState(false);
+  // A bottom sheet visibly occupies the bottom slot when a step preview, a
+  // dropped-pin candidate, or a (non-suppressed) selected pin is showing —
+  // mirror the render conditions below so the cockpit knows to yield.
+  const aBottomSheetOpen =
+    !!stepPreview ||
+    !!candidate ||
+    (!!selectedPin && !(cockpitOwnsNext && isUserStepPin(selectedPin)));
+  const cockpitCollapsed = cockpitManuallyCollapsed || aBottomSheetOpen;
+  const toggleCockpitCollapsed = useCallback(() => {
+    if (cockpitCollapsed) {
+      // Expanding from the pill: clear any open POI sheet so it can't
+      // immediately re-collide with the restored full cockpit.
+      setSelectedPin(null);
+      setCockpitManuallyCollapsed(false);
+    } else {
+      setCockpitManuallyCollapsed(true);
+    }
+  }, [cockpitCollapsed]);
   const [openStepPickerVisible, setOpenStepPickerVisible] = useState(false);
   // Tap-to-anchor flow: when the user picks a step without a place,
   // we enter "tap the map to anchor STEP here" mode. Reuses the same
@@ -2669,6 +2695,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             }}
             onPickAnother={() => setOpenStepPickerVisible(true)}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            collapsed={cockpitCollapsed}
+            onToggleCollapse={toggleCockpitCollapsed}
+            collapsedTopOffset={chromePaddingTop + 84}
           />
         ) : (showWind || showTide) ? (
           <WindTideScrubber
@@ -5241,6 +5270,9 @@ function StepKindCockpit({
   onOpenStep,
   onPickAnother,
   bottomOffset = 0,
+  collapsed = false,
+  onToggleCollapse,
+  collapsedTopOffset = 100,
 }: {
   stepKind: StepKind;
   title: string;
@@ -5250,10 +5282,42 @@ function StepKindCockpit({
   onOpenStep: () => void;
   onPickAnother: () => void;
   bottomOffset?: number;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  collapsedTopOffset?: number;
 }) {
   const cfg = STEP_KIND_CONFIG[stepKind];
   const label = stepKindLabel(stepKind, interestSlug);
   const doneCount = subSteps.filter((s) => s.completed).length;
+  // Collapsed: a slim top-anchored pill (never collides with the bottom
+  // sheet). Tap to restore the full cockpit.
+  if (collapsed) {
+    return (
+      <View
+        style={[
+          shellStyles.windTideScrubber,
+          { top: collapsedTopOffset, alignItems: 'flex-start' },
+        ]}
+        pointerEvents="box-none"
+      >
+        <Pressable
+          onPress={onToggleCollapse}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} next step — tap to expand`}
+          style={stepCockpitStyles.pill}
+        >
+          <View style={[stepCockpitStyles.kindDot, { backgroundColor: cfg.color }]} />
+          <Text style={[stepCockpitStyles.pillLabel, { color: cfg.color }]} numberOfLines={1}>
+            {cfg.glyph} {label.toUpperCase()}
+          </Text>
+          <Text style={stepCockpitStyles.pillTitle} numberOfLines={1}>
+            {title}
+          </Text>
+          <Ionicons name="chevron-up" size={14} color={IOS_REGISTER.labelTertiary} />
+        </Pressable>
+      </View>
+    );
+  }
   return (
     <View
       style={[shellStyles.windTideScrubber, { bottom: bottomOffset + 116 }]}
@@ -5266,6 +5330,17 @@ function StepKindCockpit({
             {cfg.glyph} {label.toUpperCase()}
           </Text>
           <Text style={stepCockpitStyles.whenBadge}>NEXT</Text>
+          {onToggleCollapse ? (
+            <Pressable
+              onPress={onToggleCollapse}
+              accessibilityRole="button"
+              accessibilityLabel="Collapse next step"
+              hitSlop={10}
+              style={stepCockpitStyles.collapseBtn}
+            >
+              <Ionicons name="chevron-down" size={16} color={IOS_REGISTER.labelTertiary} />
+            </Pressable>
+          ) : null}
         </View>
         <Text style={stepCockpitStyles.title} numberOfLines={2}>
           {title}
@@ -5345,6 +5420,37 @@ const stepCockpitStyles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.6,
+  },
+  collapseBtn: {
+    marginLeft: 6,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    maxWidth: '58%',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+  pillLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  pillTitle: {
+    flexShrink: 1,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
   },
   whenBadge: {
     fontSize: 10,
