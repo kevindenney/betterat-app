@@ -83,6 +83,9 @@ export function SimpleLandingNav({ currentInterestSlug }: SimpleLandingNavProps 
               <TouchableOpacity onPress={() => router.push('/how-it-works' as any)}>
                 <Text style={styles.navLink}>How It Works</Text>
               </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/marketplace' as any)}>
+                <Text style={styles.navLink}>Marketplace</Text>
+              </TouchableOpacity>
               <View style={styles.pricingContainer}>
                 <TouchableOpacity
                   onPress={() => setPricingMenuOpen(!pricingMenuOpen)}
@@ -220,6 +223,20 @@ export function SimpleLandingNav({ currentInterestSlug }: SimpleLandingNavProps 
                     color="rgba(255, 255, 255, 0.7)"
                   />
                   <Text style={styles.mobileMenuText}>How It Works</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.mobileMenuItem}
+                  onPress={() => {
+                    setMobileMenuOpen(false);
+                    router.push('/marketplace' as any);
+                  }}
+                >
+                  <Ionicons
+                    name="storefront-outline"
+                    size={22}
+                    color="rgba(255, 255, 255, 0.7)"
+                  />
+                  <Text style={styles.mobileMenuText}>Marketplace</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.mobileMenuItem}

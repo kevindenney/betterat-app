@@ -2,22 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { SAMPLE_INTERESTS, type SampleInterest } from '@/lib/landing/sampleData';
+import { SAMPLE_INTERESTS, INTEREST_DOMAINS, type SampleInterest } from '@/lib/landing/sampleData';
 
-// Static domain grouping for sample interests (mirrors DB hierarchy)
 interface DomainGroup {
   name: string;
   color: string;
   slugs: string[];
 }
 
-const DOMAIN_GROUPS: DomainGroup[] = [
-  { name: 'Healthcare', color: '#6366F1', slugs: ['nursing', 'global-health'] },
-  { name: 'Creative Arts', color: '#F59E0B', slugs: ['drawing', 'design', 'knitting', 'fiber-arts', 'painting-printing'] },
-  { name: 'Sports & Outdoors', color: '#0EA5E9', slugs: ['sail-racing', 'golf', 'health-and-fitness'] },
-  { name: 'Education & Learning', color: '#5C6BC0', slugs: ['lifelong-learning'] },
-  { name: 'Agriculture & Environment', color: '#2E7D32', slugs: ['regenerative-agriculture'] },
-];
+const DOMAIN_GROUPS: DomainGroup[] = INTEREST_DOMAINS;
 
 function getGroupedInterests(): { domain: DomainGroup; interests: SampleInterest[] }[] {
   const grouped = new Set<string>();
