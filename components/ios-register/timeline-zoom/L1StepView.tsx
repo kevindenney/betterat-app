@@ -271,18 +271,9 @@ export function L1StepView({
               </View>
             ) : null}
             <View style={[styles.embedDetailHost, isNowStep && styles.embedDetailHostNow]}>
-              <Pressable
-                style={styles.embedMoreButton}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel="Step actions"
-              >
-                <Ionicons
-                  name="ellipsis-horizontal"
-                  size={18}
-                  color={IOS_REGISTER.labelSecondary}
-                />
-              </Pressable>
+              {/* StepDetailContent renders its own •••-menu button (with the
+                  Delete action) via StepCard's floating menu. A second dead
+                  ellipsis here used to overlay and swallow that tap. */}
               <StepDetailContent
                 stepId={step.id}
                 onScroll={onScroll}
@@ -597,20 +588,6 @@ const styles = StyleSheet.create({
   // top-left corner; without this the step title's first glyph renders behind
   // it. Drop the detail body down enough to clear the pill.
   embedDetailHostNow: { paddingTop: 16 },
-  embedMoreButton: {
-    position: 'absolute',
-    top: 8,
-    right: 10,
-    zIndex: 20,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: IOS_REGISTER.separator,
-  },
   embedContent: {
     flex: 1,
     marginHorizontal: CARD_INSET,
