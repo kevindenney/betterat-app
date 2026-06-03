@@ -2233,6 +2233,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             showRaceAreas={showRaceAreas}
             showCourse={showCourse}
             coursePreviewCollection={coursePreview}
+            courseWindDirectionDeg={defaultCourseWindDeg}
             basemap={basemap}
           />
         ) : (

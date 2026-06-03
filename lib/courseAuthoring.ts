@@ -8,7 +8,7 @@
  * box) is derived downstream by deriveCourseOverlay — see venueCourseGeoJSON.
  */
 
-import { destinationPoint } from '@/services/CoursePositioningService';
+import { calculateDistanceNm, destinationPoint } from '@/services/CoursePositioningService';
 import type { CourseGeometryParams, CourseType } from '@/types/courses';
 
 const M_PER_NM = 1852;
@@ -90,4 +90,50 @@ export function buildCourseParams(input: BuildCourseParamsInput): CourseGeometry
     startBoxDepthBoatLengths,
     courseType,
   };
+}
+
+/**
+ * Re-orient a stored course to a live wind observation, keeping its center
+ * and scale fixed.
+ *
+ * The persisted endpoints (pin/committee) bake in the wind the course was
+ * authored with, so a course drawn at 180° still draws windward-due-south
+ * even after the breeze veers. On the water the RC sets the course to the
+ * actual wind, so the authored `windDirectionDeg` is really a fallback — the
+ * displayed axis should track the current observation.
+ *
+ * We recover the geometric center (step the start-line midpoint half a beat
+ * UPwind along the stored axis — the inverse of the half-beat-downwind step
+ * buildCourseParams applies) and the start-line length (pin↔committee
+ * distance), then rebuild around the live wind. All scalars carry through.
+ */
+export function reorientCourseToWind(
+  params: CourseGeometryParams,
+  liveWindDirectionDeg: number,
+): CourseGeometryParams {
+  const startMid = {
+    lat: (params.pin.lat + params.committee.lat) / 2,
+    lng: (params.pin.lng + params.committee.lng) / 2,
+  };
+  // Undo the half-beat-downwind step to land back on the course center.
+  const center = destinationPoint(
+    startMid.lat,
+    startMid.lng,
+    params.windDirectionDeg,
+    params.legLengthNm / 2,
+  );
+  const startLineLengthM =
+    calculateDistanceNm(params.pin.lat, params.pin.lng, params.committee.lat, params.committee.lng) *
+    M_PER_NM;
+
+  return buildCourseParams({
+    center: { lat: center.lat, lng: center.lng },
+    windDirectionDeg: liveWindDirectionDeg,
+    startLineLengthM,
+    legLengthNm: params.legLengthNm,
+    tackAngleDeg: params.tackAngleDeg,
+    boatLengthM: params.boatLengthM,
+    startBoxDepthBoatLengths: params.startBoxDepthBoatLengths,
+    courseType: params.courseType,
+  });
 }

@@ -20,6 +20,7 @@
 
 import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
 
+import { reorientCourseToWind } from '@/lib/courseAuthoring';
 import {
   type Coord,
   type CourseOverlayGeometry,
@@ -34,6 +35,13 @@ export interface CourseEnvironment {
   currentDirection?: number;
   /** Live current drift, knots. */
   currentSpeed?: number;
+  /**
+   * Live wind direction (degrees the wind blows FROM). When present, each
+   * course is re-oriented to this axis before deriving the overlay, so the
+   * windward mark tracks the current breeze rather than the wind the course
+   * was authored with. Falls back to the stored windDirectionDeg when absent.
+   */
+  windDirection?: number;
 }
 
 function toLngLat(c: Coord): [number, number] {
@@ -216,9 +224,15 @@ export function venueCoursesToFeatureCollection(
 ): FeatureCollection {
   const features: Feature[] = [];
   for (const course of courses) {
-    const overlay = deriveCourseOverlay(courseParamsToOverlayInput(course.geometry, env));
+    // Re-orient to the live wind when we have an observation; otherwise draw
+    // the course as authored.
+    const geometry =
+      env.windDirection != null
+        ? reorientCourseToWind(course.geometry, env.windDirection)
+        : course.geometry;
+    const overlay = deriveCourseOverlay(courseParamsToOverlayInput(geometry, env));
     if (!overlay) continue;
-    features.push(...courseOverlayToFeatures(overlay, course.geometry, course.id));
+    features.push(...courseOverlayToFeatures(overlay, geometry, course.id));
   }
   return { type: 'FeatureCollection', features };
 }

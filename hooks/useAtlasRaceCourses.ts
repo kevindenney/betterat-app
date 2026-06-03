@@ -29,7 +29,11 @@ const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 interface UseAtlasRaceCoursesArgs {
   enabled?: boolean;
-  /** Live conditions — reserved; the emitted geometry is current-agnostic. */
+  /**
+   * Live conditions. `windDirection` re-orients each saved course to the
+   * current breeze; `currentDirection`/`currentSpeed` drive favored-side
+   * shading.
+   */
   env?: CourseEnvironment;
 }
 

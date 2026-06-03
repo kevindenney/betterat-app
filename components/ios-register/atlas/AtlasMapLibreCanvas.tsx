@@ -440,6 +440,12 @@ interface AtlasMapLibreCanvasProps {
    */
   coursePreviewCollection?: GeoJSON.FeatureCollection | null;
   /**
+   * Live wind direction (degrees the wind blows FROM). When supplied, saved
+   * courses re-orient to this axis so the windward mark tracks the current
+   * breeze instead of the wind they were authored with.
+   */
+  courseWindDirectionDeg?: number;
+  /**
    * Fires when the user long-presses the map. Atlas uses this to open
    * the racing-area create sheet — the user marks where racing happens
    * even when their club isn't yet in BetterAt.
@@ -508,6 +514,7 @@ export function AtlasMapLibreCanvas({
   showRaceAreas = false,
   showCourse = false,
   coursePreviewCollection = null,
+  courseWindDirectionDeg,
   onNextEventPress,
   onMapLongPress,
   racingAreaPreviewPolygon = null,
@@ -548,8 +555,13 @@ export function AtlasMapLibreCanvas({
     enabled: showRaceAreas,
     userClasses: userBoatClasses,
   });
+  const courseEnv = useMemo(
+    () => (courseWindDirectionDeg != null ? { windDirection: courseWindDirectionDeg } : {}),
+    [courseWindDirectionDeg],
+  );
   const { featureCollection: courseCollection } = useAtlasRaceCourses({
     enabled: showCourse,
+    env: courseEnv,
   });
   // Cluster pill noun varies by interest — sailors read "session", nurses
   // "shift", generic users "log". Default ("step") is platform jargon.
