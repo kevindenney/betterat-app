@@ -929,6 +929,7 @@ export default function AtlasTab() {
           onOrgLensPress={handleOpenOrgLens}
           focusOrgSlug={orgSlug || null}
           initialFocus={initialFocus}
+          onNearbyPress={frame === 'f4' ? () => setNearbyOpen(true) : undefined}
           bottomSheetOffset={tabBarSpace}
         />
 
@@ -949,8 +950,10 @@ export default function AtlasTab() {
 
         {/* Nearby list entry — a right-edge pill below the Atlas top chrome
             (aligns with the top-chrome-consolidation direction rather than
-            competing with the bottom sheet). Hidden while open. */}
-        {!nearbyOpen && !isFromPlan ? (
+            competing with the bottom sheet). Hidden while open. Nursing (f4)
+            instead surfaces Nearby as a quiet TopChrome action, so the
+            floating pill is suppressed there to avoid double affordances. */}
+        {!nearbyOpen && !isFromPlan && frame !== 'f4' ? (
           <Pressable
             style={[styles.nearbyPill, { top: insets.top + 96 }]}
             onPress={() => setNearbyOpen(true)}

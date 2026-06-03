@@ -1713,6 +1713,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const cockpitStep = useAtlasCockpitStep(
     isAshoreCockpit ? (myNextStepPin?.stepId ?? null) : null,
   );
+  // When the ashore cockpit owns the next step, it IS the surface — the
+  // redundant "YOUR NEXT STEP" / "YOUR STEP" bottom sheets for that same
+  // step are suppressed so the step isn't shown twice. A sheet for any
+  // OTHER tapped pin still shows.
+  const cockpitOwnsNext = isAshoreCockpit && !!myNextStepPin;
   // Auto-center on the viewer's next step the first time it appears.
   // The point of Atlas is "show me where I'm going" — landing on the
   // bbox centroid is a useless default when we already know which
@@ -2653,6 +2658,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             locationName={cockpitStep?.locationName ?? null}
             subSteps={cockpitStep?.subSteps ?? []}
             interestSlug={currentInterest?.slug ?? null}
+            onOpenStep={() => {
+              const id = myNextStepPin.stepId;
+              if (id) handlers.onStepPress?.(id);
+            }}
+            onPickAnother={() => setOpenStepPickerVisible(true)}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           />
         ) : (showWind || showTide) ? (
@@ -2795,7 +2805,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           secondary={{ label: 'Cancel', onPress: exitCommit }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
-      ) : selectedPin ? (
+      ) : selectedPin &&
+        !(
+          cockpitOwnsNext &&
+          (selectedPin.stepId ?? selectedPin.id) ===
+            (myNextStepPin?.stepId ?? myNextStepPin?.id)
+        ) ? (
         // Race-marks are organizer-set artifacts of an upcoming race — the
         // user can't "plan a step" at one. Surface a richer eyebrow that
         // names the regatta they belong to, swap the CTA to "Open <race>"
@@ -2942,7 +2957,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             initialState="expanded"
           />
         )
-      ) : hasNext && !myNextStepPin ? (
+      ) : cockpitOwnsNext ? null : hasNext && !myNextStepPin ? (
         <BottomSheet
           key="has-next"
           eyebrow={`NEXT · ${next!.label.toUpperCase()}`}
@@ -5223,6 +5238,8 @@ function StepKindCockpit({
   locationName,
   subSteps,
   interestSlug,
+  onOpenStep,
+  onPickAnother,
   bottomOffset = 0,
 }: {
   stepKind: StepKind;
@@ -5230,6 +5247,8 @@ function StepKindCockpit({
   locationName: string | null;
   subSteps: CockpitSubStep[];
   interestSlug: string | null;
+  onOpenStep: () => void;
+  onPickAnother: () => void;
   bottomOffset?: number;
 }) {
   const cfg = STEP_KIND_CONFIG[stepKind];
@@ -5291,6 +5310,19 @@ function StepKindCockpit({
             </ScrollView>
           </>
         ) : null}
+        <View style={stepCockpitStyles.actionRow}>
+          <Pressable
+            onPress={onOpenStep}
+            style={[stepCockpitStyles.actionPrimary, { backgroundColor: cfg.color }]}
+          >
+            <Ionicons name="open-outline" size={15} color="#FFFFFF" />
+            <Text style={stepCockpitStyles.actionPrimaryText}>Open step</Text>
+          </Pressable>
+          <Pressable onPress={onPickAnother} style={stepCockpitStyles.actionSecondary}>
+            <Ionicons name="chevron-down" size={15} color={IOS_REGISTER.labelSecondary} />
+            <Text style={stepCockpitStyles.actionSecondaryText}>Pick another</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -5374,6 +5406,40 @@ const stepCockpitStyles = StyleSheet.create({
   checkTextDone: {
     color: IOS_REGISTER.labelSecondary,
     textDecorationLine: 'line-through',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  actionPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  actionPrimaryText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  actionSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  actionSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_REGISTER.labelSecondary,
   },
 });
 
