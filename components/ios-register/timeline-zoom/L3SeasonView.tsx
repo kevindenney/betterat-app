@@ -42,6 +42,7 @@ import { StepLogRow } from './StepLogRow';
 import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
+import { ANALYSIS_MIN_STEPS } from './realDataAdapter';
 import { ReflectionSparkline } from './ReflectionSparkline';
 import { VisionBlock } from './VisionBlock';
 import { VisionEditSheet } from './VisionEditSheet';
@@ -520,7 +521,7 @@ export function L3SeasonView({
 
       {hasAnalysis && analysis ? (
         <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
-          {flatSteps.length >= 5 ? (
+          {flatSteps.length >= ANALYSIS_MIN_STEPS ? (
             <>
               <Text style={styles.sectionEyebrow}>{interestVocab.capabilityHeader}</Text>
               {capabilityHeadline ? (
@@ -621,11 +622,19 @@ export function L3SeasonView({
               isolate one person and filter THE WORK to the steps they
               touched. Grouped with the capability pills under one caption
               so the two-way selection reads as one surface. */}
-          {(capabilityFamilies.families.length > 0 ||
-            peopleFamilies.length > 0) &&
-          flatSteps.length >= 5 ? (
+          {(() => {
+            // CAPABILITIES pills mirror the river, so they share its
+            // maturity gate. WHO SHAPED IT pills mirror the FLEET lane
+            // (which shows from a single peer), so they're decoupled —
+            // a coach who reflected on step 3 gets a tappable pill even
+            // before the river fills in.
+            const showCapPills =
+              capabilityFamilies.families.length > 0 &&
+              flatSteps.length >= ANALYSIS_MIN_STEPS;
+            const showPeoplePills = peopleFamilies.length > 0;
+            return showCapPills || showPeoplePills ? (
             <View style={styles.cluster}>
-              {capabilityFamilies.families.length > 0 ? (
+              {showCapPills ? (
                 <>
                   <Text style={styles.clusterEyebrow}>CAPABILITIES</Text>
                   <View style={styles.capChipsWrap}>
@@ -720,7 +729,8 @@ export function L3SeasonView({
                   : 'Tap a thread or a person to filter the log'}
               </Text>
             </View>
-          ) : null}
+            ) : null;
+          })()}
 
           {analysis.librarianPrompt ? (
             <SeasonLibrarianPrompt
