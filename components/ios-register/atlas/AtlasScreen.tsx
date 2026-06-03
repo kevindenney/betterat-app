@@ -2280,6 +2280,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             courseCurrentDirectionDeg={courseCurrent?.deg}
             courseCurrentSpeedKn={courseCurrent?.kn}
             basemap={basemap}
+            // The WindTideScrubber card below owns the numeric readout, so
+            // the on-map arrows stay directional-only — no chips printed
+            // over the marks (matches the card's own visibility gate).
+            hideArrowChips={showWind || showTide}
           />
         ) : (
           <HongKongOverviewMap />

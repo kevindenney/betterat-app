@@ -541,6 +541,13 @@ interface AtlasMapLibreCanvasProps {
   onMapCenterChange?: (coords: { lng: number; lat: number }) => void;
   /** Base map style used by web and native MapLibre surfaces. */
   basemap?: AtlasBasemap;
+  /**
+   * Suppress the floating value chips on wind/tide/wave arrows (e.g.
+   * "225° · 3 kn · 0.3m"). Set when a readable conditions card already
+   * owns the numbers, so the chart keeps directional arrows only and
+   * doesn't double-print the readout over the marks.
+   */
+  hideArrowChips?: boolean;
 }
 
 /**
@@ -597,6 +604,7 @@ export function AtlasMapLibreCanvas({
   racingAreaPreviewPolygon = null,
   onMapCenterChange,
   basemap = 'map',
+  hideArrowChips = false,
 }: AtlasMapLibreCanvasProps) {
   // Hooks first, then early returns — rules-of-hooks compliance.
   const cameraRef = useRef<CameraRef>(null);
@@ -806,6 +814,7 @@ export function AtlasMapLibreCanvas({
         baseCamera={baseCamera}
         walkLineCollection={walkLineCollection}
         raceAreasCollection={raceAreasCollection}
+        hideArrowChips={hideArrowChips}
       />
     );
   }
@@ -1105,6 +1114,7 @@ export function AtlasMapLibreCanvas({
               clusterUnit={clusterUnit}
               glowCluster={pin.glowCluster}
               showLabel={shouldShowLabel(pin, pins)}
+              hideArrowChips={hideArrowChips}
             />
           );
           return (
@@ -1197,6 +1207,7 @@ function WebAtlasMapLibreCanvas({
   raceAreasCollection,
   courseCollection,
   coursePreviewCollection = null,
+  hideArrowChips = false,
 }: AtlasMapLibreCanvasProps & {
   pins: AtlasPinSpec[];
   baseCamera: CameraPreset;
@@ -1481,6 +1492,7 @@ function WebAtlasMapLibreCanvas({
         pin,
         showLabel: shouldShowLabel(pin, pins),
         isTappable,
+        hideArrowChips,
         onPress: isTappable
           ? () => {
               onPinPress?.(pin);
@@ -1494,7 +1506,7 @@ function WebAtlasMapLibreCanvas({
       });
       return new Marker({ element }).setLngLat([pin.lng, pin.lat]).addTo(map);
     });
-  }, [isLoaded, onPinPress, pins]);
+  }, [isLoaded, onPinPress, pins, hideArrowChips]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1685,11 +1697,13 @@ function createWebPinElement({
   showLabel,
   isTappable,
   onPress,
+  hideArrowChips = false,
 }: {
   pin: AtlasPinSpec;
   showLabel: boolean;
   isTappable: boolean;
   onPress?: () => void;
+  hideArrowChips?: boolean;
 }) {
   // Wind and tide arrows have their own DOM shape — a rotated glyph
   // plus an optional value chip. The generic circle path below would
@@ -1697,7 +1711,7 @@ function createWebPinElement({
   // before this branch). Native uses LabeledPin's wind-arrow /
   // tide-arrow blocks; this mirrors them in plain DOM for web parity.
   if (pin.kind === 'wind-arrow' || pin.kind === 'tide-arrow' || pin.kind === 'wave-arrow') {
-    return createWebArrowElement(pin);
+    return createWebArrowElement(pin, hideArrowChips);
   }
   const tone = PIN_TONE[pin.kind];
   const root = document.createElement(isTappable ? 'button' : 'div');
@@ -2098,6 +2112,7 @@ function LabeledPin({
   clusterUnit,
   glowCluster,
   showLabel = true,
+  hideArrowChips = false,
 }: {
   kind: AtlasPinSpec['kind'];
   label?: string;
@@ -2107,6 +2122,8 @@ function LabeledPin({
   glowCluster?: string;
   /** When false, suppress the label pill — used for label-hide-until-tap at z11+. */
   showLabel?: boolean;
+  /** Suppress wind/tide/wave value chips — a conditions card owns the numbers. */
+  hideArrowChips?: boolean;
 }) {
   // Walk-annotation renders as a small grey pill at the midpoint between
   // two same-campus pins — no dot glyph, just the label.
@@ -2246,14 +2263,14 @@ function LabeledPin({
             color={isField ? `rgba(113, 143, 168, ${fieldOpacity.toFixed(2)})` : primaryColor}
           />
         </View>
-        {!isField && knots > 0 ? (
+        {!isField && !hideArrowChips && knots > 0 ? (
           <Text style={styles.arrowChip}>
             {waveM != null && Number.isFinite(waveM)
               ? `${padDeg(fromDeg)}° · ${Math.round(knots)} kn · ${waveM.toFixed(1)}m`
               : `${padDeg(fromDeg)}° · ${Math.round(knots)} kn`}
           </Text>
         ) : null}
-        {!isField && source ? (
+        {!isField && !hideArrowChips && source ? (
           <Text style={styles.arrowSourceLabel}>{source}</Text>
         ) : null}
       </View>
@@ -2282,7 +2299,7 @@ function LabeledPin({
             color={isField ? 'rgba(96, 130, 138, 0.78)' : 'rgba(0, 168, 168, 0.95)'}
           />
         </View>
-        {!isField && knots > 0 ? (
+        {!isField && !hideArrowChips && knots > 0 ? (
           <Text style={styles.arrowChip}>{`${padDeg(setDeg)}° · ${knots.toFixed(1)} kn`}</Text>
         ) : null}
       </View>
@@ -2312,7 +2329,7 @@ function LabeledPin({
             color={isField ? 'rgba(110, 108, 200, 0.78)' : 'rgba(94, 92, 230, 0.95)'}
           />
         </View>
-        {!isField && heightM > 0 ? (
+        {!isField && !hideArrowChips && heightM > 0 ? (
           <Text style={styles.arrowChip}>{`${padDeg(setDeg)}° · ${heightM.toFixed(1)}m`}</Text>
         ) : null}
       </View>
