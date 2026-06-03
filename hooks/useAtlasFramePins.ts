@@ -13,7 +13,7 @@ import { useAtlasPois, type AtlasPoi } from './useAtlasPois';
 import { useAtlasPeerSteps, type AtlasPeerStep } from './useAtlasPeerSteps';
 import { useUserAtlasSteps, type PickerStep, type UserAtlasStep } from './useUserAtlasSteps';
 import { useSailingPoisNear, type SailingPoiRow } from './useSailingPoisNear';
-import type { AtlasPinSpec } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
+import type { AtlasPinSpec, AtlasPeerMember } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
 import { stepKindFor, isRaceStep } from '@/lib/step-kind-config';
 
 interface UseAtlasFramePinsArgs {
@@ -152,10 +152,12 @@ export function clusterPeerPins(
     if (group.length >= minClusterSize) {
       let lat = 0;
       let lng = 0;
+      const members: AtlasPeerMember[] = [];
       for (const idx of group) {
         lat += peerPins[idx].lat;
         lng += peerPins[idx].lng;
         visited.add(idx);
+        if (peerPins[idx].peer) members.push(peerPins[idx].peer!);
       }
       out.push({
         id: `peer-cluster:${peerPins[i].id}-${group.length}`,
@@ -168,6 +170,8 @@ export function clusterPeerPins(
           'Privacy-safe cluster of crew, fleet, following, and cohort steps near this area.',
         provenance:
           'Shown as a count because individual peer locations may be approximate, hidden, or jittered.',
+        // Phase N.2 — the members behind the badge, for the drill-down list.
+        peerMembers: members,
       });
     } else {
       visited.add(i);
@@ -414,11 +418,20 @@ export function useAtlasFramePins({
     // roster server-side via restrict_user_ids[]. Per design rule §5
     // (CLUSTER BEHAVIOR): 5+ peer pins in 2km merge to "+N"; POIs are
     // geography (never merge).
-    const peerPins = peers.map((step) => ({
+    const peerPins: AtlasPinSpec[] = peers.map((step) => ({
       id: `peer:${step.step_id}`,
       lat: step.lat,
       lng: step.lng,
       kind: mapPeerToPinKind(step),
+      // Phase N.3 — carry the privacy-safe identity so an individual peer pin
+      // opens an honest callout (who · relationship · when) instead of a
+      // generic "plan a step here" sheet.
+      peer: {
+        stepId: step.step_id,
+        relationship: step.relationship,
+        name: step.preview_name ?? step.set_by_name ?? null,
+        setAt: step.set_at ?? null,
+      },
     }));
     out.push(...clusterPeerPins(peerPins));
 

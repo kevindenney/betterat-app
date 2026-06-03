@@ -54,6 +54,7 @@ import {
   AtlasMapLibreCanvas,
   type AtlasBasemap,
   type AtlasPinSpec,
+  type AtlasPeerMember,
   type AtlasRacingAreaPressTarget,
 } from './AtlasMapLibreCanvas';
 import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
@@ -773,6 +774,91 @@ const GROUP_TONE_DOT: Record<string, string> = {
   fleet: 'rgba(40, 50, 70, 0.78)',
   cohort: '#5856D6',
 };
+
+// Phase N.2/N.3 — relationship tone + label for peer-step rows. Mirrors the
+// PIN_TONE the map uses so the drill-down dots match the pins they expand.
+const PEER_RELATIONSHIP_TONE: Record<string, string> = {
+  self: '#FF3B30',
+  crew: '#FF3B30',
+  cohort: '#5856D6',
+  fleet: 'rgba(40, 50, 70, 0.78)',
+  following: 'rgba(60, 70, 90, 0.55)',
+  public: 'rgba(120, 120, 130, 0.6)',
+};
+
+function peerRelationshipLabel(rel: string): string {
+  switch (rel) {
+    case 'self': return 'You';
+    case 'crew': return 'Crew';
+    case 'cohort': return 'Cohort';
+    case 'fleet': return 'Fleet';
+    case 'following': return 'Following';
+    default: return 'Public';
+  }
+}
+
+/** "2026-06-01T…" → "2d ago". Null/invalid input returns null (line hides). */
+function relativeSetAt(iso: string | null): string | null {
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return null;
+  const mins = Math.round((Date.now() - then) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.round(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  return `${Math.round(days / 30)}mo ago`;
+}
+
+/**
+ * Phase N.2 — the privacy-safe member list behind a "+N" peer cluster badge.
+ * Most-recent first, capped so a dense cluster doesn't produce a giant sheet;
+ * the tail collapses to "+N more nearby". Names may be approximate or hidden
+ * (server-jittered), so a missing name falls back to "Someone nearby".
+ */
+function PeerMemberList({ members }: { members: AtlasPeerMember[] }) {
+  const CAP = 8;
+  const sorted = [...members].sort((a, b) =>
+    (b.setAt ?? '').localeCompare(a.setAt ?? ''),
+  );
+  const shown = sorted.slice(0, CAP);
+  const extra = sorted.length - shown.length;
+  return (
+    <View style={shellStyles.peerListWrap}>
+      {shown.map((m, i) => {
+        const when = relativeSetAt(m.setAt);
+        return (
+          <View key={`${m.stepId}-${i}`} style={shellStyles.peerListRow}>
+            <View
+              style={[
+                shellStyles.peerListDot,
+                {
+                  backgroundColor:
+                    PEER_RELATIONSHIP_TONE[m.relationship] ??
+                    PEER_RELATIONSHIP_TONE.public,
+                },
+              ]}
+            />
+            <Text style={shellStyles.peerListName} numberOfLines={1}>
+              {m.name?.trim() || 'Someone nearby'}
+            </Text>
+            <Text style={shellStyles.peerListMeta} numberOfLines={1}>
+              {peerRelationshipLabel(m.relationship)}
+              {when ? ` · ${when}` : ''}
+            </Text>
+          </View>
+        );
+      })}
+      {extra > 0 ? (
+        <Text style={shellStyles.peerListMore}>+{extra} more nearby</Text>
+      ) : null}
+    </View>
+  );
+}
 
 function GroupSubchip({
   group,
@@ -2910,22 +2996,35 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               [
                 selectedPin.subtitle,
                 selectedPin.provenance,
-                'Use this as social context: people in your crew, fleet, following graph, or cohort have activity around this water.',
               ]
                 .filter(Boolean)
                 .join('\n')
             }
-            primary={{
-              label: 'Explore peer steps',
-              icon: 'people-outline',
-              onPress: () => {
-                clearSelectedPin();
-                comingSoonAlert(
-                  'Explore peer steps',
-                  'This will open the privacy-safe list behind the cluster: relationship, public preview, and any steps the viewer is allowed to open. For now the badge is a density signal only.',
-                );
-              },
-            }}
+            expandedContent={
+              selectedPin.peerMembers && selectedPin.peerMembers.length > 0 ? (
+                <PeerMemberList members={selectedPin.peerMembers} />
+              ) : null
+            }
+            secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
+          />
+        ) : selectedPin.peer ? (
+          <BottomSheet
+            key="peer-step"
+            eyebrow="PEER STEP"
+            title={selectedPin.peer.name?.trim() || 'Someone nearby'}
+            source={
+              [
+                peerRelationshipLabel(selectedPin.peer.relationship),
+                relativeSetAt(selectedPin.peer.setAt),
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            }
+            body={
+              'A peer in your crew, fleet, following graph, or cohort has a step near here. Locations are privacy-jittered, so this marks the neighborhood, not an exact spot.'
+            }
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
@@ -6878,6 +6977,40 @@ const shellStyles = StyleSheet.create({
   sheetSourceLink: {
     color: '#007AFF',
     textDecorationLine: 'underline',
+  },
+  peerListWrap: {
+    marginTop: 8,
+    gap: 8,
+  },
+  peerListRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  peerListDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  peerListName: {
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+  },
+  peerListMeta: {
+    marginLeft: 'auto',
+    fontSize: 11,
+    color: IOS_REGISTER.labelTertiary,
+    letterSpacing: -0.05,
+  },
+  peerListMore: {
+    marginTop: 2,
+    fontSize: 11,
+    color: IOS_REGISTER.labelTertiary,
+    fontStyle: 'italic',
+    letterSpacing: -0.05,
   },
   statsRow: {
     marginTop: 8,

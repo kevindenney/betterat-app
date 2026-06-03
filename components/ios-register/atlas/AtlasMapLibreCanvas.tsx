@@ -321,6 +321,22 @@ const COURSE_WEB_LAYERS: {
 
 const COURSE_WEB_LAYER_IDS = COURSE_WEB_LAYERS.map((l) => l.id);
 
+/**
+ * Phase N.2/N.3 — a single peer step behind a pin or cluster. Carries only
+ * the privacy-safe fields the RPC already returns (relationship label, a
+ * display name that may be approximate/hidden, and when it was set) so the
+ * drill-down list + peer callout render without a second fetch.
+ */
+export interface AtlasPeerMember {
+  stepId: string;
+  /** crew / cohort / fleet / following / public — drives the relationship tone. */
+  relationship: string;
+  /** Display name; null when the peer is hidden behind a privacy preview. */
+  name: string | null;
+  /** ISO timestamp the step location was set, for a relative "2d ago" line. */
+  setAt: string | null;
+}
+
 export interface AtlasPinSpec {
   id: string;
   lng: number;
@@ -410,6 +426,18 @@ export interface AtlasPinSpec {
    * separate tap. Currently used by race-marks.
    */
   provenance?: string;
+  /**
+   * Phase N.3 — peer step identity for an individual peer pin (crew / fleet /
+   * following). Populates the peer-step callout (who, relationship, when) so
+   * the tap is honest social context instead of a generic "plan here" sheet.
+   */
+  peer?: AtlasPeerMember;
+  /**
+   * Phase N.2 — the members behind a "+N" peer cluster badge, for the
+   * drill-down sheet. Privacy-safe: names may be approximate/hidden and the
+   * list is server-jittered, but it replaces the dishonest "Coming soon" stub.
+   */
+  peerMembers?: AtlasPeerMember[];
   /** Organization backing this place pin, when the POI is claimed. */
   orgId?: string | null;
   /** Slug for the public organization route, e.g. /organizations/rhkyc. */
