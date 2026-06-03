@@ -6,7 +6,7 @@ import { PlaybookHome } from '@/components/playbook/PlaybookHome';
 import { PlaybookIosPreview } from '@/app/playbook-ios';
 import { PlaybookLanding } from '@/components/playbook/PlaybookLanding';
 import { LibraryLanding } from '@/components/library/LibraryLanding';
-import { LibrarianStrip } from '@/components/library/librarian/LibrarianStrip';
+import { LibrarianLine } from '@/components/library/librarian/LibrarianLine';
 import {
   LibrarianNoticedCard,
   type LibrarianObservation,
@@ -154,23 +154,45 @@ function LibrarianSlot({
   onPromote: () => void;
   onAddEvidence: () => void;
 }) {
+  // The full noticed card is collapsed by default — the librarian shows
+  // one line, and tapping it reveals the card with its Promote /
+  // Add-evidence actions. Earlier the card sat open in the feed and
+  // pushed the user's own plans below the fold.
+  const [expanded, setExpanded] = React.useState(false);
+
   // No fabricated observation for users without concepts. The card cites a
   // real concept + evidence; a canned sample fabricated sailing history
   // ("held 'Pick a side and commit' for 8 weeks… Race 3") that leaked to
-  // every persona. Until there's a real concept to anchor on, the "Ask the
-  // librarian" strip carries the librarian's voice on its own.
+  // every persona. Until there's a real concept to anchor on, the line
+  // carries the librarian's voice as the rotating "Ask" prompt on its own.
   const observation: LibrarianObservation | null =
     observationDismissed || !anchor
       ? null
       : buildObservationForConcept({
           anchor,
-          onDismiss: onDismissObservation,
+          onDismiss: () => {
+            setExpanded(false);
+            onDismissObservation();
+          },
           onPromote,
           onAddEvidence,
         });
+
+  const insightTeaser = anchor
+    ? `${anchor.title} is ${humanState(anchor.state)} — ${
+        anchor.evidenceCount === 0
+          ? 'no step has tested it yet'
+          : `${anchor.evidenceCount} step${anchor.evidenceCount === 1 ? '' : 's'} so far`
+      }.`
+    : null;
+
   return (
     <>
-      <LibrarianStrip
+      <LibrarianLine
+        insightText={observation ? insightTeaser : null}
+        emphasise={anchor ? [anchor.title] : []}
+        expanded={expanded}
+        onToggleExpand={() => setExpanded((v) => !v)}
         onAsk={(seedQuery) =>
           router.push({
             pathname: '/(tabs)/library/ask',
@@ -178,7 +200,9 @@ function LibrarianSlot({
           } as any)
         }
       />
-      {observation ? <LibrarianNoticedCard observation={observation} /> : null}
+      {observation && expanded ? (
+        <LibrarianNoticedCard observation={observation} />
+      ) : null}
     </>
   );
 }

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Library tab redesign</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --serif:'Iowan Old Style',Georgia,serif;
+  --grouped:#F2F2F7;
+  --card:#FFFFFF;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);
+  --label3:rgba(60,60,67,0.32);
+  --sep:rgba(60,60,67,0.13);
+  --blue:#007AFF;
+  --pur:#7C4DFF;          /* librarian */
+  --pur-ink:#5B36D4;
+  --pur-08:rgba(124,77,255,0.07);
+  --pur-12:rgba(124,77,255,0.12);
+  --plans:#3B82F6;
+  --concepts:#A855F7;
+  --resources:#F59E0B;
+  --groups:#14B8A6;
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 80px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1240px;margin:0 auto 4px;font-size:19px;font-weight:700;}
+.page-sub{max-width:1240px;margin:0 auto 30px;font-size:13px;color:#4A5260;line-height:1.55;}
+.page-sub b{color:#222;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.5;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+
+/* phone shell */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.28);height:792px;}
+.statusbar{display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:var(--label);}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:30;}
+
+/* floating toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 8px;}
+.toolbar .ttl{display:flex;align-items:center;gap:5px;font-size:18px;font-weight:700;}
+.toolbar .ttl .chev{font-size:12px;color:var(--label2);}
+.toolbar .acts{display:flex;align-items:center;gap:10px;}
+.icbtn{width:34px;height:34px;border-radius:999px;background:rgba(118,118,128,.12);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--label);position:relative;}
+.badge{position:absolute;top:-3px;right:-3px;background:#FF3B30;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+.av{width:30px;height:30px;border-radius:999px;background:#3F6FA8;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.loc{margin:2px 18px 8px;padding:9px 12px;background:rgba(118,118,128,.10);border-radius:11px;font-size:13px;color:var(--label2);display:flex;align-items:center;gap:6px;}
+
+.scroll{height:calc(792px - 132px);overflow:hidden;padding:0 0 10px;}
+.sec{padding:0 18px;}
+
+/* ---------- shared bits ---------- */
+.eyebrow{display:flex;align-items:center;justify-content:space-between;margin:18px 0 9px;}
+.eyebrow .l{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--label);}
+.eyebrow .dot{width:8px;height:8px;border-radius:4px;}
+.eyebrow .all{font-size:13px;color:var(--blue);font-weight:500;display:flex;align-items:center;gap:1px;}
+
+.band-label{font-size:13px;font-weight:800;letter-spacing:.13em;color:var(--label3);padding:0 18px;margin:20px 0 2px;}
+
+.card{background:var(--card);border-radius:14px;border:0.5px solid var(--sep);}
+.shadow{box-shadow:0 2px 5px rgba(0,0,0,.05);}
+
+/* plan card */
+.plan{padding:13px 14px;display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
+.plan .top{display:flex;align-items:center;justify-content:space-between;}
+.plan .from{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--label2);}
+.plan .from .mini{width:18px;height:18px;border-radius:999px;background:#3F6FA8;color:#fff;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.plan .st{font-size:10px;font-weight:700;color:#1B9E4B;display:flex;align-items:center;gap:4px;}
+.plan .st .d{width:6px;height:6px;border-radius:3px;background:#34C759;}
+.plan h3{margin:0;font-size:16px;font-weight:600;letter-spacing:-.2px;line-height:1.25;}
+.plan .pbar{height:5px;border-radius:3px;background:rgba(60,60,67,.1);overflow:hidden;}
+.plan .pbar i{display:block;height:100%;background:var(--plans);}
+.plan .meta{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--label2);}
+.plan .ava{display:flex;}
+.plan .ava span{width:18px;height:18px;border-radius:999px;border:1.5px solid #fff;margin-left:-6px;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;}
+
+.dashed{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:13px;border:1px dashed rgba(0,122,255,.4);background:rgba(0,122,255,.04);color:var(--blue);font-size:14px;font-weight:600;}
+
+/* concept chip */
+.concept{display:flex;align-items:center;gap:10px;padding:12px 14px;}
+.concept .spine{width:4px;align-self:stretch;border-radius:2px;}
+.concept .body{flex:1;}
+.concept .body h4{margin:0 0 3px;font-family:var(--serif);font-size:15px;font-style:italic;color:var(--label);font-weight:500;}
+.concept .body .m{font-size:11px;color:var(--label2);}
+.concept .state{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:6px;}
+.st-forming{color:#B45309;background:#FEF3C7;}
+.st-tension{color:var(--pur-ink);background:var(--pur-12);}
+.st-settled{color:#15803D;background:#DCFCE7;}
+
+/* resource row */
+.rsrc{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:0.5px solid var(--sep);}
+.rsrc:last-child{border-bottom:none;}
+.rsrc .ic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;flex:none;}
+.rsrc .t{flex:1;min-width:0;}
+.rsrc .t h5{margin:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rsrc .t p{margin:1px 0 0;font-size:11px;color:var(--label2);}
+.rsrc .chev{color:var(--label3);font-size:14px;}
+
+/* org row */
+.org{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:0.5px solid var(--sep);}
+.org:last-child{border-bottom:none;}
+.org .mark{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex:none;}
+.org .t{flex:1;}
+.org .t h5{margin:0;font-size:14px;font-weight:600;}
+.org .t p{margin:1px 0 0;font-size:11px;color:var(--label2);}
+.org .price{font-size:11px;font-weight:700;color:var(--label2);background:rgba(118,118,128,.12);border-radius:999px;padding:3px 9px;}
+
+/* interest chips */
+.ichips{display:flex;flex-wrap:wrap;gap:8px;padding:0 18px;}
+.ichip{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px;background:#fff;border:1px solid;}
+.ichip .p{font-size:13px;}
+
+/* ===================================================================== */
+/*  A — ONE LIBRARIAN + JUMP BACK IN                                      */
+/* ===================================================================== */
+.libcard{margin:6px 18px 0;background:linear-gradient(180deg,var(--pur-08),rgba(124,77,255,.02));
+  border:0.5px solid var(--pur-12);border-radius:16px;padding:14px;}
+.libcard .head{display:flex;align-items:center;gap:7px;margin-bottom:9px;}
+.libcard .glyph{width:24px;height:24px;border-radius:7px;background:var(--pur-12);color:var(--pur-ink);display:flex;align-items:center;justify-content:center;font-size:13px;}
+.libcard .head .nm{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--pur-ink);}
+.libcard .insight{font-family:var(--serif);font-style:italic;font-size:15px;line-height:1.45;color:#2A2540;margin:0 0 4px;}
+.libcard .insight b{font-weight:600;color:var(--pur-ink);font-style:normal;}
+.libcard .act{display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:var(--pur-ink);font-family:var(--sans);font-style:normal;margin-bottom:12px;}
+.libcard .ask{display:flex;align-items:center;gap:9px;background:#fff;border:0.5px solid var(--pur-12);border-radius:11px;padding:10px 12px;}
+.libcard .ask .q{flex:1;font-family:var(--serif);font-style:italic;font-size:13px;color:var(--label3);}
+.libcard .ask .go{width:26px;height:26px;border-radius:999px;background:var(--pur);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.libcard .dots{display:flex;gap:4px;justify-content:center;margin-top:9px;}
+.libcard .dots i{width:5px;height:5px;border-radius:3px;background:var(--pur-12);}
+.libcard .dots i.on{background:var(--pur);}
+
+.rail{display:flex;gap:11px;padding:2px 18px 4px;overflow:hidden;}
+.tile{flex:none;width:128px;background:#fff;border:0.5px solid var(--sep);border-radius:13px;padding:11px;}
+.tile .kind{display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;}
+.tile .kind .d{width:7px;height:7px;border-radius:4px;}
+.tile h4{margin:0 0 6px;font-size:13px;font-weight:600;line-height:1.25;height:32px;overflow:hidden;}
+.tile .foot{font-size:10px;color:var(--label3);}
+
+/* ===================================================================== */
+/*  B — YOURS | STACKS segmented                                          */
+/* ===================================================================== */
+.libline{margin:6px 18px 0;display:flex;align-items:center;gap:9px;background:var(--pur-08);border:0.5px solid var(--pur-12);border-radius:13px;padding:11px 13px;}
+.libline .glyph{width:24px;height:24px;border-radius:7px;background:var(--pur-12);color:var(--pur-ink);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none;}
+.libline .txt{flex:1;font-family:var(--serif);font-style:italic;font-size:13px;line-height:1.35;color:#2A2540;}
+.libline .txt b{color:var(--pur-ink);font-style:normal;font-weight:600;}
+.libline .chev{color:var(--pur);font-size:15px;}
+
+.segwrap{padding:14px 18px 4px;}
+.seg{display:flex;background:rgba(118,118,128,.12);border-radius:11px;padding:3px;}
+.seg div{flex:1;text-align:center;font-size:14px;font-weight:600;padding:8px;border-radius:9px;color:var(--label2);}
+.seg div.on{background:#fff;color:var(--label);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+
+/* ===================================================================== */
+/*  C — SHELVES (editorial)                                               */
+/* ===================================================================== */
+.askbar{margin:8px 18px 2px;display:flex;align-items:center;gap:10px;background:#fff;border:0.5px solid var(--pur-12);border-radius:999px;padding:11px 14px;box-shadow:0 2px 8px rgba(124,77,255,.08);}
+.askbar .glyph{color:var(--pur-ink);font-size:15px;}
+.askbar .q{flex:1;font-family:var(--serif);font-style:italic;font-size:13px;color:var(--label2);}
+.ribbon{margin:10px 18px 2px;display:flex;align-items:center;gap:8px;font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--pur-ink);}
+.ribbon .pin{font-style:normal;}
+.bandbox{padding:2px 0 8px;}
+.bandbox.yours{background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,0));}
+.bandbox.stacks{background:rgba(118,118,128,.05);}
+.shelfhead{display:flex;align-items:baseline;justify-content:space-between;padding:0 18px;margin:12px 0 8px;}
+.shelfhead h3{margin:0;font-size:14px;font-weight:700;letter-spacing:-.2px;}
+.shelfhead .all{font-size:12px;color:var(--blue);}
+.shelf{display:flex;gap:11px;padding:0 18px 2px;overflow:hidden;}
+.cover{flex:none;width:118px;}
+.cover .art{height:84px;border-radius:11px;display:flex;align-items:flex-end;padding:9px;color:#fff;position:relative;overflow:hidden;}
+.cover .art .badge2{position:absolute;top:8px;right:8px;font-size:9px;font-weight:800;background:rgba(255,255,255,.22);border-radius:5px;padding:2px 5px;}
+.cover h4{margin:7px 1px 1px;font-size:12px;font-weight:600;line-height:1.2;}
+.cover p{margin:1px;font-size:10px;color:var(--label2);}
+.spinecard{flex:none;width:140px;background:#fff;border:0.5px solid var(--sep);border-radius:11px;padding:11px;display:flex;gap:9px;}
+.spinecard .sp{width:4px;border-radius:2px;align-self:stretch;}
+.spinecard h4{margin:0 0 5px;font-family:var(--serif);font-style:italic;font-size:13px;font-weight:500;line-height:1.25;}
+.spinecard .s{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;}
+</style>
+</head>
+<body>
+<div class="page-h">Library tab — three redesign directions</div>
+<div class="page-sub">
+  Today's tab stacks <b>four intelligence surfaces</b> (hero, Ask, Librarian-noticed, This-week) above your own content, with two clashing voices — purple-serif librarian and a blue-sparkles "This week". All three directions below <b>collapse intelligence into one librarian identity</b>, surface a <b>jump-back-in</b> path, and make the <b>Yours ↔ Stacks</b> spine load-bearing.
+</div>
+
+<div class="frames">
+
+<!-- ============================= COLUMN A ============================= -->
+<div class="col">
+<div class="phone">
+  <div class="notch"></div>
+  <div class="statusbar"><span>10:11</span><span class="r">●●● 􀙇 􀛨</span></div>
+
+  <div class="toolbar">
+    <div class="ttl">Sail Racing <span class="chev">▾</span></div>
+    <div class="acts">
+      <div class="icbtn">􀊫</div>
+      <div class="icbtn">􀅼</div>
+      <div class="icbtn">􀉭<span class="badge">4</span></div>
+      <div class="av">KD</div>
+    </div>
+  </div>
+  <div class="loc">􀎫 Hong Kong · Victoria Harbor</div>
+
+  <div class="scroll">
+    <!-- ONE librarian: ask + noticed fused, purple serif only -->
+    <div class="libcard">
+      <div class="head"><div class="glyph">􀉟</div><span class="nm">Librarian</span></div>
+      <p class="insight"><b>“Mast rake”</b> is still forming — no step has tested it yet.</p>
+      <span class="act">Attach a step that exercises it &nbsp;􀯻</span>
+      <div class="ask">
+        <span class="q">Which idea haven't I tested yet?</span>
+        <span class="go">􀄫</span>
+      </div>
+      <div class="dots"><i class="on"></i><i></i><i></i></div>
+    </div>
+
+    <div class="band-label">JUMP BACK IN</div>
+    <div class="rail">
+      <div class="tile">
+        <div class="kind" style="color:var(--concepts)"><span class="d" style="background:var(--concepts)"></span>Concept</div>
+        <h4>Mast rake & power</h4>
+        <div class="foot">opened 2h ago</div>
+      </div>
+      <div class="tile">
+        <div class="kind" style="color:var(--plans)"><span class="d" style="background:var(--plans)"></span>Plan</div>
+        <h4>Achieving Peak Performance</h4>
+        <div class="foot">week 4 of 24</div>
+      </div>
+      <div class="tile">
+        <div class="kind" style="color:var(--resources)"><span class="d" style="background:var(--resources)"></span>Resource</div>
+        <h4>Dragon Class QHK102204</h4>
+        <div class="foot">PDF · yesterday</div>
+      </div>
+    </div>
+
+    <div class="band-label">YOURS</div>
+    <div class="sec">
+      <div class="eyebrow"><div class="l"><span class="dot" style="background:var(--plans)"></span>PLANS</div><span class="all">See all 2 ›</span></div>
+      <div class="card plan shadow">
+        <div class="top">
+          <div class="from"><span class="mini">KD</span>From Kevin Denney · 12 sailors</div>
+          <div class="st"><span class="d"></span>ACTIVE</div>
+        </div>
+        <h3>Achieving Peak Performance at the Dragon Worlds</h3>
+        <div class="pbar"><i style="width:17%"></i></div>
+        <div class="meta">
+          <div class="ava"><span style="background:#E0772E">KD</span><span style="background:#3F6FA8">JT</span><span style="background:#8A5BB8">+10</span></div>
+          <span>0 of 1 · Week 4 of 24</span>
+        </div>
+      </div>
+      <div class="card plan shadow">
+        <div class="top">
+          <div class="from"><span class="mini">KD</span>From Kevin Denney · 2 sailors</div>
+          <div class="st"><span class="d"></span>ACTIVE</div>
+        </div>
+        <h3>Impala Winter Series 2025–26</h3>
+        <div class="pbar"><i style="width:0%"></i></div>
+        <div class="meta"><div class="ava"><span style="background:#E0772E">KD</span></div><span>0 of 3</span></div>
+      </div>
+      <div class="dashed">􀁌 Create a plan</div>
+    </div>
+  </div>
+</div>
+<div class="col-cap">
+  <span class="tag">A</span><b>One librarian + jump back in.</b> The three top surfaces become a single purple card — the proactive insight, one inline action (not the full Promote/Evidence workflow), and the ask field — paged with dots so "This week" rides the same carousel. A recency rail gets you back to the last thing you touched before any browsing.
+</div>
+</div>
+
+<!-- ============================= COLUMN B ============================= -->
+<div class="col">
+<div class="phone">
+  <div class="notch"></div>
+  <div class="statusbar"><span>10:11</span><span class="r">●●● 􀙇 􀛨</span></div>
+
+  <div class="toolbar">
+    <div class="ttl">Sail Racing <span class="chev">▾</span></div>
+    <div class="acts">
+      <div class="icbtn">􀊫</div>
+      <div class="icbtn">􀅼</div>
+      <div class="icbtn">􀉭<span class="badge">4</span></div>
+      <div class="av">KD</div>
+    </div>
+  </div>
+  <div class="loc">􀎫 Hong Kong · Victoria Harbor</div>
+
+  <div class="scroll">
+    <!-- librarian collapsed to one tappable line -->
+    <div class="libline">
+      <div class="glyph">􀉟</div>
+      <div class="txt"><b>Librarian:</b> “Mast rake” hasn't been tested by any step yet.</div>
+      <span class="chev">›</span>
+    </div>
+
+    <!-- the spine, made literal -->
+    <div class="segwrap">
+      <div class="seg"><div class="on">Yours</div><div>The stacks</div></div>
+    </div>
+
+    <div class="band-label" style="margin-top:10px">JUMP BACK IN</div>
+    <div class="rail">
+      <div class="tile">
+        <div class="kind" style="color:var(--concepts)"><span class="d" style="background:var(--concepts)"></span>Concept</div>
+        <h4>Mast rake & power</h4><div class="foot">opened 2h ago</div>
+      </div>
+      <div class="tile">
+        <div class="kind" style="color:var(--plans)"><span class="d" style="background:var(--plans)"></span>Plan</div>
+        <h4>Achieving Peak Performance</h4><div class="foot">week 4 of 24</div>
+      </div>
+      <div class="tile">
+        <div class="kind" style="color:var(--groups)"><span class="d" style="background:var(--groups)"></span>Group</div>
+        <h4>HK Impala Fleet</h4><div class="foot">Owner</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="eyebrow"><div class="l"><span class="dot" style="background:var(--plans)"></span>PLANS</div><span class="all">See all 2 ›</span></div>
+      <div class="card plan shadow">
+        <div class="top"><div class="from"><span class="mini">KD</span>From Kevin Denney</div><div class="st"><span class="d"></span>ACTIVE</div></div>
+        <h3>Achieving Peak Performance at the Dragon Worlds</h3>
+        <div class="pbar"><i style="width:17%"></i></div>
+        <div class="meta"><div class="ava"><span style="background:#E0772E">KD</span><span style="background:#3F6FA8">JT</span><span style="background:#8A5BB8">+10</span></div><span>Week 4 of 24</span></div>
+      </div>
+
+      <div class="eyebrow"><div class="l"><span class="dot" style="background:var(--concepts)"></span>CONCEPTS</div><span class="all">See all 1 ›</span></div>
+      <div class="card concept shadow">
+        <div class="spine" style="background:var(--resources)"></div>
+        <div class="body"><h4>Mast rake</h4><div class="m">0 steps · 0 quotes</div></div>
+        <span class="state st-forming">Forming</span>
+      </div>
+
+      <div class="eyebrow"><div class="l"><span class="dot" style="background:var(--resources)"></span>RESOURCES</div><span class="all">See all 6 ›</span></div>
+      <div class="card shadow">
+        <div class="rsrc"><div class="ic" style="background:#FF453A">PDF</div><div class="t"><h5>Dragon Class QHK102204</h5><p>Uploaded · 4 days ago</p></div><span class="chev">›</span></div>
+        <div class="rsrc"><div class="ic" style="background:#34C759">􀉣</div><div class="t"><h5>rhkyc.org.hk</h5><p>Link · 4 days ago</p></div><span class="chev">›</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="col-cap">
+  <span class="tag">B</span><b>Make the spine literal.</b> A real <b>Yours / The stacks</b> segmented control means you never scroll your own shelf to reach catalog content (or vice versa) — each half is a full screen. Librarian shrinks to one tappable line; richer typed cards (state-colored concept spine, file-kind glyphs) make sections scannable.
+</div>
+</div>
+
+<!-- ============================= COLUMN C ============================= -->
+<div class="col">
+<div class="phone">
+  <div class="notch"></div>
+  <div class="statusbar"><span>10:11</span><span class="r">●●● 􀙇 􀛨</span></div>
+
+  <div class="toolbar">
+    <div class="ttl">Sail Racing <span class="chev">▾</span></div>
+    <div class="acts">
+      <div class="icbtn">􀊫</div>
+      <div class="icbtn">􀅼</div>
+      <div class="icbtn">􀉭<span class="badge">4</span></div>
+      <div class="av">KD</div>
+    </div>
+  </div>
+
+  <div class="scroll">
+    <div class="askbar"><span class="glyph">􀉟</span><span class="q">Ask the librarian…</span></div>
+    <div class="ribbon"><span class="pin">􀋂</span>“Mast rake” is still forming — attach a step to move it along ›</div>
+
+    <!-- YOURS band: horizontal shelves of richer cards -->
+    <div class="band-label" style="margin-top:14px">YOURS</div>
+    <div class="bandbox yours">
+      <div class="shelfhead"><h3>Plans</h3><span class="all">See all 2 ›</span></div>
+      <div class="shelf">
+        <div class="cover">
+          <div class="art" style="background:linear-gradient(135deg,#3B82F6,#1E40AF)"><span class="badge2">17%</span>Wk 4/24</div>
+          <h4>Achieving Peak Performance</h4><p>12 sailors</p>
+        </div>
+        <div class="cover">
+          <div class="art" style="background:linear-gradient(135deg,#0EA5E9,#0369A1)"><span class="badge2">0%</span>Wk 1/3</div>
+          <h4>Impala Winter Series</h4><p>2 sailors</p>
+        </div>
+        <div class="cover">
+          <div class="art" style="background:rgba(0,122,255,.06);color:var(--blue);justify-content:center;align-items:center;border:1px dashed rgba(0,122,255,.4)">􀁌 New</div>
+          <h4 style="color:var(--blue)">Create a plan</h4><p>&nbsp;</p>
+        </div>
+      </div>
+
+      <div class="shelfhead"><h3>Concepts</h3><span class="all">See all 1 ›</span></div>
+      <div class="shelf">
+        <div class="spinecard"><div class="sp" style="background:var(--resources)"></div><div><h4>Mast rake</h4><span class="s" style="color:#B45309">Forming</span></div></div>
+        <div class="spinecard"><div class="sp" style="background:var(--pur)"></div><div><h4>Favored end bias</h4><span class="s" style="color:var(--pur-ink)">Tension</span></div></div>
+        <div class="spinecard"><div class="sp" style="background:#34C759"></div><div><h4>Lee-bow current</h4><span class="s" style="color:#15803D">Settled</span></div></div>
+      </div>
+
+      <div class="shelfhead"><h3>Resources</h3><span class="all">See all 6 ›</span></div>
+      <div class="shelf">
+        <div class="cover"><div class="art" style="background:#FF453A"><span style="font-weight:700">PDF</span></div><h4>Dragon Class QHK102204</h4><p>4 days ago</p></div>
+        <div class="cover"><div class="art" style="background:#34C759">􀉣</div><h4>rhkyc.org.hk</h4><p>Link</p></div>
+      </div>
+    </div>
+
+    <!-- STACKS band: muted, clearly "not yours yet" -->
+    <div class="band-label" style="margin-top:14px">THE STACKS</div>
+    <div class="bandbox stacks">
+      <div class="shelfhead"><h3>Plans to follow</h3><span class="all">See all ›</span></div>
+      <div class="shelf">
+        <div class="cover"><div class="art" style="background:linear-gradient(135deg,#8A5BB8,#5B36D4)"><span class="badge2">$10</span></div><h4>Team Sail Racing Blueprint</h4><p>2 subscribers</p></div>
+        <div class="cover"><div class="art" style="background:linear-gradient(135deg,#14B8A6,#0F766E)"><span class="badge2">Free</span></div><h4>Light-air starts</h4><p>RHKYC</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="col-cap">
+  <span class="tag">C</span><b>Shelves (editorial).</b> Most distinctive: the library reads like physical shelves — horizontal rows of cover-art plans, state-colored concept spines, file-kind tiles — scannable by sight, not by reading labels. A warm <b>Yours</b> band vs a muted <b>Stacks</b> band carries the spine without a label fighting for it. Librarian recedes to a floating ask bar + one insight ribbon.
+</div>
+</div>
+
+</div>
+
+<div class="page-sub" style="margin-top:34px">
+  <b>My recommendation:</b> ship <b>B</b>'s structural moves (collapse the three intelligence surfaces into one librarian line; add a jump-back-in rail; make Yours/Stacks a real segment), borrowing <b>A</b>'s paged librarian card for when there's a live insight worth a full action. Reserve <b>C</b>'s shelf treatment for a later pass — it's the most opinionated and the most work (needs cover art / richer card data), but it's where the tab stops looking like a settings list and starts looking like a tool for the craft.
+</div>
+
+</body>
+</html>

@@ -26,7 +26,11 @@ import { useFleetStepFeed } from '@/hooks/useFleetStepFeed';
 import { useUserFleets } from '@/hooks/useFleetData';
 import { useBlueprintTitles } from '@/hooks/useBlueprintTitles';
 import { useCohortStream, type CohortStreamItem } from '@/hooks/useCohortStream';
-import { useFollowedPeopleForLibrary } from '@/hooks/useFollowedPeopleForLibrary';
+import {
+  useFollowedPeopleForLibrary,
+  type FollowedPersonRow,
+} from '@/hooks/useFollowedPeopleForLibrary';
+import { useAdoptStep } from '@/hooks/useTimelineSteps';
 import { WatchNearbySection } from '@/components/watch/WatchNearbySection';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -61,15 +65,15 @@ const STATUS_META: Record<
   },
 };
 
-// Grouping options. Only 'all' is wired in v1; the rest render as
-// disabled chips so the surface signals the planned shape.
-type GroupingId = 'all' | 'fleet' | 'blueprint' | 'location';
+// The Watch lens. Each option's label always matches the feed rendered
+// below it (People = who you follow + cohort, Nearby = by place, Groups =
+// your fleets) — no more "Following" label sitting over cohort threads.
+type GroupingId = 'all' | 'fleet' | 'location';
 
-const GROUPING_CHIPS: { id: GroupingId; label: string; ready: boolean }[] = [
-  { id: 'all', label: 'Following', ready: true },
-  { id: 'location', label: 'Nearby', ready: true },
-  { id: 'fleet', label: 'By group', ready: true },
-  { id: 'blueprint', label: 'By blueprint', ready: true },
+const LENS_OPTIONS: { id: GroupingId; label: string }[] = [
+  { id: 'all', label: 'People' },
+  { id: 'location', label: 'Nearby' },
+  { id: 'fleet', label: 'Groups' },
 ];
 
 function formatRelativeTime(iso: string): string {
@@ -132,28 +136,8 @@ export default function WatchScreen() {
   const { data: followedPeople = [] } = useFollowedPeopleForLibrary();
   const followingCount = followedPeople.length;
 
-  // "By blueprint" — group the followed feed by the blueprint each step was
-  // adopted from, with a trailing bucket for steps not from a blueprint.
-  const blueprintGroups = useMemo(() => {
-    const groups = new Map<string, FollowedStepItem[]>();
-    const other: FollowedStepItem[] = [];
-    for (const item of feed) {
-      if (item.sourceBlueprintId) {
-        const list = groups.get(item.sourceBlueprintId);
-        if (list) list.push(item);
-        else groups.set(item.sourceBlueprintId, [item]);
-      } else {
-        other.push(item);
-      }
-    }
-    return { groups, other };
-  }, [feed]);
-  const blueprintIds = useMemo(
-    () => Array.from(blueprintGroups.groups.keys()),
-    [blueprintGroups],
-  );
-  // Resolve blueprint titles across the whole feed (not just the "By
-  // blueprint" grouping) so every card can show where it came from.
+  // Resolve blueprint titles across the whole feed so every card can show
+  // where it came from.
   const allBlueprintIds = useMemo(() => {
     const set = new Set<string>();
     for (const item of feed) if (item.sourceBlueprintId) set.add(item.sourceBlueprintId);
@@ -184,209 +168,152 @@ export default function WatchScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.introCard}>
-          <Text style={styles.eyebrow}>People you follow</Text>
-          <Text style={styles.introTitle}>Watch</Text>
-          <Text style={styles.introCopy}>
-            See the steps your people are planning, doing, and reflecting on.
-            Adapt anything useful into your own practice.
-          </Text>
-          <Pressable
-            style={styles.followingLink}
-            onPress={() => router.push('/discover/following' as never)}
-            accessibilityRole="button"
-            accessibilityLabel={`View who you follow, ${followingCount} ${followingCount === 1 ? 'person' : 'people'}`}
-          >
-            <Ionicons name="people-outline" size={16} color={IOS_COLORS.systemBlue} />
-            <Text style={styles.followingLinkText}>Following</Text>
-            <Text style={styles.followingCount}>{followingCount}</Text>
-            <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
-          </Pressable>
-        </View>
+        <WatchFollowingLine
+          count={followingCount}
+          people={followedPeople}
+          onPress={() => router.push('/discover/following' as never)}
+        />
 
-        <View style={styles.filterRow}>
-          {GROUPING_CHIPS.map((chip) => {
-            const active = chip.id === grouping;
-            const disabled = !chip.ready;
+        <View style={styles.lensRow}>
+          {LENS_OPTIONS.map((opt) => {
+            const active = opt.id === grouping;
             return (
               <Pressable
-                key={chip.id}
-                onPress={() => {
-                  if (!disabled) setGrouping(chip.id);
-                }}
-                style={[
-                  styles.filterChip,
-                  active && styles.filterChipActive,
-                  disabled && styles.filterChipDisabled,
-                ]}
+                key={opt.id}
+                onPress={() => setGrouping(opt.id)}
+                style={[styles.lensSeg, active && styles.lensSegActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
               >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    active && styles.filterChipTextActive,
-                    disabled && styles.filterChipTextDisabled,
-                  ]}
-                >
-                  {chip.label}
+                <Text style={[styles.lensSegText, active && styles.lensSegTextActive]}>
+                  {opt.label}
                 </Text>
-                {disabled ? (
-                  <Text style={styles.filterChipSoon}>soon</Text>
-                ) : null}
               </Pressable>
             );
           })}
         </View>
 
-        {hasCohort ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionEyebrow}>From your cohorts</Text>
-            <View style={styles.feed}>
-              {cohortStream.map((item) => (
-                <CohortStreamCard key={item.id} item={item} />
-              ))}
-            </View>
-          </View>
-        ) : null}
+        {grouping === 'all' ? (
+          <>
+            {hasFeed ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionEyebrow}>Latest from your people</Text>
+                <View style={styles.feed}>
+                  {feed.map((item) => (
+                    <WatchCard
+                      key={item.id}
+                      item={item}
+                      blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
+                      fallbackInterestId={currentInterest?.id ?? null}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
 
-        {grouping === 'location' ? (
+            {hasCohort ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionEyebrow}>From your cohorts</Text>
+                <View style={styles.feed}>
+                  {cohortStream.map((item) => (
+                    <CohortStreamCard key={item.id} item={item} />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            {!hasFeed && !hasCohort ? (
+              isLoading ? (
+                <Text style={styles.emptyCopy}>Loading…</Text>
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+                  <Text style={styles.emptyTitle}>Nothing to watch yet</Text>
+                  <Text style={styles.emptyCopy}>
+                    Follow people and their step activity will appear here.
+                  </Text>
+                  <Pressable
+                    style={styles.emptyAction}
+                    onPress={() => setFindPeopleOpen(true)}
+                  >
+                    <Text style={styles.emptyActionText}>Find people to follow</Text>
+                  </Pressable>
+                </View>
+              )
+            ) : null}
+          </>
+        ) : grouping === 'location' ? (
           <WatchNearbySection
             homeVenueLat={homeVenue?.lat ?? null}
             homeVenueLng={homeVenue?.lng ?? null}
             homeVenueLabel={homeVenue?.venue ?? homeVenue?.region ?? null}
             interestSlug={currentInterest?.slug ?? null}
           />
-        ) : grouping === 'fleet' ? (
-          activeFleets.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Ionicons name="boat-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-              <Text style={styles.emptyTitle}>You&apos;re not in a group yet</Text>
-              <Text style={styles.emptyCopy}>
-                Join or create a group and your groupmates&apos; step activity will appear
-                here.
-              </Text>
-              <Pressable
-                style={styles.emptyAction}
-                onPress={() => router.push('/(tabs)/fleet' as never)}
-              >
-                <Text style={styles.emptyActionText}>Go to groups</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <>
-              {activeFleets.length > 1 ? (
-                <View style={styles.fleetSelectorRow}>
-                  {activeFleets.map((f) => {
-                    const active = f.fleet.id === resolvedFleetId;
-                    return (
-                      <Pressable
-                        key={f.fleet.id}
-                        onPress={() => setSelectedFleetId(f.fleet.id)}
-                        style={[styles.fleetChip, active && styles.fleetChipActive]}
-                      >
-                        <Text
-                          style={[
-                            styles.fleetChipText,
-                            active && styles.fleetChipTextActive,
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {f.fleet.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ) : null}
-              {fleetLoading ? (
-                <Text style={styles.emptyCopy}>Loading…</Text>
-              ) : fleetFeed.length === 0 ? (
-                <View style={styles.emptyCard}>
-                  <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-                  <Text style={styles.emptyTitle}>No group activity yet</Text>
-                  <Text style={styles.emptyCopy}>
-                    When your groupmates plan, do, and reflect on steps, you&apos;ll see them
-                    here.
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.feed}>
-                  {fleetFeed.map((item) => (
-                    <WatchCard
-                      key={item.id}
-                      item={item}
-                      blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
-                    />
-                  ))}
-                </View>
-              )}
-            </>
-          )
-        ) : grouping === 'blueprint' ? (
-          isLoading ? (
-            <Text style={styles.emptyCopy}>Loading…</Text>
-          ) : !hasFeed ? (
-            <View style={styles.emptyCard}>
-              <Ionicons name="documents-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-              <Text style={styles.emptyTitle}>Nothing to watch yet</Text>
-              <Text style={styles.emptyCopy}>
-                Follow people and their steps will appear here, grouped by the blueprint they
-                came from.
-              </Text>
-            </View>
-          ) : (
-            <View>
-              {blueprintIds.map((bpId) => {
-                const items = blueprintGroups.groups.get(bpId) ?? [];
-                const title = blueprintTitles?.get(bpId)?.title ?? 'From a blueprint';
-                return (
-                  <View key={bpId} style={styles.section}>
-                    <Text style={styles.sectionEyebrow}>{title}</Text>
-                    <View style={styles.feed}>
-                      {items.map((item) => (
-                        <WatchCard key={item.id} item={item} />
-                      ))}
-                    </View>
-                  </View>
-                );
-              })}
-              {blueprintGroups.other.length > 0 ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionEyebrow}>Not from a blueprint</Text>
-                  <View style={styles.feed}>
-                    {blueprintGroups.other.map((item) => (
-                      <WatchCard key={item.id} item={item} />
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-            </View>
-          )
-        ) : isLoading ? (
-          <Text style={styles.emptyCopy}>Loading…</Text>
-        ) : !hasFeed ? (
+        ) : activeFleets.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-            <Text style={styles.emptyTitle}>Nothing to watch yet</Text>
+            <Ionicons name="boat-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+            <Text style={styles.emptyTitle}>You&apos;re not in a group yet</Text>
             <Text style={styles.emptyCopy}>
-              Follow people and their step activity will appear here.
+              Join or create a group and your groupmates&apos; step activity will appear
+              here.
             </Text>
             <Pressable
               style={styles.emptyAction}
-              onPress={() => setFindPeopleOpen(true)}
+              onPress={() => router.push('/(tabs)/fleet' as never)}
             >
-              <Text style={styles.emptyActionText}>Find people to follow</Text>
+              <Text style={styles.emptyActionText}>Go to groups</Text>
             </Pressable>
           </View>
         ) : (
-          <View style={styles.feed}>
-            {feed.map((item) => (
-              <WatchCard
-                key={item.id}
-                item={item}
-                blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
-              />
-            ))}
-          </View>
+          <>
+            {activeFleets.length > 1 ? (
+              <View style={styles.fleetSelectorRow}>
+                {activeFleets.map((f) => {
+                  const active = f.fleet.id === resolvedFleetId;
+                  return (
+                    <Pressable
+                      key={f.fleet.id}
+                      onPress={() => setSelectedFleetId(f.fleet.id)}
+                      style={[styles.fleetChip, active && styles.fleetChipActive]}
+                    >
+                      <Text
+                        style={[
+                          styles.fleetChipText,
+                          active && styles.fleetChipTextActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {f.fleet.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
+            {fleetLoading ? (
+              <Text style={styles.emptyCopy}>Loading…</Text>
+            ) : fleetFeed.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+                <Text style={styles.emptyTitle}>No group activity yet</Text>
+                <Text style={styles.emptyCopy}>
+                  When your groupmates plan, do, and reflect on steps, you&apos;ll see them
+                  here.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.feed}>
+                {fleetFeed.map((item) => (
+                  <WatchCard
+                    key={item.id}
+                    item={item}
+                    blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
+                    fallbackInterestId={currentInterest?.id ?? null}
+                  />
+                ))}
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
       )}
@@ -433,6 +360,65 @@ export default function WatchScreen() {
         </View>
       ) : null}
     </View>
+  );
+}
+
+function WatchFollowingLine({
+  count,
+  people,
+  onPress,
+}: {
+  count: number;
+  people: FollowedPersonRow[];
+  onPress: () => void;
+}) {
+  const stack = people.slice(0, 3);
+  const overflow = count - stack.length;
+  return (
+    <Pressable
+      style={styles.followingLine}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Manage who you follow, ${count} ${count === 1 ? 'person' : 'people'}`}
+    >
+      {stack.length > 0 ? (
+        <View style={styles.followStack}>
+          {stack.map((p, i) => (
+            <View
+              key={p.userId}
+              style={[
+                styles.followStackAvatar,
+                { backgroundColor: p.avatarColor || '#3F6FA8', marginLeft: i === 0 ? 0 : -8 },
+              ]}
+            >
+              <Text style={styles.followStackInitial}>
+                {p.avatarEmoji || p.initials}
+              </Text>
+            </View>
+          ))}
+          {overflow > 0 ? (
+            <View style={[styles.followStackAvatar, styles.followStackMore]}>
+              <Text style={styles.followStackInitial}>+{overflow}</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.followStackEmpty}>
+          <Ionicons name="people-outline" size={18} color={IOS_COLORS.systemBlue} />
+        </View>
+      )}
+      <View style={styles.followingLineText}>
+        <Text style={styles.followingLineTitle}>
+          {count > 0
+            ? `${count} ${count === 1 ? 'person' : 'people'} you follow`
+            : 'You don’t follow anyone yet'}
+        </Text>
+        <Text style={styles.followingLineSub}>
+          {count > 0 ? 'Tap to manage who you watch' : 'Tap to find people to follow'}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+    </Pressable>
   );
 }
 
@@ -490,86 +476,120 @@ function CohortStreamCard({ item }: { item: CohortStreamItem }) {
 function WatchCard({
   item,
   blueprintTitle,
+  fallbackInterestId,
 }: {
   item: FollowedStepItem;
   blueprintTitle?: string | null;
+  fallbackInterestId?: string | null;
 }) {
   const statusMeta = STATUS_META[item.status];
-  const subtitle = [
-    item.organizationName,
-    formatRelativeTime(item.updatedAt),
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const adopt = useAdoptStep();
+  const [adopted, setAdopted] = useState(false);
+  const byline = [item.personName, item.organizationName].filter(Boolean).join(' · ');
+  const targetInterestId = item.interestId ?? fallbackInterestId ?? null;
+
+  const openStep = () =>
+    router.push(`/step/${item.id}?readOnly=true&origin=watch` as never);
+
+  const handleAdopt = () => {
+    if (adopted || adopt.isPending || !targetInterestId) return;
+    adopt.mutate(
+      { sourceStepId: item.id, interestId: targetInterestId },
+      { onSuccess: () => setAdopted(true) },
+    );
+  };
 
   return (
-    <Pressable
-      style={styles.card}
-      onPress={() =>
-        router.push(`/step/${item.id}?readOnly=true&origin=watch` as never)
-      }
-    >
-      <View style={styles.cardHeader}>
-        <Pressable
-          style={styles.personMark}
-          onPress={() => router.push(`/sailor/${item.personId}` as never)}
-          hitSlop={6}
-        >
-          {item.personAvatarUrl ? (
-            <Image source={{ uri: item.personAvatarUrl }} style={styles.personAvatar} />
-          ) : (
-            <Text style={styles.personInitial}>{item.personInitial}</Text>
-          )}
-        </Pressable>
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.personName} numberOfLines={1}>
-            {item.personName}
+    <View style={styles.wcard}>
+      <View style={[styles.wcardSpine, { backgroundColor: statusMeta.color }]} />
+      <View style={styles.wcardInner}>
+        <Pressable onPress={openStep} accessibilityRole="button">
+          <View style={styles.wcardCrown}>
+            <View style={[styles.stateChip, { backgroundColor: statusMeta.background }]}>
+              <View style={[styles.stateDot, { backgroundColor: statusMeta.color }]} />
+              <Text style={[styles.stateChipText, { color: statusMeta.color }]}>
+                {statusMeta.label}
+              </Text>
+            </View>
+            <Text style={styles.wcardAgo}>{formatRelativeTime(item.updatedAt)}</Text>
+          </View>
+
+          <Text style={styles.wStepTitle} numberOfLines={2}>
+            {item.stepTitle}
           </Text>
-          {subtitle ? (
-            <Text style={styles.personMeta} numberOfLines={1}>
-              {subtitle}
+
+          <View style={styles.wByline}>
+            <Pressable
+              style={styles.wBylineAvatar}
+              onPress={() => router.push(`/sailor/${item.personId}` as never)}
+              hitSlop={6}
+            >
+              {item.personAvatarUrl ? (
+                <Image source={{ uri: item.personAvatarUrl }} style={styles.wBylineAvatarImg} />
+              ) : (
+                <Text style={styles.wBylineInitial}>{item.personInitial}</Text>
+              )}
+            </Pressable>
+            <Text style={styles.wBylineText} numberOfLines={1}>
+              {byline}
+            </Text>
+          </View>
+
+          {item.locationName || blueprintTitle ? (
+            <View style={styles.metaWrap}>
+              {blueprintTitle ? (
+                <View style={styles.metaPill}>
+                  <Ionicons name="documents-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+                  <Text style={styles.metaPillText} numberOfLines={1}>
+                    {blueprintTitle}
+                  </Text>
+                </View>
+              ) : null}
+              {item.locationName ? (
+                <View style={styles.metaPill}>
+                  <Ionicons name="location-outline" size={13} color={IOS_COLORS.secondaryLabel} />
+                  <Text style={styles.metaPillText} numberOfLines={1}>
+                    {item.locationName}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {item.description ? (
+            <Text style={styles.bodyCopy} numberOfLines={2}>
+              {item.description}
             </Text>
           ) : null}
-        </View>
-        <View style={[styles.statusPill, { backgroundColor: statusMeta.background }]}>
-          <Ionicons name={statusMeta.icon} size={13} color={statusMeta.color} />
-          <Text style={[styles.statusText, { color: statusMeta.color }]}>
-            {statusMeta.label}
-          </Text>
+        </Pressable>
+
+        <View style={styles.wFoot}>
+          <Pressable
+            style={[styles.adaptBtn, adopted && styles.adaptBtnDone]}
+            onPress={handleAdopt}
+            disabled={adopted || adopt.isPending || !targetInterestId}
+            accessibilityRole="button"
+            accessibilityLabel={adopted ? 'Added to your practice' : 'Adapt this step to your practice'}
+          >
+            <Ionicons
+              name={adopted ? 'checkmark-circle' : 'add-circle-outline'}
+              size={16}
+              color={adopted ? '#1B9E4B' : IOS_COLORS.systemBlue}
+            />
+            <Text style={[styles.adaptBtnText, adopted && styles.adaptBtnTextDone]}>
+              {adopted
+                ? 'Added to your practice'
+                : adopt.isPending
+                  ? 'Adding…'
+                  : 'Adapt to my practice'}
+            </Text>
+          </Pressable>
+          <Pressable style={styles.peekBtn} onPress={openStep} hitSlop={6}>
+            <Ionicons name="arrow-forward" size={15} color={IOS_COLORS.secondaryLabel} />
+          </Pressable>
         </View>
       </View>
-
-      <Text style={styles.stepTitle} numberOfLines={2}>
-        {item.stepTitle}
-      </Text>
-
-      {item.locationName || blueprintTitle ? (
-        <View style={styles.metaWrap}>
-          {blueprintTitle ? (
-            <View style={styles.metaPill}>
-              <Ionicons name="documents-outline" size={13} color={IOS_COLORS.secondaryLabel} />
-              <Text style={styles.metaPillText} numberOfLines={1}>
-                {blueprintTitle}
-              </Text>
-            </View>
-          ) : null}
-          {item.locationName ? (
-            <View style={styles.metaPill}>
-              <Ionicons name="location-outline" size={13} color={IOS_COLORS.secondaryLabel} />
-              <Text style={styles.metaPillText} numberOfLines={1}>
-                {item.locationName}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      {item.description ? (
-        <Text style={styles.bodyCopy} numberOfLines={3}>
-          {item.description}
-        </Text>
-      ) : null}
-    </Pressable>
+    </View>
   );
 }
 
@@ -581,93 +601,94 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
   },
-  introCard: {
+  followingLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     marginHorizontal: IOS_SPACING.lg,
     marginBottom: IOS_SPACING.md,
-    padding: 18,
-    borderRadius: 20,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
+    borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60,60,67,0.12)',
-    gap: 8,
   },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
-    color: IOS_COLORS.systemBlue,
+  followStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  introTitle: {
-    fontSize: 24,
-    lineHeight: 28,
+  followStackAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  followStackMore: {
+    backgroundColor: '#8A8A8E',
+    marginLeft: -8,
+  },
+  followStackInitial: {
+    fontSize: 9,
     fontWeight: '800',
-    color: IOS_COLORS.label,
+    color: '#FFFFFF',
   },
-  introCopy: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: IOS_COLORS.secondaryLabel,
-  },
-  followingLink: {
-    flexDirection: 'row',
+  followStackEmpty: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(60,60,67,0.12)',
+    justifyContent: 'center',
+    backgroundColor: '#E8EEF9',
   },
-  followingLinkText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-  },
-  followingCount: {
+  followingLineText: {
     flex: 1,
+    gap: 1,
+  },
+  followingLineTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: IOS_COLORS.secondaryLabel,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: IOS_SPACING.lg,
-    marginBottom: IOS_SPACING.md,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
-  },
-  filterChipActive: {
-    backgroundColor: '#DCEAFE',
-  },
-  filterChipDisabled: {
-    opacity: 0.55,
-  },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: IOS_COLORS.secondaryLabel,
-  },
-  filterChipTextActive: {
-    color: IOS_COLORS.systemBlue,
-  },
-  filterChipTextDisabled: {
-    color: IOS_COLORS.tertiaryLabel,
-  },
-  filterChipSoon: {
-    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.4,
-    color: IOS_COLORS.tertiaryLabel,
-    textTransform: 'uppercase',
+    color: IOS_COLORS.label,
+  },
+  followingLineSub: {
+    fontSize: 11,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  lensRow: {
+    flexDirection: 'row',
+    gap: 3,
+    padding: 3,
+    marginHorizontal: IOS_SPACING.lg,
+    marginBottom: IOS_SPACING.md,
+    borderRadius: 11,
+    backgroundColor: 'rgba(118,118,128,0.12)',
+  },
+  lensSeg: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 7,
+    borderRadius: 9,
+  },
+  lensSegActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  lensSegText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  lensSegTextActive: {
+    color: IOS_COLORS.label,
   },
   fleetSelectorRow: {
     flexDirection: 'row',
@@ -794,6 +815,125 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: IOS_COLORS.secondaryLabel,
+  },
+  // Step-led Watch card (verb-state spine, step headline, byline, Adapt).
+  wcard: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    overflow: 'hidden',
+  },
+  wcardSpine: {
+    width: 4,
+  },
+  wcardInner: {
+    flex: 1,
+    padding: 14,
+    gap: 9,
+  },
+  wcardCrown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  stateChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  stateDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  stateChipText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  wcardAgo: {
+    fontSize: 11,
+    color: IOS_COLORS.tertiaryLabel,
+  },
+  wStepTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+    color: IOS_COLORS.label,
+  },
+  wByline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  wBylineAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8EEF9',
+    overflow: 'hidden',
+  },
+  wBylineAvatarImg: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  wBylineInitial: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: IOS_COLORS.systemBlue,
+  },
+  wBylineText: {
+    flex: 1,
+    fontSize: 12,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  wFoot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginTop: 2,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(60,60,67,0.12)',
+  },
+  adaptBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 9,
+    backgroundColor: 'rgba(0,122,255,0.10)',
+  },
+  adaptBtnDone: {
+    backgroundColor: 'rgba(52,199,89,0.12)',
+  },
+  adaptBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
+  },
+  adaptBtnTextDone: {
+    color: '#1B9E4B',
+  },
+  peekBtn: {
+    width: 36,
+    height: 34,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(118,118,128,0.10)',
   },
   emptyCard: {
     marginHorizontal: IOS_SPACING.lg,

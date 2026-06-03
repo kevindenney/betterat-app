@@ -22,7 +22,14 @@
  */
 
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -34,7 +41,7 @@ import { useDiscoverBlueprints } from '@/hooks/useBlueprint';
 import { useMarketplaceBlueprints, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
 import { useTopOrgsForInterest } from '@/hooks/useTopOrgsForInterest';
 import { useUserFleets } from '@/hooks/useFleetData';
-import { useInterest } from '@/providers/InterestProvider';
+import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { groupRoleDescriptor } from '@/components/library/zones/GroupsZone';
 import { PlanRowCard } from '@/components/library/plans/PlanRowCard';
@@ -85,10 +92,6 @@ function SectionHeader({ title, dotColor, count, onSeeAll }: SectionHeaderProps)
       </Pressable>
     </View>
   );
-}
-
-function GroupDivider({ label }: { label: string }) {
-  return <Text style={styles.groupLabel}>{label}</Text>;
 }
 
 function EmptyHint({ children }: { children: React.ReactNode }) {
@@ -191,8 +194,83 @@ function CreatePlanRow() {
   );
 }
 
+interface RecentTile {
+  key: string;
+  kind: 'Concept' | 'Plan' | 'Resource';
+  dot: string;
+  title: string;
+  foot: string;
+  route: string;
+}
+
+/** Horizontal "jump back in" rail — the freshest item from each of the
+ *  user's own surfaces, so the top of the feed is a way back into recent
+ *  work rather than another browse list. */
+function JumpBackInRail({ tiles }: { tiles: RecentTile[] }) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.railContent}
+    >
+      {tiles.map((tile) => (
+        <Pressable
+          key={tile.key}
+          style={styles.tile}
+          onPress={() => router.push(tile.route as never)}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${tile.title}`}
+        >
+          <View style={styles.tileKind}>
+            <View style={[styles.tileDot, { backgroundColor: tile.dot }]} />
+            <Text style={[styles.tileKindText, { color: tile.dot }]}>
+              {tile.kind.toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.tileTitle} numberOfLines={2}>
+            {tile.title}
+          </Text>
+          <Text style={styles.tileFoot} numberOfLines={1}>
+            {tile.foot}
+          </Text>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
+/** The "yours ↔ the stacks" axis as a segmented control. */
+function TopSegment({
+  value,
+  onChange,
+}: {
+  value: 'yours' | 'stacks';
+  onChange: (next: 'yours' | 'stacks') => void;
+}) {
+  return (
+    <View style={styles.seg}>
+      {(['yours', 'stacks'] as const).map((key) => {
+        const active = value === key;
+        return (
+          <Pressable
+            key={key}
+            style={[styles.segItem, active && styles.segItemActive]}
+            onPress={() => onChange(key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+          >
+            <Text style={[styles.segText, active && styles.segTextActive]}>
+              {key === 'yours' ? 'Yours' : 'The stacks'}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
-  const { currentInterest, allInterests, userInterests } = useInterest();
+  const { currentInterest, allInterests, userInterests, addInterest } = useInterest();
   const { user } = useAuth();
   const interestId = currentInterest?.id;
   const interestSlug = currentInterest?.slug;
@@ -236,40 +314,145 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
   }, [marketPlans, catalog]);
   const orgPreview = topOrgs ?? [];
 
-  // Adjacent interests = the catalog minus what the user already practices.
+  // Top-level "yours ↔ the stacks" axis, made literal as a segmented
+  // control. Each half is a full screen so the user never scrolls their
+  // own shelf to reach catalog content (or vice versa).
+  const [topSegment, setTopSegment] = React.useState<'yours' | 'stacks'>('yours');
+
+  // Jump-back-in: the freshest real item from each of the user's own
+  // surfaces. Not true "last-opened" (we don't track opens yet) — this is
+  // the latest concept / active plan / latest resource, so it's honest
+  // "pick up your recent work" without fabricating history.
+  const recentItems = React.useMemo<RecentTile[]>(() => {
+    const tiles: RecentTile[] = [];
+    const concept = (concepts ?? [])[0];
+    if (concept) {
+      tiles.push({
+        key: `concept:${concept.id}`,
+        kind: 'Concept',
+        dot: '#A855F7',
+        title: concept.title ?? 'Untitled concept',
+        foot: `${concept.linked_step_count ?? 0} steps`,
+        route: `/(tabs)/library/concept/${concept.id}`,
+      });
+    }
+    const plan = (plans ?? [])[0];
+    if (plan) {
+      tiles.push({
+        key: `plan:${plan.blueprintId}`,
+        kind: 'Plan',
+        dot: '#3B82F6',
+        title: plan.title,
+        foot: plan.progressContext ?? `${plan.doneCount} of ${plan.stepCount || '—'}`,
+        route: `/(tabs)/library/blueprints/${plan.blueprintId}`,
+      });
+    }
+    const resource = (resources ?? [])[0];
+    if (resource) {
+      tiles.push({
+        key: `resource:${resource.id}`,
+        kind: 'Resource',
+        dot: '#F59E0B',
+        title: resource.title,
+        foot: resource.capturedAt ?? 'saved',
+        route: `/library/items/${resource.id}`,
+      });
+    }
+    return tiles;
+  }, [concepts, plans, resources]);
+
+  // Adjacent interests = the catalog minus what the user already practices,
+  // ranked by relatedness to the interests they DO practice (shared domain /
+  // parent) so "suggested" means adjacent, not just alphabetically-first.
   const suggestedInterests = React.useMemo(() => {
     const owned = new Set(userInterests.map((i) => i.slug));
-    return allInterests.filter((i) => !owned.has(i.slug)).slice(0, 6);
+    const ownedDomainIds = new Set(
+      userInterests.map((i) => i.parent_id).filter((id): id is string => !!id),
+    );
+    const ownedIds = new Set(userInterests.map((i) => i.id));
+    const relatedness = (cand: Interest): number => {
+      let score = 0;
+      if (cand.parent_id && ownedDomainIds.has(cand.parent_id)) score += 3; // sibling under a domain you practice
+      if (cand.parent_id && ownedIds.has(cand.parent_id)) score += 2; // child of an interest you practice
+      return score;
+    };
+    return allInterests
+      .filter((i) => !owned.has(i.slug))
+      .map((i) => ({ i, score: relatedness(i) }))
+      .sort((a, b) => b.score - a.score || a.i.name.localeCompare(b.i.name))
+      .slice(0, 6)
+      .map((x) => x.i);
   }, [allInterests, userInterests]);
+
+  // Tapping a suggested chip ADDS the interest inline (the four-tier verb is
+  // "add interests"), with an optimistic confirmation pill — no longer a dead
+  // end into the generic browse list.
+  const [addingSlugs, setAddingSlugs] = React.useState<Set<string>>(() => new Set());
+  const [addedConfirmation, setAddedConfirmation] = React.useState<string | null>(null);
+  const confirmTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleAddInterest = React.useCallback(
+    (interest: Interest) => {
+      if (addingSlugs.has(interest.slug)) return;
+      setAddingSlugs((prev) => new Set(prev).add(interest.slug));
+      setAddedConfirmation(interest.name);
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+      confirmTimer.current = setTimeout(() => setAddedConfirmation(null), 2600);
+      void Promise.resolve(addInterest(interest.slug)).finally(() => {
+        setAddingSlugs((prev) => {
+          const next = new Set(prev);
+          next.delete(interest.slug);
+          return next;
+        });
+      });
+    },
+    [addInterest, addingSlugs],
+  );
+
+  React.useEffect(
+    () => () => {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    },
+    [],
+  );
 
   return (
     <View style={styles.container}>
       {librarianSlot ? <View style={styles.librarian}>{librarianSlot}</View> : null}
 
       {/* This week — the timely editorial surface folded in from the old
-          Discover "Today". One tap into the full-bleed zone. */}
+          Discover "Today". A slim neutral ribbon, not a blue-sparkles card:
+          the librarian register owns the purple voice above it, so this
+          stays quiet rather than competing as a second "intelligence" tile. */}
       <Pressable
         style={styles.thisWeek}
         onPress={() => onJumpToZone('today')}
         accessibilityRole="button"
         accessibilityLabel="See what's worth your attention this week"
       >
-        <View style={styles.thisWeekIcon}>
-          <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-        </View>
-        <View style={styles.thisWeekText}>
-          <Text style={styles.thisWeekTitle}>This week</Text>
-          <Text style={styles.thisWeekSubtitle} numberOfLines={1}>
-            What's worth your attention across your crafts
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+        <Ionicons name="calendar-outline" size={16} color={IOS_COLORS.secondaryLabel} />
+        <Text style={styles.thisWeekTitle}>This week</Text>
+        <Text style={styles.thisWeekHint} numberOfLines={1}>
+          What's worth your attention
+        </Text>
+        <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
       </Pressable>
 
       {/* ---------------------------------------------------------------- */}
-      {/* YOURS                                                            */}
+      {/* The "yours ↔ the stacks" axis, made literal.                     */}
       {/* ---------------------------------------------------------------- */}
-      <GroupDivider label="YOURS" />
+      <View style={styles.segWrap}>
+        <TopSegment value={topSegment} onChange={setTopSegment} />
+      </View>
+
+      {topSegment === 'yours' ? (
+        <>
+      {recentItems.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.railLabel}>JUMP BACK IN</Text>
+          <JumpBackInRail tiles={recentItems} />
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <SectionHeader
@@ -385,11 +568,9 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
         )}
       </View>
 
-      {/* ---------------------------------------------------------------- */}
-      {/* THE STACKS                                                       */}
-      {/* ---------------------------------------------------------------- */}
-      <GroupDivider label="THE STACKS" />
-
+        </>
+      ) : (
+        <>
       <View style={styles.section}>
         <SectionHeader
           title="PLANS TO FOLLOW"
@@ -450,33 +631,50 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
           dotColor="#F472B6"
           onSeeAll={() => onJumpToZone('interests')}
         />
+        {addedConfirmation ? (
+          <View style={styles.addedPill}>
+            <Ionicons name="checkmark-circle" size={15} color="#34C759" />
+            <Text style={styles.addedPillText}>
+              Added {addedConfirmation} to your interests
+            </Text>
+          </View>
+        ) : null}
         {suggestedInterests.length === 0 ? (
           <EmptyHint>You've added every interest we know about — nice.</EmptyHint>
         ) : (
           <View style={styles.interestWrap}>
-            {suggestedInterests.map((interest) => (
-              <Pressable
-                key={interest.slug}
-                style={[
-                  styles.interestChip,
-                  { borderColor: (interest.accent_color ?? IOS_COLORS.systemBlue) + '55' },
-                ]}
-                onPress={() => onJumpToZone('interests')}
-              >
-                <View
+            {suggestedInterests.map((interest) => {
+              const accent = interest.accent_color ?? IOS_COLORS.systemBlue;
+              const adding = addingSlugs.has(interest.slug);
+              return (
+                <Pressable
+                  key={interest.slug}
                   style={[
-                    styles.interestDot,
-                    { backgroundColor: interest.accent_color ?? IOS_COLORS.systemBlue },
+                    styles.interestChip,
+                    { borderColor: accent + '55' },
+                    adding && styles.interestChipAdding,
                   ]}
-                />
-                <Text style={styles.interestChipText} numberOfLines={1}>
-                  {interest.name}
-                </Text>
-              </Pressable>
-            ))}
+                  onPress={() => handleAddInterest(interest)}
+                  disabled={adding}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add ${interest.name} to your interests`}
+                >
+                  {adding ? (
+                    <ActivityIndicator size="small" color={accent} style={styles.interestSpinner} />
+                  ) : (
+                    <Ionicons name="add" size={14} color={accent} />
+                  )}
+                  <Text style={styles.interestChipText} numberOfLines={1}>
+                    {interest.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         )}
       </View>
+        </>
+      )}
     </View>
   );
 }
@@ -507,44 +705,103 @@ const styles = StyleSheet.create({
   thisWeek: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     marginHorizontal: IOS_SPACING.lg,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 11,
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60,60,67,0.12)',
   },
-  thisWeekIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0A84FF',
-  },
-  thisWeekText: {
-    flex: 1,
-    gap: 2,
-  },
   thisWeekTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: IOS_COLORS.label,
     letterSpacing: -0.2,
   },
-  thisWeekSubtitle: {
-    fontSize: 13,
+  thisWeekHint: {
+    flex: 1,
+    fontSize: 12.5,
+    color: IOS_COLORS.tertiaryLabel,
+  },
+  segWrap: {
+    paddingHorizontal: IOS_SPACING.lg,
+  },
+  seg: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(118,118,128,0.12)',
+    borderRadius: 11,
+    padding: 3,
+  },
+  segItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 9,
+  },
+  segItemActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  segText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: IOS_COLORS.secondaryLabel,
   },
-  groupLabel: {
-    fontSize: 13,
+  segTextActive: {
+    color: IOS_COLORS.label,
+  },
+  railLabel: {
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1,
     color: IOS_COLORS.tertiaryLabel,
     paddingHorizontal: IOS_SPACING.lg,
-    marginBottom: -IOS_SPACING.sm,
+  },
+  railContent: {
+    gap: 11,
+    paddingHorizontal: IOS_SPACING.lg,
+  },
+  tile: {
+    width: 132,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 13,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+    padding: 11,
+  },
+  tileKind: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 8,
+  },
+  tileDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  tileKindText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  tileTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+    lineHeight: 16,
+    height: 32,
+    marginBottom: 6,
+  },
+  tileFoot: {
+    fontSize: 10,
+    color: IOS_COLORS.tertiaryLabel,
   },
   section: {
     gap: IOS_SPACING.md,
@@ -684,15 +941,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: '#FFFFFF',
   },
-  interestDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  interestChipAdding: {
+    opacity: 0.6,
+  },
+  interestSpinner: {
+    width: 14,
+    height: 14,
   },
   interestChipText: {
     fontSize: 14,
     fontWeight: '600',
     color: IOS_COLORS.label,
     maxWidth: 160,
+  },
+  addedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginHorizontal: IOS_SPACING.lg,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(52,199,89,0.12)',
+  },
+  addedPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1B7A38',
   },
 });

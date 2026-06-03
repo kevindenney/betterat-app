@@ -206,10 +206,6 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           <View style={styles.feedHero}>
             <Text style={styles.feedEyebrow}>LIBRARY</Text>
             <Text style={styles.feedTitle}>What's in your library</Text>
-            <Text style={styles.feedSubtitle}>
-              Your plans, concepts, and saved material — plus the stacks you
-              can pull from.
-            </Text>
           </View>
         ) : (
           <View style={styles.focusedHeader}>
@@ -350,11 +346,6 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     fontWeight: '800',
     color: IOS_COLORS.label,
-  },
-  feedSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: IOS_COLORS.secondaryLabel,
   },
   // Focused-zone header — back pill + title + description, reached
   // when a feed See-all drills into a single zone.
