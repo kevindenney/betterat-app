@@ -37,12 +37,7 @@ export function CrewSparseList({ peers, totalWeeks, isolatedPeerId = null }: Pro
         const dimmed = isolatedPeerId !== null && peer.id !== isolatedPeerId;
         return (
           <View key={peer.id} style={[styles.row, dimmed && styles.rowDimmed]}>
-            <View
-              style={[
-                styles.avatar,
-                { backgroundColor: peer.capabilityColor ?? peer.color },
-              ]}
-            >
+            <View style={[styles.avatar, { backgroundColor: peer.color }]}>
               <Text style={styles.avatarText}>
                 {peer.initials.slice(0, 2).toUpperCase()}
               </Text>

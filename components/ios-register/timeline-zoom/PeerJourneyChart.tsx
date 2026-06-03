@@ -7,12 +7,16 @@
  * through both charts.
  *
  * Each row is one peer:
- *   - Letter-coded circles (peer.initials char 0) at every week they
- *     appeared, tinted with the peer's color. Size scales modestly
- *     with that week's activity count.
- *   - A thin tinted hairline from first appearance → current week
- *     reads as the "still aboard" thread; dotted hairline before the
- *     first appearance reads as "not yet aboard".
+ *   - One avatar circle at their first appearance — same two-letter
+ *     initials + identity color as the WHO SHAPED IT pill, so a person
+ *     reads as one token across the lane and the pills. Size scales
+ *     modestly with total contribution.
+ *   - A thin hairline from first appearance → current week reads as the
+ *     "still aboard" thread, tinted with the *capability* color so the
+ *     thread says what they shaped while the dot says who. Dotted hairline
+ *     before the first appearance reads as "not yet aboard". The active
+ *     (tapped) peer's thread brightens + gets a halo ring so a pill tap
+ *     visibly lights up the matching thread.
  *   - Optional role text appears just to the left of the first dot.
  *   - NOW bar/band match the river above so the eye lines them up.
  *
@@ -211,10 +215,14 @@ function PeerJourneyChartBlock({
 
         {peers.map((peer, i) => {
           const dimmed = isolatedPeerId !== null && peer.id !== isolatedPeerId;
+          const isActive = isolatedPeerId === peer.id;
           const rowY = i * (rowHeight + rowGap) + rowHeight / 2;
           const firstX = padX + (peer.firstWeek - 0.5) * colWidth;
           const dotRadius = compact ? 7 : 9;
-          const letter = peer.initials.charAt(0).toUpperCase();
+          // Same two-letter token as the WHO SHAPED IT pill avatar so the
+          // eye reads "M" in the lane and "MT · Markus Tham" in the pill as
+          // one person, not two.
+          const initials = peer.initials.slice(0, 2).toUpperCase();
           const elems: React.ReactNode[] = [];
 
           // Pre-arrival dotted hairline from chart start to firstX.
@@ -234,14 +242,16 @@ function PeerJourneyChartBlock({
             );
           }
 
-          // Capability color encodes "what they shaped" — fall back to
-          // identity color when the capability isn't known (free-form
-          // suggestion, inbound suggestion whose source step we don't
-          // have locally, untagged step).
-          const dotColor = peer.capabilityColor ?? peer.color;
+          // Avatar = identity (stable per peer) so the dot matches the
+          // WHO SHAPED IT pill exactly. The thread carries the capability
+          // color, so "who" (dot) and "what they shaped" (line) read as
+          // two separate signals instead of collapsing into one hue.
+          const identityColor = peer.color;
+          const threadColor = peer.capabilityColor ?? peer.color;
 
           // Solid hairline from firstX → current week so the "still aboard"
-          // thread reads even when weekly dots are sparse.
+          // thread reads even when weekly dots are sparse. The active peer's
+          // thread brightens + thickens so a pill tap visibly lights it up.
           const endX = padX + Math.min(totalWeeks, currentWeekNumber) * colWidth;
           elems.push(
             <Line
@@ -250,9 +260,9 @@ function PeerJourneyChartBlock({
               x2={endX}
               y1={rowY}
               y2={rowY}
-              stroke={dotColor}
-              strokeWidth={compact ? 0.8 : 1}
-              opacity={compact ? 0.35 : 0.45}
+              stroke={threadColor}
+              strokeWidth={isActive ? (compact ? 1.8 : 2.2) : compact ? 0.8 : 1}
+              opacity={isActive ? 0.95 : compact ? 0.35 : 0.45}
             />,
           );
 
@@ -269,13 +279,28 @@ function PeerJourneyChartBlock({
           );
           const sizeBoost = Math.min(1, (totalCount - 1) / 4);
           const radius = dotRadius + sizeBoost * (compact ? 1.2 : 1.6);
+          // Halo ring on the active peer — the "you tapped this thread" cue.
+          if (isActive) {
+            elems.push(
+              <Circle
+                key={`halo-${peer.id}`}
+                cx={firstX}
+                cy={rowY}
+                r={radius + 3}
+                fill="none"
+                stroke={identityColor}
+                strokeWidth={1.5}
+                opacity={0.5}
+              />,
+            );
+          }
           elems.push(
             <Circle
               key={`dot-${peer.id}`}
               cx={firstX}
               cy={rowY}
               r={radius}
-              fill={dotColor}
+              fill={identityColor}
               opacity={0.95}
             />,
           );
@@ -284,13 +309,13 @@ function PeerJourneyChartBlock({
               key={`letter-${peer.id}`}
               x={firstX}
               y={rowY + (compact ? 2.5 : 3)}
-              fontSize={compact ? 8 : 9}
+              fontSize={initials.length > 1 ? (compact ? 7 : 8) : compact ? 8 : 9}
               fontWeight="700"
               fill="#FFFFFF"
               textAnchor="middle"
               letterSpacing={0.1}
             >
-              {letter}
+              {initials}
             </SvgText>,
           );
 
@@ -327,13 +352,10 @@ function PeerJourneyChartBlock({
                 style={[styles.legendItem, dimmed && styles.legendItemDimmed]}
               >
                 <View
-                  style={[
-                    styles.legendSwatch,
-                    { backgroundColor: peer.capabilityColor ?? peer.color },
-                  ]}
+                  style={[styles.legendSwatch, { backgroundColor: peer.color }]}
                 >
                   <Text style={styles.legendSwatchText}>
-                    {peer.initials.charAt(0).toUpperCase()}
+                    {peer.initials.slice(0, 2).toUpperCase()}
                   </Text>
                 </View>
                 <Text style={styles.legendName} numberOfLines={1}>
