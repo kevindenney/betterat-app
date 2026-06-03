@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>betterat_web_groups_tier</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+:root{
+  --serif:'Lyon Display','Iowan Old Style',Georgia,serif;
+  --sans:'Söhne',-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+  --mono:'SF Mono','Menlo',monospace;
+
+  --ink:#14161A;
+  --ink-2:#3C4048;
+  --ink-3:#6B7079;
+  --ink-4:#9AA0A8;
+  --line:#E6E4DD;
+  --line-2:#EFEDE6;
+  --paper:#FFFFFF;
+  --paper-2:#FAF9F5;
+  --paper-3:#F3F1EA;
+
+  --blue:#2E5FE8;
+  --blue-soft:#EAF0FE;
+  --hero:#15161B;
+
+  --c-health:#6366F1;
+  --c-arts:#F59E0B;
+  --c-sport:#0EA5E9;
+  --c-live:#D35400;
+  --c-edu:#5C6BC0;
+  --c-agri:#2E7D32;
+
+  /* groups identity (app: teal dot #14B8A6) */
+  --teal:#14B8A6;
+  --teal-soft:#DAF5F1;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:#DEDBD1;font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.55;}
+
+/* ---------- deck scaffolding ---------- */
+.deck-head{max-width:1180px;margin:0 auto;padding:56px 24px 8px;}
+.deck-eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+.deck-title{font-family:var(--serif);font-size:42px;line-height:1.1;font-weight:500;letter-spacing:-.02em;margin:10px 0 14px;}
+.deck-sub{font-size:17px;color:var(--ink-2);max-width:720px;margin:0;line-height:1.6;}
+.deck-sub code{font-family:var(--mono);font-size:13px;background:var(--paper-3);padding:1px 5px;border-radius:4px;}
+.deck-meta{font-family:var(--mono);font-size:11px;color:var(--ink-4);margin-top:18px;letter-spacing:.02em;}
+
+.section-label{max-width:1180px;margin:64px auto 0;padding:0 24px;display:flex;align-items:center;gap:14px;}
+.section-label .num{font-family:var(--mono);font-size:12px;color:var(--ink-4);}
+.section-label .txt{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+.section-label .rule{flex:1;height:1px;background:#C9C5B9;}
+
+.frame-wrap{max-width:1180px;margin:18px auto 0;padding:0 24px;}
+.browser{background:var(--paper);border-radius:16px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(20,22,26,.45),0 2px 0 rgba(255,255,255,.4) inset;border:1px solid rgba(20,22,26,.06);}
+.chrome{height:42px;background:#F0EEE7;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 16px;}
+.dot{width:11px;height:11px;border-radius:50%;}
+.dot.r{background:#F0685E;}.dot.y{background:#F4BE4F;}.dot.g{background:#62C554;}
+.url{margin-left:14px;background:#fff;border:1px solid var(--line);border-radius:8px;height:26px;display:flex;align-items:center;padding:0 12px;gap:8px;font-size:12px;color:var(--ink-3);font-family:var(--mono);min-width:320px;}
+.url i{font-size:13px;color:var(--ink-4);}
+
+.callouts{max-width:1180px;margin:18px auto 0;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.callout{background:rgba(255,255,255,.55);border:1px solid rgba(20,22,26,.08);border-radius:12px;padding:16px 18px;}
+.callout .k{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--blue);margin:0 0 6px;}
+.callout p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.55;}
+
+/* ---------- shared page bits ---------- */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:18px 36px;border-bottom:1px solid var(--line-2);}
+.brand{font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;}
+.brand .mk{width:26px;height:26px;border-radius:7px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-family:var(--sans);font-weight:800;}
+.navlinks{display:flex;align-items:center;gap:28px;font-size:14.5px;color:var(--ink-2);}
+.navlinks a{color:inherit;text-decoration:none;display:flex;align-items:center;gap:5px;}
+.navlinks a.active{color:var(--blue);font-weight:600;}
+.btn{font-family:var(--sans);font-size:14px;font-weight:600;border-radius:10px;padding:10px 18px;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--line);}
+.btn-teal{background:var(--teal);color:#fff;}
+.btn-sm{padding:8px 14px;font-size:13px;}
+
+/* ---------- interest hero (echo of mockup 24 frame 02) ---------- */
+.ip-hero{padding:46px 40px 30px;border-bottom:1px solid var(--line-2);}
+.ip-crumb{font-size:13px;color:var(--ink-3);margin-bottom:16px;}
+.ip-crumb a{color:var(--blue);text-decoration:none;}
+.ip-top{display:flex;align-items:center;gap:18px;}
+.ip-ic{width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;}
+.ip-h1{font-family:var(--serif);font-weight:500;font-size:40px;letter-spacing:-.02em;margin:0;}
+.ip-sub{font-size:15px;color:var(--ink-2);margin:4px 0 0;}
+.ip-actions{margin-left:auto;display:flex;gap:10px;}
+.ip-stats{display:flex;gap:28px;margin-top:22px;}
+.ip-stat b{font-family:var(--serif);font-size:26px;font-weight:500;display:block;}
+.ip-stat span{font-size:12px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;}
+
+.tier-tabs{display:flex;gap:6px;padding:0 40px;border-bottom:1px solid var(--line-2);background:#fff;overflow-x:auto;}
+.tier-tab{padding:16px 16px;font-size:14px;font-weight:600;color:var(--ink-3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;white-space:nowrap;}
+.tier-tab.on{color:var(--ink);}
+.tier-tab .vb{font-size:11px;color:var(--ink-4);font-weight:500;}
+
+.ip-body{padding:30px 40px 46px;background:var(--paper-2);}
+.ip-section{margin-bottom:34px;}
+.ip-sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.ip-sec-head .l{display:flex;align-items:center;gap:10px;}
+.ip-sec-head .l b{font-size:17px;}
+.ip-sec-head .verb{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--teal-soft);color:#0F766E;}
+.ip-sec-head a{font-size:13px;color:var(--blue);text-decoration:none;font-weight:600;}
+.ip-sec-note{font-size:13px;color:var(--ink-3);margin:0 0 16px;max-width:640px;}
+
+/* group sub-grouping label (e.g. "Standing fleets" / "This season's cohorts") */
+.grp-band{display:flex;align-items:center;gap:9px;margin:20px 0 12px;}
+.grp-band .gd{width:8px;height:8px;border-radius:50%;}
+.grp-band .gl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--ink-3);}
+.grp-band .gc{font-size:11px;color:var(--ink-4);}
+.grp-band .rule{flex:1;height:1px;background:var(--line);}
+
+.row2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+
+/* ---------- the GROUP CARD (web echo of CanonicalOrgRow) ---------- */
+.gcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:11px;}
+.gcard .ghead{display:flex;align-items:flex-start;gap:12px;}
+.gmark{width:44px;height:44px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;letter-spacing:-.01em;}
+.gcard .gtitle{font-size:15.5px;font-weight:700;letter-spacing:-.01em;line-height:1.25;}
+.gcard .gkind{font-size:12.5px;color:var(--ink-3);margin-top:2px;display:flex;align-items:center;gap:5px;}
+.gcard .gkind i{font-size:14px;}
+.gcard .gjoined{margin-left:auto;flex-shrink:0;font-size:11px;font-weight:700;color:#0F766E;background:var(--teal-soft);padding:3px 9px;border-radius:20px;display:flex;align-items:center;gap:4px;}
+
+/* the three-axis chips */
+.axes{display:flex;flex-wrap:wrap;gap:6px;}
+.axis{font-size:11px;font-weight:600;padding:3px 9px 3px 7px;border-radius:7px;background:var(--paper-3);color:var(--ink-2);display:flex;align-items:center;gap:5px;}
+.axis i{font-size:13px;color:var(--ink-4);}
+.axis.standing i{color:var(--teal);}
+.axis.seasonal i{color:var(--c-sport);}
+.axis.ephemeral i{color:var(--c-live);}
+.axis.peer i{color:var(--c-agri);}
+.axis.led i{color:var(--c-edu);}
+
+.gcard .gdesc{font-size:13px;color:var(--ink-3);line-height:1.5;}
+.gcard .gfoot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line-2);padding-top:12px;margin-top:1px;}
+.roster{display:flex;align-items:center;}
+.roster .av{width:26px;height:26px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;margin-left:-7px;}
+.roster .av:first-child{margin-left:0;}
+.roster .more{font-size:12px;color:var(--ink-3);margin-left:8px;}
+
+/* author / create-your-own prompt card */
+.gcard.create{border-style:dashed;background:var(--paper-2);justify-content:center;}
+.gcard.create .ci{width:40px;height:40px;border-radius:11px;background:var(--teal-soft);color:#0F766E;display:flex;align-items:center;justify-content:center;font-size:20px;}
+
+/* footer */
+.foot{background:var(--hero);color:#9AA0AC;padding:40px 36px;font-size:13px;display:flex;justify-content:space-between;align-items:center;}
+.foot .brand{color:#fff;}
+.foot b{color:#fff;}
+
+/* ---------- three-axis legend ---------- */
+.axis-legend{max-width:1180px;margin:18px auto 0;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.axleg{background:rgba(255,255,255,.55);border:1px solid rgba(20,22,26,.08);border-radius:12px;padding:18px 20px;}
+.axleg h4{margin:0 0 4px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.axleg h4 i{color:var(--teal);font-size:17px;}
+.axleg p.dial{font-family:var(--mono);font-size:11.5px;color:var(--ink-4);margin:0 0 10px;}
+.axleg p{font-size:13px;color:var(--ink-2);margin:0;line-height:1.55;}
+.axleg .ex{font-size:12px;color:var(--ink-3);margin-top:8px;display:block;}
+
+@media(max-width:760px){.callouts,.axis-legend,.row2,.row3{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- =================== DECK HEADER =================== -->
+<div class="deck-head">
+  <div class="deck-eyebrow">BetterAt · Web redesign · continues 24</div>
+  <div class="deck-title">Groups belong on the<br>interest page too</div>
+  <p class="deck-sub">Mockup 24 gave the interest page four tiers — Blueprints, Organizations, People, About. But the unit people actually <em>move through the work with</em> is the <b>group</b>: a sailor's <b>fleet</b>, a nursing student's <b>cohort</b>. These are one primitive on three dials (lifespan · who-pays · authority), so they get one tier — <b>Groups · join</b> — sitting between Organizations and People. The web cards echo the app Library tab's canonical group rows: square mark, name, role, roster, join.</p>
+  <div class="deck-meta">25_betterat_web_groups_tier.html · 2026-06-03 · desktop frames @ 1180 · pairs with 24_betterat_web_landing_marketplace_redesign.html</div>
+</div>
+
+<!-- =================== THE THREE-AXIS MODEL =================== -->
+<div class="section-label"><span class="num">00</span><span class="txt">Why one tier, not three</span><span class="rule"></span></div>
+<div class="axis-legend">
+  <div class="axleg">
+    <h4><i class="ti ti-timeline-event"></i> Lifespan</h4>
+    <p class="dial">ephemeral ───────●─ standing</p>
+    <p>How long the group lives. A regatta crew dissolves in a weekend; a class fleet runs for years; a Spring cohort spans one term.</p>
+    <span class="ex">Renders as a chip: Standing · Seasonal · One-off</span>
+  </div>
+  <div class="axleg">
+    <h4><i class="ti ti-cash"></i> Who pays</h4>
+    <p class="dial">members pay ──●──── payer owns seats</p>
+    <p>Members-pay (a fleet everyone chips into) vs. payer-owns-seats (a school buys cohort seats for students). Gates the enterprise-admin surface.</p>
+    <span class="ex">Drives whether a Join button or a roster invite shows</span>
+  </div>
+  <div class="axleg">
+    <h4><i class="ti ti-hierarchy-2"></i> Authority</h4>
+    <p class="dial">peer / opt-in ───●── assigned / led</p>
+    <p>Peer-run (sailors self-organize) vs. assigned (a coach leads, an instructor places you). Gates consent and the role descriptor.</p>
+    <span class="ex">Peer-run shows Join; coach-led shows Request to join</span>
+  </div>
+</div>
+
+<!-- =================== FRAME A: SAIL RACING — FLEETS =================== -->
+<div class="section-label"><span class="num">A</span><span class="txt">Sail Racing — the Groups tier is fleets</span><span class="rule"></span></div>
+<div class="frame-wrap">
+  <div class="browser">
+    <div class="chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <div class="url"><i class="ti ti-lock"></i> better.at/sail-racing</div>
+    </div>
+
+    <div class="nav">
+      <div class="brand"><span class="mk">B</span> BetterAt</div>
+      <div class="navlinks">
+        <a href="#">Interests <i class="ti ti-chevron-down" style="font-size:14px;"></i></a>
+        <a href="#">How it works</a>
+        <a class="active" href="#">Marketplace</a>
+        <a href="#">Pricing</a>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <a class="btn btn-ghost btn-sm" href="#">Sign in</a>
+        <a class="btn btn-primary btn-sm" href="#">Get started</a>
+      </div>
+    </div>
+
+    <div class="ip-hero" style="background:linear-gradient(180deg,#EAF6FB,#fff);">
+      <div class="ip-crumb"><a href="#">Marketplace</a> › <a href="#">Sport &amp; Movement</a> › Sail Racing</div>
+      <div class="ip-top">
+        <div class="ip-ic" style="background:var(--c-sport);"><i class="ti ti-sailboat"></i></div>
+        <div>
+          <h1 class="ip-h1">Sail Racing</h1>
+          <p class="ip-sub">Read the course, win the start, sail the shifts — small-boat and keelboat racing from club nights to championships.</p>
+        </div>
+        <div class="ip-actions">
+          <a class="btn btn-ghost" href="#"><i class="ti ti-plus"></i> Add interest</a>
+          <a class="btn btn-primary" href="#">Start practicing</a>
+        </div>
+      </div>
+      <div class="ip-stats">
+        <div class="ip-stat"><b>6</b><span>Blueprints</span></div>
+        <div class="ip-stat"><b>3</b><span>Organizations</span></div>
+        <div class="ip-stat"><b>5</b><span>Groups</span></div>
+        <div class="ip-stat"><b>24</b><span>People</span></div>
+      </div>
+    </div>
+
+    <div class="tier-tabs">
+      <div class="tier-tab"><i class="ti ti-map-2"></i> Blueprints <span class="vb">subscribe</span></div>
+      <div class="tier-tab"><i class="ti ti-building"></i> Organizations <span class="vb">join</span></div>
+      <div class="tier-tab on" style="border-bottom-color:var(--teal);"><i class="ti ti-flag"></i> Groups <span class="vb">join</span></div>
+      <div class="tier-tab"><i class="ti ti-users"></i> People <span class="vb">follow</span></div>
+      <div class="tier-tab"><i class="ti ti-info-circle"></i> About</div>
+    </div>
+
+    <div class="ip-body">
+      <div class="ip-section">
+        <div class="ip-sec-head">
+          <div class="l"><b>Groups</b><span class="verb">join</span></div>
+          <a href="#">See all fleets <i class="ti ti-arrow-right" style="font-size:13px;"></i></a>
+        </div>
+        <p class="ip-sec-note">Fleets are how sailors actually race — a class of boats that lines up together all season. Join one to share a calendar, compare results, and prep with the same blueprints.</p>
+
+        <!-- STANDING fleets -->
+        <div class="grp-band"><span class="gd" style="background:var(--teal);"></span><span class="gl">Standing fleets</span><span class="gc">year-round · members-run</span><span class="rule"></span></div>
+        <div class="row2">
+          <div class="gcard">
+            <div class="ghead">
+              <div class="gmark" style="background:#1F5C8A;">J70</div>
+              <div>
+                <div class="gtitle">RHKYC J/70 Fleet</div>
+                <div class="gkind"><i class="ti ti-sailboat"></i> Fleet · J/70 one-design · Hong Kong</div>
+              </div>
+              <span class="gjoined"><i class="ti ti-check"></i> Joined</span>
+            </div>
+            <div class="axes">
+              <span class="axis standing"><i class="ti ti-timeline-event"></i> Standing</span>
+              <span class="axis"><i class="ti ti-cash"></i> Members pay dues</span>
+              <span class="axis peer"><i class="ti ti-hierarchy-2"></i> Peer-run</span>
+            </div>
+            <div class="gdesc">Hong Kong's most active one-design keelboat fleet. Wednesday-night series plus weekend championships out of Middle Island.</div>
+            <div class="gfoot">
+              <div class="roster">
+                <span class="av" style="background:#1F5C8A;">KD</span>
+                <span class="av" style="background:var(--c-sport);">TW</span>
+                <span class="av" style="background:var(--c-agri);">LM</span>
+                <span class="av" style="background:var(--c-live);">SP</span>
+                <span class="more">+14 sailors</span>
+              </div>
+              <span style="font-size:13px;color:#0F766E;font-weight:600;"><i class="ti ti-sailboat"></i> Crew</span>
+            </div>
+          </div>
+
+          <div class="gcard">
+            <div class="ghead">
+              <div class="gmark" style="background:#0E7490;">DR</div>
+              <div>
+                <div class="gtitle">Dragon Class — Asia</div>
+                <div class="gkind"><i class="ti ti-sailboat"></i> Fleet · Dragon one-design · regional</div>
+              </div>
+            </div>
+            <div class="axes">
+              <span class="axis standing"><i class="ti ti-timeline-event"></i> Standing</span>
+              <span class="axis"><i class="ti ti-cash"></i> Class membership</span>
+              <span class="axis peer"><i class="ti ti-hierarchy-2"></i> Peer-run</span>
+            </div>
+            <div class="gdesc">Travelling Dragon fleet racing the Asian circuit — Hong Kong, Shenzhen, Singapore. Shares rig-tuning and tactics blueprints.</div>
+            <div class="gfoot">
+              <div class="roster">
+                <span class="av" style="background:#0E7490;">RA</span>
+                <span class="av" style="background:var(--c-edu);">JC</span>
+                <span class="av" style="background:var(--c-arts);">MN</span>
+                <span class="more">+9 sailors</span>
+              </div>
+              <a class="btn btn-teal btn-sm" href="#">Join fleet</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEASONAL squads -->
+        <div class="grp-band"><span class="gd" style="background:var(--c-sport);"></span><span class="gl">This season's squads</span><span class="gc">Winter 2025–2026 · coach-led</span><span class="rule"></span></div>
+        <div class="row2">
+          <div class="gcard">
+            <div class="ghead">
+              <div class="gmark" style="background:var(--c-edu);">YS</div>
+              <div>
+                <div class="gtitle">Youth Squad — Winter</div>
+                <div class="gkind"><i class="ti ti-school"></i> Cohort · coached program · Oct–Mar</div>
+              </div>
+            </div>
+            <div class="axes">
+              <span class="axis seasonal"><i class="ti ti-timeline-event"></i> Seasonal</span>
+              <span class="axis"><i class="ti ti-cash"></i> Club funds seats</span>
+              <span class="axis led"><i class="ti ti-hierarchy-2"></i> Coach-led</span>
+            </div>
+            <div class="gdesc">RHKYC's selective winter development squad. A coach assigns the training blueprint and reviews evidence weekly.</div>
+            <div class="gfoot">
+              <div class="roster">
+                <span class="av" style="background:var(--c-edu);">EL</span>
+                <span class="av" style="background:var(--c-sport);">DK</span>
+                <span class="av" style="background:var(--c-agri);">RW</span>
+                <span class="more">+5 · 1 coach</span>
+              </div>
+              <a class="btn btn-ghost btn-sm" href="#">Request to join</a>
+            </div>
+          </div>
+
+          <!-- create-your-own -->
+          <div class="gcard create">
+            <div class="ci"><i class="ti ti-flag-plus"></i></div>
+            <div class="gtitle" style="font-size:15px;">Racing with friends?</div>
+            <div class="gdesc">Start a fleet for your class or club. Share a calendar, adopt blueprints together, and track results as a group.</div>
+            <a class="btn btn-ghost btn-sm" href="#" style="margin-top:2px;align-self:flex-start;">Create a fleet</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot"><span class="brand">BetterAt</span><span>Groups for <b>interest = sail-racing</b> · standing fleets + seasonal squads, one tier</span></div>
+  </div>
+</div>
+
+<div class="callouts">
+  <div class="callout"><p class="k"><i class="ti ti-flag"></i> Fleet = the group, not the org</p><p>A yacht club is the <b>Organization</b> (join); the J/70 fleet inside it is the <b>Group</b> (join). Sub-grouping bands separate standing fleets from this season's coached squads.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-adjustments-horizontal"></i> Axis chips, not feature forks</p><p>Standing/Seasonal, who-pays, peer vs coach-led are <b>chips on one card type</b> — the same primitive a nursing cohort uses, just on different dials.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-layout-grid"></i> Echoes the app Library</p><p>Square mark + name + role + overlapped roster + join is the web read of CanonicalOrgRow. Teal <code>#14B8A6</code> = groups, consistent with the mobile Groups zone.</p></div>
+</div>
+
+<!-- =================== FRAME B: NURSING — COHORTS =================== -->
+<div class="section-label"><span class="num">B</span><span class="txt">Nursing — the same tier is cohorts</span><span class="rule"></span></div>
+<div class="frame-wrap">
+  <div class="browser">
+    <div class="chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <div class="url"><i class="ti ti-lock"></i> better.at/nursing</div>
+    </div>
+
+    <div class="nav">
+      <div class="brand"><span class="mk">B</span> BetterAt</div>
+      <div class="navlinks">
+        <a href="#">Interests <i class="ti ti-chevron-down" style="font-size:14px;"></i></a>
+        <a href="#">How it works</a>
+        <a class="active" href="#">Marketplace</a>
+        <a href="#">Pricing</a>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <a class="btn btn-ghost btn-sm" href="#">Sign in</a>
+        <a class="btn btn-primary btn-sm" href="#">Get started</a>
+      </div>
+    </div>
+
+    <div class="ip-hero" style="background:linear-gradient(180deg,#EEEFFC,#fff);">
+      <div class="ip-crumb"><a href="#">Marketplace</a> › <a href="#">Health &amp; Care</a> › Nursing</div>
+      <div class="ip-top">
+        <div class="ip-ic" style="background:var(--c-health);"><i class="ti ti-stethoscope"></i></div>
+        <div>
+          <h1 class="ip-h1">Nursing</h1>
+          <p class="ip-sub">Clinical reasoning, safe practice, and bedside skill — from first rotation to licensure and beyond.</p>
+        </div>
+        <div class="ip-actions">
+          <a class="btn btn-ghost" href="#"><i class="ti ti-plus"></i> Add interest</a>
+          <a class="btn btn-primary" href="#">Start practicing</a>
+        </div>
+      </div>
+      <div class="ip-stats">
+        <div class="ip-stat"><b>9</b><span>Blueprints</span></div>
+        <div class="ip-stat"><b>2</b><span>Organizations</span></div>
+        <div class="ip-stat"><b>4</b><span>Groups</span></div>
+        <div class="ip-stat"><b>38</b><span>People</span></div>
+      </div>
+    </div>
+
+    <div class="tier-tabs">
+      <div class="tier-tab"><i class="ti ti-map-2"></i> Blueprints <span class="vb">subscribe</span></div>
+      <div class="tier-tab"><i class="ti ti-building"></i> Organizations <span class="vb">join</span></div>
+      <div class="tier-tab on" style="border-bottom-color:var(--teal);"><i class="ti ti-users-group"></i> Groups <span class="vb">join</span></div>
+      <div class="tier-tab"><i class="ti ti-users"></i> People <span class="vb">follow</span></div>
+      <div class="tier-tab"><i class="ti ti-info-circle"></i> About</div>
+    </div>
+
+    <div class="ip-body">
+      <div class="ip-section">
+        <div class="ip-sec-head">
+          <div class="l"><b>Groups</b><span class="verb">join</span></div>
+          <a href="#">See all cohorts <i class="ti ti-arrow-right" style="font-size:13px;"></i></a>
+        </div>
+        <p class="ip-sec-note">A cohort is the class you move through clinicals with. Most are placed by your school — but open study cohorts let any learner pace through a blueprint alongside peers.</p>
+
+        <!-- PLACED cohorts (school owns seats, coach-led) -->
+        <div class="grp-band"><span class="gd" style="background:var(--c-edu);"></span><span class="gl">School cohorts</span><span class="gc">Spring 2026 · placed by program</span><span class="rule"></span></div>
+        <div class="row2">
+          <div class="gcard">
+            <div class="ghead">
+              <div class="gmark" style="background:#3F4D9E;">26</div>
+              <div>
+                <div class="gtitle">JHSON · Cohort 2026</div>
+                <div class="gkind"><i class="ti ti-school"></i> Cohort · ABSN · Baltimore</div>
+              </div>
+              <span class="gjoined"><i class="ti ti-check"></i> Enrolled</span>
+            </div>
+            <div class="axes">
+              <span class="axis seasonal"><i class="ti ti-timeline-event"></i> Seasonal · 16-mo</span>
+              <span class="axis"><i class="ti ti-cash"></i> Program owns seats</span>
+              <span class="axis led"><i class="ti ti-hierarchy-2"></i> Faculty-led</span>
+            </div>
+            <div class="gdesc">Your accelerated BSN cohort. Rotations, evidence reviews, and the discharge-teach-back blueprint are assigned by faculty.</div>
+            <div class="gfoot">
+              <div class="roster">
+                <span class="av" style="background:#3F4D9E;">NA</span>
+                <span class="av" style="background:var(--c-health);">PR</span>
+                <span class="av" style="background:var(--c-arts);">DM</span>
+                <span class="av" style="background:var(--c-agri);">KO</span>
+                <span class="more">+44 · 6 faculty</span>
+              </div>
+              <span style="font-size:13px;color:#0F766E;font-weight:600;"><i class="ti ti-id-badge-2"></i> Student</span>
+            </div>
+          </div>
+
+          <div class="gcard">
+            <div class="ghead">
+              <div class="gmark" style="background:var(--c-health);">CC</div>
+              <div>
+                <div class="gtitle">Critical Care Clinical Group</div>
+                <div class="gkind"><i class="ti ti-heartbeat"></i> Cohort · ICU rotation · 8 students</div>
+              </div>
+            </div>
+            <div class="axes">
+              <span class="axis ephemeral"><i class="ti ti-timeline-event"></i> One-off · 1 term</span>
+              <span class="axis"><i class="ti ti-cash"></i> Program owns seats</span>
+              <span class="axis led"><i class="ti ti-hierarchy-2"></i> Preceptor-led</span>
+            </div>
+            <div class="gdesc">A small clinical placement group rotating through the MICU with one preceptor. Competency evidence logged shift-by-shift.</div>
+            <div class="gfoot">
+              <div class="roster">
+                <span class="av" style="background:var(--c-health);">TJ</span>
+                <span class="av" style="background:var(--c-edu);">BW</span>
+                <span class="av" style="background:var(--c-live);">AS</span>
+                <span class="more">+5 · 1 preceptor</span>
+              </div>
+              <a class="btn btn-ghost btn-sm" href="#">Placed by program</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- OPEN study cohorts (members pay, peer) -->
+        <div class="grp-band"><span class="gd" style="background:var(--teal);"></span><span class="gl">Open study cohorts</span><span class="gc">anyone can join · peer-paced</span><span class="rule"></span></div>
+        <div class="row2">
+          <div class="gcard">
+            <div class="ghead">
+              <div class="gmark" style="background:var(--teal);">NX</div>
+              <div>
+                <div class="gtitle">NCLEX in 90 Days</div>
+                <div class="gkind"><i class="ti ti-calendar-stats"></i> Study cohort · Jun start · open</div>
+              </div>
+            </div>
+            <div class="axes">
+              <span class="axis seasonal"><i class="ti ti-timeline-event"></i> Seasonal · 90-day</span>
+              <span class="axis"><i class="ti ti-cash"></i> Members subscribe</span>
+              <span class="axis peer"><i class="ti ti-hierarchy-2"></i> Peer-paced</span>
+            </div>
+            <div class="gdesc">A self-organizing study cohort pacing through an NCLEX prep blueprint together. Daily check-ins, shared question bank.</div>
+            <div class="gfoot">
+              <div class="roster">
+                <span class="av" style="background:var(--teal);">LH</span>
+                <span class="av" style="background:var(--c-arts);">GP</span>
+                <span class="av" style="background:var(--c-sport);">MR</span>
+                <span class="more">+22 learners</span>
+              </div>
+              <a class="btn btn-teal btn-sm" href="#">Join cohort</a>
+            </div>
+          </div>
+
+          <!-- create-your-own -->
+          <div class="gcard create">
+            <div class="ci"><i class="ti ti-users-plus"></i></div>
+            <div class="gtitle" style="font-size:15px;">Studying for the same exam?</div>
+            <div class="gdesc">Start an open cohort around any nursing blueprint. Pace it together, hold each other accountable, share evidence.</div>
+            <a class="btn btn-ghost btn-sm" href="#" style="margin-top:2px;align-self:flex-start;">Create a cohort</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot"><span class="brand">BetterAt</span><span>Groups for <b>interest = nursing</b> · placed cohorts + open study cohorts, same tier as fleets</span></div>
+  </div>
+</div>
+
+<div class="callouts">
+  <div class="callout"><p class="k"><i class="ti ti-arrows-shuffle"></i> Same card, different dials</p><p>A fleet and a cohort are the <b>identical card</b>. Only the axis chips move: nursing leans <b>program-owns-seats + faculty-led</b>; sailing leans <b>members-pay + peer-run</b>.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-lock-open"></i> Placed vs. open</p><p>Program-owned cohorts show <b>Placed by program</b> (no self-join). Open study cohorts — peer + members-subscribe — show a real <b>Join</b>. The CTA is computed from the axes.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-vocabulary"></i> Persona vocab on top</p><p>The tier label stays "Groups" but band copy speaks native: <b>fleets/squads</b> for sailors, <b>cohorts/clinical groups</b> for nurses. Same structure, the craft's words.</p></div>
+</div>
+
+<!-- =================== ANATOMY =================== -->
+<div class="section-label"><span class="num">C</span><span class="txt">Anatomy of the group card</span><span class="rule"></span></div>
+<div class="frame-wrap">
+  <div class="browser" style="padding:34px 40px;">
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:40px;align-items:center;">
+      <div class="gcard">
+        <div class="ghead">
+          <div class="gmark" style="background:#1F5C8A;">J70</div>
+          <div>
+            <div class="gtitle">RHKYC J/70 Fleet</div>
+            <div class="gkind"><i class="ti ti-sailboat"></i> Fleet · J/70 one-design · Hong Kong</div>
+          </div>
+          <span class="gjoined"><i class="ti ti-check"></i> Joined</span>
+        </div>
+        <div class="axes">
+          <span class="axis standing"><i class="ti ti-timeline-event"></i> Standing</span>
+          <span class="axis"><i class="ti ti-cash"></i> Members pay dues</span>
+          <span class="axis peer"><i class="ti ti-hierarchy-2"></i> Peer-run</span>
+        </div>
+        <div class="gdesc">Hong Kong's most active one-design keelboat fleet. Wednesday-night series plus weekend championships.</div>
+        <div class="gfoot">
+          <div class="roster">
+            <span class="av" style="background:#1F5C8A;">KD</span>
+            <span class="av" style="background:var(--c-sport);">TW</span>
+            <span class="av" style="background:var(--c-agri);">LM</span>
+            <span class="more">+14 sailors</span>
+          </div>
+          <span style="font-size:13px;color:#0F766E;font-weight:600;"><i class="ti ti-sailboat"></i> Crew</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;gap:12px;align-items:flex-start;"><span style="font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:700;min-width:74px;">SQUARE MARK</span><p style="margin:0;font-size:13.5px;color:var(--ink-2);">Deterministic color from group id (<code style="font-family:var(--mono);font-size:12px;">pickSquareMarkColor</code>) + initials — the same mark the app's Library renders, so a fleet looks identical across web and mobile.</p></div>
+        <div style="display:flex;gap:12px;align-items:flex-start;"><span style="font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:700;min-width:74px;">KIND LINE</span><p style="margin:0;font-size:13.5px;color:var(--ink-2);">Persona-native noun (fleet / squad / cohort / clinical group) + class/program + place. Never the generic word "group".</p></div>
+        <div style="display:flex;gap:12px;align-items:flex-start;"><span style="font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:700;min-width:74px;">AXIS CHIPS</span><p style="margin:0;font-size:13.5px;color:var(--ink-2);">The three dials made visible — lifespan, who-pays, authority. These are <b>data</b>, not layout. They also compute the footer CTA.</p></div>
+        <div style="display:flex;gap:12px;align-items:flex-start;"><span style="font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:700;min-width:74px;">ROSTER</span><p style="margin:0;font-size:13.5px;color:var(--ink-2);">Overlapped avatars preview real members + count, echoing the Library "real cards, never bare rows" rule.</p></div>
+        <div style="display:flex;gap:12px;align-items:flex-start;"><span style="font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:700;min-width:74px;">FOOTER</span><p style="margin:0;font-size:13.5px;color:var(--ink-2);">If you're in it → role descriptor (Crew / Student / Coach). If not → a CTA computed from the axes: <b>Join</b> (peer + members-pay), <b>Request to join</b> (coach-led), or <b>Placed by program</b> (payer owns seats).</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="callouts" style="margin-bottom:64px;">
+  <div class="callout"><p class="k"><i class="ti ti-database"></i> Data reality</p><p>Fleets are first-class (<code>fleetService</code>); cohorts live under orgs (<code>SampleCohort</code>). <code>useUserFleets</code> is global, not interest-scoped — a web Groups tier needs interest-scoping or sample data to populate before launch.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-stack-2"></i> One component</p><p>One <code>GroupCard</code> renders both, parameterized on the three axes — mirrors mockup 24's "one blueprint card, one data source" win.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-arrow-guide"></i> Next step</p><p>If this reads right, the implementation is a 5th tier in <code>InterestBrowserPage.tsx</code> between Organizations and People, plus a <code>GroupCard</code> and an interest-scoped groups query.</p></div>
+</div>
+
+</body>
+</html>

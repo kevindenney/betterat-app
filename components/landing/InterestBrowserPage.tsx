@@ -81,7 +81,9 @@ function BlueprintMarketCard({ plan, wide }: { plan: MarketplaceBlueprint; wide:
           <Text style={styles.bpAuthorName} numberOfLines={1}>{plan.authorName}</Text>
         </View>
         {plan.description ? (
-          <Text style={styles.bpDesc} numberOfLines={3}>{plan.description}</Text>
+          <View style={styles.bpDescClip}>
+            <Text style={styles.bpDesc} numberOfLines={3}>{plan.description}</Text>
+          </View>
         ) : null}
         <View style={styles.bpMeta}>
           <View style={styles.bpMetaItem}>
@@ -864,6 +866,12 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: '#6B7079',
     lineHeight: 20,
+  },
+  // RNW's numberOfLines on Text ellipsizes line 3 but still paints line 4
+  // (overflow stays `visible`), which overlaps the meta row. A wrapping View
+  // honors overflow:hidden, so cap it to 3 line-heights (3 × 20).
+  bpDescClip: {
+    ...Platform.select({ web: { maxHeight: 60, overflow: 'hidden' } as any }),
   },
   bpMeta: {
     flexDirection: 'row',
