@@ -28,6 +28,12 @@ interface DiscoverNearbyContentProps {
   homeVenueLabel: string | null;
   toolbarOffset?: number;
   /**
+   * Scopes the nearby peer-step list to a single interest. Without it the
+   * sheet returns all-interest activity, which leaks sailing people into
+   * the nursing frame (and vice versa). Null = all interests (Discover tab).
+   */
+  interestSlug?: string | null;
+  /**
    * When provided (Atlas embeds this list over a live map), tapping a
    * nearby sailor flies the map to their step's coordinates instead of
    * navigating into the step editor. Absent on the Discover tab, where
@@ -41,6 +47,7 @@ export function DiscoverNearbyContent({
   homeVenueLng,
   homeVenueLabel,
   toolbarOffset = 0,
+  interestSlug = null,
   onStepFocus,
 }: DiscoverNearbyContentProps) {
   const { vocab } = useVocabulary();
@@ -58,6 +65,7 @@ export function DiscoverNearbyContent({
     lat: homeVenueLat,
     lng: homeVenueLng,
     radiusKm: 25,
+    interestSlug,
     enabled: hasVenue,
   });
   // One row per sailor: a person working several steps nearby returned a

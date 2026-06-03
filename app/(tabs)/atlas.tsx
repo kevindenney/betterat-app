@@ -116,6 +116,21 @@ function isSailingInterestSlug(slug: string | null): boolean {
   return s === 'sailing' || s === 'sail-racing' || s === 'sail';
 }
 
+// Per-interest home geography for the Nearby sheet. The sailing home venue
+// lives in sailor_profiles and is meaningless (often wrong-continent) for a
+// non-sailing interest, so each curated interest gets its own anchor. Nursing
+// is centered on Baltimore (the JHSON clinical-site cluster). Interests
+// without a curated anchor return null and fall through to the sailing home
+// venue only when they are themselves sailing.
+function nearbyAnchorForInterest(
+  slug: string | null,
+): { lat: number; lng: number; label: string } | null {
+  if (slug === 'nursing') {
+    return { lat: 39.297, lng: -76.591, label: 'Baltimore' };
+  }
+  return null;
+}
+
 function atlasInterestSlugForFrame(
   frame: AtlasFrameId,
   currentInterestSlug: string | null,
@@ -882,11 +897,18 @@ export default function AtlasTab() {
   );
 
   // Nearby list anchors on whatever the map is centered on (an explicit
-  // lat/lng focus or an org context), falling back to the user's home
-  // venue. DiscoverNearbyContent owns the no-venue empty state.
-  const nearbyLat = initialFocus?.lat ?? homeVenue?.lat ?? null;
-  const nearbyLng = initialFocus?.lng ?? homeVenue?.lng ?? null;
-  const nearbyLabel = orgContext?.name ?? homeVenue?.venue ?? null;
+  // lat/lng focus or an org context). Failing that it falls back to a
+  // per-interest home geography — Baltimore for nursing — and only reads the
+  // sailing home venue when the active interest is actually sailing. Reading
+  // the sailing home venue inside a non-sailing frame is what put a Hong Kong
+  // map + yacht clubs inside the nursing Atlas. DiscoverNearbyContent owns
+  // the no-venue empty state.
+  const interestAnchor = nearbyAnchorForInterest(atlasInterestSlug);
+  const sailingHome = isSailingInterestSlug(atlasInterestSlug) ? homeVenue : null;
+  const nearbyLat = initialFocus?.lat ?? interestAnchor?.lat ?? sailingHome?.lat ?? null;
+  const nearbyLng = initialFocus?.lng ?? interestAnchor?.lng ?? sailingHome?.lng ?? null;
+  const nearbyLabel =
+    orgContext?.name ?? interestAnchor?.label ?? sailingHome?.venue ?? null;
 
   return (
     <SafeAreaView style={styles.page} edges={[]}>
@@ -948,6 +970,7 @@ export default function AtlasTab() {
               homeVenueLat={nearbyLat}
               homeVenueLng={nearbyLng}
               homeVenueLabel={nearbyLabel}
+              interestSlug={atlasInterestSlug}
               toolbarOffset={insets.top + 44}
               onStepFocus={(lat, lng) => {
                 // Fly the map to the tapped sailor's step, then drop back

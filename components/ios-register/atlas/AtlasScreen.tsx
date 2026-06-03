@@ -91,7 +91,6 @@ import { useWindOverlay } from '@/hooks/useWindOverlay';
 import { useTideOverlay } from '@/hooks/useTideOverlay';
 import { useWaveOverlay } from '@/hooks/useWaveOverlay';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
-import { useWalkTimeAnnotations } from '@/hooks/useWalkTimeAnnotations';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
 import { useCompetencyGlow } from '@/hooks/useCompetencyGlow';
 import {
@@ -3708,9 +3707,9 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       (hasUserStep ? 'From: your timeline' : 'From: demo cohort schedule');
     return { ...base, has_user_step: hasUserStep, source_label: sourceLabel };
   }, [handlers.nextEvent, framePins]);
-  // Walk-time annotations between same-campus institution pins —
-  // e.g. JHH East Baltimore ↔ Pinkard sim lab "8 min".
-  const walkAnnotations = useWalkTimeAnnotations(framePins);
+  // No walk-time annotations in the nursing frame: hospital-to-hospital
+  // walking minutes are the sailor's distance/layline grammar misapplied —
+  // no nurse optimizes a JHH↔Pinkard walk. (Kept for sailing if desired.)
   // Chip state — cohort hexes, faculty diamonds, followed individuals.
   // "All" toggles everything on. Defaults are heatmap + faculty on.
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -3792,8 +3791,8 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     });
   }, [framePinsWithGlow, showFaculty, showFollowing]);
   const pins = useMemo(
-    () => [...heatmapCells, ...filteredFramePins, ...walkAnnotations],
-    [heatmapCells, filteredFramePins, walkAnnotations],
+    () => [...heatmapCells, ...filteredFramePins],
+    [heatmapCells, filteredFramePins],
   );
   return (
     <View style={shellStyles.frame}>

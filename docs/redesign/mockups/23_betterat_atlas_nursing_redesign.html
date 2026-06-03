@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Atlas redesign for JHU nursing students</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --grouped:#EFEFF4;
+  --card:#FFFFFF;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.60);
+  --label3:rgba(60,60,67,0.30);
+  --sep:rgba(60,60,67,0.12);
+  --blue:#007AFF;
+  --teal:#0E7490;
+  /* competency clusters */
+  --cardiac:#E5484D;
+  --resp:#0E7490;
+  --med:#7C3AED;
+  --general:#16A34A;
+  --assess:#D97706;
+  --done-bg:rgba(22,163,74,.10);
+  --now-bg:rgba(0,122,255,.10);
+  --soon-bg:rgba(217,119,6,.12);
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#CBD2D9;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1320px;margin:0 auto 4px;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1320px;margin:0 auto 26px;font-size:13px;color:#3D4654;line-height:1.6;}
+.page-sub b{color:#161b22;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1320px;margin:0 auto;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+.col-cap .tag.fix{background:#B42318;}
+.col-cap .tag.new{background:#1B7A3D;}
+
+/* phone shell — light, structured (the reframe: lead with a list, not a map) */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.28);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:var(--label);z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--label2);}
+
+/* nav header */
+.nav{position:absolute;top:42px;left:0;right:0;z-index:40;padding:6px 20px 10px;background:var(--grouped);}
+.nav .top{display:flex;align-items:center;justify-content:space-between;}
+.nav h1{font-size:28px;font-weight:800;letter-spacing:-.5px;margin:2px 0 0;}
+.nav .sub{font-size:12.5px;color:var(--label2);margin-top:2px;}
+.nav .acts{display:flex;gap:8px;}
+.nav .ic{width:34px;height:34px;border-radius:50%;background:rgba(118,118,128,.12);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--blue);}
+.seg{display:flex;background:rgba(118,118,128,.12);border-radius:9px;padding:2px;margin-top:12px;}
+.seg div{flex:1;text-align:center;font-size:13px;font-weight:600;color:var(--label2);padding:6px 0;border-radius:7px;}
+.seg div.on{background:#fff;color:var(--label);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+.chips{display:flex;gap:7px;margin-top:11px;overflow:hidden;}
+.chips span{font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:8px;background:rgba(118,118,128,.12);color:var(--label2);white-space:nowrap;}
+.chips span.on{background:var(--teal);color:#fff;}
+
+/* scroll body */
+.body{position:absolute;left:0;right:0;top:172px;bottom:64px;overflow:hidden;padding:4px 16px 12px;}
+.body.tall{top:150px;}
+
+/* NEXT rotation hero */
+.hero{background:#fff;border-radius:18px;padding:15px 16px 14px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:0.5px solid var(--sep);margin-top:8px;position:relative;overflow:hidden;}
+.hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue);}
+.hero .k{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--blue);}
+.hero h2{margin:5px 0 0;font-size:19px;font-weight:700;letter-spacing:-.3px;}
+.hero .where{font-size:13px;color:var(--label2);margin-top:2px;}
+.hero .meta{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;}
+.hero .meta .m{font-size:11px;font-weight:600;color:var(--label2);background:var(--grouped);border-radius:7px;padding:5px 9px;display:flex;align-items:center;gap:5px;}
+.hero .cta{display:flex;gap:9px;margin-top:13px;}
+.hero .cta button{flex:1;border:none;font-family:var(--sans);font-size:13.5px;font-weight:700;padding:11px 0;border-radius:11px;}
+.hero .cta .pri{background:var(--blue);color:#fff;}
+.hero .cta .sec{background:rgba(0,122,255,.10);color:var(--blue);}
+
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--label3);margin:20px 4px 8px;}
+
+/* site card */
+.site{background:#fff;border-radius:16px;padding:13px 15px;box-shadow:0 1px 3px rgba(0,0,0,.05);border:0.5px solid var(--sep);margin-bottom:10px;}
+.site .hd{display:flex;align-items:center;gap:11px;}
+.site .badge{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;}
+.badge.now{background:var(--now-bg);}
+.badge.soon{background:var(--soon-bg);}
+.badge.done{background:var(--done-bg);}
+.site .hd .b{flex:1;min-width:0;}
+.site .hd h3{margin:0;font-size:15.5px;font-weight:700;}
+.site .hd .unit{font-size:12px;color:var(--label2);margin-top:1px;}
+.site .stat{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:6px;flex:none;}
+.stat.now{background:var(--now-bg);color:var(--blue);}
+.stat.soon{background:var(--soon-bg);color:#B45309;}
+.stat.done{background:var(--done-bg);color:#15803D;}
+/* coverage bar */
+.cov{margin-top:12px;}
+.cov .lab{display:flex;justify-content:space-between;font-size:11px;color:var(--label2);margin-bottom:5px;}
+.cov .lab b{color:var(--label);font-weight:700;}
+.cov .track{height:8px;border-radius:5px;background:rgba(118,118,128,.16);overflow:hidden;display:flex;}
+.cov .track i{height:100%;}
+.cov .track .cardiac{background:var(--cardiac);}
+.cov .track .resp{background:var(--resp);}
+.cov .track .med{background:var(--med);}
+.cov .track .general{background:var(--general);}
+.cov .track .assess{background:var(--assess);}
+.site .foot{display:flex;align-items:center;gap:7px;margin-top:11px;font-size:11.5px;color:var(--label2);}
+.site .foot .av{display:flex;}
+.site .foot .av i{width:18px;height:18px;border-radius:50%;border:1.5px solid #fff;margin-left:-6px;font-size:8px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;}
+.site .foot .av i:first-child{margin-left:0;}
+.site .foot b{color:var(--label);font-weight:700;}
+
+/* ===== FRAME B — site detail ===== */
+.detail-h{background:#fff;border-radius:0 0 18px 18px;}
+.dt-back{position:absolute;top:48px;left:14px;z-index:50;font-size:15px;color:var(--blue);font-weight:600;display:flex;align-items:center;gap:3px;}
+.dt-hero{padding:78px 20px 16px;background:#fff;border-bottom:0.5px solid var(--sep);}
+.dt-hero .stat{display:inline-block;margin-bottom:8px;}
+.dt-hero h2{margin:0;font-size:23px;font-weight:800;letter-spacing:-.4px;}
+.dt-hero .sub{font-size:13px;color:var(--label2);margin-top:3px;}
+.comp{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:0.5px solid var(--sep);}
+.comp .dot{width:10px;height:10px;border-radius:3px;flex:none;}
+.comp .nm{flex:1;font-size:13.5px;font-weight:600;}
+.comp .nm.gap{color:var(--label3);font-weight:500;}
+.comp .ct{font-size:12px;font-weight:700;color:var(--label2);font-variant-numeric:tabular-nums;}
+.comp .ck{color:var(--general);font-size:14px;}
+.comp .gaptag{font-size:10px;font-weight:700;color:var(--label3);}
+.aggcard{background:#fff;border-radius:14px;border:0.5px solid var(--sep);padding:14px 15px;margin-top:14px;}
+.aggcard .k{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--label3);}
+.aggcard h4{margin:6px 0 0;font-size:15px;font-weight:700;line-height:1.35;}
+.aggcard .hexrow{display:flex;gap:4px;margin-top:11px;flex-wrap:wrap;}
+.hex{width:26px;height:30px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;}
+.aggcard .privacy{font-size:10.5px;color:var(--label3);margin-top:10px;display:flex;align-items:center;gap:5px;}
+.preceptor{display:flex;align-items:center;gap:11px;padding:11px 4px;border-bottom:0.5px solid var(--sep);}
+.preceptor .dia{width:30px;height:30px;background:var(--med);transform:rotate(45deg);border-radius:6px;flex:none;}
+.preceptor .b h5{margin:0;font-size:14px;font-weight:600;}
+.preceptor .b p{margin:1px 0 0;font-size:11.5px;color:var(--label2);}
+.logbtn{position:absolute;left:16px;right:16px;bottom:78px;z-index:50;background:var(--blue);color:#fff;border:none;font-family:var(--sans);font-size:15px;font-weight:700;padding:15px 0;border-radius:14px;box-shadow:0 8px 22px rgba(0,122,255,.32);display:flex;align-items:center;justify-content:center;gap:8px;}
+
+/* ===== FRAME C — competency constellation ===== */
+.ring-wrap{display:flex;align-items:center;gap:16px;background:#fff;border-radius:16px;border:0.5px solid var(--sep);padding:16px;margin-top:8px;}
+.ring{width:84px;height:84px;border-radius:50%;flex:none;background:conic-gradient(var(--general) 0 66%, rgba(118,118,128,.16) 66% 100%);display:flex;align-items:center;justify-content:center;}
+.ring .inner{width:62px;height:62px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring .inner b{font-size:20px;font-weight:800;}
+.ring .inner span{font-size:9px;color:var(--label2);font-weight:600;}
+.ring-wrap .t h3{margin:0;font-size:16px;font-weight:700;}
+.ring-wrap .t p{margin:5px 0 0;font-size:12.5px;color:var(--label2);line-height:1.45;}
+.evrow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:0.5px solid var(--sep);}
+.evrow .pin{width:34px;height:34px;border-radius:10px;background:var(--done-bg);color:var(--general);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+.evrow .b{flex:1;}
+.evrow .b h5{margin:0;font-size:14px;font-weight:600;}
+.evrow .b p{margin:1px 0 0;font-size:11.5px;color:var(--label2);}
+.evrow .ct{font-size:12px;font-weight:800;color:var(--general);}
+.gapcard{background:#FFF7ED;border:0.5px solid rgba(217,119,6,.28);border-radius:14px;padding:14px 15px;margin-top:16px;}
+.gapcard .k{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#B45309;display:flex;align-items:center;gap:5px;}
+.gapcard h4{margin:7px 0 0;font-size:14.5px;font-weight:700;color:#7C2D12;line-height:1.4;}
+.gapcard p{margin:6px 0 0;font-size:12px;color:#9A3412;line-height:1.5;}
+
+/* ===== FRAME D — Nearby fixed ===== */
+.sheet-h{padding:8px 18px 10px;border-bottom:0.5px solid var(--sep);background:#fff;}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--label3);margin:0 auto 10px;}
+.sheet-h .row{display:flex;align-items:center;justify-content:space-between;}
+.sheet-h h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.3px;}
+.sheet-h .sub{font-size:12px;color:var(--label2);margin-top:2px;}
+.sheet-h .close{width:30px;height:30px;border-radius:50%;background:rgba(118,118,128,.12);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--label2);}
+.sectlab{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--label3);padding:14px 18px 4px;background:var(--grouped);}
+.nrow{display:flex;align-items:center;gap:12px;padding:11px 18px;background:#fff;}
+.nrow .av{width:42px;height:42px;border-radius:11px;color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;}
+.nrow .av.org{border-radius:11px;background:var(--teal);}
+.nrow .av.person{border-radius:50%;}
+.nrow .b{flex:1;min-width:0;}
+.nrow .b h5{margin:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p{margin:2px 0 0;font-size:12px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p .verb{font-weight:700;color:var(--teal);}
+.nrow .dist{font-size:11px;font-weight:700;color:var(--label2);text-align:right;flex:none;}
+.nrow .dist small{display:block;font-weight:500;color:var(--label3);font-size:10px;margin-top:2px;}
+.nrow .pin{width:32px;height:32px;border-radius:9px;background:rgba(0,122,255,.10);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;}
+.nsep{height:0.5px;background:var(--sep);margin:0 18px 0 72px;background-clip:content-box;}
+
+/* tab bar */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(248,248,250,.94);border-top:0.5px solid var(--sep);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;backdrop-filter:blur(20px);z-index:55;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--label3);}
+.tab.on{color:var(--blue);}
+.tab .ic{font-size:19px;}
+
+.legend{max-width:1320px;margin:36px auto 0;background:#fff;border-radius:14px;padding:20px 24px;font-size:13px;line-height:1.65;color:#2a2f3a;}
+.legend h2{font-size:15px;margin:0 0 12px;}
+.legend h3{font-size:13px;margin:18px 0 6px;color:#111;}
+.legend ul{margin:4px 0 0;padding-left:20px;}
+.legend li{margin:5px 0;}
+.legend b{color:#111;}
+.legend code{background:#F2F2F7;padding:1px 5px;border-radius:4px;font-size:12px;}
+.legend .pill{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-right:5px;}
+.legend .pill.fix{background:#FEE4E2;color:#B42318;}
+.legend .pill.new{background:#D1FADF;color:#1B7A3D;}
+.legend .pill.keep{background:#E0EAFF;color:#2547B5;}
+</style>
+</head>
+<body>
+<div class="page-h">Atlas, re-charted for nursing students</div>
+<div class="page-sub">
+  A sailor reads a map as a <b>cockpit</b> — the geography <i>is</i> the strategy. A nursing student's "where" isn't continuous water; it's a
+  handful of <b>named clinical sites</b>, and the resolution that matters (which unit) is exactly the one HIPAA forbids putting on a map.
+  So the nursing Atlas inverts the sailing one: it <b>leads with a structured Sites surface</b> — rotation journey, competency coverage by
+  site, who from your cohort is there — and demotes the street map to a secondary toggle. Same "where" lens; the medium that fits the craft is a
+  <b>coverage grid, not a chart</b>. (Sailing frames F1–F3 are untouched.)
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME A — Sites-first home ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">Nursing · Baltimore ▾</span></div>
+      <div class="nav">
+        <div class="top">
+          <div><h1>Atlas</h1><div class="sub">Your clinical sites &amp; coverage</div></div>
+          <div class="acts"><div class="ic">🔍</div><div class="ic">+</div></div>
+        </div>
+        <div class="seg"><div class="on">Sites</div><div>Map</div></div>
+        <div class="chips"><span class="on">You</span><span>Cohort</span><span>Program</span><span>Faculty</span></div>
+      </div>
+      <div class="body">
+        <div class="hero">
+          <div class="k">▸ Next rotation</div>
+          <h2>MICU · Bayview</h2>
+          <div class="where">Johns Hopkins Bayview Medical Center · starts Mon 7am</div>
+          <div class="meta">
+            <span class="m">👥 4 cohort-mates rotate here</span>
+            <span class="m">🎯 builds 5 competencies</span>
+          </div>
+          <div class="cta">
+            <button class="pri">Plan a step</button>
+            <button class="sec">What to prep</button>
+          </div>
+        </div>
+
+        <div class="eyebrow">This block</div>
+        <div class="site">
+          <div class="hd">
+            <div class="badge now">🫀</div>
+            <div class="b"><h3>Johns Hopkins Hospital</h3><div class="unit">4 South · Cardiac telemetry</div></div>
+            <div class="stat now">Now</div>
+          </div>
+          <div class="cov">
+            <div class="lab"><span><b>7</b> of 12 competencies evidenced</span><span>week 3 of 4</span></div>
+            <div class="track">
+              <i class="cardiac" style="width:24%"></i><i class="assess" style="width:16%"></i>
+              <i class="med" style="width:14%"></i><i class="general" style="width:5%"></i>
+            </div>
+          </div>
+          <div class="foot">
+            <span class="av"><i style="background:#3F6FA8">LN</i><i style="background:#9A5B9E">MR</i><i style="background:#2B7A4B">AK</i></span>
+            <span><b>5 cohort-mates</b> here this block</span>
+          </div>
+        </div>
+
+        <div class="eyebrow">Coming up</div>
+        <div class="site">
+          <div class="hd">
+            <div class="badge soon">🫁</div>
+            <div class="b"><h3>JH Bayview</h3><div class="unit">MICU · Critical care</div></div>
+            <div class="stat soon">Mon</div>
+          </div>
+          <div class="foot"><span>Week 5–8 · 4 cohort-mates · builds vent &amp; central-line care</span></div>
+        </div>
+
+        <div class="eyebrow">Completed</div>
+        <div class="site">
+          <div class="hd">
+            <div class="badge done">✓</div>
+            <div class="b"><h3>Sibley Memorial</h3><div class="unit">Med-Surg · 3 East</div></div>
+            <div class="stat done">9 / 10</div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>Practice</div>
+        <div class="tab"><span class="ic">▤</span>Library</div>
+        <div class="tab"><span class="ic">◉</span>Watch</div>
+        <div class="tab on"><span class="ic">🧭</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">A</span><b>Sites-first home — the reframe.</b>
+      Opens on a structured rotation surface, not a Baltimore street map. Next rotation is the hero; each site shows a
+      <b>competency-coverage bar</b> (colored by skill cluster) and <b>who from your cohort is there</b>. Map is a
+      secondary segment toggle, used mainly for cold first-run discovery.</div>
+  </div>
+
+  <!-- ============ FRAME B — Site detail ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r"></span></div>
+      <div class="dt-back">‹ Atlas</div>
+      <div class="dt-hero">
+        <span class="stat now">Now · week 3 of 4</span>
+        <h2>JHH · 4 South</h2>
+        <div class="sub">Cardiac telemetry · Johns Hopkins Hospital</div>
+      </div>
+      <div class="body tall" style="top:188px;">
+        <div class="eyebrow" style="margin-top:6px;">Competencies evidenced here</div>
+        <div class="comp"><span class="dot" style="background:var(--cardiac)"></span><span class="nm">Cardiac assessment</span><span class="ck">✓</span><span class="ct">×4</span></div>
+        <div class="comp"><span class="dot" style="background:var(--med)"></span><span class="nm">Central-line care</span><span class="ck">✓</span><span class="ct">×2</span></div>
+        <div class="comp"><span class="dot" style="background:var(--assess)"></span><span class="nm">Telemetry interpretation</span><span class="ck">✓</span><span class="ct">×5</span></div>
+        <div class="comp"><span class="dot" style="background:var(--general)"></span><span class="nm">Medication administration</span><span class="ck">✓</span><span class="ct">×6</span></div>
+        <div class="comp"><span class="dot" style="background:rgba(118,118,128,.22)"></span><span class="nm gap">Chest-tube management</span><span class="gaptag">not yet</span></div>
+
+        <div class="aggcard">
+          <div class="k">Cohort · this week</div>
+          <h4>21 of 30 practiced central-line care on this unit</h4>
+          <div class="hexrow">
+            <div class="hex" style="background:var(--med)">8</div>
+            <div class="hex" style="background:var(--cardiac)">6</div>
+            <div class="hex" style="background:var(--assess)">4</div>
+            <div class="hex" style="background:var(--general)">3</div>
+          </div>
+          <div class="privacy">🔒 Site-level aggregate · no patient or room detail, ever</div>
+        </div>
+
+        <div class="eyebrow">Preceptors here</div>
+        <div class="preceptor"><div class="dia"></div><div class="b"><h5>Dr. Singh</h5><p>Respiratory · precepts Tue–Thu</p></div></div>
+      </div>
+      <button class="logbtn">＋ Log a shift here</button>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>Practice</div>
+        <div class="tab"><span class="ic">▤</span>Library</div>
+        <div class="tab"><span class="ic">◉</span>Watch</div>
+        <div class="tab on"><span class="ic">🧭</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">B</span><b>Site detail — coverage, cohort, log.</b>
+      Tap a site: the competencies you've <b>evidenced here</b> (with gaps faded), the cohort's aggregate activity
+      (site-level only — the privacy floor is structural, not a checkbox), and the preceptors. The real
+      <b>Log a shift here</b> CTA replaces today's "Coming soon" stub.</div>
+  </div>
+
+  <!-- ============ FRAME C — Competency constellation ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r"></span></div>
+      <div class="dt-back">‹ Coverage</div>
+      <div class="dt-hero">
+        <span class="stat" style="background:var(--done-bg);color:#15803D;">On track</span>
+        <h2>Central-line care</h2>
+        <div class="sub">Required · JHSON MSN framework</div>
+      </div>
+      <div class="body tall" style="top:188px;">
+        <div class="ring-wrap" style="margin-top:6px;">
+          <div class="ring"><div class="inner"><b>8/12</b><span>required</span></div></div>
+          <div class="t"><h3>You're 66% covered</h3><p>3 of your remaining 4 required competencies have a site on your schedule. One doesn't — see below.</p></div>
+        </div>
+
+        <div class="eyebrow">Where you've evidenced this</div>
+        <div class="evrow"><div class="pin">🫀</div><div class="b"><h5>JHH · 4 South</h5><p>Cardiac telemetry · this block</p></div><div class="ct">×2</div></div>
+        <div class="evrow"><div class="pin" style="background:var(--done-bg);color:var(--general)">🩺</div><div class="b"><h5>Sibley · Med-Surg</h5><p>3 East · completed week 2</p></div><div class="ct">×1</div></div>
+
+        <div class="gapcard">
+          <div class="k">⚠ Gap before graduation</div>
+          <h4>Pediatric assessment &amp; OR scrub aren't evidenced yet.</h4>
+          <p>Both are available at <b>Howard County General</b> — your week 9 rotation. Plan a step now so it's ready when you arrive.</p>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>Practice</div>
+        <div class="tab"><span class="ic">▤</span>Library</div>
+        <div class="tab"><span class="ic">◉</span>Watch</div>
+        <div class="tab on"><span class="ic">🧭</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">C</span><b>Competency constellation — the "where" payoff.</b>
+      Skills are <b>located</b> — you earned each one at a place. Tap a competency to see every site you've evidenced it,
+      your coverage against the JHSON framework, and a <b>gap view</b> that routes you to the upcoming rotation where the
+      missing skill is available. This is the dean-demo magic and the student's "am I ready?" view.</div>
+  </div>
+
+  <!-- ============ FRAME D — Nearby FIXED ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">Nursing · Baltimore ▾</span></div>
+      <div class="sheet-h" style="position:absolute;top:42px;left:0;right:0;z-index:40;">
+        <div class="grab"></div>
+        <div class="row">
+          <div><h3>Sites &amp; people nearby</h3><div class="sub">Baltimore · within 25 km</div></div>
+          <div class="close">✕</div>
+        </div>
+      </div>
+      <div class="body" style="top:152px;padding:0;">
+        <div class="sectlab">3 clinical sites nearby</div>
+        <div class="nrow"><div class="av org">JH</div><div class="b"><h5>Johns Hopkins Hospital</h5><p>1800 Orleans St · 0.3 km</p></div><div class="pin">⊙</div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av org">BV</div><div class="b"><h5>JH Bayview Medical Center</h5><p>4940 Eastern Ave · 4.1 km</p></div><div class="pin">⊙</div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av org">PK</div><div class="b"><h5>JHSON · Pinkard Sim Suite</h5><p>525 N Wolfe St · 0.5 km</p></div><div class="pin">⊙</div></div>
+
+        <div class="sectlab">6 cohort-mates working a step nearby</div>
+        <div class="nrow"><div class="av person" style="background:#3F6FA8">LN</div><div class="b"><h5>Lin Nguyen</h5><p><span class="verb">Logged a shift</span> · JHH 4 South · cohort</p></div><div class="dist">0.3 km<small>JHH</small></div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av person" style="background:#9A5B9E">MR</div><div class="b"><h5>Mara Reyes</h5><p><span class="verb">Practiced</span> heart-failure care · cohort</p></div><div class="dist">0.3 km<small>JHH</small></div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av person" style="background:#2B7A4B">AK</div><div class="b"><h5>Aisha Khan</h5><p><span class="verb">Planning</span> a med-pass step · cohort</p></div><div class="dist">4.1 km<small>Bayview</small></div></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>Practice</div>
+        <div class="tab"><span class="ic">▤</span>Library</div>
+        <div class="tab"><span class="ic">◉</span>Watch</div>
+        <div class="tab on"><span class="ic">🧭</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag fix">D · FIX</span><b>Nearby — anchored to nursing, not sailing.</b>
+      Today this sheet shows <i>Hong Kong yacht clubs</i> and <i>demo-markus@regattaflow.app · start line bias · fleet</i>
+      inside the nursing frame — it reads the sailing <b>home venue</b>. Fixed: anchor to the frame center (Baltimore) +
+      pass <code>interestSlug='nursing'</code> so people are cohort-mates with real names and clinical verbs, site-level.</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>Per-surface assessment &amp; what changed</h2>
+
+  <h3>What's broken today (from the screenshots)</h3>
+  <ul>
+    <li><span class="pill fix">FIX</span><b>Nearby leaks sailing into the nursing frame.</b> The sheet header reads <code>WITHIN 25KM · HONG KONG - VICTORIA HARBOR</code> and lists yacht clubs + <code>demo-markus@regattaflow.app · Victoria Harbour · start line bias · fleet</code>. Root cause: <code>DiscoverNearbyContent</code> anchors to the user's sailing <b>home venue</b> via <code>useUserHomeVenue</code> and isn't interest-scoped. Fix: anchor to the active frame center (Baltimore) and pass <code>interestSlug='nursing'</code> into <code>useAtlasPeerSteps</code>.</li>
+    <li><span class="pill fix">FIX</span><b>"Log shift · Coming soon" is a stub.</b> The core nursing loop is unbuilt (roadmap Phase A.3). Without it the coverage grid can never fill in. Ship the real site-level log-shift flow (reuse the healthcare write-lint + the already-fail-closed privacy gate).</li>
+    <li><span class="pill fix">FIX</span><b>Walk-time annotations are sailing-think.</b> "2 min / 3 min" connectors between JHH, Pinkard, Sibley borrow the sailor's distance/layline grammar. No nurse optimizes hospital-to-hospital walking — remove them from the nursing frame.</li>
+    <li><span class="pill fix">FIX</span><b>NEXT pill is a hardcoded fixture.</b> "JHH 4 South · cardiac" is static; wire it to the student's real upcoming rotation via a nursing <code>next_event</code> resolver.</li>
+    <li><span class="pill fix">FIX</span><b>Home geography is global.</b> The persona's home venue is Hong Kong (from sailing), so nursing opens on the wrong continent. Per-interest <code>home_geography_resolver</code>: sailing → HK, nursing → Baltimore.</li>
+  </ul>
+
+  <h3>The core move: chart → coverage</h3>
+  <ul>
+    <li><span class="pill new">NEW</span><b>Sites-first home</b> (Frame A) — structured rotation list as the default surface; map demoted to a segment toggle.</li>
+    <li><span class="pill new">NEW</span><b>Competency coverage by site</b> (Frames A/B) — every site shows what skills it's given you, colored by cluster.</li>
+    <li><span class="pill new">NEW</span><b>Competency constellation + gap view</b> (Frame C) — "where have I evidenced X / where am I short before graduation," routed to the upcoming rotation that closes the gap.</li>
+    <li><span class="pill new">NEW</span><b>Real Log-a-shift loop</b> (Frame B) — site-level, no patient text; the thing that earns coverage instead of seeding it.</li>
+    <li><span class="pill new">NEW</span><b>Cohort presence, date-based</b> — "5 cohort-mates here this block," never real-time / "currently here."</li>
+  </ul>
+
+  <h3>What's already right (keep)</h3>
+  <ul>
+    <li><span class="pill keep">KEEP</span><b>Cohort relationship primitive</b> + <code>You · Cohort · Program · Faculty · Following</code> chips. Fleet/Crew dropped for nursing.</li>
+    <li><span class="pill keep">KEEP</span><b>Site-level privacy floor, fail-closed gate, healthcare write-lint.</b> The structured surface makes this easier — a clinical step renders as "a step at this site," inherently site-level.</li>
+    <li><span class="pill keep">KEEP</span><b>Cohort heatmap aggregate</b> (no individual patient sites) — reused as the in-detail "cohort this week" card.</li>
+    <li><span class="pill keep">KEEP</span><b>Atlas as the universal "where" lens</b> — the medium just changes per craft: a chart for sailors, a coverage grid for nurses.</li>
+  </ul>
+
+  <h3>Build order (isolated from sailing F1–F3)</h3>
+  <ul>
+    <li><b>N0 — Coherence fixes:</b> interest-scope Nearby, per-interest home geography, strip walk-times, real next-rotation resolver. Low risk, biggest "this isn't sailing" win.</li>
+    <li><b>N1 — Sites-first view</b> (Frame A) · <b>N2 — Real Log Shift</b> (Frame B) · <b>N3 — Constellation + gaps</b> (Frame C) · <b>N4 — Curated JHU partner layer.</b></li>
+    <li><b>Data caveat:</b> N1/N3 need a rotation/assignment concept + competency-by-site coverage (<code>competency_attempts</code> ⋈ <code>step_location</code> → site POI). Verify what's seeded for the demo persona before committing.</li>
+  </ul>
+</div>
+
+</body>
+</html>
