@@ -930,6 +930,16 @@ export default function AtlasTab() {
     [router],
   );
 
+  // Race-pin primary action — the on-water course/marks/conditions cockpit.
+  // Same target the Plan tab's race selector opens (PlanStepRaceSelector →
+  // /race/ios/water/[stepId]).
+  const handleOpenRaceCourse = useCallback(
+    (stepId: string) => {
+      router.push(`/race/ios/water/${stepId}` as any);
+    },
+    [router],
+  );
+
   // Nearby list anchors on whatever the map is centered on (an explicit
   // lat/lng focus or an org context). Failing that it falls back to a
   // per-interest home geography — Baltimore for nursing — and only reads the
@@ -958,6 +968,7 @@ export default function AtlasTab() {
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
           onStepPress={handleStepPress}
+          onOpenRaceCourse={handleOpenRaceCourse}
           onAvatarPress={handleAvatarPress}
           onOrgPress={handleOpenOrg}
           onOrgLensPress={handleOpenOrgLens}

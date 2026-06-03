@@ -507,6 +507,7 @@ export function useAtlasFramePins({
         stepId: step.step_id,
         isRace: isRaceStep({ category: step.category, title: step.title, is_race: step.is_race }),
         stepKind: stepKindFor({ category: step.category, title: step.title, isRace: step.is_race }),
+        raceContext: step.raceContext,
       });
     }
 

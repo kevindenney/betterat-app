@@ -476,6 +476,13 @@ export interface AtlasPinSpec {
    */
   isRace?: boolean;
   /**
+   * Phase N.4 — display-only race course chips lifted from the step's
+   * metadata.race_plan. Lets the race-pin callout show "Victoria Harbour ·
+   * Windward–Leeward · 3 laps" without a second fetch. Only set on race
+   * my-step pins; null/absent everywhere else.
+   */
+  raceContext?: { areaName: string | null; courseLabel: string | null } | null;
+  /**
    * Optional connector line for non-pin annotations such as walk-time
    * labels. Coordinates are [lng, lat]. The map renders these as dashed
    * GeoJSON line features beneath markers.

@@ -223,6 +223,12 @@ export interface AtlasFrameHandlers {
   onSecondaryAction?: () => void;
   /** Open an existing timeline step surfaced as a my-step-* atlas pin. */
   onStepPress?: (stepId: string) => void;
+  /**
+   * Open the on-water course/marks/conditions screen for a race step — the
+   * primary action on a race-pin callout (Phase N.4). Falls back to the plain
+   * step surface when absent.
+   */
+  onOpenRaceCourse?: (stepId: string) => void;
   /** TopChrome avatar tap — routes to Profile in the live tab. */
   onAvatarPress?: () => void;
   /** Club pin tap — opens the corresponding organization page. */
@@ -312,6 +318,7 @@ export function AtlasScreen({
   onPrimaryAction,
   onSecondaryAction,
   onStepPress,
+  onOpenRaceCourse,
   onAvatarPress,
   onOrgPress,
   onOrgLensPress,
@@ -334,6 +341,7 @@ export function AtlasScreen({
     onPrimaryAction,
     onSecondaryAction,
     onStepPress,
+    onOpenRaceCourse,
     onAvatarPress,
     onOrgPress,
     onOrgLensPress,
@@ -1423,6 +1431,33 @@ function isUserStepPin(pin: AtlasPinSpec): boolean {
 
 function titleForUserStepPin(pin: AtlasPinSpec): string {
   return (pin.label ?? 'Step').split('|')[0]?.trim() || 'Step';
+}
+
+/** A tapped my-step pin that's flagged a race — gets the ⛵ course callout. */
+function isRaceStepPin(pin: AtlasPinSpec): boolean {
+  return isUserStepPin(pin) && pin.isRace === true;
+}
+
+/**
+ * Title for a race-pin callout — the area name leads ("Victoria Harbour")
+ * since that's the where; falls back to the step title when the race was
+ * saved without a picked area.
+ */
+function titleForRaceStepPin(pin: AtlasPinSpec): string {
+  return pin.raceContext?.areaName?.trim() || titleForUserStepPin(pin);
+}
+
+/**
+ * Body for a race-pin callout — course label ("Windward–Leeward · 3 laps")
+ * over a one-line nudge that tapping opens the on-water cockpit.
+ */
+function bodyForRaceStepPin(pin: AtlasPinSpec): string {
+  return [
+    pin.raceContext?.courseLabel?.trim() || null,
+    'Open the course for geometry, marks, and the live wind/tide scrubber.',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function shiftConditionsLine(
@@ -3154,6 +3189,41 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
+          />
+        ) : isRaceStepPin(selectedPin) ? (
+          <BottomSheet
+            key="race-step"
+            eyebrow="⛵ RACE"
+            title={titleForRaceStepPin(selectedPin)}
+            body={bodyForRaceStepPin(selectedPin)}
+            primary={{
+              label: 'Open course',
+              icon: 'navigate-circle-outline',
+              onPress: () => {
+                if (selectedPin.stepId && handlers.onOpenRaceCourse) {
+                  handlers.onOpenRaceCourse(selectedPin.stepId);
+                  return;
+                }
+                if (selectedPin.stepId) {
+                  handlers.onStepPress?.(selectedPin.stepId);
+                  return;
+                }
+                comingSoonAlert(
+                  'Open course',
+                  'This race pin is missing a step id. Refresh Atlas and try again.',
+                );
+              },
+            }}
+            secondary={{
+              label: 'Open step',
+              icon: 'open-outline',
+              onPress: () => {
+                if (selectedPin.stepId) handlers.onStepPress?.(selectedPin.stepId);
+              },
+            }}
+            showSecondaryInMid
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="mid"
           />
         ) : isUserStepPin(selectedPin) ? (
           <BottomSheet

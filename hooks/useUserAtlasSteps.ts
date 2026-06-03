@@ -33,6 +33,13 @@ export interface UserAtlasStep {
   category: string | null;
   /** Phase N.4 — explicit race flag; drives the ⛵ race pin + race cockpit. */
   is_race: boolean;
+  /**
+   * Display-only race course context, lifted from metadata.race_plan /
+   * metadata.atlas.race_course_context. Lets the Atlas race-pin callout show
+   * "Victoria Harbour · Windward–Leeward · 3 laps" without a second fetch.
+   * null on non-race steps (or races saved before the picker existed).
+   */
+  raceContext: { areaName: string | null; courseLabel: string | null } | null;
   location_name: string | null;
   status: UserStepStatus;
   /** ISO timestamp the row carries — either starts_at (planned) or updated_at (done). */
@@ -100,6 +107,36 @@ function dayBadge(iso: string): string {
   return DAY_LABELS[d.getDay()] ?? '';
 }
 
+/**
+ * Lift the race course chips off a step's metadata. Prefers the pre-formatted
+ * atlas.race_course_context (scrub_title / scrub_label, written by the
+ * composer), falling back to raw race_plan so races saved before that block
+ * existed still get an area + course label.
+ */
+function extractRaceContext(
+  metadata: Record<string, unknown> | null,
+): { areaName: string | null; courseLabel: string | null } | null {
+  if (!metadata) return null;
+  const plan = metadata.race_plan as
+    | { area_name?: unknown; course_label?: unknown; laps?: unknown }
+    | undefined;
+  const ctx = (metadata.atlas as { race_course_context?: unknown } | undefined)
+    ?.race_course_context as { scrub_title?: unknown; scrub_label?: unknown } | undefined;
+
+  const str = (v: unknown): string | null =>
+    typeof v === 'string' && v.trim().length > 0 ? v.trim() : null;
+
+  const areaName = str(ctx?.scrub_title) ?? str(plan?.area_name);
+  let courseLabel = str(ctx?.scrub_label);
+  if (!courseLabel) {
+    const base = str(plan?.course_label);
+    const laps = typeof plan?.laps === 'number' && plan.laps > 0 ? plan.laps : null;
+    courseLabel = base ? `${base}${laps ? ` · ${laps} laps` : ''}` : null;
+  }
+  if (!areaName && !courseLabel) return null;
+  return { areaName, courseLabel };
+}
+
 export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlasStepsArgs) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -149,6 +186,10 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       const lat = row.location_lat ?? fallbackLat;
       const lng = row.location_lng ?? fallbackLng;
       if (lat == null || lng == null) continue;
+      const isRaceRow = (row as { is_race?: boolean | null }).is_race ?? false;
+      const raceContext = isRaceRow
+        ? extractRaceContext(row.metadata as Record<string, unknown> | null)
+        : null;
       const cls = classify({
         status: row.status,
         starts_at: row.starts_at,
@@ -162,7 +203,8 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         lng,
         title: row.title,
         category: (row as { category?: string | null }).category ?? null,
-        is_race: (row as { is_race?: boolean | null }).is_race ?? false,
+        is_race: isRaceRow,
+        raceContext,
         location_name:
           row.location_name ??
           (typeof whereLocation?.name === 'string' ? whereLocation.name : null),
