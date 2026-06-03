@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -129,6 +129,22 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
   const isCurrent = currentInterest?.slug === dbSlug;
 
   const [activeTab, setActiveTab] = useState<TierTab>('blueprints');
+  const scrollRef = useRef<ScrollView>(null);
+  const bodyTop = useRef(0);
+  const bodyInnerTop = useRef(0);
+  const sectionRelY = useRef<Record<TierTab, number>>({ blueprints: 0, organizations: 0, people: 0, about: 0 });
+
+  const goToTab = (key: TierTab) => {
+    setActiveTab(key);
+    if (Platform.OS === 'web') {
+      if (typeof document !== 'undefined') {
+        document.getElementById(`ip-section-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+    const y = bodyTop.current + bodyInnerTop.current + sectionRelY.current[key];
+    scrollRef.current?.scrollTo({ y: Math.max(y - 16, 0), animated: true });
+  };
 
   // Resolve parent domain for breadcrumb
   const dbInterest = allInterests.find((i) => i.slug === dbSlug);
@@ -369,7 +385,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
                 key={t.key}
                 style={[styles.tab, on && { borderBottomColor: interest.color }]}
                 activeOpacity={0.7}
-                onPress={() => setActiveTab(t.key)}
+                onPress={() => goToTab(t.key)}
               >
                 <Ionicons name={t.icon} size={16} color={on ? '#14161A' : '#6B7079'} />
                 <Text style={[styles.tabLabel, on && styles.tabLabelOn]}>{t.label}</Text>
@@ -381,10 +397,13 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
       </View>
 
       {/* Body */}
-      <View style={styles.body}>
-        <View style={styles.bodyInner}>
-          {activeTab === 'blueprints' && (
-            <View style={styles.section}>
+      <View style={styles.body} onLayout={(e) => { bodyTop.current = e.nativeEvent.layout.y; }}>
+        <View style={styles.bodyInner} onLayout={(e) => { bodyInnerTop.current = e.nativeEvent.layout.y; }}>
+          <View
+            nativeID="ip-section-blueprints"
+            onLayout={(e) => { sectionRelY.current.blueprints = e.nativeEvent.layout.y; }}
+            style={[styles.section, styles.sectionAnchor]}
+          >
               <View style={styles.secHead}>
                 <View style={styles.secHeadLeft}>
                   <Text style={styles.secTitle}>Blueprints</Text>
@@ -417,10 +436,12 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
                 </View>
               </View>
             </View>
-          )}
 
-          {activeTab === 'organizations' && (
-            <View style={styles.section}>
+          <View
+            nativeID="ip-section-organizations"
+            onLayout={(e) => { sectionRelY.current.organizations = e.nativeEvent.layout.y; }}
+            style={[styles.section, styles.sectionAnchor]}
+          >
               <View style={styles.secHead}>
                 <View style={styles.secHeadLeft}>
                   <Text style={styles.secTitle}>Organizations</Text>
@@ -460,10 +481,12 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
                 </View>
               )}
             </View>
-          )}
 
-          {activeTab === 'people' && (
-            <View style={styles.section}>
+          <View
+            nativeID="ip-section-people"
+            onLayout={(e) => { sectionRelY.current.people = e.nativeEvent.layout.y; }}
+            style={[styles.section, styles.sectionAnchor]}
+          >
               <View style={styles.secHead}>
                 <View style={styles.secHeadLeft}>
                   <Text style={styles.secTitle}>People</Text>
@@ -509,10 +532,12 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
                 </View>
               )}
             </View>
-          )}
 
-          {activeTab === 'about' && (
-            <View style={styles.section}>
+          <View
+            nativeID="ip-section-about"
+            onLayout={(e) => { sectionRelY.current.about = e.nativeEvent.layout.y; }}
+            style={[styles.section, styles.sectionAnchor]}
+          >
               <View style={styles.secHead}>
                 <View style={styles.secHeadLeft}>
                   <Text style={styles.secTitle}>About {interest.name}</Text>
@@ -525,7 +550,6 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
                 skill here.
               </Text>
             </View>
-          )}
         </View>
       </View>
 
@@ -547,7 +571,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView ref={scrollRef} style={styles.container}>
       <SimpleLandingNav currentInterestSlug={slug} />
       {content}
     </ScrollView>
@@ -693,6 +717,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#EFEDE6',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 24,
+    ...Platform.select({ web: { position: 'sticky', top: 56, zIndex: 20 } as any }),
+  },
+  sectionAnchor: {
+    ...Platform.select({ web: { scrollMarginTop: 124 } as any }),
   },
   tabsInner: {
     maxWidth: 1180,
@@ -730,7 +758,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 30,
     backgroundColor: '#FAF9F5',
-    flex: 1,
   },
   bodyInner: {
     maxWidth: 1180,
