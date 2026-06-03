@@ -64,6 +64,16 @@ interface PlanTabProps {
   /** Step category for subtype-aware labels (e.g. 'nutrition', 'strength') */
   stepCategory?: string;
   /**
+   * Phase N.4 — the Step ⟷ Race selector. Pass all three (sailing only) to
+   * surface it at the top of the Plan tab; omit them on non-sailing interests
+   * and the selector stays hidden. `isRace` reflects the step's is_race flag,
+   * `onToggleRace` persists the change, `onOpenRaceCourse` opens the on-water
+   * course/marks/conditions screen.
+   */
+  isRace?: boolean;
+  onToggleRace?: (next: boolean) => void;
+  onOpenRaceCourse?: () => void;
+  /**
    * When true, the tab body renders without its own ScrollView so the
    * parent (e.g. StepCard scrollAsUnit) can scroll the whole card. Only
    * honored on the PRACTICE_STEP_LOOP_IOS_REGISTER branch.
@@ -161,6 +171,7 @@ export function PlanTab({
   brainDumpData, onBrainDumpChange, onStructureWithAI,
   isStructuring, hasPlanContent, interestSlug, interestName,
   useConversationalCapture, onConversationalCreate, stepCategory,
+  isRace, onToggleRace, onOpenRaceCourse,
   embedded,
 }: PlanTabProps) {
   const { user } = useAuth();
@@ -370,6 +381,9 @@ export function PlanTab({
           stepTitle={planData.what_will_you_do || 'New step'}
           stepCategory={stepCategory}
           onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
+          isRace={isRace}
+          onToggleRace={onToggleRace}
+          onOpenRaceCourse={onOpenRaceCourse}
           capabilities={capabilityChips}
           onRemoveCapability={(id) => {
             if (id.startsWith(FREEFORM_CAPABILITY_PREFIX)) {

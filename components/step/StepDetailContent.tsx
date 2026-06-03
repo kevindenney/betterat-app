@@ -148,6 +148,10 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const shareStep = useShareStep();
   const { user } = useAuth();
   const { currentInterest } = useInterest();
+  // Phase N.4 — the Step ⟷ Race selector is sailing-only. Gated on the active
+  // interest's slug, mirroring how interestSlug/vocab are already sourced here.
+  const showRaceSelector =
+    (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing';
   // Route param: /step/[id]?scope=cohort routes the Discussion tab
   // straight to the Cohort scope (used by the Watch stream and
   // cohort_discussion_post notification taps). Anything else falls
@@ -1148,6 +1152,23 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             useConversationalCapture={isOwner}
             onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
             stepCategory={step.category}
+            isRace={showRaceSelector ? Boolean(step.is_race) : undefined}
+            onToggleRace={
+              showRaceSelector && isOwner
+                ? (next) => {
+                    queryClient.setQueryData(
+                      ['timeline-steps', 'detail', stepId],
+                      (prev: any) => (prev ? { ...prev, is_race: next } : prev),
+                    );
+                    updateStep.mutate({ stepId, input: { is_race: next } });
+                  }
+                : undefined
+            }
+            onOpenRaceCourse={
+              showRaceSelector
+                ? () => router.push(`/race/ios/water/${stepId}` as any)
+                : undefined
+            }
             embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER}
           />
         </>
