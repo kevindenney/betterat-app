@@ -29,7 +29,7 @@ export const NURSING_SITE_COVERAGE_KEY = 'nursing-site-coverage';
 // 'general'.
 export type CoverageCluster = 'cardiac' | 'resp' | 'med' | 'general' | 'assess';
 
-const CATEGORY_TO_CLUSTER: Record<string, CoverageCluster> = {
+export const CATEGORY_TO_CLUSTER: Record<string, CoverageCluster> = {
   'Assessment Skills': 'assess',
   'Critical Thinking': 'assess',
   'Person-Centered Care': 'assess',

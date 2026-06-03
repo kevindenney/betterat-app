@@ -94,6 +94,7 @@ import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
 import { useCompetencyGlow } from '@/hooks/useCompetencyGlow';
 import { NursingSitesSurface } from '@/components/ios-register/atlas/NursingSitesSurface';
+import { NursingCoverageSurface } from '@/components/ios-register/atlas/NursingCoverageSurface';
 import { LogShiftSheet, type LogShiftSite } from '@/components/ios-register/atlas/LogShiftSheet';
 import { useAtlasPois } from '@/hooks/useAtlasPois';
 import {
@@ -3724,7 +3725,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Sites | Map segment — the N1 reframe. Sites is the default surface: the
   // street map is near content-free for a nursing student, so it's demoted to
   // a secondary toggle (kept for cold first-run POI discovery + orientation).
-  const [f4View, setF4View] = useState<'sites' | 'map'>('sites');
+  const [f4View, setF4View] = useState<'sites' | 'coverage' | 'map'>('sites');
   // Log-a-shift (N2) — the located-evidence write path. Opening sets the
   // target site; null closes the sheet.
   const [logShiftSite, setLogShiftSite] = useState<LogShiftSite | null>(null);
@@ -3856,6 +3857,19 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           ) : (
             <BaltimoreColdMap />
           )
+        ) : f4View === 'coverage' ? (
+          // Competency constellation (N3) — framework coverage from logged shifts.
+          <NursingCoverageSurface
+            toolbarOffset={132}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
+            onPlanGap={() =>
+              handlers.onPrimaryAction?.(
+                nextNursing.lat != null && nextNursing.lng != null
+                  ? { lat: nextNursing.lat, lng: nextNursing.lng, place: nextNursing.where }
+                  : undefined,
+              )
+            }
+          />
         ) : (
           // Sites-first surface (default). Top inset clears the floating
           // chrome (title + segment); bottom inset clears the tab bar.
@@ -3897,14 +3911,16 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               handlers.subtitleOverride ??
               (f4View === 'sites'
                 ? 'Your clinical sites & coverage'
-                : 'Nursing · JHSON · Baltimore')
+                : f4View === 'coverage'
+                  ? 'Competency coverage · JHSON framework'
+                  : 'Nursing · JHSON · Baltimore')
             }
             avatarInitial={handlers.avatarInitial ?? 'E'}
             onSearchPress={() => setSearchOpen(true)}
           />
-          {/* Sites | Map segment — the reframe's spine. */}
+          {/* Sites | Coverage | Map segment — the reframe's spine. */}
           <View style={shellStyles.f4Segment}>
-            {(['sites', 'map'] as const).map((mode) => (
+            {(['sites', 'coverage', 'map'] as const).map((mode) => (
               <Pressable
                 key={mode}
                 style={[
@@ -3921,7 +3937,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                     f4View === mode && shellStyles.f4SegmentTextActive,
                   ]}
                 >
-                  {mode === 'sites' ? 'Sites' : 'Map'}
+                  {mode === 'sites' ? 'Sites' : mode === 'coverage' ? 'Coverage' : 'Map'}
                 </Text>
               </Pressable>
             ))}
@@ -4009,7 +4025,9 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         ) : null}
       </View>
 
-      {layersOpen ? null : candidate ? (
+      {f4View === 'coverage' ? null : layersOpen ? null : candidate ? (
+        // Coverage view is a full-height read surface — no persistent CTA sheet
+        // overlays it (it would hide the gap card). Otherwise:
         // Long-press → "PIN DROPPED" sheet. Mirrors F1: reverse-geocodes
         // to "Near JHH" instead of raw coords, then routes through
         // handlers.onPrimaryAction to /races?openAddStep=1&pinLat=… so
