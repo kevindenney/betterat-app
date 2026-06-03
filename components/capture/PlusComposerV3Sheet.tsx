@@ -241,7 +241,7 @@ export function PlusComposerV3Sheet({
       <SafeAreaView style={styles.surface} edges={['top']}>
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.select({ ios: 'padding', default: undefined })}
+          behavior={Platform.OS === 'android' ? 'height' : undefined}
         >
           <View style={styles.navBar}>
             <Pressable onPress={handleCancel} hitSlop={8}>
@@ -261,6 +261,8 @@ export function PlusComposerV3Sheet({
             style={styles.flex}
             contentContainerStyle={styles.body}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            automaticallyAdjustKeyboardInsets
           >
             {(interestLabel || sessionLabel) ? (
               <View style={styles.laneRow}>
