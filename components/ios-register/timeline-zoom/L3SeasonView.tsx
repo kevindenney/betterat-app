@@ -667,7 +667,7 @@ export function L3SeasonView({
                   currentWeekNumber={currentWeek}
                   width={riverWidth}
                   compact={analysis.peers.length <= 3}
-                  showRole={true}
+                  showLegend={false}
                   peerSharedFleets={fleetCohort?.peerToFleets}
                   viewerFleets={fleetCohort?.fleets}
                   isolatedPeerId={activePerson?.id ?? null}

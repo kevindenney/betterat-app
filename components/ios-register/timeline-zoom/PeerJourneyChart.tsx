@@ -48,8 +48,10 @@ interface PeerJourneyChartProps {
   width: number;
   /** Compact reduces row height + dot size for L4 lifetime view. */
   compact?: boolean;
-  /** Show small italic-serif role text next to first appearance. */
-  showRole?: boolean;
+  /** Render the per-peer name·role legend below the chart. Off when a
+   *  WHO SHAPED IT pill row already legends the chart (avoids listing the
+   *  same people twice); the dots stay self-identifying via their initials. */
+  showLegend?: boolean;
   /** Map of peer.id → fleets shared with the viewer. When non-empty
    *  for at least one peer, the chart renders one subheaded group per
    *  shared fleet (plus an unlabeled "Other" bucket). */
@@ -72,7 +74,7 @@ export function PeerJourneyChart({
   currentWeekNumber,
   width,
   compact = false,
-  showRole = true,
+  showLegend = true,
   peerSharedFleets,
   viewerFleets,
   isolatedPeerId = null,
@@ -128,7 +130,7 @@ export function PeerJourneyChart({
         currentWeekNumber={currentWeekNumber}
         width={width}
         compact={compact}
-        showRole={showRole}
+        showLegend={showLegend}
         isolatedPeerId={isolatedPeerId}
       />
     );
@@ -156,7 +158,7 @@ export function PeerJourneyChart({
               currentWeekNumber={currentWeekNumber}
               width={width}
               compact={compact}
-              showRole={showRole}
+              showLegend={showLegend}
               isolatedPeerId={isolatedPeerId}
             />
           </View>
@@ -172,7 +174,7 @@ interface BlockProps {
   currentWeekNumber: number;
   width: number;
   compact: boolean;
-  showRole: boolean;
+  showLegend: boolean;
   isolatedPeerId: string | null;
 }
 
@@ -182,7 +184,7 @@ function PeerJourneyChartBlock({
   currentWeekNumber,
   width,
   compact,
-  showRole,
+  showLegend,
   isolatedPeerId,
 }: BlockProps) {
   // padX must match CapabilityMix so the time axis lines up.
@@ -338,10 +340,11 @@ function PeerJourneyChartBlock({
         />
       </Svg>
 
-      {/* Legend — answers "who is each lettered dot" now that the role
-          text no longer floats inside the lane. Letter swatch matches the
-          dot above; name + role read like a logbook key. */}
-      {showRole ? (
+      {/* Legend — answers "who is each lettered dot." Suppressed when a
+          WHO SHAPED IT pill row sits below the chart and already names
+          everyone. Letter swatch matches the dot above; name + role read
+          like a logbook key. */}
+      {showLegend ? (
         <View style={styles.legend}>
           {peers.map((peer) => {
             const displayName = peer.name?.trim() || `Peer ${peer.initials}`;
