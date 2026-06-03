@@ -93,6 +93,7 @@ import { useWaveOverlay } from '@/hooks/useWaveOverlay';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { useCohortHeatmap } from '@/hooks/useCohortHeatmap';
 import { useCompetencyGlow } from '@/hooks/useCompetencyGlow';
+import { NursingSitesSurface } from '@/components/ios-register/atlas/NursingSitesSurface';
 import {
   YACHT_CLUB_DEMO_LOCATION,
   YACHT_CLUB_DEMO_NAME,
@@ -3718,6 +3719,10 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // No walk-time annotations in the nursing frame: hospital-to-hospital
   // walking minutes are the sailor's distance/layline grammar misapplied —
   // no nurse optimizes a JHH↔Pinkard walk. (Kept for sailing if desired.)
+  // Sites | Map segment — the N1 reframe. Sites is the default surface: the
+  // street map is near content-free for a nursing student, so it's demoted to
+  // a secondary toggle (kept for cold first-run POI discovery + orientation).
+  const [f4View, setF4View] = useState<'sites' | 'map'>('sites');
   // Chip state — cohort hexes, faculty diamonds, followed individuals.
   // "All" toggles everything on. Defaults are heatmap + faculty on.
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -3806,38 +3811,91 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
       <View style={shellStyles.mapArea}>
-        {handlers.useMapLibre ? (
-          <AtlasMapLibreCanvas
-            frame="f4"
-            pins={pins}
-            focusLocation={searchFocus}
-            nextEvent={
-              nextNursing.lat != null && nextNursing.lng != null
-                ? { ...nextNursing, lat: nextNursing.lat, lng: nextNursing.lng }
-                : null
-            }
-            candidate={candidate}
-            onPinPress={handleF4PinPress}
-            onNextEventPress={handleNextEventTap}
-            onMapLongPress={(coords) => {
-              setLayersOpen(false);
-              setSelectedPin(null);
-              setNextEventSheetOpen(false);
-              setCandidate(coords);
-            }}
-          />
+        {f4View === 'map' ? (
+          handlers.useMapLibre ? (
+            <AtlasMapLibreCanvas
+              frame="f4"
+              pins={pins}
+              focusLocation={searchFocus}
+              nextEvent={
+                nextNursing.lat != null && nextNursing.lng != null
+                  ? { ...nextNursing, lat: nextNursing.lat, lng: nextNursing.lng }
+                  : null
+              }
+              candidate={candidate}
+              onPinPress={handleF4PinPress}
+              onNextEventPress={handleNextEventTap}
+              onMapLongPress={(coords) => {
+                setLayersOpen(false);
+                setSelectedPin(null);
+                setNextEventSheetOpen(false);
+                setCandidate(coords);
+              }}
+            />
+          ) : (
+            <BaltimoreColdMap />
+          )
         ) : (
-          <BaltimoreColdMap />
+          // Sites-first surface (default). Top inset clears the floating
+          // chrome (title + segment); bottom inset clears the tab bar.
+          <NursingSitesSurface
+            nextEvent={nextNursing}
+            toolbarOffset={132}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
+            onSitePress={(site) => {
+              // Jump to the site on the map. Flip to Map mode and focus it.
+              if (site.lat != null && site.lng != null) {
+                setSearchFocus({ lat: site.lat, lng: site.lng });
+                setF4View('map');
+              }
+            }}
+            onPlanStep={() => handlers.onPrimaryAction?.(
+              nextNursing.lat != null && nextNursing.lng != null
+                ? { lat: nextNursing.lat, lng: nextNursing.lng, place: nextNursing.where }
+                : undefined,
+            )}
+            onPrepPress={handleNextEventTap}
+          />
         )}
 
         {/* Floating glass chrome — title + chips. Same pattern as F1. */}
         <View style={shellStyles.floatingChrome}>
           <TopChrome
             title="Atlas"
-            subtitle={handlers.subtitleOverride ?? 'Nursing · JHSON · Baltimore'}
+            subtitle={
+              handlers.subtitleOverride ??
+              (f4View === 'sites'
+                ? 'Your clinical sites & coverage'
+                : 'Nursing · JHSON · Baltimore')
+            }
             avatarInitial={handlers.avatarInitial ?? 'E'}
             onSearchPress={() => setSearchOpen(true)}
           />
+          {/* Sites | Map segment — the reframe's spine. */}
+          <View style={shellStyles.f4Segment}>
+            {(['sites', 'map'] as const).map((mode) => (
+              <Pressable
+                key={mode}
+                style={[
+                  shellStyles.f4SegmentItem,
+                  f4View === mode && shellStyles.f4SegmentItemActive,
+                ]}
+                onPress={() => setF4View(mode)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: f4View === mode }}
+              >
+                <Text
+                  style={[
+                    shellStyles.f4SegmentText,
+                    f4View === mode && shellStyles.f4SegmentTextActive,
+                  ]}
+                >
+                  {mode === 'sites' ? 'Sites' : 'Map'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {f4View === 'map' ? (
           <FilterChipsRow
             chips={[
               { id: 'all', label: 'All', active: true },
@@ -3849,6 +3907,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             ]}
             onActiveIdsChange={handleF4ChipsChange}
           />
+          ) : null}
           {/* Headless InterestSwitcher hosts the modal so TopChrome's
               capsule pill (which calls openInterestSwitcher imperatively)
               can pop the picker. F1 mounts its own headless; F4 needs
@@ -3856,8 +3915,8 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <InterestSwitcher headless />
           {/* Active-chip context pill — surfaces what the heatmap is
               showing right now ("Cohort heatmap · this week"). Only shown
-              when the heatmap chip is selected. */}
-          {showHeatmap ? (
+              when the heatmap chip is selected (map mode only). */}
+          {f4View === 'map' && showHeatmap ? (
             <Pressable
               style={shellStyles.chipContextPill}
               onPress={() => setHeatmapLegendOpen((v) => !v)}
@@ -3876,7 +3935,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           ) : null}
         </View>
 
-        {showHeatmap && heatmapLegendOpen ? (
+        {f4View === 'map' && showHeatmap && heatmapLegendOpen ? (
           <View style={shellStyles.heatmapLegendCard}>
             <Text style={shellStyles.heatmapLegendTitle}>Cohort heatmap</Text>
             <View style={shellStyles.heatmapLegendRow}>
@@ -3899,7 +3958,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             these would freeze to the viewport during pan instead of moving
             with the map — the real institution pins come through the
             useAtlasFramePins → MLMarker path inside AtlasMapLibreCanvas. */}
-        {!handlers.useMapLibre && (
+        {f4View === 'map' && !handlers.useMapLibre && (
           <>
             <AtlasPin kind="osm-clinic" leftPct={48} topPct={50} label="Johns Hopkins Hosp." />
             <AtlasPin kind="osm-clinic" leftPct={72} topPct={42} label="Bayview" />
@@ -3911,10 +3970,12 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           </>
         )}
 
-        <LayersFab
-          onLayersPress={() => setLayersOpen(true)}
-          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-        />
+        {f4View === 'map' ? (
+          <LayersFab
+            onLayersPress={() => setLayersOpen(true)}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          />
+        ) : null}
       </View>
 
       {layersOpen ? null : candidate ? (
@@ -6048,6 +6109,35 @@ const shellStyles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60, 60, 67, 0.18)',
+  },
+  f4Segment: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    marginTop: 8,
+    padding: 2,
+    borderRadius: 9,
+    backgroundColor: 'rgba(118, 118, 128, 0.18)',
+  },
+  f4SegmentItem: {
+    paddingVertical: 5,
+    paddingHorizontal: 22,
+    borderRadius: 7,
+  },
+  f4SegmentItemActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  f4SegmentText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.6)',
+    letterSpacing: -0.1,
+  },
+  f4SegmentTextActive: {
+    color: '#000000',
   },
   offlinePill: {
     position: 'absolute',
