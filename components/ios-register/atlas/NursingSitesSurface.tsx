@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAtlasPois, type AtlasPoi } from '@/hooks/useAtlasPois';
 import { useNursingSiteCoverage, type CoverageCluster } from '@/hooks/useNursingSiteCoverage';
+import { useNursingCuratedSites, type CuratedSiteRole } from '@/hooks/useNursingCuratedSites';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { AtlasNextEvent } from '@/components/ios-register/atlas/AtlasScreen';
 
@@ -162,6 +163,19 @@ const DEMO_GROUPS: SiteGroup[] = [
   },
 ];
 
+const ROLE_LABEL: Record<CuratedSiteRole, string> = {
+  placement: 'Clinical placement',
+  simulation: 'Simulation suite',
+};
+
+// Two-letter badge initials from a site label (e.g. "Pinkard Sim Suite" → "PK").
+function siteInitials(label: string): string {
+  const words = label.replace(/[^A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '··';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
 const STATUS_BG: Record<RotationStatus, string> = {
   now: 'rgba(0,122,255,0.10)',
   soon: 'rgba(217,119,6,0.12)',
@@ -202,6 +216,7 @@ export function NursingSitesSurface({
 }: NursingSitesSurfaceProps) {
   const { pois } = useAtlasPois();
   const { coverage } = useNursingSiteCoverage();
+  const { partner, sites: curatedSites } = useNursingCuratedSites();
 
   // Bind each demo card to a real POI by name substring so the cards carry
   // real coordinates (for the map handoff) and the canonical site name.
@@ -223,6 +238,16 @@ export function NursingSitesSurface({
       }),
     }));
   }, [pois]);
+
+  // Curated partner network (N4) — the authoritative site list, gated on a
+  // nursing-institution partnership. Drop sites already surfaced as rotation
+  // cards above so the section reads as "the rest of your network" (notably the
+  // simulation suites the rotation grouping never shows).
+  const extraCurated = useMemo(() => {
+    if (!partner) return [];
+    const shown = new Set(groups.flatMap((g) => g.cards.map((c) => c.id)));
+    return curatedSites.filter((s) => !shown.has(s.poiId));
+  }, [partner, curatedSites, groups]);
 
   const heroWhere = nextEvent.where ?? 'Your next rotation';
 
@@ -360,6 +385,66 @@ export function NursingSitesSurface({
         </View>
       ))}
 
+      {/* Curated partner network (N4) — gated, real. The official sites the
+          partner institution publishes, including simulation suites the
+          rotation grouping never surfaces. */}
+      {partner && extraCurated.length > 0 ? (
+        <View style={styles.partnerSection}>
+          <View style={styles.partnerHead}>
+            <View style={styles.partnerGlyph}>
+              <Ionicons name="shield-checkmark" size={13} color="#0E7490" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.partnerTitle}>Partner network</Text>
+              <Text style={styles.partnerSub} numberOfLines={1}>
+                {curatedSites.length} curated sites · {partner.name}
+              </Text>
+            </View>
+          </View>
+          {extraCurated.map((site) => {
+            const real = coverage[site.poiId];
+            return (
+              <Pressable
+                key={site.poiId}
+                style={styles.partnerRow}
+                accessibilityRole="button"
+                accessibilityLabel={`${site.label}, ${ROLE_LABEL[site.role]}`}
+                onPress={() =>
+                  onLogShift?.({
+                    id: site.poiId,
+                    name: site.name,
+                    lat: site.lat ?? undefined,
+                    lng: site.lng ?? undefined,
+                  })
+                }
+              >
+                <View
+                  style={[
+                    styles.partnerBadge,
+                    site.role === 'simulation' && styles.partnerBadgeSim,
+                  ]}
+                >
+                  <Text style={styles.partnerBadgeText}>{siteInitials(site.label)}</Text>
+                </View>
+                <View style={styles.partnerBody}>
+                  <Text style={styles.partnerName} numberOfLines={1}>
+                    {site.label}
+                  </Text>
+                  <Text style={styles.partnerRole} numberOfLines={1}>
+                    {ROLE_LABEL[site.role]}
+                  </Text>
+                </View>
+                {real ? (
+                  <Text style={styles.partnerCov}>{real.evidenced} evidenced</Text>
+                ) : (
+                  <Ionicons name="add-circle-outline" size={18} color={IOS_COLORS.tertiaryLabel} />
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
       {/* Honest provenance for the coverage + cohort numbers. */}
       <View style={styles.demoNote}>
         <Ionicons name="lock-closed" size={11} color={IOS_COLORS.tertiaryLabel} />
@@ -468,6 +553,41 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
   footText: { flex: 1, fontSize: 12, color: IOS_COLORS.secondaryLabel },
+  partnerSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: IOS_SPACING.md,
+    marginTop: IOS_SPACING.md,
+    gap: IOS_SPACING.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.separator,
+  },
+  partnerHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  partnerGlyph: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(14,116,144,0.10)',
+  },
+  partnerTitle: { fontSize: 14, fontWeight: '700', color: IOS_COLORS.label, letterSpacing: -0.2 },
+  partnerSub: { fontSize: 11, color: IOS_COLORS.secondaryLabel },
+  partnerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  partnerBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3F6FA8',
+  },
+  partnerBadgeSim: { backgroundColor: '#7C3AED' },
+  partnerBadgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  partnerBody: { flex: 1, gap: 1 },
+  partnerName: { fontSize: 14, fontWeight: '600', color: IOS_COLORS.label, letterSpacing: -0.2 },
+  partnerRole: { fontSize: 11, color: IOS_COLORS.secondaryLabel },
+  partnerCov: { fontSize: 12, fontWeight: '600', color: '#16A34A' },
   demoNote: {
     flexDirection: 'row',
     alignItems: 'flex-start',
