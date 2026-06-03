@@ -93,7 +93,15 @@ From v23 mockup (`docs/redesign/mockups/23_betterat_atlas_steps_redesign.html`).
 - ✅ M.2 — Kind filter row in f1 top chrome; `filteredFramePins` applies peer + kind filters together (my-step pins filtered by `stepKind`, non-my-step always pass). `2f52409d`.
 - ✅ M.3 — Kind-adaptive cockpit: ashore kinds (boat_work / learn / coach) swap the wind/tide scrubber for `StepKindCockpit` — real `metadata.plan.how_sub_steps[]` checklist via `useAtlasCockpitStep`. No fabricated target numbers (mockup's shroud-tension/mast-rake have no schema). On-water (race / practice) keeps the scrubber. `7d890847`.
 - ✅ M.4 — Ashore cockpit *replaces* the redundant "YOUR NEXT STEP" sheet (was rendering the title twice): cockpit absorbs Open step / Pick another (kind-tinted primary). f4 nursing surfaces Nearby as a TopChrome action + drops the floating pill. `677cbda4`.
-- ⬜ M.5 (future) — promote kind to a real `step_kind` column once the keyword resolver's misclassifications justify it; extend the lens to f4/f7 cockpits.
+- ⬜ M.5 (future) — promote kind to a real `step_kind` column once the keyword resolver's misclassifications justify it; extend the lens to f4/f7 cockpits. **Superseded by Phase N.4** — the kind taxonomy collapses to a single `is_race` flag rather than a 5-kind enum.
+
+### 🟨 Phase N — Peer-step drill-down + Step/Race reframe
+From f1 walkthrough 2026-06-03 (`project_atlas_peer_steps_present_but_clustered`, `project_step_type_race_flag_reframe`). Two threads: make individual peer steps reachable on the map, and collapse Phase M's 5-kind lens to the only distinction that changes Atlas behavior — race vs not-race. Mockups: `docs/redesign/mockups/26_betterat_atlas_peer_steps_and_step_types.html` (peer drill-down + model), `27_betterat_sailracing_step_design.html` (full Step/Race composer).
+
+- ⬜ N.1 — Zoom-aware de-cluster: `clusterPeerPins()` only merges peers below a zoom threshold; at close zoom render individual peer pins as relationship-colored avatars (you/crew/fleet/following tones from `PIN_TONE`). Replaces the always-on "+N sessions" density badge.
+- ⬜ N.2 — Cluster badge → drill-down sheet: tapping a remaining cluster opens "N steps near you" grouped by relationship (Crew/Fleet/Following), each row avatar + name + relationship chip + step + time + location precision. Builds out the `key="peer-steps"` Coming-soon stub in AtlasScreen.
+- ⬜ N.3 — Peer-step detail callout: tapping an individual peer pin opens a callout (who / step / precision / Reach out + View profile). Privacy-aware precision honoring `atlas_can_view_step_location` (fails CLOSED on NULL audience).
+- ⬜ N.4 — Step/Race binary: replace `StepKind` 5-kind taxonomy + keyword resolver in `lib/step-kind-config.ts` with an `is_race` boolean. Add `timeline_steps.is_race` (default false), set in the step composer (mockup 27). Race renders ⛵ blue inside its race-area polygon + unlocks course/marks/conditions cockpit; everything else is a neutral status dot. Don't rip out Phase M unilaterally — migrate behind the flag.
 
 ### ⏸ Phase D — Atlas round-trip with /races timeline rebuild
 Deferred until the parallel /races rebuild lands (`project_races_rebuild_in_flight`). Then verify atlas pins → races timeline → atlas restores state.
