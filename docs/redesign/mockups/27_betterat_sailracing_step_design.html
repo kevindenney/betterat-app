@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Sail-racing step design (Step vs Race)</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --serif:'Iowan Old Style',Georgia,serif;
+  --grouped:#F2F2F7;
+  --card:#FFFFFF;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);
+  --label3:rgba(60,60,67,0.32);
+  --sep:rgba(60,60,67,0.13);
+  --blue:#007AFF;
+  --navy:#14213D;
+  --race:#2563EB;        /* race step — the one first-class kind */
+  --race-bg:rgba(37,99,235,.08);
+  --mark:#E07A3C;        /* race-mark orange (matches AtlasPins) */
+  --wind:#2563EB;
+  --current:#0E7490;
+  --wave:#7C3AED;
+  --fav:#16A34A;
+  --crew:#FF3B30;
+  --fleet:#2A3346;
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1320px;margin:0 auto 4px;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1320px;margin:0 auto 10px;font-size:13px;color:#41495A;line-height:1.6;}
+.page-sub b{color:#1a1f29;}
+.thesis{max-width:1320px;margin:0 auto 26px;background:#fff;border:0.5px solid rgba(0,0,0,.1);border-left:3px solid var(--race);border-radius:10px;padding:13px 16px;font-size:12.5px;line-height:1.6;color:#2b3340;}
+.thesis b{color:#111;}
+.thesis .k{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--race);border-radius:5px;padding:2px 7px;margin-right:7px;vertical-align:1px;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1320px;margin:0 auto;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+.col-cap .tag.new{background:#1B7A3D;}
+.col-cap .tag.race{background:var(--race);}
+
+/* phone shell */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.30);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:#000;z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+
+/* nav bar */
+.nav{position:absolute;top:44px;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:45;
+  background:rgba(248,248,250,.86);backdrop-filter:blur(18px);border-bottom:0.5px solid var(--sep);}
+.nav .cancel{font-size:16px;color:var(--blue);}
+.nav .title{font-size:16px;font-weight:700;}
+.nav .save{font-size:16px;font-weight:700;color:var(--blue);}
+.nav .save.dim{color:var(--label3);font-weight:600;}
+
+/* scroll body */
+.body{position:absolute;top:94px;bottom:0;left:0;right:0;overflow:hidden;padding:16px 16px 40px;}
+
+/* type selector — Step vs Race */
+.typeseg{display:flex;gap:8px;margin-bottom:8px;}
+.typeopt{flex:1;border-radius:14px;border:1.5px solid var(--sep);background:#fff;padding:13px 12px 12px;cursor:pointer;position:relative;}
+.typeopt .g{font-size:22px;line-height:1;}
+.typeopt .t{font-size:15px;font-weight:700;margin-top:7px;}
+.typeopt .d{font-size:11px;color:var(--label2);line-height:1.4;margin-top:3px;}
+.typeopt.on.step{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,122,255,.12);}
+.typeopt.on.race{border-color:var(--race);box-shadow:0 0 0 3px rgba(37,99,235,.14);background:var(--race-bg);}
+.typeopt .check{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;}
+.typeopt.on.step .check{background:var(--blue);}
+.typeopt.on.race .check{background:var(--race);}
+.seg-note{font-size:11px;color:var(--label2);line-height:1.45;margin:0 2px 16px;}
+.seg-note b{color:#2b3340;}
+
+/* section */
+.sec{margin-bottom:16px;}
+.sec-h{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin:0 4px 7px;}
+.sec-h .q{font-style:italic;font-weight:600;text-transform:none;letter-spacing:0;color:var(--label3);font-size:11px;}
+.sec-h.racey{color:var(--race);}
+.card{background:#fff;border-radius:14px;border:0.5px solid var(--sep);overflow:hidden;}
+.card.race{border:1px solid rgba(37,99,235,.3);}
+.field{padding:12px 14px;border-bottom:0.5px solid var(--sep);}
+.field:last-child{border-bottom:0;}
+.field .k{font-size:11px;font-weight:700;color:var(--label2);margin-bottom:3px;}
+.field .v{font-size:15px;color:var(--label);line-height:1.35;}
+.field .v.ph{color:var(--label3);}
+.field .ai{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#7C3AED;background:rgba(124,58,237,.1);border-radius:6px;padding:2px 7px;margin-top:6px;}
+
+/* title row */
+.titlefield{padding:14px;display:flex;align-items:center;gap:11px;}
+.titlefield .g{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+.titlefield .g.step{background:rgba(0,122,255,.12);}
+.titlefield .g.race{background:rgba(37,99,235,.14);}
+.titlefield input{border:0;font-size:17px;font-weight:600;width:100%;background:transparent;color:var(--label);outline:none;}
+.titlefield .ph{color:var(--label3);font-size:17px;font-weight:600;}
+
+/* substeps */
+.sub{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:0.5px solid var(--sep);}
+.sub:last-child{border-bottom:0;}
+.sub .box{width:19px;height:19px;border-radius:5px;border:1.5px solid var(--label3);flex-shrink:0;}
+.sub .box.on{background:var(--blue);border-color:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;}
+.sub .tx{font-size:14px;}
+.sub .tx.done{color:var(--label2);text-decoration:line-through;}
+.sub.add{color:var(--blue);font-size:14px;font-weight:600;}
+.sub.add .plus{width:19px;height:19px;border-radius:5px;border:1.5px dashed var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;}
+
+/* capability chips */
+.chips{display:flex;flex-wrap:wrap;gap:7px;padding:12px 14px;}
+.cap{font-size:12px;font-weight:600;color:#0E5A3A;background:rgba(34,197,94,.12);border:0.5px solid rgba(34,197,94,.3);border-radius:8px;padding:5px 10px;}
+.cap.add{color:var(--blue);background:rgba(0,122,255,.08);border-color:rgba(0,122,255,.28);border-style:dashed;}
+
+/* people */
+.person{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:0.5px solid var(--sep);}
+.person:last-child{border-bottom:0;}
+.person .av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;}
+.person .nm{font-size:14px;font-weight:600;}
+.person .role{font-size:11px;color:var(--label2);}
+.person .rel{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:7px;}
+.rel.crew{color:var(--crew);background:rgba(255,59,48,.1);}
+.rel.coach{color:#16A34A;background:rgba(22,163,74,.12);}
+
+/* timing toggle */
+.toggle{display:flex;align-items:center;gap:11px;padding:12px 14px;}
+.toggle .tx{flex:1;}
+.toggle .tx .k{font-size:14px;font-weight:600;}
+.toggle .tx .d{font-size:11px;color:var(--label2);margin-top:2px;}
+.sw{width:46px;height:28px;border-radius:14px;background:#34C759;position:relative;flex-shrink:0;}
+.sw.off{background:rgba(120,120,128,.32);}
+.sw .knob{position:absolute;top:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:.2s;}
+.sw .knob{right:2px;} .sw.off .knob{right:20px;}
+
+/* RACE-ONLY reveal banner */
+.revealbar{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--race);
+  background:var(--race-bg);border:0.5px dashed rgba(37,99,235,.4);border-radius:10px;padding:9px 12px;margin:2px 2px 14px;line-height:1.4;}
+.revealbar .ic{font-size:14px;}
+
+/* mini race map */
+.racemap{position:relative;height:148px;border-radius:12px 12px 0 0;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 25%,#1C3A5E,#0E2138);}
+.racemap .ra{position:absolute;left:18%;top:14%;width:64%;height:74%;
+  border-radius:46% 54% 50% 50%/52% 48% 52% 48%;background:rgba(37,99,235,.14);border:1px dashed rgba(120,170,255,.55);}
+.racemap .ra-lbl{position:absolute;left:50%;top:8%;transform:translateX(-50%);font-size:8.5px;font-weight:800;letter-spacing:.05em;color:rgba(190,215,255,.92);white-space:nowrap;}
+.racemap .mk{position:absolute;width:11px;height:11px;border-radius:50%;background:var(--mark);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);transform:translate(-50%,-50%);}
+.racemap .mk.w{left:50%;top:24%;} .racemap .mk.l{left:34%;top:74%;} .racemap .mk.r{left:66%;top:74%;}
+.racemap .mk-lbl{position:absolute;transform:translate(-50%,-50%);font-size:7.5px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);}
+.racemap .startline{position:absolute;left:34%;right:34%;top:74%;height:0;border-top:2px dashed rgba(255,255,255,.55);}
+.racemap .windarrow{position:absolute;left:50%;top:9%;transform:translateX(-50%);color:var(--wind);font-size:16px;text-shadow:0 1px 3px rgba(0,0,0,.5);}
+.racemap .editpill{position:absolute;right:8px;bottom:8px;font-size:10px;font-weight:700;color:var(--race);background:rgba(255,255,255,.92);border-radius:8px;padding:4px 9px;}
+
+/* condition rows */
+.cond{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:0.5px solid var(--sep);}
+.cond:last-child{border-bottom:0;}
+.cond .ic{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;color:#fff;}
+.cond .ic.wind{background:var(--wind);} .cond .ic.tide{background:var(--current);} .cond .ic.wave{background:var(--wave);}
+.cond .lab{font-size:13px;font-weight:600;}
+.cond .val{margin-left:auto;font-size:13px;color:var(--label2);font-weight:600;}
+.cond .live{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#16A34A;background:rgba(22,163,74,.12);border-radius:6px;padding:3px 7px;}
+
+/* footer save */
+.bigsave{position:absolute;left:16px;right:16px;bottom:24px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;color:#fff;z-index:46;box-shadow:0 6px 18px rgba(0,0,0,.2);}
+.bigsave.step{background:var(--blue);}
+.bigsave.race{background:var(--race);}
+.fade{position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(to top,var(--grouped) 36%,transparent);z-index:40;pointer-events:none;}
+</style>
+</head>
+<body>
+
+<div class="page-h">Sail-racing step design · Step vs Race selection</div>
+<div class="page-sub">A full step composer for the sailing interest. Every step shares the same skeleton — <b>what / how / why / who / when</b>. The first field is a <b>Step ⟷ Race</b> selector. Choosing <b>Race</b> reveals the on-water grammar (course &amp; marks, conditions) that Atlas treats specially; a plain Step never shows it.</div>
+
+<div class="thesis"><span class="k">Model</span><b>We don't have step types — we have steps.</b> The single distinction that changes behavior is <b>race vs not-race</b>, because a race carries a venue, course geometry, marks and on-water conditions an ordinary step doesn't. One <b>is_race</b> flag (set here, when planning) replaces Phase&nbsp;M's keyword resolver. Race steps render ⛵ blue inside their race-area polygon on Atlas; every other step is a neutral status dot.</div>
+
+<div class="frames">
+
+  <!-- FRAME 1 — STEP selected -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">5G ▮▮▮ &nbsp;100%</span></div>
+      <div class="nav"><span class="cancel">Cancel</span><span class="title">New step</span><span class="save">Save</span></div>
+
+      <div class="body">
+        <!-- type selector -->
+        <div class="typeseg">
+          <div class="typeopt step on">
+            <div class="check">✓</div>
+            <div class="g">📍</div>
+            <div class="t">Step</div>
+            <div class="d">Anything you do — practice, boat work, a debrief.</div>
+          </div>
+          <div class="typeopt race">
+            <div class="g">⛵</div>
+            <div class="t">Race</div>
+            <div class="d">An event on a course. Gets Atlas course &amp; marks.</div>
+          </div>
+        </div>
+        <div class="seg-note">Most steps are just <b>Step</b>. Mark a step a <b>Race</b> only when it happens on a course with marks — that's what unlocks the race grammar below.</div>
+
+        <!-- title / what -->
+        <div class="sec">
+          <div class="sec-h">What <span class="q">— the plan</span></div>
+          <div class="card">
+            <div class="titlefield">
+              <div class="g step">📍</div>
+              <input value="Light-air boat handling — tacks &amp; sets" />
+            </div>
+            <div class="field">
+              <div class="k">Notes</div>
+              <div class="v">Focus on slow-speed roll tacks and clean spinnaker sets in &lt;8 kts. Bring the new light #1.</div>
+              <div class="ai">✦ AI drafted from "light air practice"</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- substeps / how -->
+        <div class="sec">
+          <div class="sec-h">How <span class="q">— sub-steps</span></div>
+          <div class="card">
+            <div class="sub"><div class="box on">✓</div><div class="tx done">Rig light #1 + check leech tension</div></div>
+            <div class="sub"><div class="box"></div><div class="tx">8× roll tacks, both sides</div></div>
+            <div class="sub"><div class="box"></div><div class="tx">6× bear-away sets, time the hoist</div></div>
+            <div class="sub add"><div class="plus">+</div>Add sub-step</div>
+          </div>
+        </div>
+
+        <!-- capability / why -->
+        <div class="sec">
+          <div class="sec-h">Why <span class="q">— capability</span></div>
+          <div class="card">
+            <div class="chips">
+              <div class="cap">Boat handling</div>
+              <div class="cap">Light-air speed</div>
+              <div class="cap add">+ Link capability</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- people / who -->
+        <div class="sec">
+          <div class="sec-h">Who <span class="q">— people</span></div>
+          <div class="card">
+            <div class="person"><div class="av" style="background:#FF3B30">JM</div><div><div class="nm">Jamie Mok</div><div class="role">Bow / trim</div></div><div class="rel crew">Crew</div></div>
+            <div class="sub add" style="border:0"><div class="plus">+</div>Add person</div>
+          </div>
+        </div>
+
+        <!-- timing / when -->
+        <div class="sec">
+          <div class="sec-h">When <span class="q">— timing</span></div>
+          <div class="card">
+            <div class="field"><div class="k">Planned</div><div class="v">Sat 7 Jun · 14:00 · RHKYC</div></div>
+            <div class="toggle"><div class="tx"><div class="k">Time this step</div><div class="d">Stopwatch on the Do tab</div></div><div class="sw off"><div class="knob"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="fade"></div>
+      <div class="bigsave step">Save step</div>
+    </div>
+    <div class="col-cap"><span class="tag">1 · Step</span> The composer with <b>Step</b> selected — the universal skeleton: what, how, why, who, when. No course fields anywhere. This is ~80% of steps. AI can pre-draft the "what" and sub-steps.</div>
+  </div>
+
+  <!-- FRAME 2 — RACE selected (reveal) -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">5G ▮▮▮ &nbsp;100%</span></div>
+      <div class="nav"><span class="cancel">Cancel</span><span class="title">New race</span><span class="save">Save</span></div>
+
+      <div class="body">
+        <!-- type selector RACE on -->
+        <div class="typeseg">
+          <div class="typeopt step">
+            <div class="g">📍</div>
+            <div class="t">Step</div>
+            <div class="d">Anything you do — practice, boat work, a debrief.</div>
+          </div>
+          <div class="typeopt race on">
+            <div class="check">✓</div>
+            <div class="g">⛵</div>
+            <div class="t">Race</div>
+            <div class="d">An event on a course. Gets Atlas course &amp; marks.</div>
+          </div>
+        </div>
+
+        <div class="revealbar"><span class="ic">⛵</span>This step is a <b style="margin:0 3px">Race</b>— the race grammar below is now unlocked and it'll show ⛵ on Atlas.</div>
+
+        <!-- what -->
+        <div class="sec">
+          <div class="sec-h">What <span class="q">— the plan</span></div>
+          <div class="card">
+            <div class="titlefield">
+              <div class="g race">⛵</div>
+              <input value="RHKYC Spring Series · Race 4" />
+            </div>
+            <div class="field"><div class="k">Goal</div><div class="v">Top-5 finish; nail the pin-end start and protect the left.</div></div>
+          </div>
+        </div>
+
+        <!-- RACE-ONLY: course & marks -->
+        <div class="sec">
+          <div class="sec-h racey">Race area &amp; course <span class="q" style="color:rgba(37,99,235,.5)">— race only</span></div>
+          <div class="card race">
+            <div class="racemap">
+              <div class="windarrow">↓</div>
+              <div class="ra"><div class="ra-lbl">VICTORIA HARBOUR — AREA C</div></div>
+              <div class="startline"></div>
+              <div class="mk w"></div><div class="mk-lbl" style="left:50%;top:18%">Windward</div>
+              <div class="mk l"></div><div class="mk-lbl" style="left:34%;top:81%">Pin</div>
+              <div class="mk r"></div><div class="mk-lbl" style="left:66%;top:81%">Committee</div>
+              <div class="editpill">Edit course ›</div>
+            </div>
+            <div class="field"><div class="k">Course</div><div class="v">Windward–Leeward · 2 laps</div></div>
+          </div>
+        </div>
+
+        <!-- RACE-ONLY: marks list -->
+        <div class="sec">
+          <div class="sec-h racey">Race marks</div>
+          <div class="card race">
+            <div class="cond"><div class="ic" style="background:var(--mark)">①</div><div class="lab">Windward mark</div><div class="val">22.290, 114.176</div></div>
+            <div class="cond"><div class="ic" style="background:var(--mark)">②</div><div class="lab">Leeward gate</div><div class="val">Pin · Committee</div></div>
+            <div class="sub add" style="border:0"><div class="plus">+</div>Add mark</div>
+          </div>
+        </div>
+
+        <!-- RACE-ONLY: conditions -->
+        <div class="sec">
+          <div class="sec-h racey">Wind &amp; tide</div>
+          <div class="card race">
+            <div class="cond"><div class="ic wind">↓</div><div class="lab">Wind</div><div class="live">Live · 12 kt E</div></div>
+            <div class="cond"><div class="ic tide">≈</div><div class="lab">Tide / current</div><div class="live">Live · ebb 0.8 kt</div></div>
+            <div class="cond"><div class="ic wave">∿</div><div class="lab">Sea state</div><div class="val">Choppy · 0.5 m</div></div>
+          </div>
+        </div>
+
+        <!-- who (shared) -->
+        <div class="sec">
+          <div class="sec-h">Who <span class="q">— crew</span></div>
+          <div class="card">
+            <div class="person"><div class="av" style="background:#FF3B30">JM</div><div><div class="nm">Jamie Mok</div><div class="role">Bow</div></div><div class="rel crew">Crew</div></div>
+            <div class="person"><div class="av" style="background:#16A34A">PT</div><div><div class="nm">Coach Tan</div><div class="role">On-water debrief</div></div><div class="rel coach">Coach</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="fade"></div>
+      <div class="bigsave race">Save race</div>
+    </div>
+    <div class="col-cap"><span class="tag race">2 · Race</span> Same composer, <b>Race</b> selected. The reveal adds three race-only sections — <b>race area &amp; course</b>, <b>marks</b>, <b>wind &amp; tide</b> — wired to Atlas geometry &amp; live conditions. Flip back to Step and they collapse away.</div>
+  </div>
+
+  <!-- FRAME 3 — how the two land on Atlas -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">5G ▮▮▮ &nbsp;100%</span></div>
+      <div class="nav"><span class="cancel">‹ Atlas</span><span class="title">On the map</span><span class="save dim">Edit</span></div>
+
+      <div class="body" style="padding:16px">
+        <div class="seg-note" style="margin-bottom:14px">The flag is the <b>only</b> thing that changes how a step renders on Atlas. No keyword guessing, no 5-way legend.</div>
+
+        <!-- race rendering -->
+        <div class="sec">
+          <div class="sec-h racey">A Race step</div>
+          <div class="card race">
+            <div class="racemap" style="height:128px;border-radius:12px 12px 0 0">
+              <div class="windarrow">↓</div>
+              <div class="ra"><div class="ra-lbl">AREA C</div></div>
+              <div class="startline"></div>
+              <div class="mk w"></div><div class="mk l"></div><div class="mk r"></div>
+              <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:var(--race);border:2.5px solid #fff;box-shadow:0 2px 9px rgba(37,99,235,.55);display:flex;align-items:center;justify-content:center;font-size:15px">⛵</div>
+            </div>
+            <div class="field"><div class="v" style="font-size:13px;line-height:1.5">⛵ <b>blue pin inside its race-area polygon</b>. Tapping opens course geometry, marks, and the live wind/tide scrubber.</div></div>
+          </div>
+        </div>
+
+        <!-- plain step rendering -->
+        <div class="sec">
+          <div class="sec-h">A plain Step</div>
+          <div class="card">
+            <div class="racemap" style="height:128px;border-radius:12px 12px 0 0;background:radial-gradient(120% 90% at 50% 25%,#1C3A5E,#0E2138)">
+              <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:rgba(0,122,255,.92);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.5)"></div>
+              <div style="position:absolute;left:50%;top:calc(50% + 16px);transform:translateX(-50%);font-size:10px;font-weight:700;color:#fff;background:rgba(8,20,36,.72);padding:2px 7px;border-radius:7px;white-space:nowrap">Light-air practice</div>
+            </div>
+            <div class="field"><div class="v" style="font-size:13px;line-height:1.5">A <b>neutral status dot</b> at its location — color encodes done / planned, nothing else. No course, no marks.</div></div>
+          </div>
+        </div>
+
+        <!-- data note -->
+        <div class="sec">
+          <div class="sec-h">In the data</div>
+          <div class="card">
+            <div class="field"><div class="k">timeline_steps</div><div class="v" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">is_race <span style="color:var(--race);font-weight:700">boolean</span> default false</div></div>
+            <div class="field"><div class="v" style="font-size:12.5px;line-height:1.55;color:var(--label2)">Replaces the never-built <code>step_kind</code> enum and the keyword resolver in <code>step-kind-config.ts</code>. Race-only fields (course, marks) live on the existing race / racing-area tables, joined when <code>is_race</code>.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">3 · On Atlas</span> The payoff. <b>is_race=true</b> → ⛵ in a race-area polygon with course/marks/conditions. <b>is_race=false</b> → neutral status dot. The flag is set once, here in the composer.</div>
+  </div>
+
+</div>
+</body>
+</html>
