@@ -60,6 +60,7 @@ import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
 import { CreateRaceCourseSheet } from './CreateRaceCourseSheet';
 import { CourseStrategyCard, strategyHeadline } from './CourseStrategyCard';
 import { deriveCourseStrategy, type CourseStrategy } from '@/lib/courseStrategy';
+import { useShoreSide } from '@/hooks/useShoreSide';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
@@ -1935,6 +1936,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     const deg = Number((windConditionsLine ?? '').split('|')[0]);
     return Number.isFinite(deg) ? deg : 0;
   }, [windConditionsLine]);
+  // Which side of the beat the shore/shoaling is on, from GEBCO bathymetry —
+  // feeds the strategy's shore-bend note. Keyed to the base (now) wind axis so
+  // it stays put as the scrub slider veers the projected breeze.
+  const shoreSide = useShoreSide({
+    centerLat: mapCenter.lat,
+    centerLng: mapCenter.lng,
+    windDirection: defaultCourseWindDeg,
+    enabled: showCourse || showWind,
+  });
   const scrubWindows = useMemo(
     () => [
       {
@@ -1976,8 +1986,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       windSpeedKn: wind.kn,
       currentDirection: current?.deg,
       currentSpeedKn: current?.kn,
+      shoreSide,
     });
-  }, [scrubWindow.wind, scrubWindow.tide]);
+  }, [scrubWindow.wind, scrubWindow.tide, shoreSide]);
   const windSourceLabel = useMemo(() => {
     if (hkoWind) return `${hkoWind.place} obs`;
     if (marineSnapshot?.wind) return 'JMA model';
