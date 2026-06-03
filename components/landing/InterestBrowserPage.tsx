@@ -10,10 +10,55 @@ import { useAuth } from '@/providers/AuthProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { supabase } from '@/services/supabase';
 import { useMarketplaceBlueprints, type AuthorTone, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
+import { pickSquareMarkColor, pickAvatarMarkColor, initialsForName } from '@/components/discover/canonical/CanonicalDiscoverCells';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 
 interface InterestBrowserPageProps {
   slug: string;
+}
+
+// Groups identity — teal, matching the app's mobile Groups zone (#14B8A6).
+const GROUP_TEAL = '#14B8A6';
+const GROUP_TEAL_SOFT = '#DAF5F1';
+const GROUP_TEAL_DEEP = '#0F766E';
+const GROUP_COHORT = '#5C6BC0';
+const AXIS_PEER = '#2E7D32';
+const AXIS_SEASONAL = '#0EA5E9';
+
+// An org's `groups` are only joinable peer-groups (fleets, circles, chapters)
+// when the label isn't one of these structural/curriculum/retail buckets.
+// Denylist (not allowlist) so a new persona group-noun is included by default.
+const STRUCTURAL_GROUP_LABELS = new Set([
+  'Programs', 'Departments', 'Units', 'Products', 'Studios',
+  'Workshops', 'Collections', 'Concentrations', 'Retreats', 'Courses',
+]);
+
+function singularize(label: string): string {
+  if (label.endsWith('ies')) return `${label.slice(0, -3)}y`;
+  if (label.endsWith('s')) return label.slice(0, -1);
+  return label;
+}
+
+type GroupArchetype = 'peer' | 'cohort';
+
+interface GroupVM {
+  key: string;
+  title: string;
+  noun: string;          // singular persona noun: Fleet, Circle, Cohort
+  pluralNoun: string;    // band key: Fleets, Circles, Cohorts
+  orgName: string;
+  orgSlug: string;
+  archetype: GroupArchetype;
+  markColor: string;
+  initials: string;
+  roster: { initials: string; tone: string }[];
+  memberCount: number;
+}
+
+interface GroupBand {
+  label: string;
+  archetype: GroupArchetype;
+  items: GroupVM[];
 }
 
 // Marketing/route slug → DB interest-catalog slug. The app routes and code maps
@@ -28,7 +73,7 @@ const INTEREST_SLUG_ALIASES: Record<string, string> = {
   'regenerative-agriculture': 'agriculture-environment',
 };
 
-type TierTab = 'blueprints' | 'organizations' | 'people' | 'about';
+type TierTab = 'blueprints' | 'organizations' | 'groups' | 'people' | 'about';
 
 // Author-avatar tone → hex, mirrors app/marketplace/index.tsx so the same
 // blueprint renders identically on the interest page and the storefront.
@@ -115,6 +160,70 @@ function BlueprintMarketCard({ plan, wide }: { plan: MarketplaceBlueprint; wide:
   );
 }
 
+// ── Group card (square mark → kind line → axis chips → roster + CTA) ──
+// One card type for fleets and cohorts; the three axis chips are data, and
+// they compute the footer CTA (peer→Join, program-owned→Placed by program).
+
+function AxisChip({ icon, label, tint }: { icon: keyof typeof Ionicons.glyphMap; label: string; tint: string }) {
+  return (
+    <View style={styles.axisChip}>
+      <Ionicons name={icon} size={12} color={tint} />
+      <Text style={styles.axisChipText}>{label}</Text>
+    </View>
+  );
+}
+
+function GroupCard({ group, onJoin }: { group: GroupVM; onJoin: () => void }) {
+  const peer = group.archetype === 'peer';
+  return (
+    <View style={styles.gcard}>
+      <View style={styles.ghead}>
+        <View style={[styles.gmark, { backgroundColor: group.markColor }]}>
+          <Text style={styles.gmarkText}>{group.initials}</Text>
+        </View>
+        <View style={styles.gheadCol}>
+          <Text style={styles.gtitle} numberOfLines={2}>{group.title}</Text>
+          <Text style={styles.gkind} numberOfLines={1}>{group.noun} · {group.orgName}</Text>
+        </View>
+      </View>
+      <View style={styles.axes}>
+        {peer ? (
+          <>
+            <AxisChip icon="time-outline" label="Standing" tint={GROUP_TEAL} />
+            <AxisChip icon="cash-outline" label="Members pay" tint="#9AA0A8" />
+            <AxisChip icon="git-network-outline" label="Peer-run" tint={AXIS_PEER} />
+          </>
+        ) : (
+          <>
+            <AxisChip icon="time-outline" label="Seasonal" tint={AXIS_SEASONAL} />
+            <AxisChip icon="cash-outline" label="Program owns seats" tint="#9AA0A8" />
+            <AxisChip icon="git-network-outline" label="Faculty-led" tint={GROUP_COHORT} />
+          </>
+        )}
+      </View>
+      <View style={styles.gfoot}>
+        <View style={styles.roster}>
+          {group.roster.map((m, i) => (
+            <View key={i} style={[styles.rosterAvi, { backgroundColor: m.tone }, i > 0 && styles.rosterAviOverlap]}>
+              <Text style={styles.rosterAviText}>{m.initials}</Text>
+            </View>
+          ))}
+          <Text style={styles.rosterMore}>{group.memberCount} {peer ? 'members' : 'students'}</Text>
+        </View>
+        {peer ? (
+          <TouchableOpacity style={styles.joinBtn} activeOpacity={0.85} onPress={onJoin}>
+            <Text style={styles.joinBtnText}>Join</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.placedPill}>
+            <Text style={styles.placedPillText}>Placed by program</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
   const interest = getInterest(slug);
   // Marketing/route slugs are richer than the DB interest catalog (the code
@@ -134,7 +243,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
   const scrollRef = useRef<ScrollView>(null);
   const bodyTop = useRef(0);
   const bodyInnerTop = useRef(0);
-  const sectionRelY = useRef<Record<TierTab, number>>({ blueprints: 0, organizations: 0, people: 0, about: 0 });
+  const sectionRelY = useRef<Record<TierTab, number>>({ blueprints: 0, organizations: 0, groups: 0, people: 0, about: 0 });
 
   const goToTab = (key: TierTab) => {
     setActiveTab(key);
@@ -228,6 +337,69 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
     return [...map.values()];
   }, [interestPlans, interest]);
 
+  // Groups = fleets/circles (peer) + cohorts (placed), derived from the same
+  // sample orgs the page already uses. Fleets live as joinable peer-groups
+  // under orgs; cohorts are program-owned. No interest-scoped public RPC yet,
+  // so this mirrors how Organizations/People are sourced on this page.
+  const groupBands = useMemo<GroupBand[]>(() => {
+    if (!interest) return [];
+    const makeVM = (
+      title: string,
+      org: { slug: string; name: string },
+      archetype: GroupArchetype,
+      noun: string,
+      pluralNoun: string,
+      members: { name: string }[] | undefined,
+    ): GroupVM => ({
+      key: `${org.slug}:${title}`,
+      title,
+      noun,
+      pluralNoun,
+      orgName: org.name,
+      orgSlug: org.slug,
+      archetype,
+      markColor: pickSquareMarkColor(title),
+      initials: initialsForName(title),
+      roster: (members ?? []).slice(0, 4).map((m) => ({
+        initials: initialsForName(m.name),
+        tone: pickAvatarMarkColor(m.name),
+      })),
+      memberCount: (members ?? []).length,
+    });
+
+    const vms: GroupVM[] = [];
+    for (const org of interest.organizations) {
+      if (!STRUCTURAL_GROUP_LABELS.has(org.groupLabel)) {
+        for (const g of org.groups ?? []) {
+          vms.push(makeVM(g.name, org, 'peer', singularize(org.groupLabel), org.groupLabel, g.people));
+        }
+      }
+      for (const c of org.cohorts ?? []) {
+        vms.push(makeVM(c.name, org, 'cohort', 'Cohort', 'Cohorts', c.people));
+      }
+    }
+
+    const order: string[] = [];
+    const byBand = new Map<string, GroupVM[]>();
+    for (const vm of vms) {
+      if (!byBand.has(vm.pluralNoun)) {
+        byBand.set(vm.pluralNoun, []);
+        order.push(vm.pluralNoun);
+      }
+      byBand.get(vm.pluralNoun)!.push(vm);
+    }
+    return order.map((label) => ({
+      label,
+      archetype: byBand.get(label)![0].archetype,
+      items: byBand.get(label)!,
+    }));
+  }, [interest]);
+
+  const groupCount = useMemo(
+    () => groupBands.reduce((n, b) => n + b.items.length, 0),
+    [groupBands],
+  );
+
   // Stat counters
   const fromPrice = useMemo(() => {
     const paid = interestPlans.filter((p) => p.pricePerSeatCents > 0);
@@ -302,6 +474,7 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
   const tabs: { key: TierTab; label: string; verb?: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { key: 'blueprints', label: 'Blueprints', verb: 'subscribe', icon: 'map-outline' },
     { key: 'organizations', label: 'Organizations', verb: 'join', icon: 'business-outline' },
+    { key: 'groups', label: 'Groups', verb: 'join', icon: 'flag-outline' },
     { key: 'people', label: 'People', verb: 'follow', icon: 'people-outline' },
     { key: 'about', label: 'About', icon: 'information-circle-outline' },
   ];
@@ -364,6 +537,10 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
             <View style={styles.stat}>
               <Text style={styles.statNum}>{organizations.length}</Text>
               <Text style={styles.statLabel}>{organizations.length === 1 ? 'Organization' : 'Organizations'}</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statNum}>{groupCount}</Text>
+              <Text style={styles.statLabel}>{groupCount === 1 ? 'Group' : 'Groups'}</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statNum}>{people.length}</Text>
@@ -481,6 +658,54 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
                     </View>
                   ))}
                 </View>
+              )}
+            </View>
+
+          <View
+            nativeID="ip-section-groups"
+            onLayout={(e) => { sectionRelY.current.groups = e.nativeEvent.layout.y; }}
+            style={[styles.section, styles.sectionAnchor]}
+          >
+              <View style={styles.secHead}>
+                <View style={styles.secHeadLeft}>
+                  <Text style={styles.secTitle}>Groups</Text>
+                  <View style={styles.verbPillTeal}><Text style={styles.verbPillTealText}>join</Text></View>
+                </View>
+              </View>
+              <Text style={styles.secNote}>
+                A group is the unit you move through the work with — a sailor&apos;s fleet, a student&apos;s
+                cohort. Join one to share a calendar, adopt the same blueprints, and track progress together.
+              </Text>
+              {groupBands.length === 0 ? (
+                <Text style={styles.emptyText}>No groups listed for {interest.name.toLowerCase()} yet.</Text>
+              ) : (
+                groupBands.map((band) => (
+                  <View key={band.label}>
+                    <View style={styles.grpBand}>
+                      <View style={[styles.grpBandDot, { backgroundColor: band.archetype === 'peer' ? GROUP_TEAL : GROUP_COHORT }]} />
+                      <Text style={styles.grpBandLabel}>{band.label}</Text>
+                      <Text style={styles.grpBandCaption}>
+                        {band.archetype === 'peer' ? 'members-run · join to take part' : 'placed by program'}
+                      </Text>
+                      <View style={styles.grpBandRule} />
+                    </View>
+                    <View style={[styles.row2, isDesktop && styles.row2Desktop]}>
+                      {band.items.map((g) => (
+                        <GroupCard
+                          key={g.key}
+                          group={g}
+                          onJoin={() => {
+                            if (!isLoggedIn) {
+                              router.push({ pathname: '/(auth)/signup', params: { interest: slug } } as any);
+                              return;
+                            }
+                            router.push(`/${slug}/${g.orgSlug}` as any);
+                          }}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ))
               )}
             </View>
 
@@ -1090,6 +1315,182 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#14161A',
+  },
+  // ── Groups tier ──
+  verbPillTeal: {
+    paddingVertical: 3,
+    paddingHorizontal: 9,
+    borderRadius: 20,
+    backgroundColor: GROUP_TEAL_SOFT,
+  },
+  verbPillTealText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: GROUP_TEAL_DEEP,
+  },
+  secNote: {
+    fontSize: 13.5,
+    color: '#6B7079',
+    lineHeight: 20,
+    marginTop: -6,
+    marginBottom: 16,
+    maxWidth: 640,
+  },
+  grpBand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginTop: 14,
+    marginBottom: 12,
+  },
+  grpBandDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  grpBandLabel: {
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    fontWeight: '700',
+    color: '#6B7079',
+  },
+  grpBandCaption: {
+    fontSize: 11,
+    color: '#9AA0A8',
+  },
+  grpBandRule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E6E4DD',
+  },
+  row2: {
+    gap: 14,
+  },
+  row2Desktop: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  gcard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E6E4DD',
+    borderRadius: 14,
+    padding: 16,
+    gap: 11,
+    ...Platform.select({ web: { width: 'calc(50% - 7px)' as any, minWidth: 280 } }),
+  },
+  ghead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  gmark: {
+    width: 44,
+    height: 44,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gmarkText: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    color: '#FFFFFF',
+  },
+  gheadCol: {
+    flex: 1,
+  },
+  gtitle: {
+    fontSize: 15.5,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+    lineHeight: 20,
+    color: '#14161A',
+  },
+  gkind: {
+    fontSize: 12.5,
+    color: '#6B7079',
+    marginTop: 2,
+  },
+  axes: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  axisChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 3,
+    paddingLeft: 7,
+    paddingRight: 9,
+    borderRadius: 7,
+    backgroundColor: '#F3F1EA',
+  },
+  axisChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#3C4048',
+  },
+  gfoot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#EFEDE6',
+    paddingTop: 12,
+  },
+  roster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rosterAvi: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rosterAviOverlap: {
+    marginLeft: -7,
+  },
+  rosterAviText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  rosterMore: {
+    fontSize: 12,
+    color: '#6B7079',
+    marginLeft: 8,
+  },
+  joinBtn: {
+    backgroundColor: GROUP_TEAL,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    ...Platform.select({ web: { cursor: 'pointer' } }),
+  },
+  joinBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  placedPill: {
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F3F1EA',
+  },
+  placedPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#9AA0A8',
   },
   // ── About ──
   aboutBody: {
