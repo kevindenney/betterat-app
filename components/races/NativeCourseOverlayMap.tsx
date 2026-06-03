@@ -11,7 +11,7 @@
  */
 
 import React, { useMemo, useRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import {
   Map as MLMap,
   Camera as MLCamera,
@@ -22,6 +22,7 @@ import {
 } from '@maplibre/maplibre-react-native';
 import type { PositionedCourse, StartLinePosition } from '@/types/courses';
 import { type Coord, deriveCourseOverlay, lerpCoord } from '@/lib/courseGeometry';
+import { type CourseStrategy, deriveCourseStrategy } from '@/lib/courseStrategy';
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
@@ -68,16 +69,26 @@ const MARK_COLORS: Record<string, string> = {
 interface NativeCourseOverlayMapProps {
   positionedCourse: PositionedCourse;
   windDirection: number;
+  /** Wind speed (kn) — only used to modulate the strategy panel's advice. */
+  windSpeed?: number;
   currentDirection?: number;
   currentSpeed?: number;
+  /**
+   * Overlay a tactical strategy panel (start + upwind/downwind, keyed to the
+   * thirds + favored side). Off by default so existing read-only tiles
+   * (CourseMapTile, CoursePositionEditor) keep their bare-map footprint.
+   */
+  showStrategy?: boolean;
   style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
 }
 
 export function NativeCourseOverlayMap({
   positionedCourse,
   windDirection,
+  windSpeed,
   currentDirection,
   currentSpeed,
+  showStrategy = false,
   style,
 }: NativeCourseOverlayMapProps) {
   const cameraRef = useRef<CameraRef>(null);
@@ -97,6 +108,14 @@ export function NativeCourseOverlayMap({
         currentSpeed,
       }),
     [marks, windDirection, currentDirection, currentSpeed, startLine],
+  );
+
+  const strategy = useMemo<CourseStrategy | null>(
+    () =>
+      showStrategy
+        ? deriveCourseStrategy({ windDirection, windSpeedKn: windSpeed, currentDirection, currentSpeedKn: currentSpeed })
+        : null,
+    [showStrategy, windDirection, windSpeed, currentDirection, currentSpeed],
   );
 
   const initialView = useMemo(() => {
@@ -472,7 +491,69 @@ export function NativeCourseOverlayMap({
           </>
         ) : null}
       </MLMap>
+
+      {strategy ? <StrategyPanel strategy={strategy} /> : null}
     </View>
+  );
+}
+
+const SIDE_LABEL: Record<'left' | 'right' | 'even', string> = {
+  left: 'LEFT',
+  right: 'RIGHT',
+  even: 'EVEN',
+};
+const END_LABEL: Record<'pin' | 'committee' | 'even', string> = {
+  pin: 'PIN',
+  committee: 'BOAT',
+  even: 'EVEN',
+};
+
+function FavoredTag({ favored, label }: { favored: boolean; label: string }) {
+  return (
+    <View style={[panelStyles.tag, favored && panelStyles.tagFavored]}>
+      <Text style={[panelStyles.tagText, favored && panelStyles.tagTextFavored]}>{label}</Text>
+    </View>
+  );
+}
+
+function StrategyPanel({ strategy }: { strategy: CourseStrategy }) {
+  const { start, upwind, downwind } = strategy;
+  return (
+    <ScrollView
+      style={panelStyles.panel}
+      contentContainerStyle={panelStyles.panelContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={panelStyles.row}>
+        <Text style={panelStyles.heading}>START</Text>
+        <FavoredTag favored={start.favoredEnd !== 'even'} label={END_LABEL[start.favoredEnd]} />
+      </View>
+      <Text style={panelStyles.body}>{start.text}</Text>
+
+      <View style={panelStyles.row}>
+        <Text style={panelStyles.heading}>UPWIND</Text>
+        <FavoredTag favored={upwind.favoredSide !== 'even'} label={SIDE_LABEL[upwind.favoredSide]} />
+      </View>
+      <Text style={panelStyles.body}>{upwind.summary}</Text>
+      {upwind.thirds.map((t) => (
+        <View key={`up-${t.third}`} style={panelStyles.thirdRow}>
+          <Text style={panelStyles.thirdTag}>{t.third.toUpperCase()} ⅓</Text>
+          <Text style={panelStyles.thirdBody}>{t.text}</Text>
+        </View>
+      ))}
+
+      <View style={panelStyles.row}>
+        <Text style={panelStyles.heading}>DOWNWIND</Text>
+        <FavoredTag favored={downwind.favoredSide !== 'even'} label={SIDE_LABEL[downwind.favoredSide]} />
+      </View>
+      <Text style={panelStyles.body}>{downwind.summary}</Text>
+      {downwind.thirds.map((t) => (
+        <View key={`dn-${t.third}`} style={panelStyles.thirdRow}>
+          <Text style={panelStyles.thirdTag}>{t.third.toUpperCase()} ⅓</Text>
+          <Text style={panelStyles.thirdBody}>{t.text}</Text>
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -586,5 +667,76 @@ const overlayStyles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '600',
     color: '#86efac',
+  },
+});
+
+const panelStyles = StyleSheet.create({
+  panel: {
+    position: 'absolute',
+    left: 8,
+    right: 8,
+    bottom: 8,
+    maxHeight: '58%',
+    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.25)',
+  },
+  panelContent: {
+    padding: 10,
+    gap: 4,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  heading: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#e2e8f0',
+    letterSpacing: 1.2,
+  },
+  tag: {
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: 'rgba(148, 163, 184, 0.18)',
+  },
+  tagFavored: {
+    backgroundColor: 'rgba(22, 101, 52, 0.85)',
+  },
+  tagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94a3b8',
+    letterSpacing: 1,
+  },
+  tagTextFavored: {
+    color: '#86efac',
+  },
+  body: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: 'rgba(226, 232, 240, 0.85)',
+  },
+  thirdRow: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingLeft: 4,
+  },
+  thirdTag: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#7dd3fc',
+    width: 56,
+    letterSpacing: 0.3,
+  },
+  thirdBody: {
+    flex: 1,
+    fontSize: 10,
+    lineHeight: 14,
+    color: 'rgba(203, 213, 225, 0.75)',
   },
 });
