@@ -22,6 +22,12 @@ interface PlanStepRaceSelectorProps {
   readOnly?: boolean;
   /** Opens the race area & course authoring flow (on-water screen). */
   onOpenRaceCourse?: () => void;
+  /**
+   * Suppress the "Race area & course ›" reveal row when course authoring is
+   * handled inline below this selector (the + composer renders RaceCoursePicker
+   * directly), so the toggle doesn't show a redundant dead navigation row.
+   */
+  hideCourseReveal?: boolean;
 }
 
 export function PlanStepRaceSelector({
@@ -29,6 +35,7 @@ export function PlanStepRaceSelector({
   onChange,
   readOnly,
   onOpenRaceCourse,
+  hideCourseReveal,
 }: PlanStepRaceSelectorProps) {
   return (
     <View style={styles.wrap}>
@@ -57,7 +64,7 @@ export function PlanStepRaceSelector({
           a step a <Text style={styles.noteStrong}>Race</Text> only when it
           happens on a course with marks — that unlocks the race grammar.
         </Text>
-      ) : (
+      ) : hideCourseReveal ? null : (
         <Pressable
           style={({ pressed }) => [styles.revealRow, pressed && styles.revealPressed]}
           onPress={readOnly ? undefined : onOpenRaceCourse}

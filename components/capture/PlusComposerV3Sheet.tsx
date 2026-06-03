@@ -280,7 +280,11 @@ export function PlusComposerV3Sheet({
 
             {showRaceSelector ? (
               <View style={styles.raceSelectorSlot}>
-                <PlanStepRaceSelector isRace={isRace} onChange={setIsRace} />
+                <PlanStepRaceSelector
+                  isRace={isRace}
+                  onChange={setIsRace}
+                  hideCourseReveal
+                />
                 {isRace ? (
                   <View style={styles.raceCourseSlot}>
                     <RaceCoursePicker
