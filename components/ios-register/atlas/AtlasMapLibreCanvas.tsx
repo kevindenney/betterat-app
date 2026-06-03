@@ -1802,14 +1802,19 @@ function createWebArrowElement(pin: AtlasPinSpec) {
   // tide does not.
   const rotateDeg = isWind ? (deg + 180) % 360 : deg;
 
-  const glyphSize = isField ? 16 : 26;
+  // Pressure-encode wind field arrows: size + ink scale with knots so the
+  // field reads breeze strength at a glance (mirror of the native path).
+  const windT = Math.max(0, Math.min(28, knots)) / 28;
+  const windFieldSize = 12 + windT * 11;
+  const windFieldAlpha = (0.4 + windT * 0.42).toFixed(2);
+  const glyphSize = isField ? (isWind ? windFieldSize : 16) : 26;
   const glyph = document.createElement('div');
   glyph.style.fontSize = `${glyphSize}px`;
   glyph.style.lineHeight = '1';
   glyph.style.transform = `rotate(${rotateDeg}deg)`;
   glyph.style.color = isField
     ? isWind
-      ? 'rgba(113, 143, 168, 0.78)'
+      ? `rgba(113, 143, 168, ${windFieldAlpha})`
       : isWave
         ? 'rgba(110, 108, 200, 0.78)'
         : 'rgba(96, 130, 138, 0.78)'
@@ -2222,16 +2227,23 @@ function LabeledPin({
     const waveM = waveStr ? Number(waveStr) : null;
     const source = sourceStr && sourceStr.length > 0 ? sourceStr : null;
     // Primary arrow takes Beaufort-band color so the user sees sail-choice
-    // bands at a glance; field arrows stay soft slate so the dense grid
-    // reads as ambience, not 16 simultaneous foreground signals.
+    // bands at a glance; field arrows stay soft slate so the sparse grid
+    // reads as ambience, not a wall of foreground signals.
     const primaryColor = windColorForKnots(knots, 0.95);
+    // Pressure-encode the field: a glance at arrow weight (length + ink)
+    // should read the breeze strength, so a 6kn drift and a 22kn blow
+    // don't look identical. Scale size 14→26 and alpha 0.40→0.82 across
+    // 0–28kn so light air whispers and fresh breeze reads bold.
+    const t = Math.max(0, Math.min(28, knots)) / 28;
+    const fieldSize = 14 + t * 12;
+    const fieldOpacity = 0.4 + t * 0.42;
     return (
       <View style={isField ? styles.windFieldWrap : styles.windArrowWrap}>
         <View style={[isField ? styles.fieldArrowDisc : styles.arrowDisc, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
           <Ionicons
             name="arrow-up"
-            size={isField ? 20 : 32}
-            color={isField ? 'rgba(113, 143, 168, 0.78)' : primaryColor}
+            size={isField ? fieldSize : 32}
+            color={isField ? `rgba(113, 143, 168, ${fieldOpacity.toFixed(2)})` : primaryColor}
           />
         </View>
         {!isField && knots > 0 ? (

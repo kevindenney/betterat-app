@@ -12,7 +12,7 @@
  *   • Future: real weather_conditions row tied to the event's venue +
  *     start time. Schema is there; ingest pipeline is separate work.
  *
- * Grid: 4 rows × 4 cols spaced ~1km apart, anchored on the bbox center.
+ * Grid: 3 rows × 3 cols spaced ~1.6km apart, anchored on the bbox center.
  * Each arrow is a wind-vector pin (kind='wind-arrow') with a heading
  * stashed in clusterCount (re-using the existing pin spec — wind arrows
  * never cluster, the field is a non-counted heading).
@@ -29,9 +29,9 @@ interface UseWindOverlayArgs {
   conditionsLine?: string;
   /** Disable the overlay (e.g. wrong frame). */
   enabled?: boolean;
-  /** Grid spacing in km. Default 1.2. */
+  /** Grid spacing in km. Default 1.6. */
   spacingKm?: number;
-  /** Grid side length (n × n). Default 4. */
+  /** Grid side length (n × n). Default 3. */
   gridSize?: number;
   /**
    * Water-anchored arrow positions. When provided, ONE arrow renders at
@@ -113,8 +113,8 @@ export function useWindOverlay({
   centerLng,
   conditionsLine,
   enabled = true,
-  spacingKm = 1.2,
-  gridSize = 4,
+  spacingKm = 1.6,
+  gridSize = 3,
   waterAnchors,
   waveHeightMeters,
   source,
