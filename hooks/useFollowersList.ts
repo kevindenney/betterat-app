@@ -2,7 +2,7 @@
  * useFollowersList - Hook for fetching followers or following list
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { SailorProfileService } from '@/services/SailorProfileService';
@@ -25,7 +25,8 @@ export function useFollowersList(
 ) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
+  // Optimistic overrides applied on top of the server's isFollowing flags.
+  const [overrides, setOverrides] = useState<Map<string, boolean>>(new Map());
 
   const {
     data,
@@ -59,16 +60,23 @@ export function useFollowersList(
     staleTime: 5 * 60 * 1000,
   });
 
-  // Flatten pages and update followed IDs
-  const users: UserListItem[] =
-    data?.pages.flatMap((page) => page.users) || [];
+  const users: UserListItem[] = useMemo(
+    () => data?.pages.flatMap((page) => page.users) ?? [],
+    [data]
+  );
 
-  useEffect(() => {
-    const ids = new Set(
-      users.filter((u) => u.isFollowing).map((u) => u.userId)
-    );
-    setFollowedIds(ids);
-  }, [users]);
+  // Derive the followed set from server data, then apply optimistic overrides.
+  const followedIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const u of users) {
+      if (u.isFollowing) ids.add(u.userId);
+    }
+    for (const [uid, following] of overrides) {
+      if (following) ids.add(uid);
+      else ids.delete(uid);
+    }
+    return ids;
+  }, [users, overrides]);
 
   // Follow mutation
   const followMutation = useMutation({
@@ -78,7 +86,7 @@ export function useFollowersList(
       return targetUserId;
     },
     onSuccess: (targetUserId) => {
-      setFollowedIds((prev) => new Set([...prev, targetUserId]));
+      setOverrides((prev) => new Map(prev).set(targetUserId, true));
       queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
     },
   });
@@ -91,11 +99,7 @@ export function useFollowersList(
       return targetUserId;
     },
     onSuccess: (targetUserId) => {
-      setFollowedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(targetUserId);
-        return next;
-      });
+      setOverrides((prev) => new Map(prev).set(targetUserId, false));
       queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
     },
   });
@@ -122,6 +126,11 @@ export function useFollowersList(
     await refetch();
   }, [refetch]);
 
+  const isFollowing = useCallback(
+    (uid: string) => followedIds.has(uid),
+    [followedIds]
+  );
+
   return {
     users,
     isLoading,
@@ -131,6 +140,6 @@ export function useFollowersList(
     isLoadingMore: isFetchingNextPage,
     refresh,
     toggleFollow,
-    isFollowing: (uid: string) => followedIds.has(uid),
+    isFollowing,
   };
 }
