@@ -1269,13 +1269,12 @@ function shiftConditionsLine(
   return `${nextDirection}|${Number(nextSpeed.toFixed(1))}`;
 }
 
-function formatConditionsSummary(label: string, line: string | null | undefined): string | null {
-  if (!line) return null;
-  const [directionRaw, speedRaw] = line.split('|');
-  const direction = Number(directionRaw);
-  const speed = Number(speedRaw);
-  if (!Number.isFinite(direction) || !Number.isFinite(speed)) return null;
-  return `${label} ${Math.round(direction)}° ${speed.toFixed(1)} kn`;
+// Label-less variant for the cockpit gauge cells — the cell's own caption
+// carries the "WIND"/"TIDE" label, so the value reads as a bold figure.
+function formatConditionsValue(line: string | null | undefined): string | null {
+  const parsed = parseConditionsLine(line);
+  if (!parsed) return null;
+  return `${Math.round(parsed.deg)}° · ${parsed.kn.toFixed(1)} kn`;
 }
 
 // ---------------------------------------------------------------------------
@@ -2556,12 +2555,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             windows={scrubWindows.map((w) => w.label)}
             value={scrubIndex}
             onChange={setScrubIndex}
-            summary={[
-              showWind ? formatConditionsSummary('Wind', scrubWindow.wind) : null,
-              showTide ? formatConditionsSummary('Tide', scrubWindow.tide) : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
+            metrics={[
+              showWind
+                ? { label: 'Wind', value: formatConditionsValue(scrubWindow.wind) }
+                : null,
+              showTide
+                ? { label: 'Tide', value: formatConditionsValue(scrubWindow.tide) }
+                : null,
+            ].filter(
+              (m): m is { label: string; value: string } =>
+                m != null && m.value != null,
+            )}
             strategy={courseStrategy}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           />
@@ -4887,14 +4891,14 @@ function WindTideScrubber({
   windows,
   value,
   onChange,
-  summary,
+  metrics,
   strategy,
   bottomOffset = 0,
 }: {
   windows: string[];
   value: number;
   onChange: (value: number) => void;
-  summary: string;
+  metrics: { label: string; value: string }[];
   strategy: CourseStrategy | null;
   bottomOffset?: number;
 }) {
@@ -4915,10 +4919,17 @@ function WindTideScrubber({
             {windows[Math.min(value, windows.length - 1)]?.toUpperCase()}
           </Text>
         </View>
-        {summary ? (
-          <Text style={shellStyles.windTideScrubberSummary} numberOfLines={1}>
-            {summary}
-          </Text>
+        {metrics.length > 0 ? (
+          <View style={cockpitStyles.gaugeRow}>
+            {metrics.map((m) => (
+              <View key={m.label} style={cockpitStyles.gaugeCell}>
+                <Text style={cockpitStyles.gaugeLabel}>{m.label.toUpperCase()}</Text>
+                <Text style={cockpitStyles.gaugeValue} numberOfLines={1}>
+                  {m.value}
+                </Text>
+              </View>
+            ))}
+          </View>
         ) : null}
         <Slider
           minimumValue={0}
@@ -4972,6 +4983,30 @@ function WindTideScrubber({
     </View>
   );
 }
+
+const cockpitStyles = StyleSheet.create({
+  gaugeRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  gaugeCell: {
+    flex: 1,
+    gap: 2,
+  },
+  gaugeLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: IOS_REGISTER.labelTertiary,
+  },
+  gaugeValue: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+    color: IOS_REGISTER.label,
+  },
+});
 
 const scrubberStrategyStyles = StyleSheet.create({
   toggle: {
