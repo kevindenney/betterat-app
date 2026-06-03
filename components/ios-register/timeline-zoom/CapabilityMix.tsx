@@ -59,6 +59,12 @@ interface CapabilityMixProps {
    */
   isolatedCapabilityId?: string | null;
   /**
+   * Write each capability's name inside its widest band. L3 turns this
+   * off — the CAPABILITIES pills below the chart carry the labels now,
+   * so the band geometry stays clean. L4 keeps it on (no pill row there).
+   */
+  showBandLabels?: boolean;
+  /**
    * Override the tick label for the x-axis. L3 defaults to "wk N";
    * L4 passes a function that returns the session label ("Winter '26",
    * "Fall '24") for each unit.
@@ -119,6 +125,7 @@ export function CapabilityMix({
   markers = [],
   onCapabilityPress,
   isolatedCapabilityId = null,
+  showBandLabels = true,
   unitLabel = (n) => `wk ${n}`,
 }: CapabilityMixProps) {
   const padX = 12;
@@ -415,8 +422,10 @@ export function CapabilityMix({
           );
         })}
 
-        {/* In-band labels. Each capability names itself in its band. */}
-        {labels.map((l) => (
+        {/* In-band labels. Each capability names itself in its band.
+            L3 suppresses these (showBandLabels=false) — the CAPABILITIES
+            pills below carry the labels, keeping the band geometry clean. */}
+        {showBandLabels && labels.map((l) => (
           <SvgText
             key={`label-${l.bandId}`}
             x={l.x}

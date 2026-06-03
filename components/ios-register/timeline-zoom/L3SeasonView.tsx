@@ -552,6 +552,7 @@ export function L3SeasonView({
                 width={riverWidth}
                 height={188}
                 isolatedCapabilityId={activeThread?.id ?? null}
+                showBandLabels={false}
                 onCapabilityPress={(id, label, color) =>
                   toggleThread({ id, label, color })
                 }
@@ -595,6 +596,7 @@ export function L3SeasonView({
                 <CrewSparseList
                   peers={analysis.peers}
                   totalWeeks={totalWeeks}
+                  isolatedPeerId={activePerson?.id ?? null}
                 />
               ) : (
                 <PeerJourneyChart
@@ -606,6 +608,7 @@ export function L3SeasonView({
                   showRole
                   peerSharedFleets={fleetCohort?.peerToFleets}
                   viewerFleets={fleetCohort?.fleets}
+                  isolatedPeerId={activePerson?.id ?? null}
                 />
               )}
             </>

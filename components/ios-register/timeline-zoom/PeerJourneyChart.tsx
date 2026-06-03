@@ -27,7 +27,7 @@
 
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Line, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Text as SvgText } from 'react-native-svg';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import type { SeasonPeer } from './types';
 import type { FleetRef } from '@/hooks/useViewerFleetCohort';
@@ -53,6 +53,13 @@ interface PeerJourneyChartProps {
   /** Viewer's own active fleets, in declared order. Drives the group
    *  rendering order so the chart reads "your home fleet first". */
   viewerFleets?: FleetRef[];
+  /**
+   * When set, the chart isolates this peer: their row + legend entry
+   * keep full saturation while every other peer dims to a context wash.
+   * Mirrors CapabilityMix's isolatedCapabilityId so tapping a WHO SHAPED
+   * IT pill lights up that person's thread in the spine.
+   */
+  isolatedPeerId?: string | null;
 }
 
 export function PeerJourneyChart({
@@ -64,6 +71,7 @@ export function PeerJourneyChart({
   showRole = true,
   peerSharedFleets,
   viewerFleets,
+  isolatedPeerId = null,
 }: PeerJourneyChartProps) {
   // Build group buckets — keyed by fleet id, with OTHER_KEY for
   // peers that share no fleet with the viewer. The viewer's own
@@ -117,6 +125,7 @@ export function PeerJourneyChart({
         width={width}
         compact={compact}
         showRole={showRole}
+        isolatedPeerId={isolatedPeerId}
       />
     );
   }
@@ -144,6 +153,7 @@ export function PeerJourneyChart({
               width={width}
               compact={compact}
               showRole={showRole}
+              isolatedPeerId={isolatedPeerId}
             />
           </View>
         );
@@ -159,6 +169,7 @@ interface BlockProps {
   width: number;
   compact: boolean;
   showRole: boolean;
+  isolatedPeerId: string | null;
 }
 
 function PeerJourneyChartBlock({
@@ -168,6 +179,7 @@ function PeerJourneyChartBlock({
   width,
   compact,
   showRole,
+  isolatedPeerId,
 }: BlockProps) {
   // padX must match CapabilityMix so the time axis lines up.
   const padX = 12;
@@ -198,6 +210,7 @@ function PeerJourneyChartBlock({
         />
 
         {peers.map((peer, i) => {
+          const dimmed = isolatedPeerId !== null && peer.id !== isolatedPeerId;
           const rowY = i * (rowHeight + rowGap) + rowHeight / 2;
           const firstX = padX + (peer.firstWeek - 0.5) * colWidth;
           const dotRadius = compact ? 7 : 9;
@@ -281,7 +294,11 @@ function PeerJourneyChartBlock({
             </SvgText>,
           );
 
-          return <React.Fragment key={`row-${peer.id}`}>{elems}</React.Fragment>;
+          return (
+            <G key={`row-${peer.id}`} opacity={dimmed ? 0.18 : 1}>
+              {elems}
+            </G>
+          );
         })}
 
         {/* NOW bar — same x as the river above */}
@@ -303,8 +320,12 @@ function PeerJourneyChartBlock({
         <View style={styles.legend}>
           {peers.map((peer) => {
             const displayName = peer.name?.trim() || `Peer ${peer.initials}`;
+            const dimmed = isolatedPeerId !== null && peer.id !== isolatedPeerId;
             return (
-              <View key={`legend-${peer.id}`} style={styles.legendItem}>
+              <View
+                key={`legend-${peer.id}`}
+                style={[styles.legendItem, dimmed && styles.legendItemDimmed]}
+              >
                 <View
                   style={[
                     styles.legendSwatch,
@@ -368,6 +389,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+  },
+  legendItemDimmed: {
+    opacity: 0.3,
   },
   legendSwatch: {
     width: 16,

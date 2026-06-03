@@ -21,9 +21,12 @@ interface Props {
   peers: SeasonPeer[];
   /** Total number of weeks in this arc — used for "week N of M" copy. */
   totalWeeks: number;
+  /** When set, non-matching rows dim to a context wash — mirrors the
+   *  PeerJourneyChart isolation so a WHO SHAPED IT pill tap reads here too. */
+  isolatedPeerId?: string | null;
 }
 
-export function CrewSparseList({ peers, totalWeeks }: Props) {
+export function CrewSparseList({ peers, totalWeeks, isolatedPeerId = null }: Props) {
   if (peers.length === 0) return null;
   return (
     <View style={styles.list}>
@@ -31,8 +34,9 @@ export function CrewSparseList({ peers, totalWeeks }: Props) {
         const totalCount = peer.weeklyAppearances.reduce((n, w) => n + w.count, 0);
         const displayName = peer.name?.trim() || `Peer ${peer.initials}`;
         const weekLabel = formatWeekLabel(peer, totalCount, totalWeeks);
+        const dimmed = isolatedPeerId !== null && peer.id !== isolatedPeerId;
         return (
-          <View key={peer.id} style={styles.row}>
+          <View key={peer.id} style={[styles.row, dimmed && styles.rowDimmed]}>
             <View
               style={[
                 styles.avatar,
@@ -85,6 +89,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 6,
+  },
+  rowDimmed: {
+    opacity: 0.3,
   },
   avatar: {
     width: 28,
