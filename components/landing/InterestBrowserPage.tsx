@@ -9,7 +9,7 @@ import { useInterest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { supabase } from '@/services/supabase';
-import { useMarketplaceBlueprints, type AuthorTone, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
+import { useMarketplaceBlueprints, blueprintDetailHref, type AuthorTone, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
 import { pickSquareMarkColor, pickAvatarMarkColor, initialsForName } from '@/components/discover/canonical/CanonicalDiscoverCells';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 
@@ -151,7 +151,7 @@ function BlueprintMarketCard({ plan, wide }: { plan: MarketplaceBlueprint; wide:
         <TouchableOpacity
           style={styles.subscribeBtn}
           activeOpacity={0.85}
-          onPress={() => router.push(`/marketplace/${plan.id}` as any)}
+          onPress={() => router.push(blueprintDetailHref(plan) as any)}
         >
           <Text style={styles.subscribeBtnText}>Subscribe</Text>
         </TouchableOpacity>

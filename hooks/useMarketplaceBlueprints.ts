@@ -8,8 +8,15 @@ import { supabase } from '@/services/supabase';
 
 export type AuthorTone = 'navy' | 'brown' | 'warm' | 'green' | 'purple';
 
+// A listed plan can come from either blueprint system. The two have different
+// detail surfaces: 'marketplace' → /marketplace/{id} (Stripe checkout),
+// 'timeline' → /blueprint/{slug} (subscribe CTA on the public blueprint page).
+export type BlueprintSource = 'marketplace' | 'timeline';
+
 export interface MarketplaceBlueprint {
   id: string;
+  slug: string;
+  source: BlueprintSource;
   title: string;
   description: string | null;
   pricePerSeatCents: number;
@@ -34,8 +41,20 @@ export interface MarketplaceBlueprint {
   featuredBlurb: string | null;
 }
 
+// The two sources have different detail surfaces — a marketplace plan opens the
+// Stripe-backed /marketplace/{id} page; a timeline plan opens its public
+// /blueprint/{slug} subscribe page. Routing by source keeps unioned cards from
+// landing on a detail page that can't resolve the other system's id.
+export function blueprintDetailHref(
+  bp: Pick<MarketplaceBlueprint, 'source' | 'slug' | 'id'>,
+): string {
+  return bp.source === 'timeline' ? `/blueprint/${bp.slug}` : `/marketplace/${bp.id}`;
+}
+
 interface Row {
   id: string;
+  slug: string;
+  source: BlueprintSource;
   title: string;
   description: string | null;
   price_per_seat_cents: number;
@@ -76,6 +95,8 @@ export function useMarketplaceBlueprints(interestId?: string | null) {
       const rows = (payload.blueprints ?? []) as Row[];
       return rows.map((r) => ({
         id: r.id,
+        slug: r.slug,
+        source: r.source,
         title: r.title,
         description: r.description,
         pricePerSeatCents: r.price_per_seat_cents,

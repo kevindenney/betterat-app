@@ -6,7 +6,7 @@ import { SimpleLandingNav } from './SimpleLandingNav';
 import { ScrollFix } from './ScrollFix';
 import { SearchBar } from './SearchBar';
 import { SAMPLE_INTERESTS, INTEREST_DOMAINS } from '@/lib/landing/sampleData';
-import { useMarketplaceBlueprints, type MarketplaceBlueprint, type AuthorTone } from '@/hooks/useMarketplaceBlueprints';
+import { useMarketplaceBlueprints, blueprintDetailHref, type MarketplaceBlueprint, type AuthorTone } from '@/hooks/useMarketplaceBlueprints';
 
 // ── palette (from mockup 24) ──────────────────────────────────────────
 const HERO = '#15161B';
@@ -385,7 +385,7 @@ function BlueprintCard({ bp, isDesktop }: { bp: MarketplaceBlueprint; isDesktop:
   return (
     <TouchableOpacity
       style={[styles.bp, isDesktop && styles.bpDesktop]}
-      onPress={() => router.push(`/marketplace/${bp.id}` as any)}
+      onPress={() => router.push(blueprintDetailHref(bp) as any)}
       activeOpacity={0.85}
     >
       <View style={[styles.bpCover, { backgroundColor: tone }]}>

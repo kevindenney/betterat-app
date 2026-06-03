@@ -25,6 +25,7 @@ import { WebMeta } from '@/components/marketplace/WebMeta';
 import {
   useMarketplaceBlueprints,
   useMarketplaceCheckout,
+  blueprintDetailHref,
   MarketplaceBlueprint,
   AuthorTone,
 } from '@/hooks/useMarketplaceBlueprints';
@@ -49,6 +50,25 @@ function formatPrice(cents: number, cadence: 'monthly' | 'annual' | 'one_time'):
   if (cadence === 'one_time') return `$${dollars}`;
   if (cadence === 'annual') return `$${dollars}/yr`;
   return `$${dollars}/mo`;
+}
+
+// Timeline-source plans have no Stripe price — their CTA opens the public
+// blueprint page (where the subscribe/adopt happens), so the label/icon
+// differ from the Stripe checkout path.
+function subscribeCta(
+  bp: MarketplaceBlueprint,
+  signedIn: boolean,
+  pending: boolean,
+): { label: string; icon: React.ComponentProps<typeof Ionicons>['name'] } {
+  if (bp.source === 'timeline') {
+    return { label: 'View plan', icon: 'arrow-forward' };
+  }
+  if (pending) return { label: 'Opening Stripe…', icon: 'sync' };
+  if (!signedIn) return { label: 'Sign in to subscribe', icon: 'card-outline' };
+  return {
+    label: `Subscribe · ${formatPrice(bp.pricePerSeatCents, bp.billingCadence)}`,
+    icon: 'card-outline',
+  };
 }
 
 export default function MarketplacePage() {
@@ -125,6 +145,12 @@ export default function MarketplacePage() {
     : null;
 
   const handleSubscribe = (bp: MarketplaceBlueprint) => {
+    // Timeline-source plans have no Stripe price; route to their public
+    // blueprint page, which carries the subscribe/adopt CTA.
+    if (bp.source === 'timeline') {
+      router.push(blueprintDetailHref(bp) as any);
+      return;
+    }
     if (!signedIn) {
       router.replace(`/(auth)/login?returnTo=${encodeURIComponent('/marketplace')}` as any);
       return;
@@ -187,7 +213,7 @@ export default function MarketplacePage() {
           {returnBanner.kind === 'success' && returnBp ? (
             <Pressable
               style={s.returnBannerCta}
-              onPress={() => router.push(`/marketplace/${returnBp.id}` as any)}
+              onPress={() => router.push(blueprintDetailHref(returnBp) as any)}
             >
               <Text style={s.returnBannerCtaText}>Open</Text>
             </Pressable>
@@ -405,7 +431,7 @@ export default function MarketplacePage() {
                       error={errorByBp[bp.id]}
                       signedIn={signedIn}
                       onSubscribe={() => handleSubscribe(bp)}
-                      onOpen={() => router.push(`/marketplace/${bp.id}` as any)}
+                      onOpen={() => router.push(blueprintDetailHref(bp) as any)}
                     />
                   ))}
               </View>
@@ -495,24 +521,19 @@ export default function MarketplacePage() {
                       <Text style={s.errorText}>{err}</Text>
                     </View>
                   ) : null}
-                  <Pressable
-                    style={[s.btnPrimary, isPending && { opacity: 0.6 }]}
-                    disabled={isPending}
-                    onPress={() => handleSubscribe(bp)}
-                  >
-                    <Ionicons
-                      name={isPending ? 'sync' : 'card-outline'}
-                      size={13}
-                      color="#FFFFFF"
-                    />
-                    <Text style={s.btnPrimaryText}>
-                      {isPending
-                        ? 'Opening Stripe…'
-                        : signedIn
-                          ? `Subscribe · ${formatPrice(bp.pricePerSeatCents, bp.billingCadence)}`
-                          : 'Sign in to subscribe'}
-                    </Text>
-                  </Pressable>
+                  {(() => {
+                    const cta = subscribeCta(bp, signedIn, isPending);
+                    return (
+                      <Pressable
+                        style={[s.btnPrimary, isPending && { opacity: 0.6 }]}
+                        disabled={isPending}
+                        onPress={() => handleSubscribe(bp)}
+                      >
+                        <Ionicons name={cta.icon} size={13} color="#FFFFFF" />
+                        <Text style={s.btnPrimaryText}>{cta.label}</Text>
+                      </Pressable>
+                    );
+                  })()}
                 </View>
               </View>
             );
@@ -622,27 +643,22 @@ function FeaturedHero({
               <Text style={s.errorText}>{error}</Text>
             </View>
           ) : null}
-          <Pressable
-            style={[s.btnPrimary, pending && { opacity: 0.6 }]}
-            disabled={pending}
-            onPress={(e) => {
-              e.stopPropagation();
-              onSubscribe();
-            }}
-          >
-            <Ionicons
-              name={pending ? 'sync' : 'card-outline'}
-              size={13}
-              color="#FFFFFF"
-            />
-            <Text style={s.btnPrimaryText}>
-              {pending
-                ? 'Opening Stripe…'
-                : signedIn
-                  ? `Subscribe · ${formatPrice(bp.pricePerSeatCents, bp.billingCadence)}`
-                  : 'Sign in to subscribe'}
-            </Text>
-          </Pressable>
+          {(() => {
+            const cta = subscribeCta(bp, signedIn, pending);
+            return (
+              <Pressable
+                style={[s.btnPrimary, pending && { opacity: 0.6 }]}
+                disabled={pending}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onSubscribe();
+                }}
+              >
+                <Ionicons name={cta.icon} size={13} color="#FFFFFF" />
+                <Text style={s.btnPrimaryText}>{cta.label}</Text>
+              </Pressable>
+            );
+          })()}
         </View>
       </View>
     </Pressable>
