@@ -1844,11 +1844,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const cockpitStep = useAtlasCockpitStep(
     cockpitShowsChecklist ? (myNextStepPin?.stepId ?? null) : null,
   );
-  // When the checklist cockpit owns the next step, it IS the single step
-  // surface — every "YOUR NEXT STEP" / "YOUR STEP" my-step bottom sheet is
-  // suppressed so no second step card stacks under the cockpit (the user
-  // reaches other steps via the cockpit's "Pick another"). Non-step pins
-  // (club / POI / peer / race-mark) still open their own sheet.
+  // When the checklist cockpit owns the next step, it already renders that
+  // ONE step — so tapping the my-step-NEXT pin is suppressed to avoid stacking
+  // a duplicate "YOUR NEXT STEP" card under the cockpit. Every OTHER pin still
+  // opens its own sheet, including the viewer's done/planned step pins: tapping
+  // a completed-step marker must show THAT step, not silently defer to the
+  // cockpit's next step (which reads as "this marker is the next step").
   const cockpitOwnsNext = cockpitShowsChecklist;
   // Auto-center on the viewer's next step the first time it appears.
   // The point of Atlas is "show me where I'm going" — landing on the
@@ -1939,7 +1940,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const aBottomSheetOpen =
     !!stepPreview ||
     !!candidate ||
-    (!!selectedPin && !(cockpitOwnsNext && isUserStepPin(selectedPin)));
+    (!!selectedPin && !(cockpitOwnsNext && selectedPin.kind === 'my-step-next'));
   const cockpitCollapsed = cockpitManuallyCollapsed || aBottomSheetOpen;
   const toggleCockpitCollapsed = useCallback(() => {
     if (cockpitCollapsed) {
@@ -3007,7 +3008,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           secondary={{ label: 'Cancel', onPress: exitCommit }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
-      ) : selectedPin && !(cockpitOwnsNext && isUserStepPin(selectedPin)) ? (
+      ) : selectedPin && !(cockpitOwnsNext && selectedPin.kind === 'my-step-next') ? (
         // Race-marks are organizer-set artifacts of an upcoming race — the
         // user can't "plan a step" at one. Surface a richer eyebrow that
         // names the regatta they belong to, swap the CTA to "Open <race>"
