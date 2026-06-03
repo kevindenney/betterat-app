@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useNearbyOrganizations } from '@/hooks/useNearbyOrganizations';
 import { useAtlasPeerSteps } from '@/hooks/useAtlasPeerSteps';
+import { useAtlasOrgSteps } from '@/hooks/useAtlasOrgSteps';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
@@ -77,6 +78,16 @@ export function DiscoverNearbyContent({
     interestSlug,
     enabled: hasVenue,
   });
+
+  // Org-published located events ("what's my org doing nearby") — the
+  // attendable-activity lens that makes a bare org-HQ directory worth keeping.
+  const { data: orgSteps = [], isLoading: orgStepsLoading } = useAtlasOrgSteps({
+    lat: homeVenueLat,
+    lng: homeVenueLng,
+    radiusKm: 25,
+    interestSlug,
+    enabled: hasVenue,
+  });
   // One row per sailor: a person working several steps nearby returned a
   // row each, so the list showed the same person two or three times. Keep
   // the first (nearest/most-recent per the RPC's order) step per sailor.
@@ -113,8 +124,9 @@ export function DiscoverNearbyContent({
     );
   }
 
-  const isLoading = orgsLoading || peersLoading;
-  const hasNothing = orgs.length === 0 && visiblePeerSteps.length === 0;
+  const isLoading = orgsLoading || peersLoading || orgStepsLoading;
+  const hasNothing =
+    orgs.length === 0 && visiblePeerSteps.length === 0 && orgSteps.length === 0;
 
   if (isLoading) {
     return (
@@ -146,38 +158,56 @@ export function DiscoverNearbyContent({
         Within 25km · {homeVenueLabel ?? 'your area'}
       </Text>
 
-      {orgs.length > 0 ? (
+      {orgSteps.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionEyebrow}>
-            {orgs.length === 1
-              ? '1 organization nearby'
-              : `${orgs.length} organizations nearby`}
+            {orgSteps.length === 1
+              ? '1 session from your organizations'
+              : `${orgSteps.length} sessions from your organizations`}
           </Text>
           <View style={styles.list}>
-            {orgs.map((org) => (
-              <Pressable
-                key={org.id}
-                style={styles.row}
-                onPress={() =>
-                  router.push(`/discover/org/${org.slug ?? org.id}` as never)
-                }
-              >
-                <View style={styles.iconCircle}>
-                  <Ionicons name="business" size={16} color="#1F6FEB" />
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {org.shortName ?? org.name}
-                  </Text>
-                  <Text style={styles.rowMeta} numberOfLines={1}>
-                    {[org.locationName, `${org.distanceKm.toFixed(1)} km away`]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
-              </Pressable>
-            ))}
+            {orgSteps.slice(0, 12).map((ev) => {
+              const place = ev.place_name?.trim();
+              const provenance = ev.blueprint_title?.trim();
+              return (
+                <Pressable
+                  key={ev.step_id}
+                  style={styles.row}
+                  onPress={() => {
+                    // An org event is attendable at an exact spot — on Atlas,
+                    // fly the map there; everywhere else, open the step detail.
+                    if (
+                      onStepFocus &&
+                      Number.isFinite(ev.lat) &&
+                      Number.isFinite(ev.lng)
+                    ) {
+                      onStepFocus(ev.lat, ev.lng);
+                      return;
+                    }
+                    router.push(`/step/${ev.step_id}` as never);
+                  }}
+                >
+                  <View style={[styles.iconCircle, styles.iconCircleOrg]}>
+                    <Ionicons name="calendar" size={16} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.rowBody}>
+                    <Text style={styles.rowTitle} numberOfLines={1}>
+                      {ev.title?.trim() || 'Organization session'}
+                    </Text>
+                    <Text style={styles.rowMeta} numberOfLines={1}>
+                      {[place, provenance].filter(Boolean).join(' · ')}
+                    </Text>
+                    <View style={styles.orgBadge}>
+                      <Ionicons name="business" size={10} color="#1F6FEB" />
+                      <Text style={styles.orgBadgeText} numberOfLines={1}>
+                        {ev.org_name ?? 'Organization'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       ) : null}
@@ -243,6 +273,40 @@ export function DiscoverNearbyContent({
           </View>
         </View>
       ) : null}
+
+      {orgs.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionEyebrowQuiet}>
+            Clubs &amp; venues to explore
+          </Text>
+          <View style={styles.list}>
+            {orgs.map((org) => (
+              <Pressable
+                key={org.id}
+                style={styles.rowQuiet}
+                onPress={() =>
+                  router.push(`/discover/org/${org.slug ?? org.id}` as never)
+                }
+              >
+                <View style={styles.iconCircle}>
+                  <Ionicons name="business" size={16} color="#1F6FEB" />
+                </View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {org.shortName ?? org.name}
+                  </Text>
+                  <Text style={styles.rowMeta} numberOfLines={1}>
+                    {[org.locationName, `${org.distanceKm.toFixed(1)} km away`]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
@@ -272,6 +336,17 @@ const styles = StyleSheet.create({
     marginHorizontal: IOS_SPACING.md,
     marginBottom: IOS_SPACING.sm,
   },
+  // Demoted discovery header — the org-HQ list is a thin "new to town, which
+  // clubs exist?" affordance, not co-equal with attendable activity above.
+  sectionEyebrowQuiet: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+    marginHorizontal: IOS_SPACING.md,
+    marginBottom: IOS_SPACING.sm,
+  },
   list: {
     paddingHorizontal: IOS_SPACING.md,
     gap: 6,
@@ -287,6 +362,15 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: IOS_COLORS.separator,
   },
+  rowQuiet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
   iconCircle: {
     width: 32,
     height: 32,
@@ -297,6 +381,29 @@ const styles = StyleSheet.create({
   },
   iconCirclePerson: {
     backgroundColor: '#22A06B',
+  },
+  // Org-event marker — calendar glyph on an accent fill, distinct from the
+  // faint org-HQ business glyph so attendable activity reads as "go to this."
+  iconCircleOrg: {
+    backgroundColor: '#0A84FF',
+  },
+  orgBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    marginTop: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(31, 111, 235, 0.10)',
+  },
+  orgBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1F6FEB',
+    letterSpacing: -0.1,
+    maxWidth: 180,
   },
   avatar: {
     width: 32,
