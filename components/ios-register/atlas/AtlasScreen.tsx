@@ -58,6 +58,8 @@ import {
 } from './AtlasMapLibreCanvas';
 import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
 import { CreateRaceCourseSheet } from './CreateRaceCourseSheet';
+import { CourseStrategyCard } from './CourseStrategyCard';
+import { deriveCourseStrategy } from '@/lib/courseStrategy';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
@@ -1172,6 +1174,16 @@ function MockTabBar({ activeTab = 'atlas' }: { activeTab?: 'practice' | 'library
  * "RACE MARK", institution POIs read as their grammar (CLUB / SITE /
  * RACING AREA), peer pins surface as the relationship label.
  */
+/** Parse a "degrees|knots" conditions line into numbers, or null if absent. */
+function parseConditionsLine(line: string | null | undefined): { deg: number; kn: number } | null {
+  if (!line) return null;
+  const [degStr, knStr] = line.split('|');
+  const deg = Number(degStr);
+  const kn = Number(knStr);
+  if (!Number.isFinite(deg) || !Number.isFinite(kn)) return null;
+  return { deg, kn };
+}
+
 function eyebrowForPin(pin: AtlasPinSpec): string {
   if (pin.kind === 'race-mark') return 'RACE MARK';
   if (pin.kind === 'poi-club' || pin.kind === 'poi-club-anchor') return 'CLUB';
@@ -1950,6 +1962,22 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   );
   const scrubWindow =
     scrubWindows[Math.min(scrubIndex, scrubWindows.length - 1)] ?? scrubWindows[0];
+  // Tactical advice for the race-mark sheet. Keyed to the scrubbed wind +
+  // current ("deg|knots", wind FROM / current SET) so it tracks both the
+  // live obs and the time-scrub slider. Position-independent — the favored
+  // side/end follow conditions, not the tapped mark, so one card is correct
+  // for every mark on the course.
+  const courseStrategy = useMemo(() => {
+    const wind = parseConditionsLine(scrubWindow.wind);
+    if (wind == null) return null;
+    const current = parseConditionsLine(scrubWindow.tide);
+    return deriveCourseStrategy({
+      windDirection: wind.deg,
+      windSpeedKn: wind.kn,
+      currentDirection: current?.deg,
+      currentSpeedKn: current?.kn,
+    });
+  }, [scrubWindow.wind, scrubWindow.tide]);
   const windSourceLabel = useMemo(() => {
     if (hkoWind) return `${hkoWind.place} obs`;
     if (marineSnapshot?.wind) return 'JMA model';
@@ -2654,6 +2682,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               [selectedPin.subtitle, selectedPin.provenance]
                 .filter(Boolean)
                 .join('\n') || bodyForPin(selectedPin)
+            }
+            expandedContent={
+              courseStrategy ? <CourseStrategyCard strategy={courseStrategy} /> : undefined
             }
             primary={
               next?.label
