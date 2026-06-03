@@ -1505,18 +1505,27 @@ export function mapToTimelineDataset({
     bucketGroups[bucketIdx].push(rec);
   });
 
+  // The "current" bucket is the one holding the focus step (first
+  // in_progress/pending). Only fall back to bucket 0 when the focus
+  // can't be located — otherwise every season reads as week 1, which
+  // stalls the NOW marker and throttles the elapsed-week analysis
+  // (capability counts + WHO SHAPED IT) to the opening week.
+  const focusBucketIdx = bucketGroups.findIndex((g) =>
+    g.some((r) => r.id === actualFocusId),
+  );
+  const currentBucketIdx = focusBucketIdx >= 0 ? focusBucketIdx : 0;
+
   const weeks: TimelineWeek[] = bucketGroups.map((bucketRecs, bucketIdx) => {
     const id = weekKeyOf(bucketIdx * 3);
     const { number, range } = weekRangeLabel(
       bucketRecs.map((r) => ({ starts_at: r.starts_at })),
       bucketIdx,
     );
-    const containsFocus = bucketRecs.some((r) => r.id === actualFocusId);
     return {
       id,
       number,
       dateRange: range,
-      isCurrent: containsFocus || bucketIdx === 0,
+      isCurrent: bucketIdx === currentBucketIdx,
       steps: bucketRecs.map((r) => recordToStep(r, seasonIdForSteps, id, blueprintsById, user.id)),
     };
   });
