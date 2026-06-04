@@ -33,7 +33,6 @@ export function DoStartCard({
   return (
     <View style={styles.card}>
       <Text style={styles.eyebrow}>Capture evidence</Text>
-      <Text style={styles.title}>Jot what you notice.</Text>
 
       {/* Inline quick-note composer — the primary capture affordance. Type
           and tap send (or hit Return) to add a note without opening a
@@ -143,12 +142,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
     color: IOS_COLORS.systemBlue,
     textTransform: 'uppercase',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: IOS_COLORS.label,
-    letterSpacing: -0.4,
   },
   composerRow: {
     flexDirection: 'row',
