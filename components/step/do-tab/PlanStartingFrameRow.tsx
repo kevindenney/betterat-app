@@ -59,11 +59,20 @@ export function PlanStartingFrameRow({
 }: PlanStartingFrameRowProps) {
   const realSubSteps = (planData.how_sub_steps ?? []).filter((s) => s.text?.trim());
   const asChecklist = Boolean(onToggleSubStep) && realSubSteps.length > 0;
+  // The Do tab is display-only for per-row pins/evidence (capture/attach are
+  // Plan-only), so the rich layout must also engage when a row merely *has*
+  // pinned library items or logged captures to show — not only when capture
+  // callbacks are wired.
+  const hasRowDisplayContent = realSubSteps.some(
+    (s) =>
+      (subStepRefs?.[s.id]?.length ?? 0) > 0 || (subStepCaptures?.[s.id]?.length ?? 0) > 0,
+  );
   // Rich mode: each How row carries pinned library items + per-row capture
   // affordances. Renders full-width (the compact How|Who grid can't hold the
   // chips + action bar). Falls back to the simple checklist/list otherwise.
   const richHow =
-    asChecklist && Boolean(onAttachLibrary || onSubStepCapture || onSubStepNoteSubmit);
+    asChecklist &&
+    Boolean(onAttachLibrary || onSubStepCapture || onSubStepNoteSubmit || hasRowDisplayContent);
   const plannedSteps = compactList(
     (planData.how_sub_steps ?? []).map((step) => step.text),
     'No planned steps yet',
@@ -79,20 +88,6 @@ export function PlanStartingFrameRow({
 
   return (
     <View style={styles.card}>
-      <View style={styles.head}>
-        <View style={styles.glyph}>
-          <Ionicons name="list" size={14} color="#FFFFFF" />
-        </View>
-        <View style={styles.text}>
-          <Text style={styles.title}>Plan for this attempt</Text>
-          <Text style={styles.sub}>
-            {showWhoWhy
-              ? 'What, how, who, and why before you capture evidence.'
-              : 'Work through each step — pin references or capture evidence as you go.'}
-          </Text>
-        </View>
-      </View>
-
       <View style={styles.section}>
         <Text style={styles.label}>What</Text>
         <Text style={styles.body}>{what}</Text>
@@ -273,36 +268,6 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_COLORS.systemBackground,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60,60,67,0.18)',
-  },
-  head: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: IOS_SPACING.sm,
-  },
-  glyph: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(0, 122, 255, 0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: IOS_COLORS.secondaryLabel,
-  },
-  sub: {
-    fontSize: 11,
-    color: IOS_COLORS.secondaryLabel,
-    marginTop: 2,
-  },
-  subEm: {
-    fontStyle: 'italic',
-    color: IOS_COLORS.label,
   },
   section: {
     gap: 3,

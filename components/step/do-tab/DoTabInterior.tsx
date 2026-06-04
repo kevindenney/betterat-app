@@ -16,7 +16,6 @@ import { BeatsList } from './BeatsList';
 import { useStepBeatsBinding } from '@/hooks/useStepBeats';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { BeforeTheShiftCard } from '@/components/step/v2/plan/BeforeTheShiftCard';
-import { LibraryBeforePicker } from '@/components/library/picker/LibraryBeforePicker';
 
 export interface DoTabInteriorProps {
   state: DoInteriorState;
@@ -107,8 +106,6 @@ export function DoTabInterior({
   onPhotoOrVideo,
   onQuickNoteSubmit,
   onToggleSubStep,
-  onSubStepCapture,
-  onSubStepNoteSubmit,
   subStepCaptures,
   onStopCapturing,
   onPressPlayVoice,
@@ -125,6 +122,11 @@ export function DoTabInterior({
 }: DoTabInteriorProps) {
   const beats = useStepBeatsBinding(stepId);
   const library = useLibraryBeforeBinding(stepId, interestId);
+  // Do is a do-and-capture surface: beat rows are display-only here. Pinned
+  // library items still render, but pinning/unpinning and per-row capture
+  // affordances live on Plan. Capture flows through the single bottom bar
+  // (DoStartCard) and files against the whole step — people jump between How
+  // items and beats non-sequentially, so we don't force a per-row target.
   const beatsList = (
     <BeatsList
       beats={beats.beats}
@@ -142,32 +144,18 @@ export function DoTabInterior({
       onOpenLibraryRef={(libraryItemId) =>
         router.push(`/(tabs)/library/items/${libraryItemId}` as any)
       }
-      onRemoveLibraryRef={readOnly ? undefined : library.onRemove}
-      onAttachLibrary={readOnly ? undefined : library.onAddToBeat}
-      onBeatCapture={onSubStepCapture}
-      onBeatNoteSubmit={onSubStepNoteSubmit}
     />
   );
-  // Check-off read/watch list of library items attached to this step. Same
-  // binding the Plan tab uses; surfaced here so the Do surface leads with the
-  // prep checklist before the capture affordances.
+  // Read/watch check-off list of library items already pinned to this step on
+  // Plan. Display + toggle only here — pinning is Plan-only, so no
+  // onAddFromLibrary and no picker. Renders nothing when nothing is pinned.
   const libraryCard =
     stepId && !readOnly ? (
-      <>
-        <BeforeTheShiftCard
-          items={library.items}
-          totalEstimate={library.totalEstimate}
-          onToggle={library.onToggle}
-          onAddFromLibrary={library.onAddFromLibrary}
-        />
-        <LibraryBeforePicker
-          visible={library.picker.visible}
-          onClose={library.picker.onClose}
-          onSelect={library.picker.onSelect}
-          attachedItemIds={library.picker.attachedItemIds}
-          interestId={library.picker.interestId}
-        />
-      </>
+      <BeforeTheShiftCard
+        items={library.items}
+        totalEstimate={library.totalEstimate}
+        onToggle={library.onToggle}
+      />
     ) : null;
   // Per-step business-outcome capture. StepOutcomeCard self-gates on the
   // entrepreneur persona (returns null otherwise), so it can render in every
@@ -211,10 +199,6 @@ export function DoTabInterior({
       onOpenLibraryRef={(libraryItemId) =>
         router.push(`/(tabs)/library/items/${libraryItemId}` as any)
       }
-      onAttachLibrary={readOnly ? undefined : library.onAddToSubStep}
-      onRemoveLibraryRef={readOnly ? undefined : library.onRemove}
-      onSubStepCapture={onSubStepCapture}
-      onSubStepNoteSubmit={onSubStepNoteSubmit}
       subStepCaptures={subStepCaptures}
       showWhoWhy={false}
     />
@@ -224,8 +208,8 @@ export function DoTabInterior({
     const liveBody = (
       <>
         {raceStartCard}
-        {howChecklist}
-        {stepId ? beatsList : null}
+        {/* Capture is the hero of Do: the live composer + evidence stream lead,
+            with the plan (How / Beats) as reference below. */}
         <DoLiveCard
           stepId={stepId}
           captures={captures}
@@ -247,6 +231,8 @@ export function DoTabInterior({
           onDeleteCapture={onDeleteCapture}
           onTagCapture={onTagCapture}
         />
+        {howChecklist}
+        {stepId ? beatsList : null}
         {outcomeCard}
         {onMoveToReflect && !readOnly ? (
           <MoveToReviewCTA onPress={onMoveToReflect} />
@@ -318,17 +304,17 @@ export function DoTabInterior({
       <View style={styles.contentEmbedded}>
         {state === 'pre_activity' && (
           <>
-            {howChecklist}
-            {stepId ? beatsList : null}
-            {raceStartCard}
-            {libraryCard}
-            {outcomeCard}
             <DoStartCard
               readOnly={readOnly}
               onVoiceNote={onVoiceNote}
               onPhotoOrVideo={onPhotoOrVideo}
               onQuickNoteSubmit={onQuickNoteSubmit}
             />
+            {howChecklist}
+            {stepId ? beatsList : null}
+            {raceStartCard}
+            {libraryCard}
+            {outcomeCard}
           </>
         )}
         {footer}
@@ -345,17 +331,17 @@ export function DoTabInterior({
     >
       {state === 'pre_activity' && (
         <>
-          {howChecklist}
-          {stepId ? beatsList : null}
-          {raceStartCard}
-          {libraryCard}
-          {outcomeCard}
           <DoStartCard
             readOnly={readOnly}
             onVoiceNote={onVoiceNote}
             onPhotoOrVideo={onPhotoOrVideo}
             onQuickNoteSubmit={onQuickNoteSubmit}
           />
+          {howChecklist}
+          {stepId ? beatsList : null}
+          {raceStartCard}
+          {libraryCard}
+          {outcomeCard}
         </>
       )}
 

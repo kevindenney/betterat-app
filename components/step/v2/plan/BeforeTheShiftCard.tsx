@@ -39,7 +39,11 @@ export function BeforeTheShiftCard({
   onToggle,
   onAddFromLibrary,
 }: Props) {
+  // Pinning is Plan-only: when the host doesn't pass onAddFromLibrary (the Do
+  // tab), this card is read-only — show pinned items to read/check off, and
+  // render nothing when there are none.
   if (items.length === 0) {
+    if (!onAddFromLibrary) return null;
     return (
       <TouchableOpacity
         onPress={onAddFromLibrary}
@@ -121,14 +125,16 @@ export function BeforeTheShiftCard({
         );
       })}
 
-      <TouchableOpacity
-        onPress={onAddFromLibrary}
-        activeOpacity={0.6}
-        style={styles.addRow}
-      >
-        <Ionicons name="add" size={14} color="#007AFF" />
-        <Text style={styles.addText}>Pin from library</Text>
-      </TouchableOpacity>
+      {onAddFromLibrary ? (
+        <TouchableOpacity
+          onPress={onAddFromLibrary}
+          activeOpacity={0.6}
+          style={styles.addRow}
+        >
+          <Ionicons name="add" size={14} color="#007AFF" />
+          <Text style={styles.addText}>Pin from library</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
