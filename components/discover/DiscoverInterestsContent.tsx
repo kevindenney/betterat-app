@@ -242,7 +242,7 @@ export function DiscoverInterestsContent({
               key={org.slug}
               onPress={(e) => {
                 e.stopPropagation?.();
-                router.push(`/${interest.slug}/${org.slug}` as any);
+                router.push(`/organizations/${org.slug}` as any);
               }}
             >
               <Text style={[styles.orgLink, { color: interest.accentColor }]} numberOfLines={1}>
