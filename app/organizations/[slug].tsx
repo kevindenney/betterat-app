@@ -505,13 +505,15 @@ export default function OrganizationPlaceholderPage() {
             </View>
 
             <View style={styles.mapActionRow}>
-              <RelationshipButton
-                label="Open map"
-                icon="map-outline"
-                secondary
-                fullWidth={false}
-                onPress={handleOpenAtlas}
-              />
+              {orgLocations.length > 0 ? (
+                <RelationshipButton
+                  label="Open map"
+                  icon="map-outline"
+                  secondary
+                  fullWidth={false}
+                  onPress={handleOpenAtlas}
+                />
+              ) : null}
               {membership?.status === 'active' ? (
                 membership.isAdmin ? (
                   <RelationshipButton
@@ -779,13 +781,18 @@ export default function OrganizationPlaceholderPage() {
             ) : null}
 
             <View style={styles.mapActionRow}>
-              <RelationshipButton
-                label="Open map"
-                icon="map-outline"
-                secondary
-                fullWidth={false}
-                onPress={handleOpenAtlas}
-              />
+              {/* Open map only when the org has at least one mapped location —
+                  otherwise Atlas can't recenter and falls back to the viewer's
+                  own venue (e.g. an India org opening on Hong Kong). */}
+              {orgLocations.length > 0 ? (
+                <RelationshipButton
+                  label="Open map"
+                  icon="map-outline"
+                  secondary
+                  fullWidth={false}
+                  onPress={handleOpenAtlas}
+                />
+              ) : null}
               {/* Member-vs-non-member CTA. Active members (admins) get a
                   Manage shortcut; everyone else gets a join CTA whose
                   shape follows the org's join_mode and the viewer's
@@ -1330,7 +1337,11 @@ const styles = StyleSheet.create({
   featureText: { flex: 1, color: C.ink, fontSize: 14, lineHeight: 20 },
   rdHeader: { gap: 12 },
   rdCover: { height: 120, borderRadius: 16 },
-  rdIdentity: { flexDirection: 'row', gap: 14, marginTop: -36, paddingHorizontal: 4, alignItems: 'flex-end' },
+  // Only the mark overlaps the cover (negative margin pulls it up over the
+  // 12px gap plus 36px into the cover). The text column stays flush below
+  // the cover edge — pulling the whole row up made the eyebrow collide with
+  // the cover. align-items:flex-start keeps text top-aligned under the cover.
+  rdIdentity: { flexDirection: 'row', gap: 14, paddingHorizontal: 4, alignItems: 'flex-start' },
   rdMark: {
     width: 72,
     height: 72,
@@ -1339,9 +1350,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: C.bg,
+    marginTop: -48,
   },
   rdMarkText: { color: '#FFFFFF', fontSize: 32, fontWeight: '800' },
-  rdIdentityText: { flex: 1, gap: 4, paddingBottom: 2 },
+  rdIdentityText: { flex: 1, gap: 4, paddingTop: 8 },
   rdEyebrow: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3 },
   rdName: { color: C.ink, fontSize: 26, lineHeight: 30, fontWeight: '800', letterSpacing: -0.4 },
   rdMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },

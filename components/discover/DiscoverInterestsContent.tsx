@@ -5,7 +5,7 @@
  * Shows interest cards grouped by domain with "Added"/"Active" badges.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -135,6 +135,18 @@ export function DiscoverInterestsContent({
     router.push(`/${slug}` as any);
   };
 
+  // Build a set of slugs that resolve to a real, active DB org so we never
+  // render a tappable link to an org page that 404s. SAMPLE_INTERESTS carries
+  // aspirational/marketing org names whose slugs aren't real org rows yet
+  // (rhkyc, abc-sailing, pga-academy…) — those must not look clickable.
+  const realOrgSlugs = useMemo(() => {
+    const s = new Set<string>();
+    for (const list of Object.values(dbOrgsByInterest)) {
+      for (const o of list) s.add(o.slug);
+    }
+    return s;
+  }, [dbOrgsByInterest]);
+
   // Merge sample data with DB interests and real orgs for display
   const displayInterests = SAMPLE_INTERESTS.map((sample) => {
     const dbInterest = allInterests.find((i) => i.slug === sample.slug);
@@ -144,7 +156,11 @@ export function DiscoverInterestsContent({
     const extraOrgs = realOrgs
       .filter((o) => !sampleSlugs.has(o.slug))
       .map((o) => ({ slug: o.slug, name: o.name, groupLabel: 'Programs' as const, groups: [] }));
-    const mergedOrganizations = [...sample.organizations, ...extraOrgs];
+    const mergedOrganizations = [...sample.organizations, ...extraOrgs].map((o) => ({
+      ...o,
+      // Only orgs backed by a real DB row are tappable links.
+      isReal: realOrgSlugs.has(o.slug),
+    }));
     return {
       ...sample,
       organizations: mergedOrganizations,
@@ -237,19 +253,22 @@ export function DiscoverInterestsContent({
           {interest.organizations.length} organization{interest.organizations.length !== 1 ? 's' : ''}
         </Text>
         <View style={styles.orgLinks}>
-          {interest.organizations.slice(0, 2).map((org) => (
-            <TouchableOpacity
-              key={org.slug}
-              onPress={(e) => {
-                e.stopPropagation?.();
-                router.push(`/organizations/${org.slug}` as any);
-              }}
-            >
-              <Text style={[styles.orgLink, { color: interest.accentColor }]} numberOfLines={1}>
-                {org.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {interest.organizations
+            .filter((org) => org.isReal)
+            .slice(0, 2)
+            .map((org) => (
+              <TouchableOpacity
+                key={org.slug}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  router.push(`/organizations/${org.slug}` as any);
+                }}
+              >
+                <Text style={[styles.orgLink, { color: interest.accentColor }]} numberOfLines={1}>
+                  {org.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
         </View>
       </TouchableOpacity>
       {!isAdded && (
