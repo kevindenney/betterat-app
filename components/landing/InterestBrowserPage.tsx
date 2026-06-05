@@ -1562,9 +1562,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   footBrand: {
-    fontFamily: fontFamily.serif,
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.3,
     color: '#FFFFFF',
   },
   footText: {
