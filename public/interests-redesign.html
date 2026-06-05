@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Interests surface redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* warm-azure / Things-inspired */
+    --paper:       #FAF8F4;
+    --paper-2:     #F3F0EA;
+    --card:        #FFFFFF;
+    --ink:         #1A1C22;
+    --ink-2:       #565B66;
+    --ink-3:       #8A8F99;
+    --hair:        #E9E5DD;
+    --hair-2:      #EFEBE3;
+    --azure:       #2E62F0;
+    --azure-deep:  #1B3FA8;
+    --azure-soft:  #EAF0FE;
+    --amber:       #E08A2B;
+    --amber-soft:  #FBEFDD;
+    --green:       #1E9E6A;
+    --green-soft:  #E2F3EB;
+    --rose:        #D9476B;
+    --shadow:      0 1px 2px rgba(26,28,34,.04), 0 8px 24px rgba(26,28,34,.06);
+    --shadow-lg:   0 2px 6px rgba(26,28,34,.05), 0 18px 50px rgba(26,28,34,.10);
+    --r:           18px;
+    --r-sm:        12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: 'Figtree', system-ui, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 88% -8%, #EFF3FE 0%, rgba(239,243,254,0) 55%),
+      radial-gradient(900px 500px at -6% 4%, #FBF2E4 0%, rgba(251,242,228,0) 50%),
+      var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.45;
+  }
+  .shell { max-width: 1000px; margin: 0 auto; padding: 34px 28px 90px; }
+
+  /* ---- top chrome: the switcher relationship ---- */
+  .chrome {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 30px;
+  }
+  .switcher {
+    display: inline-flex; align-items: center; gap: 11px;
+    background: var(--card); border: 1px solid var(--hair);
+    padding: 9px 14px 9px 11px; border-radius: 999px; box-shadow: var(--shadow);
+    cursor: pointer;
+  }
+  .switcher .dot { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg,#3E70F4,#1B3FA8); display:grid; place-items:center; color:#fff; font-family:'Manrope'; font-weight:800; font-size:15px; }
+  .switcher .lbl { font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+  .switcher .car { color: var(--ink-3); font-size: 12px; margin-left: 2px; }
+  .switcher .tag { font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--azure); background:var(--azure-soft); padding:3px 7px; border-radius:6px; margin-left:4px;}
+  .chrome .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#E08A2B,#C8631A); color:#fff; display:grid; place-items:center; font-weight:700; font-size:14px; }
+
+  /* callout explaining gateway split */
+  .gateway-note {
+    display:flex; gap:10px; align-items:flex-start;
+    background: linear-gradient(180deg,#fff, #FCFBF8);
+    border: 1px dashed var(--hair); border-radius: var(--r-sm);
+    padding: 11px 14px; margin: -16px 0 28px; font-size: 12.5px; color: var(--ink-2);
+  }
+  .gateway-note b { color: var(--ink); font-weight:700; }
+  .gateway-note .k { color:var(--azure); font-weight:700; }
+
+  /* ---- header ---- */
+  .head { margin-bottom: 22px; }
+  .head h1 { font-family:'Manrope'; font-weight: 800; font-size: 34px; letter-spacing: -.025em; }
+  .head p { color: var(--ink-2); font-size: 14.5px; margin-top: 4px; max-width: 60ch; }
+
+  .seg { display:inline-flex; background: var(--paper-2); border:1px solid var(--hair); border-radius: 999px; padding: 4px; margin: 20px 0 8px; gap:2px;}
+  .seg button { font-family:'Figtree'; border:0; background:transparent; color: var(--ink-2); font-weight:600; font-size:13.5px; padding: 7px 16px; border-radius: 999px; cursor:pointer; }
+  .seg button.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+
+  .search { display:flex; align-items:center; gap:9px; background: var(--card); border:1px solid var(--hair); border-radius: 12px; padding: 10px 13px; box-shadow: var(--shadow); margin: 14px 0 26px; }
+  .search input { border:0; outline:0; font-family:'Figtree'; font-size:14px; flex:1; color: var(--ink); background:transparent; }
+  .search svg { color: var(--ink-3); }
+
+  /* ---- recent / continue rail ---- */
+  .rail-lbl { font-size: 11.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color: var(--ink-3); margin: 4px 0 10px; }
+  .rail { display:flex; gap:12px; overflow:auto; padding-bottom: 8px; margin-bottom: 30px; }
+  .rail::-webkit-scrollbar{height:0;}
+  .pill {
+    flex: 0 0 auto; display:flex; align-items:center; gap:10px;
+    background: var(--card); border:1px solid var(--hair); border-radius: 999px;
+    padding: 8px 16px 8px 9px; box-shadow: var(--shadow); cursor:pointer;
+  }
+  .pill .ic { width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;color:#fff;}
+  .pill .t { font-weight:600; font-size:13px;}
+  .pill .s { color: var(--ink-3); font-size:11.5px;}
+
+  /* ---- section label ---- */
+  .sec-head { display:flex; align-items:baseline; justify-content:space-between; margin: 6px 0 14px; }
+  .sec-head h2 { font-family:'Manrope'; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+  .sec-head .count { color: var(--ink-3); font-size: 13px; font-weight:600; }
+
+  /* ---- YOUR interest card (expanded, manage-in-place) ---- */
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px){ .grid { grid-template-columns: 1fr; } .shell{padding:24px 16px 70px;} }
+
+  .icard {
+    background: var(--card); border:1px solid var(--hair); border-radius: var(--r);
+    box-shadow: var(--shadow); overflow:hidden; transition: box-shadow .2s, transform .2s;
+  }
+  .icard.active { border-color: #CBD9FB; box-shadow: 0 0 0 1px #CBD9FB, var(--shadow-lg); }
+  .icard.full { grid-column: 1 / -1; }
+  .icard-top { padding: 16px 16px 14px; display:flex; gap:13px; }
+  .icard .badge-ic { width: 46px; height:46px; border-radius: 13px; display:grid; place-items:center; font-size:21px; flex:0 0 auto; }
+  .icard h3 { font-family:'Manrope'; font-weight:700; font-size: 17px; letter-spacing:-.01em; display:flex; align-items:center; gap:8px;}
+  .chip-active { font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color: var(--azure); background: var(--azure-soft); padding: 3px 7px; border-radius: 6px; display:inline-flex; align-items:center; gap:4px;}
+  .icard .vocab { color: var(--ink-3); font-size: 12.5px; margin-top: 2px; }
+
+  /* stat strip */
+  .stats { display:flex; gap: 0; padding: 0 16px 14px; }
+  .stat { flex:1; }
+  .stat .n { font-family:'Manrope'; font-weight:800; font-size:18px; }
+  .stat .l { color: var(--ink-3); font-size: 11px; font-weight:600; letter-spacing:.02em; }
+  .stat + .stat { border-left: 1px solid var(--hair-2); padding-left: 14px; }
+  .stat:not(:last-child){ padding-right:14px;}
+
+  /* nested tier: orgs */
+  .tier { border-top: 1px solid var(--hair-2); padding: 13px 16px; }
+  .tier-lbl { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 9px; display:flex; justify-content:space-between;}
+  .row {
+    display:flex; align-items:center; gap: 11px; padding: 8px 0;
+  }
+  .row + .row { border-top: 1px solid var(--hair-2); }
+  .row .av { width: 30px; height:30px; border-radius: 8px; display:grid; place-items:center; font-family:'Manrope'; font-weight:800; font-size:12px; color:#fff; flex:0 0 auto;}
+  .row .meta { flex:1; min-width:0; }
+  .row .meta .nm { font-weight:600; font-size: 13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .row .meta .sub { color: var(--ink-3); font-size: 11.5px; }
+
+  /* state buttons by tier */
+  .btn { font-family:'Figtree'; border:1px solid var(--hair); background:var(--card); color: var(--ink); font-weight:600; font-size:12px; padding: 6px 12px; border-radius: 8px; cursor:pointer; white-space:nowrap; }
+  .btn:hover{ border-color: var(--ink-3); }
+  .btn.pri { background: var(--azure); border-color: var(--azure); color:#fff; }
+  .btn.pri:hover{ background: var(--azure-deep); border-color: var(--azure-deep); }
+  .btn.sm { padding: 5px 10px; font-size: 11.5px; }
+  .state { font-size: 11.5px; font-weight:700; padding: 5px 10px; border-radius: 8px; display:inline-flex; align-items:center; gap:5px;}
+  .state.joined { color: var(--green); background: var(--green-soft); }
+  .state.pending { color: var(--amber); background: var(--amber-soft); }
+  .state.sub { color: var(--azure); background: var(--azure-soft); }
+
+  /* card footer actions */
+  .icard-foot { display:flex; gap:8px; padding: 12px 16px; border-top:1px solid var(--hair-2); background: #FCFBF9; }
+  .icard-foot .grow { flex:1; }
+  .ghost { font-family:'Figtree'; border:0; background:transparent; color: var(--ink-3); font-weight:600; font-size:12.5px; cursor:pointer; padding:6px 8px; border-radius:8px;}
+  .ghost:hover{ color: var(--rose); background: #FBEEF1;}
+
+  /* ---- DISCOVER: compact available cards grouped by domain ---- */
+  .domain { margin: 8px 0 6px; font-family:'Manrope'; font-weight:700; font-size: 13px; color: var(--ink-2); letter-spacing:-.005em; display:flex; align-items:center; gap:8px;}
+  .domain::after{ content:''; flex:1; height:1px; background: var(--hair);}
+  .dgrid { display:grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 0 0 26px;}
+  @media (max-width:760px){ .dgrid{grid-template-columns:1fr 1fr;} }
+  .dcard { background: var(--card); border:1px solid var(--hair); border-radius: var(--r-sm); padding: 14px; box-shadow: var(--shadow); display:flex; flex-direction:column; gap:9px; }
+  .dcard .dic { width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:17px;}
+  .dcard .dn { font-family:'Manrope'; font-weight:700; font-size:14.5px; letter-spacing:-.01em;}
+  .dcard .dm { color: var(--ink-3); font-size: 11.5px; }
+  .dcard .dorg { color: var(--ink-2); font-size: 11.5px; display:flex; align-items:center; gap:5px;}
+  .dcard .dorg .od{width:5px;height:5px;border-radius:50%;}
+  .dcard .add { margin-top: 4px; }
+  .add-btn { width:100%; font-family:'Figtree'; border:1px dashed var(--hair); background:transparent; color: var(--azure); font-weight:700; font-size: 12.5px; padding: 8px; border-radius: 9px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;}
+  .add-btn:hover{ border-color: var(--azure); background: var(--azure-soft);}
+
+  .legend { display:flex; flex-wrap:wrap; gap: 14px; margin: 30px 0 0; padding-top: 18px; border-top: 1px solid var(--hair); font-size: 12px; color: var(--ink-2);}
+  .legend b{ color: var(--ink);}
+  .legend .li { display:flex; align-items:center; gap:7px;}
+  .legend .sw { width:11px;height:11px;border-radius:4px;}
+  .footnote{ color: var(--ink-3); font-size:11.5px; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- top chrome: the switcher stays as the FAST context-flip gateway -->
+  <div class="chrome">
+    <div class="switcher" title="The switcher stays — fast context-flip. Its footer deep-links here to manage.">
+      <span class="dot">⛵</span>
+      <span class="lbl">Sail Racing</span>
+      <span class="car">▾</span>
+      <span class="tag">Active</span>
+    </div>
+    <div class="avatar">KD</div>
+  </div>
+
+  <div class="gateway-note">
+    <span>↳</span>
+    <div><b>How this relates to the switcher.</b> The top-left switcher stays as the <span class="k">fast context-flip</span> (which interest am I working in <em>right now</em>). Its dropdown footer gets one <span class="k">“Manage interests →”</span> link that opens <em>this</em> surface — the single place to add/remove interests and manage the orgs &amp; blueprints nested inside each. No parallel “Organizations” or “Blueprints” Library zones; you drill in here.</div>
+  </div>
+
+  <div class="head">
+    <h1>Interests</h1>
+    <p>Everything you’re working on, and everything you could. Add or remove an interest, join its organizations, and subscribe to blueprints — all in one place.</p>
+  </div>
+
+  <div class="seg">
+    <button class="on">Yours · 3</button>
+    <button>Discover</button>
+  </div>
+
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input placeholder="Search interests, organizations, blueprints…" />
+  </div>
+
+  <!-- continue / recent rail: the one tap-cost mitigation for nesting -->
+  <div class="rail-lbl">Jump back in</div>
+  <div class="rail">
+    <div class="pill"><span class="ic" style="background:#1B3FA8">⛵</span><div><div class="t">Dragon Worlds prep</div><div class="s">Blueprint · 4 new steps</div></div></div>
+    <div class="pill"><span class="ic" style="background:#1E9E6A">＋</span><div><div class="t">Clinical rotations</div><div class="s">Nursing · log a shift</div></div></div>
+    <div class="pill"><span class="ic" style="background:#E08A2B">🏺</span><div><div class="t">Pickle &amp; Chutney</div><div class="s">Food Processing · step 3 of 9</div></div></div>
+  </div>
+
+  <!-- ============ YOURS ============ -->
+  <div class="sec-head"><h2>Your interests</h2><span class="count">3 added · 1 active</span></div>
+  <div class="grid">
+
+    <!-- ACTIVE interest, fully expanded to show the nested tiers + verbs -->
+    <div class="icard active full">
+      <div class="icard-top">
+        <div class="badge-ic" style="background:#EAF0FE;color:#1B3FA8">⛵</div>
+        <div style="flex:1">
+          <h3>Sail Racing <span class="chip-active">● Active</span></h3>
+          <div class="vocab">Regattas · fleets · crews — your sailing vocabulary</div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="n">2</div><div class="l">Orgs joined</div></div>
+        <div class="stat"><div class="n">1</div><div class="l">Blueprint subscribed</div></div>
+        <div class="stat"><div class="n">6</div><div class="l">Steps this week</div></div>
+        <div class="stat"><div class="n">22</div><div class="l">Orgs available</div></div>
+      </div>
+
+      <!-- ORG tier: join / request / apply / leave -->
+      <div class="tier">
+        <div class="tier-lbl"><span>Organizations · you</span><span style="color:var(--azure);cursor:pointer">Browse all 22 →</span></div>
+        <div class="row">
+          <div class="av" style="background:#1B3FA8">R</div>
+          <div class="meta"><div class="nm">Royal Hong Kong Yacht Club</div><div class="sub">Member · 3 blueprints</div></div>
+          <span class="state joined">✓ Joined</span>
+        </div>
+        <div class="row">
+          <div class="av" style="background:#5566AA">H</div>
+          <div class="meta"><div class="nm">Hong Kong International School</div><div class="sub">Request pending review</div></div>
+          <span class="state pending">⏳ Pending</span>
+        </div>
+        <div class="row">
+          <div class="av" style="background:#2E62F0">A</div>
+          <div class="meta"><div class="nm">ABC Sailing Academy</div><div class="sub">Open to all · join instantly</div></div>
+          <button class="btn pri sm">Join</button>
+        </div>
+        <div class="row">
+          <div class="av" style="background:#888">P</div>
+          <div class="meta"><div class="nm">PGA-style Race Coaching</div><div class="sub">By application</div></div>
+          <button class="btn sm">Apply</button>
+        </div>
+      </div>
+
+      <!-- BLUEPRINT tier: subscribe / unsubscribe -->
+      <div class="tier">
+        <div class="tier-lbl"><span>Blueprints</span></div>
+        <div class="row">
+          <div class="av" style="background:#1B3FA8">⚑</div>
+          <div class="meta"><div class="nm">Dragon World Championship — race-week prep</div><div class="sub">by Kevin Denney · living, 4 new steps</div></div>
+          <span class="state sub">★ Subscribed</span>
+        </div>
+        <div class="row">
+          <div class="av" style="background:#3E70F4">⚑</div>
+          <div class="meta"><div class="nm">Winter frostbite series fundamentals</div><div class="sub">RHKYC · 12 steps</div></div>
+          <button class="btn pri sm">Subscribe</button>
+        </div>
+      </div>
+
+      <div class="icard-foot">
+        <button class="btn">Open practice</button>
+        <button class="btn">View on Atlas</button>
+        <span class="grow"></span>
+        <button class="ghost">Remove interest</button>
+      </div>
+    </div>
+
+    <!-- a second YOUR interest, collapsed summary state -->
+    <div class="icard">
+      <div class="icard-top">
+        <div class="badge-ic" style="background:#E2F3EB;color:#1E9E6A">＋</div>
+        <div style="flex:1">
+          <h3>Nursing</h3>
+          <div class="vocab">Rotations · competencies · shifts</div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="n">1</div><div class="l">Org joined</div></div>
+        <div class="stat"><div class="n">2</div><div class="l">Blueprints</div></div>
+        <div class="stat"><div class="n">5</div><div class="l">Orgs available</div></div>
+      </div>
+      <div class="tier">
+        <div class="row">
+          <div class="av" style="background:#1E9E6A">J</div>
+          <div class="meta"><div class="nm">Johns Hopkins School of Nursing</div><div class="sub">Member · cohort C-7</div></div>
+          <span class="state joined">✓ Joined</span>
+        </div>
+      </div>
+      <div class="icard-foot">
+        <button class="btn pri">Set active</button>
+        <button class="btn">Manage</button>
+        <span class="grow"></span>
+        <button class="ghost">Remove</button>
+      </div>
+    </div>
+
+    <!-- a third YOUR interest, no org yet -> honest empty state -->
+    <div class="icard">
+      <div class="icard-top">
+        <div class="badge-ic" style="background:#FBEFDD;color:#C8631A">🏺</div>
+        <div style="flex:1">
+          <h3>Food Processing</h3>
+          <div class="vocab">Products · FSSAI · home-scale batches</div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="n">1</div><div class="l">Org joined</div></div>
+        <div class="stat"><div class="n">3</div><div class="l">Blueprints</div></div>
+        <div class="stat"><div class="n">1</div><div class="l">Org available</div></div>
+      </div>
+      <div class="tier">
+        <div class="row">
+          <div class="av" style="background:#C8631A">P</div>
+          <div class="meta"><div class="nm">PRADAN — Ranchi Food Hub</div><div class="sub">By invitation · you have a code</div></div>
+          <span class="state joined">✓ Joined</span>
+        </div>
+      </div>
+      <div class="icard-foot">
+        <button class="btn pri">Set active</button>
+        <button class="btn">Manage</button>
+        <span class="grow"></span>
+        <button class="ghost">Remove</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ DISCOVER (peek) ============ -->
+  <div class="sec-head" style="margin-top:36px"><h2>Discover more</h2><span class="count">grouped by domain</span></div>
+
+  <div class="domain">Craft &amp; Making</div>
+  <div class="dgrid">
+    <div class="dcard">
+      <div class="dic" style="background:#FBEFDD;color:#C8631A">🧵</div>
+      <div class="dn">Textile &amp; Weaving</div>
+      <div class="dm">1 organization</div>
+      <div class="dorg"><span class="od" style="background:#C8631A"></span>PRADAN — Hazaribagh</div>
+      <div class="add"><button class="add-btn">＋ Add interest</button></div>
+    </div>
+    <div class="dcard">
+      <div class="dic" style="background:#F3E8FB;color:#8E44AD">🧶</div>
+      <div class="dn">Knitting</div>
+      <div class="dm">8 organizations</div>
+      <div class="dorg" style="color:var(--ink-3)">no orgs joined yet</div>
+      <div class="add"><button class="add-btn">＋ Add interest</button></div>
+    </div>
+    <div class="dcard">
+      <div class="dic" style="background:#FBE9EF;color:#D9476B">✂️</div>
+      <div class="dn">Fiber Arts</div>
+      <div class="dm">9 organizations</div>
+      <div class="dorg" style="color:var(--ink-3)">no orgs joined yet</div>
+      <div class="add"><button class="add-btn">＋ Add interest</button></div>
+    </div>
+  </div>
+
+  <div class="domain">Health &amp; Movement</div>
+  <div class="dgrid">
+    <div class="dcard">
+      <div class="dic" style="background:#E2F3EB;color:#1E9E6A">⛳</div>
+      <div class="dn">Golf</div>
+      <div class="dm">1 organization</div>
+      <div class="dorg" style="color:var(--ink-3)">no orgs joined yet</div>
+      <div class="add"><button class="add-btn">＋ Add interest</button></div>
+    </div>
+    <div class="dcard">
+      <div class="dic" style="background:#E2F3EB;color:#1E9E6A">🏋️</div>
+      <div class="dn">Health &amp; Fitness</div>
+      <div class="dm">4 organizations</div>
+      <div class="dorg" style="color:var(--ink-3)">no orgs joined yet</div>
+      <div class="add"><button class="add-btn">＋ Add interest</button></div>
+    </div>
+    <div class="dcard">
+      <div class="dic" style="background:#EAF0FE;color:#1B3FA8">🌍</div>
+      <div class="dn">Global Health</div>
+      <div class="dm">3 organizations</div>
+      <div class="dorg" style="color:var(--ink-3)">no orgs joined yet</div>
+      <div class="add"><button class="add-btn">＋ Add interest</button></div>
+    </div>
+  </div>
+
+  <!-- legend: the tier verbs are the whole point -->
+  <div class="legend">
+    <span style="font-weight:700;color:var(--ink)">Verbs by tier:</span>
+    <span class="li"><span class="sw" style="background:#8A8F99"></span><b>Interest</b>&nbsp;— add / remove</span>
+    <span class="li"><span class="sw" style="background:#1E9E6A"></span><b>Organization</b>&nbsp;— join / request / apply / leave</span>
+    <span class="li"><span class="sw" style="background:#2E62F0"></span><b>Blueprint</b>&nbsp;— subscribe / unsubscribe</span>
+  </div>
+  <div class="footnote">Mock · interest → organization → blueprint is one nested spine. The switcher flips context; this surface manages the relationships. People you follow live on Watch, not here.</div>
+
+</div>
+</body>
+</html>
