@@ -80,9 +80,6 @@ export function SimpleLandingNav({ currentInterestSlug }: SimpleLandingNavProps 
           {isDesktop ? (
             <View style={styles.desktopLinks}>
               <InterestDropdown currentSlug={currentInterestSlug} />
-              <TouchableOpacity onPress={() => router.push('/how-it-works' as any)}>
-                <Text style={styles.navLink}>How It Works</Text>
-              </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push('/marketplace' as any)}>
                 <Text style={styles.navLink}>Marketplace</Text>
               </TouchableOpacity>
@@ -210,20 +207,6 @@ export function SimpleLandingNav({ currentInterestSlug }: SimpleLandingNavProps 
                   );
                 })}
 
-                <TouchableOpacity
-                  style={styles.mobileMenuItem}
-                  onPress={() => {
-                    setMobileMenuOpen(false);
-                    router.push('/how-it-works' as any);
-                  }}
-                >
-                  <Ionicons
-                    name="bulb-outline"
-                    size={22}
-                    color="rgba(255, 255, 255, 0.7)"
-                  />
-                  <Text style={styles.mobileMenuText}>How It Works</Text>
-                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.mobileMenuItem}
                   onPress={() => {
