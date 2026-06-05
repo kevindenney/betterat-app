@@ -677,7 +677,12 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
               ) : (
                 <View style={[styles.row3, isDesktop && styles.row3Desktop]}>
                   {organizations.map((org) => (
-                    <View key={org.slug} style={styles.mini}>
+                    <TouchableOpacity
+                      key={org.slug}
+                      style={styles.mini}
+                      activeOpacity={0.7}
+                      onPress={() => router.push(`/org/${org.slug}` as any)}
+                    >
                       <View style={styles.miniHead}>
                         <View style={[styles.miniIcon, { backgroundColor: interest.color }]}>
                           <Ionicons name="business" size={16} color="#FFFFFF" />
@@ -695,12 +700,12 @@ export function InterestBrowserPage({ slug }: InterestBrowserPageProps) {
                         <TouchableOpacity
                           style={styles.miniBtn}
                           activeOpacity={0.8}
-                          onPress={() => router.push(`/${slug}/${org.slug}` as any)}
+                          onPress={() => router.push(`/org/${org.slug}` as any)}
                         >
                           <Text style={styles.miniBtnText}>Join</Text>
                         </TouchableOpacity>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               )}
