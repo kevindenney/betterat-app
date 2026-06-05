@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RelationshipButton } from '@/components/discover/detail';
 import { IOSDetailNavBar } from '@/components/discover/detail';
@@ -122,6 +123,56 @@ function tierLabel(tier: string | null): string {
   }
 }
 
+type Accent = { base: string; ink: string; soft: string };
+
+// The whole profile tints from one accent, derived from organization_type
+// (sailing clubs read blue, institutions academic-blue, associations warm,
+// etc.) so every org feels custom without a per-row brand_color column.
+// Unclaimed placeholders go grey — see PLACEHOLDER_ACCENT below.
+function orgAccent(type: string | null | undefined): Accent {
+  switch (type) {
+    case 'institution':
+      return { base: '#1E5BB8', ink: '#11366E', soft: '#E8F0FB' };
+    case 'association':
+      return { base: '#C2410C', ink: '#7C2D12', soft: '#FBEDE6' };
+    case 'community':
+      return { base: '#7C3AED', ink: '#4C1D95', soft: '#F1EAFE' };
+    case 'business':
+      return { base: '#B45309', ink: '#7C3A00', soft: '#FBF0E2' };
+    case 'yacht_club':
+    case 'club':
+    default:
+      return { base: '#0B63CE', ink: '#0A3D7A', soft: '#E9F1FC' };
+  }
+}
+
+const PLACEHOLDER_ACCENT: Accent = { base: '#7A828F', ink: '#3F4754', soft: '#EEF1F5' };
+
+type OrgBlueprint = {
+  id: string;
+  slug: string | null;
+  title: string;
+  description: string | null;
+  subscriber_count: number;
+  access_level: string | null;
+};
+
+// access_level enum is public | org_members | paid (see
+// timeline_blueprints_access_level_check). For anon visitors RLS only
+// returns public rows, so 'Open to all' is the common case here.
+function accessLabel(level: string | null): string {
+  switch (level) {
+    case 'public':
+      return 'Open to all';
+    case 'org_members':
+      return 'Members only';
+    case 'paid':
+      return 'Paid';
+    default:
+      return 'Blueprint';
+  }
+}
+
 export default function OrganizationPlaceholderPage() {
   const params = useLocalSearchParams<{ slug?: string }>();
   const slug = typeof params.slug === 'string' ? params.slug.trim() : '';
@@ -130,6 +181,7 @@ export default function OrganizationPlaceholderPage() {
   const [org, setOrg] = useState<YachtClubOrganization | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [orgLocations, setOrgLocations] = useState<OrgLocation[]>([]);
+  const [orgBlueprints, setOrgBlueprints] = useState<OrgBlueprint[]>([]);
   const [joining, setJoining] = useState(false);
   const { user: authUser } = useAuth();
   const { setActiveOrganizationId } = useOrganization();
@@ -249,6 +301,44 @@ export default function OrganizationPlaceholderPage() {
     };
   }, [org?.id]);
 
+  // Published blueprints this org puts out — the core of what a visitor
+  // comes here for. timeline_blueprints has a public SELECT policy for
+  // is_published rows, so this is anon-safe; member-gated drafts never
+  // surface. Demo/clubspot paths render their own content and skip this.
+  useEffect(() => {
+    let cancelled = false;
+    if (!org?.id || isDemo) {
+      setOrgBlueprints([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from('timeline_blueprints')
+        .select('id, slug, title, description, subscriber_count, access_level')
+        .eq('organization_id', org.id)
+        .eq('is_published', true)
+        .order('subscriber_count', { ascending: false })
+        .limit(8);
+      if (cancelled) return;
+      const rows = (data ?? []) as Record<string, unknown>[];
+      setOrgBlueprints(
+        rows.map((r) => ({
+          id: String(r.id),
+          slug: r.slug ? String(r.slug) : null,
+          title: r.title ? String(r.title) : 'Untitled blueprint',
+          description: r.description ? String(r.description) : null,
+          subscriber_count: Number(r.subscriber_count || 0),
+          access_level: r.access_level ? String(r.access_level) : null,
+        })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [org?.id, isDemo]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -286,6 +376,8 @@ export default function OrganizationPlaceholderPage() {
   // other org type has source=null and should get a generic body.
   const isClubspotImport = !!org?.source && org.source.includes('clubspot');
   const isActiveMember = !isDemo && membership?.status === 'active';
+  const accent = isPlaceholder ? PLACEHOLDER_ACCENT : orgAccent(org?.organization_type);
+  const primarySiteName = orgLocations[0]?.name ?? null;
   // Member surfaces, all admin-gated server-side via RLS regardless of
   // what we show. Billing is admin-only in the UI (manage subscription).
   const memberLinks = React.useMemo(
@@ -320,6 +412,277 @@ export default function OrganizationPlaceholderPage() {
             <Text style={styles.title}>Organization not found</Text>
             <Text style={styles.body}>{errorText || 'This organization may not exist yet.'}</Text>
           </View>
+        ) : !isDemo && !isClubspotImport ? (
+          // Redesigned profile for real (non-demo, non-clubspot) orgs:
+          // PRADAN, JHSON, RHKYC, and unclaimed placeholders. Accent-tinted
+          // cover + only data with a safe public source (published
+          // blueprints, sites, type, pricing). Member/cohort rosters are
+          // RLS owner-gated, so they're omitted rather than shown as fake 0s.
+          <>
+            <View style={styles.rdHeader}>
+              <LinearGradient
+                colors={[accent.base, accent.ink]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.rdCover}
+              />
+              <View style={styles.rdIdentity}>
+                <View style={[styles.rdMark, { backgroundColor: accent.base }]}>
+                  <Text style={styles.rdMarkText}>{org.name.slice(0, 1).toUpperCase()}</Text>
+                </View>
+                <View style={styles.rdIdentityText}>
+                  <Text style={[styles.rdEyebrow, { color: accent.ink }]}>{typeLabels.eyebrow}</Text>
+                  <Text style={styles.rdName}>{org.name}</Text>
+                  <View style={styles.rdMetaRow}>
+                    <View
+                      style={[
+                        styles.rdStatusPill,
+                        isPlaceholder ? styles.rdStatusPillPlaceholder : styles.rdStatusPillOfficial,
+                      ]}
+                    >
+                      <Ionicons
+                        name={isPlaceholder ? 'alert-circle-outline' : 'checkmark-circle-outline'}
+                        size={13}
+                        color={isPlaceholder ? C.amber : C.green}
+                      />
+                      <Text
+                        style={[
+                          styles.rdStatusText,
+                          { color: isPlaceholder ? C.amber : C.green },
+                        ]}
+                      >
+                        {isPlaceholder ? 'Unclaimed' : 'Official'}
+                      </Text>
+                    </View>
+                    {primarySiteName ? (
+                      <Text style={styles.rdMetaText} numberOfLines={1}>
+                        {primarySiteName}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+
+              {!isDemo && membership ? (
+                <View
+                  style={[
+                    styles.membershipBadge,
+                    membership.status === 'active'
+                      ? styles.membershipBadgeActive
+                      : membership.status === 'pending'
+                        ? styles.membershipBadgePending
+                        : styles.membershipBadgeMuted,
+                  ]}
+                >
+                  <Ionicons
+                    name={
+                      membership.status === 'active'
+                        ? 'shield-checkmark-outline'
+                        : membership.status === 'pending'
+                          ? 'hourglass-outline'
+                          : 'close-circle-outline'
+                    }
+                    size={14}
+                    color={
+                      membership.status === 'active'
+                        ? C.green
+                        : membership.status === 'pending'
+                          ? C.amber
+                          : C.muted
+                    }
+                  />
+                  <Text style={styles.membershipBadgeText}>
+                    {membership.status === 'active'
+                      ? membership.isAdmin
+                        ? `You're an ${membership.role}`
+                        : "You're a member"
+                      : membership.status === 'pending'
+                        ? 'Membership pending'
+                        : `Membership ${membership.status}`}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.mapActionRow}>
+              <RelationshipButton
+                label="Open map"
+                icon="map-outline"
+                secondary
+                fullWidth={false}
+                onPress={handleOpenAtlas}
+              />
+              {membership?.status === 'active' ? (
+                membership.isAdmin ? (
+                  <RelationshipButton
+                    label="Manage"
+                    icon="settings-outline"
+                    secondary
+                    fullWidth={false}
+                    onPress={() => router.push(`/admin/organizations/${slug}` as never)}
+                  />
+                ) : null
+              ) : membership?.status === 'pending' ? (
+                <RelationshipButton
+                  label="Request pending"
+                  icon="hourglass-outline"
+                  secondary
+                  fullWidth={false}
+                  onPress={() => {}}
+                />
+              ) : (
+                <RelationshipButton
+                  label={
+                    (org.join_mode ?? 'invite_only') === 'invite_only'
+                      ? 'By invitation'
+                      : org.join_mode === 'request_to_join'
+                        ? membership?.status === 'rejected'
+                          ? 'Request again'
+                          : 'Request to join'
+                        : 'Join organization'
+                  }
+                  icon={
+                    (org.join_mode ?? 'invite_only') === 'invite_only'
+                      ? 'mail-outline'
+                      : 'add-circle-outline'
+                  }
+                  secondary={(org.join_mode ?? 'invite_only') === 'invite_only'}
+                  fullWidth={false}
+                  loading={joining}
+                  onPress={handleJoinPress}
+                />
+              )}
+            </View>
+
+            {isPlaceholder ? (
+              <View style={styles.notice}>
+                <Text style={styles.noticeTitle}>
+                  {org.name} hasn’t claimed this page yet.
+                </Text>
+                <Text style={styles.noticeBody}>
+                  BetterAt created this placeholder so {org.name} can be discovered. If you
+                  organize here, claim it to publish blueprints, run cohorts, and verify members.
+                </Text>
+                <Pressable
+                  style={[styles.primaryButton, { backgroundColor: accent.base }]}
+                  onPress={() => router.push(`/organizations/${org.slug || slug}/claim` as never)}
+                >
+                  <Ionicons name="flag-outline" size={17} color="#FFFFFF" />
+                  <Text style={styles.primaryButtonText}>Claim this organization</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {isActiveMember ? (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Your organization</Text>
+                <View style={styles.surfaceList}>
+                  {memberLinks
+                    .filter((link) => !link.adminOnly || membership?.isAdmin)
+                    .map((link) => (
+                      <Pressable
+                        key={link.key}
+                        style={styles.surfaceRow}
+                        onPress={() => void goToMemberSurface(link.route)}
+                      >
+                        <Ionicons name={link.icon} size={20} color={accent.base} />
+                        <View style={styles.surfaceCopy}>
+                          <Text style={styles.surfaceLabel}>{link.label}</Text>
+                          <Text style={styles.surfaceDetail}>{link.detail}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+                      </Pressable>
+                    ))}
+                </View>
+              </View>
+            ) : null}
+
+            {org.source_summary ? (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>About</Text>
+                <Text style={styles.body}>{org.source_summary}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Blueprints</Text>
+              {orgBlueprints.length === 0 ? (
+                <Text style={styles.body}>
+                  {isPlaceholder
+                    ? 'No published blueprints yet — the first one shows up here once this organization is claimed.'
+                    : 'No published blueprints yet.'}
+                </Text>
+              ) : (
+                <View style={styles.rdBpList}>
+                  {orgBlueprints.map((bp) => (
+                    <Pressable
+                      key={bp.id}
+                      style={styles.rdBpCard}
+                      disabled={!bp.slug}
+                      onPress={() => bp.slug && router.push(`/blueprint/${bp.slug}` as never)}
+                    >
+                      <View style={styles.rdBpHead}>
+                        <Text style={styles.rdBpTitle}>{bp.title}</Text>
+                        <View style={[styles.rdBpAccess, { backgroundColor: accent.soft }]}>
+                          <Text style={[styles.rdBpAccessText, { color: accent.ink }]}>
+                            {accessLabel(bp.access_level)}
+                          </Text>
+                        </View>
+                      </View>
+                      {bp.description ? (
+                        <Text style={styles.rdBpDesc} numberOfLines={2}>
+                          {bp.description}
+                        </Text>
+                      ) : null}
+                      {bp.subscriber_count > 0 ? (
+                        <Text style={styles.rdBpMeta}>
+                          {bp.subscriber_count} subscriber{bp.subscriber_count === 1 ? '' : 's'}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {orgLocations.length > 0 ? (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>
+                  {orgLocations.length === 1 ? 'Site' : 'Sites'}
+                </Text>
+                <View style={styles.embeddedMapWrap}>
+                  <OrgLocationsMap locations={orgLocations} height={200} />
+                </View>
+                <View style={styles.surfaceList}>
+                  {orgLocations.map((loc) => (
+                    <View key={loc.id ?? loc.name} style={styles.rdSiteRow}>
+                      <Ionicons name="location-outline" size={16} color={accent.base} />
+                      <Text style={styles.rdSiteName}>{loc.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            <View style={styles.grid}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{orgBlueprints.length}</Text>
+                <Text style={styles.statLabel}>Published blueprints</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{orgLocations.length}</Text>
+                <Text style={styles.statLabel}>{orgLocations.length === 1 ? 'Site' : 'Sites'}</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{typeLabels.contextLabel}</Text>
+                <Text style={styles.statLabel}>Organization type</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{tierLabel(org.pricing_tier)}</Text>
+                <Text style={styles.statLabel}>{typeLabels.pricingLabel}</Text>
+              </View>
+            </View>
+          </>
         ) : (
           <>
             <View style={styles.hero}>
@@ -965,4 +1328,50 @@ const styles = StyleSheet.create({
   featureTitle: { color: C.ink, fontSize: 14, fontWeight: '800' },
   featureSub: { color: C.muted, fontSize: 13, lineHeight: 18 },
   featureText: { flex: 1, color: C.ink, fontSize: 14, lineHeight: 20 },
+  rdHeader: { gap: 12 },
+  rdCover: { height: 120, borderRadius: 16 },
+  rdIdentity: { flexDirection: 'row', gap: 14, marginTop: -36, paddingHorizontal: 4, alignItems: 'flex-end' },
+  rdMark: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: C.bg,
+  },
+  rdMarkText: { color: '#FFFFFF', fontSize: 32, fontWeight: '800' },
+  rdIdentityText: { flex: 1, gap: 4, paddingBottom: 2 },
+  rdEyebrow: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3 },
+  rdName: { color: C.ink, fontSize: 26, lineHeight: 30, fontWeight: '800', letterSpacing: -0.4 },
+  rdMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  rdStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  rdStatusPillOfficial: { backgroundColor: '#E6F4F1' },
+  rdStatusPillPlaceholder: { backgroundColor: '#FFF7ED' },
+  rdStatusText: { fontSize: 12, fontWeight: '700' },
+  rdMetaText: { color: C.muted, fontSize: 13, fontWeight: '600', flexShrink: 1 },
+  rdBpList: { gap: 10 },
+  rdBpCard: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: '#FBFCFE',
+    padding: 12,
+    gap: 6,
+  },
+  rdBpHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
+  rdBpTitle: { flex: 1, color: C.ink, fontSize: 15, fontWeight: '800', lineHeight: 20 },
+  rdBpAccess: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
+  rdBpAccessText: { fontSize: 11, fontWeight: '700' },
+  rdBpDesc: { color: C.muted, fontSize: 13, lineHeight: 18 },
+  rdBpMeta: { color: C.muted, fontSize: 12, fontWeight: '600' },
+  rdSiteRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  rdSiteName: { color: C.ink, fontSize: 14, fontWeight: '600' },
 });
