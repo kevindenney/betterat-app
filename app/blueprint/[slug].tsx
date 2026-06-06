@@ -108,9 +108,10 @@ export default function BlueprintPage() {
     title?: string;
   } | null>(null);
   const [justSubscribed, setJustSubscribed] = useState(false);
+  const [recentSubscriptionId, setRecentSubscriptionId] = useState<string | null>(null);
   const handlePurchaseRef = useRef<(() => void) | null>(null);
-  const [adoptingAll, setAdoptingAll] = useState(false);
-  const [adoptedCount, setAdoptedCount] = useState(0);
+  const [adoptingFirstStep, setAdoptingFirstStep] = useState(false);
+  const [adoptedFirstStepId, setAdoptedFirstStepId] = useState<string | null>(null);
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [hasPurchased, setHasPurchased] = useState(false);
@@ -358,8 +359,11 @@ export default function BlueprintPage() {
     if (isSubscribed) {
       await unsubscribeMutation.mutateAsync(blueprint.id);
       setJustSubscribed(false);
+      setRecentSubscriptionId(null);
+      setAdoptedFirstStepId(null);
     } else {
-      await subscribeMutation.mutateAsync(blueprint.id);
+      const sub = await subscribeMutation.mutateAsync(blueprint.id);
+      setRecentSubscriptionId(sub.id);
       setJustSubscribed(true);
 
       // Notify the blueprint owner (best-effort, don't block)
@@ -441,46 +445,36 @@ export default function BlueprintPage() {
     router.push(getEventTabRoute() as any);
   }, [blueprint?.interest_id, allInterests, switchInterest, router]);
 
-  // Adopt every blueprint step into the user's timeline. Returns the
-  // adopted record for the FIRST blueprint step (ordered as in `steps`)
-  // so callers can deep-link the user straight into Step 1.
-  const handleAdoptAll = useCallback(async (): Promise<TimelineStepRecord | null> => {
-    if (!subscription || !blueprint || !steps?.length) return null;
-    setAdoptingAll(true);
-    let count = 0;
-    let firstAdopted: TimelineStepRecord | null = null;
-    for (const step of steps) {
-      try {
-        const adopted = await adoptStepMutation.mutateAsync({
-          sourceStepId: step.id,
-          interestId: blueprint.interest_id,
-          subscriptionId: subscription.id,
-        });
-        count++;
-        if (!firstAdopted) firstAdopted = adopted;
-      } catch {
-        // Step may already be adopted — continue
-      }
-    }
-    setAdoptedCount(count);
-    setAdoptingAll(false);
-    return firstAdopted;
-  }, [subscription, blueprint, steps, adoptStepMutation]);
+  const effectiveSubscriptionId = subscription?.id ?? recentSubscriptionId;
 
-  // Adopt all steps, then deep-link the user into their adopted Step 1.
-  // Used as the primary post-subscribe CTA so the next action is concrete
-  // ("Start Step 1: <title>") rather than abstract ("Add steps to timeline").
-  const handleStartFirstStep = useCallback(async () => {
-    if (!blueprint?.interest_id) return;
-    const firstAdopted = await handleAdoptAll();
+  // Explicitly add only Step 1 to the user's timeline, then focus it in L1.
+  // Subscribing to a blueprint should not populate the timeline by itself.
+  const handleAddFirstStep = useCallback(async () => {
+    if (!blueprint?.interest_id || !blueprint?.id || !effectiveSubscriptionId || !steps?.[0]) return;
+    setAdoptingFirstStep(true);
+    let firstAdopted: TimelineStepRecord | null = null;
+    try {
+      firstAdopted = await adoptStepMutation.mutateAsync({
+        sourceStepId: steps[0].id,
+        interestId: blueprint.interest_id,
+        subscriptionId: effectiveSubscriptionId,
+        blueprintId: blueprint.id,
+      });
+      setAdoptedFirstStepId(firstAdopted.id);
+    } finally {
+      setAdoptingFirstStep(false);
+    }
     if (!firstAdopted) return;
     // Switch to the blueprint's interest so the step opens in the right context.
     const interest = allInterests.find((i) => i.id === blueprint.interest_id);
     if (interest) {
       await switchInterest(interest.slug);
     }
-    router.push(`/step/${firstAdopted.id}` as any);
-  }, [blueprint?.interest_id, handleAdoptAll, allInterests, switchInterest, router]);
+    router.push({
+      pathname: getEventTabRoute(),
+      params: { selected: firstAdopted.id, level: '1' },
+    } as any);
+  }, [blueprint?.interest_id, blueprint?.id, effectiveSubscriptionId, steps, adoptStepMutation, allInterests, switchInterest, router]);
 
   // Build "What's included" summary from step metadata
   const includedSummary = useMemo(() => {
@@ -576,6 +570,19 @@ export default function BlueprintPage() {
 
   const completedCount = steps?.filter((s) => s.status === 'completed').length ?? 0;
   const totalCount = steps?.length ?? 0;
+
+  // Plan → Do → Review → Discuss phase band: every step moves through these four
+  // working phases. The band lights up the phases the blueprint has reached so
+  // far (Plan is always live; Discuss only once everything's complete).
+  const anyStarted = (steps ?? []).some(
+    (st) => st.status === 'in_progress' || st.status === 'completed',
+  );
+  const phaseBand: { label: string; on: boolean }[] = [
+    { label: 'Plan', on: true },
+    { label: 'Do', on: anyStarted },
+    { label: 'Review', on: completedCount > 0 },
+    { label: 'Discuss', on: totalCount > 0 && completedCount === totalCount },
+  ];
 
   // Price helper
   const priceLabel = blueprint.price_cents && blueprint.price_cents > 0
@@ -711,6 +718,17 @@ export default function BlueprintPage() {
               </View>
             )}
           </View>
+
+          {/* Plan → Do → Review → Discuss phase band */}
+          <View style={v2.arc}>
+            {phaseBand.map((ph) => (
+              <View key={ph.label} style={[v2.phasePill, ph.on && v2.phasePillOn]}>
+                <Text style={[v2.phasePillText, ph.on && v2.phasePillTextOn]}>
+                  {ph.label}
+                </Text>
+              </View>
+            ))}
+          </View>
         </LinearGradient>
 
         {/* Provenance — who made this, and whether it's real or demo data */}
@@ -818,17 +836,15 @@ export default function BlueprintPage() {
                   </View>
                   <Pressable
                     style={[styles.adoptBtn, { backgroundColor: accent }]}
-                    onPress={handleAdoptAll}
-                    disabled={adoptingAll}
+                    onPress={handleSubscribe}
+                    disabled={subscribeMutation.isPending}
                   >
-                    {adoptingAll ? (
+                    {subscribeMutation.isPending ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
-                        <Ionicons name="download-outline" size={16} color="#FFFFFF" />
-                        <Text style={styles.adoptBtnText}>
-                          Add {steps?.length ?? 0} steps to my timeline
-                        </Text>
+                        <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
+                        <Text style={styles.adoptBtnText}>Subscribe to this plan</Text>
                       </>
                     )}
                   </Pressable>
@@ -837,27 +853,27 @@ export default function BlueprintPage() {
 
               {!isOwner && isSubscribed && (
                 <View style={styles.subscribedSection}>
-                  {justSubscribed && adoptedCount === 0 && (
+                  {justSubscribed && !adoptedFirstStepId && (
                     <>
                       <View style={styles.successBanner}>
                         <Ionicons name="checkmark-circle" size={20} color={C.green} />
-                        <Text style={styles.successText}>You're in. Let's get started.</Text>
+                        <Text style={styles.successText}>You're subscribed. Add steps when you're ready.</Text>
                       </View>
 
                       <Pressable
                         style={[styles.adoptBtn, { backgroundColor: accent }]}
-                        onPress={handleStartFirstStep}
-                        disabled={adoptingAll}
+                        onPress={handleAddFirstStep}
+                        disabled={adoptingFirstStep || !effectiveSubscriptionId}
                       >
-                        {adoptingAll ? (
+                        {adoptingFirstStep ? (
                           <ActivityIndicator size="small" color="#FFFFFF" />
                         ) : (
                           <>
                             <Ionicons name="play" size={16} color="#FFFFFF" />
                             <Text style={styles.adoptBtnText} numberOfLines={1}>
                               {steps?.[0]?.title
-                                ? `Start Step 1: ${steps[0].title}`
-                                : 'Start Step 1'}
+                                ? `Add Step 1: ${steps[0].title}`
+                                : 'Add Step 1 to my timeline'}
                             </Text>
                           </>
                         )}
@@ -868,18 +884,16 @@ export default function BlueprintPage() {
                         onPress={() => navigateToTimeline()}
                       >
                         <Ionicons name="list-outline" size={16} color={accent} />
-                        <Text style={[styles.viewTimelineBtnText, { color: accent }]}>See all steps in my timeline</Text>
+                        <Text style={[styles.viewTimelineBtnText, { color: accent }]}>Go to my timeline</Text>
                       </Pressable>
                     </>
                   )}
 
-                  {adoptedCount > 0 && (
+                  {adoptedFirstStepId && (
                     <>
                       <View style={styles.successBanner}>
                         <Ionicons name="checkmark-circle" size={20} color={C.green} />
-                        <Text style={styles.successText}>
-                          {adoptedCount} step{adoptedCount !== 1 ? 's' : ''} added to your timeline!
-                        </Text>
+                        <Text style={styles.successText}>Step 1 added to your timeline.</Text>
                       </View>
 
                       <Pressable
@@ -892,7 +906,7 @@ export default function BlueprintPage() {
                     </>
                   )}
 
-                  {!justSubscribed && adoptedCount === 0 && (
+                  {!justSubscribed && !adoptedFirstStepId && (
                     <View style={styles.subscribedRow}>
                       <View style={styles.subscribedBadge}>
                         <Ionicons name="checkmark-circle" size={14} color={accent} />
@@ -2632,6 +2646,36 @@ const v2 = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.92)',
+  },
+
+  // Plan → Do → Review → Discuss phase band
+  arc: {
+    flexDirection: 'row',
+    gap: 7,
+    marginTop: 16,
+  },
+  phasePill: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 9,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  phasePillOn: {
+    backgroundColor: 'rgba(255,255,255,0.26)',
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  phasePillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  phasePillTextOn: {
+    color: '#FFFFFF',
   },
 
   // Provenance row
