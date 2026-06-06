@@ -42,6 +42,39 @@ export class BathymetryService {
   }
 
   /**
+   * POST to the bathymetry proxy, retrying once on a 429. Upstream Open Topo
+   * Data allows ~1 call/sec, so concurrent callers can trip a transient rate
+   * limit; the proxy signals it with 429 + Retry-After, which we honor here.
+   */
+  private async postProxy(
+    locations: { lat: number; lng: number }[],
+    timeout: number
+  ) {
+    const doPost = () =>
+      axios.post(
+        BATHYMETRY_PROXY_URL,
+        { locations },
+        {
+          timeout,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            apikey: SUPABASE_ANON_KEY,
+          },
+        }
+      );
+
+    try {
+      return await doPost();
+    } catch (error: any) {
+      if (error?.response?.status !== 429) throw error;
+      const retryAfter = Number(error?.response?.headers?.['retry-after']) || 2;
+      await new Promise((resolve) => setTimeout(resolve, Math.min(retryAfter, 5) * 1000));
+      return doPost();
+    }
+  }
+
+  /**
    * Get elevation/bathymetry at a single point
    * Returns elevation in meters (negative = below sea level / ocean depth)
    *
@@ -61,19 +94,9 @@ export class BathymetryService {
 
     try {
       // Use Supabase Edge Function proxy to avoid CORS
-      const response = await axios.post(
-        BATHYMETRY_PROXY_URL,
-        {
-          locations: [{ lat: location.latitude, lng: location.longitude }]
-        },
-        {
-          timeout: 15000,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'apikey': SUPABASE_ANON_KEY,
-          },
-        }
+      const response = await this.postProxy(
+        [{ lat: location.latitude, lng: location.longitude }],
+        15000
       );
 
       const result = response.data;
@@ -93,7 +116,9 @@ export class BathymetryService {
 
       return elevation;
     } catch (error: any) {
-      logger.error('[Bathymetry] Failed to fetch elevation:', {
+      // Bathymetry is optional enrichment; it fails soft to 0. A transient
+      // upstream rate-limit / network blip must not surface as a red error box.
+      logger.warn('[Bathymetry] Failed to fetch elevation (non-fatal):', {
         error: error?.message || error,
         status: error?.response?.status,
         location,
@@ -156,20 +181,10 @@ export class BathymetryService {
     logger.info('[Bathymetry] Fetching', uncachedLocations.length, 'uncached locations (', locations.length - uncachedLocations.length, 'from cache)');
 
     try {
-      // Call edge function with batched locations
-      const response = await axios.post(
-        BATHYMETRY_PROXY_URL,
-        {
-          locations: uncachedLocations.map(loc => ({ lat: loc.lat, lng: loc.lng }))
-        },
-        {
-          timeout: 30000, // Longer timeout for batch requests
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'apikey': SUPABASE_ANON_KEY,
-          },
-        }
+      // Call edge function with batched locations (30s timeout for batches)
+      const response = await this.postProxy(
+        uncachedLocations.map(loc => ({ lat: loc.lat, lng: loc.lng })),
+        30000
       );
 
       const data = response.data;
@@ -198,7 +213,9 @@ export class BathymetryService {
       logger.info('[Bathymetry] Successfully fetched', data.results.length, 'elevations');
 
     } catch (error: any) {
-      logger.error('[Bathymetry] Batch request error:', {
+      // Optional enrichment — fails soft to elevation 0 for uncached points.
+      // Keep this at warn so a transient blip never shows a red error box.
+      logger.warn('[Bathymetry] Batch request error (non-fatal):', {
         error: error?.message || error,
         status: error?.response?.status
       });
