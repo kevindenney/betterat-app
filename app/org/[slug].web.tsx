@@ -8,6 +8,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import type { BlueprintRecord } from '@/types/blueprint';
 import type { ProgramRecord } from '@/services/ProgramService';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { BetterAtLogo } from '@/components/BetterAtLogo';
 
 // ── Tokens from canonical design ─────────────────────────────────────
 const C = {
@@ -845,7 +846,7 @@ export default function PublicOrgCatalogWeb() {
         {/* ===== Public site nav (sticky top) ===== */}
         <View style={S.pubNav}>
           <View style={S.brand}>
-            <View style={S.brandMark}><Text style={S.brandMarkText}>B</Text></View>
+            <BetterAtLogo size={26} variant="filled" />
             <Text style={S.brandWord}>BetterAt</Text>
           </View>
           <View style={S.navLinks}>
@@ -1348,7 +1349,7 @@ export default function PublicOrgCatalogWeb() {
         <View style={S.siteFoot}>
           <View style={S.siteFootRow}>
             <View style={S.siteFootBrand}>
-              <View style={S.brandMarkSmall}><Text style={S.brandMarkTextSmall}>B</Text></View>
+              <BetterAtLogo size={20} variant="filled" />
               <Text style={S.siteFootBrandText}><Text style={S.siteFootStrong}>BetterAt</Text> · 2026</Text>
             </View>
             <View style={S.siteFootLinks}>
@@ -1451,13 +1452,6 @@ const S = StyleSheet.create({
     backdropFilter: 'blur(14px) saturate(140%)',
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandMark: {
-    width: 26, height: 26, borderRadius: 8,
-    alignItems: 'center', justifyContent: 'center',
-    // @ts-expect-error rnweb
-    backgroundImage: 'linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%)',
-  },
-  brandMarkText: { color: C.white, fontWeight: '700', fontSize: 13, letterSpacing: -0.5 },
   brandWord: { fontSize: 14, fontWeight: '600', letterSpacing: -0.2, color: C.label },
   navLinks: { flexDirection: 'row', alignItems: 'center', gap: 22, marginLeft: 8 },
   navLink: { fontSize: 13, color: C.label2, letterSpacing: -0.1 },
@@ -1902,13 +1896,6 @@ const S = StyleSheet.create({
   siteFoot: { backgroundColor: C.white, borderTopWidth: 0.5, borderTopColor: C.gray5, paddingHorizontal: 64, paddingVertical: 18 },
   siteFootRow: { flexDirection: 'row', alignItems: 'center', gap: 18 },
   siteFootBrand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  brandMarkSmall: {
-    width: 20, height: 20, borderRadius: 6,
-    alignItems: 'center', justifyContent: 'center',
-    // @ts-expect-error rnweb
-    backgroundImage: 'linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%)',
-  },
-  brandMarkTextSmall: { color: C.white, fontWeight: '700', fontSize: 11 },
   siteFootBrandText: { color: C.label2, fontSize: 12, letterSpacing: -0.05 },
   siteFootStrong: { color: C.label, fontWeight: '600' },
   siteFootLinks: { flexDirection: 'row', gap: 18 },
