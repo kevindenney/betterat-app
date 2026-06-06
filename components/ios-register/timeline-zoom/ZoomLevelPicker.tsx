@@ -55,7 +55,8 @@ interface ZoomLevelPickerProps {
   hidden?: boolean;
 }
 
-const RAIL_ORDER: ZoomLevel[] = [4, 3, 2, 1];
+// L2 (WEEK) merged into L1 (STEP) — rail shows Step·Arc·All, top to bottom: All, Arc, Step.
+const RAIL_ORDER: ZoomLevel[] = [4, 3, 1];
 
 const GLYPH_SIZE = 26;
 const SEGMENT_SIZE = 52;

@@ -9,7 +9,6 @@ export { TimelineZoomPracticeScreen } from './TimelineZoomPracticeScreen';
 export { mapToTimelineDataset } from './realDataAdapter';
 export { ZoomLevelPicker } from './ZoomLevelPicker';
 export { L1StepView } from './L1StepView';
-export { L2WeekView } from './L2WeekView';
 export { L3SeasonView } from './L3SeasonView';
 export { L4YearsView } from './L4YearsView';
 export { StepDigestCard } from './StepDigestCard';

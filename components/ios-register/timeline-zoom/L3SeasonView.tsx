@@ -32,13 +32,10 @@ import {
 } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
-import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
-import { StepLogRow } from './StepLogRow';
+import { SnakeStepTimeline, SnakeReorderList } from './SnakeTimeline';
 import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
@@ -53,7 +50,6 @@ import { useViewerFleetCohort } from '@/hooks/useViewerFleetCohort';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
-import { useDragReorder } from './useDragReorder';
 import { ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
 import { resolveInterestVocab } from './interestVocab';
 import {
@@ -129,6 +125,9 @@ interface L3SeasonViewProps {
   onAddArc?: () => void;
   /** Picker per-row pencil — opens parent's SeasonEditSheet in edit mode for this arc. */
   onEditArc?: (arcId: string) => void;
+  onAddStep?: () => void;
+  /** The parent chrome already owns scope selection; hide the inline counter row. */
+  hideInlineCounter?: boolean;
 }
 
 export function L3SeasonView({
@@ -146,6 +145,8 @@ export function L3SeasonView({
   onLibrarianSecondary,
   onAddArc,
   onEditArc,
+  onAddStep,
+  hideInlineCounter,
 }: L3SeasonViewProps) {
   const effectiveSeasonId = selectedSeasonId ?? dataset.currentSeasonId;
   const season = dataset.seasons.find((s) => s.id === effectiveSeasonId)
@@ -192,11 +193,13 @@ export function L3SeasonView({
   // viewer has no fleets or no shared-fleet peers.
   const { data: fleetCohort } = useViewerFleetCohort();
   const scrollRef = useRef<ScrollView>(null);
-  const weekOffsetsRef = useRef<Record<string, number>>({});
 
-  const registerWeekOffset = useCallback((weekId: string, y: number) => {
-    weekOffsetsRef.current[weekId] = y;
-  }, []);
+  // Reorder mode — long-press a snake card (or the "Reorder" toolbar
+  // button) flattens THE WORK into a single-column drag list. While a
+  // row is lifted, the outer ScrollView is frozen so the finger drives
+  // the drag, not the scroll.
+  const [isReordering, setIsReordering] = useState(false);
+  const [reorderDragging, setReorderDragging] = useState(false);
 
   const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
     // Full block width — the floating zoom rail isn't reserved by the
@@ -258,46 +261,48 @@ export function L3SeasonView({
     return weeks;
   }, [season?.weeks, activeThread, activePerson]);
 
-  // THE WORK reads newest-first (latest week on top, latest step on top
-  // within each week) so recent work leads and history scrolls down.
-  // Steps arrive sort_order-ascending from the adapter, so this is a
-  // straight reverse at both levels. flatDisplaySteps is the visual-order
-  // flat list the drag hook reasons in — kept separate from chronological
-  // flatSteps, which still drives the "Step N of M" ordinal + jump picker.
-  // Declared before useDragReorder so the hook's items/deps don't hit the
-  // const temporal dead zone (would otherwise pass items: undefined).
-  const displayWeeks = useMemo(
-    () =>
-      [...visibleWeeks].reverse().map((w) => ({
-        ...w,
-        steps: [...w.steps].reverse(),
-      })),
+  // THE WORK renders as a NOW-anchored snake river — steps in chronological
+  // order (oldest → newest) so the thread runs done → NOW → planned. The
+  // filtered `visibleWeeks` collapses to a flat step list for the river.
+  const snakeSteps = useMemo(
+    () => visibleWeeks.flatMap((w) => w.steps),
     [visibleWeeks],
   );
-  const flatDisplaySteps = useMemo(
-    () => displayWeeks.flatMap((w) => w.steps),
-    [displayWeeks],
+
+  // Reorder commit. The drag hook reasons in flat index space; the canvas
+  // owner writes sort_order between two neighbours. We replay the move on a
+  // copy of the season-ordered list, then hand the owner the resulting
+  // before/after neighbour ids (display order is oldest→newest = ascending
+  // sort_order, so prev = lower / next = higher, matching the owner's
+  // insertion contract).
+  const handleReorder = useCallback(
+    (stepId: string, fromIndex: number, toIndex: number) => {
+      if (!onReorderStep || fromIndex === toIndex) return;
+      const next = [...flatSteps];
+      const [moved] = next.splice(fromIndex, 1);
+      if (!moved) return;
+      next.splice(toIndex, 0, moved);
+      const pos = next.findIndex((s) => s.id === stepId);
+      if (pos < 0) return;
+      const beforeStepId = pos > 0 ? next[pos - 1].id : null;
+      const afterStepId = pos < next.length - 1 ? next[pos + 1].id : null;
+      onReorderStep(stepId, beforeStepId, afterStepId);
+    },
+    [onReorderStep, flatSteps],
   );
 
-  const drag = useDragReorder<TimelineStep>({
-    items: flatDisplaySteps,
-    enabled: Boolean(onReorderStep),
-    onReorder: useCallback(
-      (id, from, to) => {
-        const without = flatDisplaySteps.filter((s) => s.id !== id);
-        const clamped = Math.max(0, Math.min(to, without.length));
-        // Newest-first: the visually-above row is the *higher* sort_order
-        // (newer) and visually-below is *lower* (older). handleReorderStep
-        // expects (lowerSortNeighbor, higherSortNeighbor) to midpoint the
-        // moved step between them, so swap relative to visual position.
-        const visualAbove = without[clamped - 1]?.id ?? null;
-        const visualBelow = without[clamped]?.id ?? null;
-        onReorderStep?.(id, visualBelow, visualAbove);
-        void from;
-      },
-      [flatDisplaySteps, onReorderStep],
-    ),
-  });
+  // Reorder is only offered on the unfiltered full-season list (a partial
+  // capability/person view can't express a global order). Leaving filter
+  // mode while reordering drops back to the snake.
+  const canReorder = Boolean(onReorderStep) && flatSteps.length > 1;
+  const isFiltering = activeThread !== null || activePerson !== null;
+  const enterReorder = useCallback(() => {
+    if (canReorder && !isFiltering) setIsReordering(true);
+  }, [canReorder, isFiltering]);
+  const exitReorder = useCallback(() => {
+    setIsReordering(false);
+    setReorderDragging(false);
+  }, []);
 
   // Every capability family across the weeks elapsed so far, sorted by
   // volume. Drives both the serif takeaway headline (families[0]) and
@@ -419,11 +424,17 @@ export function L3SeasonView({
     flatSteps.length > 0
       ? { current: focusedStepIndex >= 0 ? focusedStepIndex + 1 : 1, total: flatSteps.length }
       : undefined;
+  const arcSubtitle = (() => {
+    const weekCount = season.weekOfTotal?.total ?? season.weeks.length;
+    const stepCount = flatSteps.length;
+    const parts = [
+      `${weekCount} ${weekCount === 1 ? 'week' : 'weeks'}`,
+      `${stepCount} ${stepCount === 1 ? 'step' : 'steps'}`,
+    ];
+    if (season.dateRange) parts.push(season.dateRange);
+    return parts.join(' · ');
+  })();
 
-  // Sticky week headers: the ScrollView's stickyHeaderIndices points at
-  // each WEEK N row's index among the top-level scroll children. With
-  // the analysis layer in the tree, we count the fixed children before
-  // the per-week pairs and add per-week pairs from there.
   const hasAnalysis = Boolean(analysis);
   const filtering = activeThread !== null || activePerson !== null;
   // The single active lens (capability thread or person) — drives the
@@ -441,18 +452,6 @@ export function L3SeasonView({
           clear: () => setActivePerson(null),
         }
       : null;
-  const fixedChildrenBeforeWeeks =
-    // headerChips + browseWeeksEyebrow + toolbar
-    3
-    // analysis block (one wrapper View if present)
-    + (hasAnalysis ? 1 : 0);
-  // Sticky indices stride over the rendered week pairs. When a thread is
-  // active the list collapses to `visibleWeeks`, so the indices must
-  // track that filtered set or they'd point past the end.
-  const stickyHeaderIndices = visibleWeeks.map(
-    (_w, i) => fixedChildrenBeforeWeeks + i * 2,
-  );
-
   return (
     <>
     <ScrollView
@@ -463,14 +462,14 @@ export function L3SeasonView({
         selectEnabled && styles.scrollContentSelecting,
       ]}
       showsVerticalScrollIndicator={false}
-      scrollEnabled={!drag.isDragging}
-      stickyHeaderIndices={stickyHeaderIndices}
+      scrollEnabled={!reorderDragging}
     >
       <SeasonHeaderChips
         seasonTitle={season.title}
         periodNoun={interestVocab.periodNoun}
-        weekOfTotal={season.weekOfTotal}
-        stepOfTotal={stepOfTotal}
+        subtitle={arcSubtitle}
+        weekOfTotal={hideInlineCounter ? undefined : season.weekOfTotal}
+        stepOfTotal={hideInlineCounter ? undefined : stepOfTotal}
         onPressSeason={() => setOpenPicker('season')}
         onPressStep={() => setOpenPicker('step')}
       />
@@ -743,12 +742,23 @@ export function L3SeasonView({
       ) : null}
 
       {season.weeks.length === 0 ? (
-        <EmptySeasonInline periodNoun={interestVocab.periodNoun} />
+        <EmptySeasonInline periodNoun={interestVocab.periodNoun} onAddStep={onAddStep} />
       ) : null}
 
       <Text style={styles.browseEyebrow}>THE WORK</Text>
 
-      {filtering && activeFilter ? (
+      {isReordering ? (
+        <View style={styles.toolbar}>
+          <Text style={styles.logCaption}>Drag to reorder</Text>
+          <View style={styles.toolbarActions}>
+            <ToolbarButton
+              icon="checkmark-circle"
+              label="Done"
+              onPress={exitReorder}
+            />
+          </View>
+        </View>
+      ) : filtering && activeFilter ? (
         <View style={styles.filterBar}>
           <Pressable
             style={[styles.filterPill, { borderColor: activeFilter.color }]}
@@ -780,7 +790,13 @@ export function L3SeasonView({
             })()}
           </Text>
           <View style={styles.toolbarActions}>
-            <ToolbarButton icon="swap-vertical-outline" label="Sort" />
+            {canReorder ? (
+              <ToolbarButton
+                icon="reorder-three-outline"
+                label="Reorder"
+                onPress={enterReorder}
+              />
+            ) : null}
             <ToolbarButton
               icon="checkmark-circle-outline"
               label="Select"
@@ -790,52 +806,24 @@ export function L3SeasonView({
         </View>
       )}
 
-      {displayWeeks.flatMap((week) => [
-        <View
-          key={`hdr-${week.id}`}
-          style={styles.weekHeaderSticky}
-          onLayout={(e) => registerWeekOffset(week.id, e.nativeEvent.layout.y)}
-        >
-          <View style={styles.weekHeadRow}>
-            <Text style={styles.weekHead}>
-              WEEK {week.number}
-              {week.isCurrent ? '  ·  THIS WEEK' : ''}
-            </Text>
-          </View>
-        </View>,
-        <View key={`body-${week.id}`} style={styles.weekBody}>
-          {week.steps.map((step) => {
-            const flatIndex = flatDisplaySteps.findIndex((s) => s.id === step.id);
-            const isLifted = drag.liftedId === step.id;
-            const showDropIndicatorBefore =
-              drag.dropTargetIndex === flatIndex && !isLifted;
-            const selected = isSelected?.(step.id) ?? false;
-            const handlePress = selectEnabled
-              ? () => onToggleSelect?.(step.id)
-              : () => onOpenStep(step.id);
-            return (
-              <DraggableRowSlot
-                key={step.id}
-                step={step}
-                flatIndex={flatIndex}
-                isLifted={isLifted}
-                showDropIndicatorBefore={showDropIndicatorBefore}
-                liftedTranslateY={drag.liftedTranslate}
-                highlighted={step.id === focusStepId || selected}
-                selected={selected}
-                selectEnabled={selectEnabled}
-                // Drag-reorder reasons in full-season flat coordinates;
-                // filtering hides weeks, so disable lifting while a
-                // thread is active to keep drop math honest.
-                dragActive={!filtering}
-                onOpen={handlePress}
-                buildGesture={drag.buildItemGesture}
-                registerRowLayout={drag.registerRowLayout}
-              />
-            );
-          })}
-        </View>,
-      ])}
+      {isReordering ? (
+        <SnakeReorderList
+          steps={flatSteps}
+          focusStepId={focusStepId}
+          onReorder={handleReorder}
+          onDraggingChange={setReorderDragging}
+        />
+      ) : snakeSteps.length > 0 ? (
+        <SnakeStepTimeline
+          steps={snakeSteps}
+          focusStepId={focusStepId}
+          selectEnabled={selectEnabled}
+          isSelected={isSelected}
+          onOpenStep={onOpenStep}
+          onToggleSelect={onToggleSelect}
+          onLongPressStep={canReorder && !filtering ? enterReorder : undefined}
+        />
+      ) : null}
     </ScrollView>
 
       <PickerListSheet<TimelineSeason>
@@ -951,86 +939,13 @@ export function L3SeasonView({
   );
 }
 
-interface DraggableRowSlotProps {
-  step: TimelineStep;
-  flatIndex: number;
-  isLifted: boolean;
-  showDropIndicatorBefore: boolean;
-  liftedTranslateY: number;
-  highlighted: boolean;
-  selected: boolean;
-  selectEnabled: boolean;
-  dragActive: boolean;
-  onOpen: () => void;
-  buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
-  registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
-}
-
-function DraggableRowSlot({
-  step,
-  flatIndex,
-  isLifted,
-  showDropIndicatorBefore,
-  liftedTranslateY,
-  highlighted,
-  selected,
-  selectEnabled,
-  dragActive,
-  onOpen,
-  buildGesture,
-  registerRowLayout,
-}: DraggableRowSlotProps) {
-  const gesture = useMemo(
-    () => buildGesture(step.id, flatIndex),
-    [buildGesture, step.id, flatIndex],
-  );
-
-  const liftStyle = useAnimatedStyle(() => {
-    if (!isLifted) return { transform: [] as never[] };
-    return {
-      transform: [{ translateY: liftedTranslateY }, { scale: 1.02 }],
-      zIndex: 10,
-      backgroundColor: IOS_REGISTER.groundBg,
-      shadowColor: '#000',
-      shadowOpacity: 0.18,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 6 },
-      elevation: 10,
-    };
-  }, [isLifted, liftedTranslateY]);
-
-  const rowBody = (
-    <Animated.View
-      style={liftStyle}
-      onLayout={(e) => {
-        const { y, height } = e.nativeEvent.layout;
-        registerRowLayout(step.id, { start: y, length: height });
-      }}
-    >
-      <StepLogRow
-        step={step}
-        highlighted={highlighted}
-        selected={selected}
-        selectEnabled={selectEnabled}
-        onPress={onOpen}
-      />
-    </Animated.View>
-  );
-
-  return (
-    <View style={styles.rowSlotWrap}>
-      {showDropIndicatorBefore ? <View style={styles.dropIndicator} /> : null}
-      {selectEnabled || !dragActive ? (
-        rowBody
-      ) : (
-        <GestureDetector gesture={gesture}>{rowBody}</GestureDetector>
-      )}
-    </View>
-  );
-}
-
-function EmptySeasonInline({ periodNoun }: { periodNoun: string }) {
-  const universalPlus = useUniversalPlus();
+function EmptySeasonInline({
+  periodNoun,
+  onAddStep,
+}: {
+  periodNoun: string;
+  onAddStep?: () => void;
+}) {
   return (
     <View style={styles.emptyInline}>
       <View style={styles.emptyIconWrap}>
@@ -1040,8 +955,8 @@ function EmptySeasonInline({ periodNoun }: { periodNoun: string }) {
       <Text style={styles.emptyBody}>
         Add a step to begin the {periodNoun}. The capability river will fill in as you practice.
       </Text>
-      {universalPlus.isAvailable ? (
-        <Pressable style={styles.emptyCta} onPress={universalPlus.open}>
+      {onAddStep ? (
+        <Pressable style={styles.emptyCta} onPress={onAddStep}>
           <Ionicons name="add" size={16} color="#FFFFFF" />
           <Text style={styles.emptyCtaText}>Add a step</Text>
         </Pressable>
@@ -1561,40 +1476,6 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.accentUserAction,
     letterSpacing: -0.1,
   },
-  weekHeaderSticky: {
-    backgroundColor: IOS_REGISTER.groundBg,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
-  weekBody: {
-    paddingHorizontal: 16,
-    marginBottom: 20,
-  },
-  weekHeadRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 10,
-  },
-  weekHead: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: IOS_REGISTER.labelSecondary,
-  },
-  rowSlotWrap: {
-    position: 'relative',
-  },
-  dropIndicator: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: -1,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: IOS_REGISTER.accentUserAction,
-    zIndex: 5,
-  },
   // D6 anchor strip — horizontal scrolling row of persona-tuned time
   // pegs falling inside the season. Sits below VISION and above the
   // capability river so the user sees "what's coming" before "how
@@ -1702,6 +1583,8 @@ const styles = StyleSheet.create({
   },
   moneyWeekLabel: {
     fontSize: 9,
+    fontFamily: fontFamily.mono,
+    fontVariant: ['tabular-nums'],
     color: IOS_REGISTER.labelTertiary,
     marginTop: 3,
   },

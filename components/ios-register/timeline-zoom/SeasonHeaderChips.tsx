@@ -25,6 +25,7 @@ interface Props {
    *  "season") — used in the screen-reader label so it matches the
    *  visible vocab. */
   periodNoun?: string;
+  subtitle?: string;
   weekOfTotal?: { current: number; total: number };
   stepOfTotal?: { current: number; total: number };
   onPressSeason: () => void;
@@ -34,6 +35,7 @@ interface Props {
 export function SeasonHeaderChips({
   seasonTitle,
   periodNoun = 'arc',
+  subtitle,
   weekOfTotal,
   stepOfTotal,
   onPressSeason,
@@ -59,6 +61,12 @@ export function SeasonHeaderChips({
           style={styles.titleCaret}
         />
       </Pressable>
+
+      {subtitle ? (
+        <Text style={styles.subtitle} numberOfLines={1}>
+          {subtitle}
+        </Text>
+      ) : null}
 
       {showCounter ? (
         <View style={styles.metaRow}>
@@ -112,6 +120,14 @@ const styles = StyleSheet.create({
   },
   titleCaret: {
     marginTop: 4,
+  },
+  subtitle: {
+    marginTop: -1,
+    marginBottom: 4,
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: -0.1,
   },
   metaRow: {
     flexDirection: 'row',

@@ -24,6 +24,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 interface Props {
   visible: boolean;
@@ -120,12 +121,7 @@ export function LifetimeVisionEditSheet({
   );
 }
 
-const SERIF = Platform.select({
-  ios: 'Georgia',
-  android: 'serif',
-  web: 'Georgia, "Times New Roman", serif',
-  default: 'Georgia',
-}) as string;
+const SERIF = fontFamily.serif;
 
 const styles = StyleSheet.create({
   host: {

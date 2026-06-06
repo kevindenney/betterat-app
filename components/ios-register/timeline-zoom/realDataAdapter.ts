@@ -621,6 +621,7 @@ function recordToStep(
         ? ((rec.metadata as { season_marker?: string }).season_marker || undefined)
         : undefined,
     pinnedFromOtherInterest,
+    isRace: rec.is_race === true,
   };
 }
 

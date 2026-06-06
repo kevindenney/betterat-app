@@ -62,11 +62,12 @@ export function TimelineZoomPracticeScreen() {
   }>();
   // Route may carry ?level=2|3|4 from a deep-link (Step detail's zoom rail
   // pushes here to "zoom out" from a step). Bound to the canvas's
-  // initialLevel.
+  // initialLevel. Legacy ?level=2 (WEEK) now lands on the merged Step view (1).
   const routeLevel = useMemo<ZoomLevel | null>(() => {
     const raw = Array.isArray(searchParams?.level) ? searchParams.level[0] : searchParams?.level;
     const n = raw ? Number(raw) : NaN;
-    return n === 1 || n === 2 || n === 3 || n === 4 ? (n as ZoomLevel) : null;
+    if (n === 2) return 1;
+    return n === 1 || n === 3 || n === 4 ? (n as ZoomLevel) : null;
   }, [searchParams?.level]);
 
   const interestId = currentInterest?.id ?? null;
@@ -94,13 +95,13 @@ export function TimelineZoomPracticeScreen() {
   // Default landing depth is L3 (ARC summary), but that view's scaffolding —
   // vision, reflections, capability spread — reads as empty filler before a
   // user has built up an arc. Newcomers with only a handful of steps land at
-  // L2 (week timeline) instead: just their cards laid out in time, where the
-  // structure is self-evident. An explicit ?level= deep-link always wins —
+  // the Step view (1) instead: their current card with prev/next peeks, where
+  // the structure is self-evident. An explicit ?level= deep-link always wins —
   // except a stale level=1 with no resolvable step, which falls through.
   const initialLevelFromRoute = useMemo<ZoomLevel>(() => {
     if (routeLevel && routeLevel !== 1) return routeLevel;
     if (resolvedSelectedStepId) return 1;
-    return steps.length < ARC_LANDING_MIN_STEPS ? 2 : 3;
+    return steps.length < ARC_LANDING_MIN_STEPS ? 1 : 3;
   }, [routeLevel, resolvedSelectedStepId, steps.length]);
   const { data: currentSeason = null } = useCurrentSeason();
   const { data: allSeasons = [] } = useUserSeasons();
@@ -361,42 +362,6 @@ export function TimelineZoomPracticeScreen() {
     [steps, queryClient],
   );
 
-  // Drag a pending card left of the NOW bar to complete it (L2). 'completed'
-  // is the schema's done state; the adapter maps it to 'done' and reflows the
-  // step to the left of NOW on the next render.
-  const handleMarkStepDone = useCallback(
-    (stepId: string) => {
-      const step = steps.find((s) => s.id === stepId);
-      if (!step || step.status === 'completed' || step.status === 'settled') return;
-      updateStep.mutate({ stepId, input: { status: 'completed' } });
-    },
-    [steps, updateStep],
-  );
-
-  // L2 in-play checklist: toggle a how_sub_step's completed flag straight
-  // from the step cover. Deep-merges the updated sub-step list back into
-  // metadata.plan so the rest of the plan blob is preserved.
-  const handleToggleHowItem = useCallback(
-    (stepId: string, subStepId: string, completed: boolean) => {
-      const step = steps.find((s) => s.id === stepId);
-      if (!step) return;
-      const meta = (step.metadata as Record<string, unknown> | null) ?? {};
-      const plan = (meta.plan as Record<string, unknown> | null) ?? {};
-      const subs = Array.isArray(plan.how_sub_steps)
-        ? (plan.how_sub_steps as { id: string }[])
-        : [];
-      const nextSubs = subs.map((s) =>
-        s.id === subStepId ? { ...s, completed } : s,
-      );
-      const nextMeta = {
-        ...meta,
-        plan: { ...plan, how_sub_steps: nextSubs },
-      };
-      updateStep.mutate({ stepId, input: { metadata: nextMeta } });
-    },
-    [steps, updateStep],
-  );
-
   // Frame 12 bulk actions. Archive flips status to 'skipped' (the
   // schema's closest "off the active list" terminal state); delete is
   // the real destroy mutation behind a confirm. Move/Tag/Reschedule
@@ -615,8 +580,6 @@ export function TimelineZoomPracticeScreen() {
         onOpenStepDetail={handleOpenStepDetail}
         embedFullDetailAtL1
         onReorderStep={handleReorderStep}
-        onMarkStepDone={handleMarkStepDone}
-        onToggleHowItem={handleToggleHowItem}
         onBulkArchive={handleBulkArchive}
         onBulkDelete={handleBulkDelete}
         onBulkMove={handleBulkMove}

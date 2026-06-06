@@ -5,7 +5,7 @@
  * scope (no focused step at L1, no current-week steps at L2, no current-
  * season weeks at L3). Each card carries a verb eyebrow matching the
  * surrounding zoom level, an honest copy line, and an "Add a step" CTA
- * that opens the universal `+` composer via useUniversalPlus().
+ * that opens the timeline add-step sheet.
  *
  * L4 is intentionally not covered — its analysis aggregates across the
  * entire practice history and always has at least the seasons[] payload
@@ -17,7 +17,6 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 
 interface ZoomEmptyStateProps {
   level: 1 | 2 | 3;
@@ -26,6 +25,7 @@ interface ZoomEmptyStateProps {
    *  season / sketchbook / project) — used by the L3 card so it speaks
    *  the interest's voice instead of the sailing "arc". */
   periodNoun: string;
+  onAddStep?: () => void;
 }
 
 function copyFor(
@@ -54,8 +54,7 @@ function copyFor(
   }
 }
 
-export function ZoomEmptyState({ level, interestLabel, periodNoun }: ZoomEmptyStateProps) {
-  const universalPlus = useUniversalPlus();
+export function ZoomEmptyState({ level, interestLabel, periodNoun, onAddStep }: ZoomEmptyStateProps) {
   const copy = copyFor(level, periodNoun);
 
   return (
@@ -72,8 +71,8 @@ export function ZoomEmptyState({ level, interestLabel, periodNoun }: ZoomEmptySt
           Interest: <Text style={styles.interestRowEm}>{interestLabel}</Text>
         </Text>
 
-        {universalPlus.isAvailable ? (
-          <Pressable style={styles.cta} onPress={universalPlus.open}>
+        {onAddStep ? (
+          <Pressable style={styles.cta} onPress={onAddStep}>
             <Ionicons name="add" size={16} color="#FFFFFF" />
             <Text style={styles.ctaText}>Add a step</Text>
           </Pressable>

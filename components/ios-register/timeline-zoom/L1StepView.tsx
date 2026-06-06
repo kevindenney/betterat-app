@@ -12,6 +12,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   Dimensions,
+  LayoutChangeEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -31,16 +32,13 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
+import { resolveDoTabInterestKind } from '@/lib/interest-config';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
 import { PickerListSheet } from './PickerListSheet';
 import type { TimelineDataset, TimelineStep } from './types';
 
-const SERIF_FAMILY = Platform.select({
-  ios: 'Georgia',
-  android: 'serif',
-  web: 'Georgia, "Times New Roman", serif',
-  default: 'Georgia',
-}) as string;
+const SERIF_FAMILY = fontFamily.serif;
 
 const NOW_COLOR = '#FF6B5A';
 
@@ -99,19 +97,32 @@ interface L1StepViewProps {
   allSteps?: TimelineStep[];
   /** Jump to an arbitrary sibling step from the switcher sheet. */
   onJumpToStep?: (stepId: string) => void;
+  /**
+   * Suppress the in-card "Step N of M ⌄" switcher chip. Set true when an
+   * ancestor task bar (StepTaskBar) already owns step selection, so the
+   * chooser isn't duplicated.
+   */
+  hideStepSwitcher?: boolean;
+  /**
+   * Bottom padding handed to the embedded step detail so its capture
+   * composer and last rows clear the canvas's floating tab bar. Only
+   * meaningful in embedFullDetail mode.
+   */
+  bottomInset?: number;
 }
 
 const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
+type PreviewPhase = 'Plan' | 'Do' | 'Reflect' | 'Review' | 'Discuss';
 
 // Swipe threshold (Reanimated worklet uses these constants).
 const SWIPE_PX_THRESHOLD = 60;
 const SWIPE_VELOCITY_THRESHOLD = 600;
 const SWIPE_RUBBER_FACTOR = 1; // drag follows finger 1:1 so the motion reads
 const SCREEN_WIDTH = Dimensions.get('window').width;
-// Commit animates the focused card fully off the screen. Using full
-// screen width also makes the prev/next ghost cards arrive exactly at
-// center as their translateX = ±SCREEN_WIDTH offset cancels out.
-const SWIPE_OFF_SCREEN_PX = SCREEN_WIDTH;
+const WEB_L1_CARD_WIDTH_RATIO = 0.33;
+const WEB_L1_CARD_WIDTH = '33%';
+const WEB_L1_CARD_LEFT = '33.5%';
+const WEB_L1_CARD_GUTTER = 20;
 
 export function L1StepView({
   dataset,
@@ -126,6 +137,8 @@ export function L1StepView({
   onStepDeleted,
   allSteps,
   onJumpToStep,
+  hideStepSwitcher,
+  bottomInset,
 }: L1StepViewProps) {
   const hasPrev = prevStep != null;
   const hasNext = nextStep != null;
@@ -135,12 +148,26 @@ export function L1StepView({
       ? allSteps.findIndex((s) => s.id === step.id) + 1
       : 0;
   const showStepSwitcher =
-    Boolean(onJumpToStep) && (allSteps?.length ?? 0) > 1 && stepOrdinal > 0;
-  // NOW indicator only on the canonical "current" step. The user can
-  // swipe to past/future steps; those are not "now".
+    !hideStepSwitcher &&
+    Boolean(onJumpToStep) &&
+    (allSteps?.length ?? 0) > 1 &&
+    stepOrdinal > 0;
+  // The merged Step view's relative DONE/NOW/NEXT indicator lives in the
+  // canvas-level NowFloat chrome (mockup #38 `.nowfloat`), not on the card —
+  // the card stays clean. isNowStep only drives the slim preview's accent bar.
   const isNowStep = step.id === dataset.focusStepId;
+  const [hostWidth, setHostWidth] = useState(SCREEN_WIDTH);
+  const swipeStridePx =
+    Platform.OS === 'web'
+      ? hostWidth * WEB_L1_CARD_WIDTH_RATIO + WEB_L1_CARD_GUTTER
+      : SCREEN_WIDTH;
   const translateX = useSharedValue(0);
   const passedThreshold = useSharedValue(false);
+
+  const handleHostLayout = useCallback((event: LayoutChangeEvent) => {
+    const width = event.nativeEvent.layout.width;
+    if (width > 0) setHostWidth(width);
+  }, []);
 
   const fireSwipe = useCallback(
     (direction: 'prev' | 'next') => {
@@ -188,38 +215,38 @@ export function L1StepView({
         translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
         return;
       }
-      // Commit — finish the slide off-screen, then reset and fire callback.
-      // Reanimated will paint the new step (after focusStepId updates) at
-      // translateX=0 the next frame; we tween to 0 so the new card slides
-      // in cleanly without a visible jump.
       const dir = e.translationX > 0 ? 1 : -1;
-      // Animate fully off-screen, then snap back to 0 so the next focused
-      // step's content (already swapped in by the JS-side fireSwipe) reads
-      // as a fresh card appearing at center.
-      translateX.value = withTiming(dir * SWIPE_OFF_SCREEN_PX, { duration: 220 }, () => {
-        translateX.value = 0;
+      if ((dir > 0 && !hasPrev) || (dir < 0 && !hasNext)) {
+        translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
+        return;
+      }
+      const direction = dir > 0 ? 'prev' : 'next';
+      // Let the visible neighbor slide into the center, then commit the
+      // focus change and snap the lane back to its neutral geometry.
+      translateX.value = withTiming(dir * swipeStridePx, { duration: 220 }, (finished) => {
+        if (finished) {
+          translateX.value = 0;
+          runOnJS(fireSwipe)(direction);
+        }
       });
-      runOnJS(fireSwipe)(dir > 0 ? 'prev' : 'next');
     });
 
   const translateStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
-  // Ghost cards live a full screen-width to either side of the focused
-  // card. They share the same translateX so they slide in lockstep with
-  // the user's swipe gesture, giving the pager illusion. Pointer-events
-  // are disabled on the ghosts — the GestureDetector lives on the
-  // focused card.
+  // Neighbor cards sit one card-width + gutter to either side. They share
+  // translateX with the focused card so the lane moves as one horizontal
+  // timeline strip.
   const prevTranslateStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value - SCREEN_WIDTH }],
+    transform: [{ translateX: translateX.value - swipeStridePx }],
   }));
   const nextTranslateStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value + SCREEN_WIDTH }],
+    transform: [{ translateX: translateX.value + swipeStridePx }],
   }));
 
   if (embedFullDetail) {
     return (
-      <View style={styles.embedHost}>
+      <View style={styles.embedHost} onLayout={handleHostLayout}>
         {showStepSwitcher ? (
           <View style={styles.switcherBar}>
             <Pressable
@@ -236,52 +263,33 @@ export function L1StepView({
             </Pressable>
           </View>
         ) : null}
-        {hasPrev ? <View style={styles.peekLeft} pointerEvents="none" /> : null}
-        {hasNext ? <View style={styles.peekRight} pointerEvents="none" /> : null}
-        {prevStep ? (
-          <Animated.View
-            style={[styles.ghostCard, prevTranslateStyle]}
-            pointerEvents="none"
-          >
-            <GhostCard step={prevStep} />
-          </Animated.View>
-        ) : null}
-        {nextStep ? (
-          <Animated.View
-            style={[styles.ghostCard, nextTranslateStyle]}
-            pointerEvents="none"
-          >
-            <GhostCard step={nextStep} />
-          </Animated.View>
-        ) : null}
         <GestureDetector gesture={swipeGesture}>
-          <Animated.View style={[styles.embedContent, translateStyle]}>
-            {isNowStep ? (
-              <>
-                <View style={styles.embedNowBar} />
-                <View style={styles.embedNowPill}>
-                  <Text style={styles.embedNowPillText}>NOW</Text>
-                </View>
-              </>
+          <View style={styles.embedGestureLayer}>
+            {prevStep ? (
+              <Animated.View
+                style={[styles.ghostCard, prevTranslateStyle]}
+                pointerEvents="none"
+              >
+                <EmbeddedStepCard step={prevStep} bottomInset={bottomInset} />
+              </Animated.View>
             ) : null}
-            {step.peerQuote || step.subStep ? (
-              <View style={styles.embedChrome}>
-                {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
-                {step.subStep ? <SessionStrap step={step} /> : null}
-              </View>
+            {nextStep ? (
+              <Animated.View
+                style={[styles.ghostCard, nextTranslateStyle]}
+                pointerEvents="none"
+              >
+                <EmbeddedStepCard step={nextStep} bottomInset={bottomInset} />
+              </Animated.View>
             ) : null}
-            <View style={[styles.embedDetailHost, isNowStep && styles.embedDetailHostNow]}>
-              {/* StepDetailContent renders its own •••-menu button (with the
-                  Delete action) via StepCard's floating menu. A second dead
-                  ellipsis here used to overlay and swallow that tap. */}
-              <StepDetailContent
-                stepId={step.id}
+            <Animated.View style={[styles.embedContent, translateStyle]}>
+              <EmbeddedStepCard
+                step={step}
                 onScroll={onScroll}
-                hideStatePill
-                onDeleted={onStepDeleted}
+                onStepDeleted={onStepDeleted}
+                bottomInset={bottomInset}
               />
-            </View>
-          </Animated.View>
+            </Animated.View>
+          </View>
         </GestureDetector>
         {showStepSwitcher && allSteps ? (
           <PickerListSheet<TimelineStep>
@@ -316,8 +324,17 @@ export function L1StepView({
     );
   }
 
-  const activePhase =
-    step.status === 'plan' ? 'Plan' : step.status === 'do' ? 'Do' : 'Reflect';
+  const isNursingDataset =
+    resolveDoTabInterestKind({
+      interestSlug: dataset.interest.slug,
+      interestName: dataset.interest.label,
+      interestId: dataset.interest.id,
+    }) === 'nursing';
+  const previewPhases: PreviewPhase[] = isNursingDataset
+    ? ['Plan', 'Do', 'Review']
+    : [...PHASES];
+  const activePhase: PreviewPhase =
+    step.status === 'plan' ? 'Plan' : step.status === 'do' ? 'Do' : isNursingDataset ? 'Review' : 'Reflect';
 
   const handleOpen = onOpenStepDetail
     ? () => onOpenStepDetail(step.id)
@@ -369,7 +386,7 @@ export function L1StepView({
         ) : null}
 
         <View style={styles.phaseRow}>
-          {PHASES.map((p) => {
+          {previewPhases.map((p) => {
             const active = p === activePhase;
             const count =
               p === 'Discuss' && (step.discussCount ?? 0) > 0 ? step.discussCount : null;
@@ -475,16 +492,38 @@ export function L1StepView({
   );
 }
 
-function GhostCard({ step }: { step: TimelineStep }) {
+function EmbeddedStepCard({
+  step,
+  onScroll,
+  onStepDeleted,
+  bottomInset,
+}: {
+  step: TimelineStep;
+  onScroll?: React.ComponentProps<typeof StepDetailContent>['onScroll'];
+  onStepDeleted?: () => void;
+  bottomInset?: number;
+}) {
   return (
-    <View style={styles.ghostInner}>
-      {step.preTitle ? (
-        <Text style={styles.eyebrow}>{step.preTitle}</Text>
+    <>
+      {step.peerQuote || step.subStep ? (
+        <View style={styles.embedChrome}>
+          {step.peerQuote ? <PeerQuoteBlock quote={step.peerQuote} /> : null}
+          {step.subStep ? <SessionStrap step={step} /> : null}
+        </View>
       ) : null}
-      <Text style={styles.title} numberOfLines={3}>
-        {step.title}
-      </Text>
-    </View>
+      <View style={styles.embedDetailHost}>
+        {/* StepDetailContent renders its own •••-menu button (with the
+            Delete action) via StepCard's floating menu. A second dead
+            ellipsis here used to overlay and swallow that tap. */}
+        <StepDetailContent
+          stepId={step.id}
+          onScroll={onScroll}
+          hideStatePill
+          onDeleted={onStepDeleted}
+          bottomInset={bottomInset}
+        />
+      </View>
+    </>
   );
 }
 
@@ -543,75 +582,58 @@ function darken(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-const PEEK_WIDTH = 14;
-const CARD_INSET = 22;
+// Narrow gutter so the card reads as wide; the prev/next peeks fill the
+// gutter flush to the screen edges (mockup #38 "make the card wider").
+const PEEK_WIDTH = 16;
+const CARD_INSET = 14;
 
 const styles = StyleSheet.create({
   embedHost: {
     flex: 1,
     position: 'relative',
-    backgroundColor: IOS_REGISTER.groundBg,
-  },
-  embedNowBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    backgroundColor: NOW_COLOR,
-    zIndex: 1,
-  },
-  embedNowPill: {
-    position: 'absolute',
-    left: 0,
-    top: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    backgroundColor: NOW_COLOR,
-    borderTopRightRadius: 3,
-    borderBottomRightRadius: 3,
-    zIndex: 2,
-  },
-  embedNowPillText: {
-    color: '#FFFFFF',
-    fontSize: 9.5,
-    fontWeight: '700',
-    letterSpacing: 0.6,
+    // A touch darker than the global groundBg (#F2F2F7) so the white card
+    // reads as a distinct, lifted surface rather than blending into the ground.
+    backgroundColor: '#E7E7EC',
   },
   embedChrome: {
     paddingHorizontal: 22,
     paddingTop: 0,
     paddingBottom: 4,
   },
+  embedGestureLayer: {
+    flex: 1,
+    position: 'relative',
+  },
   embedDetailHost: { flex: 1, position: 'relative' },
-  // On the current ("NOW") step the orange NOW pill is pinned to the card's
-  // top-left corner; without this the step title's first glyph renders behind
-  // it. Drop the detail body down enough to clear the pill.
-  embedDetailHostNow: { paddingTop: 16 },
   embedContent: {
     flex: 1,
     marginHorizontal: CARD_INSET,
     marginVertical: 10,
     backgroundColor: IOS_REGISTER.cardBg,
-    borderRadius: 16,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.06)',
     overflow: 'hidden',
     zIndex: 2,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.16,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 10 },
       },
-      android: { elevation: 4 },
+      android: { elevation: 9 },
+      web: {
+        alignSelf: 'center',
+        boxShadow:
+          '0 1px 2px rgba(0,0,0,0.06), 0 18px 40px -16px rgba(0,0,0,0.28), 0 6px 14px -6px rgba(0,0,0,0.12)',
+        width: WEB_L1_CARD_WIDTH,
+      } as any,
       default: {},
     }),
   },
-  // Pager-illusion ghost cards — full-card-shaped slabs sitting one
-  // screen-width to either side. Same visual envelope as the focused
-  // embedContent so the slide-in feels continuous; contents are minimal
-  // (verb eyebrow + title) for cheap render and so the heavy
-  // StepDetailContent only mounts for the committed step.
+  // Adjacent embedded step cards. They render real content but do not
+  // receive pointer events; swiping anywhere in the lane moves the strip.
   ghostCard: {
     position: 'absolute',
     top: 10,
@@ -619,24 +641,26 @@ const styles = StyleSheet.create({
     left: CARD_INSET,
     right: CARD_INSET,
     backgroundColor: IOS_REGISTER.cardBg,
-    borderRadius: 16,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.06)',
     overflow: 'hidden',
     zIndex: 2,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.16,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 10 },
       },
-      android: { elevation: 4 },
+      android: { elevation: 9 },
+      web: {
+        left: WEB_L1_CARD_LEFT,
+        right: 'auto',
+        width: WEB_L1_CARD_WIDTH,
+      } as any,
       default: {},
     }),
-  },
-  ghostInner: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 8,
   },
   // Adjacent-step silhouettes — edge + corner + shadow only, no content.
   // Sit behind the main card; the user reads them as "more here".

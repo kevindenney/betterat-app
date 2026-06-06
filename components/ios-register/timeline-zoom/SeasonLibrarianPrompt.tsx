@@ -14,20 +14,16 @@
  */
 
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { SeasonLibrarianPrompt as PromptData } from './types';
 
 const LILAC = '#AF52DE';
 const LILAC_SOFT = 'rgba(175, 82, 222, 0.18)';
 const LILAC_BORDER = 'rgba(175, 82, 222, 0.34)';
 
-const SERIF_FAMILY = Platform.select({
-  ios: 'Georgia',
-  android: 'serif',
-  web: 'Georgia, "Times New Roman", serif',
-  default: 'Georgia',
-}) as string;
+const SERIF_FAMILY = fontFamily.serif;
 
 interface SeasonLibrarianPromptProps {
   prompt: PromptData;

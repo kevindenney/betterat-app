@@ -128,6 +128,9 @@ export interface TimelineStep {
   /** Named moment pinned to this step's week on the L3 capability river
    *  ("named the lasix"). Sourced from metadata.season_marker. */
   marker?: string;
+  /** Phase N.4 — true when this step is a race. The only first-class step
+   *  distinction; drives the rose snake stripe + Atlas course/marks. */
+  isRace?: boolean;
 }
 
 export interface TimelineWeek {
@@ -437,6 +440,8 @@ export interface TimelineDataset {
   totalSeasons: number;
   totalSteps: number;
   sinceDate: string;
+  /** The viewer's active plan id for this interest, when one exists. */
+  activePlanId?: string | null;
   /** Raw ISO timestamp of the earliest known step/season — drives the
       L4 duration subtitle ("2 years", "8 months"). Optional because
       sparse / brand-new accounts won't have any historical anchor. */

@@ -16,7 +16,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { CapabilityMix } from './CapabilityMix';
+import { SnakeNodeRiver, type SnakeNode } from './SnakeTimeline';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import {
   detectMilestoneTitles,
@@ -57,6 +58,16 @@ import type {
  * so the caller can fall back to the legacy "{N} arcs · {M} steps"
  * subtitle.
  */
+// Season-identity hues for the all-time node river, cycled by chronological
+// arc position (mirrors the s0–s3 palette in the timeline-zoom mockups).
+const SEASON_PALETTE = ['#1E9E6A', '#2E62F0', '#E08A2B', '#8B5CF6', '#FF6B5A', '#0EA5A5'];
+
+/** Trim a milestone title to a node label that fits two short lines. */
+function shortenLabel(title: string): string {
+  const t = title.trim();
+  return t.length <= 22 ? t : `${t.slice(0, 21).trimEnd()}…`;
+}
+
 function formatLifetimeDuration(isoStart: string | undefined): string | null {
   if (!isoStart) return null;
   const start = Date.parse(isoStart);
@@ -294,6 +305,66 @@ export function L4YearsView({
     };
   }, [lifetime]);
 
+  // All-time "step river" — every step across every arc strung into one
+  // NOW-anchored snake (oldest → newest). Steps shrink to season-tinted
+  // nodes; milestones earn a star + label, the focused step is the red
+  // NOW node. The solid thread covers everything done up to NOW. This is
+  // the snaking-timeline twin of the brick-lane archive below, so the
+  // whole practice reads as one continuous line, not a stack of chapters.
+  const allTimeRiver = useMemo(() => {
+    const chrono = [...dataset.seasons].reverse(); // oldest → now
+    const allTitles = chrono.flatMap((s) =>
+      s.weeks.flatMap((w) => w.steps.map((st) => st.title)),
+    );
+    const milestoneSet = new Set(
+      detectMilestoneTitles(allTitles, interestVocab, 999).map((t) =>
+        t.trim().toLowerCase(),
+      ),
+    );
+    const seasonByStep = new Map<string, string>();
+    const nodes: SnakeNode[] = [];
+    let progressCount = 0;
+    let runningIndex = 0;
+    chrono.forEach((season, si) => {
+      const color = SEASON_PALETTE[si % SEASON_PALETTE.length];
+      const steps = season.weeks.flatMap((w) => w.steps);
+      steps.forEach((step, j) => {
+        seasonByStep.set(step.id, step.seasonId ?? season.id);
+        const isNow = step.id === dataset.focusStepId;
+        const isMilestone = milestoneSet.has(step.title.trim().toLowerCase());
+        const firstOfSeason = j === 0;
+        const label = isNow
+          ? 'NOW'
+          : isMilestone
+            ? shortenLabel(step.title)
+            : firstOfSeason
+              ? season.title
+              : '';
+        nodes.push({
+          id: step.id,
+          label,
+          color,
+          big: isMilestone || isNow,
+          milestone: isMilestone || firstOfSeason,
+          star: isMilestone ? '★' : undefined,
+          now: isNow,
+        });
+        runningIndex += 1;
+        if (isNow) progressCount = runningIndex;
+      });
+    });
+    if (progressCount === 0) {
+      // Focus not in this dataset — fall back to "all finished work".
+      let done = 0;
+      for (const s of chrono)
+        for (const w of s.weeks)
+          for (const st of w.steps)
+            if (st.status === 'done' || st.status === 'reflected') done += 1;
+      progressCount = done;
+    }
+    return { nodes, progressCount, seasonByStep };
+  }, [dataset.seasons, dataset.focusStepId, interestVocab]);
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -475,6 +546,25 @@ export function L4YearsView({
           />
         ) : null}
       </View>
+
+      {allTimeRiver.nodes.length > 1 ? (
+        <View style={styles.riverSection}>
+          <Text style={styles.sectionEyebrow}>EVERY STEP</Text>
+          <Text style={styles.sectionSubeyebrow}>
+            Your whole practice as one line — done, now, and what&apos;s ahead.
+          </Text>
+          <View style={styles.riverPad}>
+            <SnakeNodeRiver
+              nodes={allTimeRiver.nodes}
+              progressCount={allTimeRiver.progressCount}
+              onPressNode={(id) => {
+                const seasonId = allTimeRiver.seasonByStep.get(id);
+                if (seasonId) onOpenSeason?.(seasonId);
+              }}
+            />
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.chaptersHeaderRow}>
         <Text style={styles.chaptersTitle} numberOfLines={1}>
@@ -987,6 +1077,13 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 10,
   },
+  riverSection: {
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  riverPad: {
+    paddingHorizontal: 12,
+  },
   sectionEyebrow: {
     fontSize: 10.5,
     fontWeight: '700',
@@ -1223,12 +1320,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   lifetimeVisionStatement: {
-    fontFamily: Platform.select({
-      ios: 'Georgia',
-      android: 'serif',
-      web: 'Georgia, "Times New Roman", serif',
-      default: 'Georgia',
-    }) as string,
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
     fontSize: 17,
     lineHeight: 24,
@@ -1236,12 +1328,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   lifetimeVisionPrompt: {
-    fontFamily: Platform.select({
-      ios: 'Georgia',
-      android: 'serif',
-      web: 'Georgia, "Times New Roman", serif',
-      default: 'Georgia',
-    }) as string,
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
     fontSize: 14,
     lineHeight: 20,

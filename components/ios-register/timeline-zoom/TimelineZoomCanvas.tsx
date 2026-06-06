@@ -37,13 +37,18 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { useHideTabBar } from '@/components/navigation/TabBarVisibilityContext';
+import { useInterest } from '@/providers/InterestProvider';
+import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { AppChromeRow } from '@/components/ui/AppChromeRow';
 import { useScrollHideChrome } from '@/hooks/useScrollHideChrome';
 import { InterestHeader } from './InterestHeader';
+import { StepTaskBar } from './StepTaskBar';
+import { StepAddSheet } from './StepAddSheet';
+import { NowFloat, type NowRelation } from './NowFloat';
 import { L1StepView } from './L1StepView';
-import { L2WeekView } from './L2WeekView';
 import { L3SeasonView } from './L3SeasonView';
 import { L4YearsView } from './L4YearsView';
 import { ZoomEmptyState } from './EmptyStates';
@@ -108,22 +113,6 @@ interface TimelineZoomCanvasProps {
     afterStepId: string | null,
   ) => void;
   /**
-   * L2 drag-to-complete. When a pending card is dragged left of the NOW
-   * bar and released, the view fires this with the step id; the parent
-   * marks it completed. Gated the same way as onReorderStep (owner-mode,
-   * not select-mode).
-   */
-  onMarkStepDone?: (stepId: string) => void;
-  /**
-   * L2 in-play checklist toggle. Fires when the user checks/unchecks a
-   * how-sub-step on an in-play (status 'do') step's L2 cover card.
-   */
-  onToggleHowItem?: (
-    stepId: string,
-    subStepId: string,
-    completed: boolean,
-  ) => void;
-  /**
    * Frame 12 bulk-edit hooks. The canvas owns select-mode state and the
    * bottom action bar; the parent wires the actual mutations. Archive
    * fires for every selected id with status='skipped'; Delete fires
@@ -155,7 +144,8 @@ interface TimelineZoomCanvasProps {
   onEditArc?: (arcId: string) => void;
 }
 
-const LEVELS: ZoomLevel[] = [1, 2, 3, 4];
+// L2 (WEEK) is retired — merged into the L1 Step view. Pinch steps 1↔3↔4.
+const LEVELS: ZoomLevel[] = [1, 3, 4];
 
 // Pinch thresholds — release ≥ ZOOM_IN_SNAP commits a zoom-in (lower
 // level number); ≤ ZOOM_OUT_SNAP commits a zoom-out. The HINT_*
@@ -193,8 +183,6 @@ export function TimelineZoomCanvas({
   hideInterestHeader = false,
   embedFullDetailAtL1 = false,
   onReorderStep,
-  onMarkStepDone,
-  onToggleHowItem,
   onBulkArchive,
   onBulkDelete,
   onBulkMove,
@@ -205,6 +193,7 @@ export function TimelineZoomCanvas({
   onEditArc,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
+  const [addOpen, setAddOpen] = useState(false);
   // Track the previous level so the keyed level stage knows whether this
   // mount is a zoom-in (lower level number) or zoom-out for its entering
   // animation. Read during render, committed after paint.
@@ -241,6 +230,9 @@ export function TimelineZoomCanvas({
     setLevel(1);
   }, [routeFocusStepId]);
   const select = useSelectMode();
+  const { currentInterest } = useInterest();
+  const interestAccent = currentInterest?.accent_color ?? IOS_REGISTER.labelTertiary;
+  const isSailRacing = (dataset.interest.slug ?? '').toLowerCase() === 'sail-racing';
   // Hide the floating zoom rail while a text input / composer is focused so
   // it never collides with a send button or the rising keyboard. Keyboard
   // events are the most reliable cross-input signal (Discuss composer, any
@@ -256,9 +248,11 @@ export function TimelineZoomCanvas({
       hideSub.remove();
     };
   }, []);
-  const isFocusedStepSurface = level === 1;
   const periodNoun = resolveInterestVocab(dataset.interest.label).periodNoun;
-  useHideTabBar(embedFullDetailAtL1 && isFocusedStepSurface);
+  const insets = useSafeAreaInsets();
+  // Step level shows the global floating tab bar; reserve clearance so the
+  // embedded capture composer + NowFloat sit above it instead of behind it.
+  const tabBarClearance = Math.max(insets.bottom, 8) + FLOATING_TAB_BAR_HEIGHT + 8;
   const { onScroll: onInnerScroll, chromeAnimStyle } = useScrollHideChrome();
 
   // Continuous scale value driven by pinch — used to gate level changes on
@@ -358,9 +352,26 @@ export function TimelineZoomCanvas({
     () => dataset.seasons.flatMap((s) => s.weeks).flatMap((w) => w.steps),
     [dataset.seasons],
   );
+  const selectedSeason = useMemo(
+    () =>
+      dataset.seasons.find((s) => s.id === selectedSeasonId) ??
+      dataset.seasons.find((s) => s.id === dataset.currentSeasonId) ??
+      dataset.seasons[0],
+    [dataset.currentSeasonId, dataset.seasons, selectedSeasonId],
+  );
+  const selectedSeasonSteps = useMemo(
+    () => selectedSeason?.weeks.flatMap((w) => w.steps) ?? [],
+    [selectedSeason],
+  );
   const focusedStep =
     flatSteps.find((s) => s.id === focusStepId) ??
     dataset.seasons[0].weeks[0]?.steps[0];
+  const chromeSteps = level === 3 && selectedSeasonSteps.length > 0
+    ? selectedSeasonSteps
+    : flatSteps;
+  const chromeFocusedStep =
+    chromeSteps.find((s) => s.id === focusStepId) ??
+    (level === 3 ? chromeSteps[0] : focusedStep);
 
   const swipeToNeighbor = useCallback(
     (direction: 'prev' | 'next') => {
@@ -373,6 +384,15 @@ export function TimelineZoomCanvas({
     },
     [flatSteps, focusStepId],
   );
+  const jumpToFlatIndex = useCallback(
+    (index: number) => {
+      const step = flatSteps[index];
+      if (!step) return;
+      setFocusStepId(step.id);
+      setLevel(1);
+    },
+    [flatSteps],
+  );
 
   const focusedFlatIdx = useMemo(
     () => flatSteps.findIndex((s) => s.id === focusStepId),
@@ -383,6 +403,17 @@ export function TimelineZoomCanvas({
     focusedFlatIdx >= 0 && focusedFlatIdx < flatSteps.length - 1
       ? flatSteps[focusedFlatIdx + 1]
       : null;
+  // NowFloat — the viewed step's relation to the canonical now-step.
+  const nowFlatIdx = useMemo(
+    () => flatSteps.findIndex((s) => s.id === dataset.focusStepId),
+    [flatSteps, dataset.focusStepId],
+  );
+  const nowRelation: NowRelation =
+    focusedFlatIdx < 0 || nowFlatIdx < 0 || focusedFlatIdx === nowFlatIdx
+      ? 'now'
+      : focusedFlatIdx < nowFlatIdx
+        ? 'done'
+        : 'next';
 
   // Compute the level the user is about to snap to, given direction +
   // current level. Returns null when at a boundary (can't go further).
@@ -403,12 +434,23 @@ export function TimelineZoomCanvas({
         {hideInterestHeader ? (
           !select.enabled ? (
             <Animated.View style={[styles.chromeLayer, chromeAnimStyle]}>
-              <AppChromeRow />
+              {level === 1 || level === 3 ? (
+                <StepTaskBar
+                  interestLabel={dataset.interest.label}
+                  focusedStep={chromeFocusedStep}
+                  allSteps={chromeSteps}
+                  nowStepId={dataset.focusStepId}
+                  onJumpToStep={(id) => setFocusStepId(id)}
+                />
+              ) : (
+                <AppChromeRow onPlusPress={() => setAddOpen(true)} />
+              )}
             </Animated.View>
           ) : null
         ) : (
           <InterestHeader
             interestLabel={dataset.interest.label}
+            accentColor={interestAccent}
             level={level}
             stepCounter={dataset.stepCounter}
             weekCounter={dataset.weekCounter}
@@ -446,27 +488,20 @@ export function TimelineZoomCanvas({
                       prevStep={prevStep}
                       nextStep={nextStep}
                       onScroll={onInnerScroll}
-                      onStepDeleted={() => setLevel(2)}
+                      onStepDeleted={() => setLevel(3)}
                       allSteps={flatSteps}
                       onJumpToStep={(id) => setFocusStepId(id)}
+                      hideStepSwitcher={hideInterestHeader}
+                      bottomInset={embedFullDetailAtL1 ? tabBarClearance : 0}
                     />
                   ) : (
                     <ZoomEmptyState
                       level={1}
                       interestLabel={dataset.interest.label}
                       periodNoun={periodNoun}
+                      onAddStep={() => setAddOpen(true)}
                     />
                   )
-                ) : null}
-                {level === 2 ? (
-                  <L2WeekView
-                    dataset={dataset}
-                    focusStepId={focusStepId}
-                    onOpenStep={handleOpenStep}
-                    onReorderStep={onReorderStep}
-                    onMarkStepDone={onMarkStepDone}
-                    onToggleHowItem={onToggleHowItem}
-                  />
                 ) : null}
                 {level === 3 ? (
                   <L3SeasonView
@@ -482,6 +517,8 @@ export function TimelineZoomCanvas({
                     onToggleSelect={select.toggle}
                     onAddArc={onAddArc}
                     onEditArc={onEditArc}
+                    onAddStep={() => setAddOpen(true)}
+                    hideInlineCounter={hideInterestHeader}
                   />
                 ) : null}
                 {level === 4 ? (
@@ -557,6 +594,29 @@ export function TimelineZoomCanvas({
             hidden={keyboardVisible}
           />
         )}
+
+        {level === 1 && embedFullDetailAtL1 && !select.enabled && focusedStep ? (
+          <NowFloat
+            relation={nowRelation}
+            nowIndex={nowFlatIdx}
+            viewedIndex={Math.max(focusedFlatIdx, 0)}
+            total={flatSteps.length}
+            onJumpToIndex={jumpToFlatIndex}
+            onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
+            onNext={nextStep ? () => swipeToNeighbor('next') : undefined}
+            bottomOffset={tabBarClearance + 8}
+          />
+        ) : null}
+        <StepAddSheet
+          visible={addOpen}
+          onClose={() => setAddOpen(false)}
+          onStepAdded={(id) => {
+            setAddOpen(false);
+            setFocusStepId(id);
+            setLevel(1);
+          }}
+          showRaceSelector={isSailRacing}
+        />
       </View>
     </GestureHandlerRootView>
   );

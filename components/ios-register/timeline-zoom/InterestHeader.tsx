@@ -13,6 +13,8 @@ import type { ZoomLevel } from './types';
 
 interface InterestHeaderProps {
   interestLabel: string;
+  /** Per-interest accent for the breadcrumb identity dot. Defaults to neutral. */
+  accentColor?: string;
   level: ZoomLevel;
   stepCounter?: { current: number; total: number };
   weekCounter?: { current: number; total: number };
@@ -29,6 +31,7 @@ interface InterestHeaderProps {
 
 export function InterestHeader({
   interestLabel,
+  accentColor = IOS_REGISTER.labelTertiary,
   level,
   stepCounter,
   weekCounter,
@@ -55,9 +58,12 @@ export function InterestHeader({
         disabled={!onPressInterest}
         hitSlop={6}
       >
-        <View style={styles.interestDot} />
-        <Text style={styles.interestLabel}>{interestLabel}</Text>
-        <Ionicons name="chevron-down" size={14} color={IOS_REGISTER.label} />
+        <View style={styles.interestDotWrap}>
+          <View style={[styles.interestDotRing, { backgroundColor: accentColor }]} />
+          <View style={[styles.interestDot, { backgroundColor: accentColor }]} />
+        </View>
+        <Text style={styles.interestLabel} numberOfLines={1}>{interestLabel}</Text>
+        <Ionicons name="chevron-down" size={13} color={IOS_REGISTER.labelTertiary} />
       </Pressable>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : <View />}
       <View style={[styles.avatar, { backgroundColor: user.color }]}>
@@ -79,19 +85,43 @@ const styles = StyleSheet.create({
   interestPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    height: 38,
+    maxWidth: 248,
+    paddingLeft: 13,
+    paddingRight: 11,
+    borderRadius: 19,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separatorStrong,
+    backgroundColor: IOS_REGISTER.cardBg,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  interestDotWrap: {
+    width: 15,
+    height: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  interestDotRing: {
+    position: 'absolute',
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
+    opacity: 0.2,
   },
   interestDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#8E8E93',
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
   },
   interestLabel: {
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: -0.4,
+    fontSize: 14.5,
+    fontWeight: '700',
+    letterSpacing: -0.2,
     color: IOS_REGISTER.label,
+    flexShrink: 1,
   },
   subtitle: {
     fontSize: 13,
