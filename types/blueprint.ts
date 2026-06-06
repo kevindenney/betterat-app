@@ -16,6 +16,10 @@ export interface BlueprintRecord {
   slug: string;
   title: string;
   description: string | null;
+  /** Short one-line hook shown under the title (optional). */
+  tagline: string | null;
+  /** Typical time to work through the blueprint, in weeks (optional). */
+  duration_weeks: number | null;
   cover_image_url: string | null;
   is_published: boolean;
   subscriber_count: number;

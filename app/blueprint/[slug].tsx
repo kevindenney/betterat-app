@@ -598,6 +598,27 @@ export default function BlueprintPage() {
   const orgInitial = (blueprint.organization_name?.trim()?.[0] || '•').toUpperCase();
   const authorRole = blueprint.author_bio?.trim()
     || `${totalCount} step${totalCount !== 1 ? 's' : ''}`;
+  const isPaid = blueprint.access_level === 'paid' && !!blueprint.price_cents && blueprint.price_cents > 0;
+  const bigPrice = isPaid ? priceLabel : 'Free';
+  const accessLine = isPaid
+    ? (blueprint.pricing_type === 'recurring' ? `${priceLabel}/mo · cancel anytime` : 'Buy once, yours forever')
+    : blueprint.access_level === 'org_members'
+      ? (blueprint.organization_name ? `Members of ${blueprint.organization_name}` : 'Members only')
+      : blueprint.access_level === 'fleet'
+        ? 'Fleet members'
+        : 'Open to everyone';
+  const accessIcon: any = isPaid
+    ? 'cart-outline'
+    : blueprint.access_level === 'public' ? 'earth-outline' : 'lock-closed-outline';
+  // Share works for everyone — copy on web, native share sheet otherwise.
+  const shareBlueprint = async () => {
+    const url = `${Platform.OS === 'web' ? window.location.origin : 'https://better.at'}/blueprint/${blueprint.slug}`;
+    if (Platform.OS === 'web') {
+      await (navigator as any).clipboard?.writeText(url);
+    } else {
+      await Share.share({ url, message: `${blueprint.title} — ${url}` });
+    }
+  };
 
   return (
     <Container style={containerStyle}>
@@ -671,6 +692,12 @@ export default function BlueprintPage() {
               <Ionicons name="layers-outline" size={14} color="rgba(255,255,255,0.9)" />
               <Text style={v2.heroMetaText}>{totalCount} step{totalCount !== 1 ? 's' : ''}</Text>
             </View>
+            {blueprint.duration_weeks ? (
+              <View style={v2.heroMetaItem}>
+                <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.9)" />
+                <Text style={v2.heroMetaText}>~{blueprint.duration_weeks} wks</Text>
+              </View>
+            ) : null}
             {subsLabel && (
               <View style={v2.heroMetaItem}>
                 <Ionicons name="people-outline" size={14} color="rgba(255,255,255,0.9)" />
@@ -736,17 +763,14 @@ export default function BlueprintPage() {
               and column layout floats it above the steps on narrow/native. */}
           <View style={[v2.side, isWide && v2.sideWide]}>
             <View style={v2.sideCard}>
-              {/* Price badge for paid blueprints — shown to everyone including owner */}
-              {blueprint.access_level === 'paid' && blueprint.price_cents && blueprint.price_cents > 0 && (
-                <View style={styles.priceBadge}>
-                  <Text style={styles.priceText}>
-                    ${(blueprint.price_cents / 100).toFixed(blueprint.price_cents % 100 === 0 ? 0 : 2)}
-                  </Text>
-                  <Text style={styles.priceSubtext}>
-                    {blueprint.pricing_type === 'recurring' ? 'per month' : 'one-time purchase'}
-                  </Text>
+              {/* Price header — big price/"Free" + an honest access line, for everyone */}
+              <View style={v2.priceHeader}>
+                <Text style={[v2.bigPrice, { color: accent }]}>{bigPrice}</Text>
+                <View style={v2.accessLine}>
+                  <Ionicons name={accessIcon} size={13} color={C.labelLight} />
+                  <Text style={v2.accessLineText}>{accessLine}</Text>
                 </View>
-              )}
+              </View>
 
               {/* Subscribe / Purchase / Post-subscribe CTA */}
               {!isOwner && !isSubscribed && !hasPurchased && (
@@ -929,6 +953,21 @@ export default function BlueprintPage() {
                 </View>
               )}
 
+              {/* Adoption reassurance — only before someone has committed */}
+              {!isOwner && !isSubscribed && (
+                <Text style={v2.adoptHelper}>
+                  Steps land on your own timeline — adopt them one at a time, reorder, or skip. Nothing is locked.
+                </Text>
+              )}
+
+              {/* Share — available to everyone */}
+              {!isOwner && (
+                <Pressable style={v2.shareBtn} onPress={shareBlueprint}>
+                  <Ionicons name="share-outline" size={15} color={accent} />
+                  <Text style={[v2.shareBtnText, { color: accent }]}>Share</Text>
+                </Pressable>
+              )}
+
               {/* Progress summary — subscribers only */}
               {!isOwner && isSubscribed && (
                 <View style={styles.progressBar}>
@@ -956,16 +995,27 @@ export default function BlueprintPage() {
                     <Text style={[v2.glanceNum, { color: accent }]}>{totalCount}</Text>
                     <Text style={v2.glanceLabel}>{totalCount === 1 ? 'step' : 'steps'}</Text>
                   </View>
-                  {includedSummary.totalSubSteps > 0 && (
+                  {blueprint.duration_weeks ? (
+                    <View style={v2.glanceItem}>
+                      <Text style={[v2.glanceNum, { color: accent }]}>{blueprint.duration_weeks}</Text>
+                      <Text style={v2.glanceLabel}>weeks</Text>
+                    </View>
+                  ) : includedSummary.totalSubSteps > 0 ? (
                     <View style={v2.glanceItem}>
                       <Text style={[v2.glanceNum, { color: accent }]}>{includedSummary.totalSubSteps}</Text>
                       <Text style={v2.glanceLabel}>sub-steps</Text>
+                    </View>
+                  ) : null}
+                  {showSubs && blueprint.subscriber_count > 0 && (
+                    <View style={v2.glanceItem}>
+                      <Text style={[v2.glanceNum, { color: accent }]}>{blueprint.subscriber_count}</Text>
+                      <Text style={v2.glanceLabel}>started</Text>
                     </View>
                   )}
                   {includedSummary.skills.length > 0 && (
                     <View style={v2.glanceItem}>
                       <Text style={[v2.glanceNum, { color: accent }]}>{includedSummary.skills.length}</Text>
-                      <Text style={v2.glanceLabel}>{includedSummary.skills.length === 1 ? 'skill' : 'skills'}</Text>
+                      <Text style={v2.glanceLabel}>{includedSummary.skills.length === 1 ? 'capability' : 'capabilities'}</Text>
                     </View>
                   )}
                 </View>
@@ -1004,8 +1054,7 @@ export default function BlueprintPage() {
                       step={step}
                       index={index}
                       total={totalCount}
-                      isExpanded={previewStep?.id === step.id}
-                      onToggle={() => setPreviewStep(previewStep?.id === step.id ? null : step)}
+                      onPress={() => setPreviewStep(step)}
                       accentColor={accent}
                     />
                   ))}
@@ -1144,15 +1193,13 @@ function StepListItem({
   step,
   index,
   total,
-  isExpanded,
-  onToggle,
+  onPress,
   accentColor,
 }: {
   step: TimelineStepRecord;
   index: number;
   total: number;
-  isExpanded: boolean;
-  onToggle: () => void;
+  onPress: () => void;
   accentColor: string;
 }) {
   const statusCfg = STATUS_CONFIG[step.status] ?? STATUS_CONFIG.pending;
@@ -1162,120 +1209,94 @@ function StepListItem({
   const whatWillYouDo: string = planData.what_will_you_do || '';
   const whyReasoning: string = planData.why_reasoning || '';
   const capabilityGoals: string[] = planData.capability_goals || [];
+  const collaborators: string = (planData.collaborators || '').trim();
   const isLast = index === total - 1;
+  const isDone = step.status === 'completed';
+
+  // "Why" facet prefers the reasoning sentence, else folds the capability goals
+  // into a single readable line. "Who" comes straight from collaborators.
+  const whyFacet = whyReasoning || (capabilityGoals.length > 0 ? capabilityGoals.join(' · ') : '');
+  const body = step.description || whatWillYouDo;
 
   return (
-    <View>
-      {/* Row header — always visible */}
-      <Pressable
-        style={[
-          stepListStyles.row,
-          isExpanded && { backgroundColor: accentColor + '08' },
-        ]}
-        onPress={onToggle}
-      >
-        {/* Step number + connector */}
-        <View style={stepListStyles.numberCol}>
-          <View style={[stepListStyles.numberCircle, { backgroundColor: accentColor }]}>
+    <Pressable style={stepListStyles.row} onPress={onPress}>
+      {/* Step number + connector */}
+      <View style={stepListStyles.numberCol}>
+        <View
+          style={[
+            stepListStyles.numberCircle,
+            { backgroundColor: isDone ? statusCfg.color : accentColor },
+          ]}
+        >
+          {isDone ? (
+            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+          ) : (
             <Text style={stepListStyles.numberText}>{index + 1}</Text>
-          </View>
-          {!isLast && <View style={[stepListStyles.connector, { backgroundColor: accentColor + '25' }]} />}
+          )}
         </View>
+        {!isLast && <View style={[stepListStyles.connector, { backgroundColor: accentColor + '25' }]} />}
+      </View>
 
-        {/* Content */}
-        <View style={stepListStyles.content}>
-          <Text style={stepListStyles.stepTitle} numberOfLines={isExpanded ? undefined : 1}>
-            {step.title}
-          </Text>
-          {!isExpanded && (step.description || whatWillYouDo) ? (
-            <Text style={stepListStyles.stepSnippet} numberOfLines={1}>
-              {step.description || whatWillYouDo}
+      {/* Content — always expanded, mirrors the goal mockup's rich rows */}
+      <View style={stepListStyles.content}>
+        <View style={stepListStyles.titleRow}>
+          <Text style={stepListStyles.stepTitle}>{step.title}</Text>
+          <View style={[stepListStyles.statusBadge, { backgroundColor: statusCfg.color + '18' }]}>
+            <Ionicons name={statusCfg.icon as any} size={11} color={statusCfg.color} />
+            <Text style={[stepListStyles.statusText, { color: statusCfg.color }]} numberOfLines={1}>
+              {statusCfg.label}
             </Text>
-          ) : null}
+          </View>
         </View>
 
-        {/* Status badge */}
-        <View style={[stepListStyles.statusBadge, { backgroundColor: statusCfg.color + '18' }]}>
-          <Ionicons name={statusCfg.icon as any} size={12} color={statusCfg.color} />
-          <Text style={[stepListStyles.statusText, { color: statusCfg.color }]} numberOfLines={1}>
-            {statusCfg.label}
-          </Text>
-        </View>
+        {body ? <Text style={stepListStyles.stepBody}>{body}</Text> : null}
 
-        {/* Expand chevron */}
-        <Ionicons
-          name={isExpanded ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color={C.labelLight}
-          style={{ flexShrink: 0 }}
-        />
-      </Pressable>
-
-      {/* Expanded detail */}
-      {isExpanded && (
-        <View style={stepListStyles.detail}>
-          {/* Description */}
-          {step.description ? (
-            <Text style={stepListStyles.detailDesc}>{step.description}</Text>
-          ) : null}
-
-          {/* What you'll do */}
-          {whatWillYouDo ? (
-            <View style={stepListStyles.detailSection}>
-              <Text style={stepListStyles.detailSectionTitle}>What you'll do</Text>
-              <Text style={stepListStyles.detailSectionBody}>{whatWillYouDo}</Text>
-            </View>
-          ) : null}
-
-          {/* Sub-steps */}
-          {howSubSteps.length > 0 && (
-            <View style={stepListStyles.detailSection}>
-              <Text style={stepListStyles.detailSectionTitle}>Steps to follow</Text>
-              {howSubSteps.map((sub, i) => (
-                <View key={i} style={stepListStyles.subStepRow}>
-                  <View style={stepListStyles.subStepNum}>
-                    <Text style={stepListStyles.subStepNumText}>{i + 1}</Text>
-                  </View>
-                  <Text style={stepListStyles.subStepText}>{sub.text}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Skills */}
-          {capabilityGoals.length > 0 && (
-            <View style={stepListStyles.detailSection}>
-              <Text style={stepListStyles.detailSectionTitle}>Skills you'll build</Text>
-              <View style={stepListStyles.skillsRow}>
-                {capabilityGoals.map((skill, i) => (
-                  <View key={i} style={[stepListStyles.skillBadge, { borderColor: accentColor + '40' }]}>
-                    <Text style={[stepListStyles.skillText, { color: accentColor }]}>{skill}</Text>
-                  </View>
-                ))}
+        {/* Why / Who facet chips */}
+        {(whyFacet || collaborators) && (
+          <View style={stepListStyles.facetRow}>
+            {whyFacet ? (
+              <View style={[stepListStyles.facet, { borderColor: accentColor + '33' }]}>
+                <Text style={[stepListStyles.facetKey, { color: accentColor }]}>Why</Text>
+                <Text style={stepListStyles.facetVal} numberOfLines={2}>{whyFacet}</Text>
               </View>
-            </View>
-          )}
+            ) : null}
+            {collaborators ? (
+              <View style={[stepListStyles.facet, { borderColor: accentColor + '33' }]}>
+                <Text style={[stepListStyles.facetKey, { color: accentColor }]}>Who</Text>
+                <Text style={stepListStyles.facetVal} numberOfLines={2}>{collaborators}</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
 
-          {/* Why */}
-          {whyReasoning ? (
-            <View style={stepListStyles.detailSection}>
-              <Text style={stepListStyles.detailSectionTitle}>Why this matters</Text>
-              <Text style={stepListStyles.detailSectionBody}>{whyReasoning}</Text>
-            </View>
-          ) : null}
-        </View>
-      )}
-    </View>
+        {/* Sub-step checklist with done dots */}
+        {howSubSteps.length > 0 && (
+          <View style={stepListStyles.subList}>
+            {howSubSteps.map((sub, i) => (
+              <View key={i} style={stepListStyles.subStepRow}>
+                <Ionicons
+                  name={isDone ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={15}
+                  color={isDone ? statusCfg.color : accentColor + '99'}
+                  style={{ flexShrink: 0, marginTop: 1 }}
+                />
+                <Text style={stepListStyles.subStepText}>{sub.text}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    </Pressable>
   );
 }
 
 const stepListStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     ...Platform.select({ web: { cursor: 'pointer' } }),
@@ -1283,6 +1304,7 @@ const stepListStyles = StyleSheet.create({
   numberCol: {
     width: 28,
     alignItems: 'center',
+    alignSelf: 'stretch',
   },
   numberCircle: {
     width: 24,
@@ -1306,17 +1328,24 @@ const stepListStyles = StyleSheet.create({
   content: {
     flex: 1,
     minWidth: 0,
-    overflow: 'hidden',
+    gap: 8,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
   },
   stepTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
     color: '#1F2937',
+    lineHeight: 20,
   },
-  stepSnippet: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
+  stepBody: {
+    fontSize: 13,
+    color: '#4B5563',
+    lineHeight: 19,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -1326,82 +1355,54 @@ const stepListStyles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 6,
     flexShrink: 0,
+    marginTop: 1,
   },
   statusText: {
     fontSize: 10,
     fontWeight: '700',
   },
-  detail: {
-    paddingLeft: 56,
-    paddingRight: 16,
-    paddingBottom: 16,
-    paddingTop: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    backgroundColor: '#FAFBFC',
+  facetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
-  detailDesc: {
-    fontSize: 13,
-    color: '#4B5563',
-    lineHeight: 19,
-    marginBottom: 12,
+  facet: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: '#FCFCFD',
+    maxWidth: '100%',
   },
-  detailSection: {
-    marginBottom: 12,
-  },
-  detailSectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 6,
+  facetKey: {
+    fontSize: 10,
+    fontWeight: '800',
     textTransform: 'uppercase' as any,
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
-  detailSectionBody: {
-    fontSize: 13,
+  facetVal: {
+    flexShrink: 1,
+    fontSize: 12,
     color: '#4B5563',
-    lineHeight: 19,
+    lineHeight: 16,
+  },
+  subList: {
+    gap: 6,
+    marginTop: 2,
   },
   subStepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    marginBottom: 6,
-  },
-  subStepNum: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-  },
-  subStepNumText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#6B7280',
   },
   subStepText: {
     fontSize: 13,
     color: '#4B5563',
     flex: 1,
     lineHeight: 18,
-  },
-  skillsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  skillBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  skillText: {
-    fontSize: 11,
-    fontWeight: '600',
   },
 });
 
@@ -2798,6 +2799,50 @@ const v2 = StyleSheet.create({
   },
   glanceSkillText: {
     fontSize: 11,
+    fontWeight: '600',
+  },
+  priceHeader: {
+    gap: 4,
+    paddingBottom: 14,
+    marginBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF0F2',
+  },
+  bigPrice: {
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  accessLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  accessLineText: {
+    fontSize: 13,
+    color: '#6B7280',
+    flexShrink: 1,
+  },
+  adoptHelper: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 17,
+    marginTop: 12,
+  },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 12,
+    ...Platform.select({ web: { cursor: 'pointer' } }),
+  },
+  shareBtnText: {
+    fontSize: 14,
     fontWeight: '600',
   },
 });
