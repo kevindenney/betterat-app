@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -589,6 +589,15 @@ export default function PublicOrgCatalogWeb() {
     (userProfile?.full_name || user?.email || 'B').trim().charAt(0) || 'B'
   ).toUpperCase();
 
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef<{ prog: number; guides: number; people: number }>({
+    prog: 0,
+    guides: 0,
+    people: 0,
+  });
+  const scrollToSection = (key: 'prog' | 'guides' | 'people') =>
+    scrollRef.current?.scrollTo({ y: Math.max(sectionY.current[key] - 16, 0), animated: true });
+
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [org, setOrg] = useState<OrgRow | null>(null);
@@ -838,6 +847,7 @@ export default function PublicOrgCatalogWeb() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={S.stage}
       contentContainerStyle={S.stageContent}
       showsVerticalScrollIndicator
@@ -850,8 +860,8 @@ export default function PublicOrgCatalogWeb() {
             <Text style={S.brandWord}>BetterAt</Text>
           </View>
           <View style={S.navLinks}>
-            <Pressable onPress={() => router.push('/discover-ios' as never)}><Text style={S.navLink}>Discover</Text></Pressable>
-            <Pressable onPress={() => router.push('/discover-ios' as never)}><Text style={S.navLink}>{copy.catalogLabel}</Text></Pressable>
+            <Pressable onPress={() => router.push('/marketplace' as never)}><Text style={S.navLink}>Discover</Text></Pressable>
+            <Pressable onPress={() => router.push('/marketplace' as never)}><Text style={S.navLink}>{copy.catalogLabel}</Text></Pressable>
             <Pressable
               onPress={() =>
                 router.push(
@@ -863,7 +873,7 @@ export default function PublicOrgCatalogWeb() {
             >
               <Text style={S.navLink}>Blueprints</Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/institutions' as never)}><Text style={S.navLink}>For institutions</Text></Pressable>
+            <Pressable onPress={() => router.push('/institutions/pricing' as never)}><Text style={S.navLink}>For institutions</Text></Pressable>
           </View>
           <View style={S.navSpacer} />
           <View style={S.navActions}>
@@ -871,7 +881,7 @@ export default function PublicOrgCatalogWeb() {
             {signedIn ? (
               <Pressable
                 style={S.accountBtn}
-                onPress={() => router.push('/discover-ios' as never)}
+                onPress={() => router.push('/' as never)}
                 accessibilityLabel="Open the app"
               >
                 <View style={S.accountAvatar}><Text style={S.accountAvatarText}>{accountInitial}</Text></View>
@@ -938,11 +948,11 @@ export default function PublicOrgCatalogWeb() {
               </View>
 
               <View style={S.heroActions}>
-                <Pressable style={S.ctaPrimary} onPress={() => router.push('/welcome' as never)}>
+                <Pressable style={S.ctaPrimary} onPress={() => scrollToSection('prog')}>
                   <Ionicons name={copy.ctaPrimaryIcon} size={15} color={C.white} />
                   <Text style={S.ctaPrimaryText}>{copy.ctaPrimaryText}</Text>
                 </Pressable>
-                <Pressable style={S.ctaSecondary}>
+                <Pressable style={S.ctaSecondary} onPress={() => router.push('/welcome' as never)}>
                   <Ionicons name="bookmark-outline" size={15} color={C.label} />
                   <Text style={S.ctaSecondaryText}>Save</Text>
                 </Pressable>
@@ -960,7 +970,12 @@ export default function PublicOrgCatalogWeb() {
         </View>
 
         {/* ===== Program in Practice ===== */}
-        <View style={S.prog}>
+        <View
+          style={S.prog}
+          onLayout={(e) => {
+            sectionY.current.prog = e.nativeEvent.layout.y;
+          }}
+        >
           <Text style={S.secEyebrow}>{copy.progEyebrow}</Text>
           <Text style={S.secTitle}>
             {copy.progTitleA}<Text style={S.italic}>{copy.progTitleEm}</Text>
@@ -1106,7 +1121,12 @@ export default function PublicOrgCatalogWeb() {
         ) : null}
 
         {/* ===== Blueprints by Faculty ===== */}
-        <View style={S.bpSection}>
+        <View
+          style={S.bpSection}
+          onLayout={(e) => {
+            sectionY.current.guides = e.nativeEvent.layout.y;
+          }}
+        >
           <View style={S.secHead}>
             <View style={S.secHeadLeft}>
               <Text style={S.secEyebrow}>
@@ -1187,7 +1207,12 @@ export default function PublicOrgCatalogWeb() {
 
         {/* ===== Members / Graduates ===== */}
         {copy.members ? (
-        <View style={S.ppSection}>
+        <View
+          style={S.ppSection}
+          onLayout={(e) => {
+            sectionY.current.people = e.nativeEvent.layout.y;
+          }}
+        >
           <View style={S.secHead}>
             <View style={S.secHeadLeft}>
               <Text style={S.secEyebrow}>{copy.gradEyebrow}</Text>
@@ -1319,10 +1344,10 @@ export default function PublicOrgCatalogWeb() {
               <Text style={S.ctaDesc}>{copy.cta2Desc}</Text>
               <View style={S.ctaSpacer} />
               <View style={S.ctaAct}>
-                <View style={S.ctaActBtn}>
+                <Pressable style={S.ctaActBtn} onPress={() => scrollToSection('guides')}>
                   <Text style={S.ctaActText}>{isNursing ? 'Programs' : 'Open'}</Text>
                   <Ionicons name="arrow-forward" size={14} color={C.white} />
-                </View>
+                </Pressable>
                 <View style={S.flex1} />
                 <Text style={S.ctaDeadline}>{org.slug ? `betterat.app/${org.slug}` : 'betterat.app'}</Text>
               </View>
@@ -1334,10 +1359,13 @@ export default function PublicOrgCatalogWeb() {
               <Text style={S.ctaDesc}>{copy.cta3Desc}</Text>
               <View style={S.ctaSpacer} />
               <View style={S.ctaAct}>
-                <View style={S.ctaActBtn}>
+                <Pressable
+                  style={S.ctaActBtn}
+                  onPress={() => scrollToSection(copy.members ? 'people' : 'guides')}
+                >
                   <Text style={S.ctaActText}>{copy.cta3Num.split('/ ')[1] || 'Open'}</Text>
                   <Ionicons name="arrow-forward" size={14} color={C.white} />
-                </View>
+                </Pressable>
                 <View style={S.flex1} />
                 <Text style={S.ctaDeadline}>{copy.cta3Deadline}</Text>
               </View>
@@ -1353,19 +1381,19 @@ export default function PublicOrgCatalogWeb() {
               <Text style={S.siteFootBrandText}><Text style={S.siteFootStrong}>BetterAt</Text> · 2026</Text>
             </View>
             <View style={S.siteFootLinks}>
-              <Text style={S.siteFootLink}>About</Text>
-              <Text style={S.siteFootLink}>For institutions</Text>
-              <Text style={S.siteFootLink}>Privacy</Text>
-              <Text style={S.siteFootLink}>Terms</Text>
-              <Text style={S.siteFootLink}>Help</Text>
+              <Pressable onPress={() => router.push('/how-it-works' as never)}><Text style={S.siteFootLink}>About</Text></Pressable>
+              <Pressable onPress={() => router.push('/institutions/pricing' as never)}><Text style={S.siteFootLink}>For institutions</Text></Pressable>
+              <Pressable onPress={() => router.push('/privacy' as never)}><Text style={S.siteFootLink}>Privacy</Text></Pressable>
+              <Pressable onPress={() => router.push('/terms' as never)}><Text style={S.siteFootLink}>Terms</Text></Pressable>
+              <Pressable onPress={() => router.push('/support' as never)}><Text style={S.siteFootLink}>Help</Text></Pressable>
             </View>
             <View style={S.siteFootSpacer} />
             <View style={S.siteFootVerified}>
-              <View style={S.siteFootVerifiedDot}>
-                <Ionicons name="checkmark" size={8} color={C.white} />
+              <View style={[S.siteFootVerifiedDot, isDemo && S.siteFootDemoDot]}>
+                <Ionicons name={isDemo ? 'flask' : 'checkmark'} size={8} color={C.white} />
               </View>
               <Text style={S.siteFootVerifiedText}>
-                {copy.footVerified} · betterat.app/{org.slug || ''}
+                {isDemo ? 'Demo data' : copy.footVerified} · betterat.app/{org.slug || ''}
               </Text>
             </View>
           </View>
@@ -1903,6 +1931,7 @@ const S = StyleSheet.create({
   siteFootSpacer: { flex: 1 },
   siteFootVerified: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   siteFootVerifiedDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: C.tenantInk, alignItems: 'center', justifyContent: 'center' },
+  siteFootDemoDot: { backgroundColor: C.demoInk },
   siteFootVerifiedText: { color: C.tenantInk, fontWeight: '500', fontSize: 12 },
   flex1: { flex: 1 },
 });
