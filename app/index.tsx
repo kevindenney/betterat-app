@@ -4,9 +4,7 @@
  * Native users are always redirected (to dashboard or login).
  */
 
-import { DataBrowserLandingPage } from '@/components/landing/DataBrowserLandingPage';
-import { ScrollFix } from '@/components/landing/ScrollFix';
-import { SimpleLandingNav } from '@/components/landing/SimpleLandingNav';
+import { NetflixLandingPage } from '@/components/landing/NetflixLandingPage';
 import { DashboardSkeleton } from '@/components/ui/loading';
 import { getLastTabRoute } from '@/lib/utils/userTypeRouting';
 import { useAuth } from '@/providers/AuthProvider';
@@ -113,9 +111,7 @@ export default function LandingPage() {
   // Web: public landing page for signed-out visitors
   return (
     <View style={styles.container}>
-      <ScrollFix />
-      <SimpleLandingNav />
-      <DataBrowserLandingPage />
+      <NetflixLandingPage />
     </View>
   );
 }
