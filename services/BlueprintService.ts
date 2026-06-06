@@ -181,11 +181,12 @@ async function enrichBlueprintWithAuthor(
   if (blueprint.organization_id) {
     const { data: org } = await supabase
       .from('organizations')
-      .select('name, slug')
+      .select('name, slug, metadata')
       .eq('id', blueprint.organization_id)
       .maybeSingle();
     result.organization_name = (org as any)?.name ?? undefined;
     result.organization_slug = (org as any)?.slug ?? undefined;
+    result.organization_is_demo = (org as any)?.metadata?.is_demo === true;
   }
 
   if (blueprint.program_id) {

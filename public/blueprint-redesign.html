@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Blueprint page redesign · BetterAt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ───────────────────────────────────────────────────────────
+     Design mock — NOT wired into the app. An improved layout for
+     the public blueprint page at /blueprint/[slug]. The current
+     page is a flat title + description + vertical step list. This
+     gives a blueprint a shape: a hero with provenance, the
+     plan/do/review arc, a real step ladder showing what / how /
+     why / who, and a sticky sidebar with the outcome, who's done
+     it, and how to get access. The page tints from one --accent
+     (the publishing org's brand_color) so every blueprint reads
+     as belonging to its org. Switch examples with the pills up top.
+     ─────────────────────────────────────────────────────────── */
+  :root{
+    --accent:#C2410C;        /* PRADAN livelihoods terracotta */
+    --accent-soft:#FBEDE6;
+    --accent-ink:#7C2D12;
+    --ink:#101828;
+    --ink-2:#344054;
+    --muted:#667085;
+    --line:#E7ECF3;
+    --line-soft:#EEF2F7;
+    --bg:#F4F6FA;
+    --card:#FFFFFF;
+    --green:#0F766E;
+    --green-soft:#E6F4F1;
+    --gold:#B7791F;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.12);
+    --shadow-lg:0 1px 2px rgba(16,24,40,.05), 0 24px 48px -20px rgba(16,24,40,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{
+    font-family:'Figtree',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--ink);
+    line-height:1.5;letter-spacing:-.011em;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:64px;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+
+  /* ── top bar ── */
+  .topbar{
+    position:sticky;top:0;z-index:40;
+    background:rgba(244,246,250,.82);backdrop-filter:saturate(180%) blur(16px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar .row{display:flex;align-items:center;gap:14px;height:52px}
+  .back{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-weight:600;font-size:15px;text-decoration:none;cursor:pointer}
+  .back:hover{color:var(--ink)}
+  .back svg{width:17px;height:17px}
+  .topbar-title{font-weight:800;font-size:14.5px;letter-spacing:-.02em;opacity:0;transition:opacity .2s ease;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+  .topbar.scrolled .topbar-title{opacity:1}
+  .topbar-spacer{flex:1}
+  .topbar .mini-cta{font-family:inherit;border:0;background:var(--accent);color:#fff;font-size:13px;font-weight:800;padding:8px 15px;border-radius:10px;cursor:pointer;opacity:0;transform:translateY(-2px);transition:opacity .2s ease,transform .2s ease;pointer-events:none}
+  .topbar.scrolled .mini-cta{opacity:1;transform:none;pointer-events:auto}
+  .switcher{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px}
+  .switcher button{font-family:inherit;border:0;background:none;font-size:12.5px;font-weight:700;color:var(--muted);padding:5px 11px;border-radius:999px;cursor:pointer;letter-spacing:-.01em}
+  .switcher button.on{background:var(--accent);color:#fff}
+
+  /* ── hero ── */
+  .hero{
+    position:relative;margin-top:14px;border-radius:22px;overflow:hidden;padding:26px 26px 24px;
+    background:
+      radial-gradient(120% 150% at 10% 0%, color-mix(in srgb, var(--accent) 92%, #fff) 0%, transparent 55%),
+      radial-gradient(130% 170% at 100% 100%, color-mix(in srgb, var(--accent) 65%, #000 16%) 0%, transparent 60%),
+      linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #1d1340));
+    color:#fff;box-shadow:var(--shadow-lg);
+  }
+  .hero::after{
+    content:"";position:absolute;inset:0;
+    background-image:radial-gradient(rgba(255,255,255,.14) 1px, transparent 1.4px);
+    background-size:18px 18px;opacity:.5;mix-blend-mode:overlay;pointer-events:none;
+  }
+  .hero-in{position:relative;z-index:2;max-width:680px}
+  .hero-eyebrow{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.86);background:rgba(255,255,255,.14);padding:5px 11px;border-radius:999px;backdrop-filter:blur(2px)}
+  .hero-eyebrow svg{width:13px;height:13px}
+  .hero h1{font-size:34px;line-height:1.1;font-weight:800;letter-spacing:-.028em;margin:14px 0 10px}
+  .hero p{font-size:16.5px;line-height:1.55;color:rgba(255,255,255,.9);font-weight:450;max-width:600px}
+  .hero-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:18px;font-size:13.5px;font-weight:600;color:rgba(255,255,255,.92)}
+  .hero-meta .m{display:inline-flex;align-items:center;gap:6px}
+  .hero-meta svg{width:15px;height:15px;opacity:.85}
+  .hero-meta .hdot{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.5)}
+
+  /* ── arc strip (plan→do→review→discuss) ── */
+  .arc{display:flex;gap:7px;margin-top:22px;position:relative;z-index:2}
+  .arc .step-ph{flex:1;text-align:center;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.7);background:rgba(255,255,255,.12);padding:9px 0;border-radius:9px;border:1px solid rgba(255,255,255,.14)}
+  .arc .step-ph.on{color:#fff;background:rgba(255,255,255,.26);border-color:rgba(255,255,255,.3)}
+
+  /* ── author + org provenance ── */
+  .provenance{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:18px 4px 0}
+  .author{display:flex;align-items:center;gap:11px;cursor:pointer}
+  .au-ava{width:46px;height:46px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 0 3px var(--bg), 0 4px 12px -4px color-mix(in srgb,var(--accent) 50%,transparent)}
+  .au-body .au-n{font-weight:800;font-size:15.5px;letter-spacing:-.01em}
+  .au-body .au-r{color:var(--muted);font-size:13px;font-weight:600}
+  .prov-dot{width:4px;height:4px;border-radius:50%;background:#C2C9D6}
+  .org-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px 6px 8px;cursor:pointer;text-decoration:none;color:inherit;box-shadow:var(--shadow)}
+  .org-chip:hover{border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+  .org-chip .oc-mark{width:26px;height:26px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;font-family:'Manrope';background:var(--accent)}
+  .org-chip .oc-t{font-weight:700;font-size:13.5px}
+  .org-chip .oc-badge{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--green);background:var(--green-soft);padding:2px 7px;border-radius:999px}
+  .org-chip.demo .oc-badge{color:var(--gold);background:#FBF3E2}
+
+  /* ── layout grid ── */
+  .grid{display:grid;grid-template-columns:1fr 320px;gap:22px;margin-top:26px;align-items:start}
+  .col-main{display:flex;flex-direction:column;gap:18px;min-width:0}
+  .col-side{display:flex;flex-direction:column;gap:18px;position:sticky;top:66px}
+
+  section.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .card-head h2{font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .card-head .count{font-size:12px;font-weight:700;color:var(--accent-ink);background:var(--accent-soft);padding:2px 9px;border-radius:999px}
+  .card-sub{font-size:13.5px;color:var(--muted);font-weight:500;margin-bottom:16px}
+
+  /* ── outcome card ── */
+  .outcome{background:linear-gradient(160deg, color-mix(in srgb,var(--accent-soft) 70%,#fff), #fff);border-color:color-mix(in srgb,var(--accent) 22%,var(--line))}
+  .outcome h2{color:var(--accent-ink)}
+  .outcome .big{font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.3;margin:4px 0 12px}
+  .outcome ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .outcome li{display:flex;gap:10px;font-size:14.5px;color:var(--ink-2);font-weight:550;line-height:1.4}
+  .outcome li svg{width:18px;height:18px;flex:none;margin-top:1px;color:var(--accent)}
+
+  /* ── step ladder ── */
+  .ladder{display:flex;flex-direction:column}
+  .lstep{display:flex;gap:15px;position:relative;padding:4px 0}
+  .lrail{flex:none;width:34px;display:flex;flex-direction:column;align-items:center}
+  .lnum{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-family:'Manrope';background:var(--accent-soft);color:var(--accent-ink);z-index:2}
+  .lstep.done .lnum{background:var(--green);color:#fff}
+  .lstep.active .lnum{background:var(--accent);color:#fff;box-shadow:0 4px 12px -3px color-mix(in srgb,var(--accent) 55%,transparent)}
+  .lline{flex:1;width:2px;background:var(--line);margin:4px 0 -4px}
+  .lstep:last-child .lline{display:none}
+  .lbody{flex:1;min-width:0;padding-bottom:20px}
+  .lstep:last-child .lbody{padding-bottom:2px}
+  .lhead{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .lphase{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);padding:2px 7px;border-radius:6px}
+  .ltitle{font-size:16.5px;font-weight:800;letter-spacing:-.02em}
+  .lstatus{font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;display:inline-flex;align-items:center;gap:4px}
+  .lstatus.done{color:var(--green)}
+  .lstatus.active{color:var(--gold)}
+  .lstatus.pending{color:var(--muted)}
+  .lstatus svg{width:13px;height:13px}
+  .ldesc{font-size:14px;color:var(--ink-2);font-weight:500;line-height:1.5;margin-top:5px}
+  /* the how/why/who chips that make a step more than a checkbox */
+  .lfacets{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .facet{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink-2);background:var(--line-soft);border:1px solid var(--line);padding:5px 10px;border-radius:8px}
+  .facet svg{width:13px;height:13px;color:var(--muted)}
+  .facet b{font-weight:800;color:var(--ink);margin-left:1px}
+  .facet .key{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-right:2px}
+  .substeps{margin-top:11px;display:flex;flex-direction:column;gap:7px;padding-left:2px}
+  .sub{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink-2);font-weight:500}
+  .sub .sb{width:15px;height:15px;border-radius:5px;border:2px solid var(--line);flex:none}
+  .lstep.done .sub .sb,.lstep.active .sub.sdone .sb{background:var(--green);border-color:var(--green);position:relative}
+  .lstep.done .sub .sb::after,.sub.sdone .sb::after{content:"";position:absolute;left:3px;top:0px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+
+  /* ── who's done it ── */
+  .peers{display:flex;flex-direction:column;gap:2px}
+  .peer{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .peer:last-child{border-bottom:0;padding-bottom:0}
+  .peer:first-child{padding-top:0}
+  .pe-ava{width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;font-family:'Manrope'}
+  .pe-body{flex:1;min-width:0}
+  .pe-body .n{font-weight:700;font-size:14px}
+  .pe-body .s{color:var(--muted);font-size:12.5px;font-weight:500}
+  .pe-prog{flex:none;width:60px}
+  .pe-bar{height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+  .pe-bar > i{display:block;height:100%;background:var(--accent);border-radius:999px}
+  .pe-pct{font-size:11px;font-weight:700;color:var(--ink-2);text-align:right;margin-top:3px}
+
+  /* ── sidebar: subscribe card ── */
+  .buy{position:relative}
+  .price{display:flex;align-items:baseline;gap:8px}
+  .price .pv{font-size:30px;font-weight:800;letter-spacing:-.03em;font-family:'Manrope'}
+  .price .pv.free{color:var(--green)}
+  .price .pc{font-size:13px;font-weight:600;color:var(--muted)}
+  .buy .access{font-size:13px;color:var(--ink-2);font-weight:550;margin:9px 0 15px;display:flex;align-items:center;gap:7px}
+  .buy .access svg{width:15px;height:15px;color:var(--accent);flex:none}
+  .btn{font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:15px;border-radius:12px;padding:13px 18px;cursor:pointer;border:1px solid transparent;letter-spacing:-.01em;transition:transform .08s ease, box-shadow .2s ease;width:100%}
+  .btn:active{transform:translateY(1px)}
+  .btn svg{width:18px;height:18px}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 8px 18px -7px color-mix(in srgb, var(--accent) 62%, transparent)}
+  .btn-primary:hover{box-shadow:0 12px 24px -8px color-mix(in srgb, var(--accent) 66%, transparent)}
+  .btn-ghost{background:#fff;color:var(--ink-2);border-color:var(--line);margin-top:9px}
+  .btn-ghost:hover{border-color:#D4DBE6;color:var(--ink)}
+  .buy .fine{font-size:11.5px;color:var(--muted);text-align:center;margin-top:11px;line-height:1.5}
+
+  /* ── sidebar: at a glance ── */
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+  .fact{background:#fff;padding:14px}
+  .fact .v{font-size:20px;font-weight:800;letter-spacing:-.02em;font-family:'Manrope'}
+  .fact .l{font-size:11.5px;font-weight:600;color:var(--muted);margin-top:1px}
+
+  /* ── sidebar: included-with ── */
+  .incl{display:flex;align-items:flex-start;gap:11px}
+  .incl .ic{width:38px;height:38px;border-radius:11px;flex:none;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center}
+  .incl .ic svg{width:19px;height:19px}
+  .incl .t{font-weight:700;font-size:14px}
+  .incl .s{color:var(--muted);font-size:12.5px;font-weight:500;margin-top:1px;line-height:1.4}
+
+  .note{font-size:12px;color:var(--muted);text-align:center;margin:34px auto 0;max-width:600px;line-height:1.5}
+  code{background:var(--line-soft);padding:1px 5px;border-radius:5px;font-size:11.5px}
+
+  @media (max-width:840px){
+    .grid{grid-template-columns:1fr}
+    .col-side{position:static}
+    .hero h1{font-size:27px}
+    .hero{padding:22px 20px 20px}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar" id="topbar">
+  <div class="wrap row">
+    <a class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Back</a>
+    <span class="topbar-title" id="tbTitle">Pickle &amp; Chutney — First Product</span>
+    <div class="topbar-spacer"></div>
+    <div class="switcher" id="switcher">
+      <button class="on" data-bp="pickle">Pickle</button>
+      <button data-bp="fssai">FSSAI</button>
+      <button data-bp="dragon">Dragon race</button>
+      <button data-bp="rotation">Med-surg</button>
+    </div>
+    <button class="mini-cta" id="miniCta">Start this plan</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-in">
+      <span class="hero-eyebrow" id="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg> Blueprint · Food processing</span>
+      <h1 id="title">Pickle &amp; Chutney — First Product</h1>
+      <p id="lede">A first, sellable batch — from sourcing mango and spice to a labelled jar a customer pays for. The exact path Suman's group took to their first ₹4,000 market day.</p>
+      <div class="hero-meta">
+        <span class="m" id="mSteps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> 5 steps</span>
+        <span class="hdot"></span>
+        <span class="m" id="mWeeks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> ~3 weeks</span>
+        <span class="hdot"></span>
+        <span class="m" id="mSubs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg> 86 have started this</span>
+      </div>
+    </div>
+    <div class="arc" id="arc">
+      <div class="step-ph on">Plan</div>
+      <div class="step-ph on">Do</div>
+      <div class="step-ph">Review</div>
+      <div class="step-ph">Discuss</div>
+    </div>
+  </div>
+
+  <!-- PROVENANCE -->
+  <div class="provenance">
+    <div class="author">
+      <div class="au-ava" id="auAva" style="background:#FBEDE6">🫙</div>
+      <div class="au-body">
+        <div class="au-n" id="auName">Suman Tirkey</div>
+        <div class="au-r" id="auRole">SHG leader · wrote this from her own first batch</div>
+      </div>
+    </div>
+    <span class="prov-dot"></span>
+    <a class="org-chip demo" id="orgChip">
+      <span class="oc-mark" id="ocMark">P</span>
+      <span class="oc-t" id="ocName">PRADAN — Ranchi Food Hub</span>
+      <span class="oc-badge" id="ocBadge">Demo data</span>
+    </a>
+  </div>
+
+  <!-- BODY GRID -->
+  <div class="grid">
+    <!-- MAIN -->
+    <div class="col-main">
+
+      <!-- OUTCOME -->
+      <section class="card outcome">
+        <div class="card-head"><h2>What you'll have at the end</h2></div>
+        <div class="big" id="outcomeBig">A labelled jar of pickle a customer has paid for — and the costing to make the next 50.</div>
+        <ul id="outcomeList">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> A recipe you can repeat to a consistent taste and shelf life</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> A per-jar cost and a price that leaves you a margin</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> A label, and your first real sale to point at</li>
+        </ul>
+      </section>
+
+      <!-- STEP LADDER -->
+      <section class="card">
+        <div class="card-head"><h2>The steps</h2><span class="count" id="ladderCount">5 steps</span></div>
+        <div class="card-sub" id="ladderSub">Each step carries a how (sub-steps), a why (the capability it builds), and a who. Subscribe and they drop onto your own timeline in order.</div>
+        <div class="ladder" id="ladder"><!-- injected --></div>
+      </section>
+
+      <!-- WHO'S DONE IT -->
+      <section class="card">
+        <div class="card-head"><h2>Others on this path</h2><a class="seeall" style="font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;cursor:pointer">See all →</a></div>
+        <div class="card-sub" id="peerSub">Women in the cohort working through the same five steps. You'll see their progress once you start.</div>
+        <div class="peers" id="peers"><!-- injected --></div>
+      </section>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="col-side">
+
+      <!-- SUBSCRIBE -->
+      <section class="card buy">
+        <div class="price"><span class="pv free" id="priceV">Free</span><span class="pc" id="priceC">to members</span></div>
+        <div class="access" id="accessLine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Included with your PRADAN membership</div>
+        <button class="btn btn-primary" id="buyBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Start this plan</button>
+        <button class="btn btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> Share</button>
+        <div class="fine" id="fine">Steps land on your own timeline — adopt them one at a time, reorder, or skip. Nothing is locked.</div>
+      </section>
+
+      <!-- AT A GLANCE -->
+      <section class="card" style="padding:16px">
+        <div class="card-head"><h2>At a glance</h2></div>
+        <div class="facts" id="facts">
+          <div class="fact"><div class="v">5</div><div class="l">Steps</div></div>
+          <div class="fact"><div class="v">~3 wk</div><div class="l">Typical length</div></div>
+          <div class="fact"><div class="v">86</div><div class="l">Started</div></div>
+          <div class="fact"><div class="v">4</div><div class="l">Capabilities</div></div>
+        </div>
+      </section>
+
+      <!-- INCLUDED WITH -->
+      <section class="card" style="padding:16px">
+        <div class="card-head"><h2>Where this fits</h2></div>
+        <div class="incl">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div>
+          <div>
+            <div class="t" id="inclT">Part of "From Harvest to Shelf"</div>
+            <div class="s" id="inclS">The first of three blueprints in the Food Hub's livelihood playbook. Finish this, then move to packaging & FSSAI.</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <p class="note">Design mock for <code>/blueprint/[slug]</code> — not wired into the app. Improves on the current flat title + step list: a hero with the plan→do→review arc, real provenance (who wrote it, which org, honest <b>Demo data</b> badge), a step ladder that shows each step's <b>how / why / who</b>, who else is on the path, and a sidebar that leads with the <b>outcome</b> and access. Tints from one <code>org.brand_color</code>. Switch examples up top to see it hold across personas.</p>
+</div>
+
+<script>
+  /* Each blueprint's content. In the app these come from the blueprint row
+     (title, description, price_cents, access_level, author_*, organization_*,
+     interest), its steps (title, phase, status, sub_steps, capability, people),
+     and peer-subscriber timelines. Inlined here so the single-accent +
+     step-ladder ideas are visible across four very different personas. */
+  const BP = {
+    pickle:{
+      accent:'#C2410C', soft:'#FBEDE6', ink:'#7C2D12',
+      eyebrow:'Blueprint · Food processing',
+      title:'Pickle & Chutney — First Product',
+      lede:"A first, sellable batch — from sourcing mango and spice to a labelled jar a customer pays for. The exact path Suman's group took to their first ₹4,000 market day.",
+      steps:'5 steps', weeks:'~3 weeks', subs:'86 have started this',
+      arc:[1,1,0,0],
+      author:{ava:'🫙',bg:'#FBEDE6',name:'Suman Tirkey',role:'SHG leader · wrote this from her own first batch'},
+      org:{mark:'P',name:'PRADAN — Ranchi Food Hub',badge:'Demo data',demo:true},
+      price:{v:'Free',vfree:true,c:'to members',access:'Included with your PRADAN membership',accessIcon:'lock'},
+      outcomeBig:'A labelled jar of pickle a customer has paid for — and the costing to make the next 50.',
+      outcome:['A recipe you can repeat to a consistent taste and shelf life','A per-jar cost and a price that leaves you a margin','A label, and your first real sale to point at'],
+      ladderCount:'5 steps',
+      ladderSub:'Each step carries a how (sub-steps), a why (the capability it builds), and a who. Subscribe and they drop onto your own timeline in order.',
+      capCount:'4',
+      incl:{t:'Part of "From Harvest to Shelf"',s:"The first of three blueprints in the Food Hub's livelihood playbook. Finish this, then move to packaging & FSSAI."},
+      ladder:[
+        {ph:'Plan',title:'Pick the product & source ingredients',status:'done',
+         desc:'Decide mango vs lime, then find the cheapest reliable supply for your block.',
+         facets:[{k:'Why',v:'Sourcing & costing'},{k:'Who',v:'with Anita (mentor)'}],
+         subs:[['Compare 2 mandi prices',1],['Lock a spice supplier',1],['Buy a trial batch of raw',1]]},
+        {ph:'Plan',title:'Nail the recipe & shelf life',status:'done',
+         desc:'Get one recipe you can repeat — same taste, no spoilage at 4 weeks.',
+         facets:[{k:'Why',v:'Food safety & consistency'},{k:'Who',v:'cohort taste-test'}],
+         subs:[['Cook 3 trial batches',1],['Rest 2 weeks, check seal',1],['Write the final recipe down',0]]},
+        {ph:'Do',title:'Cost it & set a price',status:'active',
+         desc:'Add up everything per jar — raw, gas, jar, label, your time — then price for a margin.',
+         facets:[{k:'Why',v:'Unit economics'},{k:'Who',v:'with Anita'}],
+         subs:[['List every per-jar cost',1],['Set a price that clears 30%',0],['Sanity-check vs shop prices',0]]},
+        {ph:'Do',title:'Jar, label & batch of 20',status:'pending',
+         desc:'Make your first sellable run of 20 jars with a label and a batch date.',
+         facets:[{k:'Why',v:'Packaging & branding'},{k:'Who',v:'group of 3'}],
+         subs:[['Print a simple label',0],['Fill & seal 20 jars',0],['Write batch + best-before',0]]},
+        {ph:'Review',title:'Sell at the Saturday market',status:'pending',
+         desc:'Take the 20 jars to market, sell, and write down what sold and what people asked for.',
+         facets:[{k:'Why',v:'Market linkage'},{k:'Who',v:'cohort stall'}],
+         subs:[['Set up the stall',0],['Sell & note the price that worked',0],['Log the day in Review',0]]}
+      ],
+      peerSub:'Women in the Monsoon 2026 cohort working the same five steps. You\'ll see their progress once you start.',
+      peers:[
+        {ini:'RD',bg:'#C2410C',n:'Rekha Devi',s:'Lime pickle · Khunti',pct:80},
+        {ini:'PM',bg:'#1D4ED8',n:'Pramila Mahato',s:'Mango · Ranchi block',pct:60},
+        {ini:'SK',bg:'#0E7C66',n:'Sarita Kumari',s:'Mixed veg · Hazaribagh',pct:40}
+      ]
+    },
+    fssai:{
+      accent:'#1E5BB8', soft:'#E8F0FB', ink:'#11366E',
+      eyebrow:'Blueprint · Compliance',
+      title:'FSSAI & Food-Safety Basics',
+      lede:'Get your kitchen licensed and audit-ready so you can sell beyond the village — registration, hygiene, and the paperwork a buyer asks for.',
+      steps:'6 steps', weeks:'~4 weeks', subs:'54 have started this',
+      arc:[1,1,1,0],
+      author:{ava:'🛡️',bg:'#E8F0FB',name:'Rahul Kujur',role:'Food-safety mentor · PRADAN'},
+      org:{mark:'P',name:'PRADAN — Ranchi Food Hub',badge:'Demo data',demo:true},
+      price:{v:'Free',vfree:true,c:'to members',access:'Included with your PRADAN membership',accessIcon:'lock'},
+      outcomeBig:'A basic FSSAI registration and a kitchen that passes a buyer\'s hygiene check.',
+      outcome:['Your FSSAI registration number','A hygiene checklist your kitchen actually passes','The papers an institutional buyer asks for'],
+      ladderCount:'6 steps',
+      ladderSub:'Compliance, made step-by-step. Each step is a small, checkable task — not a wall of regulation.',
+      capCount:'3',
+      incl:{t:'Part of "From Harvest to Shelf"',s:'The compliance leg of the livelihood playbook. Pairs with the pickle blueprint once you have a product.'},
+      ladder:[
+        {ph:'Plan',title:'Figure out which licence you need',status:'done',
+         desc:'Basic registration vs state licence depends on your turnover — find your tier.',
+         facets:[{k:'Why',v:'Regulatory literacy'},{k:'Who',v:'with Rahul'}],
+         subs:[['Estimate yearly turnover',1],['Match it to the FSSAI tier',1]]},
+        {ph:'Plan',title:'Gather your documents',status:'done',
+         desc:'Aadhaar, address proof, and a photo — the short list for basic registration.',
+         facets:[{k:'Why',v:'Documentation'},{k:'Who',v:'self'}],
+         subs:[['Scan ID & address proof',1],['Take a passport photo',1]]},
+        {ph:'Do',title:'File the registration online',status:'active',
+         desc:'Walk through the FoSCoS portal form together and submit.',
+         facets:[{k:'Why',v:'Regulatory literacy'},{k:'Who',v:'cohort session'}],
+         subs:[['Create a FoSCoS login',1],['Fill the Form A',0],['Submit & save the ARN',0]]},
+        {ph:'Do',title:'Set up the hygiene basics',status:'pending',
+         desc:'The handful of practices an inspector and a buyer both look for.',
+         facets:[{k:'Why',v:'Food safety'},{k:'Who',v:'group'}],
+         subs:[['Handwash + clean-surface routine',0],['Pest & waste plan',0],['Label storage by date',0]]},
+        {ph:'Do',title:'Self-audit with the checklist',status:'pending',
+         desc:'Run the same checklist a buyer would, fix what fails.',
+         facets:[{k:'Why',v:'Food safety'},{k:'Who',v:'peer check'}],
+         subs:[['Score the 12-point list',0],['Fix any red items',0]]},
+        {ph:'Review',title:'File your papers where buyers can see',status:'pending',
+         desc:'Put the registration + checklist in your profile so an order can move fast.',
+         facets:[{k:'Why',v:'Market linkage'},{k:'Who',v:'with Rahul'}],
+         subs:[['Upload the FSSAI certificate',0],['Log it in Review',0]]}
+      ],
+      peerSub:'Members getting licensed alongside you. Progress shows once you start.',
+      peers:[
+        {ini:'GK',bg:'#1E5BB8',n:'Geeta Kumari',s:'Registered · Ranchi',pct:100},
+        {ini:'LM',bg:'#C2410C',n:'Lakshmi Mahto',s:'Filing this week',pct:50}
+      ]
+    },
+    dragon:{
+      accent:'#0E7C66', soft:'#E2F2EE', ink:'#0A4E40',
+      eyebrow:'Blueprint · Sail racing',
+      title:'Dragon Class — First Regatta Prep',
+      lede:'Everything between entering your first Dragon regatta and crossing the start line ready: boat, crew roles, the course, and a start you don\'t fluff.',
+      steps:'5 steps', weeks:'~6 weeks', subs:'31 have started this',
+      arc:[1,1,0,0],
+      author:{ava:'⛵',bg:'#E2F2EE',name:'Kevin Denney',role:'Fleet captain · RHKYC'},
+      org:{mark:'R',name:'Royal Hong Kong Yacht Club',badge:'Verified',demo:false},
+      price:{v:'$29',vfree:false,c:'one-time',access:'Open to anyone — or free with RHKYC fleet membership',accessIcon:'cart'},
+      outcomeBig:'A boat, a crew, and a start-line routine that gets you racing your first Dragon regatta.',
+      outcome:['Crew roles assigned and drilled','A read on the course and the favoured end','A start sequence you can run without panic'],
+      ladderCount:'5 steps',
+      ladderSub:'Each step pairs an on-water session with what to review after. Race steps open an Atlas course view.',
+      capCount:'5',
+      incl:{t:'Part of the RHKYC Dragon program',s:'The entry blueprint before Fleet Racing Tactics. Subscribe a class blueprint, join the fleet, track conditions on Atlas.'},
+      ladder:[
+        {ph:'Plan',title:'Boat check & measurement',status:'done',
+         desc:'Confirm the boat is class-legal and rigged before you commit to the entry.',
+         facets:[{k:'Why',v:'Boat preparation'},{k:'Who',v:'with the yard'}],
+         subs:[['Hull & rig measurement',1],['Sail buttons valid',1]]},
+        {ph:'Plan',title:'Assign crew roles',status:'done',
+         desc:'Helm, trim, bow — decide who does what and run it dockside.',
+         facets:[{k:'Why',v:'Crew coordination'},{k:'Who',v:'crew of 3'}],
+         subs:[['Pick helm / trim / bow',1],['Dry-run a tack',1]]},
+        {ph:'Do',title:'Learn the course & marks',status:'active',
+         desc:'Walk the Victoria Harbour course, marks, and likely wind on the Atlas.',
+         facets:[{k:'Why',v:'Course knowledge'},{k:'Who',v:'fleet brief'}],
+         subs:[['Open the course on Atlas',1],['Note the favoured end',0],['Plan the first beat',0]]},
+        {ph:'Do',title:'Drill the start sequence',status:'pending',
+         desc:'Practise the 5-4-1-go timing until the line approach is automatic.',
+         facets:[{k:'Why',v:'Starting'},{k:'Who',v:'crew + coach'}],
+         subs:[['Time 5 practice starts',0],['Pick your transit',0]]},
+        {ph:'Review',title:'Race & debrief',status:'pending',
+         desc:'Race it, then log what worked at the start and first beat.',
+         facets:[{k:'Why',v:'Race analysis'},{k:'Who',v:'crew debrief'}],
+         subs:[['Sail the race',0],['Log start + beat in Review',0]]}
+      ],
+      peerSub:'Other RHKYC sailors prepping for the same regatta.',
+      peers:[
+        {ini:'AL',bg:'#0E7C66',n:'Andrew Lam',s:'Boat ready · Middle Island',pct:80},
+        {ini:'JW',bg:'#1D4ED8',n:'Jo Wong',s:'Crew assigned',pct:50}
+      ]
+    },
+    rotation:{
+      accent:'#1E5BB8', soft:'#E8F0FB', ink:'#11366E',
+      eyebrow:'Blueprint · Nursing rotation',
+      title:'Med-Surg Rotation — Core Competencies',
+      lede:'Your first med-surg clinical rotation, mapped to the competencies you must evidence: assessment, medication safety, documentation, and a logged shift for each.',
+      steps:'5 steps', weeks:'8 weeks', subs:'140 have started this',
+      arc:[1,1,1,1],
+      author:{ava:'🩺',bg:'#E8F0FB',name:'Dr. Anita Rao',role:'Clinical instructor · JHSON'},
+      org:{mark:'J',name:'Johns Hopkins School of Nursing',badge:'Verified',demo:false},
+      price:{v:'Free',vfree:true,c:'to enrolled students',access:'Assigned through your JHSON cohort',accessIcon:'lock'},
+      outcomeBig:'Four core med-surg competencies, each backed by a logged, evidenced shift your preceptor signs off.',
+      outcome:['A head-to-toe assessment you can do under time','Medication administration with the five rights, evidenced','Documentation that holds up to a chart audit'],
+      ladderCount:'5 steps',
+      ladderSub:'Each step maps to a competency in the JHSON framework and asks for a logged shift as evidence.',
+      capCount:'4',
+      incl:{t:'Part of the BSN clinical sequence',s:'Rotation 2 of the program. Evidence here feeds your competency portfolio and the gap analysis your instructor reviews.'},
+      ladder:[
+        {ph:'Plan',title:'Pre-brief & competency targets',status:'done',
+         desc:'Review the four competencies this rotation must evidence before day one.',
+         facets:[{k:'Why',v:'Assessment'},{k:'Who',v:'with preceptor'}],
+         subs:[['Read the competency rubric',1],['Set targets with preceptor',1]]},
+        {ph:'Do',title:'Head-to-toe assessment',status:'done',
+         desc:'Perform and document a full assessment; log the shift as evidence.',
+         facets:[{k:'Why',v:'Patient assessment'},{k:'Who',v:'preceptor-observed'}],
+         subs:[['Complete the assessment',1],['Log the shift',1],['Attach to competency',1]]},
+        {ph:'Do',title:'Medication administration',status:'active',
+         desc:'Administer meds under supervision using the five rights; evidence it.',
+         facets:[{k:'Why',v:'Medication safety'},{k:'Who',v:'preceptor-observed'}],
+         subs:[['Run the five rights',1],['Administer & document',0],['Log the shift',0]]},
+        {ph:'Review',title:'Documentation audit',status:'pending',
+         desc:'Self-audit your charting against the standard, fix gaps.',
+         facets:[{k:'Why',v:'Documentation'},{k:'Who',v:'self + instructor'}],
+         subs:[['Audit 3 of your notes',0],['Correct any gaps',0]]},
+        {ph:'Discuss',title:'Gap review with instructor',status:'pending',
+         desc:'Review evidence vs the framework and plan the next rotation.',
+         facets:[{k:'Why',v:'Reflective practice'},{k:'Who',v:'instructor 1:1'}],
+         subs:[['Review the gap analysis',0],['Plan rotation 3 targets',0]]}
+      ],
+      peerSub:'Students in your cohort on the same rotation.',
+      peers:[
+        {ini:'MJ',bg:'#1E5BB8',n:'Maya Johnson',s:'4 of 4 competencies',pct:100},
+        {ini:'DP',bg:'#0E7C66',n:'David Park',s:'Med admin this week',pct:60},
+        {ini:'SL',bg:'#C2410C',n:'Sara Lopez',s:'Documentation audit',pct:80}
+      ]
+    }
+  };
+
+  const $ = s => document.querySelector(s);
+  const ICONS = {
+    lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>',
+    cart:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/>'
+  };
+  const STATUS = {
+    done:{cls:'done',label:'Done',svg:'<path d="M20 6L9 17l-5-5"/>'},
+    active:{cls:'active',label:'In progress',svg:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'},
+    pending:{cls:'pending',label:'Up next',svg:'<circle cx="12" cy="12" r="9"/>'}
+  };
+
+  function stepHTML(s){
+    const st = STATUS[s.status];
+    const cls = s.status==='done'?'done':(s.status==='active'?'active':'');
+    const facets = s.facets.map(f=>`<span class="facet"><span class="key">${f.k}</span> ${f.v}</span>`).join('');
+    const subs = s.subs.map(([t,done])=>`<div class="sub ${done?'sdone':''}"><span class="sb"></span>${t}</div>`).join('');
+    return `<div class="lstep ${cls}">
+      <div class="lrail"><div class="lnum">${s.status==='done'?'<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#fff\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'width:16px;height:16px\'><path d=\'M20 6L9 17l-5-5\'/></svg>':''}</div><div class="lline"></div></div>
+      <div class="lbody">
+        <div class="lhead">
+          <span class="lphase">${s.ph}</span>
+          <span class="ltitle">${s.title}</span>
+          <span class="lstatus ${st.cls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${st.svg}</svg>${st.label}</span>
+        </div>
+        <div class="ldesc">${s.desc}</div>
+        <div class="lfacets">${facets}</div>
+        <div class="substeps">${subs}</div>
+      </div>
+    </div>`;
+  }
+
+  function paint(key){
+    const o = BP[key];
+    const r = document.documentElement.style;
+    r.setProperty('--accent', o.accent);
+    r.setProperty('--accent-soft', o.soft);
+    r.setProperty('--accent-ink', o.ink);
+
+    $('#eyebrow').lastChild.textContent = ' ' + o.eyebrow;
+    $('#title').textContent = o.title;
+    $('#tbTitle').textContent = o.title;
+    $('#lede').textContent = o.lede;
+    $('#mSteps').lastChild.textContent = ' ' + o.steps;
+    $('#mWeeks').lastChild.textContent = ' ' + o.weeks;
+    $('#mSubs').lastChild.textContent = ' ' + o.subs;
+
+    // arc
+    document.querySelectorAll('#arc .step-ph').forEach((el,i)=>{
+      el.classList.toggle('on', !!o.arc[i]);
+    });
+
+    // author + org
+    $('#auAva').textContent = o.author.ava; $('#auAva').style.background = o.author.bg;
+    $('#auName').textContent = o.author.name;
+    $('#auRole').textContent = o.author.role;
+    $('#ocMark').textContent = o.org.mark;
+    $('#ocName').textContent = o.org.name;
+    $('#ocBadge').textContent = o.org.badge;
+    $('#orgChip').classList.toggle('demo', o.org.demo);
+
+    // outcome
+    $('#outcomeBig').textContent = o.outcomeBig;
+    $('#outcomeList').innerHTML = o.outcome.map(t=>`<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> ${t}</li>`).join('');
+
+    // ladder
+    $('#ladderCount').textContent = o.ladderCount;
+    $('#ladderSub').textContent = o.ladderSub;
+    $('#ladder').innerHTML = o.ladder.map(stepHTML).join('');
+
+    // peers
+    $('#peerSub').textContent = o.peerSub;
+    $('#peers').innerHTML = o.peers.map(p=>`<div class="peer">
+      <div class="pe-ava" style="background:${p.bg}">${p.ini}</div>
+      <div class="pe-body"><div class="n">${p.n}</div><div class="s">${p.s}</div></div>
+      <div class="pe-prog"><div class="pe-bar"><i style="width:${p.pct}%"></i></div><div class="pe-pct">${p.pct}%</div></div>
+    </div>`).join('');
+
+    // price / access
+    const pv = $('#priceV'); pv.textContent = o.price.v; pv.classList.toggle('free', o.price.vfree);
+    $('#priceC').textContent = o.price.c;
+    $('#accessLine').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[o.price.accessIcon]}</svg> ${o.price.access}`;
+    const buyLabel = o.price.vfree ? 'Start this plan' : ('Buy for ' + o.price.v);
+    $('#buyBtn').lastChild.textContent = ' ' + buyLabel;
+    $('#miniCta').textContent = buyLabel;
+
+    // facts
+    $('#facts').innerHTML =
+      `<div class="fact"><div class="v">${o.steps.split(' ')[0]}</div><div class="l">Steps</div></div>
+       <div class="fact"><div class="v">${o.weeks.replace('~','~ ').replace(' weeks','wk').replace(' week','wk')}</div><div class="l">Typical length</div></div>
+       <div class="fact"><div class="v">${o.subs.split(' ')[0]}</div><div class="l">Started</div></div>
+       <div class="fact"><div class="v">${o.capCount}</div><div class="l">Capabilities</div></div>`;
+
+    // included with
+    $('#inclT').textContent = o.incl.t;
+    $('#inclS').textContent = o.incl.s;
+  }
+
+  $('#switcher').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#switcher button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    paint(b.dataset.bp);
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+
+  // sticky topbar reveal once the hero title scrolls past
+  const tb = $('#topbar');
+  window.addEventListener('scroll', ()=>{ tb.classList.toggle('scrolled', window.scrollY > 220); }, {passive:true});
+
+  paint('pickle');
+</script>
+</body>
+</html>

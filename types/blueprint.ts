@@ -117,6 +117,8 @@ export interface BlueprintWithAuthor extends BlueprintRecord {
   author_bio?: string;
   organization_name?: string;
   organization_slug?: string;
+  /** True when the publishing org is seeded demo data (organizations.metadata.is_demo). */
+  organization_is_demo?: boolean;
   program_name?: string;
 }
 

@@ -22,6 +22,7 @@ import {
   type NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,11 +62,29 @@ const C = {
 } as const;
 
 const STATUS_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
-  pending: { color: C.labelMid, icon: 'ellipse-outline', label: 'Pending' },
-  in_progress: { color: C.gold, icon: 'play-circle', label: 'In Progress' },
-  completed: { color: C.green, icon: 'checkmark-circle', label: 'Completed' },
+  pending: { color: C.labelMid, icon: 'ellipse-outline', label: 'Up next' },
+  in_progress: { color: C.gold, icon: 'time', label: 'In progress' },
+  completed: { color: C.green, icon: 'checkmark-circle', label: 'Done' },
   skipped: { color: C.coral, icon: 'close-circle-outline', label: 'Skipped' },
 };
+
+/**
+ * Mix a hex color toward black (amount < 0) or white (amount > 0) by a 0–1
+ * fraction. Used to derive the blueprint hero's accent gradient from the
+ * interest's single accent_color so every blueprint reads as belonging to its
+ * craft without needing extra theme columns.
+ */
+function shade(hex: string, amount: number): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const to = amount < 0 ? 0 : 255;
+  const t = Math.abs(amount);
+  const ch = (c: number) => Math.round(c + (to - c) * t);
+  const r = ch(parseInt(m[1], 16));
+  const g = ch(parseInt(m[2], 16));
+  const b = ch(parseInt(m[3], 16));
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
 
 export default function BlueprintPage() {
   const { slug, auto_subscribe } = useLocalSearchParams<{ slug: string; auto_subscribe?: string }>();
@@ -563,6 +582,23 @@ export default function BlueprintPage() {
     ? `$${(blueprint.price_cents / 100).toFixed(blueprint.price_cents % 100 === 0 ? 0 : 2)}`
     : null;
 
+  // --- Redesign derivations -------------------------------------------------
+  const blueprintInterest = allInterests.find((i) => i.id === blueprint.interest_id);
+  // Tint the whole page from the interest's accent_color (real column) so a
+  // sailing blueprint reads green, a livelihood one terracotta, etc.
+  const accent = blueprintInterest?.accent_color || C.accent;
+  const interestName = blueprintInterest?.name || 'Plan';
+  const isDemo = blueprint.organization_is_demo === true;
+  const isWide = Platform.OS === 'web' && screenWidth >= 900;
+  // Reuse the existing "hide low counts from cold visitors" rule.
+  const showSubs = isOwner || blueprint.subscriber_count >= 10;
+  const subsLabel = showSubs
+    ? `${blueprint.subscriber_count} ${blueprint.subscriber_count === 1 ? 'has' : 'have'} started this`
+    : null;
+  const orgInitial = (blueprint.organization_name?.trim()?.[0] || '•').toUpperCase();
+  const authorRole = blueprint.author_bio?.trim()
+    || `${totalCount} step${totalCount !== 1 ? 's' : ''}`;
+
   return (
     <Container style={containerStyle}>
       {/* Marketing chrome — gives cold visitors a way into the rest of BetterAt */}
@@ -606,453 +642,454 @@ export default function BlueprintPage() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isWide && v2.scrollContentWide]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Hero */}
-        <View
-          style={styles.hero}
+        {/* Accent-tinted gradient hero — tinted from the interest's accent_color
+            so every blueprint reads as belonging to its craft. */}
+        <LinearGradient
+          colors={[accent, shade(accent, -0.4)]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={v2.hero}
         >
-          <View style={styles.heroIcon}>
-            <Ionicons name="layers" size={28} color={C.accent} />
-          </View>
-          <Text style={styles.heroTitle}>{blueprint.title}</Text>
+          <Text style={v2.eyebrow}>Blueprint · {interestName}</Text>
+          <Text style={v2.heroTitle}>{blueprint.title}</Text>
           {blueprint.description ? (
-            <Text style={styles.heroDescription}>{blueprint.description}</Text>
+            <Text style={v2.heroLede}>{blueprint.description}</Text>
           ) : isOwner ? (
             <Pressable onPress={() => setShowEditSheet(true)}>
-              <Text style={[styles.heroDescription, { color: C.labelLight, fontStyle: 'italic' }]}>
-                Tap to add a description...
+              <Text style={[v2.heroLede, { opacity: 0.75, fontStyle: 'italic' }]}>
+                Tap to add a description…
               </Text>
             </Pressable>
           ) : null}
+          <View style={v2.heroMeta}>
+            <View style={v2.heroMetaItem}>
+              <Ionicons name="layers-outline" size={14} color="rgba(255,255,255,0.9)" />
+              <Text style={v2.heroMetaText}>{totalCount} step{totalCount !== 1 ? 's' : ''}</Text>
+            </View>
+            {subsLabel && (
+              <View style={v2.heroMetaItem}>
+                <Ionicons name="people-outline" size={14} color="rgba(255,255,255,0.9)" />
+                <Text style={v2.heroMetaText}>{subsLabel}</Text>
+              </View>
+            )}
+            {blueprint.access_level === 'org_members' && (
+              <View style={v2.heroMetaItem}>
+                <Ionicons name="lock-closed" size={12} color="rgba(255,255,255,0.9)" />
+                <Text style={v2.heroMetaText}>Members only</Text>
+              </View>
+            )}
+          </View>
+        </LinearGradient>
 
-          {/* Organization badge */}
+        {/* Provenance — who made this, and whether it's real or demo data */}
+        <View style={v2.provenance}>
+          <Pressable
+            style={v2.provChip}
+            onPress={() => router.push(`/person/${blueprint.user_id}` as any)}
+          >
+            <View style={[v2.provAvatar, { backgroundColor: blueprint.author_avatar_color ?? accent + '22' }]}>
+              <Text style={v2.provEmoji}>{blueprint.author_avatar_emoji ?? '👤'}</Text>
+            </View>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={v2.provName} numberOfLines={1}>{blueprint.author_name ?? 'Anonymous'}</Text>
+              <Text style={v2.provRole} numberOfLines={1}>{authorRole}</Text>
+            </View>
+          </Pressable>
+
           {blueprint.organization_name && (
             <Pressable
-              style={styles.orgBadgeRow}
+              style={v2.provChip}
               onPress={() => {
                 if (blueprint.organization_slug) {
                   router.push(`/org/${blueprint.organization_slug}` as any);
                 }
               }}
             >
-              <Ionicons name="business-outline" size={14} color={C.accent} />
-              <Text style={styles.orgBadgeText}>
-                Published by {blueprint.organization_name}
-              </Text>
-              {blueprint.access_level === 'org_members' && (
-                <View style={styles.membersOnlyBadge}>
-                  <Ionicons name="lock-closed" size={8} color={C.accent} />
-                  <Text style={styles.membersOnlyText}>Members</Text>
+              <View style={[v2.provOrgMark, { backgroundColor: accent }]}>
+                <Text style={v2.provOrgMarkText}>{orgInitial}</Text>
+              </View>
+              <View style={{ flexShrink: 1 }}>
+                <Text style={v2.provName} numberOfLines={1}>{blueprint.organization_name}</Text>
+                <View style={[v2.provBadge, { backgroundColor: (isDemo ? C.gold : C.green) + '1A' }]}>
+                  <Ionicons
+                    name={isDemo ? 'flask-outline' : 'shield-checkmark'}
+                    size={10}
+                    color={isDemo ? C.gold : C.green}
+                  />
+                  <Text style={[v2.provBadgeText, { color: isDemo ? C.gold : C.green }]}>
+                    {isDemo ? 'Demo data' : 'Verified'}
+                  </Text>
                 </View>
-              )}
+              </View>
             </Pressable>
           )}
+        </View>
 
-          {/* Author */}
-          <Pressable
-            style={styles.authorRow}
-            onPress={() => router.push(`/person/${blueprint.user_id}` as any)}
-          >
-            <View
-              style={[
-                styles.authorAvatar,
-                { backgroundColor: blueprint.author_avatar_color ?? C.accentBg },
-              ]}
-            >
-              <Text style={styles.authorEmoji}>
-                {blueprint.author_avatar_emoji ?? '👤'}
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.authorName}>
-                {blueprint.author_name ?? 'Anonymous'}
-              </Text>
-              <Text style={styles.authorMeta}>
-                {/* Hide low subscriber counts from non-owners — "2 subscribers"
-                    on a launch day reads as "nobody's here." Owner still sees
-                    the count so they can monitor adoption. */}
-                {isOwner || blueprint.subscriber_count >= 10
-                  ? `${blueprint.subscriber_count} subscriber${blueprint.subscriber_count !== 1 ? 's' : ''} · ${totalCount} step${totalCount !== 1 ? 's' : ''}`
-                  : `${totalCount} step${totalCount !== 1 ? 's' : ''}`}
-              </Text>
-              {blueprint.author_bio ? (
-                <Text style={styles.authorBio} numberOfLines={2}>{blueprint.author_bio}</Text>
-              ) : null}
-            </View>
-          </Pressable>
+        {/* Two-column body: steps ladder (main) + subscribe/at-a-glance (side) */}
+        <View style={[v2.bodyGrid, isWide && v2.bodyGridWide]}>
+          {/* Sidebar — source-first so row-reverse parks it on the right on wide,
+              and column layout floats it above the steps on narrow/native. */}
+          <View style={[v2.side, isWide && v2.sideWide]}>
+            <View style={v2.sideCard}>
+              {/* Price badge for paid blueprints — shown to everyone including owner */}
+              {blueprint.access_level === 'paid' && blueprint.price_cents && blueprint.price_cents > 0 && (
+                <View style={styles.priceBadge}>
+                  <Text style={styles.priceText}>
+                    ${(blueprint.price_cents / 100).toFixed(blueprint.price_cents % 100 === 0 ? 0 : 2)}
+                  </Text>
+                  <Text style={styles.priceSubtext}>
+                    {blueprint.pricing_type === 'recurring' ? 'per month' : 'one-time purchase'}
+                  </Text>
+                </View>
+              )}
 
-          {/* Price badge for paid blueprints — shown to everyone including owner */}
-          {blueprint.access_level === 'paid' && blueprint.price_cents && blueprint.price_cents > 0 && (
-            <View style={styles.priceBadge}>
-              <Text style={styles.priceText}>
-                ${(blueprint.price_cents / 100).toFixed(blueprint.price_cents % 100 === 0 ? 0 : 2)}
-              </Text>
-              <Text style={styles.priceSubtext}>
-                {blueprint.pricing_type === 'recurring' ? 'per month' : 'one-time purchase'}
-              </Text>
-            </View>
-          )}
-
-          {/* Subscribe / Purchase / Post-subscribe CTA */}
-          {!isOwner && !isSubscribed && !hasPurchased && (
-            blueprint.access_level === 'paid' && blueprint.price_cents && blueprint.price_cents > 0 ? (
-              <Pressable
-                style={styles.purchaseBtn}
-                onPress={handlePurchase}
-                disabled={purchasing}
-              >
-                {purchasing ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+              {/* Subscribe / Purchase / Post-subscribe CTA */}
+              {!isOwner && !isSubscribed && !hasPurchased && (
+                blueprint.access_level === 'paid' && blueprint.price_cents && blueprint.price_cents > 0 ? (
+                  <Pressable
+                    style={[styles.purchaseBtn, { backgroundColor: accent }]}
+                    onPress={handlePurchase}
+                    disabled={purchasing}
+                  >
+                    {purchasing ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="cart-outline" size={18} color="#FFFFFF" />
+                        <Text style={styles.subscribeBtnText}>
+                          Buy for ${(blueprint.price_cents / 100).toFixed(blueprint.price_cents % 100 === 0 ? 0 : 2)}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
                 ) : (
-                  <>
-                    <Ionicons name="cart-outline" size={18} color="#FFFFFF" />
-                    <Text style={styles.subscribeBtnText}>
-                      Buy for ${(blueprint.price_cents / 100).toFixed(blueprint.price_cents % 100 === 0 ? 0 : 2)}
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            ) : (
-              <Pressable
-                style={styles.subscribeBtn}
-                onPress={handleSubscribe}
-                disabled={subscribeMutation.isPending}
-              >
-                {subscribeMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
-                    <Text style={styles.subscribeBtnText}>Start this plan</Text>
-                  </>
-                )}
-              </Pressable>
-            )
-          )}
+                  <Pressable
+                    style={[styles.subscribeBtn, { backgroundColor: accent }]}
+                    onPress={handleSubscribe}
+                    disabled={subscribeMutation.isPending}
+                  >
+                    {subscribeMutation.isPending ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+                        <Text style={styles.subscribeBtnText}>Start this plan</Text>
+                      </>
+                    )}
+                  </Pressable>
+                )
+              )}
 
-          {/* Purchased but not yet subscribed (post-checkout return) */}
-          {!isOwner && hasPurchased && !isSubscribed && (
-            <View style={styles.subscribedSection}>
-              <View style={styles.successBanner}>
-                <Ionicons name="checkmark-circle" size={20} color={C.green} />
-                <Text style={styles.successText}>Purchase complete! You now have access.</Text>
-              </View>
-              <Pressable
-                style={styles.adoptBtn}
-                onPress={handleAdoptAll}
-                disabled={adoptingAll}
-              >
-                {adoptingAll ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="download-outline" size={16} color="#FFFFFF" />
-                    <Text style={styles.adoptBtnText}>
-                      Add {steps?.length ?? 0} steps to my timeline
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
-          )}
-
-          {!isOwner && isSubscribed && (
-            <View style={styles.subscribedSection}>
-              {justSubscribed && adoptedCount === 0 && (
-                <>
+              {/* Purchased but not yet subscribed (post-checkout return) */}
+              {!isOwner && hasPurchased && !isSubscribed && (
+                <View style={styles.subscribedSection}>
                   <View style={styles.successBanner}>
                     <Ionicons name="checkmark-circle" size={20} color={C.green} />
-                    <Text style={styles.successText}>You're in. Let's get started.</Text>
+                    <Text style={styles.successText}>Purchase complete! You now have access.</Text>
                   </View>
-
                   <Pressable
-                    style={styles.adoptBtn}
-                    onPress={handleStartFirstStep}
+                    style={[styles.adoptBtn, { backgroundColor: accent }]}
+                    onPress={handleAdoptAll}
                     disabled={adoptingAll}
                   >
                     {adoptingAll ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
-                        <Ionicons name="play" size={16} color="#FFFFFF" />
-                        <Text style={styles.adoptBtnText} numberOfLines={1}>
-                          {steps?.[0]?.title
-                            ? `Start Step 1: ${steps[0].title}`
-                            : 'Start Step 1'}
+                        <Ionicons name="download-outline" size={16} color="#FFFFFF" />
+                        <Text style={styles.adoptBtnText}>
+                          Add {steps?.length ?? 0} steps to my timeline
                         </Text>
                       </>
                     )}
                   </Pressable>
-
-                  <Pressable
-                    style={styles.viewTimelineBtn}
-                    onPress={() => navigateToTimeline()}
-                  >
-                    <Ionicons name="list-outline" size={16} color={C.accent} />
-                    <Text style={styles.viewTimelineBtnText}>See all steps in my timeline</Text>
-                  </Pressable>
-                </>
+                </View>
               )}
 
-              {adoptedCount > 0 && (
-                <>
-                  <View style={styles.successBanner}>
-                    <Ionicons name="checkmark-circle" size={20} color={C.green} />
-                    <Text style={styles.successText}>
-                      {adoptedCount} step{adoptedCount !== 1 ? 's' : ''} added to your timeline!
-                    </Text>
+              {!isOwner && isSubscribed && (
+                <View style={styles.subscribedSection}>
+                  {justSubscribed && adoptedCount === 0 && (
+                    <>
+                      <View style={styles.successBanner}>
+                        <Ionicons name="checkmark-circle" size={20} color={C.green} />
+                        <Text style={styles.successText}>You're in. Let's get started.</Text>
+                      </View>
+
+                      <Pressable
+                        style={[styles.adoptBtn, { backgroundColor: accent }]}
+                        onPress={handleStartFirstStep}
+                        disabled={adoptingAll}
+                      >
+                        {adoptingAll ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <>
+                            <Ionicons name="play" size={16} color="#FFFFFF" />
+                            <Text style={styles.adoptBtnText} numberOfLines={1}>
+                              {steps?.[0]?.title
+                                ? `Start Step 1: ${steps[0].title}`
+                                : 'Start Step 1'}
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+
+                      <Pressable
+                        style={styles.viewTimelineBtn}
+                        onPress={() => navigateToTimeline()}
+                      >
+                        <Ionicons name="list-outline" size={16} color={accent} />
+                        <Text style={[styles.viewTimelineBtnText, { color: accent }]}>See all steps in my timeline</Text>
+                      </Pressable>
+                    </>
+                  )}
+
+                  {adoptedCount > 0 && (
+                    <>
+                      <View style={styles.successBanner}>
+                        <Ionicons name="checkmark-circle" size={20} color={C.green} />
+                        <Text style={styles.successText}>
+                          {adoptedCount} step{adoptedCount !== 1 ? 's' : ''} added to your timeline!
+                        </Text>
+                      </View>
+
+                      <Pressable
+                        style={[styles.adoptBtn, { backgroundColor: accent }]}
+                        onPress={() => navigateToTimeline()}
+                      >
+                        <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                        <Text style={styles.adoptBtnText}>View in my timeline</Text>
+                      </Pressable>
+                    </>
+                  )}
+
+                  {!justSubscribed && adoptedCount === 0 && (
+                    <View style={styles.subscribedRow}>
+                      <View style={styles.subscribedBadge}>
+                        <Ionicons name="checkmark-circle" size={14} color={accent} />
+                        <Text style={[styles.subscribedBadgeText, { color: accent }]}>Subscribed</Text>
+                      </View>
+
+                      <Pressable
+                        style={styles.viewTimelineBtn}
+                        onPress={() => navigateToTimeline()}
+                      >
+                        <Ionicons name="arrow-forward" size={14} color={accent} />
+                        <Text style={[styles.viewTimelineBtnText, { color: accent }]}>My timeline</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={styles.unsubscribeBtn}
+                        onPress={handleSubscribe}
+                        disabled={unsubscribeMutation.isPending}
+                      >
+                        <Text style={styles.unsubscribeBtnText}>
+                          {unsubscribeMutation.isPending ? 'Unsubscribing...' : 'Unsubscribe'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {isOwner && (
+                <View style={styles.ownerBadgeRow}>
+                  <View style={styles.ownerBadge}>
+                    <Ionicons name="person-circle-outline" size={12} color={accent} />
+                    <Text style={[styles.ownerBadgeText, { color: accent }]}>Your Blueprint</Text>
                   </View>
-
-                  <Pressable
-                    style={styles.adoptBtn}
-                    onPress={() => navigateToTimeline()}
-                  >
-                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-                    <Text style={styles.adoptBtnText}>View in my timeline</Text>
-                  </Pressable>
-                </>
-              )}
-
-              {!justSubscribed && adoptedCount === 0 && (
-                <View style={styles.subscribedRow}>
-                  <View style={styles.subscribedBadge}>
-                    <Ionicons name="checkmark-circle" size={14} color={C.accent} />
-                    <Text style={styles.subscribedBadgeText}>Subscribed</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <Pressable
+                      style={styles.manageBtn}
+                      onPress={async () => {
+                        const url = `${Platform.OS === 'web' ? window.location.origin : 'https://better.at'}/blueprint/${blueprint.slug}`;
+                        if (Platform.OS === 'web') {
+                          await navigator.clipboard?.writeText(url);
+                        } else {
+                          await Share.share({ url, message: `Check out my blueprint: ${url}` });
+                        }
+                      }}
+                    >
+                      <Ionicons name="share-outline" size={14} color={accent} />
+                      <Text style={[styles.manageBtnText, { color: accent }]}>Share</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.manageBtn}
+                      onPress={() => setShowEditSheet(true)}
+                    >
+                      <Ionicons name="create-outline" size={14} color={accent} />
+                      <Text style={[styles.manageBtnText, { color: accent }]}>Edit</Text>
+                    </Pressable>
                   </View>
-
-                  <Pressable
-                    style={styles.viewTimelineBtn}
-                    onPress={() => navigateToTimeline()}
-                  >
-                    <Ionicons name="arrow-forward" size={14} color={C.accent} />
-                    <Text style={styles.viewTimelineBtnText}>My timeline</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={styles.unsubscribeBtn}
-                    onPress={handleSubscribe}
-                    disabled={unsubscribeMutation.isPending}
-                  >
-                    <Text style={styles.unsubscribeBtnText}>
-                      {unsubscribeMutation.isPending ? 'Unsubscribing...' : 'Unsubscribe'}
-                    </Text>
-                  </Pressable>
                 </View>
               )}
-            </View>
-          )}
 
-          {isOwner && (
-            <View style={styles.ownerSection}>
-              <View style={styles.ownerBadgeRow}>
-                <View style={styles.ownerBadge}>
-                  <Ionicons name="person-circle-outline" size={12} color={C.accent} />
-                  <Text style={styles.ownerBadgeText}>Your Blueprint</Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Pressable
-                    style={styles.manageBtn}
-                    onPress={async () => {
-                      const url = `${Platform.OS === 'web' ? window.location.origin : 'https://better.at'}/blueprint/${blueprint.slug}`;
-                      if (Platform.OS === 'web') {
-                        await navigator.clipboard?.writeText(url);
-                      } else {
-                        await Share.share({ url, message: `Check out my blueprint: ${url}` });
-                      }
-                    }}
-                  >
-                    <Ionicons name="share-outline" size={14} color={C.accent} />
-                    <Text style={styles.manageBtnText}>Share</Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.manageBtn}
-                    onPress={() => setShowEditSheet(true)}
-                  >
-                    <Ionicons name="create-outline" size={14} color={C.accent} />
-                    <Text style={styles.manageBtnText}>Edit</Text>
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Student progress — only show when there are subscribers */}
-              {blueprint && steps && blueprint.subscriber_count > 0 && (
-                <StudentProgressSection
-                  blueprintId={blueprint.id}
-                  blueprintSteps={steps}
-                  interestId={blueprint.interest_id}
-                />
-              )}
-
-              {/* Empty state for no subscribers */}
-              {blueprint.subscriber_count === 0 && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                  <Ionicons name="people-outline" size={14} color={C.labelLight} />
-                  <Text style={{ fontSize: 12, color: C.labelMid }}>
-                    No subscribers yet — share your link to get started
+              {/* Progress summary — subscribers only */}
+              {!isOwner && isSubscribed && (
+                <View style={styles.progressBar}>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { backgroundColor: accent, width: totalCount > 0 ? `${(completedCount / totalCount) * 100}%` : '0%' },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressText}>
+                    {completedCount}/{totalCount} steps completed
                   </Text>
                 </View>
               )}
             </View>
-          )}
-        </View>
 
-        {/* Progress summary — only for subscribers, not the owner */}
-        {!isOwner && isSubscribed && (
-          <View style={styles.progressBar}>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: totalCount > 0 ? `${(completedCount / totalCount) * 100}%` : '0%' },
-                ]}
-              />
-            </View>
-            <Text style={styles.progressText}>
-              {completedCount}/{totalCount} steps completed
-            </Text>
-          </View>
-        )}
-
-        {/* What's included summary */}
-        {includedSummary && (totalCount > 0 || includedSummary.totalSubSteps > 0) && (
-          <View
-            style={styles.includedSection}
-          >
-            <Text style={styles.sectionTitle}>What's included</Text>
-            <View
-              style={styles.includedGrid}
-            >
-              <View style={styles.includedItem}>
-                <Ionicons name="layers-outline" size={20} color={C.accent} />
-                <Text style={styles.includedNumber}>{totalCount}</Text>
-                <Text style={styles.includedLabel}>{totalCount === 1 ? 'step' : 'steps'}</Text>
-              </View>
-              {includedSummary.totalSubSteps > 0 && (
-                <View style={styles.includedItem}>
-                  <Ionicons name="list-outline" size={20} color={C.accent} />
-                  <Text style={styles.includedNumber}>{includedSummary.totalSubSteps}</Text>
-                  <Text style={styles.includedLabel}>sub-steps</Text>
-                </View>
-              )}
-              {includedSummary.skills.length > 0 && (
-                <View style={styles.includedItem}>
-                  <Ionicons name="star-outline" size={20} color={C.accent} />
-                  <Text style={styles.includedNumber}>{includedSummary.skills.length}</Text>
-                  <Text style={styles.includedLabel}>{includedSummary.skills.length === 1 ? 'skill' : 'skills'}</Text>
-                </View>
-              )}
-            </View>
-            {includedSummary.skills.length > 0 && (
-              <View style={styles.includedSkillsRow}>
-                {includedSummary.skills.slice(0, 6).map((skill, i) => (
-                  <View key={i} style={[styles.includedSkillBadge, { maxWidth: screenWidth - 96 }]}>
-                    <Text style={styles.includedSkillText} numberOfLines={1}>{skill}</Text>
+            {/* At a glance */}
+            {includedSummary && (totalCount > 0 || includedSummary.totalSubSteps > 0) && (
+              <View style={v2.glanceCard}>
+                <Text style={v2.glanceTitle}>At a glance</Text>
+                <View style={v2.glanceGrid}>
+                  <View style={v2.glanceItem}>
+                    <Text style={[v2.glanceNum, { color: accent }]}>{totalCount}</Text>
+                    <Text style={v2.glanceLabel}>{totalCount === 1 ? 'step' : 'steps'}</Text>
                   </View>
-                ))}
-                {includedSummary.skills.length > 6 && (
-                  <View style={styles.includedSkillBadge}>
-                    <Text style={styles.includedSkillText}>+{includedSummary.skills.length - 6} more</Text>
+                  {includedSummary.totalSubSteps > 0 && (
+                    <View style={v2.glanceItem}>
+                      <Text style={[v2.glanceNum, { color: accent }]}>{includedSummary.totalSubSteps}</Text>
+                      <Text style={v2.glanceLabel}>sub-steps</Text>
+                    </View>
+                  )}
+                  {includedSummary.skills.length > 0 && (
+                    <View style={v2.glanceItem}>
+                      <Text style={[v2.glanceNum, { color: accent }]}>{includedSummary.skills.length}</Text>
+                      <Text style={v2.glanceLabel}>{includedSummary.skills.length === 1 ? 'skill' : 'skills'}</Text>
+                    </View>
+                  )}
+                </View>
+                {includedSummary.skills.length > 0 && (
+                  <View style={v2.glanceSkills}>
+                    {includedSummary.skills.slice(0, 6).map((skill, i) => (
+                      <View key={i} style={[v2.glanceSkillBadge, { borderColor: accent + '33' }]}>
+                        <Text style={[v2.glanceSkillText, { color: accent }]} numberOfLines={1}>{skill}</Text>
+                      </View>
+                    ))}
+                    {includedSummary.skills.length > 6 && (
+                      <View style={[v2.glanceSkillBadge, { borderColor: accent + '33' }]}>
+                        <Text style={[v2.glanceSkillText, { color: accent }]}>+{includedSummary.skills.length - 6} more</Text>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
             )}
           </View>
-        )}
 
-        {/* Social proof */}
-        {blueprint.subscriber_count > 0 && !isOwner && (
-          <View style={styles.socialProof}>
-            <Ionicons name="people" size={16} color={C.accent} />
-            <Text style={styles.socialProofText}>
-              {blueprint.subscriber_count} {blueprint.subscriber_count === 1 ? 'person is' : 'people are'} working through this blueprint
-            </Text>
-          </View>
-        )}
-
-        {/* Steps vertical list */}
-        <View style={styles.stepsSection}>
-          <Text style={styles.sectionTitle}>Timeline Steps</Text>
-          {stepsLoading ? (
-            <ActivityIndicator size="small" color={C.accent} style={{ marginTop: 20 }} />
-          ) : totalCount === 0 ? (
-            <Text style={styles.emptyStepsText}>No steps published yet.</Text>
-          ) : (
-            <View style={{ gap: 0 }}>
-              {steps?.map((step, index) => (
-                <StepListItem
-                  key={step.id}
-                  step={step}
-                  index={index}
-                  total={totalCount}
-                  isExpanded={previewStep?.id === step.id}
-                  onToggle={() => setPreviewStep(previewStep?.id === step.id ? null : step)}
-                  accentColor={C.accent}
-                />
-              ))}
+          {/* Main column — step ladder + owner progress + peers */}
+          <View style={[v2.main, isWide && v2.mainWide]}>
+            {/* Step ladder */}
+            <View style={v2.mainCard}>
+              <Text style={styles.sectionTitle}>The steps</Text>
+              {stepsLoading ? (
+                <ActivityIndicator size="small" color={accent} style={{ marginTop: 20 }} />
+              ) : totalCount === 0 ? (
+                <Text style={styles.emptyStepsText}>No steps published yet.</Text>
+              ) : (
+                <View style={{ gap: 0 }}>
+                  {steps?.map((step, index) => (
+                    <StepListItem
+                      key={step.id}
+                      step={step}
+                      index={index}
+                      total={totalCount}
+                      isExpanded={previewStep?.id === step.id}
+                      onToggle={() => setPreviewStep(previewStep?.id === step.id ? null : step)}
+                      accentColor={accent}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
-          )}
-        </View>
 
-        {/* Peer subscriber timelines — non-owner subscribers see fellow learners */}
-        {!isOwner && peerTimelines.length > 0 && (
-          <View style={styles.stepsSection}>
-            <Text style={styles.sectionTitle}>Fellow Learners</Text>
-            <Text style={{ fontSize: 13, color: C.labelMid, marginBottom: 12 }}>
-              Others working through this blueprint
-            </Text>
-            {peerTimelines.map((peer) => {
-              const initials = peer.subscriber_name
-                ? peer.subscriber_name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
-                : '?';
-              return (
-                <Pressable
-                  key={peer.subscriber_id}
-                  style={peerStyles.row}
-                  onPress={() => router.push(`/person/${peer.subscriber_id}` as any)}
-                >
-                  <View style={[peerStyles.avatar, { backgroundColor: C.accent + '18' }]}>
-                    <Text style={[peerStyles.avatarText, { color: C.accent }]}>
-                      {peer.subscriber_avatar_emoji || initials}
-                    </Text>
-                  </View>
-                  <View style={peerStyles.info}>
-                    <Text style={peerStyles.name} numberOfLines={1}>
-                      {peer.subscriber_name ?? 'Anonymous'}
-                    </Text>
-                    <Text style={peerStyles.progress}>
-                      {peer.completed_count}/{peer.total_count} steps completed
-                    </Text>
-                  </View>
-                  {/* Mini progress dots */}
-                  <View style={peerStyles.dots}>
-                    {peer.steps.slice(0, 8).map((step) => (
-                      <View
-                        key={step.id}
-                        style={[
-                          peerStyles.dot,
-                          {
-                            backgroundColor:
-                              step.status === 'completed' ? C.green
-                              : step.status === 'in_progress' ? C.gold
-                              : '#D4D4D4',
-                          },
-                        ]}
-                      />
-                    ))}
-                    {peer.steps.length > 8 && (
-                      <Text style={{ fontSize: 9, color: C.labelLight }}>+{peer.steps.length - 8}</Text>
-                    )}
-                  </View>
-                  <Ionicons name="chevron-forward" size={14} color={C.labelLight} />
-                </Pressable>
-              );
-            })}
+            {/* Owner: subscriber progress (wide content, lives in main column) */}
+            {isOwner && blueprint && steps && blueprint.subscriber_count > 0 && (
+              <View style={v2.mainCard}>
+                <StudentProgressSection
+                  blueprintId={blueprint.id}
+                  blueprintSteps={steps}
+                  interestId={blueprint.interest_id}
+                />
+              </View>
+            )}
+            {isOwner && blueprint.subscriber_count === 0 && (
+              <View style={[v2.mainCard, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+                <Ionicons name="people-outline" size={14} color={C.labelLight} />
+                <Text style={{ fontSize: 12, color: C.labelMid }}>
+                  No subscribers yet — share your link to get started
+                </Text>
+              </View>
+            )}
+
+            {/* Peer subscriber timelines */}
+            {!isOwner && peerTimelines.length > 0 && (
+              <View style={v2.mainCard}>
+                <Text style={styles.sectionTitle}>Others on this path</Text>
+                <Text style={{ fontSize: 13, color: C.labelMid, marginBottom: 12 }}>
+                  Others working through this blueprint
+                </Text>
+                {peerTimelines.map((peer) => {
+                  const initials = peer.subscriber_name
+                    ? peer.subscriber_name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+                    : '?';
+                  return (
+                    <Pressable
+                      key={peer.subscriber_id}
+                      style={peerStyles.row}
+                      onPress={() => router.push(`/person/${peer.subscriber_id}` as any)}
+                    >
+                      <View style={[peerStyles.avatar, { backgroundColor: accent + '18' }]}>
+                        <Text style={[peerStyles.avatarText, { color: accent }]}>
+                          {peer.subscriber_avatar_emoji || initials}
+                        </Text>
+                      </View>
+                      <View style={peerStyles.info}>
+                        <Text style={peerStyles.name} numberOfLines={1}>
+                          {peer.subscriber_name ?? 'Anonymous'}
+                        </Text>
+                        <Text style={peerStyles.progress}>
+                          {peer.completed_count}/{peer.total_count} steps completed
+                        </Text>
+                      </View>
+                      {/* Mini progress dots */}
+                      <View style={peerStyles.dots}>
+                        {peer.steps.slice(0, 8).map((step) => (
+                          <View
+                            key={step.id}
+                            style={[
+                              peerStyles.dot,
+                              {
+                                backgroundColor:
+                                  step.status === 'completed' ? C.green
+                                  : step.status === 'in_progress' ? C.gold
+                                  : '#D4D4D4',
+                              },
+                            ]}
+                          />
+                        ))}
+                        {peer.steps.length > 8 && (
+                          <Text style={{ fontSize: 9, color: C.labelLight }}>+{peer.steps.length - 8}</Text>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={14} color={C.labelLight} />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </View>
-        )}
+        </View>
 
         {Platform.OS === 'web' && (
           <View style={styles.webFooter}>
@@ -2542,5 +2579,225 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     maxWidth: 300,
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Redesign (v2) — accent-tinted hero, provenance, two-column body
+// ---------------------------------------------------------------------------
+
+const v2 = StyleSheet.create({
+  scrollContentWide: {
+    maxWidth: 1000,
+  },
+
+  // Gradient hero
+  hero: {
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    gap: 10,
+  },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.85)',
+  },
+  heroTitle: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  heroLede: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: 'rgba(255,255,255,0.92)',
+    maxWidth: 560,
+  },
+  heroMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    marginTop: 6,
+  },
+  heroMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  heroMetaText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.92)',
+  },
+
+  // Provenance row
+  provenance: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: C.cardBg,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  provChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+    maxWidth: 260,
+    ...Platform.select({ web: { cursor: 'pointer' } }),
+  },
+  provAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  provEmoji: {
+    fontSize: 16,
+  },
+  provOrgMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  provOrgMarkText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  provName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: C.labelDark,
+  },
+  provRole: {
+    fontSize: 11,
+    color: C.labelMid,
+    marginTop: 1,
+  },
+  provBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    marginTop: 3,
+  },
+  provBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  // Body grid
+  bodyGrid: {
+    flexDirection: 'column',
+    gap: 16,
+    padding: 16,
+  },
+  bodyGridWide: {
+    flexDirection: 'row-reverse',
+    alignItems: 'flex-start',
+    gap: 20,
+    padding: 20,
+  },
+  side: {
+    gap: 16,
+  },
+  sideWide: {
+    width: 320,
+    flexShrink: 0,
+    position: 'sticky' as any,
+    top: 16,
+  },
+  main: {
+    gap: 16,
+  },
+  mainWide: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sideCard: {
+    backgroundColor: C.cardBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 16,
+    gap: 12,
+  },
+  mainCard: {
+    backgroundColor: C.cardBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 16,
+  },
+
+  // At a glance
+  glanceCard: {
+    backgroundColor: C.cardBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 16,
+    gap: 12,
+  },
+  glanceTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: C.labelDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  glanceGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  glanceItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: C.bg,
+  },
+  glanceNum: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  glanceLabel: {
+    fontSize: 11,
+    color: C.labelMid,
+    marginTop: 2,
+  },
+  glanceSkills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  glanceSkillBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    maxWidth: '100%',
+  },
+  glanceSkillText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
 });
