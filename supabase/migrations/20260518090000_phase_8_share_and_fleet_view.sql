@@ -59,36 +59,36 @@ DROP POLICY IF EXISTS "shared_steps_sender_read" ON public.shared_steps;
 CREATE POLICY "shared_steps_sender_read"
   ON public.shared_steps
   FOR SELECT
-  USING (auth.uid() = sender_user_id);
+  USING ((SELECT auth.uid()) = sender_user_id);
 
 -- Direct recipient can read their incoming share
 DROP POLICY IF EXISTS "shared_steps_recipient_read" ON public.shared_steps;
 CREATE POLICY "shared_steps_recipient_read"
   ON public.shared_steps
   FOR SELECT
-  USING (auth.uid() = recipient_user_id);
+  USING ((SELECT auth.uid()) = recipient_user_id);
 
 -- Sender inserts; recipient + group fields validated by CHECK + caller
 DROP POLICY IF EXISTS "shared_steps_sender_insert" ON public.shared_steps;
 CREATE POLICY "shared_steps_sender_insert"
   ON public.shared_steps
   FOR INSERT
-  WITH CHECK (auth.uid() = sender_user_id);
+  WITH CHECK ((SELECT auth.uid()) = sender_user_id);
 
 -- Recipient updates read_at + forked_to_step_id; sender updates nothing
 DROP POLICY IF EXISTS "shared_steps_recipient_update" ON public.shared_steps;
 CREATE POLICY "shared_steps_recipient_update"
   ON public.shared_steps
   FOR UPDATE
-  USING (auth.uid() = recipient_user_id)
-  WITH CHECK (auth.uid() = recipient_user_id);
+  USING ((SELECT auth.uid()) = recipient_user_id)
+  WITH CHECK ((SELECT auth.uid()) = recipient_user_id);
 
 -- Sender can rescind
 DROP POLICY IF EXISTS "shared_steps_sender_delete" ON public.shared_steps;
 CREATE POLICY "shared_steps_sender_delete"
   ON public.shared_steps
   FOR DELETE
-  USING (auth.uid() = sender_user_id);
+  USING ((SELECT auth.uid()) = sender_user_id);
 
 COMMENT ON TABLE public.shared_steps IS
   'Direct/group/link-mode share rows for a timeline step. CHECK guarantees exactly one target (recipient OR group). forked_to_step_id captures provenance when the receiver pulls a fork into their own timeline.';
@@ -116,19 +116,19 @@ DROP POLICY IF EXISTS "share_tokens_creator_read" ON public.share_tokens;
 CREATE POLICY "share_tokens_creator_read"
   ON public.share_tokens
   FOR SELECT
-  USING (auth.uid() = created_by_user_id);
+  USING ((SELECT auth.uid()) = created_by_user_id);
 
 DROP POLICY IF EXISTS "share_tokens_creator_insert" ON public.share_tokens;
 CREATE POLICY "share_tokens_creator_insert"
   ON public.share_tokens
   FOR INSERT
-  WITH CHECK (auth.uid() = created_by_user_id);
+  WITH CHECK ((SELECT auth.uid()) = created_by_user_id);
 
 DROP POLICY IF EXISTS "share_tokens_creator_delete" ON public.share_tokens;
 CREATE POLICY "share_tokens_creator_delete"
   ON public.share_tokens
   FOR DELETE
-  USING (auth.uid() = created_by_user_id);
+  USING ((SELECT auth.uid()) = created_by_user_id);
 
 COMMENT ON TABLE public.share_tokens IS
   'Link-mode share invites. Token redeemed via claim_share_token(); expires_at gates validity.';
@@ -196,9 +196,9 @@ CREATE POLICY "shared_step_comments_thread_read"
       SELECT 1
         FROM public.shared_steps s
        WHERE s.id = shared_step_comments.shared_step_id
-         AND (s.sender_user_id = auth.uid() OR s.recipient_user_id = auth.uid())
+         AND (s.sender_user_id = (SELECT auth.uid()) OR s.recipient_user_id = (SELECT auth.uid()))
     )
-    OR auth.uid() = commenter_user_id
+    OR (SELECT auth.uid()) = commenter_user_id
   );
 
 DROP POLICY IF EXISTS "shared_step_comments_recipient_insert" ON public.shared_step_comments;
@@ -206,12 +206,12 @@ CREATE POLICY "shared_step_comments_recipient_insert"
   ON public.shared_step_comments
   FOR INSERT
   WITH CHECK (
-    auth.uid() = commenter_user_id
+    (SELECT auth.uid()) = commenter_user_id
     AND EXISTS (
       SELECT 1
         FROM public.shared_steps s
        WHERE s.id = shared_step_comments.shared_step_id
-         AND (s.sender_user_id = auth.uid() OR s.recipient_user_id = auth.uid())
+         AND (s.sender_user_id = (SELECT auth.uid()) OR s.recipient_user_id = (SELECT auth.uid()))
     )
   );
 
@@ -219,7 +219,7 @@ DROP POLICY IF EXISTS "shared_step_comments_owner_delete" ON public.shared_step_
 CREATE POLICY "shared_step_comments_owner_delete"
   ON public.shared_step_comments
   FOR DELETE
-  USING (auth.uid() = commenter_user_id);
+  USING ((SELECT auth.uid()) = commenter_user_id);
 
 COMMENT ON TABLE public.shared_step_comments IS
   'Comment thread on a shared_steps row. Either party of the share can post or read.';
