@@ -1,5 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
@@ -19,6 +20,30 @@ type BlueprintStepTimelineRow = {
 };
 
 type BlueprintFilter = 'all' | 'in-progress' | 'settled';
+
+/** Lighten (amount > 0) or darken (amount < 0) a hex colour for the hero gradient. */
+function shade(hex: string, amount: number): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const to = amount < 0 ? 0 : 255;
+  const t = Math.abs(amount);
+  const ch = (c: number) => Math.round(c + (to - c) * t);
+  const r = ch(parseInt(m[1], 16));
+  const g = ch(parseInt(m[2], 16));
+  const b = ch(parseInt(m[3], 16));
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** Resolve the hero accent: the author's stored colour, else a stable hash tone. */
+function accentFor(color: string | null | undefined, seed: string): string {
+  if (color && /^#?[a-f\d]{6}$/i.test(color.trim())) {
+    return color.trim().startsWith('#') ? color.trim() : `#${color.trim()}`;
+  }
+  const palette = ['#28406B', '#8B5A3C', '#B8855A', '#6E8B5A', '#7A5A8B'];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  return palette[Math.abs(hash) % palette.length];
+}
 
 function toPillState(row: BlueprintStepTimelineRow): 'settled' | 'current' | 'planned' {
   if (row.progressStatus === 'settled' || row.progressStatus === 'completed') return 'settled';
@@ -145,50 +170,77 @@ export function BlueprintTimeline({ blueprintId }: { blueprintId: string }) {
   const adoptionPct =
     counts.all > 0 ? Math.min(100, Math.round((counts.adopted / counts.all) * 100)) : 0;
 
+  // Tint the hero from the author's stored avatar colour (their blueprints all
+  // read one tone); fall back to a stable hash if it's unset.
+  const accent = accentFor(blueprint?.author_avatar_color, blueprint?.author_name ?? blueprintId);
+
+  // Plan → Do → Review → Discuss band — lit from this viewer's own progress.
+  // Plan is always live (the journey ahead); the rest fill in as steps move.
+  const phaseBand: { label: string; on: boolean }[] = [
+    { label: 'Plan', on: true },
+    { label: 'Do', on: counts.inProgress > 0 || counts.settled > 0 },
+    { label: 'Review', on: counts.settled > 0 },
+    { label: 'Discuss', on: counts.all > 0 && counts.settled === counts.all },
+  ];
+
   return (
     <View style={styles.screen}>
-      <View style={styles.hero}>
-        <View style={styles.heroTopRow}>
-          <Text style={styles.eyebrow}>Blueprint</Text>
-          <Pressable
-            onPress={() => router.push(`/(tabs)/library/blueprints/${blueprintId}/co-practitioners` as any)}
-            hitSlop={8}
-          >
-            <Text style={styles.coPractitionersLink}>Co-practitioners ›</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.title}>{blueprint?.title ?? 'Blueprint'}</Text>
-        <View style={styles.heroMetaRow}>
-          <Text style={styles.heroMeta}>by {authorName}</Text>
-          <View style={styles.metaDot} />
-          <Text style={styles.heroMeta}>
-            {subscriberCount} subscriber{subscriberCount === 1 ? '' : 's'}
-          </Text>
-          {subscription && (
-            <>
-              <View style={styles.metaDot} />
+      <View style={styles.heroWrap}>
+        <LinearGradient
+          colors={[accent, shade(accent, -0.4)]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
+          <View style={styles.heroTopRow}>
+            <Text style={styles.eyebrow}>Blueprint</Text>
+            <Pressable
+              onPress={() => router.push(`/(tabs)/library/blueprints/${blueprintId}/co-practitioners` as any)}
+              hitSlop={8}
+            >
+              <Text style={styles.coPractitionersLink}>Co-practitioners ›</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.title}>{blueprint?.title ?? 'Blueprint'}</Text>
+          <View style={styles.heroMetaRow}>
+            <Text style={styles.heroMeta}>by {authorName}</Text>
+            <View style={styles.metaDot} />
+            <Text style={styles.heroMeta}>
+              {subscriberCount} subscriber{subscriberCount === 1 ? '' : 's'}
+            </Text>
+            {subscription && (
               <View style={styles.subscribedPill}>
                 <Text style={styles.subscribedPillText}>Subscribed</Text>
               </View>
-            </>
-          )}
-        </View>
-
-        {subscription && counts.all > 0 ? (
-          <View style={styles.adoptionWrap}>
-            <View style={styles.adoptionTextRow}>
-              <Text style={styles.adoptionLabel}>In your Plan</Text>
-              <Text style={styles.adoptionCount}>
-                {counts.adopted} of {counts.all}
-              </Text>
-            </View>
-            <View style={styles.adoptionTrack}>
-              <View
-                style={[styles.adoptionFill, { width: `${adoptionPct}%` }]}
-              />
-            </View>
+            )}
           </View>
-        ) : null}
+
+          <View style={styles.arc}>
+            {phaseBand.map((ph) => (
+              <View key={ph.label} style={[styles.phasePill, ph.on && styles.phasePillOn]}>
+                <Text style={[styles.phasePillText, ph.on && styles.phasePillTextOn]}>
+                  {ph.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {subscription && counts.all > 0 ? (
+            <View style={styles.adoptionWrap}>
+              <View style={styles.adoptionTextRow}>
+                <Text style={styles.adoptionLabel}>In your Plan</Text>
+                <Text style={styles.adoptionCount}>
+                  {counts.adopted} of {counts.all}
+                </Text>
+              </View>
+              <View style={styles.adoptionTrack}>
+                <View
+                  style={[styles.adoptionFill, { width: `${adoptionPct}%` }]}
+                />
+              </View>
+            </View>
+          ) : null}
+        </LinearGradient>
       </View>
 
       <FilterStrip
@@ -312,11 +364,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#F2F2F7',
   },
-  hero: {
+  heroWrap: {
     paddingHorizontal: 16,
-    paddingTop: 18,
+    paddingTop: 16,
     paddingBottom: 12,
-    gap: 8,
+  },
+  hero: {
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    gap: 10,
+    overflow: 'hidden',
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -327,19 +385,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    color: '#2563EB',
+    letterSpacing: 1.2,
+    color: 'rgba(255,255,255,0.78)',
   },
   coPractitionersLink: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: 'rgba(255,255,255,0.92)',
   },
   title: {
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: '#FFFFFF',
   },
   heroMetaRow: {
     flexDirection: 'row',
@@ -349,16 +408,16 @@ const styles = StyleSheet.create({
   },
   heroMeta: {
     fontSize: 13,
-    color: '#6B7280',
+    color: 'rgba(255,255,255,0.9)',
   },
   metaDot: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
   subscribedPill: {
-    backgroundColor: '#E0E7FF',
+    backgroundColor: 'rgba(255,255,255,0.22)',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 3,
@@ -366,11 +425,33 @@ const styles = StyleSheet.create({
   subscribedPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#4338CA',
+    color: '#FFFFFF',
     letterSpacing: 0.3,
   },
+  arc: { flexDirection: 'row', gap: 7, marginTop: 6 },
+  phasePill: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 9,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  phasePillOn: {
+    backgroundColor: 'rgba(255,255,255,0.26)',
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  phasePillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  phasePillTextOn: { color: '#FFFFFF' },
   adoptionWrap: {
-    marginTop: 6,
+    marginTop: 4,
     gap: 6,
   },
   adoptionTextRow: {
@@ -381,24 +462,24 @@ const styles = StyleSheet.create({
   adoptionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6B7280',
+    color: 'rgba(255,255,255,0.8)',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   adoptionCount: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#111827',
+    color: '#FFFFFF',
   },
   adoptionTrack: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.22)',
     overflow: 'hidden',
   },
   adoptionFill: {
     height: '100%',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FFFFFF',
     borderRadius: 2,
   },
   scroll: {
