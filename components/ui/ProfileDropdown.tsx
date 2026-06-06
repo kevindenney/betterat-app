@@ -41,8 +41,10 @@ import { IOS_COLORS, IOS_ANIMATIONS, IOS_TOUCH } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { useInboxCount } from '@/hooks/useInboxCount';
 import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -62,6 +64,10 @@ function getInitials(name?: string | null): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function formatBadgeCount(count: number): string {
+  return count > 99 ? '99+' : String(count);
 }
 
 export function ProfileDropdown({
@@ -103,6 +109,7 @@ export function ProfileDropdown({
   const menu = useProfileMenuData();
   const homeVenue = useUserHomeVenue();
   const { switchInterest, userInterests } = useInterest();
+  const { data: inboxCount = 0 } = useInboxCount();
 
   const isLoggedIn = !!user && !isGuest;
 
@@ -199,6 +206,7 @@ export function ProfileDropdown({
       showAvatarImage={showAvatarImage}
       safeAvatarUrl={safeAvatarUrl}
       menu={menu}
+      inboxCount={inboxCount}
       homeVenueName={homeVenue?.venue ?? null}
       onNavigate={navigate}
       onOpenVenuePicker={openVenuePicker}
@@ -303,6 +311,17 @@ export function ProfileDropdown({
         )}
       </AnimatedPressable>
 
+      {/* Inbox unread badge — folded onto the avatar so the standalone bell
+          can retire on every profile-bearing surface. Rendered as a sibling
+          of the pressable (not a child) because the logged-in avatar clips
+          overflow to round the image, which would otherwise crop the badge.
+          pointerEvents:none so the tap still falls through to the avatar. */}
+      {isLoggedIn && inboxCount > 0 ? (
+        <View style={s.inboxBadge} pointerEvents="none">
+          <Text style={s.inboxBadgeText}>{formatBadgeCount(inboxCount)}</Text>
+        </View>
+      ) : null}
+
       {open &&
         (Platform.OS === 'web' ? (
           <Pressable style={s.backdrop} onPress={handleClose}>
@@ -365,6 +384,7 @@ function LoggedInMenu({
   showAvatarImage,
   safeAvatarUrl,
   menu,
+  inboxCount,
   homeVenueName,
   onNavigate,
   onOpenVenuePicker,
@@ -379,6 +399,7 @@ function LoggedInMenu({
   showAvatarImage: boolean;
   safeAvatarUrl: string | null;
   menu: ReturnType<typeof useProfileMenuData>;
+  inboxCount: number;
   homeVenueName: string | null;
   onNavigate: (path: string) => void;
   onOpenVenuePicker: () => void;
@@ -420,6 +441,22 @@ function LoggedInMenu({
       )}
 
       <View style={s.linkSection}>
+        <DropdownItem
+          icon="checkmark-circle-outline"
+          label="My Practice"
+          onPress={() => onNavigate('/(tabs)/practice')}
+          trailing="chevron"
+        />
+        <ItemDivider />
+        <DropdownItem
+          icon="mail-outline"
+          label="Inbox"
+          onPress={() => onNavigate('/(tabs)/inbox')}
+          trailing="count"
+          count={inboxCount}
+          countTone={inboxCount > 0 ? 'coral' : 'neutral'}
+        />
+        <ItemDivider />
         <DropdownItem
           icon="person-outline"
           label="Profile & settings"
@@ -910,7 +947,38 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  orgPipText: { color: '#FFFFFF', fontSize: 8, fontWeight: '700', letterSpacing: 0.2 },
+  orgPipText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+    fontVariant: ['tabular-nums'],
+  },
+
+  // Inbox unread badge — top-right of the avatar (org pip sits bottom-right,
+  // so the two never collide).
+  inboxBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: IOS_COLORS.systemRed,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inboxBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
 
   // Backdrop + dropdown card
   backdrop: {
@@ -981,7 +1049,13 @@ const s = StyleSheet.create({
   whoAvatarImg: { width: 38, height: 38, borderRadius: 19 },
   whoAvatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
   whoText: { flex: 1, minWidth: 0 },
-  whoName: { fontSize: 15, fontWeight: '600', color: IOS_COLORS.label },
+  whoName: {
+    fontSize: 15,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    color: IOS_COLORS.label,
+    letterSpacing: -0.3,
+  },
   whoEmail: { fontSize: 12, color: IOS_COLORS.secondaryLabel, marginTop: 2 },
   whoEditButton: {
     width: 30,
@@ -1022,7 +1096,8 @@ const s = StyleSheet.create({
   roles: { paddingTop: 4, paddingBottom: 6 },
   rolesKey: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
@@ -1058,7 +1133,8 @@ const s = StyleSheet.create({
   roleMonoText: {
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.2,
   },
   roleMonoTextSolo: { color: IOS_COLORS.label, fontSize: 16, fontWeight: '600' },
@@ -1070,7 +1146,7 @@ const s = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 999,
   },
-  rolePillText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  rolePillText: { fontSize: 10, fontFamily: fontFamily.mono, fontWeight: '500', letterSpacing: 0.3 },
   roleCheck: { marginLeft: 2 },
 
   joinRow: {
@@ -1104,7 +1180,13 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(60, 60, 67, 0.08)',
   },
   countPillCoral: { backgroundColor: 'rgba(255, 107, 107, 0.15)' },
-  countPillText: { fontSize: 11, fontWeight: '600', color: IOS_COLORS.secondaryLabel },
+  countPillText: {
+    fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    color: IOS_COLORS.secondaryLabel,
+    fontVariant: ['tabular-nums'],
+  },
   countPillTextCoral: { color: '#FF6B6B' },
 
   // Dividers
@@ -1121,7 +1203,14 @@ const s = StyleSheet.create({
 
   // Guest auth menu (unchanged behavior)
   guestMenu: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
-  guestHeading: { fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  guestHeading: {
+    fontSize: 17,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
   guestSubtext: { fontSize: 13, lineHeight: 18, color: '#6B7280', marginBottom: 14 },
   guestPrimaryBtn: {
     flexDirection: 'row',
