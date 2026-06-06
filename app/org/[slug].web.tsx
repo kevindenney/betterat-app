@@ -4,9 +4,10 @@ import Svg, { Circle } from 'react-native-svg';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import type { BlueprintRecord } from '@/types/blueprint';
 import type { ProgramRecord } from '@/services/ProgramService';
-import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 // ── Tokens from canonical design ─────────────────────────────────────
 const C = {
@@ -32,11 +33,9 @@ const C = {
   white: '#FFFFFF',
 } as const;
 
-const FONT_SERIF =
-  '"Iowan Old Style", "Source Serif 4", Georgia, serif';
-const FONT_SANS =
-  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif';
-const FONT_MONO = 'ui-monospace, "SF Mono", Menlo, monospace';
+const FONT_SERIF = `${fontFamily.serif}, "Iowan Old Style", "Source Serif 4", Georgia, serif`;
+const FONT_SANS = `${fontFamily.sans}, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+const FONT_MONO = `${fontFamily.mono}, ui-monospace, "SF Mono", Menlo, monospace`;
 
 // ── AACN Essentials domains (public framework) ───────────────────────
 type AacnDomain = {
@@ -170,6 +169,363 @@ const SAMPLE_GRADUATES: GraduateCard[] = [
   },
 ];
 
+// Illustrative member cards for the rural-women-entrepreneur interest —
+// neighbours running their own small businesses, in plain language. Mirrors
+// the SAMPLE_GRADUATES pattern: sample data so the page never reads as broken.
+const ENTREPRENEUR_MEMBERS: GraduateCard[] = [
+  {
+    id: 'ent-1',
+    name: 'Sukurmuni Devi',
+    initials: 'SD',
+    degree: 'Lac bangles · since 2022',
+    location: 'sells in Murhu market',
+    caps: [
+      { name: 'First market sale', filled: 5 },
+      { name: 'Repaid her first loan', filled: 5 },
+      { name: 'Teaching 3 neighbours', filled: 4 },
+    ],
+    evidences: 38,
+    sites: 3,
+    avatarTone: 4,
+  },
+  {
+    id: 'ent-2',
+    name: 'Etwari Mahto',
+    initials: 'EM',
+    degree: 'Poultry · since 2021',
+    location: 'Khunti block',
+    caps: [
+      { name: 'Daily egg sales', filled: 5 },
+      { name: 'Bought a second batch', filled: 4 },
+      { name: 'Keeps a sales book', filled: 4 },
+    ],
+    evidences: 52,
+    sites: 2,
+    avatarTone: 3,
+  },
+  {
+    id: 'ent-anon-1',
+    name: null,
+    initials: '?',
+    degree: 'Vegetable stall',
+    location: 'name kept private',
+    caps: [
+      { name: 'Buys wholesale', filled: 5 },
+      { name: 'Weekly profit', filled: 4 },
+      { name: 'Saves with her group', filled: 4 },
+    ],
+    evidences: 27,
+    sites: null,
+    isAnonymous: true,
+    avatarTone: 1,
+  },
+  {
+    id: 'ent-3',
+    name: 'Phulmani Kumari',
+    initials: 'PK',
+    degree: 'Tailoring · since 2023',
+    location: 'Torpa block',
+    caps: [
+      { name: 'Stitches blouses', filled: 5 },
+      { name: 'Festival orders', filled: 4, partial: true },
+      { name: 'Trained two girls', filled: 4 },
+    ],
+    evidences: 31,
+    sites: 1,
+    avatarTone: 2,
+  },
+  {
+    id: 'ent-anon-2',
+    name: null,
+    initials: '?',
+    degree: 'Mushroom growing',
+    location: 'name kept private',
+    caps: [
+      { name: 'First harvest sold', filled: 5 },
+      { name: 'Supplies 4 shops', filled: 4 },
+      { name: 'Joined her group', filled: 5 },
+    ],
+    evidences: 19,
+    sites: null,
+    isAnonymous: true,
+    avatarTone: 3,
+  },
+  {
+    id: 'ent-4',
+    name: 'Jasinta Topno',
+    initials: 'JT',
+    degree: 'Lac raw material · since 2020',
+    location: 'Arki block',
+    caps: [
+      { name: 'Supplies 6 women', filled: 5 },
+      { name: 'Buys in bulk', filled: 5, partial: true },
+      { name: 'Sets fair prices', filled: 4 },
+    ],
+    evidences: 44,
+    sites: 4,
+    avatarTone: 1,
+  },
+];
+
+// ── Interest-aware copy ──────────────────────────────────────────────
+// The page started life as a school-of-nursing showcase. This config keeps
+// the nursing voice for nursing orgs but lets other interests speak their own
+// plainer language (e.g. rural women entrepreneurs talk about the business
+// their neighbour runs, not a "cohort" or "faculty").
+type OrgKind = 'nursing' | 'entrepreneur' | 'generic';
+
+interface OrgCopy {
+  catalogLabel: string;
+  crumbRegion: string;
+  verifiedText: string;
+  ctaPrimaryIcon: keyof typeof Ionicons.glyphMap;
+  ctaPrimaryText: string;
+  heroTagline: string;
+  progEyebrow: string;
+  progTitleA: string;
+  progTitleEm: string;
+  progSub: string;
+  photoLabel: string;
+  /** When set, the section renders a "what they make" chip band instead of a placeholder photo. */
+  photoChips?: string[];
+  stat1Strong: string;
+  stat1Tail: string;
+  stat2Strong: string;
+  stat2Tail: string;
+  stat3Strong: string;
+  stat3Tail: string;
+  bpEyebrow: string;
+  bpTitleA: string;
+  bpTitleEm: string;
+  bpLede: string;
+  bpSeeAll: (n: number) => string;
+  gradEyebrow: string;
+  gradTitleA: string;
+  gradTitleEm: string;
+  gradLede: string;
+  memberEvidenceWord: string;
+  memberSitesWord: string;
+  memberAnonName: string;
+  cta1Num: string;
+  cta1Title: string;
+  cta1Desc: string;
+  cta1Btn: string;
+  cta1Deadline: string;
+  cta2Title: string;
+  cta2Desc: string;
+  cta3Num: string;
+  cta3Title: string;
+  cta3Desc: string;
+  cta3Deadline: string;
+  footVerified: string;
+  members: GraduateCard[] | null;
+}
+
+// Shared entrepreneur/livelihood framing. The interest-specific bits
+// (heroTagline products, photoChips, member cards) are filled in by
+// buildEntrepreneurCopy() from LIVELIHOOD_PROFILES so every PRADAN-style org
+// (lac, food, textile…) shares one template instead of falling to generic.
+const ENTREPRENEUR_BASE: OrgCopy = {
+  catalogLabel: 'NGOs & Agencies',
+  crumbRegion: 'Jharkhand',
+  verifiedText: 'Recognised NGO',
+  ctaPrimaryIcon: 'people-outline',
+  ctaPrimaryText: 'See the work',
+  heroTagline:
+    'Women running their own small businesses — with help from the field team. What follows is the work as it runs now: how many women are earning, the government schemes and loans they can reach, simple guides made by women who have done it, and a few of their stories.',
+  progEyebrow: 'The work, day to day',
+  progTitleA: 'Real numbers from the women working ',
+  progTitleEm: 'right now',
+  progSub: 'Updated as women log their sales and wins',
+  photoLabel: 'What these women make and sell',
+  stat1Strong: 'women running their own business',
+  stat1Tail: ' with this group',
+  stat2Strong: 'wins logged',
+  stat2Tail: ' — first sales, loans repaid, new products',
+  stat3Strong: 'guides to follow',
+  stat3Tail: ' — schemes, loans, business steps',
+  bpEyebrow: 'Guides from the field team',
+  bpTitleA: 'Made by women who have done it. ',
+  bpTitleEm: 'Followed by their neighbours.',
+  bpLede:
+    'Each guide is a simple step-by-step plan — a government scheme, a loan, or how to grow your business. Free to follow.',
+  bpSeeAll: (n) => `See all ${n} guides`,
+  gradEyebrow: 'Women running businesses near you',
+  gradTitleA: 'What they have built, ',
+  gradTitleEm: 'in their own words.',
+  gradLede:
+    'Each woman chooses whether to show her name or stay private. Every dot is a real step she took — a first sale, a loan repaid, a new product.',
+  memberEvidenceWord: 'updates',
+  memberSitesWord: 'markets',
+  memberAnonName: 'A neighbour (private)',
+  cta1Num: '01 / Join',
+  cta1Title: 'Start with a self-help group',
+  cta1Desc:
+    'Most women begin in a small weekly savings group near home. From there you can reach loans and government schemes.',
+  cta1Btn: 'Join',
+  cta1Deadline: 'Groups meet every week',
+  cta2Title: 'About the field team',
+  cta2Desc: 'Who we are, the women we work with, and the schemes we help you reach.',
+  cta3Num: '03 / Stories',
+  cta3Title: 'Stories from women nearby',
+  cta3Desc: 'How a neighbour started, what worked, and what she would tell you.',
+  cta3Deadline: 'New stories often',
+  footVerified: 'Recognised NGO',
+  members: null,
+};
+
+// Per-interest content for the entrepreneur template. Add a slug here to give a
+// new livelihood org its own product chips, hero line, and (when seeded) member
+// stories — instead of dropping to the generic "Communities" framing.
+interface LivelihoodProfile {
+  products: string[];
+  heroProducts: string;
+  members: GraduateCard[] | null;
+}
+
+const LIVELIHOOD_PROFILES: Record<string, LivelihoodProfile> = {
+  'lac-craft-business': {
+    products: ['Lac bangles', 'Poultry', 'Vegetables', 'Tailoring', 'Mushrooms', 'Lac raw material'],
+    heroProducts: 'lac bangles, poultry, vegetables, tailoring',
+    members: ENTREPRENEUR_MEMBERS,
+  },
+  'food-processing': {
+    products: ['Pickles & chutney', 'Puffed rice', 'Spice packs', 'Millet snacks', 'Papad', 'Cold-pressed oil'],
+    heroProducts: 'pickles, puffed rice, spice packs, packaged snacks',
+    members: null,
+  },
+  'textile-weaving': {
+    products: ['Handloom saris', 'Tussar silk', 'Cotton stoles', 'Natural dyeing', 'Tailoring', 'Yarn'],
+    heroProducts: 'handloom saris, tussar silk, stoles, tailoring',
+    members: null,
+  },
+};
+
+const ENTREPRENEUR_DEFAULT_PROFILE: LivelihoodProfile = {
+  products: ['Tailoring', 'Vegetables', 'Poultry', 'Small trades', 'Handmade goods', 'Food stall'],
+  heroProducts: 'tailoring, vegetables, poultry, small trades',
+  members: null,
+};
+
+function buildEntrepreneurCopy(interestSlug: string | null): OrgCopy {
+  const profile = (interestSlug && LIVELIHOOD_PROFILES[interestSlug]) || ENTREPRENEUR_DEFAULT_PROFILE;
+  return {
+    ...ENTREPRENEUR_BASE,
+    heroTagline: `Women running their own small businesses — ${profile.heroProducts} — with help from the field team. What follows is the work as it runs now: how many women are earning, the government schemes and loans they can reach, simple guides made by women who have done it, and a few of their stories.`,
+    photoChips: profile.products,
+    members: profile.members,
+  };
+}
+
+const GENERIC_COPY: OrgCopy = {
+  catalogLabel: 'Organizations',
+  crumbRegion: 'Communities',
+  verifiedText: 'Verified group',
+  ctaPrimaryIcon: 'compass-outline',
+  ctaPrimaryText: 'Explore',
+  heroTagline:
+    'A group on BetterAt — programs, records, and member-authored blueprints in the place practitioners actually work. What follows is the group as it runs now: live activity, the framework as configured, member blueprints, and opt-in member records.',
+  progEyebrow: 'In practice',
+  progTitleA: 'Real activity from members, ',
+  progTitleEm: 'updated live',
+  progSub: 'Refreshed minutes ago',
+  photoLabel: 'members at work',
+  stat1Strong: 'members currently active',
+  stat1Tail: ' in this group',
+  stat2Strong: 'evidences logged',
+  stat2Tail: ' — reflections, sign-offs, milestones',
+  stat3Strong: 'programs & blueprints',
+  stat3Tail: ' — published, subscribable, evidence-backed',
+  bpEyebrow: 'Blueprints from members',
+  bpTitleA: 'Built by members. ',
+  bpTitleEm: 'Followed across the community.',
+  bpLede:
+    'Each blueprint is a step-by-step plan with reflections, evidence prompts, and a community of subscribers. Public; some are paid.',
+  bpSeeAll: (n) => `View all ${n} blueprints`,
+  gradEyebrow: 'Members',
+  gradTitleA: 'Public records. ',
+  gradTitleEm: 'Opt-in, evidence-backed.',
+  gradLede:
+    'Members choose whether to surface their record under their name, anonymously, or not at all. Every dot is backed by logged evidence.',
+  memberEvidenceWord: 'evidences',
+  memberSitesWord: 'sites',
+  memberAnonName: 'Anonymous member',
+  cta1Num: '01 / Join',
+  cta1Title: 'Become a member',
+  cta1Desc: 'This group welcomes new members on a rolling basis.',
+  cta1Btn: 'Join',
+  cta1Deadline: 'Open to all',
+  cta2Title: 'Learn more',
+  cta2Desc: 'Programs, people, and how this group works.',
+  cta3Num: '03 / Updates',
+  cta3Title: 'News & member stories',
+  cta3Desc: 'The latest from the community.',
+  cta3Deadline: 'Latest',
+  footVerified: 'Verified group',
+  members: null,
+};
+
+const NURSING_COPY: OrgCopy = {
+  catalogLabel: 'Schools & Clubs',
+  crumbRegion: 'United States',
+  verifiedText: 'Verified institution',
+  ctaPrimaryIcon: 'school-outline',
+  ctaPrimaryText: 'Explore the program',
+  heroTagline:
+    'A research-led school of nursing on BetterAt — coursework, clinical capability records, and faculty-authored programs in the same place students actually practice. What follows is the program as it currently runs: live cohort metrics, the AACN framework as configured, blueprints by faculty, and opt-in graduate records.',
+  progEyebrow: 'The Program in Practice',
+  progTitleA: 'Real metrics from the current cohort, ',
+  progTitleEm: 'updated live',
+  progSub: 'Spring 2026 term · Week 11 of 16 · refreshed minutes ago',
+  photoLabel: 'students in clinical setting',
+  stat1Strong: 'students currently practicing',
+  stat1Tail: ' across BSN, MSN, DNP programs',
+  stat2Strong: 'capability evidences logged',
+  stat2Tail: ' — reflections, sign-offs, sim debriefs',
+  stat3Strong: 'programs & blueprints',
+  stat3Tail: ' — published, subscribable, evidence-backed',
+  bpEyebrow: 'Blueprints by our faculty',
+  bpTitleA: 'Built by faculty. ',
+  bpTitleEm: 'Followed by students across the country.',
+  bpLede:
+    'Each blueprint is a step-by-step program with reflections, evidence prompts, and a community of subscribers. Public; some are paid.',
+  bpSeeAll: (n) => `View all ${n} blueprints`,
+  gradEyebrow: 'Recent graduates',
+  gradTitleA: 'Public capability records. ',
+  gradTitleEm: 'Opt-in, evidence-backed.',
+  gradLede:
+    'Graduates choose whether to surface their record under their name, anonymously, or not at all. Every capability dot is backed by logged evidence — verifiable to a recruiter, not a marketing claim.',
+  memberEvidenceWord: 'evidences',
+  memberSitesWord: 'clinical sites',
+  memberAnonName: 'Anonymous graduate',
+  cta1Num: '01 / Apply',
+  cta1Title: 'Start your application',
+  cta1Desc: 'Applications are accepted on a rolling basis. The application opens in a new tab.',
+  cta1Btn: 'Apply',
+  cta1Deadline: 'Next deadline · Aug 1, 2026',
+  cta2Title: 'Learn more',
+  cta2Desc: 'Programs, faculty, financial aid, clinical partners, and accreditation.',
+  cta3Num: '03 / Newsroom',
+  cta3Title: 'News, research & student stories',
+  cta3Desc: 'Latest from the school — peer-reviewed publications, clinical research, student profiles.',
+  cta3Deadline: 'Latest · this term',
+  footVerified: 'Verified institution',
+  members: SAMPLE_GRADUATES,
+};
+
+// 'entrepreneur' copy is built per-interest by buildEntrepreneurCopy(), so it's
+// not a static entry here.
+const ORG_COPY: Record<'nursing' | 'generic', OrgCopy> = {
+  nursing: NURSING_COPY,
+  generic: GENERIC_COPY,
+};
+
+function orgKindFor(interestSlug: string | null): OrgKind {
+  if (interestSlug === 'nursing') return 'nursing';
+  if (interestSlug && LIVELIHOOD_PROFILES[interestSlug]) return 'entrepreneur';
+  return 'generic';
+}
+
 const AVATAR_GRADIENTS: Record<1 | 2 | 3 | 4, string> = {
   1: 'linear-gradient(135deg,#7E96B9,#3E5A85)',
   2: 'linear-gradient(135deg,#C19BC5,#7F5A85)',
@@ -195,22 +551,6 @@ type OrgRow = {
   metadata: Record<string, unknown> | null;
 };
 
-type MembershipRow = {
-  user_id: string;
-  role: string | null;
-  status: string | null;
-  membership_status: string | null;
-};
-
-function normalize(value: unknown): string {
-  return String(value || '').trim().toLowerCase();
-}
-
-function isActiveMembership(row: MembershipRow): boolean {
-  const m = normalize(row.membership_status);
-  const s = normalize(row.status);
-  return m === 'active' || s === 'active';
-}
 
 function getInitial(name: string): string {
   const parts = name.split(/\s+/).filter(Boolean);
@@ -239,6 +579,11 @@ function hashSeed(s: string, mod: number): number {
 export default function PublicOrgCatalogWeb() {
   const params = useLocalSearchParams<{ slug?: string }>();
   const slug = typeof params.slug === 'string' ? params.slug.trim() : '';
+
+  const { signedIn, userProfile, user } = useAuth();
+  const accountInitial = (
+    (userProfile?.full_name || user?.email || 'B').trim().charAt(0) || 'B'
+  ).toUpperCase();
 
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState<string | null>(null);
@@ -281,29 +626,13 @@ export default function PublicOrgCatalogWeb() {
           metadata: (data.metadata as Record<string, unknown> | null) || null,
         };
 
-        // Active members count
-        let membershipResult = await supabase
-          .from('organization_memberships')
-          .select('user_id,role,status,membership_status')
-          .eq('organization_id', orgRow.id)
-          .limit(5000);
-        if (
-          membershipResult.error &&
-          isMissingSupabaseColumn(membershipResult.error, 'organization_memberships.membership_status')
-        ) {
-          membershipResult = await supabase
-            .from('organization_memberships')
-            .select('user_id,role,status')
-            .eq('organization_id', orgRow.id)
-            .limit(5000);
-        }
-        const memberRows: MembershipRow[] = (membershipResult.data || []).map((row: Record<string, unknown>) => ({
-          user_id: String(row.user_id || ''),
-          role: row.role ? String(row.role) : null,
-          status: row.status ? String(row.status) : null,
-          membership_status: row.membership_status ? String(row.membership_status) : null,
-        }));
-        const activeCount = memberRows.filter(isActiveMembership).length;
+        // Active members count — via SECURITY DEFINER RPC so the public
+        // showcase gets a real number (a direct table read is RLS-gated to
+        // members/admins and returns 0 for everyone else). Excludes staff.
+        const countResult = await supabase.rpc('org_active_member_count', {
+          p_org_id: orgRow.id,
+        });
+        const activeCount = typeof countResult.data === 'number' ? countResult.data : 0;
 
         // Programs (degree programs etc.)
         const programsResult = await supabase
@@ -362,7 +691,12 @@ export default function PublicOrgCatalogWeb() {
   }, [slug]);
 
   // ── Derive presentation data ────────────────────────────────────────
-  const isNursing = org?.interest_slug === 'nursing';
+  const kind = orgKindFor(org?.interest_slug ?? null);
+  const copy =
+    kind === 'entrepreneur'
+      ? buildEntrepreneurCopy(org?.interest_slug ?? null)
+      : ORG_COPY[kind];
+  const isNursing = kind === 'nursing';
 
   const meta = (org?.metadata || {}) as Record<string, unknown>;
   const foundedYear = (() => {
@@ -404,7 +738,9 @@ export default function PublicOrgCatalogWeb() {
   const studentsCount = activeMemberCount;
   const evidencesCount = typeof meta.public_evidence_count === 'number'
     ? (meta.public_evidence_count as number)
-    : Math.max(8000, studentsCount * 200);
+    : kind === 'entrepreneur'
+      ? (copy.members ?? []).reduce((sum, m) => sum + m.evidences, 0)
+      : Math.max(8000, studentsCount * 200);
   const passRate = typeof meta.nclex_pass_rate === 'number'
     ? Math.round((meta.nclex_pass_rate as number) * 100)
     : isNursing ? 94 : null;
@@ -459,14 +795,16 @@ export default function PublicOrgCatalogWeb() {
         };
       });
     }
-    // Sample fallback (matches canonical fixture)
+    // Sample fallback only for nursing's canonical fixture. Other interests show
+    // nothing rather than leaking MSN/DNP nursing samples onto, say, an NGO page.
+    if (kind !== 'nursing') return [];
     return [
       { key: 's-msn', slug: null, title: 'MSN Core Curriculum', topicLines: ['MSN', 'Core Curriculum'], authorName: 'Dr. Patricia Morrinson', authorInitials: 'PM', subscribers: 47, steps: 22, badge: 'Most followed', tone: BP_COVER_TONES.msn! },
       { key: 's-dnp', slug: null, title: 'DNP Preparation', topicLines: ['DNP', 'Preparation'], authorName: 'Dr. Sarah Chen', authorInitials: 'SC', subscribers: 23, steps: 16, badge: null, tone: BP_COVER_TONES.dnp! },
       { key: 's-acute', slug: null, title: 'Acute Care Fundamentals', topicLines: ['Acute Care', 'Fundamentals'], authorName: 'Prof. Michael Reyes', authorInitials: 'MR', subscribers: 89, steps: 18, badge: '+12 this term', tone: BP_COVER_TONES.acute! },
       { key: 's-peds', slug: null, title: 'Pediatric Nursing Pathway', topicLines: ['Pediatric', 'Nursing Pathway'], authorName: 'Dr. Amelia Foster', authorInitials: 'AF', subscribers: 31, steps: 14, badge: null, tone: BP_COVER_TONES.peds! },
     ];
-  }, [facultyBlueprints, blueprintAuthors]);
+  }, [facultyBlueprints, blueprintAuthors, kind]);
 
   if (loading) {
     return (
@@ -508,19 +846,42 @@ export default function PublicOrgCatalogWeb() {
           </View>
           <View style={S.navLinks}>
             <Pressable onPress={() => router.push('/discover-ios' as never)}><Text style={S.navLink}>Discover</Text></Pressable>
-            <Text style={S.navLink}>Schools & Clubs</Text>
-            <Text style={S.navLink}>Blueprints</Text>
+            <Pressable onPress={() => router.push('/discover-ios' as never)}><Text style={S.navLink}>{copy.catalogLabel}</Text></Pressable>
+            <Pressable
+              onPress={() =>
+                router.push(
+                  (org?.interest_slug
+                    ? `/marketplace?interest=${org.interest_slug}`
+                    : '/marketplace') as never,
+                )
+              }
+            >
+              <Text style={S.navLink}>Blueprints</Text>
+            </Pressable>
             <Pressable onPress={() => router.push('/institutions' as never)}><Text style={S.navLink}>For institutions</Text></Pressable>
           </View>
           <View style={S.navSpacer} />
           <View style={S.navActions}>
             <Pressable style={S.iconBtn}><Ionicons name="search" size={16} color={C.label2} /></Pressable>
-            <Pressable style={S.loginBtn} onPress={() => router.push('/(auth)/login' as never)}>
-              <Text style={S.loginText}>Log in</Text>
-            </Pressable>
-            <Pressable style={S.signupBtn} onPress={() => router.push('/welcome' as never)}>
-              <Text style={S.signupText}>Sign up</Text>
-            </Pressable>
+            {signedIn ? (
+              <Pressable
+                style={S.accountBtn}
+                onPress={() => router.push('/discover-ios' as never)}
+                accessibilityLabel="Open the app"
+              >
+                <View style={S.accountAvatar}><Text style={S.accountAvatarText}>{accountInitial}</Text></View>
+                <Text style={S.accountText}>Open app</Text>
+              </Pressable>
+            ) : (
+              <>
+                <Pressable style={S.loginBtn} onPress={() => router.push('/(auth)/login' as never)}>
+                  <Text style={S.loginText}>Log in</Text>
+                </Pressable>
+                <Pressable style={S.signupBtn} onPress={() => router.push('/welcome' as never)}>
+                  <Text style={S.signupText}>Sign up</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
 
@@ -529,9 +890,9 @@ export default function PublicOrgCatalogWeb() {
           <View style={S.crumbs}>
             <Text style={S.crumbA}>BetterAt</Text>
             <Ionicons name="chevron-forward" size={11} color={C.label4} />
-            <Text style={S.crumbA}>Schools & Clubs</Text>
+            <Text style={S.crumbA}>{copy.catalogLabel}</Text>
             <Ionicons name="chevron-forward" size={11} color={C.label4} />
-            <Text style={S.crumbA}>{isNursing ? 'United States' : 'Communities'}</Text>
+            <Text style={S.crumbA}>{copy.crumbRegion}</Text>
             <Ionicons name="chevron-forward" size={11} color={C.label4} />
             <Text style={S.crumbCurrent} numberOfLines={1}>{headline || org.name}</Text>
           </View>
@@ -548,7 +909,7 @@ export default function PublicOrgCatalogWeb() {
 
               <View style={S.verifiedChip}>
                 <View style={S.verifiedDot}><Ionicons name="checkmark" size={10} color={C.white} /></View>
-                <Text style={S.verifiedText}>Verified institution</Text>
+                <Text style={S.verifiedText}>{copy.verifiedText}</Text>
                 {foundedYear ? (
                   <>
                     <Text style={S.verifiedSep}>{'·'}</Text>
@@ -565,8 +926,8 @@ export default function PublicOrgCatalogWeb() {
 
               <View style={S.heroActions}>
                 <Pressable style={S.ctaPrimary} onPress={() => router.push('/welcome' as never)}>
-                  <Ionicons name="school-outline" size={15} color={C.white} />
-                  <Text style={S.ctaPrimaryText}>Explore the program</Text>
+                  <Ionicons name={copy.ctaPrimaryIcon} size={15} color={C.white} />
+                  <Text style={S.ctaPrimaryText}>{copy.ctaPrimaryText}</Text>
                 </Pressable>
                 <Pressable style={S.ctaSecondary}>
                   <Ionicons name="bookmark-outline" size={15} color={C.label} />
@@ -574,43 +935,48 @@ export default function PublicOrgCatalogWeb() {
                 </Pressable>
                 <View style={S.viewPill}>
                   <Ionicons name="eye-outline" size={13} color={C.label4} />
-                  <Text style={S.viewPillText}>1.4k views this term</Text>
+                  <Text style={S.viewPillText}>{isNursing ? '1.4k views this term' : '1.4k views this month'}</Text>
                 </View>
               </View>
             </View>
           </View>
 
           <Text style={S.heroStack}>
-            {heroTaglineFromMeta || (
-              isNursing
-                ? `A research-led school of nursing on BetterAt — coursework, clinical capability records, and faculty-authored programs in the same place students actually practice. What follows is the program as it currently runs: live cohort metrics, the AACN framework as configured, blueprints by faculty, and opt-in graduate records.`
-                : `${org.name} on BetterAt — programs, capability records, and member-authored blueprints in the place practitioners actually work. What follows is the program as it currently runs: live cohort metrics, the framework as configured, faculty blueprints, and opt-in member records.`
-            )}
+            {heroTaglineFromMeta || copy.heroTagline}
           </Text>
         </View>
 
         {/* ===== Program in Practice ===== */}
         <View style={S.prog}>
-          <Text style={S.secEyebrow}>The Program in Practice</Text>
+          <Text style={S.secEyebrow}>{copy.progEyebrow}</Text>
           <Text style={S.secTitle}>
-            Real metrics from the current cohort, <Text style={S.italic}>updated live</Text>
+            {copy.progTitleA}<Text style={S.italic}>{copy.progTitleEm}</Text>
           </Text>
-          <Text style={S.secSub}>
-            {isNursing ? 'Spring 2026 term · Week 11 of 16 · refreshed minutes ago' : 'Current term · refreshed minutes ago'}
-          </Text>
+          <Text style={S.secSub}>{copy.progSub}</Text>
 
-          <View style={S.photoSlot}>
-            <Text style={S.photoLabel}>
-              {isNursing ? 'students in clinical setting' : 'members at work'}
-            </Text>
-          </View>
+          {copy.photoChips ? (
+            <View style={S.workBand}>
+              <Text style={S.workBandEyebrow}>{copy.photoLabel}</Text>
+              <View style={S.workBandChips}>
+                {copy.photoChips.map((c) => (
+                  <View key={c} style={S.workChip}>
+                    <Text style={S.workChipText}>{c}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <View style={S.photoSlot}>
+              <Text style={S.photoLabel}>{copy.photoLabel}</Text>
+            </View>
+          )}
 
           <View style={S.statRow}>
             <View style={S.statCell}>
               <Text style={S.statNum}>{studentsCount.toLocaleString()}</Text>
               <Text style={S.statNm}>
-                <Text style={S.statStrong}>{isNursing ? 'students currently practicing' : 'members currently active'}</Text>
-                {isNursing ? ' across BSN, MSN, DNP programs' : ' in this org'}
+                <Text style={S.statStrong}>{copy.stat1Strong}</Text>
+                {copy.stat1Tail}
               </Text>
               <View style={S.statFoot}>
                 <Ionicons name="arrow-up" size={13} color={C.iosGreen} />
@@ -624,8 +990,8 @@ export default function PublicOrgCatalogWeb() {
                 <Text style={S.statPlus}>+</Text>
               </Text>
               <Text style={S.statNm}>
-                <Text style={S.statStrong}>capability evidences logged</Text>
-                {' — reflections, sign-offs, sim debriefs'}
+                <Text style={S.statStrong}>{copy.stat2Strong}</Text>
+                {copy.stat2Tail}
               </Text>
               <View style={S.statFoot}>
                 <Ionicons name="time-outline" size={13} color={C.label4} />
@@ -650,8 +1016,8 @@ export default function PublicOrgCatalogWeb() {
                 <>
                   <Text style={S.statNum}>{degreePrograms.length + blueprints.length}</Text>
                   <Text style={S.statNm}>
-                    <Text style={S.statStrong}>programs & blueprints</Text>
-                    {' — published, subscribable, evidence-backed'}
+                    <Text style={S.statStrong}>{copy.stat3Strong}</Text>
+                    {copy.stat3Tail}
                   </Text>
                   <View style={S.statFoot}>
                     <Ionicons name="shield-checkmark-outline" size={13} color={C.tenantInk3} />
@@ -731,17 +1097,15 @@ export default function PublicOrgCatalogWeb() {
           <View style={S.secHead}>
             <View style={S.secHeadLeft}>
               <Text style={S.secEyebrow}>
-                Blueprints by {superLine ? superLine.split(' ')[0] : 'our'} faculty
+                {isNursing ? `Blueprints by ${superLine ? superLine.split(' ')[0] : 'our'} faculty` : copy.bpEyebrow}
               </Text>
               <Text style={S.secH3}>
-                Built by faculty. <Text style={S.italic}>Followed by students across the country.</Text>
+                {copy.bpTitleA}<Text style={S.italic}>{copy.bpTitleEm}</Text>
               </Text>
-              <Text style={S.lede}>
-                Each blueprint is a step-by-step program with reflections, evidence prompts, and a community of subscribers. Public; some are paid.
-              </Text>
+              <Text style={S.lede}>{copy.bpLede}</Text>
             </View>
             <Text style={S.seeAll}>
-              View all {blueprints.length || blueprintCards.length} blueprints{' '}
+              {copy.bpSeeAll(blueprints.length || blueprintCards.length)}{' '}
               <Ionicons name="arrow-forward" size={13} color={C.iosBlue} />
             </Text>
           </View>
@@ -808,17 +1172,16 @@ export default function PublicOrgCatalogWeb() {
           </View>
         </View>
 
-        {/* ===== Recent Graduates ===== */}
+        {/* ===== Members / Graduates ===== */}
+        {copy.members ? (
         <View style={S.ppSection}>
           <View style={S.secHead}>
             <View style={S.secHeadLeft}>
-              <Text style={S.secEyebrow}>Recent graduates</Text>
+              <Text style={S.secEyebrow}>{copy.gradEyebrow}</Text>
               <Text style={S.secH3}>
-                Public capability records. <Text style={S.italic}>Opt-in, evidence-backed.</Text>
+                {copy.gradTitleA}<Text style={S.italic}>{copy.gradTitleEm}</Text>
               </Text>
-              <Text style={S.lede}>
-                Graduates choose whether to surface their record under their name, anonymously, or not at all. Every capability dot is backed by logged evidence — verifiable to a recruiter, not a marketing claim.
-              </Text>
+              <Text style={S.lede}>{copy.gradLede}</Text>
             </View>
             {isNursing ? (
               <View style={S.ppToggle}>
@@ -831,7 +1194,7 @@ export default function PublicOrgCatalogWeb() {
           </View>
 
           <View style={S.ppGrid}>
-            {SAMPLE_GRADUATES.map((g) => (
+            {copy.members.map((g) => (
               <View
                 key={g.id}
                 style={[
@@ -850,7 +1213,7 @@ export default function PublicOrgCatalogWeb() {
                   )}
                   <View style={S.ppWho}>
                     <Text style={[S.ppNm, g.isAnonymous && S.ppNmAnon]}>
-                      {g.name || 'Anonymous graduate'}
+                      {g.name || copy.memberAnonName}
                     </Text>
                     <View style={S.ppMeta}>
                       <Text style={S.ppDeg}>{g.degree}</Text>
@@ -895,12 +1258,12 @@ export default function PublicOrgCatalogWeb() {
                   <View style={S.ppFootIt}>
                     <Ionicons name="clipboard-outline" size={12} color={C.label4} />
                     <Text style={S.ppFootStrong}>{g.evidences}</Text>
-                    <Text style={S.ppFootText}> evidences</Text>
+                    <Text style={S.ppFootText}> {copy.memberEvidenceWord}</Text>
                   </View>
                   {g.sites !== null ? (
                     <View style={S.ppFootIt}>
                       <Ionicons name="medkit-outline" size={12} color={C.label4} />
-                      <Text style={S.ppFootText}>{g.sites} clinical sites</Text>
+                      <Text style={S.ppFootText}>{g.sites} {copy.memberSitesWord}</Text>
                     </View>
                   ) : (
                     <View style={S.ppFootIt}>
@@ -917,39 +1280,34 @@ export default function PublicOrgCatalogWeb() {
             ))}
           </View>
         </View>
+        ) : null}
 
         {/* ===== Footer CTAs ===== */}
         <View style={S.ctas}>
           <View style={S.ctasGrid}>
             <View style={[S.ctaBlock, S.ctaBlockPrimary]}>
-              <Text style={[S.ctaNum, S.ctaNumPrimary]}>01 / Apply</Text>
-              <Text style={[S.ctaH4, S.ctaH4Primary]}>Start your application</Text>
-              <Text style={[S.ctaDesc, S.ctaDescPrimary]}>
-                {isNursing
-                  ? `${superLine || org.name} accepts BSN, MSN, and DNP applications on a rolling basis. The application opens in a new tab.`
-                  : `${org.name} accepts applications on a rolling basis. The application opens in a new tab.`}
-              </Text>
+              <Text style={[S.ctaNum, S.ctaNumPrimary]}>{copy.cta1Num}</Text>
+              <Text style={[S.ctaH4, S.ctaH4Primary]}>{copy.cta1Title}</Text>
+              <Text style={[S.ctaDesc, S.ctaDescPrimary]}>{copy.cta1Desc}</Text>
               <View style={S.ctaSpacer} />
               <View style={S.ctaAct}>
                 <Pressable style={[S.ctaActBtn, S.ctaActBtnPrimary]} onPress={() => router.push('/welcome' as never)}>
-                  <Text style={[S.ctaActText, S.ctaActTextPrimary]}>Apply</Text>
+                  <Text style={[S.ctaActText, S.ctaActTextPrimary]}>{copy.cta1Btn}</Text>
                   <Ionicons name="open-outline" size={14} color={C.tenantInk} />
                 </Pressable>
                 <View style={S.flex1} />
-                <Text style={[S.ctaDeadline, S.ctaDeadlinePrimary]}>Next deadline · Aug 1, 2026</Text>
+                <Text style={[S.ctaDeadline, S.ctaDeadlinePrimary]}>{copy.cta1Deadline}</Text>
               </View>
             </View>
 
             <View style={S.ctaBlock}>
               <Text style={S.ctaNum}>02 / Learn more</Text>
-              <Text style={S.ctaH4}>About the {headline || org.name}</Text>
-              <Text style={S.ctaDesc}>
-                Programs, faculty, financial aid, clinical partners, and accreditation.
-              </Text>
+              <Text style={S.ctaH4}>{copy.cta2Title}</Text>
+              <Text style={S.ctaDesc}>{copy.cta2Desc}</Text>
               <View style={S.ctaSpacer} />
               <View style={S.ctaAct}>
                 <View style={S.ctaActBtn}>
-                  <Text style={S.ctaActText}>Programs</Text>
+                  <Text style={S.ctaActText}>{isNursing ? 'Programs' : 'Open'}</Text>
                   <Ionicons name="arrow-forward" size={14} color={C.white} />
                 </View>
                 <View style={S.flex1} />
@@ -958,19 +1316,17 @@ export default function PublicOrgCatalogWeb() {
             </View>
 
             <View style={S.ctaBlock}>
-              <Text style={S.ctaNum}>03 / Newsroom</Text>
-              <Text style={S.ctaH4}>News, research & student stories</Text>
-              <Text style={S.ctaDesc}>
-                Latest from the school — peer-reviewed publications, clinical research, student profiles.
-              </Text>
+              <Text style={S.ctaNum}>{copy.cta3Num}</Text>
+              <Text style={S.ctaH4}>{copy.cta3Title}</Text>
+              <Text style={S.ctaDesc}>{copy.cta3Desc}</Text>
               <View style={S.ctaSpacer} />
               <View style={S.ctaAct}>
                 <View style={S.ctaActBtn}>
-                  <Text style={S.ctaActText}>Newsroom</Text>
+                  <Text style={S.ctaActText}>{copy.cta3Num.split('/ ')[1] || 'Open'}</Text>
                   <Ionicons name="arrow-forward" size={14} color={C.white} />
                 </View>
                 <View style={S.flex1} />
-                <Text style={S.ctaDeadline}>Latest · this term</Text>
+                <Text style={S.ctaDeadline}>{copy.cta3Deadline}</Text>
               </View>
             </View>
           </View>
@@ -996,7 +1352,7 @@ export default function PublicOrgCatalogWeb() {
                 <Ionicons name="checkmark" size={8} color={C.white} />
               </View>
               <Text style={S.siteFootVerifiedText}>
-                Verified institution · betterat.app/{org.slug || ''}
+                {copy.footVerified} · betterat.app/{org.slug || ''}
               </Text>
             </View>
           </View>
@@ -1110,6 +1466,17 @@ const S = StyleSheet.create({
     boxShadow: `0 1px 2px ${C.iosBlueShadow}`,
   },
   signupText: { fontSize: 13, fontWeight: '600', color: C.white, letterSpacing: -0.1 },
+  accountBtn: {
+    height: 32, paddingLeft: 4, paddingRight: 12, borderRadius: 16,
+    borderWidth: 0.5, borderColor: C.gray3, backgroundColor: C.white,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  accountAvatar: {
+    width: 24, height: 24, borderRadius: 12, backgroundColor: C.iosBlue,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  accountAvatarText: { fontSize: 12, fontWeight: '700', color: C.white },
+  accountText: { fontSize: 13, fontWeight: '500', color: C.label2, letterSpacing: -0.1 },
 
   // Hero
   hero: {
@@ -1242,6 +1609,24 @@ const S = StyleSheet.create({
     borderWidth: 0.5, borderColor: C.gray4,
     fontFamily: FONT_MONO,
   },
+  workBand: {
+    width: '100%', borderRadius: 12, overflow: 'hidden',
+    borderWidth: 0.5, borderColor: 'rgba(150,90,40,0.18)',
+    paddingVertical: 28, paddingHorizontal: 28,
+    // @ts-expect-error rnweb
+    backgroundImage: 'linear-gradient(135deg, #FBEFE0 0%, #F6E1CB 55%, #EFD0B0 100%)',
+  },
+  workBandEyebrow: {
+    fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase',
+    color: '#8A5A2B', fontWeight: '700', marginBottom: 16,
+  },
+  workBandChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  workChip: {
+    paddingVertical: 9, paddingHorizontal: 16, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 0.5, borderColor: 'rgba(150,90,40,0.22)',
+  },
+  workChipText: { fontSize: 14, color: '#5C3A18', fontWeight: '500' },
   statRow: {
     flexDirection: 'row',
     marginTop: 30,
