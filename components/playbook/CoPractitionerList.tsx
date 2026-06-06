@@ -1,5 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -16,6 +17,37 @@ interface PeerStep {
   step_title: string;
   status: string;
   capabilities?: string[];
+}
+
+/** Lighten (amount > 0) or darken (amount < 0) a hex colour for the hero gradient. */
+function shade(hex: string, amount: number): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const to = amount < 0 ? 0 : 255;
+  const t = Math.abs(amount);
+  const ch = (c: number) => Math.round(c + (to - c) * t);
+  const r = ch(parseInt(m[1], 16));
+  const g = ch(parseInt(m[2], 16));
+  const b = ch(parseInt(m[3], 16));
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** Resolve the hero accent: the author's stored colour, else a stable hash tone. */
+function accentFor(color: string | null | undefined, seed: string): string {
+  if (color && /^#?[a-f\d]{6}$/i.test(color.trim())) {
+    return color.trim().startsWith('#') ? color.trim() : `#${color.trim()}`;
+  }
+  const palette = ['#28406B', '#8B5A3C', '#B8855A', '#6E8B5A', '#7A5A8B'];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  return palette[Math.abs(hash) % palette.length];
+}
+
+/** A peer's settled-vs-adopted ratio, for the momentum bar on their card. */
+function peerProgress(steps: PeerStep[]): { settled: number; total: number; pct: number } {
+  const total = steps.length;
+  const settled = steps.filter((s) => s.status === 'settled').length;
+  return { settled, total, pct: total > 0 ? Math.round((settled / total) * 100) : 0 };
 }
 
 function initials(name?: string | null) {
@@ -137,32 +169,58 @@ export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
     );
   }
 
+  const accent = accentFor(blueprint?.author_avatar_color, blueprint?.author_name ?? blueprintId);
+
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() =>
-            router.canGoBack()
-              ? router.back()
-              : router.replace(`/(tabs)/library/blueprints/${blueprintId}` as never)
-          }
-          accessibilityRole="button"
-          accessibilityLabel="Back to Blueprint"
-          hitSlop={8}
-          style={styles.backLink}
+      <View style={styles.heroWrap}>
+        <LinearGradient
+          colors={[accent, shade(accent, -0.4)]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
         >
-          <Ionicons name="chevron-back" size={18} color="#007AFF" />
-          <Text style={styles.backText}>Blueprint</Text>
-        </Pressable>
-        <Text style={styles.eyebrow}>Co-practitioners</Text>
-        <Text style={styles.title}>{blueprint?.title ?? 'Blueprint'}</Text>
-        <Text style={styles.subtitle}>
-          {counts.all === 0
-            ? "You're the only one on this path so far."
-            : `${counts.all} other ${counts.all === 1 ? 'practitioner' : 'practitioners'}${
-                counts.settled > 0 ? ` · ${counts.settled} settled` : ''
-              }`}
-        </Text>
+          <Pressable
+            onPress={() =>
+              router.canGoBack()
+                ? router.back()
+                : router.replace(`/(tabs)/library/blueprints/${blueprintId}` as never)
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Back to Blueprint"
+            hitSlop={8}
+            style={styles.backLink}
+          >
+            <Ionicons name="chevron-back" size={16} color="rgba(255,255,255,0.92)" />
+            <Text style={styles.backText}>Blueprint</Text>
+          </Pressable>
+          <Text style={styles.eyebrow}>Co-practitioners</Text>
+          <Text style={styles.title}>{blueprint?.title ?? 'Blueprint'}</Text>
+          <Text style={styles.subtitle}>
+            {counts.all === 0
+              ? "You're the first on this path — others will join you here."
+              : `${counts.all} other ${counts.all === 1 ? 'practitioner is' : 'practitioners are'} working this blueprint alongside you.`}
+          </Text>
+
+          {counts.all > 0 ? (
+            <View style={styles.momentum}>
+              <View style={styles.momentumCell}>
+                <Text style={styles.momentumNum}>{counts.all}</Text>
+                <Text style={styles.momentumLabel}>on this path</Text>
+              </View>
+              <View style={styles.momentumDivider} />
+              <View style={styles.momentumCell}>
+                <Text style={styles.momentumNum}>{counts.inProgress}</Text>
+                <Text style={styles.momentumLabel}>in motion</Text>
+              </View>
+              <View style={styles.momentumDivider} />
+              <View style={styles.momentumCell}>
+                <Text style={styles.momentumNum}>{counts.settled}</Text>
+                <Text style={styles.momentumLabel}>settled it</Text>
+              </View>
+            </View>
+          ) : null}
+        </LinearGradient>
       </View>
 
       <FilterStrip
@@ -191,13 +249,14 @@ export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
           visiblePeers.map(({ subscriber, steps, inFleet, overall }) => {
             const tags = tagsForPeer(steps);
             const activity = peerActivityLine({ steps, overall });
+            const prog = peerProgress(steps);
             return (
               <Pressable
                 key={subscriber.id}
                 style={styles.row}
                 onPress={() => router.push(`/discover/u/${subscriber.subscriber_id}` as any)}
               >
-                <View style={styles.avatar}>
+                <View style={[styles.avatar, { backgroundColor: accent }]}>
                   <Text style={styles.avatarText}>{initials(subscriber.subscriber_name)}</Text>
                 </View>
                 <View style={styles.copy}>
@@ -215,6 +274,18 @@ export function CoPractitionerList({ blueprintId }: { blueprintId: string }) {
                   <Text style={styles.activity} numberOfLines={1}>
                     {activity}
                   </Text>
+                  {prog.total > 0 ? (
+                    <View style={styles.progRow}>
+                      <View style={styles.progTrack}>
+                        <View
+                          style={[styles.progFill, { width: `${prog.pct}%`, backgroundColor: accent }]}
+                        />
+                      </View>
+                      <Text style={styles.progLabel}>
+                        {prog.settled}/{prog.total} settled
+                      </Text>
+                    </View>
+                  ) : null}
                   {tags.length > 0 && (
                     <View style={styles.tagRow}>
                       {tags.map((tag) => (
@@ -246,41 +317,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F2F2F7',
   },
-  header: {
+  heroWrap: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    gap: 4,
+    paddingTop: 16,
+    paddingBottom: 10,
+  },
+  hero: {
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 6,
+    overflow: 'hidden',
   },
   backLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
     alignSelf: 'flex-start',
-    paddingVertical: 4,
-    marginBottom: 4,
+    paddingVertical: 2,
+    marginBottom: 6,
   },
   backText: {
-    fontSize: 17,
-    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.92)',
   },
   eyebrow: {
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    color: '#2563EB',
+    letterSpacing: 1.2,
+    color: 'rgba(255,255,255,0.78)',
   },
   title: {
     fontSize: 26,
     lineHeight: 32,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: '#FFFFFF',
   },
   subtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    lineHeight: 19,
+    color: 'rgba(255,255,255,0.9)',
   },
+  momentum: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  momentumCell: { flex: 1, alignItems: 'center', gap: 2 },
+  momentumNum: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.4 },
+  momentumLabel: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.78)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  momentumDivider: { width: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.18)' },
   scroll: {
     flex: 1,
   },
@@ -330,7 +429,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   name: {
-    flex: 0,
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: '600',
     color: '#111827',
@@ -353,6 +452,28 @@ const styles = StyleSheet.create({
   activity: {
     fontSize: 13,
     color: '#4B5563',
+  },
+  progRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 5,
+  },
+  progTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#EEF0F3',
+    overflow: 'hidden',
+  },
+  progFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  progLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   tagRow: {
     flexDirection: 'row',
