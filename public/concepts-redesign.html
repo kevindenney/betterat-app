@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Concepts surfaces redesign · BetterAt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ───────────────────────────────────────────────────────────
+     Design mock — NOT wired into the app. Improved versions of the
+     three Concepts surfaces in the Library tab:
+
+       1. CONCEPTS LIST  (/library?zone=concepts)
+          Today: a flat list where every card reads "0 steps · 0
+          quotes · 0 capabilities". Nothing shows the loop or where
+          a concept is in its life. This mock gives the page a spine:
+          a forming → testing → settled pipeline, a Recent-insights
+          rail that actually invites the next move, and cards that
+          show maturity + the threshold to advance, with inline act-
+          ions (Link a step / Edit / ⋯).
+
+       2. CONCEPT DETAIL  (/library/concept/[id])
+          Today: eyebrow + title, "0 quotes · 0 tested-in steps", a
+          synthesis card, two empty sections, and a Link-to-a-step
+          button. This mock leads with a lifecycle header that tells
+          you what advances the concept, shows the synthesis as the
+          hero with its AI provenance, the trail of moments as a real
+          timeline, tested-in steps as tappable chips, the capabili-
+          ties it builds, related concepts, and one state-aware
+          primary action — Edit/Delete/Fork demoted to a quiet row.
+
+       3. LINK TO A STEP  (the picker sheet)
+          Today: a flat list of recent steps with a date. This mock
+          adds search, a status segment, grouping, a "+ new step"
+          row, and a line that names *why* linking matters (it builds
+          evidence toward settling the concept).
+
+     Everything tints from one --accent and re-vocabs per interest —
+     switch persona + surface up top. Concept titles use the editorial
+     serif the app already uses for first-person reflection.
+     ─────────────────────────────────────────────────────────── */
+  :root{
+    --accent:#7C4DFF;          /* sailing default — playbook purple */
+    --accent-soft:#F1ECFF;
+    --accent-ink:#4A2FB0;
+    --label:#1C1C1E;
+    --label-2:#3C3C43;
+    --muted:rgba(60,60,67,.6);
+    --muted-2:rgba(60,60,67,.45);
+    --faint:rgba(60,60,67,.3);
+    --sep:rgba(60,60,67,.16);
+    --sep-soft:rgba(60,60,67,.09);
+    --bg:#F2F2F7;
+    --card:#FFFFFF;
+    --green:#34C759;
+    --green-ink:#1E8E3E;
+    --green-soft:#E3F7E8;
+    --blue:#007AFF;
+    --red:#FF3B30;
+    --gold:#FF9500;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 6px 18px -10px rgba(16,24,40,.14);
+    --shadow-pop:0 1px 2px rgba(16,24,40,.06), 0 30px 60px -22px rgba(16,24,40,.34);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:'Inter',-apple-system,system-ui,sans-serif;
+    background:var(--bg);color:var(--label);
+    line-height:1.45;letter-spacing:-.012em;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 80px;
+  }
+  .serif{font-family:'Newsreader',Georgia,serif;font-style:italic;letter-spacing:0}
+
+  /* ── control bar ── */
+  .controls{
+    position:sticky;top:0;z-index:50;
+    background:rgba(242,242,247,.84);backdrop-filter:saturate(180%) blur(18px);
+    border-bottom:1px solid var(--sep);
+  }
+  .controls-in{max-width:760px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .seg{display:flex;gap:3px;background:rgba(118,118,128,.12);border-radius:11px;padding:3px}
+  .seg button{font-family:inherit;border:0;background:none;font-size:13px;font-weight:600;color:var(--label-2);padding:6px 13px;border-radius:8px;cursor:pointer;letter-spacing:-.01em;white-space:nowrap}
+  .seg button.on{background:#fff;color:var(--label);box-shadow:0 1px 3px rgba(16,24,40,.14)}
+  .controls-spacer{flex:1}
+  .persona{display:flex;gap:6px}
+  .persona button{font-family:inherit;border:1px solid var(--sep);background:#fff;font-size:12px;font-weight:600;color:var(--muted);padding:6px 11px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .persona button .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+  .persona button.on{color:#fff;border-color:transparent;background:var(--accent)}
+  .persona button.on .dot{background:#fff}
+
+  /* ── device frame for full-screen surfaces ── */
+  .stage{max-width:760px;margin:18px auto 0;padding:0 18px}
+  .screen{background:var(--bg);border-radius:26px;border:1px solid var(--sep);box-shadow:var(--shadow);overflow:hidden}
+  .nav{display:flex;align-items:center;gap:10px;padding:12px 16px 4px}
+  .nav .interest{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:700;color:var(--label)}
+  .nav .interest .gm{width:16px;height:16px;border-radius:5px;background:var(--accent);display:inline-flex}
+  .nav .interest svg{width:13px;height:13px;color:var(--muted)}
+  .nav .navspace{flex:1}
+  .nav .nicon{width:30px;height:30px;border-radius:50%;border:1px solid var(--sep);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer}
+  .nav .nicon svg{width:16px;height:16px}
+  .nav .ava{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+  .place{padding:2px 16px 0;font-size:12.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:5px}
+  .place svg{width:13px;height:13px}
+  .body{padding:14px 16px 22px}
+
+  /* breadcrumb / back */
+  .crumb{display:inline-flex;align-items:center;gap:3px;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px}
+  .crumb svg{width:16px;height:16px}
+
+  h1.page{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:2px 0 3px}
+  .page-sub{font-size:14px;color:var(--muted);font-weight:500;margin-bottom:16px}
+
+  /* ── lifecycle pipeline (list header) ── */
+  .pipe{display:flex;gap:8px;margin-bottom:18px}
+  .pipe .col{flex:1;background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:12px 12px 11px;position:relative;cursor:pointer;transition:border-color .15s}
+  .pipe .col:hover{border-color:var(--accent)}
+  .pipe .col .k{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .pipe .col .k .pd{width:7px;height:7px;border-radius:50%}
+  .pipe .col.forming .pd{background:var(--gold)}
+  .pipe .col.testing .pd{background:var(--accent)}
+  .pipe .col.settled .pd{background:var(--green-ink)}
+  .pipe .col .n{font-size:26px;font-weight:800;letter-spacing:-.03em;margin-top:5px;font-variant-numeric:tabular-nums}
+  .pipe .col .lab{font-size:11.5px;color:var(--muted-2);font-weight:600;margin-top:-1px}
+  .pipe .arrowflow{position:absolute;right:-8px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--faint);z-index:2;background:var(--bg);border-radius:50%}
+  .pipe .col:last-child .arrowflow{display:none}
+
+  /* ── recent insights rail ── */
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin:20px 0 3px}
+  .sec-head h2{font-size:16px;font-weight:800;letter-spacing:-.02em}
+  .sec-head .more{font-size:13px;font-weight:600;color:var(--accent);cursor:pointer}
+  .sec-sub{font-size:13px;color:var(--muted);font-weight:500;margin-bottom:12px}
+  .rail{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin:0 -16px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+  .rail::-webkit-scrollbar{display:none}
+  .insight{flex:none;width:208px;background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px}
+  .insight .cap{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted-2)}
+  .insight .q{font-size:13.5px;color:var(--label-2);font-weight:500;line-height:1.4;flex:1}
+  .insight .mk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer}
+  .insight .mk svg{width:14px;height:14px}
+  .insight.add{align-items:center;justify-content:center;text-align:center;border-style:dashed;color:var(--muted);cursor:pointer;gap:6px}
+  .insight.add .plus{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
+  .insight.add .plus svg{width:17px;height:17px}
+  .insight.add span{font-size:12.5px;font-weight:600}
+
+  /* ── concept card ── */
+  .cards{display:flex;flex-direction:column;gap:11px}
+  .ccard{background:var(--card);border:1px solid var(--sep);border-radius:16px;padding:15px 16px 13px;cursor:pointer;transition:box-shadow .15s, border-color .15s;position:relative}
+  .ccard:hover{box-shadow:var(--shadow);border-color:color-mix(in srgb,var(--accent) 28%,var(--sep))}
+  .ccard .top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .state{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+  .state .sd{width:6px;height:6px;border-radius:50%}
+  .state.forming{color:var(--gold);background:#FFF4E5}
+  .state.forming .sd{background:var(--gold)}
+  .state.testing{color:var(--accent-ink);background:var(--accent-soft)}
+  .state.testing .sd{background:var(--accent)}
+  .state.settled{color:var(--green-ink);background:var(--green-soft)}
+  .state.settled .sd{background:var(--green-ink)}
+  .ccard .topspace{flex:1}
+  .ccard .kebab{color:var(--faint);width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:6px}
+  .ccard .kebab:hover{background:var(--sep-soft);color:var(--muted)}
+  .ccard .kebab svg{width:18px;height:18px}
+  .ccard h3{font-size:21px;font-weight:500;line-height:1.18;margin-bottom:5px}
+  .ccard .syn{font-size:13.5px;color:var(--muted);font-weight:500;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  /* maturity meter (shared) */
+  .mat{margin-top:12px}
+  .mat-track{height:6px;border-radius:999px;background:var(--sep-soft);overflow:hidden;display:flex}
+  .mat-track i{display:block;height:100%}
+  .mat-track i.fill{background:var(--accent)}
+  .mat-cap{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+  .mat-cap .goal{font-size:11.5px;font-weight:600;color:var(--accent-ink)}
+  .mat-cap .goal.settled{color:var(--green-ink)}
+  .mat-cap .metrics{display:flex;gap:11px}
+  .metric{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--muted)}
+  .metric svg{width:13px;height:13px;color:var(--muted-2)}
+  .metric.zero{color:var(--faint)}
+  .metric.zero svg{color:var(--faint)}
+
+  /* card inline action */
+  .ccard .inline-cta{margin-top:12px;display:flex;gap:8px}
+  .chipbtn{font-family:inherit;display:inline-flex;align-items:center;gap:6px;border:0;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:9px;letter-spacing:-.01em}
+  .chipbtn.primary{background:var(--accent);color:#fff}
+  .chipbtn.soft{background:var(--accent-soft);color:var(--accent-ink)}
+  .chipbtn.ghost{background:var(--sep-soft);color:var(--label-2)}
+  .chipbtn svg{width:14px;height:14px}
+
+  /* settled foundation card */
+  .found{display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:13px 15px;cursor:pointer}
+  .found:hover{border-color:color-mix(in srgb,var(--green-ink) 30%,var(--sep))}
+  .found .seal{width:38px;height:38px;border-radius:11px;flex:none;background:var(--green-soft);color:var(--green-ink);display:flex;align-items:center;justify-content:center}
+  .found .seal svg{width:20px;height:20px}
+  .found .fb{flex:1;min-width:0}
+  .found .fb .ft{font-size:18px;font-weight:500;line-height:1.2}
+  .found .fb .fs{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+  .found .chev{color:var(--faint)}
+  .found .chev svg{width:18px;height:18px}
+
+  .empty{background:var(--card);border:1px dashed var(--sep);border-radius:14px;padding:16px;font-size:13px;color:var(--muted);font-weight:500;text-align:center}
+
+  /* ─────────── DETAIL surface ─────────── */
+  .d-eye{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--accent)}
+  .d-titlerow{display:flex;align-items:flex-start;gap:12px;margin:5px 0 4px}
+  .d-titlerow h1{font-size:33px;font-weight:500;line-height:1.12;flex:1}
+  .d-meta{font-size:12.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+  .d-meta .origin{color:var(--muted-2)}
+  .d-meta .mdot{width:3px;height:3px;border-radius:50%;background:var(--faint)}
+
+  /* lifecycle header */
+  .lifecard{background:var(--card);border:1px solid var(--sep);border-radius:16px;padding:15px 16px;margin-top:14px}
+  .steps3{display:flex;align-items:center;margin-bottom:11px}
+  .s3{display:flex;flex-direction:column;align-items:center;gap:5px;flex:none;width:74px}
+  .s3 .ring{width:26px;height:26px;border-radius:50%;border:2px solid var(--sep);display:flex;align-items:center;justify-content:center;background:#fff;color:var(--faint)}
+  .s3 .ring svg{width:14px;height:14px}
+  .s3 .lab{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-2)}
+  .s3.done .ring{background:var(--green-ink);border-color:var(--green-ink);color:#fff}
+  .s3.done .lab{color:var(--green-ink)}
+  .s3.cur .ring{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 0 4px var(--accent-soft)}
+  .s3.cur .lab{color:var(--accent-ink)}
+  .s3line{flex:1;height:2px;background:var(--sep);margin-top:-19px}
+  .s3line.done{background:var(--green-ink)}
+  .life-goal{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:var(--label-2)}
+  .life-goal .gi{width:26px;height:26px;border-radius:8px;flex:none;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
+  .life-goal .gi svg{width:15px;height:15px}
+  .life-goal b{color:var(--accent-ink);font-weight:800}
+  .life-prog{margin-top:11px}
+  .life-prog .lt{height:7px;border-radius:999px;background:var(--sep-soft);overflow:hidden}
+  .life-prog .lt i{display:block;height:100%;background:var(--accent);border-radius:999px}
+
+  /* quiet actions */
+  .qactions{display:flex;gap:8px;margin-top:13px}
+  .qbtn{font-family:inherit;flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--sep);border-radius:11px;padding:9px;font-size:13px;font-weight:600;color:var(--label-2);cursor:pointer}
+  .qbtn svg{width:15px;height:15px}
+  .qbtn.danger{color:var(--red)}
+  .qbtn:hover{background:#fff;border-color:color-mix(in srgb,var(--accent) 30%,var(--sep))}
+  .qbtn.danger:hover{border-color:color-mix(in srgb,var(--red) 40%,var(--sep))}
+
+  /* detail sections */
+  .dsec{background:var(--card);border:1px solid var(--sep);border-radius:16px;padding:15px 16px;margin-top:13px}
+  .dsec-k{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .dsec-k .kt{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .dsec-k .ai{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--muted-2)}
+  .dsec-k .ai svg{width:13px;height:13px;color:var(--accent)}
+  .syn-body{font-size:15px;line-height:1.55;color:var(--label-2)}
+  .syn-body p{margin-bottom:9px}
+  .syn-body p:last-child{margin-bottom:0}
+  .syn-body .lead{color:var(--label);font-weight:500}
+
+  /* trail timeline */
+  .trail{display:flex;flex-direction:column}
+  .moment{display:flex;gap:13px;position:relative}
+  .moment .mrail{flex:none;width:14px;display:flex;flex-direction:column;align-items:center}
+  .moment .mdotbig{width:11px;height:11px;border-radius:50%;background:var(--accent);border:2px solid var(--card);box-shadow:0 0 0 2px var(--accent-soft);margin-top:3px;z-index:2}
+  .moment .mline{flex:1;width:2px;background:var(--sep);margin:2px 0 -2px}
+  .moment:last-child .mline{display:none}
+  .moment .mbody{flex:1;padding-bottom:15px}
+  .moment:last-child .mbody{padding-bottom:0}
+  .moment .mq{font-size:14.5px;line-height:1.45;color:var(--label);font-weight:500}
+  .moment .msrc{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:4px;display:flex;align-items:center;gap:5px}
+  .moment .msrc svg{width:12px;height:12px}
+
+  /* tested-in chips */
+  .testchips{display:flex;flex-direction:column;gap:8px}
+  .tchip{display:flex;align-items:center;gap:11px;border:1px solid var(--sep);border-radius:11px;padding:10px 12px;cursor:pointer}
+  .tchip:hover{border-color:color-mix(in srgb,var(--accent) 30%,var(--sep))}
+  .tchip .ts{width:9px;height:9px;border-radius:50%;flex:none}
+  .tchip .ts.done{background:var(--green)}
+  .tchip .ts.active{background:var(--gold)}
+  .tchip .ts.plan{background:var(--faint)}
+  .tchip .tt{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tchip .race{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--blue);background:rgba(0,122,255,.1);padding:2px 6px;border-radius:5px}
+  .tchip .td{font-size:11.5px;color:var(--muted);font-weight:600;flex:none}
+  .tchip .chev{color:var(--faint);flex:none}
+  .tchip .chev svg{width:16px;height:16px}
+
+  /* capability + related chips */
+  .pills{display:flex;flex-wrap:wrap;gap:7px}
+  .cap{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);border-radius:8px;padding:6px 10px}
+  .cap svg{width:13px;height:13px}
+  .rel{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--label-2);background:var(--sep-soft);border-radius:8px;padding:6px 10px;cursor:pointer}
+  .rel:hover{background:var(--sep)}
+  .rel svg{width:13px;height:13px;color:var(--muted)}
+
+  /* primary sticky-ish CTA */
+  .d-primary{margin-top:16px}
+  .bigbtn{font-family:inherit;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;font-size:16px;font-weight:700;padding:15px;border-radius:14px;letter-spacing:-.01em}
+  .bigbtn.go{background:var(--accent);color:#fff;box-shadow:0 10px 22px -10px color-mix(in srgb,var(--accent) 70%,transparent)}
+  .bigbtn.promote{background:var(--green-ink);color:#fff;box-shadow:0 10px 22px -10px color-mix(in srgb,var(--green-ink) 70%,transparent)}
+  .bigbtn svg{width:18px;height:18px}
+  .d-primary .hint{text-align:center;font-size:12px;color:var(--muted);font-weight:500;margin-top:8px}
+
+  /* ─────────── LINK SHEET surface ─────────── */
+  .sheetstage{max-width:760px;margin:18px auto 0;padding:0 18px}
+  .backdrop{background:linear-gradient(180deg,#E9E9EE,#DDDDE4);border-radius:26px;border:1px solid var(--sep);min-height:560px;position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;padding:24px}
+  .backdrop .ghost{position:absolute;inset:0;padding:22px;opacity:.4;pointer-events:none;filter:blur(.3px)}
+  .backdrop .ghost h1{font-size:30px;font-weight:500}
+  .sheet{position:relative;width:100%;max-width:440px;background:var(--card);border-radius:20px;box-shadow:var(--shadow-pop);overflow:hidden;display:flex;flex-direction:column;max-height:520px}
+  .sheet-grab{width:36px;height:5px;border-radius:999px;background:var(--sep);margin:9px auto 2px}
+  .sheet-head{padding:6px 18px 12px;border-bottom:1px solid var(--sep-soft)}
+  .sheet-head .hr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .sheet-head h3{font-size:19px;font-weight:700;letter-spacing:-.02em}
+  .sheet-head .cancel{font-size:15px;font-weight:600;color:var(--blue);cursor:pointer}
+  .sheet-head .sub{font-size:13px;color:var(--muted);font-weight:500;margin-top:3px;line-height:1.4}
+  .sheet-head .sub b{color:var(--accent-ink);font-weight:700;font-family:'Newsreader',serif;font-style:italic;font-size:14.5px}
+  .searchrow{display:flex;align-items:center;gap:8px;background:rgba(118,118,128,.1);border-radius:10px;padding:8px 11px;margin-top:11px}
+  .searchrow svg{width:16px;height:16px;color:var(--muted)}
+  .searchrow input{border:0;background:none;outline:none;font-family:inherit;font-size:14px;color:var(--label);width:100%}
+  .searchrow input::placeholder{color:var(--muted-2)}
+  .lseg{display:flex;gap:3px;background:rgba(118,118,128,.1);border-radius:9px;padding:3px;margin-top:10px}
+  .lseg button{flex:1;font-family:inherit;border:0;background:none;font-size:12px;font-weight:600;color:var(--label-2);padding:6px;border-radius:7px;cursor:pointer}
+  .lseg button.on{background:#fff;color:var(--label);box-shadow:0 1px 2px rgba(16,24,40,.12)}
+  .sheet-list{overflow-y:auto;padding:8px 12px 4px;flex:1}
+  .grp{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);padding:9px 6px 6px}
+  .newstep{display:flex;align-items:center;gap:11px;border:1px dashed var(--accent);border-radius:12px;padding:11px 12px;cursor:pointer;margin:2px 0 4px;background:color-mix(in srgb,var(--accent-soft) 50%,#fff)}
+  .newstep .np{width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+  .newstep .np svg{width:17px;height:17px}
+  .newstep .nt{font-size:14px;font-weight:700;color:var(--accent-ink)}
+  .newstep .ns{font-size:11.5px;color:var(--muted);font-weight:500}
+  .srow{display:flex;align-items:center;gap:12px;border:1.5px solid transparent;border-radius:12px;padding:11px 12px;cursor:pointer}
+  .srow:hover{background:var(--sep-soft)}
+  .srow.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent-soft) 55%,#fff)}
+  .srow .radio{width:21px;height:21px;border-radius:50%;border:2px solid var(--sep);flex:none;display:flex;align-items:center;justify-content:center}
+  .srow.sel .radio{border-color:var(--accent);background:var(--accent)}
+  .srow.sel .radio::after{content:"";width:8px;height:8px;border-radius:50%;background:#fff}
+  .srow .sbody{flex:1;min-width:0}
+  .srow .stt{font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:7px}
+  .srow.sel .stt{color:var(--accent-ink)}
+  .srow .stt .race{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--blue);background:rgba(0,122,255,.1);padding:1px 5px;border-radius:4px}
+  .srow .smeta{font-size:12px;color:var(--muted);font-weight:500;margin-top:2px;display:flex;align-items:center;gap:6px}
+  .srow .smeta .sd{width:7px;height:7px;border-radius:50%}
+  .srow .smeta .sd.done{background:var(--green)}
+  .srow .smeta .sd.active{background:var(--gold)}
+  .srow .smeta .sd.plan{background:var(--faint)}
+  .sheet-foot{padding:12px 14px 16px;border-top:1px solid var(--sep-soft)}
+  .sheet-foot .why{font-size:11.5px;color:var(--muted);font-weight:500;text-align:center;margin-bottom:10px;line-height:1.4}
+  .sheet-foot .why svg{width:12px;height:12px;vertical-align:-2px;color:var(--accent)}
+
+  .note{font-size:12px;color:var(--muted);text-align:center;margin:30px auto 0;max-width:600px;line-height:1.55;padding:0 18px}
+  .note code{background:var(--sep-soft);padding:1px 5px;border-radius:5px;font-size:11px}
+  [hidden]{display:none!important}
+  @media (max-width:560px){
+    h1.page{font-size:26px}
+    .pipe .col .n{font-size:22px}
+    .controls-in{gap:8px}
+  }
+</style>
+</head>
+<body>
+
+<!-- CONTROL BAR -->
+<div class="controls">
+  <div class="controls-in">
+    <div class="seg" id="surfaceSeg">
+      <button class="on" data-s="list">Concepts</button>
+      <button data-s="detail">Concept detail</button>
+      <button data-s="link">Link to a step</button>
+    </div>
+    <div class="controls-spacer"></div>
+    <div class="persona" id="personaSeg">
+      <button class="on" data-p="sailing"><span class="dot"></span>Sailing</button>
+      <button data-p="nursing"><span class="dot"></span>Nursing</button>
+      <button data-p="livelihood"><span class="dot"></span>Livelihood</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SURFACE 1: CONCEPTS LIST ════════ -->
+<div class="stage" id="view-list">
+  <div class="screen">
+    <div class="nav">
+      <span class="interest"><span class="gm"></span><span id="navInterest">Sail Racing</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </span>
+      <div class="navspace"></div>
+      <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+      <div class="nicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>
+      <div class="ava">KD</div>
+    </div>
+    <div class="place"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span id="navPlace">Hong Kong · Victoria Harbour</span></div>
+
+    <div class="body">
+      <div class="crumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Library</div>
+      <h1 class="page">Concepts</h1>
+      <div class="page-sub">Mental models you're forming, refining, or have settled. Each gets sharper as you test it in real steps.</div>
+
+      <!-- pipeline -->
+      <div class="pipe" id="pipe"><!-- injected --></div>
+
+      <!-- recent insights -->
+      <div class="sec-head"><h2>Recent insights</h2><span class="more">Capture +</span></div>
+      <div class="sec-sub">Raw captures waiting to become concepts — one tap turns one into a forming idea.</div>
+      <div class="rail" id="rail"><!-- injected --></div>
+
+      <!-- in development -->
+      <div class="sec-head"><h2>In development</h2><span class="more" id="devCount">4</span></div>
+      <div class="sec-sub">Forming and testing ideas. Link them to steps to build evidence.</div>
+      <div class="cards" id="devCards"><!-- injected --></div>
+
+      <!-- settled -->
+      <div class="sec-head"><h2>Settled foundations</h2></div>
+      <div class="sec-sub">Tested ideas that now carry weight — they quietly back the steps you take.</div>
+      <div class="cards" id="settledCards"><!-- injected --></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SURFACE 2: CONCEPT DETAIL ════════ -->
+<div class="stage" id="view-detail" hidden>
+  <div class="screen">
+    <div class="nav">
+      <span class="interest"><span class="gm"></span><span class="navInterest2">Sail Racing</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </span>
+      <div class="navspace"></div>
+      <div class="ava">KD</div>
+    </div>
+    <div class="body">
+      <div class="crumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Concepts</div>
+      <div class="d-eye">Playbook concept</div>
+      <div class="d-titlerow">
+        <h1 class="serif" id="dTitle">Mast rake &amp; weather helm</h1>
+        <span class="state testing" id="dState"><span class="sd"></span>Testing</span>
+      </div>
+      <div class="d-meta">
+        <span class="origin" id="dOrigin">Personal</span>
+        <span class="mdot"></span>
+        <span id="dMeta">3 moments · 2 tested-in steps</span>
+      </div>
+
+      <!-- lifecycle header -->
+      <div class="lifecard">
+        <div class="steps3" id="dSteps3"><!-- injected --></div>
+        <div class="life-goal" id="dGoal"></div>
+        <div class="life-prog"><div class="lt"><i id="dProg" style="width:66%"></i></div></div>
+      </div>
+
+      <!-- quiet actions -->
+      <div class="qactions">
+        <div class="qbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4z"/></svg>Edit</div>
+        <div class="qbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Share</div>
+        <div class="qbtn danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>Delete</div>
+      </div>
+
+      <!-- synthesis -->
+      <div class="dsec">
+        <div class="dsec-k"><span class="kt">Synthesis</span><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Drafted from your moments</span></div>
+        <div class="syn-body" id="dSyn"></div>
+      </div>
+
+      <!-- trail of moments -->
+      <div class="dsec">
+        <div class="dsec-k"><span class="kt">Trail of moments</span></div>
+        <div class="trail" id="dTrail"><!-- injected --></div>
+      </div>
+
+      <!-- tested in -->
+      <div class="dsec">
+        <div class="dsec-k"><span class="kt">Tested in</span></div>
+        <div class="testchips" id="dTested"><!-- injected --></div>
+      </div>
+
+      <!-- capabilities -->
+      <div class="dsec">
+        <div class="dsec-k"><span class="kt">Capabilities it builds</span></div>
+        <div class="pills" id="dCaps"><!-- injected --></div>
+      </div>
+
+      <!-- related -->
+      <div class="dsec">
+        <div class="dsec-k"><span class="kt">Related concepts</span></div>
+        <div class="pills" id="dRelated"><!-- injected --></div>
+      </div>
+
+      <!-- primary action -->
+      <div class="d-primary" id="dPrimary"><!-- injected --></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SURFACE 3: LINK TO A STEP ════════ -->
+<div class="sheetstage" id="view-link" hidden>
+  <div class="backdrop">
+    <div class="ghost">
+      <div class="d-eye">Playbook concept</div>
+      <h1 class="serif" id="lGhostTitle">Mast rake &amp; weather helm</h1>
+    </div>
+    <div class="sheet">
+      <div class="sheet-grab"></div>
+      <div class="sheet-head">
+        <div class="hr"><h3>Link to a step</h3><span class="cancel">Cancel</span></div>
+        <div class="sub">Choose where <b id="lConcept">Mast rake &amp; weather helm</b> should be tested next.</div>
+        <div class="searchrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+          <input placeholder="Search your steps…" />
+        </div>
+        <div class="lseg" id="lSeg">
+          <button class="on">All</button>
+          <button>In progress</button>
+          <button>Planned</button>
+          <button>Completed</button>
+        </div>
+      </div>
+      <div class="sheet-list" id="lList"><!-- injected --></div>
+      <div class="sheet-foot">
+        <div class="why"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg> Linking adds this concept to the step's review — each link is evidence toward settling it.</div>
+        <button class="bigbtn go" id="lCta">Link to this step</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="note">Design mock for the three <b>Concepts</b> surfaces — not wired into the app. Improves on today's dead "0 · 0 · 0" list, the empty concept detail, and the flat step picker. Concepts now show a <b>forming → testing → settled</b> lifecycle with the threshold to advance, the synthesis leads with its AI provenance, moments read as a timeline, and linking a step is framed as building evidence. Tints from one <code>--accent</code> and re-vocabs per interest — switch <b>persona</b> + <b>surface</b> up top.</p>
+
+<script>
+  /* Per-interest content. In the app these come from playbook_concepts
+     (title, state/origin, ai_synthesis_text), concept_trail_quotes,
+     concept_tested_steps, capability chips, related_concept_ids, and
+     the user's timeline_steps for the link picker. Inlined here so the
+     lifecycle + evidence ideas are visible across three very different
+     interests. */
+  const P = {
+    sailing:{
+      accent:'#7C4DFF', soft:'#F1ECFF', ink:'#4A2FB0',
+      interest:'Sail Racing', place:'Hong Kong · Victoria Harbour',
+      pipe:[['forming','Forming',5],['testing','Testing',2],['settled','Settled',3]],
+      insights:[
+        'Boat felt like it wanted to round up the whole second beat in the puffs.',
+        'Tiller went heavy as soon as the breeze hit 18 — fighting it the whole leg.',
+        'Eased the rig tension and it tracked straighter downwind.'
+      ],
+      dev:[
+        {state:'forming',title:'Reading puffs up the beat',syn:'Dark patches upwind seem to arrive ~10s before the gust hits the boat — looking for a repeatable tell.',steps:0,quotes:1,caps:0,have:0,need:3},
+        {state:'forming',title:'Where the favoured end really is',syn:'The pin looked favoured on the gun twice, but the fleet that went right came out ahead. Still forming.',steps:1,quotes:1,caps:1,have:1,need:3},
+        {state:'testing',title:'Mast rake & weather helm',syn:'More rake aft adds weather helm, which loads the tiller and slows the boat in a straight line. Tuning toward a light, responsive helm.',steps:2,quotes:3,caps:2,have:2,need:3},
+        {state:'testing',title:'Gybe-set in breeze',syn:'Committing to the gybe-set when the breeze is up is paying off when the right gate is clear — testing the call.',steps:2,quotes:2,caps:1,have:2,need:3}
+      ],
+      settled:[
+        {title:'Start on the line, full speed',backs:'Backs 7 race-prep steps'},
+        {title:'Keep the bow down in lulls',backs:'Backs 5 steps'},
+        {title:'Lay-line discipline at the top mark',backs:'Backs 4 steps'}
+      ],
+      detail:{
+        title:'Mast rake & weather helm', state:'testing', origin:'Personal',
+        meta:'3 moments · 2 tested-in steps',
+        goal:['link','One more tested step','to settle this — needs 3 with evidence.'],
+        prog:66,
+        syn:[
+          ['lead','When the mast rakes aft, the boat develops more weather helm — it wants to round up into the wind.'],
+          ['','That extra helm has to be held off with the tiller, and a dragging rudder is a brake. A well-tuned rig should give a light, responsive helm that gives feedback without demanding constant correction.'],
+          ['','Excessive tiller movement is the tell that the rake is wrong for the conditions — too much aft in a breeze, or too little when it goes light.']
+        ],
+        trail:[
+          {q:'"Boat felt like it wanted to round up the whole second beat in the puffs."',src:'Race 3 · Port Shelter',date:'Jun 5'},
+          {q:'"Tiller went heavy as soon as the breeze hit 18 — fighting it the whole leg."',src:'Tuning session',date:'Jun 2'},
+          {q:'"Raked it forward a notch and the helm went neutral upwind."',src:'Practice · Middle Island',date:'May 30'}
+        ],
+        tested:[
+          {t:'Race 3 — Port Shelter', s:'done', d:'Jun 5', race:true},
+          {t:'Rig tuning session', s:'active', d:'Jun 2'}
+        ],
+        caps:['Boat tuning','Helm feel'],
+        related:['Forestay tension','Reading puffs up the beat'],
+        linkConcept:'Mast rake & weather helm'
+      },
+      steps:[
+        {t:'Really', s:'active', d:'In progress · Jun 5', sel:true},
+        {t:'Sketch key sections of the Port Shelter course', s:'active', d:'In progress · Jun 5'},
+        {t:'Race 3', s:'plan', d:'Planned · Jun 5', race:true},
+        {t:'Hong Kong Impala fleet race — Port Shelter', s:'plan', d:'Planned · Jun 5', race:true},
+        {t:'Rig tuning — dock to dock', s:'plan', d:'Planned · Jun 7'},
+        {t:'Spring Series race 2', s:'done', d:'Completed · May 30', race:true}
+      ]
+    },
+    nursing:{
+      accent:'#1E5BB8', soft:'#E8F0FB', ink:'#11366E',
+      interest:'Med-Surg Nursing', place:'Baltimore · Johns Hopkins',
+      pipe:[['forming','Forming',4],['testing','Testing',3],['settled','Settled',5]],
+      insights:[
+        'Almost skipped the second identifier when the unit got busy — caught it at the last second.',
+        'Patient asked what the new med was for and I had to look it up.',
+        'Charting felt rushed after the code — gaps when I reviewed it.'
+      ],
+      dev:[
+        {state:'forming',title:'Prioritising a deteriorating patient',syn:'Trying to build the instinct for which vital sign to act on first when several drift at once.',steps:1,quotes:1,caps:0,have:1,need:3},
+        {state:'forming',title:'Hand-off that actually transfers risk',syn:'My SBAR hand-offs read complete but the next nurse still asks the same questions. Forming a tighter pattern.',steps:0,quotes:1,caps:1,have:0,need:3},
+        {state:'testing',title:'The five rights, under time pressure',syn:'The five rights hold up when I slow down — testing whether the second identifier survives a busy shift.',steps:3,quotes:3,caps:2,have:2,need:3},
+        {state:'testing',title:'Documentation that survives an audit',syn:'Charting in the moment, not at end of shift, is closing the gaps — testing it across a full rotation.',steps:2,quotes:2,caps:1,have:2,need:3}
+      ],
+      settled:[
+        {title:'Head-to-toe assessment under time',backs:'Backs 6 logged shifts'},
+        {title:'Sterile field, no breaks',backs:'Backs 4 shifts'},
+        {title:'Closed-loop communication',backs:'Backs 5 shifts'}
+      ],
+      detail:{
+        title:'The five rights, under time pressure', state:'testing', origin:'Forked from baseline',
+        meta:'3 moments · 3 tested-in steps',
+        goal:['check','Evidence is in','— review the shifts, then promote to a settled foundation.'],
+        prog:88,
+        syn:[
+          ['lead','The five rights — right patient, drug, dose, route, time — are easy to recite and easy to clip when the unit is busy.'],
+          ['','The one that slips first under pressure is the second patient identifier. Building the habit of two identifiers every time, even mid-rush, is what separates reciting the rule from owning it.'],
+          ['','Each preceptor-observed shift where the routine holds is evidence the habit is real, not just known.']
+        ],
+        trail:[
+          {q:'"Almost skipped the second identifier when the unit got busy — caught it at the last second."',src:'Med-surg shift 4',date:'Jun 5'},
+          {q:'"Ran the full five rights out loud and the preceptor signed off without a note."',src:'Med admin · observed',date:'Jun 3'},
+          {q:'"Slowing down for 5 seconds at the bedside cost nothing and caught a dose mismatch."',src:'Med-surg shift 3',date:'May 31'}
+        ],
+        tested:[
+          {t:'Medication administration — observed', s:'done', d:'Jun 3'},
+          {t:'Med-surg shift 4', s:'done', d:'Jun 5'},
+          {t:'Med-surg shift 3', s:'done', d:'May 31'}
+        ],
+        caps:['Medication safety','Patient identification'],
+        related:['Closed-loop communication','Documentation that survives an audit'],
+        linkConcept:'The five rights, under time pressure'
+      },
+      steps:[
+        {t:'Med admin — Mr. Alvarez', s:'active', d:'In progress · Jun 5', sel:true},
+        {t:'Document the morning assessment', s:'active', d:'In progress · Jun 5'},
+        {t:'Med-surg shift 5', s:'plan', d:'Planned · Jun 7'},
+        {t:'Pre-brief with preceptor', s:'plan', d:'Planned · Jun 7'},
+        {t:'Insulin administration check-off', s:'plan', d:'Planned · Jun 8'},
+        {t:'Med-surg shift 4', s:'done', d:'Completed · Jun 5'}
+      ]
+    },
+    livelihood:{
+      accent:'#C2410C', soft:'#FBEDE6', ink:'#7C2D12',
+      interest:'Pickle Livelihood', place:'Jharkhand · Ranchi Food Hub',
+      pipe:[['forming','Forming',3],['testing','Testing',2],['settled','Settled',2]],
+      insights:[
+        'Sold out by noon but I think I priced too low — barely covered the gas.',
+        'The lime jars went faster than mango at the same price.',
+        'A shopkeeper asked for a label with a date before he\'d stock it.'
+      ],
+      dev:[
+        {state:'forming',title:'Which product actually sells',syn:'Lime moved faster than mango two markets running — forming a read on what the block actually buys.',steps:1,quotes:2,caps:0,have:1,need:3},
+        {state:'forming',title:'A shelf life I can promise',syn:'Need a seal and recipe I trust to four weeks before I print a best-before date. Still forming.',steps:0,quotes:1,caps:1,have:0,need:3},
+        {state:'testing',title:'Pricing for a real margin',syn:'Counting every per-jar cost — raw, gas, jar, label, my time — then pricing to clear 30%. Testing it at market.',steps:2,quotes:2,caps:2,have:2,need:3},
+        {state:'testing',title:'A stall that draws people in',syn:'Putting the lime jars at the front and a taster out front seems to pull more people. Testing the setup.',steps:1,quotes:1,caps:1,have:1,need:3}
+      ],
+      settled:[
+        {title:'Source spice at the lowest reliable price',backs:'Backs 4 batches'},
+        {title:'A recipe that repeats to the same taste',backs:'Backs 3 batches'}
+      ],
+      detail:{
+        title:'Pricing for a real margin', state:'testing', origin:'Personal',
+        meta:'2 moments · 2 tested-in steps',
+        goal:['link','One more market day','to settle this — needs 3 with evidence.'],
+        prog:66,
+        syn:[
+          ['lead','A price only works if it covers every per-jar cost and still leaves a margin — not just the raw mango.'],
+          ['','Counting gas, the jar, the label, and your own time changes the number a lot. The first market sold out, but at a price that barely covered fuel — selling out is not the same as earning.'],
+          ['','Each market day where a margin-covering price still clears the stock is evidence the number is right for this block.']
+        ],
+        trail:[
+          {q:'"Sold out by noon but I priced too low — barely covered the gas."',src:'Saturday market',date:'Jun 5'},
+          {q:'"Added ₹10 and they still bought — should have done it sooner."',src:'Market day 2',date:'May 29'}
+        ],
+        tested:[
+          {t:'Sell at the Saturday market', s:'done', d:'Jun 5'},
+          {t:'Cost the batch & set a price', s:'active', d:'In progress'}
+        ],
+        caps:['Unit economics','Pricing'],
+        related:['Which product actually sells','Source spice cheaply'],
+        linkConcept:'Pricing for a real margin'
+      },
+      steps:[
+        {t:'Cost the batch & set a price', s:'active', d:'In progress · Jun 5', sel:true},
+        {t:'Print labels with a best-before date', s:'active', d:'In progress · Jun 5'},
+        {t:'Sell at the Saturday market', s:'plan', d:'Planned · Jun 8'},
+        {t:'Fill & seal a batch of 20 jars', s:'plan', d:'Planned · Jun 7'},
+        {t:'Compare two mandi prices', s:'plan', d:'Planned · Jun 6'},
+        {t:'Market day 2', s:'done', d:'Completed · May 29'}
+      ]
+    }
+  };
+
+  const $ = s => document.querySelector(s);
+  const IC/* tiny icon set */ = {
+    chev:'<path d="M9 18l6-6-6-6"/>',
+    chevR:'<path d="M9 18l6-6-6-6"/>',
+    link:'<path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.5-1.5"/>',
+    spark:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>',
+    step:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>',
+    quote:'<path d="M3 21c3 0 7-1 7-8V5a2 2 0 00-2-2H4a2 2 0 00-2 2v6a2 2 0 002 2h3"/><path d="M14 21c3 0 7-1 7-8V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v6a2 2 0 002 2h3"/>',
+    cap:'<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>',
+    check:'<path d="M20 6L9 17l-5-5"/>',
+    seal:'<circle cx="12" cy="8" r="6"/><path d="M8.2 13.5L7 22l5-3 5 3-1.2-8.5"/>',
+    bulb:'<path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0012 2z"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    edit:'<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4z"/>',
+    pin:'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>',
+    arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+    flow:'<path d="M9 18l6-6-6-6"/>'
+  };
+  const svg=(p,w=2)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+
+  function metric(n,icon){
+    return `<span class="metric ${n===0?'zero':''}">${svg(icon)}${n}</span>`;
+  }
+
+  function paintList(o){
+    // pipeline
+    $('#pipe').innerHTML = o.pipe.map(([cls,lab,n])=>
+      `<div class="col ${cls}"><div class="k"><span class="pd"></span>${lab}</div><div class="n">${n}</div><div class="lab">concepts</div>${svg(IC.flow)&&`<svg class="arrowflow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${IC.flow}</svg>`}</div>`
+    ).join('');
+
+    // insights rail
+    $('#rail').innerHTML = o.insights.map(t=>
+      `<div class="insight"><div class="cap">Raw capture</div><div class="q">${t}</div><span class="mk">${svg(IC.spark)}Make a concept</span></div>`
+    ).join('') + `<div class="insight add"><span class="plus">${svg(IC.plus,2.4)}</span><span>Capture a thought</span></div>`;
+
+    // dev cards
+    $('#devCount').textContent = o.dev.length;
+    $('#devCards').innerHTML = o.dev.map(c=>{
+      const pct = Math.round(Math.min(1, c.have/c.need)*100);
+      const goal = c.state==='forming'
+        ? `Link ${c.need} steps to start testing`
+        : `${c.need-c.have} more tested step${c.need-c.have===1?'':'s'} to settle`;
+      const fill = c.state==='forming' ? Math.max(8,pct) : pct;
+      const cta = c.state==='forming'
+        ? `<button class="chipbtn primary">${svg(IC.link)}Link a step</button><button class="chipbtn ghost">${svg(IC.edit)}Edit</button>`
+        : `<button class="chipbtn soft">${svg(IC.link)}Link another</button>`;
+      return `<div class="ccard">
+        <div class="top"><span class="state ${c.state}"><span class="sd"></span>${c.state}</span><span class="topspace"></span><span class="kebab"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></span></div>
+        <h3 class="serif">${c.title}</h3>
+        <div class="syn">${c.syn}</div>
+        <div class="mat">
+          <div class="mat-track"><i class="fill" style="width:${fill}%"></i></div>
+          <div class="mat-cap"><span class="goal">${goal}</span>
+            <span class="metrics">${metric(c.steps,IC.step)}${metric(c.quotes,IC.quote)}${metric(c.caps,IC.cap)}</span>
+          </div>
+        </div>
+        <div class="inline-cta">${cta}</div>
+      </div>`;
+    }).join('');
+
+    // settled
+    $('#settledCards').innerHTML = o.settled.length ? o.settled.map(s=>
+      `<div class="found"><span class="seal">${svg(IC.seal)}</span><div class="fb"><div class="ft serif">${s.title}</div><div class="fs">${s.backs}</div></div><span class="chev">${svg(IC.chev)}</span></div>`
+    ).join('') : `<div class="empty">Nothing settled yet — concepts arrive here once they've held up across three tested steps.</div>`;
+
+    $('#navInterest').textContent = o.interest;
+    $('#navPlace').textContent = o.place;
+  }
+
+  function paintDetail(o){
+    const d = o.detail;
+    $('#dTitle').textContent = d.title;
+    $('#dOrigin').textContent = d.origin;
+    $('#dMeta').textContent = d.meta;
+    const st = $('#dState'); st.className = 'state '+d.state;
+    st.innerHTML = `<span class="sd"></span>${d.state.charAt(0).toUpperCase()+d.state.slice(1)}`;
+
+    // 3-step lifecycle (forming done, testing current, settled future for testing-state concepts)
+    const order=['forming','testing','settled'];
+    const curIdx = order.indexOf(d.state);
+    $('#dSteps3').innerHTML = order.map((s,i)=>{
+      const cls = i<curIdx?'done':(i===curIdx?'cur':'');
+      const inner = i<curIdx?svg(IC.check,3):'';
+      const seg = i<order.length-1 ? `<div class="s3line ${i<curIdx?'done':''}"></div>`:'';
+      return `<div class="s3 ${cls}"><div class="ring">${inner}</div><div class="lab">${s}</div></div>${seg}`;
+    }).join('');
+
+    const [gi,ga,gb] = d.goal;
+    $('#dGoal').innerHTML = `<span class="gi">${svg(gi==='check'?IC.check:IC.link)}</span><span><b>${ga}</b> ${gb}</span>`;
+    $('#dProg').style.width = d.prog+'%';
+
+    $('#dSyn').innerHTML = d.syn.map(([cls,t])=>`<p class="${cls}">${t}</p>`).join('');
+
+    $('#dTrail').innerHTML = d.trail.map(m=>
+      `<div class="moment"><div class="mrail"><div class="mdotbig"></div><div class="mline"></div></div>
+        <div class="mbody"><div class="mq serif" style="font-size:15px">${m.q}</div>
+        <div class="msrc">${svg(IC.quote)}${m.src} · ${m.date}</div></div></div>`
+    ).join('');
+
+    $('#dTested').innerHTML = d.tested.map(t=>
+      `<div class="tchip"><span class="ts ${t.s}"></span><span class="tt">${t.t}</span>${t.race?'<span class="race">Race</span>':''}<span class="td">${t.d}</span><span class="chev">${svg(IC.chev)}</span></div>`
+    ).join('');
+
+    $('#dCaps').innerHTML = d.caps.map(c=>`<span class="cap">${svg(IC.cap)}${c}</span>`).join('');
+    $('#dRelated').innerHTML = d.related.map(r=>`<span class="rel">${svg(IC.bulb)}${r}</span>`).join('');
+
+    // state-aware primary action
+    let prim='';
+    if(d.state==='forming'){
+      prim = `<button class="bigbtn go">${svg(IC.link)}Link to a step</button><div class="hint">Test this idea in a real step to start building evidence.</div>`;
+    }else if(d.state==='testing'){
+      const remaining = d.prog>=80;
+      prim = remaining
+        ? `<button class="bigbtn promote">${svg(IC.seal)}Promote to a foundation</button><div class="hint">Enough evidence is in — settle it, or link one more step.</div>`
+        : `<button class="bigbtn go">${svg(IC.link)}Link to a step</button><div class="hint">One more tested step settles this concept.</div>`;
+    }else{
+      prim = `<button class="bigbtn go">${svg(IC.link)}Link to a step</button><div class="hint">A settled foundation — keep testing it as conditions change.</div>`;
+    }
+    $('#dPrimary').innerHTML = prim;
+
+    document.querySelectorAll('.navInterest2').forEach(e=>e.textContent=o.interest);
+  }
+
+  function paintLink(o){
+    const d = o.detail;
+    $('#lConcept').textContent = d.linkConcept;
+    $('#lGhostTitle').textContent = d.linkConcept;
+    const groups = [
+      ['In progress', o.steps.filter(s=>s.s==='active')],
+      ['Planned', o.steps.filter(s=>s.s==='plan')],
+      ['Completed', o.steps.filter(s=>s.s==='done')]
+    ];
+    let html = `<div class="newstep"><span class="np">${svg(IC.plus,2.4)}</span><div><div class="nt">New step for this concept</div><div class="ns">Create a step and link it in one move</div></div></div>`;
+    let selName = 'this step';
+    groups.forEach(([lab,arr])=>{
+      if(!arr.length) return;
+      html += `<div class="grp">${lab}</div>`;
+      html += arr.map(s=>{
+        if(s.sel) selName = s.t;
+        return `<div class="srow ${s.sel?'sel':''}"><span class="radio"></span>
+          <div class="sbody"><div class="stt">${s.t}${s.race?'<span class="race">Race</span>':''}</div>
+          <div class="smeta"><span class="sd ${s.s}"></span>${s.d}</div></div></div>`;
+      }).join('');
+    });
+    $('#lList').innerHTML = html;
+    $('#lCta').innerHTML = `${svg(IC.link)} Link to ${selName}`;
+  }
+
+  let cur = 'sailing';
+  function repaint(){ const o=P[cur];
+    const r=document.documentElement.style;
+    r.setProperty('--accent',o.accent); r.setProperty('--accent-soft',o.soft); r.setProperty('--accent-ink',o.ink);
+    paintList(o); paintDetail(o); paintLink(o);
+  }
+
+  // surface switch
+  $('#surfaceSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#surfaceSeg button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    ['list','detail','link'].forEach(s=>$('#view-'+s).hidden = (s!==b.dataset.s));
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+  // persona switch
+  $('#personaSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#personaSeg button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    cur=b.dataset.p; repaint();
+  });
+  // link sheet segment + row selection (cosmetic)
+  $('#lSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#lSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');});
+  $('#lList').addEventListener('click',e=>{const row=e.target.closest('.srow');if(!row)return;document.querySelectorAll('.srow').forEach(x=>x.classList.remove('sel'));row.classList.add('sel');const name=row.querySelector('.stt').childNodes[0].textContent.trim();$('#lCta').innerHTML=`${svg(IC.link)} Link to ${name}`;});
+
+  repaint();
+</script>
+</body>
+</html>

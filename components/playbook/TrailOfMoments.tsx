@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ConceptTrailQuoteRecord } from '@/types/playbook';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export function TrailOfMoments({ quotes }: { quotes: ConceptTrailQuoteRecord[] }) {
   return (
@@ -43,7 +44,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 27,
     color: '#1C1C1E',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
   },
   meta: {

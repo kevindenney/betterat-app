@@ -73,6 +73,13 @@ export interface StepCardProps {
    * the card's own scroll position.
    */
   onScroll?: React.ComponentProps<typeof ScrollView>['onScroll'];
+  /**
+   * Extra bottom padding added to the scroll content so the last body
+   * rows clear floating chrome below the card (e.g. the timeline canvas's
+   * tab bar). Defaults to 0 — the standalone /step/[id] route passes
+   * nothing, so it gets no phantom padding.
+   */
+  bottomInset?: number;
   testID?: string;
 }
 
@@ -88,6 +95,7 @@ export function StepCard({
   style,
   scrollAsUnit,
   onScroll,
+  bottomInset = 0,
   testID,
 }: StepCardProps) {
   const menuButton = onMenuPress ? (
@@ -109,10 +117,11 @@ export function StepCard({
     </View>
   ) : null;
 
+  const floatsMenu = !pill && !!menuButton;
   const titleBlockEl = titleBlock ? (
-    <View style={styles.titleBlock}>
+    <View style={[styles.titleBlock, floatsMenu && styles.titleBlockWithFloatingMenu]}>
       {titleBlock}
-      {!pill && menuButton ? (
+      {floatsMenu ? (
         <View style={styles.floatingMenuButton}>{menuButton}</View>
       ) : null}
     </View>
@@ -123,7 +132,10 @@ export function StepCard({
       <View style={[styles.card, style]} testID={testID}>
         <ScrollView
           style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            bottomInset ? { paddingBottom: 24 + bottomInset } : null,
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           onScroll={onScroll}
@@ -203,6 +215,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: GRAY_5,
     position: 'relative',
+  },
+  // When the ⋮ menu floats over the title (no stateHead row), reserve room
+  // on the right so the title text never runs under the button.
+  titleBlockWithFloatingMenu: {
+    paddingRight: 44,
   },
   // Used only when there's no stateHead — keeps the menu reachable
   // without claiming a whole row above the title.

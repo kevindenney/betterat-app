@@ -10,15 +10,15 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdminCompetencyEvidence } from '@/hooks/useAdminCompetencyEvidence';
 
-const SERIF: any =
-  Platform.OS === 'web' ? "'Iowan Old Style', 'Source Serif 4', Georgia, serif" : 'Georgia';
+const SERIF = fontFamily.serif;
 
 interface CompetencyReportRow {
   label: string;

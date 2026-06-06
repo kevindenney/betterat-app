@@ -157,6 +157,17 @@ export function useNotifications() {
   const unreadCountGrouped = groupedResult.unreadCount;
   const unreadCountRaw = rawNotifications.filter((notification) => !notification.isRead).length;
 
+  // Unread-only grouping. The Inbox Read panel collapses an unread burst
+  // (e.g. one author dropping 15 blueprint steps) into a single digest
+  // thread, so the visible row count is the number of unread *groups*,
+  // not raw rows. Exposed here so the Read pill and the bottom tab badge
+  // (useInboxCount) stay in lockstep with what the panel actually renders.
+  const unreadGroups: NotificationGroup[] = groupNotifications(
+    rawNotifications.filter((notification) => !notification.isRead),
+    { windowHours: 24 },
+  ).groups;
+  const unreadGroupCount = unreadGroups.length;
+
   // Mark as read mutation
   const markReadMutation = useMutation({
     mutationFn: ({ notificationId, userId }: { notificationId: string; userId: string }) => {
@@ -242,6 +253,8 @@ export function useNotifications() {
   return {
     notifications: groupedNotifications,
     groupedNotifications,
+    unreadGroups,
+    unreadGroupCount,
     rawNotifications,
     unreadCount: unreadCountGrouped,
     unreadCountGrouped,

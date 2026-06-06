@@ -149,9 +149,7 @@ export const SAILOR_NAV_ITEMS: NavItem[] = [
   { key: 'atlas', label: 'Atlas', route: '/(tabs)/atlas', icon: 'map-outline' },
 ];
 
-export const SAILOR_SECONDARY_ITEMS: NavItem[] = [
-  { key: 'search', label: 'Search', route: '/(tabs)/search', icon: 'search-outline' },
-];
+export const SAILOR_SECONDARY_ITEMS: NavItem[] = [];
 
 export const COACH_NAV_ITEMS: NavItem[] = [
   { key: 'clients', label: 'Clients', route: '/(tabs)/clients', icon: 'people-outline' },
@@ -221,14 +219,6 @@ export function getNavItemsForUserType(
           : item
       );
       const secondary = [...SAILOR_SECONDARY_ITEMS, ...LEARNER_FOOTER_ITEMS];
-      if (workspaceContext?.isOrgAdmin) {
-        secondary.push({
-          key: 'org-admin',
-          label: 'Org Admin',
-          route: '/organization/members',
-          icon: 'business-outline',
-        });
-      }
       return { primary, secondary };
     }
   }

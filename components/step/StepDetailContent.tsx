@@ -16,8 +16,15 @@ import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { IOSPillTabs, usePillTabs } from '@/components/ui/ios/IOSPillTabs';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { getVisibilityLabels } from '@/lib/vocabulary';
+import { resolveDoTabInterestKind } from '@/lib/interest-config';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
-import { useUpdateStep, useDeleteStep, useMyTimeline } from '@/hooks/useTimelineSteps';
+import {
+  useDeleteStep,
+  useMyTimeline,
+  useRedoStepAsNewStep,
+  useReopenStepForWork,
+  useUpdateStep,
+} from '@/hooks/useTimelineSteps';
 import { StepCombinatorsRow } from './StepCombinatorsRow';
 import { StepHeaderSubtitle } from './StepHeaderMeta';
 import { PlanTab } from './PlanTab';
@@ -26,7 +33,7 @@ import { ReviewTab } from './ReviewTab';
 import { getReviewSections } from '@/lib/step/getReviewSections';
 // BrainDumpEntry now embedded in PlanTab
 import { AIStructureReview } from './AIStructureReview';
-import type { StepPlanData, StepActData as _StepActData, StepReviewData as _StepReviewData, StepMetadata, BrainDumpData, StepCollaborator as _StepCollaborator, AnyExtractedEntity, DateEnrichment, ExtractedPersonEntity } from '@/types/step-detail';
+import type { StepPlanData, StepActData as _StepActData, StepReviewData as _StepReviewData, StepMetadata, BrainDumpData, StepCollaborator as _StepCollaborator, AnyExtractedEntity, DateEnrichment, ExtractedPersonEntity, RacePlan } from '@/types/step-detail';
 import type { TimelineStepStatus } from '@/types/timeline-steps';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
@@ -39,7 +46,10 @@ import { resolveEntities, buildEntityInput } from '@/services/ai/EntityResolutio
 import { enrichDateForSailing } from '@/services/ai/DateEnrichmentService';
 import { sailorBoatService } from '@/services/SailorBoatService';
 import { equipmentService } from '@/services/EquipmentService';
+import { autoTagAndWriteStepCapabilityEvidence } from '@/services/CapabilityEvidenceService';
+import { settleStepAndPlaceBeforeNow } from '@/services/TimelineStepService';
 import { StepPinInterests } from './StepPinInterests';
+import { RaceCoursePicker } from '@/components/capture/RaceCoursePicker';
 import { LinkBlueprintStepSheet } from './LinkBlueprintStepSheet';
 import { StepProvenanceBanner } from './StepProvenanceBanner';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -76,6 +86,11 @@ import { FacultyAttestSheet } from '@/components/competency/FacultyAttestSheet';
 import { StepCompleteCelebration } from './StepCompleteCelebration';
 
 type TabValue = 'plan' | 'act' | 'review' | 'discussion';
+type TimingDraft = {
+  date: string;
+  time: string;
+  durationMinutes: string;
+};
 
 const PHASE_TO_TAB: Record<PhaseId, TabValue> = {
   plan: 'plan',
@@ -89,6 +104,98 @@ const TAB_TO_PHASE: Record<TabValue, PhaseId> = {
   review: 'reflect',
   discussion: 'discussion',
 };
+
+// One-line summary of a saved race plan for the Plan tab's "Race area & course"
+// reveal row, so a picked course reads as saved (e.g. "Port shelter ·
+// Windward–Leeward · 2 laps") rather than the generic unset prompt.
+function buildRaceCourseSummary(plan?: RacePlan): string | undefined {
+  if (!plan) return undefined;
+  const parts: string[] = [];
+  if (plan.area_name) parts.push(plan.area_name);
+  if (plan.course_label) parts.push(plan.course_label);
+  if (plan.laps) parts.push(`${plan.laps} lap${plan.laps === 1 ? '' : 's'}`);
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function dateInputValue(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function timeInputValue(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function parseLocalDateTime(dateText: string, timeText: string): Date | null {
+  const date = dateText.trim();
+  if (!date) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return null;
+  const timeMatch = /^(\d{1,2})(?::(\d{2}))?$/.exec(timeText.trim() || '09:00');
+  if (!timeMatch) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2] ?? '0');
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59) return null;
+  const d = new Date(year, month - 1, day, hour, minute, 0, 0);
+  if (
+    d.getFullYear() !== year ||
+    d.getMonth() !== month - 1 ||
+    d.getDate() !== day ||
+    d.getHours() !== hour ||
+    d.getMinutes() !== minute
+  ) {
+    return null;
+  }
+  return d;
+}
+
+function readDurationMinutes(step: { starts_at?: string | null; ends_at?: string | null; metadata?: Record<string, unknown> | null } | null | undefined): number | null {
+  if (!step) return null;
+  if (step.starts_at && step.ends_at) {
+    const start = new Date(step.starts_at).getTime();
+    const end = new Date(step.ends_at).getTime();
+    if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+      return Math.round((end - start) / 60_000);
+    }
+  }
+  const timing = step.metadata?.timing as { duration_minutes?: unknown } | undefined;
+  const value = Number(timing?.duration_minutes);
+  return Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+}
+
+function buildTimingDraft(step: { starts_at?: string | null; ends_at?: string | null; metadata?: Record<string, unknown> | null } | null | undefined): TimingDraft {
+  const duration = readDurationMinutes(step);
+  return {
+    date: dateInputValue(step?.starts_at),
+    time: timeInputValue(step?.starts_at),
+    durationMinutes: duration ? String(duration) : '',
+  };
+}
+
+function formatTimingChip(startsAt: string | null | undefined, durationMinutes: number | null): string {
+  if (!startsAt) return '';
+  const d = new Date(startsAt);
+  if (Number.isNaN(d.getTime())) return '';
+  const when = d.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  return durationMinutes ? `${when} · ${durationMinutes} min` : when;
+}
 
 function deriveStatePill(
   status: TimelineStepStatus | undefined,
@@ -141,17 +248,20 @@ interface StepDetailContentProps {
    * (e.g. zoom out one level) instead of navigating away.
    */
   onDeleted?: () => void;
+  /**
+   * Extra bottom padding for the card's scroll content. The embedding
+   * timeline canvas passes its tab-bar clearance so the capture composer
+   * and last rows aren't covered; the standalone /step/[id] route omits
+   * it and gets no phantom padding.
+   */
+  bottomInset?: number;
 }
 
-export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, onScroll, hideStatePill, onDeleted }: StepDetailContentProps) {
+export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, onScroll, hideStatePill, onDeleted, bottomInset }: StepDetailContentProps) {
   const universalPlus = useUniversalPlus();
   const shareStep = useShareStep();
   const { user } = useAuth();
-  const { currentInterest } = useInterest();
-  // Phase N.4 — the Step ⟷ Race selector is sailing-only. Gated on the active
-  // interest's slug, mirroring how interestSlug/vocab are already sourced here.
-  const showRaceSelector =
-    (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing';
+  const { currentInterest, allInterests } = useInterest();
   // Route param: /step/[id]?scope=cohort routes the Discussion tab
   // straight to the Cohort scope (used by the Watch stream and
   // cohort_discussion_post notification taps). Anything else falls
@@ -163,11 +273,17 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const routeParams = useLocalSearchParams<{ scope?: string; tab?: string }>();
   const initialDiscussionScope: 'private' | 'cohort' =
     routeParams?.scope === 'cohort' ? 'cohort' : 'private';
+  const routeTab = useMemo<TabValue | undefined>(() => {
+    const raw = Array.isArray(routeParams?.tab) ? routeParams.tab[0] : routeParams?.tab;
+    return raw === 'plan' || raw === 'act' || raw === 'review' || raw === 'discussion'
+      ? raw
+      : undefined;
+  }, [routeParams?.tab]);
   // scope=cohort or tab=discussion both land on the Discussion tab — the
   // former from cohort_discussion_post taps, the latter from personal-step
   // post taps (which carry no scope and default to Private).
   const routeForcesDiscussionTab =
-    routeParams?.scope === 'cohort' || routeParams?.tab === 'discussion';
+    routeParams?.scope === 'cohort' || routeTab === 'discussion';
 
   const { data: step, isLoading, error } = useStepDetail(stepId);
   // Loaded for Section H StepCombinatorsRow's "N related" count. React
@@ -230,6 +346,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const updateMetadata = useUpdateStepMetadata(stepId);
   const updateStep = useUpdateStep();
   const deleteStep = useDeleteStep();
+  const reopenStep = useReopenStepForWork();
+  const redoStep = useRedoStepAsNewStep();
 
   // Ownership detection — readOnlyProp forces read-only mode (e.g. blueprint author viewing subscriber step)
   const isOwner = readOnlyProp ? false : (!step || user?.id === step.user_id);
@@ -242,6 +360,32 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const pendingTitleRef = useRef<string | null>(null);
+
+  // Plan tab "Race area & course" opens this sheet to pick the racing area +
+  // course off the user's Atlas areas, persisted to metadata.race_plan.
+  const [raceCourseOpen, setRaceCourseOpen] = useState(false);
+  const [timingSheetOpen, setTimingSheetOpen] = useState(false);
+  const [timingDraft, setTimingDraft] = useState<TimingDraft>({
+    date: '',
+    time: '',
+    durationMinutes: '',
+  });
+
+  const openRaceCourseInAtlas = useCallback(() => {
+    const plan = (step?.metadata as StepMetadata | undefined)?.race_plan;
+    const lat = plan?.center?.lat;
+    const lng = plan?.center?.lng;
+    if (lat == null || lng == null) return;
+    router.push({
+      pathname: '/(tabs)/atlas',
+      params: {
+        lat: String(lat),
+        lng: String(lng),
+        focusStepId: stepId,
+        ...(plan?.area_name ? { area: plan.area_name } : {}),
+      },
+    } as any);
+  }, [step?.metadata, stepId]);
 
   // Reset editingTitle when switching steps
   useEffect(() => {
@@ -323,6 +467,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     [routeForcesDiscussionTab, initialTab, step?.status],
   );
   const [activeTab, setActiveTab] = usePillTabs<TabValue>(defaultTab);
+  const lastAppliedRouteTabRef = useRef<TabValue | undefined>(undefined);
   const didApplyLoadedStatusDefaultRef = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [attestSheetOpen, setAttestSheetOpen] = useState(false);
@@ -344,6 +489,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     didApplyLoadedStatusDefaultRef.current = true;
     setActiveTab(getDefaultTab(step.status));
   }, [initialTab, routeForcesDiscussionTab, setActiveTab, step?.status]);
+  useEffect(() => {
+    const forcedTab = routeParams?.scope === 'cohort' ? 'discussion' : routeTab;
+    if (!forcedTab || lastAppliedRouteTabRef.current === forcedTab) return;
+    lastAppliedRouteTabRef.current = forcedTab;
+    setActiveTab(forcedTab);
+  }, [routeParams?.scope, routeTab, setActiveTab]);
   // Switch the active tab to Discussion (4th tab). The fullscreen
   // /practice/step/[id]/discussion route stays available but the peek now
   // surfaces the discussion inline next to Plan/Do/Reflect. Declared here
@@ -695,6 +846,21 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
 
   // Category-aware labels (nutrition steps get different text than strength steps)
   const categoryLabels = useMemo(() => getStepCategoryLabels(step?.category), [step?.category]);
+  const stepInterest = useMemo(
+    () => allInterests.find((interest) => interest.id === step?.interest_id) ?? null,
+    [allInterests, step?.interest_id],
+  );
+  const stepInterestSlug = stepInterest?.slug ?? currentInterest?.slug;
+  const stepInterestName = stepInterest?.name ?? currentInterest?.name;
+  // Phase N.4 — the Step ⟷ Race selector is sailing-only. Resolve from the
+  // loaded step's interest so embedded L1/direct-linked steps don't inherit
+  // the viewer's currently active workspace.
+  const showRaceSelector =
+    resolveDoTabInterestKind({
+      interestSlug: stepInterestSlug,
+      interestName: stepInterestName,
+      interestId: step?.interest_id ?? currentInterest?.id,
+    }) === 'sailing';
 
   // Tab labels follow categoryLabels directly — universal Before/During/After
   // for the default category, with per-category overrides (NUTRITION → Plan/Log/Review,
@@ -716,46 +882,113 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     saveFlashTimerRef.current = setTimeout(() => setLastSaved(null), 3000);
   }, []);
 
-  // Step date (starts_at) management
-  const handleSetStepDate = useCallback((dateStr: string) => {
+  const stepDurationMinutes = useMemo(
+    () => readDurationMinutes(step),
+    [step],
+  );
+  const stepTimingChipLabel = useMemo(
+    () => formatTimingChip(step?.starts_at, stepDurationMinutes),
+    [step?.starts_at, stepDurationMinutes],
+  );
+
+  // Step timing (starts_at / ends_at + metadata.timing.duration_minutes) management.
+  const handleSaveStepTiming = useCallback(() => {
     if (!step || !isOwner) return;
-    const startsAt = dateStr ? new Date(dateStr + 'T00:00:00').toISOString() : null;
+    const dateText = timingDraft.date.trim();
+    const timeText = timingDraft.time.trim();
+    const durationText = timingDraft.durationMinutes.trim();
+    const start = dateText ? parseLocalDateTime(dateText, timeText) : null;
+    if (dateText && !start) {
+      showAlert('Check the time', 'Use YYYY-MM-DD for the date and HH:MM for the start time.');
+      return;
+    }
+    const durationMinutes = durationText ? Number(durationText) : null;
+    if (
+      durationText &&
+      (!Number.isFinite(durationMinutes) || durationMinutes == null || durationMinutes <= 0)
+    ) {
+      showAlert('Check the duration', 'Use minutes, for example 90 for a 90-minute race.');
+      return;
+    }
+    const roundedDuration = durationMinutes ? Math.round(durationMinutes) : null;
+    const startsAt = start ? start.toISOString() : null;
+    const endsAt =
+      start && roundedDuration
+        ? new Date(start.getTime() + roundedDuration * 60_000).toISOString()
+        : null;
+    const nextMetadata = {
+      ...(step.metadata ?? {}),
+      timing: {
+        ...((metadata.timing as Record<string, unknown> | undefined) ?? {}),
+        duration_minutes: roundedDuration,
+      },
+    };
     queryClient.setQueryData(
       ['timeline-steps', 'detail', stepId],
-      (old: any) => old ? { ...old, starts_at: startsAt } : old,
+      (old: any) => old
+        ? {
+            ...old,
+            starts_at: startsAt,
+            ends_at: endsAt,
+            metadata: {
+              ...(old.metadata ?? {}),
+              timing: {
+                ...(((old.metadata ?? {}) as Record<string, unknown>).timing as Record<string, unknown> | undefined),
+                duration_minutes: roundedDuration,
+              },
+            },
+          }
+        : old,
     );
     queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
-    updateStep.mutate({ stepId, input: { starts_at: startsAt } });
-  }, [step, stepId, isOwner, updateStep, queryClient]);
+    updateStep.mutate({
+      stepId,
+      input: { starts_at: startsAt, ends_at: endsAt, metadata: nextMetadata },
+    });
+    setTimingSheetOpen(false);
+  }, [step, stepId, isOwner, timingDraft, metadata.timing, queryClient, updateStep]);
 
   const handlePromptStepDate = useCallback(() => {
     if (!step || !isOwner) return;
-    const existing = step.starts_at ? new Date(step.starts_at).toISOString().slice(0, 10) : '';
-    if (Platform.OS === 'web') {
-      const input = window.prompt('Set date (YYYY-MM-DD):', existing);
-      if (input === null) return;
-      handleSetStepDate(input.trim());
-      return;
-    }
-    if (Platform.OS === 'ios') {
-      Alert.prompt(
-        'Set date',
-        'YYYY-MM-DD',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Save', onPress: (text) => { if (text != null) handleSetStepDate(text.trim()); } },
-        ],
-        'plain-text',
-        existing,
-      );
-      return;
-    }
-    showAlert('Set date', 'Date editing is available on iOS and the web. Android picker is coming soon.');
-  }, [step, isOwner, handleSetStepDate]);
+    setTimingDraft(buildTimingDraft(step));
+    setTimingSheetOpen(true);
+  }, [step, isOwner]);
 
   const handleClearStepDate = useCallback(() => {
-    handleSetStepDate('');
-  }, [handleSetStepDate]);
+    if (!step || !isOwner) return;
+    queryClient.setQueryData(
+      ['timeline-steps', 'detail', stepId],
+      (old: any) => old
+        ? {
+            ...old,
+            starts_at: null,
+            ends_at: null,
+            metadata: {
+              ...(old.metadata ?? {}),
+              timing: {
+                ...(((old.metadata ?? {}) as Record<string, unknown>).timing as Record<string, unknown> | undefined),
+                duration_minutes: null,
+              },
+            },
+          }
+        : old,
+    );
+    queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+    updateStep.mutate({
+      stepId,
+      input: {
+        starts_at: null,
+        ends_at: null,
+        metadata: {
+          ...(step.metadata ?? {}),
+          timing: {
+            ...((metadata.timing as Record<string, unknown> | undefined) ?? {}),
+            duration_minutes: null,
+          },
+        },
+      },
+    });
+  }, [step, stepId, isOwner, metadata.timing, queryClient, updateStep]);
 
   // Due date management
   const isOverdue = Boolean(
@@ -787,7 +1020,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         'YYYY-MM-DD',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Save', onPress: (text) => { if (text != null) handleSetDueDate(text.trim()); } },
+          { text: 'Save', onPress: (text?: string) => { if (text != null) handleSetDueDate(text.trim()); } },
         ],
         'plain-text',
         existing,
@@ -801,17 +1034,61 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     handleSetDueDate('');
   }, [handleSetDueDate]);
 
-  // Done toggle — toggle between completed and pending
+  const isMarkedDone = step?.status === 'settled' || step?.status === 'completed';
+
+  // Done toggle — settle into the completed boundary, or reopen without
+  // deleting existing Do/Reflect evidence.
   const handleToggleDone = useCallback(() => {
     if (!step || !isOwner) return;
-    const nextStatus: TimelineStepStatus = step.status === 'completed' ? 'pending' : 'completed';
-    // Optimistic update
+    if (step.status === 'settled' || step.status === 'completed') {
+      reopenStep.mutate(stepId, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+          queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
+        },
+        onError: (error) => {
+          const message =
+            error instanceof Error ? error.message : 'Could not reopen this step.';
+          showAlert('Reopen failed', message);
+        },
+      });
+      return;
+    }
+
+    const completedAt = new Date().toISOString();
     queryClient.setQueryData(
       ['timeline-steps', 'detail', stepId],
-      (old: any) => old ? { ...old, status: nextStatus, completed_at: nextStatus === 'completed' ? new Date().toISOString() : null } : old,
+      (old: any) => old ? { ...old, status: 'settled', completed_at: completedAt } : old,
     );
-    updateStep.mutate({ stepId, input: { status: nextStatus } });
-  }, [step, stepId, isOwner, updateStep, queryClient]);
+    void (async () => {
+      await autoTagAndWriteStepCapabilityEvidence({ step });
+      await settleStepAndPlaceBeforeNow(stepId);
+    })()
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+        queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
+        queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      })
+      .catch((error) => {
+        const message =
+          error instanceof Error ? error.message : 'Could not mark this step done.';
+        showAlert('Mark done failed', message);
+      });
+  }, [step, stepId, isOwner, reopenStep, queryClient]);
+
+  const handleRedoStep = useCallback(() => {
+    if (!step || !isOwner) return;
+    redoStep.mutate(stepId, {
+      onSuccess: (created) => {
+        router.push(`/step/${created.id}` as any);
+      },
+      onError: (error) => {
+        const message =
+          error instanceof Error ? error.message : 'Could not create a redo step.';
+        showAlert('Redo failed', message);
+      },
+    });
+  }, [isOwner, redoStep, step, stepId]);
 
   const handleDeleteStep = useCallback(() => {
     if (!step || !isOwner) return;
@@ -984,7 +1261,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       {isOwner ? (
         <TextInput
           style={styles.titleInput}
-          value={editingTitle ?? step.title}
+          value={editingTitle ?? step.title ?? ''}
           onChangeText={handleTitleChange}
           onBlur={handleTitleBlur}
           onSubmitEditing={handleTitleBlur}
@@ -1007,6 +1284,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         startsAt={step.starts_at}
         endsAt={step.ends_at}
         metadata={step.metadata as Record<string, unknown> | null | undefined}
+        hideTiming
       />
       {step.description ? (
         <Text style={styles.description}>{step.description}</Text>
@@ -1017,7 +1295,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           <Text style={styles.autoSaveText}>Saved</Text>
         </View>
       ) : null}
-      {keepPlanInlineActions && !(step.starts_at && step.ends_at) && (step.starts_at || step.due_at || isOwner) ? (
+      {keepPlanInlineActions && (step.starts_at || step.due_at || isOwner) ? (
         <View style={styles.dueDateRow}>
           {step.starts_at ? (
             <Pressable
@@ -1026,7 +1304,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             >
               <Ionicons name="calendar" size={13} color={STEP_COLORS.accent} />
               <Text style={[styles.dueDateText, { color: STEP_COLORS.accent }]}>
-                {new Date(step.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                {stepTimingChipLabel}
               </Text>
               {isOwner ? (
                 <Pressable onPress={handleClearStepDate} hitSlop={8}>
@@ -1037,7 +1315,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           ) : isOwner ? (
             <Pressable style={styles.addDueDateButton} onPress={handlePromptStepDate}>
               <Ionicons name="calendar-outline" size={13} color={STEP_COLORS.tertiaryLabel} />
-              <Text style={styles.addDueDateText}>Add date</Text>
+              <Text style={styles.addDueDateText}>{step.is_race ? 'Set race time' : 'Set time'}</Text>
             </Pressable>
           ) : null}
           {step.due_at ? (
@@ -1147,8 +1425,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             onStructureWithAI={isOwner ? handleStructureWithAI : undefined}
             isStructuring={aiStructuring}
             hasPlanContent={hasPlanContent}
-            interestSlug={currentInterest?.slug}
-            interestName={currentInterest?.name}
+            interestSlug={stepInterestSlug}
+            interestName={stepInterestName}
             useConversationalCapture={isOwner}
             onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
             stepCategory={step.category}
@@ -1165,18 +1443,40 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
                 : undefined
             }
             onOpenRaceCourse={
-              showRaceSelector
-                ? () => router.push(`/race/ios/water/${stepId}` as any)
+              showRaceSelector ? () => setRaceCourseOpen(true) : undefined
+            }
+            onOpenRaceCourseAtlas={
+              showRaceSelector && (step.metadata as StepMetadata)?.race_plan?.center
+                ? openRaceCourseInAtlas
                 : undefined
             }
+            courseSummary={
+              showRaceSelector
+                ? buildRaceCourseSummary((step.metadata as StepMetadata)?.race_plan)
+                : undefined
+            }
+            racePlan={
+              showRaceSelector
+                ? (step.metadata as StepMetadata)?.race_plan
+                : undefined
+            }
+            liveMap={showRaceSelector}
+            raceTime={showRaceSelector ? step.starts_at ?? null : undefined}
             embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER}
           />
         </>
       )}
       {activeTab === 'act' && (
-        <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} interestId={step.interest_id} interestName={currentInterest?.name} interestSlug={currentInterest?.slug} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />
+        <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} interestId={step.interest_id} interestName={stepInterestName} interestSlug={stepInterestSlug} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} isRace={showRaceSelector ? Boolean(step.is_race) : undefined} />
       )}
-      {activeTab === 'review' && <ReviewTab stepId={stepId} readOnly={!isOwner} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} />}
+      {activeTab === 'review' && (
+        <ReviewTab
+          stepId={stepId}
+          readOnly={!isOwner}
+          embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER}
+          isRace={showRaceSelector ? Boolean(step.is_race) : undefined}
+        />
+      )}
       {activeTab === 'discussion' && (
         <StepDiscussionInline
           stepId={stepId}
@@ -1186,6 +1486,52 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         />
       )}
     </>
+  );
+
+  const stepMeta = (step.metadata ?? {}) as StepMetadata;
+  const raceCourseSheet = (
+    <Modal
+      visible={raceCourseOpen}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={() => setRaceCourseOpen(false)}
+    >
+      <View style={styles.pinSheetBackdrop}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setRaceCourseOpen(false)}
+        />
+        <View style={styles.pinSheet}>
+          <View style={styles.pinSheetGrabber} />
+          <View style={styles.pinSheetHeader}>
+            <Text style={styles.pinSheetTitle}>Race area & course</Text>
+            <Pressable
+              onPress={() => setRaceCourseOpen(false)}
+              hitSlop={8}
+              style={styles.pinSheetClose}
+            >
+              <Ionicons name="close" size={18} color={STEP_COLORS.secondaryLabel} />
+            </Pressable>
+          </View>
+          <RaceCoursePicker
+            venueId={((stepMeta.plan?.where_location as { venue_id?: string | null } | undefined)?.venue_id) ?? null}
+            venueName={((stepMeta.plan?.where_location as { name?: string | null } | undefined)?.name) ?? step.location_name ?? null}
+            value={stepMeta.race_plan ?? {}}
+            onChange={(next) => {
+              queryClient.setQueryData(
+                ['timeline-steps', 'detail', stepId],
+                (prev: any) =>
+                  prev
+                    ? { ...prev, metadata: { ...(prev.metadata ?? {}), race_plan: next } }
+                    : prev,
+              );
+              updateMetadata.mutate({ race_plan: next });
+            }}
+          />
+        </View>
+      </View>
+    </Modal>
   );
 
   // Phase 0 of the iOS register migration — when the flag is on, wrap the
@@ -1198,7 +1544,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     const doPhase = derivePhaseState(isActComplete, step.status === 'in_progress');
     const reflectPhase = derivePhaseState(isReviewComplete, false);
     const activePhase: PhaseId = TAB_TO_PHASE[activeTab];
-
     // Compact bottom row beneath the title: interest pill + step counter +
     // parent plan name. Matches the design's "● HKDW · Step 4 of 12 · Kevin's
     // Worlds 2027 plan" strip.
@@ -1208,14 +1553,17 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         : `Step ${blueprintChrome.stepNumber}`
       : null;
     const planName = blueprintChrome?.blueprintTitle ?? null;
-    const belowTitleRow = (currentInterest?.name || counterText || planName) ? (
+    const detailInterestName = stepInterestName ?? currentInterest?.name;
+    const detailInterestAccent =
+      stepInterest?.accent_color ?? currentInterest?.accent_color ?? null;
+    const belowTitleRow = (detailInterestName || counterText || planName) ? (
       <>
         <View style={styles.belowTitleRow}>
-          {currentInterest?.name ? (
+          {detailInterestName ? (
             <View style={styles.belowInterestPill}>
               <View style={styles.belowInterestDot} />
               <Text style={styles.belowInterestText} numberOfLines={1}>
-                {currentInterest.name}
+                {detailInterestName}
               </Text>
             </View>
           ) : null}
@@ -1251,12 +1599,13 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     const menuActions: ActionSheetAction[] = [];
     if (isOwner) {
       menuActions.push({
-        label: step.status === 'completed' ? 'Mark not done' : 'Mark done',
+        label: isMarkedDone ? 'Mark not done' : 'Mark done',
+        disabled: reopenStep.isPending,
         icon: (
           <Ionicons
-            name={step.status === 'completed' ? 'checkmark-circle' : 'checkmark-circle-outline'}
+            name={isMarkedDone ? 'checkmark-circle' : 'checkmark-circle-outline'}
             size={20}
-            color={step.status === 'completed' ? '#34C759' : STEP_COLORS.label}
+            color={isMarkedDone ? '#34C759' : STEP_COLORS.label}
           />
         ),
         onPress: () => {
@@ -1279,7 +1628,16 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     });
     if (isOwner) {
       menuActions.push({
-        label: step.starts_at ? 'Change date' : 'Add date',
+        label: 'Redo as new step',
+        disabled: redoStep.isPending,
+        icon: <Ionicons name="copy-outline" size={20} color={STEP_COLORS.label} />,
+        onPress: () => {
+          setMenuOpen(false);
+          handleRedoStep();
+        },
+      });
+      menuActions.push({
+        label: step.starts_at ? 'Change timing' : step.is_race ? 'Set race time' : 'Set timing',
         icon: <Ionicons name="calendar-outline" size={20} color={STEP_COLORS.label} />,
         onPress: () => {
           setMenuOpen(false);
@@ -1365,7 +1723,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           isOwner ? (
             <TextInput
               style={[styles.titleInput, styles.identityTitleInput]}
-              value={editingTitle ?? step.title}
+              value={editingTitle ?? step.title ?? ''}
               onChangeText={handleTitleChange}
               onBlur={handleTitleBlur}
               onSubmitEditing={handleTitleBlur}
@@ -1425,7 +1783,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         <View style={[styles.container, stepLoopShellStyles.screen]}>
         {useIdentityDeck ? null : (
           <TopHeader
-            interestName={currentInterest?.name ?? undefined}
+            interestName={detailInterestName ?? undefined}
+            interestAccentColor={detailInterestAccent}
             onInterestPress={openInterestSwitcher}
             stepCounter={step.title ? undefined : 'Step'}
             rightCluster={
@@ -1473,6 +1832,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         <StepCard
           scrollAsUnit
           onScroll={onScroll}
+          bottomInset={bottomInset}
           style={useIdentityDeck ? styles.focusStepCard : undefined}
           pill={hideStatePill ? undefined : <StatePill variant={pillSpec.variant} label={pillSpec.label} />}
           onMenuPress={() => setMenuOpen(true)}
@@ -1490,7 +1850,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
                     ? 'ready'
                     : 'pending'
               }
-              discussionCount={discussionPeek?.unreadCount}
+              discussionCount={discussionPeek?.noteCount}
               active={activePhase}
               onTabPress={(tab) => handleNextTab(PHASE_TO_TAB[tab])}
               labels={{
@@ -1519,7 +1879,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           visible={attestSheetOpen}
           onClose={() => setAttestSheetOpen(false)}
           stepId={stepId}
-          interestSlug={currentInterest?.slug ?? null}
+          interestSlug={stepInterestSlug ?? null}
         />
         {step.source_blueprint_id ? (
           <LinkBlueprintStepSheet
@@ -1529,6 +1889,96 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             onDismiss={() => setLinkBlueprintStepOpen(false)}
           />
         ) : null}
+        <Modal
+          visible={timingSheetOpen}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => setTimingSheetOpen(false)}
+        >
+          <View style={styles.timingBackdrop}>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => setTimingSheetOpen(false)}
+            />
+            <View style={styles.timingSheet}>
+              <View style={styles.timingHeader}>
+                <View>
+                  <Text style={styles.timingEyebrow}>
+                    {step.is_race ? 'RACE WINDOW' : 'STEP WINDOW'}
+                  </Text>
+                  <Text style={styles.timingTitle}>
+                    {step.is_race ? 'Set race time' : 'Set step time'}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setTimingSheetOpen(false)}
+                  hitSlop={8}
+                  style={styles.pinSheetClose}
+                >
+                  <Ionicons name="close" size={18} color={STEP_COLORS.secondaryLabel} />
+                </Pressable>
+              </View>
+              <View style={styles.timingFieldGrid}>
+                <View style={styles.timingField}>
+                  <Text style={styles.timingLabel}>Date</Text>
+                  <TextInput
+                    value={timingDraft.date}
+                    onChangeText={(value) => setTimingDraft((prev) => ({ ...prev, date: value }))}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={STEP_COLORS.tertiaryLabel}
+                    style={styles.timingInput}
+                    autoCapitalize="none"
+                  />
+                </View>
+                <View style={styles.timingField}>
+                  <Text style={styles.timingLabel}>Start time</Text>
+                  <TextInput
+                    value={timingDraft.time}
+                    onChangeText={(value) => setTimingDraft((prev) => ({ ...prev, time: value }))}
+                    placeholder="14:00"
+                    placeholderTextColor={STEP_COLORS.tertiaryLabel}
+                    style={styles.timingInput}
+                    autoCapitalize="none"
+                  />
+                </View>
+                <View style={styles.timingField}>
+                  <Text style={styles.timingLabel}>
+                    {step.is_race ? 'Race length' : 'Step length'}
+                  </Text>
+                  <TextInput
+                    value={timingDraft.durationMinutes}
+                    onChangeText={(value) => setTimingDraft((prev) => ({ ...prev, durationMinutes: value.replace(/[^\d.]/g, '') }))}
+                    placeholder={step.is_race ? '90 min' : '45 min'}
+                    placeholderTextColor={STEP_COLORS.tertiaryLabel}
+                    style={styles.timingInput}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+              <Text style={styles.timingHint}>
+                Atlas uses the start time for race-time conditions. Duration sets the window for wind, current, and sea trends.
+              </Text>
+              <View style={styles.timingActions}>
+                <Pressable
+                  style={styles.timingSecondaryButton}
+                  onPress={() => {
+                    handleClearStepDate();
+                    setTimingSheetOpen(false);
+                  }}
+                >
+                  <Text style={styles.timingSecondaryText}>Clear</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.timingPrimaryButton}
+                  onPress={handleSaveStepTiming}
+                >
+                  <Text style={styles.timingPrimaryText}>Save timing</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
         <Modal
           visible={pinInterestsOpen}
           transparent
@@ -1561,6 +2011,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             </View>
           </View>
         </Modal>
+        {raceCourseSheet}
         <IOSActionSheet
           isOpen={menuOpen}
           onClose={() => setMenuOpen(false)}
@@ -1863,6 +2314,108 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 4,
     gap: 8,
+  },
+  timingBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+  },
+  timingSheet: {
+    width: '100%',
+    maxWidth: 520,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    padding: 18,
+    gap: 14,
+    shadowColor: '#000000',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  timingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  timingEyebrow: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: STEP_COLORS.accent,
+  },
+  timingTitle: {
+    marginTop: 2,
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    color: STEP_COLORS.label,
+  },
+  timingFieldGrid: {
+    gap: 10,
+  },
+  timingField: {
+    gap: 5,
+  },
+  timingLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: STEP_COLORS.secondaryLabel,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  timingInput: {
+    minHeight: 44,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_COLORS.border,
+    backgroundColor: STEP_COLORS.headerBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 15,
+    fontWeight: '600',
+    color: STEP_COLORS.label,
+  },
+  timingHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: STEP_COLORS.secondaryLabel,
+  },
+  timingActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  timingPrimaryButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: STEP_COLORS.accent,
+  },
+  timingPrimaryText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  timingSecondaryButton: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: STEP_COLORS.headerBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_COLORS.border,
+  },
+  timingSecondaryText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: STEP_COLORS.secondaryLabel,
   },
   pinSheetBackdrop: {
     flex: 1,

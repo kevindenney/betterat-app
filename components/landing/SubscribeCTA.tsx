@@ -18,9 +18,9 @@ export function SubscribeCTA({ accentColor = '#1A1A1A', interestSlug }: Subscrib
 
   const handleGetStarted = () => {
     if (interestSlug) {
-      router.push(`/(auth)/signup?persona=club&interest=${interestSlug}` as any);
+      router.push(`/(auth)/signup?intent=create-org&interest=${interestSlug}` as any);
     } else {
-      router.push('/(auth)/signup');
+      router.push('/(auth)/signup?intent=create-org' as any);
     }
   };
 

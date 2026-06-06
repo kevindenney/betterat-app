@@ -20,6 +20,7 @@ import { useAdminOrgSites } from '@/hooks/useAdminOrgSites';
 import { useAdminCohorts } from '@/hooks/useAdminCohorts';
 import { useAdminPrograms } from '@/hooks/useAdminPrograms';
 import { useAdminOrgBlueprints } from '@/hooks/useAdminOrgBlueprints';
+import { useAdminCalendar } from '@/hooks/useAdminCalendar';
 import {
   StudioShell,
   StudioNavSection,
@@ -31,6 +32,7 @@ import { getAdminVocabulary } from '@/lib/vocabulary';
 export type AdminNavKey =
   | 'overview'
   | 'people'
+  | 'calendar'
   | 'cohorts'
   | 'programs'
   | 'blueprints'
@@ -59,6 +61,7 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
   const cohorts = useAdminCohorts(orgId as string);
   const programs = useAdminPrograms(orgId as string);
   const blueprints = useAdminOrgBlueprints(orgId as string);
+  const calendar = useAdminCalendar(orgId as string);
 
   // Only admins of *this* org may see the Studio chrome. Without this gate
   // any signed-in account that lands on a stale /admin/<orgId> URL (e.g. a
@@ -110,6 +113,14 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
           count: people.totalRows || undefined,
           active: activeKey === 'people',
           onPress: () => goto('people'),
+        },
+        {
+          key: 'calendar',
+          icon: 'calendar-outline',
+          label: 'Calendar',
+          count: calendar.scheduledCount || undefined,
+          active: activeKey === 'calendar',
+          onPress: () => goto('calendar'),
         },
         {
           key: 'cohorts',

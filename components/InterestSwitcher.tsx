@@ -23,6 +23,7 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { fontFamily } from '@/lib/design-tokens-editorial'
 
 // Imperative opener so other parts of the app (e.g. the guest sample banner)
 // can pop the same sheet without prop-drilling. The mounted InterestSwitcher
@@ -172,10 +173,16 @@ export function InterestSwitcher({ headless = false }: { headless?: boolean } = 
           accessibilityRole="button"
           accessibilityLabel={`Current interest: ${currentInterest?.name ?? 'None'}. Tap to switch.`}
         >
+          {currentInterest ? (
+            <View style={styles.pillDotWrap}>
+              <View style={[styles.pillDotRing, { backgroundColor: currentInterest.accent_color }]} />
+              <View style={[styles.pillDot, { backgroundColor: currentInterest.accent_color }]} />
+            </View>
+          ) : null}
           <Text style={styles.pillText} numberOfLines={1}>
             {currentInterest?.name ?? 'Interest'}
           </Text>
-          <Ionicons name="chevron-down" size={14} color="#6B7280" />
+          <Ionicons name="chevron-down" size={13} color="rgba(60, 60, 67, 0.32)" />
         </TouchableOpacity>
       ) : null}
 
@@ -305,17 +312,39 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
+    gap: 7,
+    minHeight: 30,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.14)',
+  },
+  pillDotWrap: {
+    width: 15,
+    height: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillDotRing: {
+    position: 'absolute',
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
+    opacity: 0.2,
+  },
+  pillDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
   },
   pillText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14.5,
+    fontWeight: '700',
     color: '#1F2937',
-    maxWidth: 120,
+    maxWidth: 140,
+    letterSpacing: -0.2,
   },
 
   // Backdrop + sheet
@@ -334,10 +363,12 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
   },
   sheetTitle: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontSize: 24,
+    fontWeight: '500',
+    letterSpacing: -0.4,
     color: '#1F2937',
-    marginBottom: 12,
+    marginBottom: 14,
   },
 
   // Interest row
@@ -364,9 +395,11 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     flex: 1,
+    fontFamily: fontFamily.sans,
     fontSize: 15,
     fontWeight: '500',
     color: '#374151',
+    letterSpacing: -0.1,
   },
   rowLabelActive: {
     fontWeight: '700',
@@ -392,11 +425,12 @@ const styles = StyleSheet.create({
 
   // Domain header
   domainHeader: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontSize: 10.5,
+    fontWeight: '500',
     color: '#9CA3AF',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.9,
     marginTop: 12,
     marginBottom: 4,
     paddingHorizontal: 12,

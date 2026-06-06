@@ -19,11 +19,12 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useUserHomeVenue, isSailingInterest } from '@/hooks/useUserHomeVenue';
@@ -45,6 +46,7 @@ import { useLibraryCounts } from '@/hooks/useLibraryCounts';
 import { usePlaybook } from '@/hooks/usePlaybook';
 import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { StepAddSheet } from '@/components/ios-register/timeline-zoom/StepAddSheet';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
 const VALID_ZONES: LibraryZone[] = [
@@ -118,8 +120,11 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   const { data: playbook } = usePlaybook(currentInterest?.id);
   const createLibraryItem = useCreateLibraryItem();
   const [toolbarHeight, setToolbarHeight] = useState(0);
+  const [addChooserOpen, setAddChooserOpen] = useState(false);
+  const [stepAddOpen, setStepAddOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [conceptEditorOpen, setConceptEditorOpen] = useState(false);
+  const isSailRacing = (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing';
   // Sticky "added" set for the Interests stack so its Add chips stay
   // marked while the user is in the focused zone (mirrors discover.tsx).
   const [addedInterestSlugs, setAddedInterestSlugs] = useState<Set<string>>(new Set());
@@ -137,43 +142,22 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
 
   const isFullBleed = (FULL_BLEED_ZONES as string[]).includes(zone);
 
-  // `+` payload depends on the active zone. Librarian/Concepts both
-  // open the concept editor (concepts are the librarian's domain).
-  // Resources opens CaptureSheet. Plans jumps to the "Plans to follow"
-  // stack (Library's subscribe surface — Library Plans is "your
-  // subscribed ones", and adding one means following a published Plan).
-  const handleAdd = useCallback(() => {
-    if (zone === 'resources') {
-      setCaptureOpen(true);
+  const openConceptEditor = useCallback(() => {
+    if (!playbook?.id || !currentInterest?.id) {
+      showAlert(
+        'Not ready',
+        "Concepts need a playbook + active interest to live in. Switch interests or try again in a moment.",
+      );
       return;
     }
-    if (zone === 'plans') {
-      handleZoneChange('follow');
-      return;
-    }
-    if (zone === 'all' || zone === 'concepts') {
-      if (!playbook?.id || !currentInterest?.id) {
-        showAlert(
-          'Not ready',
-          "Concepts need a playbook + active interest to live in. Switch interests or try again in a moment.",
-        );
-        return;
-      }
-      setConceptEditorOpen(true);
-      return;
-    }
-    // Fallback for People (currently no add-affordance defined)
-    setCaptureOpen(true);
-  }, [zone, playbook?.id, currentInterest?.id, handleZoneChange]);
+    setConceptEditorOpen(true);
+  }, [playbook?.id, currentInterest?.id]);
 
-  const addLabel =
-    zone === 'plans'
-      ? 'Find a Blueprint to subscribe'
-      : zone === 'resources'
-        ? 'Capture a resource'
-        : zone === 'concepts' || zone === 'all'
-          ? 'Capture a concept'
-          : 'Add to library';
+  const handleAdd = useCallback(() => {
+    setAddChooserOpen(true);
+  }, []);
+
+  const addLabel = 'Add to library';
 
   return (
     <View style={styles.container}>
@@ -314,8 +298,152 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           onSaved={() => setConceptEditorOpen(false)}
         />
       ) : null}
+
+      <StepAddSheet
+        visible={stepAddOpen}
+        onClose={() => setStepAddOpen(false)}
+        showRaceSelector={isSailRacing}
+      />
+
+      <LibraryAddChooser
+        visible={addChooserOpen}
+        accent={currentInterest?.accent_color ?? IOS_COLORS.systemBlue}
+        onClose={() => setAddChooserOpen(false)}
+        onNewStep={() => {
+          setAddChooserOpen(false);
+          setStepAddOpen(true);
+        }}
+        onNewConcept={() => {
+          setAddChooserOpen(false);
+          openConceptEditor();
+        }}
+        onCaptureResource={() => {
+          setAddChooserOpen(false);
+          setCaptureOpen(true);
+        }}
+        onFindPlan={() => {
+          setAddChooserOpen(false);
+          handleZoneChange('follow');
+        }}
+      />
     </View>
   );
+}
+
+function LibraryAddChooser({
+  visible,
+  accent,
+  onClose,
+  onNewStep,
+  onNewConcept,
+  onCaptureResource,
+  onFindPlan,
+}: {
+  visible: boolean;
+  accent: string;
+  onClose: () => void;
+  onNewStep: () => void;
+  onNewConcept: () => void;
+  onCaptureResource: () => void;
+  onFindPlan: () => void;
+}) {
+  return (
+    <Modal
+      transparent
+      visible={visible}
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.addChooserBackdrop} onPress={onClose}>
+        <Pressable style={styles.addChooser} onPress={(e) => e.stopPropagation?.()}>
+          <View style={styles.addChooserHandle} />
+          <View style={styles.addChooserHead}>
+            <Text style={styles.addChooserTitle}>Add to Library</Text>
+            <Pressable
+              style={styles.addChooserClose}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close add menu"
+            >
+              <Ionicons name="close" size={18} color={IOS_COLORS.systemGray} />
+            </Pressable>
+          </View>
+          <View style={styles.addChooserRows}>
+            <AddChoiceRow
+              icon="add-circle"
+              title="New step"
+              subtitle="Plan something to do next."
+              accent={accent}
+              onPress={onNewStep}
+            />
+            <AddChoiceRow
+              icon="book"
+              title="New concept"
+              subtitle="Capture a pattern, rule, or thing to remember."
+              accent={accent}
+              onPress={onNewConcept}
+            />
+            <AddChoiceRow
+              icon="document-attach"
+              title="Capture resource"
+              subtitle="Save an article, video, note, or file."
+              accent={accent}
+              onPress={onCaptureResource}
+            />
+            <AddChoiceRow
+              icon="map"
+              title="Find a plan"
+              subtitle="Follow a published blueprint."
+              accent={accent}
+              onPress={onFindPlan}
+            />
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function AddChoiceRow({
+  icon,
+  title,
+  subtitle,
+  accent,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: string;
+  subtitle: string;
+  accent: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.addChoiceRow, pressed && styles.addChoicePressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
+      <View style={[styles.addChoiceIcon, { backgroundColor: withAlpha(accent, 0.12) }]}>
+        <Ionicons name={icon} size={20} color={accent} />
+      </View>
+      <View style={styles.addChoiceText}>
+        <Text style={styles.addChoiceTitle}>{title}</Text>
+        <Text style={styles.addChoiceSubtitle}>{subtitle}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={17} color={IOS_COLORS.systemGray2} />
+    </Pressable>
+  );
+}
+
+function withAlpha(hex: string, alpha: number): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return hex;
+  const r = parseInt(m[1], 16);
+  const g = parseInt(m[2], 16);
+  const b = parseInt(m[3], 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 const styles = StyleSheet.create({
@@ -336,15 +464,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   feedEyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.7,
-    color: IOS_COLORS.systemBlue,
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: IOS_COLORS.secondaryLabel,
   },
   feedTitle: {
-    fontSize: 26,
-    lineHeight: 30,
-    fontWeight: '800',
+    fontFamily: fontFamily.serif,
+    fontSize: 28,
+    lineHeight: 33,
+    fontWeight: '500',
+    letterSpacing: -0.4,
     color: IOS_COLORS.label,
   },
   // Focused-zone header — back pill + title + description, reached
@@ -367,10 +499,11 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.systemBlue,
   },
   focusedTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: -0.6,
-    lineHeight: 30,
+    fontFamily: fontFamily.serif,
+    fontSize: 28,
+    fontWeight: '500',
+    letterSpacing: -0.4,
+    lineHeight: 33,
     color: IOS_COLORS.label,
   },
   zoneDescription: {
@@ -396,5 +529,91 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     borderRadius: 999,
     backgroundColor: 'rgba(242, 242, 247, 0.94)',
+  },
+  addChooserBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    justifyContent: 'flex-end',
+  },
+  addChooser: {
+    marginHorizontal: 12,
+    marginBottom: 12,
+    borderRadius: 22,
+    backgroundColor: IOS_COLORS.systemBackground,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
+  },
+  addChooserHandle: {
+    alignSelf: 'center',
+    width: 42,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: IOS_COLORS.systemGray4,
+    marginTop: 9,
+  },
+  addChooserHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: IOS_COLORS.separator,
+  },
+  addChooserTitle: {
+    fontFamily: fontFamily.serif,
+    fontSize: 20,
+    fontWeight: '500',
+    letterSpacing: -0.3,
+    color: IOS_COLORS.label,
+  },
+  addChooserClose: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_COLORS.systemGray6,
+  },
+  addChooserRows: {
+    paddingVertical: 6,
+  },
+  addChoiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 68,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  addChoicePressed: {
+    backgroundColor: IOS_COLORS.systemGray6,
+  },
+  addChoiceIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addChoiceText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  addChoiceTitle: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: IOS_COLORS.label,
+  },
+  addChoiceSubtitle: {
+    marginTop: 2,
+    fontSize: 13,
+    lineHeight: 17,
+    color: IOS_COLORS.secondaryLabel,
   },
 });

@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { ResourceTypeIcon, getResourceTypeLabel } from './ResourceTypeIcon';
 import { getCourseMetadata, getCourseCompletionPercent, getFileMetadata, formatFileSize } from '@/types/library';
 import type { LibraryResourceRecord } from '@/types/library';
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
   },
   typeBadge: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
     fontWeight: '500',
     color: IOS_COLORS.systemBlue,
     backgroundColor: 'rgba(0,122,255,0.08)',
@@ -175,6 +177,8 @@ const styles = StyleSheet.create({
   },
   platform: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
   },
   notePreview: {
@@ -200,6 +204,9 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
     color: IOS_COLORS.secondaryLabel,
   },
   actions: {

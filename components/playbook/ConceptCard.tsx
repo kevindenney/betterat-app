@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { PlaybookConceptLifecycleState } from '@/types/playbook';
 
 export interface ConceptCardProps {
@@ -91,7 +92,8 @@ const styles = StyleSheet.create({
   },
   pillText: {
     fontSize: 9,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -99,6 +101,8 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
     fontSize: 10,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: 'rgba(60,60,67,0.6)',
   },
   // Per canonical: 14.5px serif italic title, weight 500. Compact —
@@ -107,9 +111,10 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     lineHeight: 18,
     color: '#1C1C1E',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
     fontWeight: '500',
+    letterSpacing: -0.3,
   },
   metaRow: {
     flexDirection: 'row',
@@ -125,6 +130,8 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 10,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: '#3C3C43',
   },
 });

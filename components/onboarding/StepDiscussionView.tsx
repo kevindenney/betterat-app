@@ -18,6 +18,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import {
   ChevronLeft,
   CornerUpLeft,
@@ -100,7 +101,7 @@ const C = {
   coralSoft: '#F7C9C3',
   coralTint: '#FDECEA',
   coach: '#C28A2A',
-  serif: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }) as string,
+  serif: fontFamily.serif,
 };
 
 const AVATAR_BG: Record<NonNullable<StepDiscussionNote['authorColorKey']>, string> = {

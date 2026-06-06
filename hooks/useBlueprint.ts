@@ -205,14 +205,11 @@ export function useDiscoverBlueprints(interestId?: string | null) {
 }
 
 /**
- * Backfill hook: ensures every subscribed blueprint has at least one adopted
- * step AND that all adopted steps have corresponding blueprint_step_actions
- * records. Handles:
- *   1. Users who subscribed before auto-adopt was added
- *   2. Steps adopted with broken action-tracking (wrong column names)
- * Runs once per mount.
+ * Backfill hook: ensures user-adopted blueprint steps have corresponding
+ * blueprint_step_actions records. It must not create timeline steps; adopting
+ * blueprint content is an explicit user action.
  */
-export function useAutoAdoptSubscribedSteps(
+export function useBackfillSubscribedStepActions(
   interestId?: string | null,
   mySteps?: TimelineStepRecord[] | null,
 ) {
@@ -241,30 +238,11 @@ export function useAutoAdoptSubscribedSteps(
       for (const bp of subscribed) {
         const existingAdopted = stepsByBlueprint.get(bp.blueprint_id) ?? [];
 
-        if (existingAdopted.length === 0) {
-          // Case 1: No steps adopted — adopt the first blueprint step
+        for (const { sourceId, adoptedId } of existingAdopted) {
           try {
-            const steps = await getBlueprintSteps(bp.blueprint_id);
-            if (steps.length === 0) continue;
-            const firstStep = steps[0];
-            try {
-              const adopted = await adoptStep(user.id, firstStep.id, firstStep.interest_id, bp.blueprint_id);
-              await markStepAction(bp.subscription_id, firstStep.id, 'adopted', adopted.id).catch(() => {});
-              didChange = true;
-            } catch {
-              // Step may already exist
-            }
+            await markStepAction(bp.subscription_id, sourceId, 'adopted', adoptedId);
           } catch {
-            // Non-fatal
-          }
-        } else {
-          // Case 2: Steps adopted but action records may be missing — backfill them
-          for (const { sourceId, adoptedId } of existingAdopted) {
-            try {
-              await markStepAction(bp.subscription_id, sourceId, 'adopted', adoptedId);
-            } catch {
-              // Already exists or non-fatal
-            }
+            // Already exists or non-fatal
           }
         }
       }

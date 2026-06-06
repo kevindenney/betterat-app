@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { FORMAT_ICON, FORMAT_LABEL, FORMAT_TINT } from './formatStyles';
 import type { LibraryItemRow } from './types';
 
@@ -85,8 +86,10 @@ const styles = StyleSheet.create({
   },
   fmtChipText: {
     fontSize: 9,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   liveDot: {
     width: 7,
@@ -95,7 +98,8 @@ const styles = StyleSheet.create({
   },
   source: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -114,6 +118,8 @@ const styles = StyleSheet.create({
   },
   footText: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
   },
 });

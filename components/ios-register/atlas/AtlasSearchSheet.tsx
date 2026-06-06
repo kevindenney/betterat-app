@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/services/supabase';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
@@ -606,6 +607,7 @@ export function AtlasSearchSheet({
   filterChips,
   onFilterChipsChange,
 }: AtlasSearchSheetProps) {
+  const insets = useSafeAreaInsets();
   const toggleChip = (id: string) => {
     if (!onFilterChipsChange || !filterChips) return;
     // Mirror AtlasScreen's chip semantics: 'all' is mutually exclusive
@@ -658,8 +660,15 @@ export function AtlasSearchSheet({
   const showNoMatches =
     visible && trimmed.length >= 2 && !isFetching && results.length === 0;
   const containerStyle = useMemo(
-    () => [styles.container, !visible && styles.hidden],
-    [visible],
+    () => [
+      styles.container,
+      {
+        paddingTop: Math.max(insets.top + 12, 56),
+        paddingBottom: Math.max(insets.bottom, 12),
+      },
+      !visible && styles.hidden,
+    ],
+    [insets.bottom, insets.top, visible],
   );
 
   return (
@@ -717,7 +726,10 @@ export function AtlasSearchSheet({
       ) : null}
       <ScrollView
         style={styles.results}
-        contentContainerStyle={styles.resultsContent}
+        contentContainerStyle={[
+          styles.resultsContent,
+          { paddingBottom: Math.max(insets.bottom + 96, 112) },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {showEmptyHint ? (
@@ -838,7 +850,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(242, 242, 247, 0.97)',
     zIndex: 50,
-    paddingTop: 56,
   },
   hidden: {
     opacity: 0,
@@ -851,6 +862,7 @@ const styles = StyleSheet.create({
   },
   inputWrap: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -861,10 +873,12 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
     fontSize: 14,
     color: IOS_REGISTER.label,
   },
   closeBtn: {
+    flexShrink: 0,
     paddingHorizontal: 4,
     paddingVertical: 6,
   },
@@ -953,6 +967,7 @@ const styles = StyleSheet.create({
   },
   rowText: {
     flex: 1,
+    minWidth: 0,
   },
   rowName: {
     fontSize: 14,

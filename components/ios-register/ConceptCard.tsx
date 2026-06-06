@@ -19,6 +19,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export type ConceptState = 'practicing' | 'learning' | 'breakthrough';
 
@@ -156,7 +157,8 @@ const styles = StyleSheet.create({
   },
   stateText: {
     fontSize: 10.5,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.02,
   },
   stateTextPracticing: {
@@ -170,6 +172,8 @@ const styles = StyleSheet.create({
   },
   refCount: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_REGISTER.labelTertiary,
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.05,
@@ -189,9 +193,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_REGISTER.label,
-    letterSpacing: -0.24,
+    letterSpacing: -0.3,
     lineHeight: 19,
     flex: 1,
   },

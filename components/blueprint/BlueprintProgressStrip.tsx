@@ -32,6 +32,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { adoptStep } from '@/services/TimelineStepService';
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { SuggestedStepsBar } from './SuggestedStepsBar';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { BlueprintSuggestedNextStep, SubscribedBlueprintInfo, PeerTimeline, PeerTimelineStep } from '@/types/blueprint';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 
@@ -625,8 +626,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   progressText: {
+    fontFamily: fontFamily.mono,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
     color: C.accent,
   },
   overflowBtn: {
@@ -695,8 +698,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   stepBadgeText: {
+    fontFamily: fontFamily.mono,
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
@@ -781,8 +785,9 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: 'pointer' as any } }),
   },
   peerSectionTitle: {
+    fontFamily: fontFamily.mono,
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '500',
     color: C.labelMid,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -817,8 +822,10 @@ const styles = StyleSheet.create({
     color: C.labelDark,
   },
   fraction: {
+    fontFamily: fontFamily.mono,
     fontSize: 10,
     fontWeight: '500',
+    fontVariant: ['tabular-nums'],
     color: C.labelMid,
   },
 });

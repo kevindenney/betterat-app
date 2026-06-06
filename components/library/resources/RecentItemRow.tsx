@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { FORMAT_ICON, FORMAT_TINT } from './formatStyles';
 import type { LibraryItemRow } from './types';
 
@@ -66,6 +67,8 @@ const styles = StyleSheet.create({
   },
   prov: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
     marginTop: 2,
   },

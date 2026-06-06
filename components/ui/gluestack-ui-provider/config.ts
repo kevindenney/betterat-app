@@ -154,6 +154,22 @@ export const config = {
     '--color-indicator-primary': '55 55 55',
     '--color-indicator-info': '83 153 236',
     '--color-indicator-error': '185 28 28',
+
+    /* Step-state signal triad — "color is signal." Theme-independent mirror of
+       STEP_STATE / REFLECT / SIGNAL_OK in lib/design-tokens-ios.ts. Plan/Do/
+       Review are the only saturated colors on Practice/Step; clay = reflection. */
+    '--signal-plan': '91 97 232',
+    '--signal-plan-tint': '236 236 252',
+    '--signal-plan-ink': '58 63 176',
+    '--signal-do': '217 131 26',
+    '--signal-do-tint': '251 238 215',
+    '--signal-do-ink': '163 97 15',
+    '--signal-review': '168 85 74',
+    '--signal-review-tint': '243 228 224',
+    '--signal-review-ink': '138 64 53',
+    '--signal-reflect-strong': '147 71 57',
+    '--signal-ok': '15 157 116',
+    '--signal-ok-tint': '224 245 238',
   }),
   dark: vars({
     /* Ocean Blue Primary - Dark Mode */
@@ -307,5 +323,20 @@ export const config = {
     '--color-indicator-primary': '247 247 247',
     '--color-indicator-info': '161 199 245',
     '--color-indicator-error': '232 70 69',
+
+    /* Step-state signal triad — theme-independent: a Review reads the same in
+       light or dark. Mirror of STEP_STATE / REFLECT / SIGNAL_OK. */
+    '--signal-plan': '91 97 232',
+    '--signal-plan-tint': '236 236 252',
+    '--signal-plan-ink': '58 63 176',
+    '--signal-do': '217 131 26',
+    '--signal-do-tint': '251 238 215',
+    '--signal-do-ink': '163 97 15',
+    '--signal-review': '168 85 74',
+    '--signal-review-tint': '243 228 224',
+    '--signal-review-ink': '138 64 53',
+    '--signal-reflect-strong': '147 71 57',
+    '--signal-ok': '15 157 116',
+    '--signal-ok-tint': '224 245 238',
   }),
 };

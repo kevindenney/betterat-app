@@ -72,7 +72,7 @@ export function useCreateRacingArea() {
       // Polygon geometry wins when provided (rectangles, hand-drawn).
       // Otherwise fall back to a Point so simplified center+radius
       // consumers still get a usable centroid.
-      const geometry: Record<string, unknown> = input.polygon
+      const geometry = input.polygon
         ? input.polygon
         : {
             type: 'Point',

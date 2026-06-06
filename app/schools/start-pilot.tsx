@@ -16,6 +16,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { MktNav } from '@/components/marketing/MktNav';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { Footer } from './index';
 
 type Step = 'school' | 'verify' | 'plan' | 'open';
@@ -343,7 +344,7 @@ const s = StyleSheet.create({
     letterSpacing: -0.5,
     color: '#0E1117',
     marginBottom: 8,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
   },
   h1Sub: {
     fontSize: 15,

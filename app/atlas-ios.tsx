@@ -6,21 +6,21 @@
  * tab order (supersedes "No fifth tab"); pins are steps, venues/sites/marks
  * are decorative layers.
  *
- * This preview route cycles the six canonical frames from the design handoff:
+ * This preview route cycles the canonical frames from the design handoff:
  *   F1 Felix · first-run · Causeway Bay overview
  *   F2 Felix · race marks at zoom 14+
  *   F3 Felix · world Dragon (class lens, cross-fleet)
  *   F4 Emily · Baltimore cold (nursing, no JHU curation)
  *   F5 Emily · JHU curated (institution layer + competency overlay)
  *   F6 commit-mode (opened from Plan tab's Where field)
+ *   F7 Ranchi didi entrepreneur Atlas
+ *   F8 Ranchi mentor / org Atlas
  *
  * Wire-up status:
- *   Preview only — sample data drawn from the canonical handoff and rendered
- *   over stylized SVG map backdrops. The actual MapLibre canvas, atlas_pois
- *   schema, peer-steps RPC, healthcare content lint, and Cohort
- *   materialized view land in Phase A1 of
- *   docs/redesign/ios-register/atlas-tab-brief.md, alongside the actual
- *   fifth-tab wiring into (tabs)/_layout.tsx.
+ *   Preview only — sample data drawn from the canonical handoff. F7 uses the
+ *   live MapLibre canvas so the entrepreneur Atlas can be tested against real
+ *   geography; older handoff frames keep static backdrops where intentionally
+ *   mocked.
  *
  * Open at /atlas-ios.
  */
@@ -47,9 +47,11 @@ const FRAMES: FramePickerItem[] = [
   { id: 'f4', label: 'F4', sub: 'Emily · cold' },
   { id: 'f5', label: 'F5', sub: 'Emily · curated' },
   { id: 'f6', label: 'F6', sub: 'commit-mode' },
+  { id: 'f7', label: 'F7', sub: 'Ranchi · didi' },
+  { id: 'f8', label: 'F8', sub: 'Ranchi · mentor' },
 ];
 
-const VALID_FRAMES: AtlasFrameId[] = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'];
+const VALID_FRAMES: AtlasFrameId[] = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8'];
 
 export default function AtlasIosPreview() {
   // Allow deep-linking to a specific frame via ?frame=f4 — useful for
@@ -60,6 +62,16 @@ export default function AtlasIosPreview() {
       ? (params.frame as AtlasFrameId)
       : 'f1';
   const [frame, setFrame] = useState<AtlasFrameId>(initial);
+  const useRealMapPreview = frame === 'f7';
+  const previewNextEvent =
+    frame === 'f7'
+      ? undefined
+      : {
+          label: 'Race 4',
+          when: 'Sat 10am',
+          where: 'Victoria Harbour, favoured end',
+          conditions: '12kn ESE · ebb 0.4kn',
+        };
 
   // Keep the in-memory frame in sync when the URL ?frame=... param changes
   // (e.g. arriving via a fresh deep-link while the screen is already mounted).
@@ -119,15 +131,11 @@ export default function AtlasIosPreview() {
         <View style={styles.phoneFrame}>
           <AtlasScreen
             frame={frame}
+            useMapLibre={useRealMapPreview}
             // Preview keeps the canonical Race 4 fixture so the handoff
             // mockup matches the design exactly. The live tab passes real
             // next_event_resolver data (or null) — see (tabs)/atlas.tsx.
-            nextEvent={{
-              label: 'Race 4',
-              when: 'Sat 10am',
-              where: 'Victoria Harbour, favoured end',
-              conditions: '12kn ESE · ebb 0.4kn',
-            }}
+            nextEvent={previewNextEvent}
           />
         </View>
       </View>
@@ -140,9 +148,9 @@ function PreviewBanner() {
     <View style={styles.banner}>
       <Ionicons name="information-circle" size={14} color={IOS_REGISTER.labelSecondary} />
       <Text style={styles.bannerText}>
-        Preview: six canonical frames from the Atlas handoff with sample pins.
-        Real MapLibre tiles, atlas_pois, peer-steps RPC, healthcare lint, and
-        the fifth-tab wiring land in Phase A1.
+        Preview: canonical Atlas handoff frames with sample pins. F7 uses the
+        live MapLibre canvas; older frames keep static backdrops when they are
+        intentionally mocked.
       </Text>
     </View>
   );

@@ -15,6 +15,7 @@ import { useStepDetail } from '@/hooks/useStepDetail';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { StepCritiqueContent } from './StepCritiqueContent';
 import { StepFocusConcepts } from './StepFocusConcepts';
+import { RaceLocalKnowledgeAdder } from './RaceLocalKnowledgeAdder';
 import { ReflectTabIOSRegisterShell } from './reflect-tab';
 
 interface ReviewTabProps {
@@ -23,17 +24,43 @@ interface ReviewTabProps {
   footer?: React.ReactNode;
   /** When true, the tab body renders without its own ScrollView. */
   embedded?: boolean;
+  /** Race steps add a post-race "add to local knowledge" affordance. */
+  isRace?: boolean;
 }
 
-export function ReviewTab({ stepId, readOnly, footer, embedded }: ReviewTabProps) {
+export function ReviewTab({
+  stepId,
+  readOnly,
+  footer,
+  embedded,
+  isRace,
+}: ReviewTabProps) {
+  const raceKnowledge = isRace ? (
+    <View style={styles.raceKnowledgeSlot}>
+      <RaceLocalKnowledgeAdder stepId={stepId} phase="review" readOnly={readOnly} />
+    </View>
+  ) : null;
+
   if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER) {
-    return (
+    const shell = (
       <ReflectTabIOSRegisterShell
         stepId={stepId}
         readOnly={readOnly}
         footer={footer}
         embedded={embedded}
       />
+    );
+    if (!raceKnowledge) return shell;
+    return embedded ? (
+      <>
+        {raceKnowledge}
+        {shell}
+      </>
+    ) : (
+      <View style={styles.container}>
+        {raceKnowledge}
+        {shell}
+      </View>
     );
   }
 
@@ -44,6 +71,7 @@ export function ReviewTab({ stepId, readOnly, footer, embedded }: ReviewTabProps
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
+      {raceKnowledge}
       <InstructorFeedbackCard stepId={stepId} />
       <StepFocusConcepts stepId={stepId} variant="review" />
       <StepCritiqueContent stepId={stepId} readOnly={readOnly} />
@@ -130,6 +158,11 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: IOS_SPACING.md,
     paddingBottom: 100,
+  },
+  raceKnowledgeSlot: {
+    paddingHorizontal: 16,
+    paddingTop: IOS_SPACING.sm,
+    paddingBottom: IOS_SPACING.sm,
   },
   feedbackCard: {
     marginHorizontal: 16,

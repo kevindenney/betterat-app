@@ -14,6 +14,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Check, Flag, Plus } from 'lucide-react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export type BlueprintIndexStepStatus = 'done' | 'current' | 'upcoming' | 'added';
 
@@ -145,9 +146,11 @@ const styles = StyleSheet.create({
     borderColor: C.blueStrong,
   },
   numText: {
+    fontFamily: fontFamily.mono,
     color: C.label2,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
   },
   numTextLight: {
     color: '#FFFFFF',
@@ -205,15 +208,17 @@ const styles = StyleSheet.create({
     borderColor: C.blueStrong,
   },
   pillTextDone: {
+    fontFamily: fontFamily.mono,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '500',
     color: C.greenDeep,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   pillTextNow: {
+    fontFamily: fontFamily.mono,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '500',
     color: C.blueDeep,
     letterSpacing: 0.4,
     textTransform: 'uppercase',

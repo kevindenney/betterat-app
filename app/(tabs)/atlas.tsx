@@ -17,7 +17,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -35,7 +35,6 @@ import { getAtlasStepData } from '@/lib/atlasRaceStep';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import { useWebDrawer } from '@/providers/WebDrawerProvider';
 import { useAtlasNextEvent } from '@/hooks/useAtlasNextEvent';
 import { AtlasPickerBus } from '@/services/AtlasPickerBus';
 import {
@@ -67,6 +66,20 @@ import {
 function pickFrameForInterest(slug: string | null): AtlasFrameId {
   const s = (slug ?? '').toLowerCase();
   if (s === 'nursing' || s === 'msn' || s === 'msn-nursing') return 'f4';
+  if (s === 'golf' || s === 'golf-performance' || s.includes('golf')) return 'f9';
+  if (
+    s === 'mentor' ||
+    s === 'crp' ||
+    s === 'sakhi' ||
+    s === 'clf' ||
+    s === 'shg-mentor' ||
+    s === 'government-agency' ||
+    s.includes('mentor') ||
+    s.includes('coordinator') ||
+    s.includes('government')
+  ) {
+    return 'f8';
+  }
   if (
     s === 'entrepreneur' ||
     s === 'micro-entrepreneur' ||
@@ -93,6 +106,22 @@ function buildSubtitle(slug: string | null, name: string | null): string | undef
   }
   if (s === 'sailing' || s === 'sail-racing' || s === 'sail') {
     return `${name ?? 'Sailing'} · race areas, clubs, and marks`;
+  }
+  if (s === 'golf' || s === 'golf-performance' || s.includes('golf')) {
+    return `${name ?? 'Golf'} · courses, range, sim, and next round`;
+  }
+  if (
+    s === 'mentor' ||
+    s === 'crp' ||
+    s === 'sakhi' ||
+    s === 'clf' ||
+    s === 'shg-mentor' ||
+    s === 'government-agency' ||
+    s.includes('mentor') ||
+    s.includes('coordinator') ||
+    s.includes('government')
+  ) {
+    return `${name ?? 'Mentor'} · SHG clusters, didi visits, and CLF progress`;
   }
   if (
     s === 'entrepreneur' ||
@@ -128,6 +157,9 @@ function nearbyAnchorForInterest(
   if (slug === 'nursing') {
     return { lat: 39.297, lng: -76.591, label: 'Baltimore' };
   }
+  if (slug === 'golf') {
+    return { lat: 37.4178, lng: -122.1124, label: 'Oakridge CC' };
+  }
   return null;
 }
 
@@ -152,8 +184,11 @@ function atlasInterestSlugForFrame(
   if (frame === 'f4' || frame === 'f5') {
     return 'nursing';
   }
-  if (frame === 'f7') {
-    return currentInterestSlug;
+  if (frame === 'f7' || frame === 'f8') {
+    return 'lac-craft-business';
+  }
+  if (frame === 'f9') {
+    return 'golf';
   }
   return currentInterestSlug;
 }
@@ -432,12 +467,6 @@ export default function AtlasTab() {
   const { user } = useAuth();
   const { currentInterest, userInterests, switchInterest } = useInterest();
   const homeVenue = useUserHomeVenue();
-  const { isDrawerOpen, openDrawer } = useWebDrawer();
-  // On web the global nav lives in each screen's toolbar; Atlas renders
-  // edge-to-edge with no toolbar, so when the sidebar drawer is collapsed
-  // there's no way back out. Surface a floating menu affordance that
-  // reopens the drawer. Native ignores this (drawer is a web-only concept).
-  const showWebNavButton = Platform.OS === 'web' && !isDrawerOpen;
   const avatarInitial = deriveAvatarInitial(user as any);
   // Nearby list-sheet — the optional list affordance over Atlas's pins.
   // Atlas already plots nearby orgs + peer-steps as map pins; this opens
@@ -452,15 +481,19 @@ export default function AtlasTab() {
     frame?: string;
     lat?: string;
     lng?: string;
+    area?: string;
+    intent?: string;
+    focusStepId?: string;
     focusPeerStep?: string;
     focusPeerRel?: string;
     focusPeerName?: string;
     focusPeerSetAt?: string;
   }>();
   const isFromPlan = params.fromPlan === '1';
+  const initialCreateRacingArea = params.intent === 'new-racing-area';
   const orgSlug = typeof params.orgSlug === 'string' ? params.orgSlug.trim() : '';
   const requestedFrame =
-    typeof params.frame === 'string' && ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7'].includes(params.frame)
+    typeof params.frame === 'string' && ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9'].includes(params.frame)
       ? (params.frame as AtlasFrameId)
       : null;
   // ?lat=…&lng=… — Plan-tab Where card links the viewer to Atlas focused
@@ -479,6 +512,17 @@ export default function AtlasTab() {
     }
     return null;
   }, [params.lat, params.lng, orgContext]);
+
+  // ?area=… — the step's saved race-area name (Port Shelter), so F6's commit
+  // banner + coords read the real area instead of the demo "Race 4" default.
+  const initialFocusLabel = React.useMemo(() => {
+    const area = typeof params.area === 'string' ? params.area.trim() : '';
+    return area.length > 0 ? area : null;
+  }, [params.area]);
+  const initialFocusStepId = React.useMemo(() => {
+    const id = typeof params.focusStepId === 'string' ? params.focusStepId.trim() : '';
+    return id.length > 0 ? id : null;
+  }, [params.focusStepId]);
 
   // When a Nearby-list tap carries peer identity (focusPeerStep + lat/lng),
   // build the focus payload so F1 can break that one peer out of the privacy
@@ -601,7 +645,9 @@ export default function AtlasTab() {
   const frame = useMemo(
     () =>
       isFromPlan
-        ? 'f6'
+        ? requestedFrame === 'f4'
+          ? 'f4'
+          : 'f6'
         : requestedFrame
           ? requestedFrame
           : orgSlug
@@ -616,19 +662,28 @@ export default function AtlasTab() {
   const nextEvent = useAtlasNextEvent(atlasInterestSlug);
   const subtitleOverride = useMemo(
     () => {
+      if (frame === 'f8') {
+        return undefined;
+      }
+      if (frame === 'f7') {
+        return buildSubtitle('lac-craft-business', null);
+      }
       if (orgContext) {
         const location = orgContext.city || orgContext.country;
         return location ? `${orgContext.name} · ${location}` : orgContext.name;
       }
+      const exactInterest = atlasInterestSlug
+        ? userInterests.find((interest) => interest.slug === atlasInterestSlug)
+        : null;
       const contextInterest =
-        userInterests.find((interest) => interest.slug === atlasInterestSlug) ??
-        currentInterest;
+        exactInterest ??
+        (!atlasInterestSlug || atlasInterestSlug === currentInterest?.slug ? currentInterest : null);
       return buildSubtitle(
         atlasInterestSlug ?? contextInterest?.slug ?? null,
         contextInterest?.name ?? null,
       );
     },
-    [atlasInterestSlug, currentInterest, orgContext, userInterests],
+    [atlasInterestSlug, currentInterest, frame, orgContext, userInterests],
   );
 
   const handleOpenOrg = useCallback(
@@ -820,6 +875,93 @@ export default function AtlasTab() {
           return;
         }
 
+        const isNursingAtlas = frame === 'f4' || targetInterest.slug === 'nursing';
+        if (isNursingAtlas) {
+          const clinicalSiteName = locationName || nextEvent?.where || 'Clinical site';
+          const clinicalTitle = pin.suggestedTitle?.trim()
+            || `Clinical shift at ${clinicalSiteName}`;
+          const nextPlan: StepPlanData = {
+            what_will_you_do:
+              incomingPlan.what_will_you_do?.trim()
+                ? incomingPlan.what_will_you_do
+                : `Prepare for clinical shift at ${clinicalSiteName}`,
+            where_location: {
+              name: clinicalSiteName,
+              lat: pin.lat,
+              lng: pin.lng,
+            },
+            target_event_kind: nextEvent?.event_kind === 'clinical_shift'
+              ? 'clinical_shift'
+              : incomingPlan.target_event_kind ?? null,
+            target_event_id: nextEvent?.event_id ?? incomingPlan.target_event_id ?? null,
+            competency_ids: incomingPlan.competency_ids ?? [],
+            ...(incomingPlan ?? {}),
+          };
+
+          const createdClinicalStep = await createTimelineStep({
+            user_id: user.id,
+            interest_id: targetInterest.id,
+            title: clinicalTitle,
+            description: [nextEvent?.when, nextEvent?.where].filter(Boolean).join(' · ') || null,
+            category: 'clinical',
+            status: 'pending',
+            visibility: 'private',
+            source_type: 'manual',
+            starts_at: null,
+            location_name: clinicalSiteName,
+            location_lat: pin.lat,
+            location_lng: pin.lng,
+            metadata: {
+              atlas: {
+                ...(incomingAtlas ?? {}),
+                origin: 'atlas_clinical_site',
+                frame,
+                interest_slug: 'nursing',
+                site: {
+                  name: clinicalSiteName,
+                  lat: pin.lat,
+                  lng: pin.lng,
+                },
+                next_event: nextEvent
+                  ? {
+                      label: nextEvent.label,
+                      when: nextEvent.when,
+                      where: nextEvent.where,
+                      event_kind: nextEvent.event_kind,
+                      event_id: nextEvent.event_id,
+                    }
+                  : null,
+                live_tracking: {
+                  status: 'idle',
+                  provider: 'betterat_phone_gps',
+                },
+              },
+              plan: nextPlan,
+              nursing: {
+                source: 'atlas',
+                site_name: clinicalSiteName,
+                site_lat: pin.lat,
+                site_lng: pin.lng,
+                privacy_floor: 'site',
+              },
+              ...restIncomingMetadata,
+            },
+          });
+          if (targetInterest.slug !== currentInterest?.slug) {
+            await switchInterest(targetInterest.slug);
+          }
+          router.push({
+            pathname: '/step/[id]',
+            params: {
+              id: createdClinicalStep.id,
+              origin: 'atlas',
+              domain: 'nursing',
+              tab: 'plan',
+            },
+          } as any);
+          return;
+        }
+
         // Atlas long-press creates a *draft*: no placeholder title and no
         // implicit creation-time `starts_at`. The user types a title and
         // picks a date on /step/[id]; if the source already supplied a
@@ -963,8 +1105,9 @@ export default function AtlasTab() {
           subtitleOverride={subtitleOverride}
           nextEvent={nextEvent}
           avatarInitial={avatarInitial}
-          useMapLibre={FEATURE_FLAGS.ATLAS_MAPLIBRE_CANVAS}
+          useMapLibre={FEATURE_FLAGS.ATLAS_MAPLIBRE_CANVAS || frame === 'f7'}
           initialCommitMode={isFromPlan}
+          initialCreateRacingArea={initialCreateRacingArea}
           onPrimaryAction={handlePrimary}
           onSecondaryAction={handleSecondary}
           onStepPress={handleStepPress}
@@ -974,32 +1117,19 @@ export default function AtlasTab() {
           onOrgLensPress={handleOpenOrgLens}
           focusOrgSlug={orgSlug || null}
           initialFocus={initialFocus}
+          initialFocusLabel={initialFocusLabel}
+          initialFocusStepId={initialFocusStepId}
           initialPeerFocus={initialPeerFocus}
           onNearbyPress={frame === 'f4' ? () => setNearbyOpen(true) : undefined}
           bottomSheetOffset={tabBarSpace}
         />
-
-        {/* Web nav escape hatch — Atlas hides the sidebar toolbar, so when
-            the drawer is collapsed this is the only way back to the rest of
-            the app. Top-left, mirrors where a hamburger normally sits. */}
-        {showWebNavButton && !nearbyOpen ? (
-          <Pressable
-            style={[styles.navPill, { top: insets.top + 12 }]}
-            onPress={openDrawer}
-            accessibilityRole="button"
-            accessibilityLabel="Open navigation menu"
-          >
-            <Ionicons name="menu" size={18} color={IOS_COLORS.label} />
-            <Text style={styles.navPillText}>Menu</Text>
-          </Pressable>
-        ) : null}
 
         {/* Nearby list entry — a right-edge pill below the Atlas top chrome
             (aligns with the top-chrome-consolidation direction rather than
             competing with the bottom sheet). Hidden while open. Nursing (f4)
             instead surfaces Nearby as a quiet TopChrome action, so the
             floating pill is suppressed there to avoid double affordances. */}
-        {!nearbyOpen && !isFromPlan && frame !== 'f4' ? (
+        {!nearbyOpen && !isFromPlan && frame !== 'f4' && frame !== 'f9' ? (
           <Pressable
             style={[styles.nearbyPill, { top: insets.top + 96 }]}
             onPress={() => setNearbyOpen(true)}
@@ -1084,31 +1214,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
-  },
-  navPill: {
-    position: 'absolute',
-    left: IOS_SPACING.md,
-    zIndex: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: IOS_COLORS.separator,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  navPillText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-    letterSpacing: -0.2,
   },
   nearbyPillText: {
     fontSize: 14,

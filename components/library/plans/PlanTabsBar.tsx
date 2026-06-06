@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export type PlanTabKey = 'steps' | 'subscribers' | 'resources';
 
@@ -66,8 +67,10 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.label,
   },
   count: {
+    fontFamily: fontFamily.mono,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
     color: IOS_COLORS.tertiaryLabel,
   },
   underline: {

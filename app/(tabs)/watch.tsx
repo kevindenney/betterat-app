@@ -24,6 +24,7 @@ import {
 } from '@/hooks/useFollowedStepsFeed';
 import { useFleetStepFeed } from '@/hooks/useFleetStepFeed';
 import { useUserFleets } from '@/hooks/useFleetData';
+import type { FleetMembership } from '@/services/fleetService';
 import { useBlueprintTitles } from '@/hooks/useBlueprintTitles';
 import { useCohortStream, type CohortStreamItem } from '@/hooks/useCohortStream';
 import {
@@ -32,8 +33,10 @@ import {
 } from '@/hooks/useFollowedPeopleForLibrary';
 import { useAdoptStep } from '@/hooks/useTimelineSteps';
 import { WatchNearbySection } from '@/components/watch/WatchNearbySection';
+import { WatchFilterRow, type WatchFilterChip } from '@/components/watch/WatchFilterRow';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 const STATUS_META: Record<
   FollowedStepStatus,
@@ -148,6 +151,53 @@ export default function WatchScreen() {
   const blueprintTitleFor = (id: string | null): string | null =>
     id ? blueprintTitles?.get(id)?.title ?? null : null;
 
+  // People-lens secondary filter: a category (all / direct-follow /
+  // blueprint-sourced) or a single followed person (`person:<id>`).
+  const [peopleFilter, setPeopleFilter] = useState<string>('all');
+  // Groups-lens picker: tapping the group card reveals the switch list.
+  const [groupPickerOpen, setGroupPickerOpen] = useState(false);
+
+  const peopleCategoryChips: WatchFilterChip[] = useMemo(
+    () => [
+      { id: 'all', label: 'All' },
+      { id: 'following', label: 'Following' },
+      { id: 'blueprint', label: 'From blueprints' },
+    ],
+    [],
+  );
+
+  // Person chips are derived from who actually appears in the feed, so
+  // selecting one always yields rows. Avatar styling comes from the
+  // followed-people list when available.
+  const peoplePersonChips: WatchFilterChip[] = useMemo(() => {
+    const seen = new Map<string, WatchFilterChip>();
+    for (const item of feed) {
+      if (!item.personId || seen.has(item.personId)) continue;
+      const fp = followedPeople.find((p) => p.userId === item.personId);
+      const firstName = (fp?.displayName ?? item.personName ?? '').trim().split(/\s+/)[0] || 'Person';
+      seen.set(item.personId, {
+        id: `person:${item.personId}`,
+        label: firstName,
+        avatar: {
+          text: fp?.avatarEmoji || fp?.initials || item.personInitial || '?',
+          color: fp?.avatarColor || '#3F6FA8',
+        },
+      });
+    }
+    return Array.from(seen.values());
+  }, [feed, followedPeople]);
+
+  const filteredFeed = useMemo(() => {
+    if (peopleFilter === 'all') return feed;
+    if (peopleFilter === 'following') return feed.filter((i) => !i.sourceBlueprintId);
+    if (peopleFilter === 'blueprint') return feed.filter((i) => Boolean(i.sourceBlueprintId));
+    if (peopleFilter.startsWith('person:')) {
+      const pid = peopleFilter.slice('person:'.length);
+      return feed.filter((i) => i.personId === pid);
+    }
+    return feed;
+  }, [feed, peopleFilter]);
+
   const hasFeed = feed.length > 0;
   const hasCohort = cohortStream.length > 0;
 
@@ -168,11 +218,13 @@ export default function WatchScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <WatchFollowingLine
-          count={followingCount}
-          people={followedPeople}
-          onPress={() => router.push('/discover/following' as never)}
-        />
+        {grouping === 'all' ? (
+          <WatchFollowingLine
+            count={followingCount}
+            people={followedPeople}
+            onPress={() => router.push('/discover/following' as never)}
+          />
+        ) : null}
 
         <View style={styles.lensRow}>
           {LENS_OPTIONS.map((opt) => {
@@ -197,17 +249,30 @@ export default function WatchScreen() {
           <>
             {hasFeed ? (
               <View style={styles.section}>
+                <WatchFilterRow
+                  categories={peopleCategoryChips}
+                  entities={peoplePersonChips}
+                  selectedId={peopleFilter}
+                  onSelect={setPeopleFilter}
+                />
                 <Text style={styles.sectionEyebrow}>Latest from your people</Text>
-                <View style={styles.feed}>
-                  {feed.map((item) => (
-                    <WatchCard
-                      key={item.id}
-                      item={item}
-                      blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
-                      fallbackInterestId={currentInterest?.id ?? null}
-                    />
-                  ))}
-                </View>
+                {filteredFeed.length > 0 ? (
+                  <View style={styles.feed}>
+                    {filteredFeed.map((item) => (
+                      <WatchCard
+                        key={item.id}
+                        item={item}
+                        blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
+                        fallbackInterestId={currentInterest?.id ?? null}
+                        relationshipLabel="you follow"
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.emptyCopy}>
+                    No steps match this filter yet.
+                  </Text>
+                )}
               </View>
             ) : null}
 
@@ -265,31 +330,21 @@ export default function WatchScreen() {
             </Pressable>
           </View>
         ) : (
-          <>
-            {activeFleets.length > 1 ? (
-              <View style={styles.fleetSelectorRow}>
-                {activeFleets.map((f) => {
-                  const active = f.fleet.id === resolvedFleetId;
-                  return (
-                    <Pressable
-                      key={f.fleet.id}
-                      onPress={() => setSelectedFleetId(f.fleet.id)}
-                      style={[styles.fleetChip, active && styles.fleetChipActive]}
-                    >
-                      <Text
-                        style={[
-                          styles.fleetChipText,
-                          active && styles.fleetChipTextActive,
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {f.fleet.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
+          <View style={styles.section}>
+            <GroupPickerCard
+              fleets={activeFleets}
+              selectedFleetId={resolvedFleetId}
+              open={groupPickerOpen}
+              onToggle={() => setGroupPickerOpen((o) => !o)}
+              onSelect={(id) => {
+                setSelectedFleetId(id);
+                setGroupPickerOpen(false);
+              }}
+              onOpenGroup={() => router.push('/(tabs)/fleet' as never)}
+            />
+            <Text style={styles.sectionEyebrow}>
+              From {activeFleets.find((f) => f.fleet.id === resolvedFleetId)?.fleet.name ?? 'your group'}
+            </Text>
             {fleetLoading ? (
               <Text style={styles.emptyCopy}>Loading…</Text>
             ) : fleetFeed.length === 0 ? (
@@ -309,11 +364,12 @@ export default function WatchScreen() {
                     item={item}
                     blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
                     fallbackInterestId={currentInterest?.id ?? null}
+                    relationshipLabel="groupmate"
                   />
                 ))}
               </View>
             )}
-          </>
+          </View>
         )}
       </ScrollView>
       )}
@@ -422,6 +478,72 @@ function WatchFollowingLine({
   );
 }
 
+function groupInitials(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || '?'
+  );
+}
+
+function GroupPickerCard({
+  fleets,
+  selectedFleetId,
+  open,
+  onToggle,
+  onSelect,
+  onOpenGroup,
+}: {
+  fleets: FleetMembership[];
+  selectedFleetId: string | null;
+  open: boolean;
+  onToggle: () => void;
+  onSelect: (id: string) => void;
+  onOpenGroup: () => void;
+}) {
+  const selected = fleets.find((f) => f.fleet.id === selectedFleetId) ?? fleets[0];
+  const canSwitch = fleets.length > 1;
+  if (!selected) return null;
+  return (
+    <View>
+      <Pressable
+        style={styles.groupPicker}
+        onPress={canSwitch ? onToggle : onOpenGroup}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: canSwitch ? open : undefined }}
+      >
+        <View style={styles.groupPickerAvatar}>
+          <Text style={styles.groupPickerInitial}>{groupInitials(selected.fleet.name)}</Text>
+        </View>
+        <View style={styles.groupPickerText}>
+          <Text style={styles.groupPickerName} numberOfLines={1}>
+            {selected.fleet.name}
+          </Text>
+          <Text style={styles.groupPickerSub}>
+            {canSwitch ? 'Switch group' : 'Open group'}
+          </Text>
+        </View>
+        <Ionicons
+          name={canSwitch ? (open ? 'chevron-up' : 'chevron-down') : 'chevron-forward'}
+          size={16}
+          color={IOS_COLORS.tertiaryLabel}
+        />
+      </Pressable>
+      {open && canSwitch ? (
+        <WatchFilterRow
+          categories={fleets.map((f) => ({ id: f.fleet.id, label: f.fleet.name }))}
+          selectedId={selectedFleetId ?? ''}
+          onSelect={onSelect}
+        />
+      ) : null}
+    </View>
+  );
+}
+
 function CohortStreamCard({ item }: { item: CohortStreamItem }) {
   const context = [item.blueprintTitle, item.stepTitle]
     .filter((s): s is string => Boolean(s && s.trim()))
@@ -477,15 +599,22 @@ function WatchCard({
   item,
   blueprintTitle,
   fallbackInterestId,
+  relationshipLabel,
 }: {
   item: FollowedStepItem;
   blueprintTitle?: string | null;
   fallbackInterestId?: string | null;
+  /** Viewer's relationship to the author ("you follow", "groupmate"),
+   * shown in the byline. */
+  relationshipLabel?: string | null;
 }) {
   const statusMeta = STATUS_META[item.status];
   const adopt = useAdoptStep();
   const [adopted, setAdopted] = useState(false);
-  const byline = [item.personName, item.organizationName].filter(Boolean).join(' · ');
+  const byline = [item.personName, relationshipLabel].filter(Boolean).join(' · ');
+  // Provenance of the step: adopted from a blueprint vs an author's own step.
+  // (Cohort provenance isn't carried on this feed shape yet.)
+  const provenanceLabel = item.sourceBlueprintId ? 'Blueprint' : 'Step';
   const targetInterestId = item.interestId ?? fallbackInterestId ?? null;
 
   const openStep = () =>
@@ -533,6 +662,9 @@ function WatchCard({
             <Text style={styles.wBylineText} numberOfLines={1}>
               {byline}
             </Text>
+            <View style={styles.provChip}>
+              <Text style={styles.provChipText}>{provenanceLabel}</Text>
+            </View>
           </View>
 
           {item.locationName || blueprintTitle ? (
@@ -658,6 +790,46 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: IOS_COLORS.secondaryLabel,
   },
+  groupPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    marginHorizontal: IOS_SPACING.lg,
+    marginBottom: IOS_SPACING.md,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.12)',
+  },
+  groupPickerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2BA98E',
+  },
+  groupPickerInitial: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  groupPickerText: {
+    flex: 1,
+    gap: 1,
+  },
+  groupPickerName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  groupPickerSub: {
+    fontSize: 11,
+    color: IOS_COLORS.systemBlue,
+    fontWeight: '600',
+  },
   lensRow: {
     flexDirection: 'row',
     gap: 3,
@@ -690,30 +862,6 @@ const styles = StyleSheet.create({
   lensSegTextActive: {
     color: IOS_COLORS.label,
   },
-  fleetSelectorRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: IOS_SPACING.lg,
-    marginBottom: IOS_SPACING.md,
-  },
-  fleetChip: {
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
-  },
-  fleetChipActive: {
-    backgroundColor: '#DCEAFE',
-  },
-  fleetChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: IOS_COLORS.secondaryLabel,
-  },
-  fleetChipTextActive: {
-    color: IOS_COLORS.systemBlue,
-  },
   feed: {
     gap: 12,
     paddingHorizontal: IOS_SPACING.lg,
@@ -722,8 +870,9 @@ const styles = StyleSheet.create({
     marginBottom: IOS_SPACING.lg,
   },
   sectionEyebrow: {
+    fontFamily: fontFamily.mono,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '500',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     color: IOS_COLORS.secondaryLabel,
@@ -852,13 +1001,15 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   stateChipText: {
+    fontFamily: fontFamily.mono,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '500',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   wcardAgo: {
-    fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontSize: 10.5,
     color: IOS_COLORS.tertiaryLabel,
   },
   wStepTitle: {
@@ -895,6 +1046,20 @@ const styles = StyleSheet.create({
   wBylineText: {
     flex: 1,
     fontSize: 12,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  provChip: {
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(118,118,128,0.12)',
+  },
+  provChipText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
     color: IOS_COLORS.secondaryLabel,
   },
   wFoot: {

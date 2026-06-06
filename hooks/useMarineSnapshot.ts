@@ -27,16 +27,166 @@ export interface MarineSnapshot {
   wind: { degrees: number; knots: number } | null;
   current: { degrees: number; knots: number } | null;
   waves: { degrees: number; heightMeters: number; periodSeconds: number } | null;
+  /** 'now' = current-hour nowcast; 'forecast' = conditions at the requested time. */
+  mode: 'now' | 'forecast';
+  /**
+   * Set when a `targetTime` was requested but falls outside Open-Meteo's
+   * forecast horizon (>16 days out, or in the past). All three layers are null;
+   * callers should say the forecast isn't available yet rather than draw a
+   * stale "now" snapshot as if it were the race conditions.
+   */
+  outOfRange?: boolean;
+}
+
+export interface MarineTrendPoint {
+  label: string;
+  iso: string;
+  wind: MarineSnapshot['wind'];
+  current: MarineSnapshot['current'];
+  waves: MarineSnapshot['waves'];
 }
 
 interface UseMarineSnapshotArgs {
   lat: number | null;
   lng: number | null;
   enabled?: boolean;
+  /**
+   * ISO timestamp to forecast for (e.g. a race's start_at). When set, the hook
+   * returns the hourly forecast nearest that time instead of the current hour,
+   * so the course map shows conditions AT THE RACE — not right now. Omit/null
+   * for a live "now" snapshot.
+   */
+  targetTime?: string | null;
+}
+
+interface UseMarineTrendWindowArgs {
+  lat: number | null;
+  lng: number | null;
+  targetTime?: string | null;
+  enabled?: boolean;
 }
 
 function roundCoord(n: number): number {
   return Math.round(n * 10000) / 10000;
+}
+
+// Open-Meteo hourly.time (with timezone=GMT) looks like "2026-06-04T06:00".
+// Round the target to its UTC hour and format to match for index lookup.
+function targetHourIso(targetTime: string): string | null {
+  const d = new Date(targetTime);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setUTCMinutes(0, 0, 0);
+  return `${d.toISOString().slice(0, 13)}:00`;
+}
+
+function shiftedHourIso(targetTime: string, offsetMinutes: number): string | null {
+  const d = new Date(targetTime);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setUTCMinutes(0, 0, 0);
+  d.setUTCMinutes(d.getUTCMinutes() + offsetMinutes);
+  return `${d.toISOString().slice(0, 13)}:00`;
+}
+
+// Open-Meteo's free forecast spans ~now-1d … now+16d. Outside that we can't
+// forecast the race conditions, so the caller shows a "not yet" message.
+function isForecastable(targetTime: string): boolean {
+  const t = new Date(targetTime).getTime();
+  if (Number.isNaN(t)) return false;
+  const days = (t - Date.now()) / 86_400_000;
+  return days >= -1 && days <= 16;
+}
+
+function valueAtHour<T>(
+  time: string[] | undefined,
+  hourIso: string,
+  pick: (idx: number) => T | null,
+): T | null {
+  if (!time) return null;
+  const idx = time.indexOf(hourIso);
+  return idx < 0 ? null : pick(idx);
+}
+
+async function fetchWindAt(
+  lat: number,
+  lng: number,
+  date: string,
+  hourIso: string,
+): Promise<MarineSnapshot['wind']> {
+  const url = `${WEATHER_URL}?latitude=${lat}&longitude=${lng}&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&models=jma_seamless&timezone=GMT&start_date=${date}&end_date=${date}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      hourly?: { time?: string[]; wind_speed_10m?: number[]; wind_direction_10m?: number[] };
+    };
+    const h = json.hourly;
+    return valueAtHour(h?.time, hourIso, (idx) => {
+      const spd = h?.wind_speed_10m?.[idx];
+      const dir = h?.wind_direction_10m?.[idx];
+      if (spd == null || dir == null) return null;
+      return { degrees: Math.round(dir), knots: Math.round(spd) };
+    });
+  } catch (err) {
+    console.warn('[atlas] wind forecast fetch failed', err);
+    return null;
+  }
+}
+
+async function fetchCurrentAt(
+  lat: number,
+  lng: number,
+  date: string,
+  hourIso: string,
+): Promise<MarineSnapshot['current']> {
+  const url = `${MARINE_URL}?latitude=${lat}&longitude=${lng}&hourly=ocean_current_velocity,ocean_current_direction&timezone=GMT&start_date=${date}&end_date=${date}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      hourly?: { time?: string[]; ocean_current_velocity?: number[]; ocean_current_direction?: number[] };
+    };
+    const h = json.hourly;
+    return valueAtHour(h?.time, hourIso, (idx) => {
+      const vel = h?.ocean_current_velocity?.[idx];
+      const dir = h?.ocean_current_direction?.[idx];
+      if (vel == null || dir == null) return null;
+      return { degrees: Math.round(dir), knots: Math.round(vel * MS_TO_KNOTS * 10) / 10 };
+    });
+  } catch (err) {
+    console.warn('[atlas] current forecast fetch failed', err);
+    return null;
+  }
+}
+
+async function fetchWavesAt(
+  lat: number,
+  lng: number,
+  date: string,
+  hourIso: string,
+): Promise<MarineSnapshot['waves']> {
+  const url = `${MARINE_URL}?latitude=${lat}&longitude=${lng}&hourly=wave_height,wave_direction,wave_period&timezone=GMT&start_date=${date}&end_date=${date}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      hourly?: { time?: string[]; wave_height?: number[]; wave_direction?: number[]; wave_period?: number[] };
+    };
+    const h = json.hourly;
+    return valueAtHour(h?.time, hourIso, (idx) => {
+      const ht = h?.wave_height?.[idx];
+      const dir = h?.wave_direction?.[idx];
+      const per = h?.wave_period?.[idx];
+      if (ht == null || dir == null || per == null) return null;
+      return {
+        degrees: Math.round(dir),
+        heightMeters: Math.round(ht * 10) / 10,
+        periodSeconds: Math.round(per * 10) / 10,
+      };
+    });
+  } catch (err) {
+    console.warn('[atlas] waves forecast fetch failed', err);
+    return null;
+  }
 }
 
 async function fetchWind(lat: number, lng: number): Promise<MarineSnapshot['wind']> {
@@ -125,23 +275,95 @@ async function fetchWaves(lat: number, lng: number): Promise<MarineSnapshot['wav
   }
 }
 
-export function useMarineSnapshot({ lat, lng, enabled = true }: UseMarineSnapshotArgs) {
+export function useMarineSnapshot({
+  lat,
+  lng,
+  enabled = true,
+  targetTime = null,
+}: UseMarineSnapshotArgs) {
   const queryEnabled = enabled && lat != null && lng != null;
   const rLat = lat != null ? roundCoord(lat) : null;
   const rLng = lng != null ? roundCoord(lng) : null;
 
   return useQuery({
-    queryKey: ['marine-snapshot', rLat, rLng],
+    queryKey: ['marine-snapshot', rLat, rLng, targetTime ?? 'now'],
     enabled: queryEnabled,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<MarineSnapshot> => {
-      if (lat == null || lng == null) return { wind: null, current: null, waves: null };
+      if (lat == null || lng == null) {
+        return { wind: null, current: null, waves: null, mode: 'now' };
+      }
+
+      // Forecast-at-race-time path. When the race is outside Open-Meteo's
+      // horizon we return all-null + outOfRange so the UI says "not yet"
+      // rather than passing off the current nowcast as the race forecast.
+      if (targetTime) {
+        if (!isForecastable(targetTime)) {
+          return { wind: null, current: null, waves: null, mode: 'forecast', outOfRange: true };
+        }
+        const hourIso = targetHourIso(targetTime);
+        if (!hourIso) {
+          return { wind: null, current: null, waves: null, mode: 'forecast', outOfRange: true };
+        }
+        const date = hourIso.slice(0, 10);
+        const [wind, current, waves] = await Promise.all([
+          fetchWindAt(lat, lng, date, hourIso),
+          fetchCurrentAt(lat, lng, date, hourIso),
+          fetchWavesAt(lat, lng, date, hourIso),
+        ]);
+        return { wind, current, waves, mode: 'forecast' };
+      }
+
       const [wind, current, waves] = await Promise.all([
         fetchWind(lat, lng),
         fetchCurrent(lat, lng),
         fetchWaves(lat, lng),
       ]);
-      return { wind, current, waves };
+      return { wind, current, waves, mode: 'now' };
+    },
+  });
+}
+
+export function useMarineTrendWindow({
+  lat,
+  lng,
+  targetTime = null,
+  enabled = true,
+}: UseMarineTrendWindowArgs) {
+  const queryEnabled = enabled && lat != null && lng != null && !!targetTime;
+  const rLat = lat != null ? roundCoord(lat) : null;
+  const rLng = lng != null ? roundCoord(lng) : null;
+
+  return useQuery({
+    queryKey: ['marine-trend-window', rLat, rLng, targetTime ?? 'none'],
+    enabled: queryEnabled,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<{ points: MarineTrendPoint[]; outOfRange?: boolean }> => {
+      if (lat == null || lng == null || !targetTime || !isForecastable(targetTime)) {
+        return { points: [], outOfRange: true };
+      }
+      const offsets = [
+        { label: 'T-60m', minutes: -60 },
+        { label: 'Start', minutes: 0 },
+        { label: 'T+60m', minutes: 60 },
+        { label: 'T+120m', minutes: 120 },
+        { label: 'T+180m', minutes: 180 },
+      ];
+      const hours = offsets
+        .map((o) => ({ ...o, iso: shiftedHourIso(targetTime, o.minutes) }))
+        .filter((o): o is { label: string; minutes: number; iso: string } => !!o.iso);
+      const points = await Promise.all(
+        hours.map(async (hour): Promise<MarineTrendPoint> => {
+          const date = hour.iso.slice(0, 10);
+          const [wind, current, waves] = await Promise.all([
+            fetchWindAt(lat, lng, date, hour.iso),
+            fetchCurrentAt(lat, lng, date, hour.iso),
+            fetchWavesAt(lat, lng, date, hour.iso),
+          ]);
+          return { label: hour.label, iso: hour.iso, wind, current, waves };
+        }),
+      );
+      return { points };
     },
   });
 }

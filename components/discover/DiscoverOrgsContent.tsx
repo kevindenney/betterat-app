@@ -54,6 +54,8 @@ import {
   pickSquareMarkColor,
 } from '@/components/discover/canonical';
 import { CreateOrgSheet } from '@/components/discover/CreateOrgSheet';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PENDING_CREATE_ORG_KEY } from '@/services/onboarding/commitSignupContext';
 
 // =============================================================================
 // TYPES
@@ -139,6 +141,21 @@ export function DiscoverOrgsContent({
   const [searching, setSearching] = useState(false);
   const [memberOrgIds, setMemberOrgIds] = useState<Set<string>>(new Set());
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
+
+  // Auto-open the create sheet for users who signed up via a "set up your org"
+  // CTA. The flag is set at signup and survives the onboarding funnel + OAuth;
+  // we consume-and-clear it the first time the orgs surface mounts.
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(PENDING_CREATE_ORG_KEY).then((flag) => {
+      if (cancelled || flag !== '1') return;
+      AsyncStorage.removeItem(PENDING_CREATE_ORG_KEY);
+      setCreateSheetOpen(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Orgs the user owns/admins — pinned at the top, cross-interest, so an org
   // you run is reachable even while browsing a different interest's register.

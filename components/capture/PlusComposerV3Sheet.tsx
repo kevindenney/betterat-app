@@ -39,6 +39,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { QuickCapturePayload } from '@/services/QuickCaptureService';
@@ -48,12 +49,7 @@ import { ComposerWhereField } from './ComposerWhereField';
 import { PlanStepRaceSelector } from '@/components/step/plan-tab/PlanStepRaceSelector';
 import { RaceCoursePicker } from './RaceCoursePicker';
 
-const SERIF_FAMILY = Platform.select({
-  ios: 'Georgia',
-  android: 'serif',
-  web: 'Georgia, "Times New Roman", serif',
-  default: 'Georgia',
-}) as string;
+const SERIF_FAMILY = fontFamily.serif;
 
 const LILAC = '#AF52DE';
 const LILAC_SOFT = 'rgba(175, 82, 222, 0.10)';

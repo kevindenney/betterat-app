@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
 import { logger } from '@/lib/logger';
+import { suggestCapabilityTags } from '@/services/CapabilityTagService';
 import type { StepActData, StepPlanData, StepReviewData } from '@/types/step-detail';
+import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type {
   CapabilityEvidenceRow,
   EvidenceStrength,
@@ -56,6 +58,91 @@ export function buildCapabilityEvidenceRows({
   }
 
   return Array.from(rows.values());
+}
+
+function captureSnippets(act: StepActData): string[] {
+  return [
+    ...(act.observations ?? []).map((row) => row.text),
+    ...(act.media_uploads ?? []).map((row) => row.caption),
+    ...(act.media_links ?? []).map((row) => row.caption),
+  ]
+    .map((text) => text?.trim())
+    .filter((text): text is string => Boolean(text))
+    .slice(0, 4);
+}
+
+function reviewText(review: StepReviewData): string {
+  const legacy = review as StepReviewData & {
+    what_worked?: string;
+    what_didnt?: string;
+  };
+  return [
+    ...(review.sections ?? []).map((section) => section.content),
+    legacy.what_worked,
+    legacy.what_didnt,
+    review.what_learned,
+    review.deviation_reason,
+    review.next_step_notes,
+    review.key_takeaway,
+    review.teaching_reflection,
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join('\n');
+}
+
+function mergeCapabilityRows(
+  base: CapabilityEvidenceRow[],
+  incoming: CapabilityEvidenceRow[],
+): CapabilityEvidenceRow[] {
+  const present = new Set(base.map((row) => row.capabilityName.trim().toLowerCase()));
+  const merged = [...base];
+  for (const row of incoming) {
+    const key = row.capabilityName.trim().toLowerCase();
+    if (present.has(key)) continue;
+    present.add(key);
+    merged.push(row);
+  }
+  return merged;
+}
+
+export async function autoTagAndWriteStepCapabilityEvidence({
+  step,
+  baseRows,
+}: {
+  step: TimelineStepRecord;
+  baseRows?: CapabilityEvidenceRow[];
+}): Promise<CapabilityEvidenceRow[]> {
+  const metadata = (step.metadata ?? {}) as {
+    plan?: StepPlanData;
+    act?: StepActData;
+    review?: StepReviewData;
+  };
+  const plan = metadata.plan ?? {};
+  const act = metadata.act ?? {};
+  const review = metadata.review ?? {};
+  const base = baseRows ?? buildCapabilityEvidenceRows({ plan, act, review });
+  const autoTagBase = base.map((row) =>
+    row.source === 'ai' ? { ...row, confirmed: true } : row,
+  );
+  const captures = captureSnippets(act);
+  const reflection = reviewText(review);
+  const suggestions = await suggestCapabilityTags({
+    interestId: step.interest_id,
+    captures,
+    reflection,
+    existingNames: autoTagBase.map((row) => row.capabilityName),
+    capturesCount:
+      (act.observations?.length ?? 0) +
+      (act.media_uploads?.length ?? 0) +
+      (act.media_links?.length ?? 0),
+  });
+  const rows = mergeCapabilityRows(
+    autoTagBase,
+    suggestions.map((row) => ({ ...row, confirmed: true })),
+  );
+  await writeStepCapabilityEvidence({ stepId: step.id, rows });
+  return rows;
 }
 
 export async function writeStepCapabilityEvidence({

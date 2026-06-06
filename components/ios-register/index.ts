@@ -82,7 +82,6 @@ export {
   mapToTimelineDataset,
   ZoomLevelPicker,
   L1StepView,
-  L2WeekView,
   L3SeasonView,
   L4YearsView,
   StepDigestCard,

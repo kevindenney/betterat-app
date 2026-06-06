@@ -16,11 +16,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { PickerStep, UserStepStatus } from '@/hooks/useUserAtlasSteps';
 
 interface OpenStepPickerProps {
   visible: boolean;
   steps: PickerStep[];
+  selectedStepId?: string | null;
   onDismiss: () => void;
   onPickStep: (step: PickerStep) => void;
 }
@@ -63,6 +65,7 @@ function readableLocationName(name: string | null): string | null {
 export function OpenStepPicker({
   visible,
   steps,
+  selectedStepId = null,
   onDismiss,
   onPickStep,
 }: OpenStepPickerProps) {
@@ -92,7 +95,7 @@ export function OpenStepPicker({
               <Ionicons name="close" size={22} color={IOS_COLORS.label} />
             </Pressable>
           </View>
-          <Text style={styles.heading}>Pick a step to focus</Text>
+          <Text style={styles.heading}>Jump to step</Text>
           {steps.length === 0 ? (
             <Text style={styles.empty}>No steps in this interest yet.</Text>
           ) : (
@@ -101,11 +104,12 @@ export function OpenStepPicker({
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
             >
-              {steps.map((step) => {
+              {steps.map((step, index) => {
                 const badgeLabel = STATUS_BADGE_LABEL[step.status];
                 const badgeTone = STATUS_BADGE_TONE[step.status];
                 const subtitle = readableLocationName(step.location_name);
                 const isHeroStep = step.status === 'planned-next';
+                const isSelected = step.step_id === selectedStepId;
                 const accentColor =
                   step.status === 'planned-next'
                     ? '#F0A93A'
@@ -121,7 +125,11 @@ export function OpenStepPicker({
                   // Pressable handles taps + pressed-state tint only.
                   <View
                     key={step.step_id}
-                    style={[styles.row, isHeroStep && styles.rowHero]}
+                    style={[
+                      styles.row,
+                      isHeroStep && styles.rowHero,
+                      isSelected && styles.rowSelected,
+                    ]}
                   >
                     <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
                     <Pressable
@@ -131,12 +139,13 @@ export function OpenStepPicker({
                         pressed && styles.rowPressed,
                       ]}
                       accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
                       accessibilityLabel={`Focus on ${step.title}`}
                     >
                     <View style={styles.rowBody}>
                       <View style={styles.rowTitleRow}>
                         <Text style={styles.title} numberOfLines={2}>
-                          {step.title}
+                          {index + 1}. {step.title}
                         </Text>
                         {badgeLabel && badgeTone ? (
                           <View
@@ -172,9 +181,9 @@ export function OpenStepPicker({
                       </View>
                     </View>
                       <Ionicons
-                        name="chevron-forward"
-                        size={16}
-                        color={IOS_COLORS.tertiaryLabel}
+                        name={isSelected ? 'checkmark' : 'chevron-forward'}
+                        size={isSelected ? 18 : 16}
+                        color={isSelected ? IOS_COLORS.systemBlue : IOS_COLORS.tertiaryLabel}
                       />
                     </Pressable>
                   </View>
@@ -236,10 +245,11 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   heading: {
+    fontFamily: fontFamily.mono,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
     letterSpacing: 0.6,
-    color: IOS_COLORS.labelSecondary,
+    color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
     paddingHorizontal: 4,
     paddingTop: 4,
@@ -254,7 +264,7 @@ const styles = StyleSheet.create({
   },
   empty: {
     fontSize: 13,
-    color: IOS_COLORS.labelSecondary,
+    color: IOS_COLORS.secondaryLabel,
     paddingHorizontal: 8,
     paddingVertical: 12,
   },
@@ -269,6 +279,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(240, 169, 58, 0.10)',
     borderWidth: 1,
     borderColor: 'rgba(240, 169, 58, 0.42)',
+  },
+  rowSelected: {
+    borderWidth: 1,
+    borderColor: 'rgba(10, 132, 255, 0.42)',
+    backgroundColor: 'rgba(10, 132, 255, 0.08)',
   },
   rowPressable: {
     flex: 1,
@@ -301,7 +316,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: IOS_COLORS.labelSecondary,
+    color: IOS_COLORS.secondaryLabel,
     flexShrink: 1,
   },
   badge: {
@@ -313,9 +328,11 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   badgeText: {
+    fontFamily: fontFamily.mono,
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '500',
     letterSpacing: 0.7,
+    textTransform: 'uppercase',
   },
   title: {
     flex: 1,

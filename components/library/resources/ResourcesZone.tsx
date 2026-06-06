@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
 import { useLibraryZonesData } from '@/hooks/useLibraryZonesData';
@@ -230,9 +231,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 30,
-    fontWeight: '800',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_COLORS.label,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   metaRow: {
     flexDirection: 'row',
@@ -304,7 +306,9 @@ const styles = StyleSheet.create({
   },
   shelfCount: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
     color: IOS_COLORS.tertiaryLabel,
   },
   seeAll: {

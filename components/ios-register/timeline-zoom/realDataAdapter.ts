@@ -414,6 +414,7 @@ function getReviewDigest(metadata: Record<string, unknown> | null | undefined): 
   keyTakeaway?: string;
   reflectionSummary?: string;
   evidenceCount?: number;
+  review?: StepReviewData;
 } {
   if (!metadata) return {};
   const review = (metadata as { review?: unknown }).review as StepReviewData | undefined;
@@ -439,6 +440,7 @@ function getReviewDigest(metadata: Record<string, unknown> | null | undefined): 
     keyTakeaway,
     reflectionSummary,
     evidenceCount: evidenceCount > 0 ? evidenceCount : undefined,
+    review,
   };
 }
 
@@ -502,6 +504,7 @@ function recordToStep(
   const scheduleAnchor = resolveScheduleAnchor(rec);
   const today = isToday(scheduleAnchor);
   const plan = getPlanData(rec.metadata);
+  const metadata = rec.metadata as { race_plan?: unknown } | null | undefined;
 
   // Capability tags — metadata.plan.capability_goals holds the user-facing
   // chips ("Sail Selection", "Sail Design", "Sail Measurement"). A step
@@ -535,8 +538,9 @@ function recordToStep(
   // HOW WILL YOU DO IT? — from metadata.plan.how_sub_steps
   const howItems: StepHowItem[] | undefined = plan?.how_sub_steps
     ?.slice()
+    .filter((sub) => sub.text?.trim())
     .sort((a, b) => a.sort_order - b.sort_order)
-    .map((sub) => ({ id: sub.id, label: sub.text, checked: sub.completed }));
+    .map((sub) => ({ id: sub.id, label: sub.text.trim(), checked: sub.completed }));
   const linkedResourceCount = plan?.linked_resource_ids?.length ?? 0;
   const whyReasoning = plan?.why_reasoning?.trim() || undefined;
   const whenLabel = formatWhenLabel(scheduleAnchor);
@@ -592,9 +596,14 @@ function recordToStep(
       ? 'blueprint'
       : 'mine';
 
+  // Titles are single-line. Some seed/capture rows appended "When: …\nWhere: …"
+  // metadata into the title with newlines; keep only the first line so the L1
+  // headline (and L3/L4 node labels) don't render that junk in big serif.
+  const cleanTitle = (rec.title || 'Untitled step').split('\n')[0].trim() || 'Untitled step';
+
   return {
     id: rec.id,
-    title: rec.title || 'Untitled step',
+    title: cleanTitle,
     preTitle,
     dayOfWeek: dayKey,
     weekId,
@@ -603,10 +612,15 @@ function recordToStep(
     originKind,
     metaLeft,
     metaRight,
+    locationName: locName ?? undefined,
     whatBody: plan?.what_will_you_do || rec.description || undefined,
     whyReasoning,
     whenLabel,
+    startsAt: rec.starts_at,
+    endsAt: rec.ends_at,
     howItems,
+    plan,
+    review: reviewDigest.review,
     linkedResourceCount,
     keyTakeaway: reviewDigest.keyTakeaway,
     reflectionSummary: reviewDigest.reflectionSummary,
@@ -622,6 +636,11 @@ function recordToStep(
         : undefined,
     pinnedFromOtherInterest,
     isRace: rec.is_race === true,
+    racePlan:
+      metadata?.race_plan && typeof metadata.race_plan === 'object'
+        ? (metadata.race_plan as TimelineStep['racePlan'])
+        : undefined,
+    metadata: rec.metadata ?? {},
   };
 }
 

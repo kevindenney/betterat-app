@@ -175,6 +175,47 @@ body{margin:0;padding:34px 20px 90px;background:#CBD2D9;font-family:var(--sans);
 .nrow .pin{width:32px;height:32px;border-radius:9px;background:rgba(0,122,255,.10);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;}
 .nsep{height:0.5px;background:var(--sep);margin:0 18px 0 72px;background-clip:content-box;}
 
+/* ===== FRAME A2 — MAP TOGGLE (demoted street map) ===== */
+.nmap{position:absolute;left:0;right:0;top:150px;bottom:64px;background:#EEEBE3;overflow:hidden;}
+.nmap .water{position:absolute;background:#AFD4E6;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.04);}
+.nmap .park{position:absolute;background:#CFE3C4;border-radius:48% 40% 55% 45%;opacity:.85;}
+.nmap .road{position:absolute;height:3px;background:#FBFAF7;border-radius:2px;box-shadow:0 0 0 .5px rgba(0,0,0,.05);transform-origin:left center;}
+.nmap .road.big{height:5px;background:#F4EFE6;}
+.nmap .glbl{position:absolute;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(60,70,82,.5);}
+.nmap .glbl.wlbl{color:rgba(40,90,120,.6);font-style:italic;text-transform:none;letter-spacing:.02em;}
+/* rotation-journey path (geography = your term timeline) */
+.route{position:absolute;inset:0;z-index:5;pointer-events:none;}
+/* site markers — buildings, not a continuous surface */
+.mpin{position:absolute;transform:translate(-50%,-50%);z-index:20;}
+.mpin .mk{position:relative;width:40px;height:40px;border-radius:12px;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(0,0,0,.26);}
+.mpin .mk.now{background:var(--now-bg);}
+.mpin .mk.soon{background:var(--soon-bg);}
+.mpin .mk.done{background:var(--done-bg);}
+.mpin .wk{position:absolute;top:-8px;left:-8px;min-width:19px;height:19px;padding:0 4px;border-radius:10px;background:#1C1C1E;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;}
+.mpin .lab{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#23303c;background:rgba(255,255,255,.92);padding:2px 7px;border-radius:7px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.14);}
+.mpin.sel .mk{width:48px;height:48px;font-size:21px;box-shadow:0 0 0 5px rgba(0,122,255,.18),0 5px 14px rgba(0,0,0,.3);}
+.mpin.sm .mk{width:28px;height:28px;font-size:12px;border-width:2px;box-shadow:0 2px 7px rgba(0,0,0,.22);}
+.mpin.sm .lab{font-size:9px;padding:1px 6px;}
+.mpin .gapbadge{position:absolute;top:-11px;right:-11px;background:#D97706;color:#fff;font-size:9px;font-weight:800;letter-spacing:.02em;padding:3px 7px;border-radius:9px;white-space:nowrap;border:1.5px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.28);}
+/* floating map callout — Apple-Maps style, for the live "Now" site */
+.callout{position:absolute;left:14px;right:14px;bottom:74px;z-index:45;background:rgba(255,255,255,.98);backdrop-filter:blur(18px);border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:13px 15px;}
+.callout .hd{display:flex;align-items:center;gap:11px;}
+.callout .badge{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;}
+.callout .hd .b{flex:1;min-width:0;}
+.callout .hd h3{margin:0;font-size:15.5px;font-weight:700;}
+.callout .hd .unit{font-size:12px;color:var(--label2);margin-top:1px;}
+.callout .open{font-size:13px;font-weight:700;color:var(--blue);background:rgba(0,122,255,.10);border-radius:9px;padding:7px 12px;flex:none;}
+.callout .foot{display:flex;align-items:center;gap:7px;margin-top:11px;font-size:11.5px;color:var(--label2);}
+.callout .foot .av{display:flex;}
+.callout .foot .av i{width:18px;height:18px;border-radius:50%;border:1.5px solid #fff;margin-left:-6px;font-size:8px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;}
+.callout .foot .av i:first-child{margin-left:0;}
+.callout .foot b{color:var(--label);font-weight:700;}
+/* map legend chip */
+.maplegend{position:absolute;left:14px;top:160px;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-radius:11px;padding:8px 11px;box-shadow:0 2px 10px rgba(0,0,0,.14);font-size:10px;font-weight:600;color:var(--label2);}
+.maplegend .lrow{display:flex;align-items:center;gap:7px;margin-top:5px;}
+.maplegend .lrow:first-child{margin-top:0;}
+.maplegend .sw{width:11px;height:11px;border-radius:4px;flex:none;}
+
 /* tab bar */
 .tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(248,248,250,.94);border-top:0.5px solid var(--sep);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;backdrop-filter:blur(20px);z-index:55;}
 .tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--label3);}
@@ -284,6 +325,112 @@ body{margin:0;padding:34px 20px 90px;background:#CBD2D9;font-family:var(--sans);
       Opens on a structured rotation surface, not a Baltimore street map. Next rotation is the hero; each site shows a
       <b>competency-coverage bar</b> (colored by skill cluster) and <b>who from your cohort is there</b>. Map is a
       secondary segment toggle, used mainly for cold first-run discovery.</div>
+  </div>
+
+  <!-- ============ FRAME A2 — MAP toggle ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">Nursing · Baltimore ▾</span></div>
+      <div class="nav">
+        <div class="top">
+          <div><h1>Atlas</h1><div class="sub">Your clinical sites &amp; coverage</div></div>
+          <div class="acts"><div class="ic">🔍</div><div class="ic">+</div></div>
+        </div>
+        <div class="seg"><div>Sites</div><div class="on">Map</div></div>
+        <div class="chips"><span class="on">You</span><span>Cohort</span><span>Program</span><span>Faculty</span></div>
+      </div>
+
+      <!-- demoted street map: a few buildings + your rotation journey -->
+      <div class="nmap">
+        <!-- Patapsco / Inner Harbor at the bottom edge -->
+        <div class="water" style="left:8%;bottom:-8%;width:70%;height:22%;border-radius:46% 54% 0 0/82% 70% 0 0;"></div>
+        <div class="water" style="left:62%;bottom:-10%;width:46%;height:18%;border-radius:54% 40% 0 0/70% 80% 0 0;"></div>
+        <div class="park" style="left:6%;top:44%;width:22%;height:18%;"></div>
+        <!-- a couple of arterials, muted (the map is secondary) -->
+        <div class="road big" style="left:-6%;top:62%;width:124%;transform:rotate(-15deg);"></div>
+        <div class="road" style="left:-6%;top:36%;width:120%;transform:rotate(7deg);"></div>
+        <div class="road" style="left:46%;top:-6%;width:96%;transform:rotate(74deg);"></div>
+        <div class="glbl" style="left:55%;top:50%;">East Baltimore</div>
+        <div class="glbl" style="left:10%;top:14%;">Columbia</div>
+        <div class="glbl" style="left:9%;bottom:14%;">Washington</div>
+        <div class="glbl wlbl" style="left:30%;bottom:5%;">Patapsco · Inner Harbor</div>
+
+        <!-- rotation-journey path: Sibley wk2 → JHH wk3 → Bayview wk5 → Howard wk9 -->
+        <svg class="route" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline points="18,78 52,46 80,30 24,20" fill="none" stroke="#0E7490"
+            stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round" stroke-linejoin="round"
+            vector-effect="non-scaling-stroke" opacity="0.45"/>
+        </svg>
+
+        <!-- completed -->
+        <div class="mpin" style="left:18%;top:78%;">
+          <div class="mk done">✓</div><div class="wk" style="background:#15803D;">2</div>
+          <div class="lab">Sibley · done</div>
+        </div>
+        <!-- now / selected -->
+        <div class="mpin sel" style="left:52%;top:46%;">
+          <div class="mk now">🫀</div><div class="wk" style="background:var(--blue);">3</div>
+          <div class="lab">JHH · 4 South · now</div>
+        </div>
+        <!-- sim suite, clustered by JHH (no week node) -->
+        <div class="mpin sm" style="left:66%;top:54%;">
+          <div class="mk" style="background:rgba(118,118,128,.16);">🎓</div>
+          <div class="lab">Pinkard sim</div>
+        </div>
+        <!-- upcoming Monday -->
+        <div class="mpin" style="left:80%;top:30%;">
+          <div class="mk soon">🫁</div><div class="wk" style="background:#B45309;">5</div>
+          <div class="lab">Bayview · Mon</div>
+        </div>
+        <!-- the gap-closer rotation -->
+        <div class="mpin" style="left:24%;top:20%;">
+          <div class="mk soon">🩺</div><div class="wk" style="background:#B45309;">9</div>
+          <div class="gapbadge">closes 2 gaps</div>
+          <div class="lab">Howard County</div>
+        </div>
+      </div>
+
+      <!-- pin-state key -->
+      <div class="maplegend">
+        <div class="lrow"><span class="sw" style="background:var(--now-bg)"></span>Now</div>
+        <div class="lrow"><span class="sw" style="background:var(--soon-bg)"></span>Upcoming</div>
+        <div class="lrow"><span class="sw" style="background:var(--done-bg)"></span>Done</div>
+      </div>
+
+      <!-- floating callout for the live site -->
+      <div class="callout">
+        <div class="hd">
+          <div class="badge" style="background:var(--now-bg)">🫀</div>
+          <div class="b"><h3>Johns Hopkins Hospital</h3><div class="unit">4 South · Cardiac telemetry · 0.3 km</div></div>
+          <div class="open">Open site</div>
+        </div>
+        <div class="cov">
+          <div class="lab"><span><b>7</b> of 12 competencies evidenced</span><span>week 3 of 4</span></div>
+          <div class="track">
+            <i class="cardiac" style="width:24%"></i><i class="assess" style="width:16%"></i>
+            <i class="med" style="width:14%"></i><i class="general" style="width:5%"></i>
+          </div>
+        </div>
+        <div class="foot">
+          <span class="av"><i style="background:#3F6FA8">LN</i><i style="background:#9A5B9E">MR</i><i style="background:#2B7A4B">AK</i></span>
+          <span><b>5 cohort-mates</b> here this block</span>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>Practice</div>
+        <div class="tab"><span class="ic">▤</span>Library</div>
+        <div class="tab"><span class="ic">◉</span>Watch</div>
+        <div class="tab on"><span class="ic">🧭</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">A2 · MAP</span><b>The Map toggle — a node map, not a chart.</b>
+      The honest job of the demoted street map: a few <b>building pins</b> (no continuous surface, no sub-site detail),
+      each colored by rotation status and stamped with its <b>program week</b>. The dashed <b>rotation-journey line</b>
+      threads them in term order — Sibley (wk2, done) → JHH (now) → Bayview (Mon) → Howard County (wk9) — so geography
+      reads as your timeline. The Howard County pin carries the <b>“closes 2 gaps”</b> badge from Frame C, pointing you
+      at the building where your missing competencies live. Tapping any pin opens the same site detail (Frame B).</div>
   </div>
 
   <!-- ============ FRAME B — Site detail ============ -->
@@ -435,6 +582,7 @@ body{margin:0;padding:34px 20px 90px;background:#CBD2D9;font-family:var(--sans);
     <li><span class="pill new">NEW</span><b>Competency constellation + gap view</b> (Frame C) — "where have I evidenced X / where am I short before graduation," routed to the upcoming rotation that closes the gap.</li>
     <li><span class="pill new">NEW</span><b>Real Log-a-shift loop</b> (Frame B) — site-level, no patient text; the thing that earns coverage instead of seeding it.</li>
     <li><span class="pill new">NEW</span><b>Cohort presence, date-based</b> — "5 cohort-mates here this block," never real-time / "currently here."</li>
+    <li><span class="pill new">NEW</span><b>Map toggle as a node map, not a chart</b> (Frame A2) — when the demoted street map is shown it draws a handful of <b>building pins</b> (status-colored, week-stamped), a dashed <b>rotation-journey line</b> in term order, and lifts the <b>gap badge</b> onto the rotation that closes a missing competency. Two things a list can't express — the commute geography and the journey-as-timeline — are its only job; everything else routes back to the Sites surface. Privacy floor is structural: site-level only, no unit/room, no individual live position.</li>
   </ul>
 
   <h3>What's already right (keep)</h3>

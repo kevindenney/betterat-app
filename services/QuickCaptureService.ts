@@ -229,8 +229,13 @@ async function getOrderedTimelineSteps(
 // ordered purely by sort_order rather than pinned to today's date bucket.
 async function resolveQuickCapturePlacement(userId: string, interestId: string) {
   const steps = await getOrderedTimelineSteps(userId, interestId);
+  // Index-based append, not `last.sort_order + 1`. The timeline is
+  // contiguous-by-design (project_timeline_steps_sort_order_degenerate), so a
+  // single poisoned/degenerate sort_order must not propagate: deriving the next
+  // value from the max would inherit a huge outlier and strand every future
+  // step at the bottom past a giant gap. Positional length stays bounded.
   return {
-    sortOrder: (steps.at(-1)?.sort_order ?? 0) + 1,
+    sortOrder: steps.length,
     startsAt: null as string | null,
   };
 }

@@ -8,6 +8,7 @@ import {
   LABEL,
   LABEL_2,
 } from '@/lib/design-tokens-step-loop-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export interface SynthesisPromptProps {
   capturesCount: number;
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   copy: {
     fontSize: 15,
     lineHeight: 22,
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
     color: LABEL,
   },

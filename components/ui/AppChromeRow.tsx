@@ -55,6 +55,8 @@ export interface AppChromeRowProps {
   trailingActions?: React.ReactNode;
   /** Suppress the universal-plus button (default true). */
   showPlus?: boolean;
+  /** Override the plus action. Defaults to the root universal-plus composer. */
+  onPlusPress?: () => void;
   /** Suppress the inbox bell (default true). */
   showInboxBell?: boolean;
   /** Suppress the avatar (default true). */
@@ -74,6 +76,7 @@ export function AppChromeRow({
   leftExtras,
   trailingActions,
   showPlus = true,
+  onPlusPress,
   showInboxBell = true,
   showAvatar = true,
   style,
@@ -83,6 +86,7 @@ export function AppChromeRow({
 }: AppChromeRowProps) {
   const universalPlus = useUniversalPlus();
   const { isDrawerOpen, openDrawer } = useWebDrawer();
+  const canShowPlus = showPlus && (Boolean(onPlusPress) || universalPlus.isAvailable);
   const showWebSidebarToggle =
     Platform.OS === 'web' && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT && !isDrawerOpen;
 
@@ -114,17 +118,19 @@ export function AppChromeRow({
 
       <View style={styles.rightCluster}>
         {trailingActions}
-        {showPlus && universalPlus.isAvailable ? (
+        {canShowPlus ? (
           <Pressable
             style={styles.iconBtn}
-            onPress={universalPlus.open}
+            onPress={onPlusPress ?? universalPlus.open}
             accessibilityLabel="Add"
             hitSlop={6}
           >
             <Ionicons name="add" size={22} color={iconColor} />
           </Pressable>
         ) : null}
-        {showInboxBell ? (
+        {/* Inbox now rides as a badge on the avatar (ProfileDropdown), so the
+            standalone bell only shows on surfaces with no avatar. */}
+        {showInboxBell && !showAvatar ? (
           <View style={styles.iconBtn}>
             <NotificationBell size={bellSize} color={iconColor} />
           </View>

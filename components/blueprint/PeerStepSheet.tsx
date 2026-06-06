@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAdoptBlueprintStep } from '@/hooks/useBlueprint';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { PeerTimeline, PeerTimelineStep } from '@/types/blueprint';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 
@@ -303,6 +304,8 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
   },
   peerProgress: {
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     fontSize: 13,
     color: '#8E8E93',
     marginTop: 2,
@@ -314,15 +317,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   stepLabel: {
+    fontFamily: fontFamily.mono,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#8E8E93',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
   stepTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fontFamily.serif,
+    fontSize: 19,
+    fontWeight: '500',
+    letterSpacing: -0.3,
     color: '#1C1C1E',
   },
   stepDescription: {
@@ -338,8 +344,9 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E4E1',
   },
   statusHeader: {
+    fontFamily: fontFamily.mono,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#8E8E93',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -363,6 +370,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   statusDate: {
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     fontSize: 13,
     color: '#8E8E93',
   },

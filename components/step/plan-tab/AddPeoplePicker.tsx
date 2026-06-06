@@ -30,6 +30,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useAuth } from '@/providers/AuthProvider';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useInterest } from '@/providers/InterestProvider';
@@ -928,9 +929,11 @@ const styles = StyleSheet.create({
     borderBottomColor: IOS_COLORS.systemGray5,
   },
   headTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_COLORS.label,
+    letterSpacing: -0.3,
     flex: 1,
     textAlign: 'center',
   },
@@ -970,7 +973,8 @@ const styles = StyleSheet.create({
   },
   selectedEye: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
@@ -1029,13 +1033,16 @@ const styles = StyleSheet.create({
   },
   groupHeadText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   groupCount: {
     fontSize: 10.5,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
   },
   pkRow: {
@@ -1111,7 +1118,8 @@ const styles = StyleSheet.create({
   },
   rolePillInlineText: {
     fontSize: 9.5,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: '#1B7F3A',
     letterSpacing: 0.4,
   },
@@ -1129,7 +1137,8 @@ const styles = StyleSheet.create({
   },
   tagPillText: {
     fontSize: 9.5,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.4,
   },
   chk: {

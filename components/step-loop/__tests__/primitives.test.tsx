@@ -34,6 +34,7 @@ jest.mock('react-native', () => {
     View: 'View',
     Text: 'Text',
     Pressable: 'Pressable',
+    ScrollView: 'ScrollView',
     Platform: {
       OS: 'ios',
       select: (obj: Record<string, unknown>) => obj.ios ?? obj.default,
@@ -165,6 +166,29 @@ describe('<PhaseTabs>', () => {
       />,
     );
     expect(r.toJSON()).toBeTruthy();
+  });
+
+  test('renders discussion as a separate thread bubble', () => {
+    const r = render(
+      <PhaseTabs
+        plan="ready"
+        do="ready"
+        reflect="live"
+        discussion="ready"
+        discussionCount={2}
+        active="reflect"
+        onTabPress={() => undefined}
+        labels={{ reflect: 'Review', discussion: 'Discuss' }}
+      />,
+    );
+
+    expect(r.root.findByProps({ accessibilityLabel: 'Discuss thread, 2 updates' })).toBeTruthy();
+    expect(
+      r.root.findAll((node) => node.type === 'Text' && node.children.includes('Review')),
+    ).toHaveLength(1);
+    expect(
+      r.root.findAll((node) => node.type === 'Text' && node.children.includes('Discuss')),
+    ).toHaveLength(0);
   });
 });
 

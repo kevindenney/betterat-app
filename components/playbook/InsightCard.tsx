@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export interface InsightCardProps {
   insight: {
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
     fontSize: 19,
     lineHeight: 28,
     color: '#1C1C1E',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
   },
   actions: {

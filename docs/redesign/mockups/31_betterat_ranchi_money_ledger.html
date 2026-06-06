@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · How the Ranchi entrepreneur enters &amp; tracks her money</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans Devanagari','Inter','Segoe UI',sans-serif;
+  --grouped:#EFE6D3;
+  --card:#FFFDF8;
+  --label:#2A2118;
+  --label2:rgba(60,48,32,0.60);
+  --label3:rgba(60,48,32,0.32);
+  --sep:rgba(80,60,40,0.12);
+  --terra:#C2410C;     /* making / cost-out */
+  --marigold:#D97706;  /* selling */
+  --indigo:#4338CA;    /* money / savings / credit */
+  --grow:#15803D;      /* income-in / profit / growth */
+  --teal:#0E7490;      /* digital / UPI */
+  --terra-bg:rgba(194,65,12,.10);
+  --marigold-bg:rgba(217,119,6,.12);
+  --indigo-bg:rgba(67,56,202,.10);
+  --grow-bg:rgba(21,128,61,.10);
+  --teal-bg:rgba(14,116,144,.10);
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#CBC2B0;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1320px;margin:0 auto 4px;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1320px;margin:0 auto 26px;font-size:13px;color:#4A3D2C;line-height:1.62;}
+.page-sub b{color:#241c12;}
+.page-sub .tt{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:var(--grow);border-radius:5px;padding:2px 7px;margin-right:4px;vertical-align:1px;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1320px;margin:0 auto;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#3d3324;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#1c1610;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--grow);border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+
+/* phone shell */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(60,40,20,.28);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:var(--label);z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--label2);}
+.offline{position:absolute;top:46px;right:14px;z-index:48;font-size:9.5px;font-weight:800;color:#8a6a3a;background:rgba(255,253,248,.9);border:0.5px solid var(--sep);border-radius:7px;padding:3px 7px;display:flex;align-items:center;gap:4px;}
+.offline i{width:6px;height:6px;border-radius:50%;background:var(--marigold);display:block;}
+
+/* nav header */
+.nav{position:absolute;top:42px;left:0;right:0;z-index:40;padding:6px 18px 12px;background:var(--grouped);}
+.nav .top{display:flex;align-items:center;justify-content:space-between;}
+.nav .back{font-size:15px;color:var(--terra);font-weight:700;display:flex;align-items:center;gap:3px;}
+.nav .eyebrow{font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--grow);}
+.nav h1{font-size:25px;font-weight:800;letter-spacing:-.3px;margin:2px 0 0;line-height:1.05;}
+.nav h1 .listen{font-size:15px;color:var(--terra);margin-left:6px;}
+.nav .sub{font-size:12px;color:var(--label2);margin-top:2px;}
+
+/* ===== FRAME A — log a sale (voice-first quick capture) ===== */
+.cap-body{position:absolute;left:0;right:0;top:118px;bottom:64px;overflow:hidden;padding:12px 16px;}
+.micbig{margin:6px auto 0;width:100%;background:linear-gradient(180deg,#fff,#FFF7EC);border:0.5px solid var(--sep);border-radius:20px;padding:18px 16px;text-align:center;box-shadow:0 4px 14px rgba(70,45,20,.10);}
+.micbig .orb{width:72px;height:72px;border-radius:50%;background:var(--terra);color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;margin:0 auto;box-shadow:0 8px 22px rgba(194,65,12,.42);}
+.micbig .say{margin-top:11px;font-size:14px;font-weight:800;}
+.micbig .ex{margin-top:5px;font-size:12px;color:var(--label2);font-style:italic;line-height:1.45;}
+/* what AI heard → parsed card */
+.parsed{margin-top:13px;background:var(--card);border-radius:18px;border:0.5px solid var(--sep);box-shadow:0 2px 8px rgba(70,45,20,.08);overflow:hidden;}
+.parsed .heard{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--grow-bg);font-size:12px;color:#15643A;font-weight:700;}
+.parsed .heard b{font-weight:800;}
+.prow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:0.5px solid var(--sep);}
+.prow .pk{font-size:12px;font-weight:700;color:var(--label2);width:74px;flex:none;}
+.prow .pv{flex:1;font-size:16px;font-weight:800;}
+.prow .pv small{font-size:12px;font-weight:600;color:var(--label2);}
+.stepper{display:flex;align-items:center;gap:12px;}
+.stepper button{width:34px;height:34px;border-radius:50%;border:none;background:var(--grouped);color:var(--terra);font-size:20px;font-weight:800;font-family:var(--sans);}
+.stepper .n{font-size:20px;font-weight:800;min-width:34px;text-align:center;}
+.paychips{display:flex;gap:8px;}
+.paychips span{font-size:13px;font-weight:800;padding:8px 13px;border-radius:10px;background:var(--grouped);color:var(--label2);display:flex;align-items:center;gap:5px;}
+.paychips span.on{background:var(--teal-bg);color:var(--teal);box-shadow:inset 0 0 0 1.5px var(--teal);}
+.prow.total{background:#FBF4E8;}
+.prow.total .pv{font-size:24px;color:var(--grow);letter-spacing:-.5px;}
+.savebtn{margin-top:14px;width:100%;border:none;background:var(--grow);color:#fff;font-family:var(--sans);font-size:17px;font-weight:800;padding:15px 0;border-radius:15px;box-shadow:0 6px 16px rgba(21,128,61,.30);}
+.prodrow{display:flex;gap:7px;margin-top:12px;}
+.prodrow span{flex:1;text-align:center;font-size:12px;font-weight:700;padding:9px 0;border-radius:11px;background:var(--card);border:0.5px solid var(--sep);color:var(--label2);}
+.prodrow span.on{background:var(--marigold-bg);color:#B45309;border-color:rgba(217,119,6,.4);}
+.todaystrip{display:flex;align-items:center;gap:9px;margin-top:13px;background:var(--grow-bg);border-radius:12px;padding:11px 13px;}
+.todaystrip .ic{font-size:17px;}
+.todaystrip b{font-size:14px;font-weight:800;color:#15643A;}
+.todaystrip span{font-size:12px;color:var(--label2);margin-left:auto;font-weight:700;}
+
+/* ===== FRAME B — haat close-out / reconcile ===== */
+.rec-head{padding:118px 18px 12px;}
+.rec-head .kind{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--marigold);}
+.rec-head h2{margin:4px 0 0;font-size:21px;font-weight:800;letter-spacing:-.3px;}
+.rec-head h2 small{font-weight:600;font-size:13px;color:var(--label2);}
+.rec-body{position:absolute;left:0;right:0;top:186px;bottom:64px;overflow:hidden;padding:2px 16px;}
+.reccard{background:var(--card);border-radius:16px;border:0.5px solid var(--sep);box-shadow:0 1px 3px rgba(70,45,20,.06);overflow:hidden;}
+.recsec{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);margin:14px 4px 7px;}
+.rline{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:0.5px solid var(--sep);}
+.rline:first-child{border-top:none;}
+.rline .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;}
+.rline .b{flex:1;}
+.rline .b h5{margin:0;font-size:14px;font-weight:700;}
+.rline .b p{margin:1px 0 0;font-size:11px;color:var(--label2);}
+.rline .amt{font-size:16px;font-weight:800;}
+.rline .amt.in{color:var(--grow);} .rline .amt.out{color:var(--terra);}
+.rline .step{display:flex;align-items:center;gap:10px;}
+.rline .step button{width:30px;height:30px;border-radius:50%;border:none;background:var(--grouped);color:var(--terra);font-size:18px;font-weight:800;font-family:var(--sans);}
+.rline .step .n{font-size:17px;font-weight:800;min-width:26px;text-align:center;}
+.profit{margin-top:13px;background:var(--grow);border-radius:18px;padding:16px 18px;color:#fff;box-shadow:0 8px 20px rgba(21,128,61,.30);}
+.profit .pk{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.85;display:flex;align-items:center;gap:6px;}
+.profit .pv{font-size:34px;font-weight:800;letter-spacing:-.6px;margin-top:3px;line-height:1;}
+.profit .calc{font-size:12px;opacity:.9;margin-top:6px;}
+.profit .pay{display:flex;gap:8px;margin-top:11px;}
+.profit .pay span{font-size:11px;font-weight:800;background:rgba(255,255,255,.18);border-radius:8px;padding:5px 9px;}
+.recbtn{margin-top:13px;width:100%;border:none;background:var(--terra);color:#fff;font-family:var(--sans);font-size:16px;font-weight:800;padding:14px 0;border-radius:15px;}
+
+/* ===== FRAME C — बही-खाता ledger (track over time) ===== */
+.led-head{padding:118px 18px 10px;display:flex;align-items:center;justify-content:space-between;}
+.led-head .mo{font-size:13px;font-weight:800;color:var(--label);background:var(--card);border:0.5px solid var(--sep);border-radius:9px;padding:7px 12px;}
+.tiles{display:flex;gap:8px;padding:0 16px;}
+.tile{flex:1;border-radius:14px;padding:11px 12px;border:0.5px solid var(--sep);}
+.tile .tk{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--label2);}
+.tile .tv{font-size:18px;font-weight:800;letter-spacing:-.4px;margin-top:4px;}
+.tile.inc{background:var(--grow-bg);} .tile.inc .tv{color:var(--grow);}
+.tile.exp{background:var(--terra-bg);} .tile.exp .tv{color:var(--terra);}
+.tile.pro{background:var(--indigo-bg);} .tile.pro .tv{color:var(--indigo);}
+.chartwrap{margin:13px 16px 0;background:var(--card);border:0.5px solid var(--sep);border-radius:14px;padding:13px 14px 10px;}
+.chartwrap .ct{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--label3);margin-bottom:9px;}
+.bars{display:flex;align-items:flex-end;gap:12px;height:78px;}
+.barc{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.barpair{display:flex;align-items:flex-end;gap:3px;height:62px;}
+.barpair i{width:11px;border-radius:3px 3px 0 0;display:block;}
+.barpair .bi{background:var(--grow);} .barpair .be{background:var(--terra);opacity:.55;}
+.barc .bl{font-size:10px;font-weight:700;color:var(--label2);}
+.led-list{position:absolute;left:0;right:0;top:430px;bottom:64px;overflow:hidden;}
+.seg{display:flex;background:rgba(120,90,50,.12);border-radius:10px;padding:3px;margin:0 16px 6px;}
+.seg div{flex:1;text-align:center;font-size:12.5px;font-weight:700;color:var(--label2);padding:7px 0;border-radius:8px;}
+.seg div.on{background:#fff;color:var(--label);box-shadow:0 1px 3px rgba(60,40,20,.16);}
+.lrow{display:flex;align-items:center;gap:12px;padding:11px 16px;background:var(--card);border-bottom:0.5px solid var(--sep);}
+.lrow .dt{width:42px;flex:none;text-align:center;}
+.lrow .dt b{display:block;font-size:14px;font-weight:800;line-height:1;}
+.lrow .dt span{font-size:9.5px;color:var(--label2);font-weight:700;}
+.lrow .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+.lrow .b{flex:1;min-width:0;}
+.lrow .b h5{margin:0;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lrow .b p{margin:1px 0 0;font-size:11px;color:var(--label2);display:flex;align-items:center;gap:5px;}
+.lrow .pm{font-size:9px;font-weight:800;border-radius:5px;padding:1px 5px;}
+.lrow .pm.upi{background:var(--teal-bg);color:var(--teal);} .lrow .pm.cash{background:rgba(120,90,50,.14);color:#7a5a30;}
+.lrow .amt{font-size:15px;font-weight:800;flex:none;}
+.lrow .amt.in{color:var(--grow);} .lrow .amt.out{color:var(--terra);}
+.addfab{position:absolute;right:16px;bottom:78px;z-index:46;width:56px;height:56px;border-radius:50%;background:var(--terra);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(194,65,12,.42);}
+.addfab .ic{font-size:22px;line-height:1;}
+.addfab .t{font-size:8px;font-weight:800;}
+
+/* ===== FRAME D — बचत और कर्ज़ (savings & credit) ===== */
+.sav-body{position:absolute;left:0;right:0;top:118px;bottom:64px;overflow:hidden;padding:8px 16px;}
+.scard{background:var(--card);border-radius:16px;border:0.5px solid var(--sep);box-shadow:0 1px 3px rgba(70,45,20,.06);padding:14px 15px;margin-top:11px;}
+.scard .sh{display:flex;align-items:center;gap:9px;}
+.scard .sh .ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;}
+.scard .sh .t{flex:1;}
+.scard .sh .t .k{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--label2);}
+.scard .sh .t h4{margin:2px 0 0;font-size:16px;font-weight:800;}
+.scard .sh .big{font-size:20px;font-weight:800;letter-spacing:-.4px;}
+.scard .sh .big.in{color:var(--grow);} .scard .sh .big.deb{color:var(--indigo);}
+.weeks{display:flex;gap:5px;margin-top:12px;}
+.weeks i{flex:1;height:8px;border-radius:3px;background:var(--grow);}
+.weeks i.miss{background:rgba(120,90,50,.18);}
+.scard .note{font-size:11.5px;color:var(--label2);margin-top:9px;line-height:1.45;}
+.scard .note b{color:var(--label);}
+.lbar{height:11px;border-radius:6px;background:rgba(67,56,202,.14);overflow:hidden;margin-top:12px;}
+.lbar i{display:block;height:100%;background:var(--indigo);border-radius:6px;}
+.instal{display:flex;align-items:center;gap:11px;margin-top:13px;background:var(--indigo-bg);border:0.5px solid rgba(67,56,202,.25);border-radius:13px;padding:11px 13px;}
+.instal .t{flex:1;}
+.instal .t .k{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--indigo);}
+.instal .t h5{margin:2px 0 0;font-size:14px;font-weight:800;}
+.instal .t h5 small{font-weight:600;font-size:11px;color:var(--label2);}
+.instal button{border:none;background:var(--indigo);color:#fff;font-family:var(--sans);font-size:13px;font-weight:800;padding:11px 15px;border-radius:11px;white-space:nowrap;}
+.savenudge{display:flex;align-items:center;gap:10px;margin-top:13px;background:var(--grow-bg);border-radius:13px;padding:12px 13px;}
+.savenudge .ic{font-size:18px;}
+.savenudge p{margin:0;font-size:12px;color:#15643A;line-height:1.45;font-weight:700;}
+.savenudge p b{font-weight:800;}
+
+/* tab bar */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(252,249,243,.95);border-top:0.5px solid var(--sep);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;backdrop-filter:blur(20px);z-index:55;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--label3);}
+.tab small{font-size:8px;font-weight:600;color:var(--label3);}
+.tab.on{color:var(--terra);}
+.tab .ic{font-size:18px;}
+
+.legend{max-width:1320px;margin:36px auto 0;background:#fff;border-radius:14px;padding:22px 26px;font-size:13px;line-height:1.65;color:#33291c;}
+.legend h2{font-size:15px;margin:0 0 12px;}
+.legend h3{font-size:13px;margin:18px 0 6px;color:#1c1610;}
+.legend ul{margin:4px 0 0;padding-left:20px;}
+.legend li{margin:5px 0;}
+.legend b{color:#1c1610;}
+.legend .pill{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-right:5px;}
+.legend .pill.new{background:#D1FADF;color:#1B7A3D;}
+.legend .pill.keep{background:#E6E0FF;color:#3B2EA0;}
+.legend table{border-collapse:collapse;margin-top:8px;width:100%;font-size:12.5px;}
+.legend td{border:0.5px solid #E7DFD0;padding:7px 10px;vertical-align:top;}
+.legend td:first-child{font-weight:800;white-space:nowrap;background:#FAF6EE;}
+.legend code{background:#F0E9DB;padding:1px 5px;border-radius:4px;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="page-h">Where she enters &amp; tracks the money</div>
+<div class="page-sub">
+  <span class="tt">Feeds #29</span>
+  Mockup #29 shows the money <b>outputs</b> — ₹6,400 this month, ₹900 last haat, the four income levers. Those numbers have to come from somewhere.
+  These are the <b>capture &amp; tracking surfaces</b> underneath: how a low-literacy, shared-phone user actually <b>logs a sale, closes a market day,
+  reads her बही-खाता (cash book), and tracks savings &amp; her Mudra loan</b> — without typing. Same design contract as #29: <b>🎙️ voice-first</b> (speak the
+  sale, AI parses it), 🔊 read-aloud, big touch targets, money in <b>₹</b>, <b>UPI-native</b>, and an <b>offline</b> badge because the haat has no signal.
+  Every number here is the one #29 displays — capture (A) → reconcile (B) → ledger (C) → savings/credit (D) is the full loop.
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME A — log a sale (voice-first) ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">बेड़ो हाट</span></div>
+      <div class="offline"><i></i>ऑफ़लाइन · सिंक होगा</div>
+      <div class="nav">
+        <div class="top"><div class="back">‹ हाट</div></div>
+        <div class="eyebrow">सौदा लिखें · log a sale</div>
+        <h1>क्या बिका?<span class="listen">🔊</span></h1>
+      </div>
+
+      <div class="cap-body">
+        <div class="micbig">
+          <div class="orb">🎙️</div>
+          <div class="say">बोलकर बताएँ</div>
+          <div class="ex">"अठारह जार अचार, पचास रुपये में, यूपीआई से"</div>
+        </div>
+
+        <div class="parsed">
+          <div class="heard">✓ समझा — <b>18 जार अचार · ₹50 · UPI</b> · ठीक करें?</div>
+          <div class="prow"><span class="pk">मात्रा</span>
+            <div class="stepper"><button>−</button><span class="n">18</span><button>+</button></div>
+            <span class="pv" style="flex:none"><small>जार</small></span></div>
+          <div class="prow"><span class="pk">दाम</span><span class="pv">₹50 <small>/जार</small></span></div>
+          <div class="prow"><span class="pk">भुगतान</span>
+            <div class="paychips"><span>💵 नकद</span><span class="on">📲 UPI</span></div></div>
+          <div class="prow total"><span class="pk">कुल</span><span class="pv">₹900</span></div>
+        </div>
+
+        <div class="prodrow"><span class="on">🫙 अचार</span><span>🥨 पापड़</span><span>🥭 चटनी</span></div>
+
+        <button class="savebtn">₹900 जोड़ें ✓</button>
+
+        <div class="todaystrip"><span class="ic">📈</span><b>आज तक ₹650 कमाए</b><span>13 जार बिके</span></div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab on"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab"><span class="ic">◉</span>दीदी<small>Watch</small></div>
+        <div class="tab"><span class="ic">🧭</span>बाज़ार<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">A</span><b>Log a sale — speak it, don't type it.</b>
+      The primary capture is the <b>🎙️ mic</b>: she says <i>"18 jars of achar, ₹50, UPI"</i> and the AI returns a <b>confirmable card</b> — quantity (with
+      ± steppers for a quick fix), price, payment (नकद / UPI), and a big <b>₹900 total</b>. Product chips and steppers are the no-voice fallback; nothing
+      requires reading a form. A <b>आज तक ₹650</b> strip keeps the running day visible. This single tap is what produces the <b>₹50/जार</b> and per-haat
+      sale figures #29 shows.</div>
+  </div>
+
+  <!-- ============ FRAME B — haat close-out / reconcile ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">बेड़ो हाट</span></div>
+      <div class="offline"><i></i>ऑफ़लाइन</div>
+      <div class="rec-head">
+        <div class="kind">● हाट का हिसाब · close the day</div>
+        <h2>बेड़ो हाट<small> · गुरुवार · हिसाब पूरा करें</small></h2>
+      </div>
+
+      <div class="rec-body">
+        <div class="recsec">माल · stock</div>
+        <div class="reccard">
+          <div class="rline"><div class="ic" style="background:var(--marigold-bg)">🫙</div><div class="b"><h5>लाए थे</h5><p>तैयारी से</p></div><span class="amt">30 जार</span></div>
+          <div class="rline"><div class="ic" style="background:var(--grow-bg)">✅</div><div class="b"><h5>बिके</h5><p>18 सौदे दर्ज</p></div><span class="amt in">18 जार</span></div>
+          <div class="rline"><div class="ic" style="background:rgba(120,90,50,.12)">↩️</div><div class="b"><h5>वापस लाए</h5></div>
+            <div class="step"><button>−</button><span class="n">12</span><button>+</button></div></div>
+        </div>
+
+        <div class="recsec">खर्च · costs today</div>
+        <div class="reccard">
+          <div class="rline"><div class="ic" style="background:var(--terra-bg)">🛺</div><div class="b"><h5>टेम्पो भाड़ा</h5><p>रेखा-सुनीता से बँटा</p></div><span class="amt out">−₹150</span></div>
+          <div class="rline"><div class="ic" style="background:var(--terra-bg)">🎁</div><div class="b"><h5>नमूने</h5><p>2 जार मुफ़्त</p></div><span class="amt out">−₹0</span></div>
+        </div>
+
+        <div class="profit">
+          <div class="pk">🟢 आज का मुनाफ़ा <span class="listen" style="margin-left:auto">🔊</span></div>
+          <div class="pv">₹750</div>
+          <div class="calc">₹900 बिक्री − ₹150 खर्च · 4 दोबारा ग्राहक</div>
+          <div class="pay"><span>💵 नकद ₹400</span><span>📲 UPI ₹500</span></div>
+        </div>
+
+        <button class="recbtn">हाट बंद करें ✓</button>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab on"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab"><span class="ic">◉</span>दीदी<small>Watch</small></div>
+        <div class="tab"><span class="ic">🧭</span>बाज़ार<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">B</span><b>Close the haat — the market-day reconcile that makes profit real.</b>
+      At day's end she confirms stock (<b>30 लाए → 18 बिके → 12 वापस</b>, auto-summed from the logged sales) and her <b>costs</b> (tempo fare, free samples),
+      and the app computes <b>मुनाफ़ा ₹750 = ₹900 − ₹150</b> with the cash/UPI split and repeat-customer count. This is the entrepreneur's version of a
+      "race debrief," and it's exactly the <b>पिछला हाट · 18 जार · ₹900</b> result that grounds the cockpit in #29 Frame B — profit, not just revenue,
+      because the "lower costs" lever needs the खर्च side captured.</div>
+  </div>
+
+  <!-- ============ FRAME C — बही-खाता ledger ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r"></span></div>
+      <div class="nav" style="padding-bottom:8px;">
+        <div class="top"><div class="back">‹ काम</div></div>
+        <div class="eyebrow">बही-खाता · your cash book</div>
+        <h1>हिसाब-किताब<span class="listen">🔊</span></h1>
+      </div>
+      <div class="led-head" style="padding:0 16px 10px;position:absolute;top:104px;right:0;z-index:41;"><div></div><div class="mo">जून ▾</div></div>
+
+      <div style="position:absolute;top:138px;left:0;right:0;">
+        <div class="tiles">
+          <div class="tile inc"><div class="tk">कमाई</div><div class="tv">₹6,400</div></div>
+          <div class="tile exp"><div class="tk">खर्च</div><div class="tv">₹2,100</div></div>
+          <div class="tile pro"><div class="tk">मुनाफ़ा</div><div class="tv">₹4,300</div></div>
+        </div>
+        <div class="chartwrap">
+          <div class="ct">हर हफ़्ते · कमाई ▮ बनाम खर्च ▯</div>
+          <div class="bars">
+            <div class="barc"><div class="barpair"><i class="bi" style="height:30px"></i><i class="be" style="height:14px"></i></div><div class="bl">हफ़्ता 1</div></div>
+            <div class="barc"><div class="barpair"><i class="bi" style="height:44px"></i><i class="be" style="height:18px"></i></div><div class="bl">हफ़्ता 2</div></div>
+            <div class="barc"><div class="barpair"><i class="bi" style="height:38px"></i><i class="be" style="height:12px"></i></div><div class="bl">हफ़्ता 3</div></div>
+            <div class="barc"><div class="barpair"><i class="bi" style="height:58px"></i><i class="be" style="height:20px"></i></div><div class="bl">हफ़्ता 4</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="led-list">
+        <div class="seg"><div class="on">सब</div><div>कमाई</div><div>खर्च</div></div>
+        <div class="lrow"><div class="dt"><b>4</b><span>गुरु</span></div><div class="ic" style="background:var(--grow-bg)">🫙</div><div class="b"><h5>बेड़ो हाट · 18 जार अचार</h5><p><span class="pm cash">नकद ₹400</span><span class="pm upi">UPI ₹500</span></p></div><span class="amt in">+₹900</span></div>
+        <div class="lrow"><div class="dt"><b>3</b><span>बुध</span></div><div class="ic" style="background:var(--terra-bg)">🥭</div><div class="b"><h5>आम खरीदा · मंडी</h5><p><span class="pm cash">नकद</span></p></div><span class="amt out">−₹300</span></div>
+        <div class="lrow"><div class="dt"><b>2</b><span>मंगल</span></div><div class="ic" style="background:var(--grow-bg)">📲</div><div class="b"><h5>WhatsApp ऑर्डर · 5 जार</h5><p><span class="pm upi">UPI</span></p></div><span class="amt in">+₹250</span></div>
+        <div class="lrow"><div class="dt"><b>1</b><span>सोम</span></div><div class="ic" style="background:var(--terra-bg)">📦</div><div class="b"><h5>खाली जार · पैकिंग</h5><p><span class="pm cash">नकद</span></p></div><span class="amt out">−₹180</span></div>
+        <div class="lrow"><div class="dt"><b>30</b><span>रवि</span></div><div class="ic" style="background:var(--indigo-bg)">🐖</div><div class="b"><h5>समूह बचत · जमा</h5><p><span class="pm upi">UPI</span></p></div><span class="amt out">−₹100</span></div>
+      </div>
+
+      <div class="addfab"><span class="ic">🎙️</span><span class="t">जोड़ें</span></div>
+
+      <div class="tabbar">
+        <div class="tab on"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab"><span class="ic">◉</span>दीदी<small>Watch</small></div>
+        <div class="tab"><span class="ic">🧭</span>बाज़ार<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">C</span><b>बही-खाता — the running cash book she actually tracks.</b>
+      The home of "track": three tiles (<b>कमाई ₹6,400 · खर्च ₹2,100 · मुनाफ़ा ₹4,300</b>, the exact figures #29 reports), a <b>weekly income-vs-expense
+      bar</b> so growth is visible at a glance, and a plain <b>ledger</b> where every row is a real entry — a haat sale, a mango purchase, a WhatsApp order,
+      an SHG savings deposit — each tagged <b>नकद / UPI</b> and read-aloud. The <b>🎙️ जोड़ें</b> FAB adds any entry by voice. This is the digital रोकड़ बही
+      that replaces her paper notebook — and the source of truth everything in #29 rolls up from.</div>
+  </div>
+
+  <!-- ============ FRAME D — बचत और कर्ज़ (savings & credit) ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r"></span></div>
+      <div class="nav" style="padding-bottom:10px;">
+        <div class="top"><div class="back">‹ हिसाब</div></div>
+        <div class="eyebrow">बचत और कर्ज़ · savings &amp; credit</div>
+        <h1>आगे की पूँजी<span class="listen">🔊</span></h1>
+      </div>
+
+      <div class="sav-body">
+        <div class="scard">
+          <div class="sh">
+            <div class="ic" style="background:var(--grow-bg)">🐖</div>
+            <div class="t"><div class="k">समूह बचत · सखी मंडल</div><h4>हर हफ़्ते ₹100</h4></div>
+            <div class="big in">₹4,800</div>
+          </div>
+          <div class="weeks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="miss"></i><i></i><i></i><i></i><i></i></div>
+          <div class="note">11 हफ़्ते से जमा ✓ · इस हफ़्ते की <b>₹100 बाकी</b> — शुक्रवार समूह बैठक में।</div>
+        </div>
+
+        <div class="scard">
+          <div class="sh">
+            <div class="ic" style="background:var(--indigo-bg)">🏦</div>
+            <div class="t"><div class="k">मुद्रा लोन · बैंक मित्र</div><h4>₹20,000 लिया</h4></div>
+            <div class="big deb">₹12,000<div style="font-size:10px;font-weight:700;color:var(--label2);text-align:right">बाकी</div></div>
+          </div>
+          <div class="lbar"><i style="width:40%"></i></div>
+          <div class="note"><b>₹8,000 चुका दिया</b> (40%) · 8 किस्तें बची · समय पर — क्रेडिट अच्छा बन रहा है।</div>
+          <div class="instal">
+            <div class="t"><div class="k">अगली किस्त · 5 जून</div><h5>₹1,000 <small>· 1 दिन में</small></h5></div>
+            <button>📲 अभी भरें</button>
+          </div>
+        </div>
+
+        <div class="savenudge">
+          <span class="ic">💡</span>
+          <p>इस महीने <b>₹4,300 मुनाफ़ा</b> हुआ — <b>₹860 (20%)</b> बचत में डालें तो अगला कच्चा माल बिना कर्ज़ आएगा।</p>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab on"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab"><span class="ic">◉</span>दीदी<small>Watch</small></div>
+        <div class="tab"><span class="ic">🧭</span>बाज़ार<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">D</span><b>बचत और कर्ज़ — savings &amp; the Mudra loan, the other half of her money.</b>
+      Income isn't only sales. This tracks her <b>SHG weekly savings</b> (₹100/week, a streak of deposit ticks, this week's still due) and her <b>Mudra loan</b>
+      (₹20k taken, ₹12k left, a repayment bar, and the <b>next instalment with a UPI "भरें" button</b> — the very ₹1,000 instalment a CRP flags as "रुकी" in
+      #30). A nudge ties it back to profit: <i>save 20% of this month's ₹4,300 so the next raw-material run needs no loan.</i> This is the data behind #29's
+      <b>"बचत &amp; कर्ज़"</b> capability and the "lower costs / no-debt" path to Lakhpati.</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>The money loop — capture → reconcile → track → save</h2>
+
+  <h3>Why these surfaces had to exist</h3>
+  <ul>
+    <li><span class="pill keep">#29 SHOWS</span>#29 displays income, last-haat results, the four levers, the Lakhpati ring. <b>Those are read-outs.</b> Without a place to <b>enter</b> the data they're a demo, not a tool. These four frames are that place.</li>
+    <li><span class="pill new">VOICE-FIRST</span>The whole point is that a low-literacy user on a shared phone can keep books <b>by speaking</b>. The mic is the primary input on every entry surface; steppers and chips are the fallback; 🔊 reads everything back. No typed forms.</li>
+    <li><span class="pill new">OFFLINE</span>The haat has no signal — capture (A) and close-out (B) work fully <b>offline</b> and sync later. The offline badge is honest about it.</li>
+  </ul>
+
+  <h3>Each number in #29 traces to a surface here</h3>
+  <table>
+    <tr><td>₹50 / जार · per-haat sale</td><td>← <b>A</b> Log a sale (voice → confirmable card)</td></tr>
+    <tr><td>पिछला हाट · 18 जार · ₹900 · 4 repeat</td><td>← <b>B</b> Haat close-out (stock + costs → profit)</td></tr>
+    <tr><td>इस महीने ₹6,400 · खर्च ₹2,100 · मुनाफ़ा ₹4,300</td><td>← <b>C</b> बही-खाता ledger (running cash book)</td></tr>
+    <tr><td>"लागत घटाओ" &amp; "बचत &amp; कर्ज़" levers · Mudra instalment</td><td>← <b>D</b> Savings &amp; credit tracker</td></tr>
+  </table>
+
+  <h3>Primitive mapping (BetterAt platform)</h3>
+  <ul>
+    <li><b>A logged sale / expense = Evidence on a Step.</b> "Sell at the haat" is a Step; each sale and cost is a timestamped, ₹-valued evidence entry — the same Evidence primitive nursing uses, here denominated in money.</li>
+    <li><b>B haat close-out = the Step's completion + review</b>, producing the profit figure and repeat-customer count that feed Competency (selling) and the cockpit.</li>
+    <li><b>C ledger = the evidence log, aggregated.</b> Month tiles and the weekly bar are roll-ups of the same entries — and they're what the CLF cohort dashboard in #30 Frame G sums across didis.</li>
+    <li><b>D savings &amp; loan = money-capability evidence.</b> Deposit streaks and on-time repayments are the artifacts behind "savings/credit," and the instalment is the exact item a mentor routes in #30.</li>
+  </ul>
+
+  <h3>Build order (after #29's read surfaces)</h3>
+  <ul>
+    <li><b>M0 — voice→structured-entry parser</b> (qty · price · payment · product) with a confirm card; the keystone, reused by A, B and the ledger FAB.</li>
+    <li><b>M1 — Log a sale</b> (A) · <b>M2 — Haat close-out</b> (B, computes profit) · <b>M3 — बही-खाता ledger</b> (C, the track home) · <b>M4 — savings &amp; Mudra tracker</b> (D, + UPI repay).</li>
+    <li><b>Data caveat:</b> needs a simple <b>money-entries</b> table (step_id, kind in/out, qty, ₹, channel cash/UPI, ts) and a <b>savings/loan</b> record per didi. The voice parser is the real work; the schema is small. Verify what a Jharkhand demo can seed before building.</li>
+  </ul>
+</div>
+
+</body>
+</html>

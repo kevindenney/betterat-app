@@ -248,11 +248,6 @@ function Phase6PlaybookLanding() {
   return (
     <PlaybookLanding
       hideHero
-      stats={{
-        insights: insights.length,
-        testing: concepts.filter((concept) => concept.state === 'testing').length,
-        settled: concepts.filter((concept) => concept.state === 'settled').length,
-      }}
       insights={insights}
       concepts={concepts}
       onRefineInsight={async (insightId) => {
@@ -265,6 +260,12 @@ function Phase6PlaybookLanding() {
         toast.show('Insight discarded', 'info');
       }}
       onOpenConcept={(conceptId) => router.push(`/(tabs)/library/concept/${conceptId}` as any)}
+      onLinkConcept={(conceptId) =>
+        router.push(`/(tabs)/library/concept/${conceptId}?action=link` as any)
+      }
+      onEditConcept={(conceptId) =>
+        router.push(`/(tabs)/library/concept/${conceptId}?action=edit` as any)
+      }
     />
   );
 }

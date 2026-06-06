@@ -33,6 +33,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 import { useSubscribedPlansForLibrary } from '@/hooks/useSubscribedPlansForLibrary';
 import { useLifecycleConcepts } from '@/hooks/usePlaybook';
@@ -757,9 +758,11 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.label,
   },
   railLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
     color: IOS_COLORS.tertiaryLabel,
     paddingHorizontal: IOS_SPACING.lg,
   },
@@ -787,8 +790,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   tileKindText: {
+    fontFamily: fontFamily.mono,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '500',
     letterSpacing: 0.4,
   },
   tileTitle: {
@@ -823,9 +827,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   eyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    fontWeight: '500',
     letterSpacing: 0.8,
+    textTransform: 'uppercase',
     color: IOS_COLORS.label,
   },
   seeAllBtn: {

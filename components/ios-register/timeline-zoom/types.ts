@@ -9,6 +9,7 @@
  */
 
 import type { HeadlineMetricValue } from './interestHeadline';
+import type { RacePlan, StepPlanData, StepReviewData } from '@/types/step-detail';
 
 export type ZoomLevel = 1 | 2 | 3 | 4;
 
@@ -83,7 +84,11 @@ export interface TimelineStep {
   whatBody?: string;
   whyReasoning?: string;
   whenLabel?: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
   howItems?: StepHowItem[];
+  plan?: StepPlanData | null;
+  review?: StepReviewData | null;
   /** Number of library resources already linked to this step plan. */
   linkedResourceCount?: number;
   /** L2 done-card digest — the reflection's distilled headline (review.key_takeaway). */
@@ -102,6 +107,10 @@ export interface TimelineStep {
   /** Header metadata row in L1 — "Wed · JHH Bloomberg 4S" / "Preceptor: A. Ngo, RN" */
   metaLeft?: string;
   metaRight?: string;
+  /** Discrete place name for the L1 full-detail card's location meta chip
+      (📍 Victoria Harbour). Same source as the day-prefixed `metaLeft`, but
+      unfolded so the card can render it as its own pill. */
+  locationName?: string;
   /** True when this step lives in a different interest and was
       cross-interest-pinned into the current view via timeline_step_pins. */
   pinnedFromOtherInterest?: boolean;
@@ -131,6 +140,9 @@ export interface TimelineStep {
   /** Phase N.4 — true when this step is a race. The only first-class step
    *  distinction; drives the rose snake stripe + Atlas course/marks. */
   isRace?: boolean;
+  /** Sailing race map/course snapshot for the L1 inline race map. */
+  racePlan?: RacePlan;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TimelineWeek {

@@ -4,10 +4,7 @@
  * Surfaces a small set of typed chips that name what's "around" this
  * step so the user can predict where a tap goes before tapping:
  *
- *   [⇄ Also relevant for <OtherInterest>] · [WITH · N] · [N yours] · [N playbook]
- *
- * Cross-interest — first AI-generated cross-interest suggestion's
- * source interest. Tap → routes to that interest's timeline.
+ *   [WITH · N] · [N yours] · [N playbook]
  *
  * WITH — distinct people on this step (owner + explicit access grants +
  * blueprint-cohort), deduplicated. Replaces the older fragmented
@@ -27,14 +24,11 @@
 
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
-import { useInterest } from '@/providers/InterestProvider';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useAuth } from '@/providers/AuthProvider';
-import { getAtlasStepData, isAtlasRaceCourseStep } from '@/lib/atlasRaceStep';
 import { useStepLibraryBefore } from '@/hooks/useStepLibraryBefore';
 import { useStepWithPeople } from '@/hooks/useStepWithPeople';
 import { useAtlasPeerSteps } from '@/hooks/useAtlasPeerSteps';
@@ -72,32 +66,7 @@ export function StepCombinatorsRow({
   accessPeople = [],
   onShowPlaybook,
 }: StepCombinatorsRowProps) {
-  const { suggestions } = useCrossInterestSuggestions(
-    step.id,
-    step.interest_id ?? undefined,
-  );
-  const { switchInterest, userInterests } = useInterest();
   const { user } = useAuth();
-  const atlasData = getAtlasStepData(step.metadata);
-  // Resolve the step's real interest from its interest_id (falling back to
-  // atlas metadata) rather than the free-text `category` — a "Hong Kong
-  // Impala fleet race" is sailing even when its category isn't literally
-  // 'sailing', and the brittle category check let those races leak a bogus
-  // "Also relevant for <X>" chip.
-  const stepInterestSlug =
-    userInterests.find((i) => i.id === step.interest_id)?.slug ??
-    atlasData?.interest_slug ??
-    null;
-  // Only surface the cross-interest chip when we positively know the step's
-  // own interest and it isn't sailing. With an unresolved interest the
-  // suggestion is generated against the viewer's *active* interest, not the
-  // step's — meaningless, and the source of orphaned-step leaks.
-  const suppressCrossInterest =
-    stepInterestSlug == null ||
-    stepInterestSlug === 'sail-racing' ||
-    isAtlasRaceCourseStep(step.metadata) ||
-    Boolean(atlasData?.origin);
-  const crossInterest = suppressCrossInterest ? null : suggestions[0] ?? null;
 
   const relatedSteps = useMemo(() => {
     const stepMetadata = (step.metadata ?? {}) as {
@@ -190,13 +159,12 @@ export function StepCombinatorsRow({
     [nearbyPeerSteps],
   );
 
-  const [sheet, setSheet] = useState<null | 'related' | 'people' | 'near' | 'cross'>(null);
+  const [sheet, setSheet] = useState<null | 'related' | 'people' | 'near'>(null);
   const nearbyPeerStepsForSheet = useMemo(
     () => nearbyPeerSteps.filter((s) => s.relationship !== 'self'),
     [nearbyPeerSteps],
   );
 
-  const hasCross = Boolean(crossInterest);
   const hasRelated = relatedCount > 0;
   // Only surface the WITH chip when others are involved — "1 with"
   // when the only person is the viewer themselves is noise.
@@ -204,30 +172,11 @@ export function StepCombinatorsRow({
   const hasNear = nearCount > 0;
   const hasPlaybook = playbookCount > 0;
 
-  if (!hasCross && !hasRelated && !hasWith && !hasNear && !hasPlaybook) return null;
+  if (!hasRelated && !hasWith && !hasNear && !hasPlaybook) return null;
 
   return (
     <View>
       <View style={styles.row}>
-        {hasCross && crossInterest ? (
-          <Pressable
-            style={styles.crossPill}
-            onPress={() => setSheet('cross')}
-          >
-            <Ionicons
-              name="swap-horizontal-outline"
-              size={12}
-              color={IOS_REGISTER.labelSecondary}
-            />
-            <Text style={styles.pillText} numberOfLines={1}>
-              <Text style={styles.pillDim}>Also relevant for </Text>
-              <Text style={styles.pillCrossEmphasis}>
-                {crossInterest.sourceInterestName}
-              </Text>
-            </Text>
-          </Pressable>
-        ) : null}
-
         {hasWith ? (
           <Pressable style={[styles.pill, styles.withPill]} onPress={() => setSheet('people')}>
             <View style={styles.withAvatarStack}>
@@ -327,19 +276,6 @@ export function StepCombinatorsRow({
         />
       ) : null}
 
-      {sheet === 'cross' && crossInterest ? (
-        <StepCombinatorsSheet
-          visible
-          mode="cross"
-          cross={crossInterest}
-          onOpenInterest={async () => {
-            await switchInterest(crossInterest.sourceInterestSlug);
-            router.replace('/(tabs)/practice' as never);
-          }}
-          onDismiss={() => setSheet(null)}
-        />
-      ) : null}
-
       <StepPeopleSheet
         visible={sheet === 'people'}
         people={people}
@@ -389,33 +325,18 @@ const styles = StyleSheet.create({
     borderColor: IOS_REGISTER.separator,
     maxWidth: 280,
   },
-  crossPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    backgroundColor: 'rgba(175, 82, 222, 0.08)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(175, 82, 222, 0.30)',
-    maxWidth: 280,
-  },
   pillText: {
     fontSize: 12,
     letterSpacing: -0.1,
   },
   pillBold: {
     color: IOS_REGISTER.label,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontVariant: ['tabular-nums'],
   },
   pillDim: {
     color: IOS_REGISTER.labelSecondary,
     fontWeight: '400',
-  },
-  pillCrossEmphasis: {
-    color: '#7B3FB0',
-    fontWeight: '600',
   },
   // NEAR chip — distinct from WITH (which is explicit relationships).
   // Blue accent says "geographic / proximity signal." Distinct enough

@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { ResourceTypeIcon, getResourceTypeLabel } from './ResourceTypeIcon';
 import { useUpdateResource } from '@/hooks/useLibrary';
 import type { LibraryResourceRecord, ResourceType, UpdateLibraryResourceInput } from '@/types/library';
@@ -240,7 +241,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
     letterSpacing: 0.3,

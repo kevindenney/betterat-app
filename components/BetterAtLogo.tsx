@@ -1,5 +1,5 @@
 import * as React from 'react';
-import Svg, { Circle, Text, Rect } from 'react-native-svg';
+import Svg, { Circle, Rect } from 'react-native-svg';
 
 interface BetterAtLogoProps {
   size?: number;
@@ -11,29 +11,27 @@ export const BetterAtLogo: React.FC<BetterAtLogoProps> = ({
   variant = 'filled',
 }) => {
   const colors = {
-    white: { stroke: '#FFFFFF', text: '#FFFFFF', bg: 'none' },
-    dark: { stroke: '#1A1A1A', text: '#1A1A1A', bg: 'none' },
-    filled: { stroke: '#FFFFFF', text: '#FFFFFF', bg: '#0a1832' },
+    white: { bg: '#0a1832', text: '#FFFFFF' },
+    dark: { bg: '#0a1832', text: '#FFFFFF' },
+    filled: { bg: '#0a1832', text: '#FFFFFF' },
   };
 
-  const { stroke, text, bg } = colors[variant];
+  const { text, bg } = colors[variant];
 
+  // Geometric "b" matching the mobile app icon: straight stem + circular
+  // bowl + underline. Drawn as vector shapes (no font dependency) so the web
+  // mark renders identically to assets/images/icon.png.
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      {bg !== 'none' && <Circle cx="50" cy="50" r="48" fill={bg} />}
-      <Circle cx="50" cy="50" r="46" stroke={stroke} strokeWidth="2" fill="none" />
-      <Text
-        x="50"
-        y="58"
-        textAnchor="middle"
-        fontFamily="Manrope_700Bold, System"
-        fontSize="42"
-        fontWeight="700"
-        fill={text}
-      >
-        b
-      </Text>
-      <Rect x="30" y="66" width="40" height="3" rx="1.5" fill={text} />
+      <Rect x="0" y="0" width="100" height="100" rx="20" fill={bg} />
+      {/* stem */}
+      <Rect x="39" y="28" width="7" height="31" fill={text} />
+      {/* bowl */}
+      <Circle cx="50" cy="47.5" r="11.2" fill={text} />
+      {/* counter (cut out of the bowl) */}
+      <Circle cx="51.5" cy="48" r="5.7" fill={bg} />
+      {/* underline */}
+      <Rect x="30" y="67" width="40" height="4" rx="2" fill={text} />
     </Svg>
   );
 };

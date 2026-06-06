@@ -24,6 +24,7 @@ import {
   useUpdateLibraryItem,
 } from '@/hooks/useLibraryItemMutations';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { ConceptEditor } from '@/components/playbook/concepts/ConceptEditor';
@@ -568,20 +569,25 @@ const styles = StyleSheet.create({
   },
   fmtLabel: {
     fontSize: 9,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   metaText: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_COLORS.label,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
     lineHeight: 27,
   },
   sourceLine: {
@@ -632,8 +638,10 @@ const styles = StyleSheet.create({
   },
   previewStamp: {
     fontSize: 11,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.6,
+    textTransform: 'uppercase',
     color: IOS_COLORS.tertiaryLabel,
   },
   previewStampOnImage: {
@@ -681,7 +689,8 @@ const styles = StyleSheet.create({
   },
   sectionEyebrow: {
     fontSize: 11,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     color: IOS_COLORS.secondaryLabel,
@@ -719,7 +728,8 @@ const styles = StyleSheet.create({
   },
   roleLabel: {
     fontSize: 10,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
@@ -759,6 +769,8 @@ const styles = StyleSheet.create({
   },
   markProv: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
   },
   citeRow: {

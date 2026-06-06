@@ -567,10 +567,27 @@ export function BlueprintTimeline({ blueprintId }: { blueprintId: string }) {
           <Text style={styles.title}>{blueprint?.title ?? 'Blueprint'}</Text>
 
           <View style={styles.heroMetaRow}>
-            <View style={styles.heroAvatar}>
-              <Text style={styles.heroAvatarText}>{authorEmoji}</Text>
-            </View>
-            <Text style={styles.heroMeta}>by {authorName}</Text>
+            {blueprint?.user_id ? (
+              <Pressable
+                onPress={() => router.push(`/person/${blueprint.user_id}` as any)}
+                hitSlop={6}
+                style={styles.heroAuthor}
+                accessibilityRole="button"
+                accessibilityLabel={`View ${authorName}'s profile`}
+              >
+                <View style={styles.heroAvatar}>
+                  <Text style={styles.heroAvatarText}>{authorEmoji}</Text>
+                </View>
+                <Text style={styles.heroMeta}>by {authorName}</Text>
+              </Pressable>
+            ) : (
+              <>
+                <View style={styles.heroAvatar}>
+                  <Text style={styles.heroAvatarText}>{authorEmoji}</Text>
+                </View>
+                <Text style={styles.heroMeta}>by {authorName}</Text>
+              </>
+            )}
             {orgName ? (
               <>
                 <View style={styles.metaDot} />
@@ -861,6 +878,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap',
+  },
+  heroAuthor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   heroAvatar: {
     width: 24,

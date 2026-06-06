@@ -2,10 +2,13 @@ import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   GRAY_5,
+  IOS_PURPLE,
+  IOS_PURPLE_TINT,
   LABEL,
-  LABEL_2,
   LABEL_3,
+  LABEL_4,
 } from '@/lib/design-tokens-step-loop-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export interface ReflectFieldProps {
   id: string;
@@ -14,8 +17,13 @@ export interface ReflectFieldProps {
   onChangeText: (value: string) => void;
   onFocus?: (id: ReflectFieldProps['id']) => void;
   placeholder?: string;
+  index?: number;
   isDrafted?: boolean;
   readOnly?: boolean;
+  seedSuggestion?: string;
+  seedLabel?: string;
+  isLast?: boolean;
+  onUseSeed?: () => void;
   onMarkAsConceptSeed?: () => void;
 }
 
@@ -25,14 +33,40 @@ export function ReflectField({
   value,
   onChangeText,
   onFocus,
-  placeholder = 'Tap to write',
+  placeholder = 'Tap to write · or hold to speak',
+  index,
   isDrafted,
   readOnly,
+  seedSuggestion,
+  seedLabel,
+  isLast,
+  onUseSeed,
   onMarkAsConceptSeed,
 }: ReflectFieldProps) {
+  const showSeed = Boolean(seedSuggestion?.trim()) && !value.trim() && !readOnly;
   return (
-    <View style={styles.card}>
-      <Text style={styles.question}>{qEye}</Text>
+    <View style={[styles.section, isLast && styles.sectionLast]}>
+      <View style={styles.questionRow}>
+        {index ? <Text style={styles.questionIndex}>{index}</Text> : null}
+        <Text style={styles.question}>{qEye}</Text>
+      </View>
+      {showSeed ? (
+        <View style={styles.seedCard}>
+          <Text style={styles.seedText}>
+            <Text style={styles.seedLead}>{seedLabel ?? 'Seed'}</Text>
+            {seedLabel ? ' ' : ': '}
+            {seedSuggestion}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Use suggested answer for ${qEye}`}
+            onPress={onUseSeed}
+            hitSlop={6}
+          >
+            <Text style={styles.seedActionText}>Use</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -43,7 +77,7 @@ export function ReflectField({
         multiline
         scrollEnabled={false}
         textAlignVertical="top"
-        style={[styles.input, isDrafted && styles.drafted]}
+        style={[styles.input, index && styles.inputIndented, isDrafted && styles.drafted]}
       />
       {isDrafted ? <Text style={styles.draftLabel}>AI draft · edit freely</Text> : null}
       {value.trim().length > 0 && onMarkAsConceptSeed ? (
@@ -56,46 +90,93 @@ export function ReflectField({
 }
 
 const styles = StyleSheet.create({
-  card: {
+  section: {
     backgroundColor: '#FFFFFF',
-    borderColor: GRAY_5,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    borderBottomColor: GRAY_5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    gap: 9,
+  },
+  sectionLast: {
+    borderBottomWidth: 0,
+  },
+  questionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+  },
+  questionIndex: {
+    width: 16,
+    paddingTop: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+    color: '#007C92',
+    textAlign: 'center',
   },
   question: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.75,
-    textTransform: 'uppercase',
-    color: LABEL_2,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 20,
+    letterSpacing: 0,
+    color: LABEL,
   },
   input: {
-    minHeight: 76,
+    minHeight: 48,
     padding: 0,
     margin: 0,
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 17,
+    lineHeight: 25,
     color: LABEL,
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
     ...Platform.select({
       web: { outlineStyle: 'none', resize: 'none', overflow: 'hidden' } as any,
     }),
   },
+  inputIndented: {
+    marginLeft: 25,
+  },
   drafted: {
-    color: LABEL_2,
+    color: LABEL_3,
+  },
+  seedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(88, 86, 214, 0.28)',
+    backgroundColor: IOS_PURPLE_TINT,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginLeft: 25,
+  },
+  seedText: {
+    flex: 1,
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: IOS_PURPLE,
+  },
+  seedLead: {
+    fontWeight: '800',
+    color: IOS_PURPLE,
+  },
+  seedActionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: IOS_PURPLE,
   },
   draftLabel: {
     fontSize: 11,
-    color: LABEL_3,
+    color: LABEL_4,
     fontStyle: 'italic',
   },
   seedAction: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#007AFF',
+    color: LABEL_3,
   },
 });

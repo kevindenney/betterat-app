@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Step level — floating chrome, 90% card, inner scroll</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --serif:'Iowan Old Style',Georgia,serif;
+  --grouped:#F2F2F7;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);
+  --label3:rgba(60,60,67,0.34);
+  --sep:rgba(60,60,67,0.13);
+  --done:#16A34A;
+  --now:#EA580C;
+  --lilac:#6D28D9;
+  --accent:#2563EB;
+  --accent-bg:rgba(37,99,235,.07);
+  --accent-line:rgba(37,99,235,.26);
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1660px;margin:0 auto 4px;font-size:21px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1660px;margin:0 auto 10px;font-size:13px;color:#41495A;line-height:1.6;}
+.page-sub b{color:#1a1f29;}
+.thesis{max-width:1660px;margin:0 auto 26px;background:#fff;border:0.5px solid rgba(0,0,0,.1);border-left:3px solid var(--accent);border-radius:10px;padding:14px 17px;font-size:12.5px;line-height:1.65;color:#2b3340;}
+.thesis b{color:#111;}
+.thesis .k{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:5px;padding:2px 7px;margin-right:7px;vertical-align:1px;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1660px;margin:0 auto;}
+.col{width:384px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+
+/* phone shell — backdrop tinted so the white card pops */
+.phone{position:relative;border-radius:42px;overflow:hidden;height:812px;
+  background:linear-gradient(180deg,#EAEDF2 0%,#DFE3EA 60%,#D7DCE4 100%);
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.30);}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:#000;z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+
+/* floating task bar (top) — content scrolls under it */
+.nav{position:absolute;top:44px;left:10px;right:10px;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 14px;z-index:46;
+  background:rgba(252,252,253,.72);backdrop-filter:blur(22px);border:0.5px solid rgba(255,255,255,.6);border-radius:26px;box-shadow:0 6px 20px rgba(20,28,45,.12);}
+.nav .lane{display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.12;}
+.nav .lane .eb{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);}
+.nav .lane .stepsel{display:flex;align-items:center;gap:5px;font-size:15.5px;font-weight:700;}
+.nav .lane .chev{font-size:11px;color:var(--label2);}
+/* open step-chooser dropdown from the task bar */
+.stepmenu{position:absolute;top:94px;left:14px;width:264px;z-index:47;background:#fff;border-radius:16px;box-shadow:0 16px 44px rgba(20,28,45,.28);border:0.5px solid var(--sep);overflow:hidden;}
+.stepmenu .smh{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);padding:11px 14px 8px;border-bottom:0.5px solid var(--sep);}
+.smrow{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13.5px;font-weight:600;border-bottom:0.5px solid var(--sep);}
+.smrow:last-child{border-bottom:none;}
+.smrow .dot{width:9px;height:9px;border-radius:50%;background:var(--label3);flex:none;}
+.smrow.done .dot{background:var(--done);}
+.smrow.now{color:var(--accent);}
+.smrow.now .dot{background:var(--now);}
+.smrow .rt{margin-left:auto;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--label3);}
+.smrow.now .rt{color:var(--now);}
+.nav .icons{display:flex;align-items:center;gap:11px;}
+.nav .inbox{position:relative;font-size:16px;}
+.nav .inbox .badge{position:absolute;top:-6px;right:-8px;background:#FF3B30;color:#fff;font-size:8px;font-weight:800;border-radius:9px;padding:1px 4px;min-width:14px;text-align:center;}
+.nav .av{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+/* prominent add-step plus, now the primary affordance */
+.nav .plusbtn{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;font-size:23px;font-weight:300;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.42);}
+
+/* floating vertical zoom control — middle of the right edge, over the card */
+.zoomv{position:absolute;top:50%;transform:translateY(-50%);right:8px;z-index:45;width:48px;
+  background:rgba(252,252,253,.74);backdrop-filter:blur(20px);border:0.5px solid rgba(255,255,255,.6);border-radius:15px;box-shadow:0 6px 18px rgba(20,28,45,.18);padding:4px;display:flex;flex-direction:column;gap:2px;}
+.zoomv .zl{text-align:center;font-size:10.5px;font-weight:800;letter-spacing:.01em;color:var(--label2);padding:6px 0;border-radius:11px;}
+.zoomv .zl.on{background:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.32);}
+
+/* card stage — full bleed, no side gutters; neighbours peek from the edges */
+.stage{position:absolute;top:46px;left:0;right:0;bottom:0;display:flex;align-items:stretch;gap:0;padding:0;z-index:20;}
+.peekc{flex:none;width:17px;margin:62px 0 92px;position:relative;overflow:hidden;}
+.peekc.done{background:rgba(255,255,255,.66);border:0.5px solid var(--sep);border-left:none;border-radius:0 18px 18px 0;}
+.peekc.plan{background:rgba(255,255,255,.52);border:1px dashed rgba(60,60,67,.3);border-right:none;border-radius:18px 0 0 18px;}
+.peekc .cap{position:absolute;top:9px;left:0;right:0;height:4px;}
+.peekc.done .cap{background:var(--done);opacity:.55;}
+.peekc.plan .cap{background:var(--label3);}
+
+/* the big card — ~90% tall, narrower, clearly a card */
+.cardwrap{flex:1;margin:50px 2px 12px;position:relative;background:#fff;border-radius:24px;border:1px solid rgba(37,99,235,.22);box-shadow:0 14px 40px rgba(23,33,56,.18);overflow:hidden;}
+.cardscroll{position:absolute;inset:0;overflow:hidden;display:flex;flex-direction:column;padding:48px 0 104px;}
+/* top + bottom fades hint that content runs under the floating chrome */
+.cardscroll .fadeT{position:absolute;top:0;left:0;right:0;height:46px;background:linear-gradient(#fff,rgba(255,255,255,0));z-index:5;pointer-events:none;}
+.cardscroll .fadeB{position:absolute;bottom:0;left:0;right:0;height:54px;background:linear-gradient(rgba(255,255,255,0),#fff);z-index:5;pointer-events:none;}
+
+/* sticky compact title (appears once scrolled) */
+.stickytitle{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:13px 16px 9px;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:0.5px solid var(--sep);z-index:6;}
+.stickytitle .st{font-family:var(--serif);font-size:15px;font-weight:600;}
+.stickytitle .sp{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);}
+
+/* card internals */
+.phasehead{padding:2px 16px 0;}
+.phaserow{display:flex;align-items:center;gap:0;}
+.phaserow .seg{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--label3);}
+.phaserow .seg .pdot{width:15px;height:15px;border-radius:50%;border:2px solid var(--label3);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;}
+.phaserow .seg.done .pdot{background:var(--done);border-color:var(--done);}
+.phaserow .seg.done{color:var(--label2);}
+.phaserow .seg.active{color:var(--accent);}
+.phaserow .seg.active .pdot{border-color:var(--accent);background:var(--accent);}
+.phaserow .link{flex:1;height:2px;background:var(--label3);opacity:.4;margin:0 6px;border-radius:2px;}
+.phaserow .link.done{background:var(--done);opacity:1;}
+.phaserow .thread{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--label2);background:var(--grouped);border-radius:20px;padding:4px 9px;}
+.kindrow{display:flex;align-items:center;gap:8px;padding:13px 16px 0;}
+.kindpill{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:6px;padding:3px 8px;}
+.kindrow .stat{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--now);background:rgba(234,88,12,.1);border-radius:6px;padding:3px 8px;}
+.kindrow .when{font-size:11.5px;color:var(--label2);font-weight:600;margin-left:auto;}
+.bh{font-family:var(--serif);font-size:25px;font-weight:600;line-height:1.12;letter-spacing:-.4px;padding:9px 16px 0;}
+.bchips{display:flex;flex-wrap:wrap;gap:6px;padding:11px 16px 14px;}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--label);background:var(--grouped);border-radius:20px;padding:4px 10px;}
+.chip .av3{display:flex;}
+.chip .av3 i{width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;margin-left:-5px;font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;}
+.bsec{padding:14px 16px;border-top:0.5px solid var(--sep);}
+.seclab{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin-bottom:9px;}
+.seclab .ai{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:0;text-transform:none;}
+.steps{display:flex;flex-direction:column;gap:0;}
+.stp{display:flex;align-items:center;gap:11px;padding:8px 2px;border-bottom:0.5px solid var(--sep);}
+.stp:last-child{border-bottom:none;}
+.stp .box{width:19px;height:19px;border-radius:6px;border:1.8px solid var(--label3);flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;}
+.stp .box.done{background:var(--done);border-color:var(--done);}
+.stp .box.now{border-color:var(--accent);}
+.stp .txt{flex:1;font-size:13.5px;line-height:1.3;}
+.stp .txt.done{color:var(--label2);text-decoration:line-through;text-decoration-color:var(--label3);}
+.notebox{padding:11px 16px;border-top:0.5px solid var(--sep);}
+.notebox .nl{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin-bottom:8px;}
+.notebox .nrow{display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:1.4;color:var(--label);padding:6px 0;}
+.notebox .nrow .tm{font-size:10.5px;font-weight:700;color:var(--label3);flex:none;width:42px;}
+.bcta{margin:auto 16px 4px;background:var(--accent);color:#fff;border-radius:14px;padding:13px;text-align:center;font-size:14.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;}
+
+/* floating NOW / horizontal-timeline indicator (bottom) */
+.nowfloat{position:absolute;left:50%;transform:translateX(-50%);bottom:86px;z-index:45;display:flex;align-items:center;gap:10px;
+  background:rgba(252,252,253,.82);backdrop-filter:blur(20px);border:0.5px solid rgba(255,255,255,.6);border-radius:22px;box-shadow:0 6px 20px rgba(20,28,45,.18);padding:7px 13px;}
+.nowfloat .np{font-size:10px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--now);border-radius:6px;padding:3px 8px;box-shadow:0 2px 6px rgba(234,88,12,.4);}
+.nowfloat .np.next{background:var(--accent);box-shadow:0 2px 6px rgba(20,28,45,.22);}
+.nowfloat .np.done{background:var(--done);box-shadow:0 2px 6px rgba(22,163,74,.3);}
+.nowfloat .pos{font-size:11.5px;font-weight:700;color:var(--label2);}
+.nowfloat .pgr{display:flex;align-items:center;gap:5px;}
+.nowfloat .pgr .d{width:6px;height:6px;border-radius:50%;background:var(--label3);}
+.nowfloat .pgr .d.done{background:var(--done);}
+.nowfloat .pgr .d.now{width:18px;height:7px;border-radius:4px;background:var(--accent);}
+.nowfloat .pgr .nowtick{width:2px;height:12px;background:var(--now);border-radius:2px;margin:0 1px;}
+
+/* tab bar — sits higher, floats over the card, more translucent */
+.tabbar{position:absolute;bottom:16px;left:14px;right:14px;height:56px;display:flex;background:rgba(250,250,252,.62);backdrop-filter:blur(24px);border:0.5px solid rgba(255,255,255,.55);border-radius:26px;box-shadow:0 10px 28px rgba(20,28,45,.18);z-index:48;}
+.tabbar .tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9.5px;font-weight:600;color:var(--label3);}
+.tabbar .tb.on{color:var(--accent);}
+.tabbar .tb .g{font-size:18px;}
+
+/* ===== Add Step dialog ===== */
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.34);z-index:55;}
+.sheet{position:absolute;left:0;right:0;bottom:0;height:88%;background:#fff;border-radius:24px 24px 0 0;z-index:56;display:flex;flex-direction:column;box-shadow:0 -12px 44px rgba(0,0,0,.28);}
+.grab{width:38px;height:5px;border-radius:3px;background:rgba(60,60,67,.28);margin:9px auto 3px;}
+.sheeth{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 13px;border-bottom:0.5px solid var(--sep);}
+.sheeth .t{font-size:18px;font-weight:800;letter-spacing:-.3px;}
+.sheeth .x{font-size:14px;font-weight:700;color:var(--label2);}
+.sbody{flex:1;overflow:hidden;padding:14px 16px;}
+.blankrow{display:flex;align-items:center;gap:12px;background:var(--accent-bg);border:1px solid var(--accent-line);border-radius:14px;padding:13px;margin-bottom:18px;}
+.blankrow .ic{width:36px;height:36px;border-radius:11px;background:var(--accent);color:#fff;font-size:23px;font-weight:300;display:flex;align-items:center;justify-content:center;flex:none;}
+.blankrow .tx{flex:1;}
+.blankrow .tx .t{font-size:15px;font-weight:700;}
+.blankrow .tx .s{font-size:11.5px;color:var(--label2);margin-top:2px;}
+.blankrow .go{font-size:18px;color:var(--accent);}
+.dsec{margin-bottom:17px;}
+.dh{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin-bottom:10px;}
+.dh .more{margin-left:auto;font-size:11px;font-weight:700;color:var(--accent);text-transform:none;letter-spacing:0;}
+.bpgroup{border:0.5px solid var(--sep);border-radius:14px;overflow:hidden;margin-bottom:10px;}
+.bph{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--grouped);}
+.bph .lg{width:26px;height:26px;border-radius:7px;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;}
+.bph .nm{font-size:13px;font-weight:700;line-height:1.2;}
+.bph .nm .sub{font-size:10px;color:var(--label2);font-weight:600;margin-top:1px;}
+.bph .cnt{margin-left:auto;font-size:10.5px;color:var(--label2);font-weight:700;}
+.aitem{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:0.5px solid var(--sep);}
+.aitem .it{flex:1;min-width:0;}
+.aitem .it .t{font-size:13px;font-weight:600;line-height:1.2;}
+.aitem .it .s{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--label3);margin-top:3px;}
+.aitem .it .s.cross{color:var(--lilac);}
+.aitem .add{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;font-weight:300;line-height:1;display:flex;align-items:center;justify-content:center;flex:none;}
+.suggscroll{display:flex;gap:10px;overflow:hidden;}
+.sgcard{flex:none;width:158px;border:0.5px solid var(--accent-line);background:var(--accent-bg);border-radius:13px;padding:11px 12px;display:flex;flex-direction:column;}
+.sgcard .sgt{font-size:13px;font-weight:700;line-height:1.2;}
+.sgcard .why{font-size:10.5px;color:var(--label2);line-height:1.35;margin-top:5px;}
+.sgcard .sgadd{margin-top:10px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:700;color:#fff;background:var(--accent);border-radius:9px;padding:7px;}
+
+/* legend */
+.legend{max-width:1660px;margin:30px auto 0;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:14px;padding:20px 24px;}
+.legend h3{margin:0 0 4px;font-size:15px;}
+.legend .sub{font-size:12px;color:var(--label2);margin-bottom:16px;}
+.legend .grid{display:grid;grid-template-columns:1fr 1fr;gap:13px 30px;}
+.legend .item{font-size:12.5px;line-height:1.55;color:#2b3340;}
+.legend .item b{color:#111;}
+.legend .num{display:inline-block;width:19px;height:19px;border-radius:5px;background:var(--accent);color:#fff;font-size:11px;font-weight:800;text-align:center;line-height:19px;margin-right:7px;vertical-align:1px;}
+</style>
+</head>
+<body>
+
+<div class="page-h">Step level — floating chrome, 90% card, scroll inside the card</div>
+<div class="page-sub">Refinement of the combined Step level: the card grows to <b>~90%</b> but narrows so you see <b>more of the previous + next</b> cards; it's an obvious white card (rounded, shadowed) floating on a tinted backdrop. All chrome floats — <b>task bar, zoom control, the NOW/timeline indicator, tab bar</b>. The big bottom "Add step" button is gone; <b>＋ in the task bar is now the prominent add-step affordance</b>. Scroll model: the card frame is fixed and <b>content scrolls inside it</b>, sliding under the floating chrome.</div>
+
+<div class="thesis"><span class="k">Scroll answer</span> <b>Fixed card frame; content scrolls inside.</b> The card never leaves the screen — it's your place in the sequence, anchored by NOW. <b>Vertical scroll = read deeper into this step</b> (the content slides up under the floating task bar at the top and under the floating NOW strip at the bottom, exactly like content slides under the tab bar / zoom control). <b>Horizontal swipe = move through time.</b> Two orthogonal gestures; the card-as-anchor stays put so you never lose where you are.</div>
+
+<div class="frames">
+
+<!-- ============ FRAME 1 · SAILING — rest state ============ -->
+<div class="col">
+<div class="phone" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.07);--accent-line:rgba(37,99,235,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane"><span class="eb">Sail Racing ▾</span><span class="stepsel">Race 2 <span class="chev">▾</span></span></div>
+    <div class="icons"><span class="plusbtn">+</span><span class="inbox">✉︎<span class="badge">9</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomv"><span class="zl">All</span><span class="zl">Arc</span><span class="zl on">Step</span></div>
+  <div class="stage">
+    <div class="peekc done"><span class="cap"></span></div>
+    <div class="cardwrap">
+      <div class="cardscroll">
+        <div class="fadeB"></div>
+        <div class="phasehead"><div class="phaserow">
+          <div class="seg done"><span class="pdot">✓</span>Plan</div><div class="link done"></div>
+          <div class="seg active"><span class="pdot">2</span>Do</div><div class="link"></div>
+          <div class="seg"><span class="pdot">3</span>Review</div>
+          <div class="thread">💬 2</div>
+        </div></div>
+        <div class="kindrow"><span class="kindpill">⛵ Race</span><span class="stat">In play</span><span class="when">Race 2 · start 14:55</span></div>
+        <div class="bh">Race 2 — Middle Island</div>
+        <div class="bchips">
+          <span class="chip"><span class="av3"><i style="background:#E2792E">K</i><i style="background:#2563EB">D</i><i style="background:#16A34A">M</i></span>3 crew</span>
+          <span class="chip">🔗 5 pinned</span>
+        </div>
+        <div class="bsec">
+          <div class="seclab">How — this race<span class="ai">✨ Coach</span></div>
+          <div class="steps">
+            <div class="stp"><span class="box done">✓</span><span class="txt done">Pre-start sequence + line bias</span></div>
+            <div class="stp"><span class="box now"></span><span class="txt">First beat — commit to the left</span></div>
+            <div class="stp"><span class="box"></span><span class="txt">Leeward mark — wide-then-tight</span></div>
+          </div>
+        </div>
+        <div class="bcta">＋ Log this leg</div>
+      </div>
+    </div>
+    <div class="peekc plan"><span class="cap"></span></div>
+  </div>
+  <div class="nowfloat"><span class="np">▸ NOW</span><span class="pos">Sat 14:40</span><span class="pgr"><span class="d done"></span><span class="nowtick"></span><span class="d now"></span><span class="d"></span><span class="d"></span></span></div>
+  <div class="tabbar"><div class="tb on"><span class="g">⛟</span>Practice</div><div class="tb"><span class="g">▥</span>Library</div><div class="tb"><span class="g">⚲</span>Watch</div><div class="tb"><span class="g">◬</span>Atlas</div></div>
+</div>
+<div class="col-cap"><span class="tag">1 · Sailing · rest</span><b>One ~90% card, narrowed.</b> Race 1 peeks at the left (done), Rig-tune at the right (planned) — more of each shows now. The card is obviously a card: white, rounded, shadowed against the tinted field. Task bar, zoom control, NOW strip and tab bar all float. Add-step lives in the task bar ＋, not a big button.</div>
+</div>
+
+<!-- ============ FRAME 2 · SAILING — scrolled state ============ -->
+<div class="col">
+<div class="phone" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.07);--accent-line:rgba(37,99,235,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane"><span class="eb">Sail Racing ▾</span><span class="stepsel">Race 2 <span class="chev">▾</span></span></div>
+    <div class="icons"><span class="plusbtn">+</span><span class="inbox">✉︎<span class="badge">9</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomv"><span class="zl">All</span><span class="zl">Arc</span><span class="zl on">Step</span></div>
+  <div class="stage">
+    <div class="peekc done"><span class="cap"></span></div>
+    <div class="cardwrap">
+      <div class="cardscroll">
+        <div class="stickytitle"><span class="st">Race 2 — Middle Island</span><span class="sp">Do · 2/4</span></div>
+        <div class="fadeB"></div>
+        <div class="bsec" style="padding-top:50px;">
+          <div class="seclab">How — this race<span class="ai">✨ Coach</span></div>
+          <div class="steps">
+            <div class="stp"><span class="box now"></span><span class="txt">First beat — commit to the left</span></div>
+            <div class="stp"><span class="box"></span><span class="txt">Leeward mark — wide-then-tight</span></div>
+          </div>
+        </div>
+        <div class="notebox">
+          <div class="nl">Log · this leg</div>
+          <div class="nrow"><span class="tm">14:38</span><span>Won the pin by half a length — held lane to first shift.</span></div>
+          <div class="nrow"><span class="tm">14:41</span><span>Left paid. Crossed the fleet at mark 1.</span></div>
+        </div>
+        <div class="bcta">＋ Log this leg</div>
+      </div>
+    </div>
+    <div class="peekc plan"><span class="cap"></span></div>
+  </div>
+  <div class="nowfloat"><span class="np">▸ NOW</span><span class="pos">Sat 14:40</span><span class="pgr"><span class="d done"></span><span class="nowtick"></span><span class="d now"></span><span class="d"></span><span class="d"></span></span></div>
+  <div class="tabbar"><div class="tb on"><span class="g">⛟</span>Practice</div><div class="tb"><span class="g">▥</span>Library</div><div class="tb"><span class="g">⚲</span>Watch</div><div class="tb"><span class="g">◬</span>Atlas</div></div>
+</div>
+<div class="col-cap"><span class="tag">2 · Sailing · scrolled</span><b>Same card, scrolled down.</b> The frame hasn't moved — content slid up under the floating task bar (a compact sticky title takes over: "Race 2 · Do 2/4") and the lower log section came into view above the NOW strip. The peeks + NOW strip never moved, so you keep your place. This is inner-scroll, not the card leaving.</div>
+</div>
+
+<!-- ============ FRAME 3 · NURSING — rest state ============ -->
+<div class="col">
+<div class="phone" style="--accent:#0E7490;--accent-bg:rgba(14,116,137,.07);--accent-line:rgba(14,116,137,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane"><span class="eb">Nursing ▾</span><span class="stepsel">Neuro checks <span class="chev">▴</span></span></div>
+    <div class="icons"><span class="plusbtn">+</span><span class="inbox">✉︎<span class="badge">4</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomv"><span class="zl">All</span><span class="zl">Rotation</span><span class="zl on">Step</span></div>
+  <div class="stepmenu">
+    <div class="smh">Jump to a step · Med-Surg rotation</div>
+    <div class="smrow done"><span class="dot"></span>Morning meds pass<span class="rt">done</span></div>
+    <div class="smrow done"><span class="dot"></span>Wound care · bed 9<span class="rt">done</span></div>
+    <div class="smrow now"><span class="dot"></span>Neuro checks q2h<span class="rt">now</span></div>
+    <div class="smrow"><span class="dot"></span>Discharge teaching · bed 7<span class="rt">queued</span></div>
+    <div class="smrow"><span class="dot"></span>End-of-shift handoff<span class="rt">queued</span></div>
+  </div>
+  <div class="stage">
+    <div class="peekc done"><span class="cap"></span></div>
+    <div class="cardwrap">
+      <div class="cardscroll">
+        <div class="fadeB"></div>
+        <div class="phasehead"><div class="phaserow">
+          <div class="seg active"><span class="pdot">1</span>Plan</div><div class="link"></div>
+          <div class="seg"><span class="pdot">2</span>Do</div><div class="link"></div>
+          <div class="seg"><span class="pdot">3</span>Review</div>
+          <div class="thread">💬 2</div>
+        </div></div>
+        <div class="kindrow"><span class="kindpill">🩺 Clinical</span><span class="stat">Next up</span><span class="when">Round 1 · 19:00</span></div>
+        <div class="bh">Neuro checks q2h</div>
+        <div class="bchips">
+          <span class="chip"><span class="av3"><i style="background:#0E7490">M</i><i style="background:#2563EB">D</i></span>Maya · preceptor</span>
+          <span class="chip">📍 Med-Surg 4E · bed 12</span>
+        </div>
+        <div class="bsec">
+          <div class="seclab">How — sub-steps<span class="ai">✨ Coach</span></div>
+          <div class="steps">
+            <div class="stp"><span class="box"></span><span class="txt">Baseline GCS + pupils at handoff</span></div>
+            <div class="stp"><span class="box"></span><span class="txt">Motor &amp; sensory symmetry, both sides</span></div>
+            <div class="stp"><span class="box"></span><span class="txt">Chart trend · flag 2-pt GCS drop</span></div>
+          </div>
+        </div>
+        <div class="bcta">Start Do →</div>
+      </div>
+    </div>
+    <div class="peekc plan"><span class="cap"></span></div>
+  </div>
+  <div class="nowfloat"><span class="np next">▸ NEXT</span><span class="pos">starts 19:00</span><span class="pgr"><span class="d done"></span><span class="d done"></span><span class="nowtick"></span><span class="d now"></span><span class="d"></span><span class="d"></span></span></div>
+  <div class="tabbar"><div class="tb on"><span class="g">⛟</span>Practice</div><div class="tb"><span class="g">▥</span>Library</div><div class="tb"><span class="g">⚲</span>Watch</div><div class="tb"><span class="g">◬</span>Atlas</div></div>
+</div>
+<div class="col-cap"><span class="tag">3 · Nursing · step chooser open</span><b>Task-bar step chooser.</b> The lane is now two lines — interest eyebrow (<b>Nursing</b>) over the current step (<b>Neuro checks ▾</b>); tapping it drops a <b>jump-to-a-step</b> menu for the rotation (done · now · queued), so you can leap across the sequence without swiping card by card. "Arc" → "Rotation" in the zoom control.</div>
+</div>
+
+<!-- ============ FRAME 4 · ADD STEP from the task-bar plus ============ -->
+<div class="col">
+<div class="phone" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.07);--accent-line:rgba(37,99,235,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane"><span class="eb">Sail Racing ▾</span><span class="stepsel">Race 2 <span class="chev">▾</span></span></div>
+    <div class="icons"><span class="plusbtn">+</span><span class="inbox">✉︎<span class="badge">9</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="stage">
+    <div class="peekc done"><span class="cap"></span></div>
+    <div class="cardwrap"><div class="cardscroll"><div class="kindrow"><span class="kindpill">⛵ Race</span></div><div class="bh">Race 2 — Middle Island</div></div></div>
+    <div class="peekc plan"><span class="cap"></span></div>
+  </div>
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sheeth"><span class="t">Add step</span><span class="x">Cancel</span></div>
+    <div class="sbody">
+      <div class="blankrow">
+        <span class="ic">＋</span>
+        <div class="tx"><div class="t">Add a blank step</div><div class="s">Start from scratch — name it, plan the how</div></div>
+        <span class="go">›</span>
+      </div>
+      <div class="dsec">
+        <div class="dh">From your blueprints<span class="more">See all</span></div>
+        <div class="bpgroup">
+          <div class="bph"><span class="lg" style="background:#2563EB">RH</span><div class="nm">RHKYC · Winter Series<div class="sub">Subscribed blueprint</div></div><span class="cnt">8 steps</span></div>
+          <div class="aitem"><div class="it"><div class="t">Rig-tune check-off</div><div class="s">Prep · before next race</div></div><span class="add">+</span></div>
+          <div class="aitem"><div class="it"><div class="t">Pre-start routine drill</div><div class="s">Starts</div></div><span class="add">+</span></div>
+        </div>
+        <div class="bpgroup">
+          <div class="bph"><span class="lg" style="background:#7E6FC8">CG</span><div class="nm">Coach Gao · Speed plan<div class="sub">Subscribed blueprint</div></div><span class="cnt">5 steps</span></div>
+          <div class="aitem"><div class="it"><div class="t">Upwind groove — two-boat tuning</div><div class="s">Boatspeed</div></div><span class="add">+</span></div>
+        </div>
+      </div>
+      <div class="dsec">
+        <div class="dh">✨ Suggested for you<span class="more">Why?</span></div>
+        <div class="suggscroll">
+          <div class="sgcard"><div class="sgt">Wind cheat sheet</div><div class="why">Your arc is race-heavy — a conditions ref fills the gap.</div><div class="sgadd">＋ Add</div></div>
+          <div class="sgcard"><div class="sgt">Debrief Race 1</div><div class="why">You finished Race 1 but haven't reviewed it yet.</div><div class="sgadd">＋ Add</div></div>
+        </div>
+      </div>
+      <div class="dsec">
+        <div class="dh">⇄ From your other interests</div>
+        <div class="aitem"><div class="it"><div class="t">Start-line sketch</div><div class="s cross">⇄ From Drawing</div></div><span class="add">+</span></div>
+        <div class="aitem"><div class="it"><div class="t">Core circuit — race stamina</div><div class="s cross">⇄ From Fitness</div></div><span class="add">+</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar"><div class="tb on"><span class="g">⛟</span>Practice</div><div class="tb"><span class="g">▥</span>Library</div><div class="tb"><span class="g">⚲</span>Watch</div><div class="tb"><span class="g">◬</span>Atlas</div></div>
+</div>
+<div class="col-cap"><span class="tag">4 · Add step</span><b>Opened from the task-bar ＋.</b> No big bottom button — the prominent filled ＋ in the floating task bar opens the same four-source picker: blank step, subscribed blueprints (grouped), ✨ suggestions, and ⇄ cross-interest steps. Adopted steps land by sort_order, right of NOW.</div>
+</div>
+
+</div><!-- /frames -->
+
+<div class="legend">
+  <h3>What changed from #37 — and the rules</h3>
+  <div class="sub">Bigger, narrower card; all chrome floats; add-step moves to the task bar; content scrolls inside a fixed card.</div>
+  <div class="grid">
+    <div class="item"><span class="num">1</span><b>Card grows to ~90% but narrows.</b> You see more of the previous + next cards at the edges. The card is unmistakably a card — white, rounded, drop-shadowed — floating on a tinted backdrop so it has real contrast.</div>
+    <div class="item"><span class="num">2</span><b>All chrome floats.</b> Task bar (top), zoom control (right), NOW/timeline indicator (bottom) and tab bar are floating translucent pills over an edge-to-edge card field. Nothing is docked.</div>
+    <div class="item"><span class="num">3</span><b>Add-step is the task-bar ＋.</b> The big bottom button is gone; the ＋ in the task bar becomes a prominent filled accent button and opens the four-source Add-step picker. One obvious add affordance, not two.</div>
+    <div class="item"><span class="num">4</span><b>Fixed card, inner scroll.</b> The card frame stays put; content scrolls inside it. Scrolling slides content under the floating task bar (a compact sticky title takes over) and under the floating NOW strip — the same under-chrome motion as the tab bar.</div>
+    <div class="item"><span class="num">5</span><b>Two orthogonal gestures.</b> Vertical scroll reads deeper into this step; horizontal swipe moves through time. Because the card never leaves, the NOW anchor and peeks always tell you where you are.</div>
+    <div class="item"><span class="num">6</span><b>Still no Librarian here.</b> Noticing stays reserved for Arc and All. The Step level is for doing the step in front of you.</div>
+  </div>
+</div>
+
+</body>
+</html>

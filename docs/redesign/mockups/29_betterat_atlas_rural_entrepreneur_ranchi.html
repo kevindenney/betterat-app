@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Atlas for a rural woman home entrepreneur near Ranchi</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans Devanagari','Inter','Segoe UI',sans-serif;
+  --cream:#F3EADA;
+  --grouped:#EFE6D3;
+  --card:#FFFDF8;
+  --label:#2A2118;
+  --label2:rgba(60,48,32,0.60);
+  --label3:rgba(60,48,32,0.32);
+  --sep:rgba(80,60,40,0.12);
+  /* warm earth register — distinct from sailing blue & nursing clinical */
+  --terra:#C2410C;     /* making / production */
+  --marigold:#D97706;  /* selling / market */
+  --indigo:#4338CA;    /* money / savings / credit */
+  --grow:#15803D;      /* sourcing / fields / growth */
+  --teal:#0E7490;      /* digital / UPI / WhatsApp */
+  --terra-bg:rgba(194,65,12,.10);
+  --marigold-bg:rgba(217,119,6,.12);
+  --indigo-bg:rgba(67,56,202,.10);
+  --grow-bg:rgba(21,128,61,.10);
+  /* warm landmark basemap */
+  --field:#D9E3C2;
+  --field2:#CBD8AE;
+  --soil:#E7D8BF;
+  --river:#9CC4D4;
+  --road:#EFE3CC;
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#CBC2B0;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1320px;margin:0 auto 4px;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1320px;margin:0 auto 26px;font-size:13px;color:#4A3D2C;line-height:1.62;}
+.page-sub b{color:#241c12;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1320px;margin:0 auto;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#3d3324;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#1c1610;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#5a4a36;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+.col-cap .tag.new{background:#1B7A3D;}
+.col-cap .tag.fix{background:#B42318;}
+
+/* phone shell */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(60,40,20,.28);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:var(--label);z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--label2);}
+
+/* nav header */
+.nav{position:absolute;top:42px;left:0;right:0;z-index:40;padding:6px 18px 10px;}
+.nav.solid{background:var(--grouped);}
+.nav .top{display:flex;align-items:center;justify-content:space-between;}
+.nav .eyebrow{font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--terra);}
+.nav h1{font-size:27px;font-weight:800;letter-spacing:-.3px;margin:1px 0 0;line-height:1.05;}
+.nav .sub{font-size:12.5px;color:var(--label2);margin-top:2px;}
+.nav .acts{display:flex;gap:8px;}
+.nav .ic{width:36px;height:36px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(60,40,20,.16);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--terra);}
+.seg{display:flex;background:rgba(120,90,50,.14);border-radius:10px;padding:3px;margin-top:12px;}
+.seg div{flex:1;text-align:center;font-size:13.5px;font-weight:700;color:var(--label2);padding:7px 0;border-radius:8px;}
+.seg div.on{background:#fff;color:var(--label);box-shadow:0 1px 3px rgba(60,40,20,.16);}
+.seg div small{font-weight:500;color:var(--label3);font-size:10px;}
+.chips{display:flex;gap:7px;margin-top:11px;overflow:hidden;}
+.chips span{font-size:12px;font-weight:700;padding:7px 12px;border-radius:9px;background:#fff;color:var(--label2);white-space:nowrap;box-shadow:0 1px 3px rgba(60,40,20,.10);}
+.chips span.on{background:var(--terra);color:#fff;}
+
+/* ===== LANDMARK MAP (a sketch of her livelihood circuit, not a GPS chart) ===== */
+.lmap{position:absolute;left:0;right:0;top:190px;bottom:64px;background:var(--soil);overflow:hidden;}
+.lmap .field{position:absolute;background:var(--field);border-radius:46% 54% 50% 50%/50% 46% 54% 50%;box-shadow:inset 0 0 0 .5px rgba(80,100,40,.10);}
+.lmap .field.d{background:var(--field2);}
+.lmap .river{position:absolute;background:var(--river);box-shadow:inset 0 0 0 .5px rgba(40,90,120,.10);}
+.lmap .road{position:absolute;height:7px;background:var(--road);border-radius:4px;box-shadow:0 0 0 .5px rgba(90,60,30,.07);transform-origin:left center;}
+.lmap .glbl{position:absolute;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:rgba(90,70,45,.55);}
+.lmap .glbl.wlbl{color:rgba(40,95,120,.6);font-style:italic;}
+.paths{position:absolute;inset:0;z-index:4;pointer-events:none;}
+
+/* a place she walks to — big friendly landmark badge */
+.lpin{position:absolute;transform:translate(-50%,-50%);z-index:20;display:flex;flex-direction:column;align-items:center;width:96px;}
+.lpin .mk{width:50px;height:50px;border-radius:16px;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:23px;box-shadow:0 5px 14px rgba(70,45,20,.28);background:#fff;}
+.lpin.terra  .mk{background:var(--terra-bg);}
+.lpin.mari   .mk{background:var(--marigold-bg);}
+.lpin.indigo .mk{background:var(--indigo-bg);}
+.lpin.grow   .mk{background:var(--grow-bg);}
+.lpin .nm{margin-top:5px;font-size:11px;font-weight:800;color:#3a2c1a;text-align:center;line-height:1.15;text-shadow:0 1px 0 rgba(255,253,248,.9);}
+.lpin .meta{margin-top:2px;font-size:9.5px;font-weight:700;color:#6a5232;background:rgba(255,253,248,.92);padding:1px 7px;border-radius:7px;box-shadow:0 1px 3px rgba(70,45,20,.14);white-space:nowrap;}
+.lpin .meta b{color:var(--terra);}
+/* her home — the workshop, center of the circuit */
+.home{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);z-index:25;display:flex;flex-direction:column;align-items:center;}
+.home .ring{width:74px;height:74px;border-radius:24px;background:#fff;border:3px solid var(--terra);display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 0 0 6px rgba(194,65,12,.12),0 8px 20px rgba(70,45,20,.30);}
+.home .nm{margin-top:6px;font-size:12px;font-weight:800;color:#2a2012;background:#fff;padding:3px 11px;border-radius:9px;box-shadow:0 2px 6px rgba(70,45,20,.18);}
+
+/* voice-first FAB — the primary input for low-literacy use */
+.mic{position:absolute;right:16px;bottom:230px;z-index:46;width:58px;height:58px;border-radius:50%;background:var(--terra);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(194,65,12,.42);}
+.mic .ic{font-size:24px;line-height:1;}
+.mic .t{font-size:8px;font-weight:800;margin-top:1px;letter-spacing:.02em;}
+
+/* next-haat hero (the recurring event = her "race") */
+.haathero{position:absolute;left:14px;right:14px;bottom:74px;z-index:45;background:var(--card);border-radius:20px;box-shadow:0 10px 28px rgba(70,45,20,.26);padding:14px 15px 13px;border:0.5px solid var(--sep);overflow:hidden;}
+.haathero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--marigold);}
+.haathero .k{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--marigold);display:flex;align-items:center;gap:6px;}
+.haathero .listen{margin-left:auto;font-size:14px;color:var(--terra);}
+.haathero h2{margin:5px 0 0;font-size:20px;font-weight:800;letter-spacing:-.2px;}
+.haathero h2 small{font-weight:600;font-size:13px;color:var(--label2);}
+.haathero .where{font-size:13px;color:var(--label2);margin-top:2px;}
+.haathero .meta{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;}
+.haathero .meta .m{font-size:11.5px;font-weight:700;color:#6a5232;background:var(--grouped);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:5px;}
+.haathero .cta{display:flex;gap:9px;margin-top:13px;}
+.haathero .cta button{flex:1;border:none;font-family:var(--sans);font-size:14px;font-weight:800;padding:12px 0;border-radius:12px;}
+.haathero .cta .pri{background:var(--terra);color:#fff;}
+.haathero .cta .sec{background:var(--terra-bg);color:var(--terra);}
+
+/* ===== FRAME B — haat-day cockpit ===== */
+.cockpit{position:absolute;left:0;right:0;bottom:64px;z-index:45;background:var(--card);border-radius:24px 24px 0 0;box-shadow:0 -8px 30px rgba(70,45,20,.26);overflow:hidden;}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--label3);margin:9px auto 0;}
+.cp-head{display:flex;align-items:flex-start;justify-content:space-between;padding:10px 18px 12px;border-bottom:0.5px solid var(--sep);gap:10px;}
+.cp-head .kind{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--marigold);}
+.cp-head .kind .kdot{width:8px;height:8px;border-radius:50%;background:var(--marigold);}
+.cp-head .ttl{font-size:18px;font-weight:800;letter-spacing:-.2px;margin-top:5px;}
+.cp-head .ttl small{display:block;font-size:12px;font-weight:600;color:var(--label2);margin-top:3px;}
+.cp-head .when{font-size:11px;font-weight:800;color:var(--marigold);background:var(--marigold-bg);padding:6px 11px;border-radius:9px;white-space:nowrap;flex:none;}
+.gauges{display:flex;padding:13px 14px 4px;gap:9px;}
+.gauge{flex:1;border-radius:14px;padding:11px 11px;border:0.5px solid var(--sep);}
+.gauge .gk{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:5px;color:var(--label2);}
+.gauge .gv{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-top:6px;line-height:1;}
+.gauge .gv small{font-size:11px;font-weight:700;color:var(--label2);}
+.gauge .gs{font-size:11px;color:var(--label2);margin-top:5px;}
+.g-weather{background:rgba(217,119,6,.05);} .g-weather .gk{color:var(--marigold);}
+.g-stock{background:rgba(194,65,12,.05);} .g-stock .gk{color:var(--terra);}
+.g-price{background:rgba(67,56,202,.05);} .g-price .gk{color:var(--indigo);}
+/* the plan ("favored side" for a market day) */
+.plan{margin:13px 14px 0;border-radius:16px;background:var(--marigold-bg);border:0.5px solid rgba(217,119,6,.30);padding:13px 14px;}
+.plan .lead{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#B45309;}
+.plan h4{margin:7px 0 0;font-size:15.5px;font-weight:800;line-height:1.38;color:#7C2D12;}
+.plan p{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:#9A3412;}
+.plan .seg3{display:flex;gap:7px;margin-top:11px;}
+.plan .seg3 span{flex:1;font-size:10px;font-weight:700;color:#7C2D12;background:rgba(255,253,248,.65);border-radius:8px;padding:7px 5px;text-align:center;}
+.plan .seg3 span b{display:block;font-size:9px;font-weight:800;letter-spacing:.04em;color:var(--marigold);opacity:.85;margin-bottom:2px;}
+/* last haat result */
+.lasthaat{display:flex;align-items:center;gap:12px;margin:13px 14px 0;background:var(--grouped);border-radius:14px;padding:12px 13px;}
+.lasthaat .ic{width:36px;height:36px;border-radius:11px;background:var(--grow-bg);color:var(--grow);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;}
+.lasthaat .b{flex:1;}
+.lasthaat .b .kl{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);}
+.lasthaat .b h5{margin:2px 0 0;font-size:13.5px;font-weight:700;}
+.lasthaat .b h5 b{color:var(--grow);}
+.cp-cta{display:flex;gap:9px;padding:13px 14px 16px;}
+.cp-cta button{border:none;font-family:var(--sans);font-weight:800;border-radius:13px;}
+.cp-cta .voice{width:52px;background:var(--terra-bg);color:var(--terra);font-size:21px;}
+.cp-cta .ready{flex:1;background:var(--terra);color:#fff;font-size:15px;}
+
+/* ===== FRAME C — business health (Lakhpati progress + located capabilities) ===== */
+.dt-back{position:absolute;top:48px;left:14px;z-index:50;font-size:15px;color:var(--terra);font-weight:700;display:flex;align-items:center;gap:3px;}
+.dt-hero{padding:76px 20px 16px;background:var(--card);border-bottom:0.5px solid var(--sep);}
+.dt-hero .stat{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;padding:5px 11px;border-radius:8px;margin-bottom:9px;background:var(--grow-bg);color:#15803D;}
+.dt-hero h2{margin:0;font-size:23px;font-weight:800;letter-spacing:-.4px;}
+.dt-hero .sub{font-size:13px;color:var(--label2);margin-top:3px;}
+.body{position:absolute;left:0;right:0;top:178px;bottom:64px;overflow:hidden;padding:4px 16px 12px;}
+.ring-wrap{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:18px;border:0.5px solid var(--sep);padding:16px;margin-top:8px;box-shadow:0 1px 3px rgba(70,45,20,.06);}
+.ring{width:90px;height:90px;border-radius:50%;flex:none;background:conic-gradient(var(--grow) 0 64%, rgba(120,90,50,.16) 64% 100%);display:flex;align-items:center;justify-content:center;}
+.ring .inner{width:66px;height:66px;border-radius:50%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring .inner b{font-size:18px;font-weight:800;letter-spacing:-.3px;}
+.ring .inner span{font-size:9px;color:var(--label2);font-weight:700;margin-top:1px;}
+.ring-wrap .t h3{margin:0;font-size:16px;font-weight:800;}
+.ring-wrap .t p{margin:5px 0 0;font-size:12.5px;color:var(--label2);line-height:1.45;}
+.ring-wrap .t .listen{margin-top:8px;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--terra);}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--label3);margin:20px 4px 8px;}
+.cap{display:flex;align-items:center;gap:11px;padding:11px 4px;border-bottom:0.5px solid var(--sep);}
+.cap .dot{width:11px;height:11px;border-radius:4px;flex:none;}
+.cap .b{flex:1;min-width:0;}
+.cap .b h5{margin:0;font-size:14px;font-weight:700;}
+.cap .b h5.gap{color:var(--label3);font-weight:600;}
+.cap .b p{margin:1px 0 0;font-size:11px;color:var(--label2);}
+.cap .st{font-size:11px;font-weight:800;flex:none;}
+.cap .st.ok{color:var(--grow);} .cap .st.weak{color:var(--marigold);} .cap .st.no{color:var(--label3);}
+/* gap routing card */
+.gapcard{background:#FFF4E6;border:0.5px solid rgba(217,119,6,.30);border-radius:16px;padding:14px 15px;margin-top:16px;}
+.gapcard .k{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#B45309;display:flex;align-items:center;gap:6px;}
+.gapcard h4{margin:7px 0 0;font-size:15px;font-weight:800;color:#7C2D12;line-height:1.42;}
+.gapcard p{margin:6px 0 0;font-size:12.5px;color:#9A3412;line-height:1.5;}
+.gapcard p b{color:#7C2D12;}
+.gapcard .act{margin-top:11px;display:flex;gap:8px;}
+.gapcard .act button{flex:1;border:none;font-family:var(--sans);font-size:12.5px;font-weight:800;padding:10px 0;border-radius:11px;}
+.gapcard .act .pri{background:var(--marigold);color:#fff;}
+.gapcard .act .sec{background:rgba(217,119,6,.14);color:#B45309;}
+
+/* ===== MONEY is the payoff — income emphasis ===== */
+.incomeline{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;margin-bottom:10px;border-bottom:0.5px solid var(--sep);}
+.incomeline .lbl{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin-right:8px;}
+.incomeline .amt{font-size:19px;font-weight:800;letter-spacing:-.4px;color:var(--grow);}
+.incomeline .trend{font-size:11.5px;font-weight:800;margin-left:7px;}
+.incomeline .trend.up{color:var(--grow);}
+.haathero .earnbig{float:right;font-size:18px;font-weight:800;color:var(--grow);letter-spacing:-.3px;line-height:1.05;}
+.haathero .earnbig small{display:block;font-size:8.5px;font-weight:700;color:var(--label3);text-align:right;letter-spacing:.02em;}
+/* cockpit earnings band — frame the market day as income growth */
+.earnband{display:flex;align-items:center;gap:9px;margin:12px 14px 0;background:var(--grow-bg);border:0.5px solid rgba(21,128,61,.22);border-radius:13px;padding:11px 13px;}
+.earnband .eb{display:flex;flex-direction:column;}
+.earnband .eb .ebk{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);}
+.earnband .eb .ebv{font-size:18px;font-weight:800;letter-spacing:-.4px;margin-top:2px;}
+.earnband .eb.sub .ebv{color:var(--label2);font-size:15px;}
+.earnband .eb.gain{margin-left:auto;text-align:right;}
+.earnband .eb.gain .ebv{color:var(--grow);}
+.earnband .ebarrow{color:var(--label3);font-size:15px;font-weight:800;}
+/* Frame C — the four income levers */
+.lever{display:flex;align-items:flex-start;gap:11px;background:var(--card);border:0.5px solid var(--sep);border-radius:14px;padding:12px 13px;margin-top:9px;box-shadow:0 1px 3px rgba(70,45,20,.06);}
+.lever .li{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;}
+.lever .b{flex:1;min-width:0;}
+.lever .b h5{margin:0;font-size:14px;font-weight:800;}
+.lever .b h5 small{font-weight:600;font-size:10.5px;color:var(--label2);}
+.lever .b p{margin:3px 0 0;font-size:11.5px;color:var(--label2);line-height:1.42;}
+.lever .b p .where{font-weight:800;color:var(--terra);}
+.lever .earn{font-size:14px;font-weight:800;flex:none;text-align:right;white-space:nowrap;color:var(--grow);}
+.lever .earn small{display:block;font-size:8.5px;font-weight:700;color:var(--label3);margin-top:1px;letter-spacing:.02em;}
+
+/* ===== FRAME D — didis & places nearby ===== */
+.sheet-h{padding:8px 18px 11px;border-bottom:0.5px solid var(--sep);background:var(--card);}
+.sheet-h .row{display:flex;align-items:center;justify-content:space-between;}
+.sheet-h h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.2px;}
+.sheet-h .sub{font-size:12px;color:var(--label2);margin-top:2px;}
+.sheet-h .close{width:30px;height:30px;border-radius:50%;background:rgba(120,90,50,.12);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--label2);}
+.sectlab{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);padding:14px 18px 4px;background:var(--grouped);}
+.nrow{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--card);}
+.nrow .av{width:44px;height:44px;color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;}
+.nrow .av.place{border-radius:13px;}
+.nrow .av.didi{border-radius:50%;position:relative;}
+.nrow .av.didi .crp{position:absolute;right:-2px;bottom:-2px;width:17px;height:17px;border-radius:50%;background:var(--marigold);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:9px;}
+.nrow .b{flex:1;min-width:0;}
+.nrow .b h5{margin:0;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p{margin:2px 0 0;font-size:12px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p .verb{font-weight:800;}
+.nrow .b p .verb.sell{color:var(--marigold);} .nrow .b p .verb.money{color:var(--indigo);}
+.nrow .b p .verb.grow{color:var(--grow);} .nrow .b p .verb.learn{color:var(--terra);}
+.nrow .dist{font-size:11px;font-weight:800;color:var(--label2);text-align:right;flex:none;}
+.nrow .dist small{display:block;font-weight:600;color:var(--label3);font-size:10px;margin-top:2px;}
+.nrow .pin{width:34px;height:34px;border-radius:10px;background:var(--terra-bg);color:var(--terra);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+.nsep{height:0.5px;background:var(--sep);margin:0 18px 0 74px;}
+
+/* tab bar — vernacular */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(252,249,243,.95);border-top:0.5px solid var(--sep);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;backdrop-filter:blur(20px);z-index:55;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--label3);}
+.tab small{font-size:8px;font-weight:600;color:var(--label3);}
+.tab.on{color:var(--terra);}
+.tab .ic{font-size:18px;}
+
+.legend{max-width:1320px;margin:36px auto 0;background:#fff;border-radius:14px;padding:22px 26px;font-size:13px;line-height:1.65;color:#33291c;}
+.legend h2{font-size:15px;margin:0 0 12px;}
+.legend h3{font-size:13px;margin:18px 0 6px;color:#1c1610;}
+.legend ul{margin:4px 0 0;padding-left:20px;}
+.legend li{margin:5px 0;}
+.legend b{color:#1c1610;}
+.legend code{background:#F0E9DB;padding:1px 5px;border-radius:4px;font-size:12px;}
+.legend .pill{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-right:5px;}
+.legend .pill.fix{background:#FEE4E2;color:#B42318;}
+.legend .pill.new{background:#D1FADF;color:#1B7A3D;}
+.legend .pill.keep{background:#E6E0FF;color:#3B2EA0;}
+.legend table{border-collapse:collapse;margin-top:8px;width:100%;font-size:12.5px;}
+.legend td{border:0.5px solid #E7DFD0;padding:7px 10px;vertical-align:top;}
+.legend td:first-child{font-weight:800;white-space:nowrap;background:#FAF6EE;}
+</style>
+</head>
+<body>
+<div class="page-h">Atlas, for a home entrepreneur near Ranchi</div>
+<div class="page-sub">
+  A sailor reads a nautical <b>chart</b>; a nursing student reads a <b>coverage grid of clinical sites</b>. A rural woman running a home
+  business in a village outside Ranchi reads neither — her "where" is a small, known <b>circuit of livelihood places</b> she walks or rides between:
+  घर (her workshop), the weekly <b>हाट</b> (market), the supplier, the <b>बैंक मित्र</b>, her <b>सखी मंडल</b> (self-help group), the CLF office.
+  So this Atlas keeps the "where" lens but changes the medium to a <b>warm landmark sketch-map</b> — icon-first, <b>voice-first</b>, vernacular (Hindi here,
+  Santhali / Sadri on localization), money in ₹ — and it leads with the one event her week turns around: the <b>haat is her "race."</b>
+  Above all it keeps her eye on the <b>payoff — more money in hand</b>: this month's income rides on the home screen, every haat shows its expected ₹ earning, and the
+  growth view spells out the <b>four levers she controls — more sales, better prices, lower costs, new markets</b>.
+  Everything still routes through her <b>SHG / didi</b> trust network, never anonymous distance. (Sailing & nursing frames untouched.)
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME A — landmark livelihood map + next haat ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">रांची · ओरमांझी ▾</span></div>
+      <div class="nav">
+        <div class="top">
+          <div>
+            <div class="eyebrow">Atlas</div>
+            <h1>बाज़ार</h1>
+            <div class="sub">आपका काम, आस-पास · your work, nearby</div>
+          </div>
+          <div class="acts"><div class="ic">🔍</div><div class="ic">＋</div></div>
+        </div>
+        <div class="seg"><div class="on">नक्शा <small>Map</small></div><div>सूची <small>List</small></div></div>
+        <div class="chips"><span class="on">मैं</span><span>दीदी</span><span>समूह</span><span>मेंटर</span></div>
+      </div>
+
+      <!-- the livelihood circuit, drawn as friendly landmarks -->
+      <div class="lmap">
+        <div class="field" style="left:-6%;top:-4%;width:46%;height:30%;"></div>
+        <div class="field d" style="right:-8%;top:8%;width:42%;height:26%;"></div>
+        <div class="field" style="left:2%;bottom:2%;width:40%;height:24%;"></div>
+        <div class="field d" style="right:-4%;bottom:-2%;width:38%;height:22%;"></div>
+        <!-- a small river / nala curving through -->
+        <div class="river" style="left:-6%;top:64%;width:118%;height:9%;border-radius:50%;transform:rotate(-6deg);"></div>
+        <!-- the village road -->
+        <div class="road" style="left:-8%;top:48%;width:124%;transform:rotate(5deg);"></div>
+        <div class="road" style="left:44%;top:-6%;width:90%;transform:rotate(76deg);"></div>
+        <div class="glbl" style="left:7%;top:6%;">खेत · fields</div>
+        <div class="glbl wlbl" style="left:34%;top:60%;">नाला</div>
+        <div class="glbl" style="left:62%;bottom:9%;">गाँव · village</div>
+
+        <!-- footpaths from home to each place -->
+        <svg class="paths" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <g fill="none" stroke="#A9885E" stroke-width="2" stroke-dasharray="3 4"
+             stroke-linecap="round" vector-effect="non-scaling-stroke" opacity="0.6">
+            <line x1="50" y1="52" x2="70" y2="26"/>
+            <line x1="50" y1="52" x2="83" y2="58"/>
+            <line x1="50" y1="52" x2="53" y2="84"/>
+            <line x1="50" y1="52" x2="21" y2="45"/>
+            <line x1="50" y1="52" x2="25" y2="19"/>
+          </g>
+        </svg>
+
+        <!-- HAAT — the market, her recurring event (highlighted) -->
+        <div class="lpin mari" style="left:70%;top:26%;">
+          <div class="mk">🏪</div>
+          <div class="nm">बेड़ो हाट</div>
+          <div class="meta"><b>गुरु</b> · 6 km</div>
+        </div>
+        <!-- supplier / mandi (raw material) -->
+        <div class="lpin grow" style="left:83%;top:58%;">
+          <div class="mk">🥭</div>
+          <div class="nm">मंडी · कच्चा माल</div>
+          <div class="meta">5 km</div>
+        </div>
+        <!-- bank mitra / pragya kendra -->
+        <div class="lpin indigo" style="left:53%;top:84%;">
+          <div class="mk">🏦</div>
+          <div class="nm">बैंक मित्र</div>
+          <div class="meta">2 km · UPI</div>
+        </div>
+        <!-- SHG / sakhi mandal (meets today) -->
+        <div class="lpin mari" style="left:21%;top:45%;">
+          <div class="mk">👭</div>
+          <div class="nm">सखी मंडल</div>
+          <div class="meta"><b>आज</b> · 0.5 km</div>
+        </div>
+        <!-- CLF / block office (training + schemes) -->
+        <div class="lpin indigo" style="left:25%;top:19%;">
+          <div class="mk">🏛️</div>
+          <div class="nm">CLF दफ्तर</div>
+          <div class="meta">ट्रेनिंग · 9 km</div>
+        </div>
+
+        <!-- HER HOME — workshop at the center -->
+        <div class="home">
+          <div class="ring">🫙</div>
+          <div class="nm">मेरा घर · अचार</div>
+        </div>
+      </div>
+
+      <!-- voice-first input -->
+      <div class="mic"><span class="ic">🎙️</span><span class="t">बोलें</span></div>
+
+      <!-- next haat hero (the "race") -->
+      <div class="haathero">
+        <div class="incomeline">
+          <div><span class="lbl">इस महीने कमाई</span><span class="amt">₹6,400</span><span class="trend up">▲ ₹900</span></div>
+          <span class="listen">🔊</span>
+        </div>
+        <div class="k">▸ अगला कमाई का मौका · हाट</div>
+        <h2>बेड़ो हाट <small>· गुरुवार</small><span class="earnbig">~₹1,500<small>संभावित कमाई</small></span></h2>
+        <div class="where">6 किमी · सुबह 7 बजे टेम्पो · भाड़ा बाँटें</div>
+        <div class="meta">
+          <span class="m">🫙 ~30 जार × ₹50</span>
+          <span class="m">🛺 रेखा & सुनीता के साथ</span>
+        </div>
+        <div class="cta">
+          <button class="pri">तैयारी करें</button>
+          <button class="sec">ज़्यादा कैसे कमाऊँ</button>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab"><span class="ic">◉</span>दीदी<small>Watch</small></div>
+        <div class="tab on"><span class="ic">🧭</span>बाज़ार<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">A</span><b>Landmark map, not a GPS chart — the reframe.</b>
+      Opens on a warm sketch of her <b>livelihood circuit</b>: घर (workshop) at the center, with big icon landmarks for the हाट, मंडी,
+      बैंक मित्र, सखी मंडल and CLF office, joined by footpaths with <b>walk distance + market day</b>. Every label is vernacular with an
+      audio 🔊, and the <b>🎙️ बोलें (speak)</b> mic is the primary input. The hero now leads with <b>इस महीने कमाई</b> (this month's income, ▲ vs last) and frames the
+      <b>next haat as a money opportunity</b> — <b>~₹1,500 संभावित कमाई</b>, not just logistics — because income is the whole point.</div>
+  </div>
+
+  <!-- ============ FRAME B — haat-day cockpit ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">रांची · ओरमांझी ▾</span></div>
+      <div class="lmap" style="bottom:auto;height:330px;top:0;">
+        <div class="field" style="left:-6%;top:8%;width:50%;height:40%;"></div>
+        <div class="field d" style="right:-8%;top:18%;width:44%;height:36%;"></div>
+        <div class="road" style="left:-8%;top:60%;width:124%;transform:rotate(4deg);"></div>
+        <svg class="paths" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <line x1="34" y1="78" x2="66" y2="40" fill="none" stroke="#A9885E" stroke-width="2"
+            stroke-dasharray="3 4" stroke-linecap="round" vector-effect="non-scaling-stroke" opacity="0.6"/>
+        </svg>
+        <div class="home" style="left:34%;top:78%;"><div class="ring" style="width:54px;height:54px;font-size:24px;border-radius:18px;">🫙</div></div>
+        <div class="lpin mari" style="left:66%;top:40%;">
+          <div class="mk" style="width:58px;height:58px;font-size:27px;box-shadow:0 0 0 6px rgba(217,119,6,.16),0 6px 16px rgba(70,45,20,.3);">🏪</div>
+          <div class="nm">बेड़ो हाट · गुरु</div>
+        </div>
+      </div>
+      <div class="cockpit" style="top:300px;">
+        <div class="grab"></div>
+        <div class="cp-head">
+          <div>
+            <span class="kind"><span class="kdot"></span>हाट दिन · बिक्री</span>
+            <div class="ttl">बेड़ो हाट की तैयारी<small>गुरुवार · 6 km · सुबह 7 बजे टेम्पो</small></div>
+          </div>
+          <div class="when">2 दिन</div>
+        </div>
+        <div class="gauges">
+          <div class="gauge g-weather"><div class="gk">☀️ मौसम</div><div class="gv">साफ</div><div class="gs">भीड़ अच्छी</div></div>
+          <div class="gauge g-stock"><div class="gk">🫙 स्टॉक</div><div class="gv">30<small> जार</small></div><div class="gs">+10 पापड़</div></div>
+          <div class="gauge g-price"><div class="gk">₹ दाम</div><div class="gv">₹50<small>/जार</small></div><div class="gs">पिछली बार ₹45</div></div>
+        </div>
+        <div class="earnband">
+          <div class="eb"><span class="ebk">आज का लक्ष्य</span><span class="ebv">₹1,500</span></div>
+          <div class="ebarrow">↑</div>
+          <div class="eb sub"><span class="ebk">पिछली बार</span><span class="ebv">₹900</span></div>
+          <div class="eb gain"><span class="ebk">और कमाई</span><span class="ebv">+₹600</span></div>
+        </div>
+        <div class="plan">
+          <div class="lead">🏪 बेड़ो में अचार सबसे ज़्यादा बिकता है</div>
+          <h4>30 जार अचार + 10 पैकेट पापड़ ले जाएँ, ₹50 दाम रखें — शुक्रवार बारिश है, आज ज़्यादा बेचें।</h4>
+          <p>रेखा और सुनीता के साथ सुबह 7 बजे का टेम्पो लें; भाड़ा बाँट लें। आम का मौसम है, मीठा अचार माँग में है।</p>
+          <div class="seg3">
+            <span><b>सुबह</b>जार पैक करें, लेबल लगाएँ</span>
+            <span><b>हाट</b>आगे की कतार, नमूना दें</span>
+            <span><b>शाम</b>कमाई बैंक मित्र में जमा</span>
+          </div>
+        </div>
+        <div class="lasthaat">
+          <div class="ic">📈</div>
+          <div class="b"><div class="kl">पिछला हाट</div><h5>25 में से <b>18 जार</b> बिके · <b>₹900</b> कमाए · 4 दोबारा ग्राहक</h5></div>
+        </div>
+        <div class="cp-cta">
+          <button class="voice">🎙️</button>
+          <button class="ready">तैयारी पक्की करें</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">B</span><b>The haat is her "race" → a market-day cockpit.</b>
+      Tap the हाट pin and the same cockpit pattern adapts: gauges become <b>मौसम / स्टॉक / दाम</b> (weather-footfall, suggested stock, price),
+      the green strategy block becomes a plain-language <b>selling plan</b> — which haat pays, what to carry, who to share the टेम्पो with —
+      and the per-third game plan becomes <b>सुबह / हाट / शाम</b>. A green <b>earnings band</b> makes the goal explicit — <b>आज का लक्ष्य ₹1,500</b> vs <b>पिछली बार ₹900</b>
+      (<b>+₹600</b>) — and the plan still carries cost levers (share the टेम्पो भाड़ा). 🎙️ lets her add a voice note instead of typing.</div>
+  </div>
+
+  <!-- ============ FRAME C — business health: Lakhpati progress + located capability + gap ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r"></span></div>
+      <div class="dt-back">‹ मेरा धंधा</div>
+      <div class="dt-hero">
+        <span class="stat">📈 बढ़ रहा है</span>
+        <h2>इस साल की कमाई</h2>
+        <div class="sub">लखपति दीदी लक्ष्य · JSLPS · CLF रातू</div>
+      </div>
+      <div class="body" style="top:172px;">
+        <div class="ring-wrap">
+          <div class="ring"><div class="inner"><b>₹64k</b><span>₹1 लाख में से</span></div></div>
+          <div class="t">
+            <h3>इस साल ₹64k कमाए</h3>
+            <p>लखपति बनने में <b>₹36k</b> और। नीचे के <b>4 तरीके</b> मिलकर हर महीने <b>~₹3,500</b> बढ़ाते हैं — साल भर में कमी पूरी।</p>
+            <span class="listen">🔊 सुनें</span>
+          </div>
+        </div>
+
+        <div class="eyebrow">आमदनी बढ़ाने के 4 तरीके · the levers you control</div>
+
+        <div class="lever">
+          <div class="li" style="background:var(--marigold-bg)">🏪</div>
+          <div class="b"><h5>ज़्यादा बेचो <small>· नया बाज़ार</small></h5>
+            <p><span class="where">बुंडू हाट</span> (मंगल · 8km) में कोई अचार-वाली नहीं — रेखा के साथ टेम्पो साझा करें।</p></div>
+          <div class="earn">+₹1,200<small>/माह</small></div>
+        </div>
+        <div class="lever">
+          <div class="li" style="background:rgba(14,116,144,.10)">🏷️</div>
+          <div class="b"><h5>दाम बढ़ाओ <small>· ब्रांडिंग · मार्केटिंग</small></h5>
+            <p>लेबल + <span class="where">WhatsApp कैटलॉग</span> से ₹50 → ₹60/जार; ग्राहक भरोसा बढ़ता है।</p></div>
+          <div class="earn">+₹800<small>/माह</small></div>
+        </div>
+        <div class="lever">
+          <div class="li" style="background:var(--indigo-bg)">✂️</div>
+          <div class="b"><h5>लागत घटाओ <small>· कम खर्च, ज़्यादा मुनाफ़ा</small></h5>
+            <p><span class="where">समूह</span> से आम-तेल थोक में खरीदें, हाट का भाड़ा बाँटें।</p></div>
+          <div class="earn">बचत ₹500<small>/माह</small></div>
+        </div>
+        <div class="lever">
+          <div class="li" style="background:var(--grow-bg)">🥭</div>
+          <div class="b"><h5>नया माल <small>· नया उत्पाद</small></h5>
+            <p>आम का सीज़न — <span class="where">आम चटनी + पापड़</span> लाइन जोड़ें, वही ग्राहक ज़्यादा खरीदते हैं।</p></div>
+          <div class="earn">+₹1,000<small>/माह</small></div>
+        </div>
+
+        <div class="gapcard">
+          <div class="k">⭐ सबसे बड़ा कदम · सबसे जल्दी कमाई</div>
+          <h4>पहले बुंडू हाट पकड़ें।</h4>
+          <p><b>2 दीदी</b> वहाँ जाती हैं — टेम्पो साझा करें। साथ ही CLF से <b>PMFME सब्सिडी</b> पर सीलिंग मशीन लें, ताकि दाम और बढ़े।</p>
+          <div class="act">
+            <button class="pri">बुंडू की योजना बनाएँ</button>
+            <button class="sec">सब्सिडी देखें</button>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab"><span class="ic">◉</span>दीदी<small>Watch</small></div>
+        <div class="tab on"><span class="ic">🧭</span>बाज़ार<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">C</span><b>Income — the ultimate payoff, with the levers she controls.</b>
+      This is the climax frame and it's about <b>money</b>: ₹64k earned this year, ₹36k from <b>लखपति</b> (₹1 lakh). Instead of an abstract capability list it
+      spells out the <b>four income levers</b> — <b>more sales</b> (a new haat, +₹1,200), <b>better price</b> (label + WhatsApp catalog branding, +₹800),
+      <b>lower costs</b> (buy raw material together, save ₹500), <b>new product</b> (mango chutney line, +₹1,000) — each with a <b>₹ impact</b> and a
+      <b>where</b> hook, summing to ~₹3,500/mo. The capabilities didn't vanish; they're now expressed as the moves that grow her income.</div>
+  </div>
+
+  <!-- ============ FRAME D — didis & places nearby ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">रांची · ओरमांझी ▾</span></div>
+      <div class="sheet-h" style="position:absolute;top:42px;left:0;right:0;z-index:40;">
+        <div class="grab" style="margin-top:0;margin-bottom:9px;"></div>
+        <div class="row">
+          <div><h3>आस-पास · दीदी और जगह</h3><div class="sub">ओरमांझी · 25 km के अंदर</div></div>
+          <div class="close">✕</div>
+        </div>
+      </div>
+      <div class="body" style="top:150px;padding:0;">
+        <div class="sectlab">कारोबारी जगहें · 4 nearby</div>
+        <div class="nrow"><div class="av place" style="background:var(--marigold)">🏪</div><div class="b"><h5>बेड़ो हाट</h5><p>गुरुवार बाज़ार · 6 km</p></div><div class="pin">⊙</div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av place" style="background:var(--indigo)">🏦</div><div class="b"><h5>प्रज्ञा केंद्र · बैंक मित्र</h5><p>UPI · जमा-निकासी · 2 km</p></div><div class="pin">⊙</div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av place" style="background:var(--terra)">🏛️</div><div class="b"><h5>CLF दफ्तर · रातू</h5><p>ट्रेनिंग · स्कीम · 9 km</p></div><div class="pin">⊙</div></div>
+
+        <div class="sectlab">आपकी दीदी · 6 working a step nearby</div>
+        <div class="nrow"><div class="av didi" style="background:#A14A26">सु</div><div class="b"><h5>सुनीता देवी</h5><p><span class="verb sell">बेचा</span> · बेड़ो हाट में पापड़ · समूह</p></div><div class="dist">0.4 km<small>बेड़ो</small></div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av didi" style="background:#4338CA">रे</div><div class="b"><h5>रेखा देवी</h5><p><span class="verb money">मुद्रा लोन लिया</span> · सिलाई मशीन · समूह</p></div><div class="dist">0.6 km<small>घर</small></div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av didi" style="background:#15803D">फू</div><div class="b"><h5>फूलमणि कुमारी</h5><p><span class="verb grow">पहली फसल बेची</span> · ऑयस्टर मशरूम</p></div><div class="dist">1.1 km<small>हुटप</small></div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av didi" style="background:#B45309">अ<span class="crp">★</span></div><div class="b"><h5>अनिता दीदी · CRP</h5><p><span class="verb learn">मेंटर</span> · मंगल–गुरु · सखी मंडल</p></div><div class="dist">1.2 km<small>रातू</small></div></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab"><span class="ic">◉</span>दीदी<small>Watch</small></div>
+        <div class="tab on"><span class="ic">🧭</span>बाज़ार<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">D</span><b>Nearby — anchored to the SHG, not anonymous distance.</b>
+      Places first (हाट, बैंक मित्र, CLF), then her <b>दीदी</b> — SHG sisters shown with vernacular verb-states
+      (<span style="color:var(--marigold);font-weight:800">बेचा</span> sold,
+      <span style="color:var(--indigo);font-weight:800">लोन लिया</span> borrowed,
+      <span style="color:var(--grow);font-weight:800">फसल बेची</span> harvested-and-sold) and the <b>CRP/Sakhi mentor</b> marked ★. Trust is the
+      organizing axis: you see people because they're in your समूह, with money in ₹ and site-level detail only.</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>How the universal "where" lens re-charts for this craft</h2>
+
+  <h3>The reframe (per craft, the medium changes)</h3>
+  <ul>
+    <li><span class="pill keep">SAME</span><b>Atlas is still the "where" lens</b> and still rides on the same platform primitives — Steps, Blueprints, Competencies/Evidence, Cohorts, the four-tier social model.</li>
+    <li><span class="pill new">NEW</span><b>Chart → landmark livelihood circuit.</b> Geography matters (distance to the haat, the bank, the mandi), but the surface is a small set of <b>named, repeated places</b>, not a continuous strategic chart (sailing) or institutional rotations (nursing). The medium that fits is a warm, icon-first <b>sketch-map</b>.</li>
+    <li><span class="pill new">NEW</span><b>The haat is the recurring event = the "race."</b> A time-and-place-bound market day she prepares for, shows up to, and reviews — so it gets the cockpit (gauges + plan + last-result), recolored for selling.</li>
+    <li><span class="pill new">PAYOFF</span><b>Money is the spine, not a footnote.</b> The end she's chasing is <b>income</b>, so it's visible everywhere: month-to-date earnings on the home screen, an expected-₹ figure on every haat, a target-vs-last band in the cockpit, and a growth view built entirely around the <b>four levers she controls — more sales, better prices (marketing/branding), lower costs, new markets</b>. Each lever carries a concrete <b>₹/month impact</b> and a <b>where</b> hook, and they sum to the gap that makes her <b>लखपति</b>.</li>
+  </ul>
+
+  <h3>Designed for the real user (not a translation of a US app)</h3>
+  <ul>
+    <li><span class="pill new">VOICE</span><b>Voice-first + audio on every card.</b> Low/variable literacy and shared phones mean the 🎙️ <i>बोलें</i> mic is the primary input and 🔊 read-aloud is everywhere — typing is the fallback, not the default.</li>
+    <li><span class="pill new">VERN</span><b>Vernacular, icon-first, big touch targets.</b> Hindi here; <b>Santhali (Ol Chiki) / Sadri / Mundari / Kurukh</b> are the localization targets for the Ranchi belt. Numerals and money in ₹; UPI-native.</li>
+    <li><span class="pill new">EDGE</span><b>Offline-tolerant &amp; shared-phone aware.</b> Haat calendar, prices and the circuit cache locally and sync when there's signal; no sensitive financial detail exposed on a shared handset.</li>
+    <li><span class="pill new">TRUST</span><b>SHG / didi network is the social fabric.</b> Discovery is "your समूह," not anonymous nearby strangers — matching how JSLPS / DAY-NRLM livelihoods actually organize.</li>
+  </ul>
+
+  <h3>Four-tier model → this persona's vocabulary</h3>
+  <table>
+    <tr><td>Interest <i>(add)</i></td><td>घर उद्योग — running a home enterprise (achar/papad, tussar silk, lac, sal-leaf plates, mushroom, tailoring…)</td></tr>
+    <tr><td>Organization <i>(join)</i></td><td>her <b>SHG / सखी मंडल → VO → CLF</b> federation, under JSLPS / DAY-NRLM</td></tr>
+    <tr><td>Program <i>(subscribe)</i></td><td><b>लखपति दीदी</b> pathway, JSLPS livelihood training, <b>PMFME</b> food-processing scheme, Mudra credit</td></tr>
+    <tr><td>People <i>(follow)</i></td><td><b>दीदी</b> peers in her समूह + the <b>CRP / Sakhi</b> mentors (Aajeevika / Bank / Pashu / Krishi Sakhi) and Cluster Coordinator</td></tr>
+  </table>
+
+  <h3>Primitive mapping</h3>
+  <ul>
+    <li><b>Step</b> = a unit of her enterprise — <i>source mango, sterilize jars, make a batch, label, sell at haat, deposit savings.</i> A <b>Blueprint</b> = a CLF's "achar enterprise" plan she adopts step by step (the Plan-is-a-menu pattern).</li>
+    <li><b>Competency / Evidence</b> → <b>livelihood capability</b> (sourcing · making/quality · selling · money · digital), evidenced by <i>real</i> sales, savings entries, a repaid loan, an FSSAI number — not a checkbox. In Frame C these capabilities are surfaced as the <b>income levers</b> that move them: a "weak selling" capability becomes the <b>more-sales / new-market</b> lever with a ₹ figure attached. Means (capability) expressed as ends (money).</li>
+    <li><b>Gap routing</b> is <b>spatial-economic</b>: an underserved haat where didis already go, a subsidy at the CLF — the "where" makes the next move concrete.</li>
+  </ul>
+
+  <h3>Build order (isolated from sailing &amp; nursing surfaces)</h3>
+  <ul>
+    <li><b>E0 — Coherence:</b> per-interest home geography (→ Ranchi block), vernacular + audio shell, ₹/UPI formatting, SHG-scoped Nearby. Biggest "this is built for me" win.</li>
+    <li><b>E1 — Landmark map &amp; circuit</b> (Frame A) · <b>E2 — Haat cockpit + last-haat ledger</b> (Frame B) · <b>E3 — Business health / Lakhpati + gap routing</b> (Frame C) · <b>E4 — Curated JSLPS / CLF partner &amp; scheme layer.</b></li>
+    <li><b>Data caveat:</b> needs an SHG→VO→CLF org structure, a <b>haat calendar</b> (market day + location per village), a simple <b>sales/savings ledger</b>, and a <b>scheme catalog</b> (PMFME, Mudra, Lakhpati). Verify what can be seeded for a Jharkhand demo persona before committing — this is the rural-Indian-entrepreneur slot in the per-persona Atlas rollout.</li>
+  </ul>
+</div>
+
+</body>
+</html>

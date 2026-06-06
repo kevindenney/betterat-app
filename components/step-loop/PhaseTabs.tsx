@@ -23,16 +23,29 @@
 
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ChevronRight, MessageCircle } from 'lucide-react-native';
 import {
   GRAY_3,
   GRAY_5,
-  IOS_BLUE,
-  IOS_CORAL,
-  IOS_CORAL_DEEP,
   IOS_GREEN,
-  IOS_GREEN_DEEP,
+  IOS_PURPLE,
   LABEL_3,
 } from '@/lib/design-tokens-step-loop-ios';
+import { STEP_STATE, REFLECT } from '@/lib/design-tokens-ios';
+
+/**
+ * Per-phase signal colors (redesign §11 "color is signal"). The active stage
+ * is the only saturated element in the row: Plan indigo, Do amber, Review clay.
+ */
+const PHASE_COLORS: Record<'plan' | 'do' | 'reflect', { base: string; tint: string; ink: string }> = {
+  plan: { base: STEP_STATE.plan, tint: STEP_STATE.planTint, ink: STEP_STATE.planInk },
+  do: { base: STEP_STATE.do, tint: STEP_STATE.doTint, ink: STEP_STATE.doInk },
+  reflect: { base: REFLECT.base, tint: REFLECT.tint, ink: REFLECT.ink },
+};
+
+function phaseColors(id: PhaseId) {
+  return PHASE_COLORS[id === 'discussion' ? 'plan' : id];
+}
 
 export type PhaseState = 'pending' | 'ready' | 'live';
 export type PhaseId = 'plan' | 'do' | 'reflect' | 'discussion';
@@ -51,7 +64,7 @@ export interface PhaseTabsProps {
   onTabPress: (tab: PhaseId) => void;
   /** Optional override labels (defaults to "Plan" / "Do" / "Reflect" / "Discussion"). */
   labels?: Partial<Record<PhaseId, string>>;
-  /** Optional unread-count badge rendered next to the Discussion tab label. */
+  /** Optional count badge rendered in the Discussion thread bubble. */
   discussionCount?: number;
   testID?: string;
 }
@@ -63,26 +76,24 @@ interface TabSpec {
   badge?: number;
 }
 
-function Pip({ state }: { state: PhaseState }) {
-  if (state === 'ready') {
-    return <View style={[styles.pip, styles.pipFilled, { backgroundColor: IOS_GREEN }]} />;
+type PipVariant = 'done' | 'todo' | 'active' | 'live';
+
+function Pip({ variant, index, id }: { variant: PipVariant; index: number; id: PhaseId }) {
+  if (variant === 'done') {
+    return (
+      <View style={[styles.pip, styles.pipDone]}>
+        <Text style={styles.pipReadyText}>✓</Text>
+      </View>
+    );
   }
-  if (state === 'live') {
-    return <View style={[styles.pip, styles.pipFilled, { backgroundColor: IOS_CORAL }]} />;
+  if (variant === 'active' || variant === 'live') {
+    return (
+      <View style={[styles.pip, { backgroundColor: phaseColors(id).base }]}>
+        <Text style={styles.pipNumber}>{index}</Text>
+      </View>
+    );
   }
   return <View style={[styles.pip, styles.pipPending]} />;
-}
-
-function getUnderlineColor(state: PhaseState): string {
-  if (state === 'live') return IOS_CORAL;
-  if (state === 'ready') return IOS_GREEN;
-  return IOS_BLUE;
-}
-
-function getActiveTextColor(state: PhaseState): string {
-  if (state === 'live') return IOS_CORAL_DEEP;
-  if (state === 'ready') return IOS_GREEN_DEEP;
-  return IOS_BLUE;
 }
 
 export function PhaseTabs({
@@ -109,6 +120,8 @@ export function PhaseTabs({
       badge: discussionCount && discussionCount > 0 ? discussionCount : undefined,
     });
   }
+  const lifecycleSpecs = specs.filter((tab) => tab.id !== 'discussion');
+  const discussionSpec = specs.find((tab) => tab.id === 'discussion');
 
   return (
     <View style={styles.rail} testID={testID}>
@@ -117,44 +130,84 @@ export function PhaseTabs({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.row}
       >
-        {specs.map((tab) => {
-        const isActive = tab.id === active;
-        return (
+        <View style={styles.lifecycleRow}>
+          {lifecycleSpecs.map((tab, index) => {
+            const isActive = tab.id === active;
+            const variant: PipVariant = isActive
+              ? 'active'
+              : tab.state === 'ready'
+                ? 'done'
+                : tab.state === 'live'
+                  ? 'live'
+                  : 'todo';
+            const phase = phaseColors(tab.id);
+            return (
+              <View key={tab.id} style={styles.lifecycleSegment}>
+                <Pressable
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isActive }}
+                  onPress={() => onTabPress(tab.id)}
+                  style={[
+                    styles.tab,
+                    isActive && { backgroundColor: phase.tint },
+                  ]}
+                  hitSlop={4}
+                >
+                  <View style={styles.pipHost}>
+                    <Pip variant={variant} index={index + 1} id={tab.id} />
+                  </View>
+                  <Text
+                    style={[
+                      styles.label,
+                      isActive && { color: phase.ink },
+                      variant === 'done' && styles.labelDone,
+                      variant === 'live' && { color: phase.ink },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {tab.defaultLabel}
+                  </Text>
+                </Pressable>
+                {index < lifecycleSpecs.length - 1 ? (
+                  <ChevronRight
+                    size={16}
+                    color={GRAY_3}
+                    strokeWidth={2.4}
+                    style={styles.connector}
+                  />
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+        {discussionSpec ? (
           <Pressable
-            key={tab.id}
             accessibilityRole="tab"
-            accessibilityState={{ selected: isActive }}
-            onPress={() => onTabPress(tab.id)}
-            style={styles.tab}
+            accessibilityLabel={`${discussionSpec.defaultLabel} thread${
+              discussionSpec.badge ? `, ${discussionSpec.badge} updates` : ''
+            }`}
+            accessibilityState={{ selected: active === 'discussion' }}
+            onPress={() => onTabPress('discussion')}
+            style={[
+              styles.discussionChip,
+              active === 'discussion' && styles.discussionChipActive,
+            ]}
             hitSlop={4}
           >
-            <View style={styles.pipHost}>
-              <Pip state={tab.state} />
-            </View>
-            <Text
-              style={[
-                styles.label,
-                isActive && { color: getActiveTextColor(tab.state) },
-              ]}
-            >
-              {tab.defaultLabel}
-            </Text>
-            {tab.badge ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{tab.badge > 99 ? '99+' : tab.badge}</Text>
+            <MessageCircle
+              size={15}
+              color={active === 'discussion' ? IOS_PURPLE : LABEL_3}
+              strokeWidth={2.2}
+            />
+            {discussionSpec.badge ? (
+              <View style={styles.discussionBadge}>
+                <Text style={styles.discussionBadgeText}>
+                  {discussionSpec.badge > 99 ? '99+' : discussionSpec.badge}
+                </Text>
               </View>
             ) : null}
-            {isActive ? (
-              <View
-                style={[
-                  styles.underline,
-                  { backgroundColor: getUnderlineColor(tab.state) },
-                ]}
-              />
-            ) : null}
           </Pressable>
-        );
-        })}
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -167,63 +220,104 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  lifecycleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  lifecycleSegment: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingTop: 8,
-    paddingBottom: 10,
-    paddingHorizontal: 10,
-    position: 'relative',
+    borderRadius: 14,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
   },
   pipHost: {
-    width: 14,
-    height: 14,
+    width: 16,
+    height: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pip: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  pipPending: {
-    borderWidth: 1,
-    borderColor: GRAY_3,
-    backgroundColor: 'transparent',
-  },
-  pipFilled: {
-    // filled disc — color set inline
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: LABEL_3,
-    letterSpacing: -0.1,
-  },
-  underline: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    bottom: 0,
-    height: 1.5,
-    borderRadius: 1.5,
-  },
-  badge: {
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 5,
-    borderRadius: 9,
-    backgroundColor: IOS_CORAL,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: {
+  pipPending: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: GRAY_3,
+    backgroundColor: 'transparent',
+  },
+  pipDone: {
+    backgroundColor: IOS_GREEN,
+  },
+  pipReadyText: {
+    color: '#FFFFFF',
     fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 14,
+  },
+  pipNumber: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 14,
+  },
+  label: {
+    fontSize: 13,
     fontWeight: '700',
+    color: LABEL_3,
+    letterSpacing: 0,
+  },
+  labelDone: {
+    color: 'rgba(60, 60, 67, 0.62)',
+  },
+  connector: {
+    marginHorizontal: 1,
+  },
+  discussionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    minHeight: 28,
+    minWidth: 32,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    backgroundColor: '#F7F7FA',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GRAY_5,
+  },
+  discussionChipActive: {
+    backgroundColor: 'rgba(88, 86, 214, 0.10)',
+    borderColor: 'rgba(88, 86, 214, 0.28)',
+  },
+  discussionBadge: {
+    minWidth: 17,
+    height: 17,
+    paddingHorizontal: 5,
+    borderRadius: 8.5,
+    backgroundColor: IOS_PURPLE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  discussionBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
 });

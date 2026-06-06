@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Combined Step level (L1+L2) + Add Step</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --serif:'Iowan Old Style',Georgia,serif;
+  --grouped:#F2F2F7;
+  --card:#FFFFFF;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);
+  --label3:rgba(60,60,67,0.34);
+  --sep:rgba(60,60,67,0.13);
+  --blue:#007AFF;
+  --done:#16A34A;
+  --now:#EA580C;
+  --lilac:#6D28D9;
+  --accent:#2563EB;
+  --accent-bg:rgba(37,99,235,.07);
+  --accent-line:rgba(37,99,235,.26);
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1660px;margin:0 auto 4px;font-size:21px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1660px;margin:0 auto 10px;font-size:13px;color:#41495A;line-height:1.6;}
+.page-sub b{color:#1a1f29;}
+.thesis{max-width:1660px;margin:0 auto 26px;background:#fff;border:0.5px solid rgba(0,0,0,.1);border-left:3px solid var(--accent);border-radius:10px;padding:14px 17px;font-size:12.5px;line-height:1.65;color:#2b3340;}
+.thesis b{color:#111;}
+.thesis .k{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:5px;padding:2px 7px;margin-right:7px;vertical-align:1px;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1660px;margin:0 auto;}
+.col{width:384px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+
+/* phone shell */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.30);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:#000;z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+.nav{position:absolute;top:44px;left:0;right:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:45;
+  background:rgba(248,248,250,.9);backdrop-filter:blur(18px);border-bottom:0.5px solid var(--sep);}
+.nav .lane{display:flex;align-items:center;gap:5px;font-size:15px;font-weight:700;}
+.nav .lane .chev{font-size:11px;color:var(--label2);}
+.nav .icons{display:flex;align-items:center;gap:14px;}
+.nav .plus{font-size:23px;color:var(--label);font-weight:300;line-height:1;}
+.nav .inbox{position:relative;font-size:16px;}
+.nav .inbox .badge{position:absolute;top:-6px;right:-8px;background:#FF3B30;color:#fff;font-size:8px;font-weight:800;border-radius:9px;padding:1px 4px;min-width:14px;text-align:center;}
+.nav .av{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+/* 3-level docked ladder */
+.zoomdock{position:absolute;top:90px;left:0;right:0;height:42px;z-index:44;display:flex;align-items:center;padding:6px 14px;
+  background:rgba(248,248,250,.92);backdrop-filter:blur(18px);border-bottom:0.5px solid var(--sep);}
+.ladder{display:flex;width:100%;background:rgba(120,120,128,.12);border-radius:9px;padding:2px;gap:2px;}
+.ladder .z{flex:1;text-align:center;font-size:11.5px;font-weight:700;color:var(--label2);padding:5px 0;border-radius:7px;}
+.ladder .z.on{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.13);}
+
+.body{position:absolute;top:132px;bottom:60px;left:0;right:0;overflow:hidden;display:flex;flex-direction:column;padding:11px 0 8px;}
+
+/* NOW row — obvious orange bar above the card carousel */
+.nowrow{display:flex;align-items:center;gap:9px;padding:0 16px 11px;}
+.nowrow .np{font-size:10px;font-weight:800;letter-spacing:.07em;color:#fff;background:var(--now);border-radius:6px;padding:4px 10px;white-space:nowrap;box-shadow:0 2px 6px rgba(234,88,12,.4);}
+.nowrow .ln{flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--now) 0 6px,transparent 6px 11px);opacity:.7;}
+.nowrow .pos{font-size:11px;font-weight:700;color:var(--label2);}
+
+/* card carousel */
+.carousel{flex:1;display:flex;align-items:stretch;gap:0;padding:0 14px;min-height:0;}
+.peek{flex:none;width:15px;border-radius:18px;align-self:stretch;margin-top:6px;margin-bottom:6px;}
+.peek.done{background:var(--grouped);border:0.5px solid var(--sep);opacity:.8;}
+.peek.plan{background:#fff;border:1px dashed rgba(60,60,67,.28);}
+.nowdiv{flex:none;width:22px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:8px;}
+.nowdiv .tab{font-size:8px;font-weight:800;letter-spacing:.04em;color:#fff;background:var(--now);border-radius:5px;padding:3px 4px;writing-mode:vertical-rl;text-orientation:mixed;}
+.nowdiv .nv{flex:1;width:2px;margin-top:5px;background:repeating-linear-gradient(var(--now) 0 5px,transparent 5px 9px);}
+
+/* the big step card (combined L1 content) */
+.bigcard{flex:1;background:#fff;border-radius:22px;border:1.4px solid var(--accent-line);box-shadow:0 10px 30px rgba(37,99,235,.14);overflow:hidden;display:flex;flex-direction:column;margin:0 6px;}
+.phasehead{padding:13px 16px 0;}
+.phaserow{display:flex;align-items:center;gap:0;}
+.phaserow .seg{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--label3);}
+.phaserow .seg .pdot{width:15px;height:15px;border-radius:50%;border:2px solid var(--label3);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;}
+.phaserow .seg.done .pdot{background:var(--done);border-color:var(--done);}
+.phaserow .seg.done{color:var(--label2);}
+.phaserow .seg.active{color:var(--accent);}
+.phaserow .seg.active .pdot{border-color:var(--accent);background:var(--accent);}
+.phaserow .link{flex:1;height:2px;background:var(--label3);opacity:.4;margin:0 6px;border-radius:2px;}
+.phaserow .link.done{background:var(--done);opacity:1;}
+.phaserow .thread{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--label2);background:var(--grouped);border-radius:20px;padding:4px 9px;}
+.kindrow{display:flex;align-items:center;gap:8px;padding:13px 16px 0;}
+.kindpill{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:6px;padding:3px 8px;}
+.kindrow .stat{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--now);background:rgba(234,88,12,.1);border-radius:6px;padding:3px 8px;}
+.kindrow .when{font-size:11.5px;color:var(--label2);font-weight:600;margin-left:auto;}
+.bh{font-family:var(--serif);font-size:25px;font-weight:600;line-height:1.12;letter-spacing:-.4px;padding:8px 16px 0;}
+.bchips{display:flex;flex-wrap:wrap;gap:6px;padding:11px 16px 14px;}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--label);background:var(--grouped);border-radius:20px;padding:4px 10px;}
+.chip .av3{display:flex;}
+.chip .av3 i{width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;margin-left:-5px;font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;}
+.chip.cross{color:var(--lilac);background:rgba(124,58,237,.08);}
+.bsec{padding:14px 16px;border-top:0.5px solid var(--sep);}
+.seclab{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin-bottom:9px;}
+.seclab .ai{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:0;text-transform:none;}
+.steps{display:flex;flex-direction:column;gap:0;}
+.stp{display:flex;align-items:center;gap:11px;padding:8px 2px;border-bottom:0.5px solid var(--sep);}
+.stp:last-child{border-bottom:none;}
+.stp .box{width:19px;height:19px;border-radius:6px;border:1.8px solid var(--label3);flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;}
+.stp .box.done{background:var(--done);border-color:var(--done);}
+.stp .box.now{border-color:var(--accent);}
+.stp .txt{flex:1;font-size:13.5px;line-height:1.3;}
+.stp .txt.done{color:var(--label2);text-decoration:line-through;text-decoration-color:var(--label3);}
+.bcta{margin:auto 16px 16px;background:var(--accent);color:#fff;border-radius:14px;padding:13px;text-align:center;font-size:14.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;}
+.bcta.ghost{background:var(--accent-bg);color:var(--accent);}
+
+/* pager */
+.pager{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 0 8px;}
+.pager .d{width:6px;height:6px;border-radius:50%;background:var(--label3);}
+.pager .d.done{background:var(--done);}
+.pager .d.now{width:22px;height:7px;border-radius:4px;background:var(--accent);}
+.pager .nowtick{width:2px;height:13px;background:var(--now);border-radius:2px;margin:0 2px;}
+
+/* add step button */
+.addbtn{margin:0 16px;display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid var(--accent-line);color:var(--accent);border-radius:14px;padding:12px;font-size:14.5px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+
+/* ===== Add Step dialog ===== */
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.34);z-index:55;}
+.sheet{position:absolute;left:0;right:0;bottom:0;height:89%;background:#fff;border-radius:24px 24px 0 0;z-index:56;display:flex;flex-direction:column;box-shadow:0 -12px 44px rgba(0,0,0,.28);}
+.grab{width:38px;height:5px;border-radius:3px;background:rgba(60,60,67,.28);margin:9px auto 3px;}
+.sheeth{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 13px;border-bottom:0.5px solid var(--sep);}
+.sheeth .t{font-size:18px;font-weight:800;letter-spacing:-.3px;}
+.sheeth .x{font-size:14px;font-weight:700;color:var(--label2);}
+.sbody{flex:1;overflow:hidden;padding:14px 16px;}
+.blankrow{display:flex;align-items:center;gap:12px;background:var(--accent-bg);border:1px solid var(--accent-line);border-radius:14px;padding:13px;margin-bottom:18px;}
+.blankrow .ic{width:36px;height:36px;border-radius:11px;background:var(--accent);color:#fff;font-size:23px;font-weight:300;display:flex;align-items:center;justify-content:center;flex:none;}
+.blankrow .tx{flex:1;}
+.blankrow .tx .t{font-size:15px;font-weight:700;}
+.blankrow .tx .s{font-size:11.5px;color:var(--label2);margin-top:2px;}
+.blankrow .go{font-size:18px;color:var(--accent);}
+.dsec{margin-bottom:17px;}
+.dh{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin-bottom:10px;}
+.dh .more{margin-left:auto;font-size:11px;font-weight:700;color:var(--accent);text-transform:none;letter-spacing:0;}
+.bpgroup{border:0.5px solid var(--sep);border-radius:14px;overflow:hidden;margin-bottom:10px;}
+.bph{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--grouped);}
+.bph .lg{width:26px;height:26px;border-radius:7px;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;}
+.bph .nm{font-size:13px;font-weight:700;line-height:1.2;}
+.bph .nm .sub{font-size:10px;color:var(--label2);font-weight:600;margin-top:1px;}
+.bph .cnt{margin-left:auto;font-size:10.5px;color:var(--label2);font-weight:700;}
+.aitem{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:0.5px solid var(--sep);}
+.aitem .it{flex:1;min-width:0;}
+.aitem .it .t{font-size:13px;font-weight:600;line-height:1.2;}
+.aitem .it .s{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--label3);margin-top:3px;}
+.aitem .it .s.cross{color:var(--lilac);}
+.aitem .add{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;font-weight:300;line-height:1;display:flex;align-items:center;justify-content:center;flex:none;}
+.suggscroll{display:flex;gap:10px;overflow:hidden;}
+.sgcard{flex:none;width:158px;border:0.5px solid var(--accent-line);background:var(--accent-bg);border-radius:13px;padding:11px 12px;display:flex;flex-direction:column;}
+.sgcard .sgt{font-size:13px;font-weight:700;line-height:1.2;}
+.sgcard .why{font-size:10.5px;color:var(--label2);line-height:1.35;margin-top:5px;}
+.sgcard .sgadd{margin-top:10px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:700;color:#fff;background:var(--accent);border-radius:9px;padding:7px;}
+.xitem .tg{flex:none;}
+
+/* tab bar */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:60px;display:flex;background:rgba(248,248,250,.94);backdrop-filter:blur(18px);border-top:0.5px solid var(--sep);padding-bottom:6px;z-index:48;}
+.tabbar .tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9.5px;font-weight:600;color:var(--label3);}
+.tabbar .tb.on{color:var(--accent);}
+.tabbar .tb .g{font-size:18px;}
+
+/* legend */
+.legend{max-width:1660px;margin:30px auto 0;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:14px;padding:20px 24px;}
+.legend h3{margin:0 0 4px;font-size:15px;}
+.legend .sub{font-size:12px;color:var(--label2);margin-bottom:16px;}
+.legend .grid{display:grid;grid-template-columns:1fr 1fr;gap:13px 30px;}
+.legend .item{font-size:12.5px;line-height:1.55;color:#2b3340;}
+.legend .item b{color:#111;}
+.legend .num{display:inline-block;width:19px;height:19px;border-radius:5px;background:var(--accent);color:#fff;font-size:11px;font-weight:800;text-align:center;line-height:19px;margin-right:7px;vertical-align:1px;}
+</style>
+</head>
+<body>
+
+<div class="page-h">Combined Step level (L1 + L2) · three zoom levels · Add Step dialog</div>
+<div class="page-sub">L1 (full-screen step) and L2 (mini step cards) merge into <b>one Step level</b>: a single step card filling ~80% of the screen, with the previous and next cards peeking at the edges and an <b>obvious NOW bar</b> dividing done from planned — a sized-up L2 card you swipe through. The ladder drops to <b>three levels: Step · Arc · All</b>. <b>No Librarian / noticing here</b> — those are reserved for Arc and All. The <b>Add step</b> button opens a dialog offering a blank step, your subscribed blueprints, your suggestions, and cross-interest steps.</div>
+
+<div class="thesis"><span class="k">Core move</span> <b>One card, paged horizontally, is both the step and its place in the sequence.</b> The card holds the L1 detail (phase arc, what/how, sub-steps); the peeks + NOW bar carry the L2 reading ("just done → now → next"). Done steps peek muted-green on the left of NOW; planned steps peek dashed on the right. Swiping is moving through time. The Librarian stays out — this level is for <i>doing the step in front of you</i>, not reflecting on the arc.</div>
+
+<div class="frames">
+
+<!-- ============ FRAME 1 · SAILING — combined Step level ============ -->
+<div class="col">
+<div class="phone" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.07);--accent-line:rgba(37,99,235,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane">Sail Racing <span class="chev">▾</span></div>
+    <div class="icons"><span class="plus">+</span><span class="inbox">✉︎<span class="badge">9</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomdock"><div class="ladder"><span class="z">All</span><span class="z">Arc</span><span class="z on">Step</span></div></div>
+  <div class="body">
+    <div class="nowrow"><span class="np">▸ NOW</span><span class="ln"></span><span class="pos">Sat 14:40 · 2 of 4</span></div>
+    <div class="carousel">
+      <div class="peek done"></div>
+      <div class="nowdiv"><span class="tab">NOW</span><span class="nv"></span></div>
+      <div class="bigcard">
+        <div class="phasehead"><div class="phaserow">
+          <div class="seg done"><span class="pdot">✓</span>Plan</div><div class="link done"></div>
+          <div class="seg active"><span class="pdot">2</span>Do</div><div class="link"></div>
+          <div class="seg"><span class="pdot">3</span>Review</div>
+          <div class="thread">💬 2</div>
+        </div></div>
+        <div class="kindrow"><span class="kindpill">⛵ Race</span><span class="stat">In play</span><span class="when">Race 2 · start 14:55</span></div>
+        <div class="bh">Race 2 — Middle Island</div>
+        <div class="bchips">
+          <span class="chip"><span class="av3"><i style="background:#E2792E">K</i><i style="background:#2563EB">D</i><i style="background:#16A34A">M</i></span>3 crew</span>
+          <span class="chip">🔗 5 pinned</span>
+        </div>
+        <div class="bsec">
+          <div class="seclab">How — this race<span class="ai">✨ Coach</span></div>
+          <div class="steps">
+            <div class="stp"><span class="box done">✓</span><span class="txt done">Pre-start sequence + line bias</span></div>
+            <div class="stp"><span class="box now"></span><span class="txt">First beat — commit to the left</span></div>
+            <div class="stp"><span class="box"></span><span class="txt">Leeward mark — wide-then-tight</span></div>
+          </div>
+        </div>
+        <div class="bcta">＋ Log this leg</div>
+      </div>
+      <div class="peek plan"></div>
+    </div>
+    <div class="pager"><span class="d done"></span><span class="nowtick"></span><span class="d now"></span><span class="d"></span><span class="d"></span></div>
+    <div class="addbtn">＋ Add step</div>
+  </div>
+  <div class="tabbar"><div class="tb on"><span class="g">⛟</span>Practice</div><div class="tb"><span class="g">▥</span>Library</div><div class="tb"><span class="g">⚲</span>Watch</div><div class="tb"><span class="g">◬</span>Atlas</div></div>
+</div>
+<div class="col-cap"><span class="tag">1 · Sailing · Step level</span><b>One card ≈ 80% of the screen.</b> Race 1 peeks muted-green at the left (done, behind NOW); Rig-tune peeks dashed at the right (planned). The card itself is the full L1 step — phase arc, sub-steps, Do-phase capture. Swipe = move through the sequence. Pager shows the NOW tick. No Librarian.</div>
+</div>
+
+<!-- ============ FRAME 2 · NURSING — combined Step level ============ -->
+<div class="col">
+<div class="phone" style="--accent:#0E7490;--accent-bg:rgba(14,116,137,.07);--accent-line:rgba(14,116,137,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane">Nursing <span class="chev">▾</span></div>
+    <div class="icons"><span class="plus">+</span><span class="inbox">✉︎<span class="badge">4</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomdock"><div class="ladder"><span class="z">All</span><span class="z">Rotation</span><span class="z on">Step</span></div></div>
+  <div class="body">
+    <div class="nowrow"><span class="np">▸ NOW</span><span class="ln"></span><span class="pos">Wed 19:04 · 5 of 9</span></div>
+    <div class="carousel">
+      <div class="peek done"></div>
+      <div class="nowdiv"><span class="tab">NOW</span><span class="nv"></span></div>
+      <div class="bigcard">
+        <div class="phasehead"><div class="phaserow">
+          <div class="seg active"><span class="pdot">1</span>Plan</div><div class="link"></div>
+          <div class="seg"><span class="pdot">2</span>Do</div><div class="link"></div>
+          <div class="seg"><span class="pdot">3</span>Review</div>
+          <div class="thread">💬 2</div>
+        </div></div>
+        <div class="kindrow"><span class="kindpill">🩺 Clinical</span><span class="stat">Next up</span><span class="when">Round 1 · 19:00</span></div>
+        <div class="bh">Neuro checks q2h</div>
+        <div class="bchips">
+          <span class="chip"><span class="av3"><i style="background:#0E7490">M</i><i style="background:#2563EB">D</i></span>Maya · preceptor</span>
+          <span class="chip">📍 Med-Surg 4E · bed 12</span>
+        </div>
+        <div class="bsec">
+          <div class="seclab">How — sub-steps<span class="ai">✨ Coach</span></div>
+          <div class="steps">
+            <div class="stp"><span class="box"></span><span class="txt">Baseline GCS + pupils at handoff</span></div>
+            <div class="stp"><span class="box"></span><span class="txt">Motor &amp; sensory symmetry, both sides</span></div>
+            <div class="stp"><span class="box"></span><span class="txt">Chart trend · flag 2-pt GCS drop</span></div>
+          </div>
+        </div>
+        <div class="bcta">Start Do →</div>
+      </div>
+      <div class="peek plan"></div>
+    </div>
+    <div class="pager"><span class="d done"></span><span class="d done"></span><span class="nowtick"></span><span class="d now"></span><span class="d"></span><span class="d"></span></div>
+    <div class="addbtn">＋ Add step</div>
+  </div>
+  <div class="tabbar"><div class="tb on"><span class="g">⛟</span>Practice</div><div class="tb"><span class="g">▥</span>Library</div><div class="tb"><span class="g">⚲</span>Watch</div><div class="tb"><span class="g">◬</span>Atlas</div></div>
+</div>
+<div class="col-cap"><span class="tag">2 · Nursing · Step level</span><b>Same shell, Plan phase.</b> This card sits just right of NOW (next up), so its phase arc starts at Plan. "Arc" → "Rotation" in the 3-level ladder. The card carries L1 detail — who/where chips, sub-steps, "Start Do →". Swipe left to the done neuro shift, right to the queued med pass.</div>
+</div>
+
+<!-- ============ FRAME 3 · ADD STEP DIALOG ============ -->
+<div class="col">
+<div class="phone" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.07);--accent-line:rgba(37,99,235,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane">Sail Racing <span class="chev">▾</span></div>
+    <div class="icons"><span class="plus">+</span><span class="inbox">✉︎<span class="badge">9</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomdock"><div class="ladder"><span class="z">All</span><span class="z">Arc</span><span class="z on">Step</span></div></div>
+  <div class="body">
+    <div class="nowrow"><span class="np">▸ NOW</span><span class="ln"></span><span class="pos">Sat 14:40 · 2 of 4</span></div>
+    <div class="carousel">
+      <div class="peek done"></div>
+      <div class="nowdiv"><span class="tab">NOW</span><span class="nv"></span></div>
+      <div class="bigcard"><div class="kindrow"><span class="kindpill">⛵ Race</span></div><div class="bh">Race 2 — Middle Island</div></div>
+      <div class="peek plan"></div>
+    </div>
+  </div>
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sheeth"><span class="t">Add step</span><span class="x">Cancel</span></div>
+    <div class="sbody">
+      <div class="blankrow">
+        <span class="ic">＋</span>
+        <div class="tx"><div class="t">Add a blank step</div><div class="s">Start from scratch — name it, plan the how</div></div>
+        <span class="go">›</span>
+      </div>
+
+      <div class="dsec">
+        <div class="dh">From your blueprints<span class="more">See all</span></div>
+        <div class="bpgroup">
+          <div class="bph"><span class="lg" style="background:#2563EB">RH</span><div class="nm">RHKYC · Winter Series<div class="sub">Subscribed blueprint</div></div><span class="cnt">8 steps</span></div>
+          <div class="aitem"><div class="it"><div class="t">Rig-tune check-off</div><div class="s">Prep · before next race</div></div><span class="add">+</span></div>
+          <div class="aitem"><div class="it"><div class="t">Pre-start routine drill</div><div class="s">Starts</div></div><span class="add">+</span></div>
+        </div>
+        <div class="bpgroup">
+          <div class="bph"><span class="lg" style="background:#7E6FC8">CG</span><div class="nm">Coach Gao · Speed plan<div class="sub">Subscribed blueprint</div></div><span class="cnt">5 steps</span></div>
+          <div class="aitem"><div class="it"><div class="t">Upwind groove — two-boat tuning</div><div class="s">Boatspeed</div></div><span class="add">+</span></div>
+        </div>
+      </div>
+
+      <div class="dsec">
+        <div class="dh">✨ Suggested for you<span class="more">Why?</span></div>
+        <div class="suggscroll">
+          <div class="sgcard"><div class="sgt">Wind cheat sheet</div><div class="why">Your arc is race-heavy — a conditions ref fills the gap.</div><div class="sgadd">＋ Add</div></div>
+          <div class="sgcard"><div class="sgt">Debrief Race 1</div><div class="why">You finished Race 1 but haven't reviewed it yet.</div><div class="sgadd">＋ Add</div></div>
+        </div>
+      </div>
+
+      <div class="dsec">
+        <div class="dh">⇄ From your other interests</div>
+        <div class="aitem xitem"><div class="it"><div class="t">Start-line sketch</div><div class="s cross">⇄ From Drawing</div></div><span class="add">+</span></div>
+        <div class="aitem xitem"><div class="it"><div class="t">Core circuit — race stamina</div><div class="s cross">⇄ From Fitness</div></div><span class="add">+</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar"><div class="tb on"><span class="g">⛟</span>Practice</div><div class="tb"><span class="g">▥</span>Library</div><div class="tb"><span class="g">⚲</span>Watch</div><div class="tb"><span class="g">◬</span>Atlas</div></div>
+</div>
+<div class="col-cap"><span class="tag">3 · Add step dialog</span><b>One sheet, four sources.</b> A blank step up top, then the <b>blueprints you subscribe to</b> (grouped, with their adoptable steps), your <b>✨ suggestions</b> (the suggest bar, horizontally scrollable), and <b>⇄ cross-interest steps</b>. Every row has a ＋ — adopted steps land in the sequence by sort_order, right of NOW.</div>
+</div>
+
+<!-- ============ FRAME 4 · ENTREPRENEUR — combined Step level ============ -->
+<div class="col">
+<div class="phone" style="--accent:#15803D;--accent-bg:rgba(21,128,61,.07);--accent-line:rgba(21,128,61,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane">Home Business <span class="chev">▾</span></div>
+    <div class="icons"><span class="plus">+</span><span class="inbox">✉︎<span class="badge">3</span></span><span class="av">मी</span></div>
+  </div>
+  <div class="zoomdock"><div class="ladder"><span class="z">All</span><span class="z">Season</span><span class="z on">Step</span></div></div>
+  <div class="body">
+    <div class="nowrow"><span class="np">▸ अभी</span><span class="ln"></span><span class="pos">सोम 11:00 · 4 of 6</span></div>
+    <div class="carousel">
+      <div class="peek done"></div>
+      <div class="nowdiv"><span class="tab">अभी</span><span class="nv"></span></div>
+      <div class="bigcard">
+        <div class="phasehead"><div class="phaserow">
+          <div class="seg done"><span class="pdot">✓</span>Plan</div><div class="link done"></div>
+          <div class="seg active"><span class="pdot">2</span>Do</div><div class="link"></div>
+          <div class="seg"><span class="pdot">3</span>Review</div>
+          <div class="thread">💬 1</div>
+        </div></div>
+        <div class="kindrow"><span class="kindpill">🪔 Make</span><span class="stat">In play</span><span class="when">दिवाली rush</span></div>
+        <div class="bh">Diya stock — 200 pieces</div>
+        <div class="bchips">
+          <span class="chip"><span class="av3"><i style="background:#15803D">S</i><i style="background:#C99632">G</i></span>SHG group</span>
+          <span class="chip">📍 Bero · घर</span>
+        </div>
+        <div class="bsec">
+          <div class="seclab">How — sub-steps<span class="ai">✨ साथी</span></div>
+          <div class="steps">
+            <div class="stp"><span class="box done">✓</span><span class="txt done">Clay batch fired (120)</span></div>
+            <div class="stp"><span class="box now"></span><span class="txt">Paint + finish remaining 80</span></div>
+            <div class="stp"><span class="box"></span><span class="txt">Pack gift sets for Sunday haat</span></div>
+          </div>
+        </div>
+        <div class="bcta">＋ आज का काम लिखो</div>
+      </div>
+      <div class="peek plan"></div>
+    </div>
+    <div class="pager"><span class="d done"></span><span class="d done"></span><span class="nowtick"></span><span class="d now"></span><span class="d"></span></div>
+    <div class="addbtn">＋ Add step</div>
+  </div>
+  <div class="tabbar"><div class="tb on"><span class="g">⛟</span>Practice</div><div class="tb"><span class="g">▥</span>Library</div><div class="tb"><span class="g">⚲</span>Watch</div><div class="tb"><span class="g">◬</span>Atlas</div></div>
+</div>
+<div class="col-cap"><span class="tag">4 · Entrepreneur · Step level</span><b>Generalizes, native vocab.</b> NOW reads <b>अभी</b>, "Season" in the ladder, Hindi sub-steps + capture ("आज का काम लिखो"). Same card-on-NOW pattern: clay batch done, painting in play, packing queued. The peeks carry the Sunday haat (done) and supplier run (planned).</div>
+</div>
+
+</div><!-- /frames -->
+
+<div class="legend">
+  <h3>What this combines — and the rules</h3>
+  <div class="sub">L1 + L2 become one Step level; the ladder drops to three; Add step gets a real picker.</div>
+  <div class="grid">
+    <div class="item"><span class="num">1</span><b>One card is the step AND its place in time.</b> The card fills ~80% of the screen and holds the full L1 detail (phase arc, what/how, sub-steps, phase action). The previous + next cards peek at the edges — that's the old L2 carousel, sized up.</div>
+    <div class="item"><span class="num">2</span><b>An obvious NOW bar, kept from L2.</b> A vertical orange marker divides the done peek (muted-green, left) from the active card + planned peek (dashed, right). The top NOW row labels the time + position; the pager shows the NOW tick. Swiping moves through the sequence.</div>
+    <div class="item"><span class="num">3</span><b>Three zoom levels now: Step · Arc · All.</b> Collapsing L1+L2 means the ladder loses a rung. The middle label stays persona-native (Arc / Rotation / Season).</div>
+    <div class="item"><span class="num">4</span><b>No Librarian or noticing here.</b> This level is for doing the step in front of you. The Librarian's observations + "review this arc" live one level up (Arc) and at All — never on the Step card.</div>
+    <div class="item"><span class="num">5</span><b>Add step is a real picker, not just a blank.</b> The dialog offers: a blank step, your <b>subscribed blueprints</b> (grouped with their adoptable steps), your <b>✨ suggestions</b> (suggest bar), and <b>⇄ cross-interest</b> steps. One ＋ per row.</div>
+    <div class="item"><span class="num">6</span><b>Adopted steps land by sort_order.</b> Anything added from the dialog drops into the sequence to the right of NOW — selective, incremental, reorderable. Plan stays a menu, not a calendar.</div>
+  </div>
+</div>
+
+</body>
+</html>

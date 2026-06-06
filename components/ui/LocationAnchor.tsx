@@ -14,6 +14,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export interface LocationAnchorProps {
   /**
@@ -71,7 +72,8 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: 'rgba(60, 60, 67, 0.85)',
     letterSpacing: -0.1,
   },

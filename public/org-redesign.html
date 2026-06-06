@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Org page redesign · BetterAt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ───────────────────────────────────────────────────────────
+     Design mock — NOT wired into the app. Demonstrates an improved
+     org-profile layout for /organizations/[slug]. The whole page is
+     tinted by a single --accent var (org.brand_color), so every org
+     reads as custom from one DB field. Toggle the example org with
+     the pills at top-right.
+     ─────────────────────────────────────────────────────────── */
+  :root{
+    --accent:#C2410C;        /* PRADAN livelihoods terracotta */
+    --accent-soft:#FBEDE6;
+    --accent-ink:#7C2D12;
+    --ink:#101828;
+    --ink-2:#344054;
+    --muted:#667085;
+    --line:#E7ECF3;
+    --line-soft:#EEF2F7;
+    --bg:#F4F6FA;
+    --card:#FFFFFF;
+    --green:#0F766E;
+    --green-soft:#E6F4F1;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.12);
+    --shadow-lg:0 1px 2px rgba(16,24,40,.05), 0 24px 48px -20px rgba(16,24,40,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{
+    font-family:'Figtree',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--ink);
+    line-height:1.5;letter-spacing:-.011em;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:64px;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+
+  /* ── top bar ── */
+  .topbar{
+    position:sticky;top:0;z-index:40;
+    background:rgba(244,246,250,.82);backdrop-filter:saturate(180%) blur(16px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar .row{display:flex;align-items:center;gap:14px;height:52px}
+  .back{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-weight:600;font-size:15px;text-decoration:none;cursor:pointer}
+  .back:hover{color:var(--ink)}
+  .back svg{width:17px;height:17px}
+  .topbar-spacer{flex:1}
+  .switcher{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px}
+  .switcher button{font-family:inherit;border:0;background:none;font-size:12.5px;font-weight:700;color:var(--muted);padding:5px 11px;border-radius:999px;cursor:pointer;letter-spacing:-.01em}
+  .switcher button.on{background:var(--accent);color:#fff}
+
+  /* ── cover ── */
+  .cover{
+    position:relative;height:172px;margin-top:14px;border-radius:20px;overflow:hidden;
+    background:
+      radial-gradient(120% 140% at 12% 0%, color-mix(in srgb, var(--accent) 90%, #fff) 0%, transparent 55%),
+      radial-gradient(120% 160% at 100% 100%, color-mix(in srgb, var(--accent) 70%, #000 12%) 0%, transparent 60%),
+      linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #1d1340));
+    box-shadow:var(--shadow);
+  }
+  .cover::after{
+    content:"";position:absolute;inset:0;
+    background-image:radial-gradient(rgba(255,255,255,.16) 1px, transparent 1.4px);
+    background-size:18px 18px;opacity:.5;mix-blend-mode:overlay;
+  }
+  .cover .glow{position:absolute;right:-60px;top:-80px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.14);filter:blur(8px)}
+
+  /* ── identity ── */
+  .identity{display:flex;gap:18px;align-items:flex-start;margin-top:14px;padding:0 6px;position:relative;z-index:2}
+  .mark{
+    width:96px;height:96px;border-radius:24px;flex:none;margin-top:-58px;
+    background:linear-gradient(160deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent));
+    box-shadow:0 8px 28px -8px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 0 5px var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:900;font-size:46px;font-family:'Manrope',sans-serif;
+  }
+  .id-text{flex:1;min-width:0}
+  .eyebrow{display:flex;align-items:center;gap:8px;color:var(--accent-ink);font-weight:800;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase}
+  .id-text h1{font-size:30px;line-height:1.12;font-weight:800;letter-spacing:-.025em;margin:5px 0 8px}
+  .id-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;color:var(--muted);font-size:14px;font-weight:500}
+  .id-meta b{color:var(--ink-2);font-weight:700}
+  .dot{width:3px;height:3px;border-radius:50%;background:#C2C9D6}
+  .verified{display:inline-flex;align-items:center;gap:5px;background:var(--green-soft);color:var(--green);font-weight:700;font-size:12px;padding:3px 9px 3px 7px;border-radius:999px}
+  .verified svg{width:14px;height:14px}
+  .loc{display:inline-flex;align-items:center;gap:5px}
+  .loc svg{width:15px;height:15px;opacity:.7}
+
+  /* ── action bar ── */
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin:22px 6px 0}
+  .btn{font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14.5px;border-radius:12px;padding:11px 18px;cursor:pointer;border:1px solid transparent;letter-spacing:-.01em;transition:transform .08s ease, box-shadow .2s ease}
+  .btn:active{transform:translateY(1px)}
+  .btn svg{width:17px;height:17px}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 6px 16px -6px color-mix(in srgb, var(--accent) 60%, transparent)}
+  .btn-primary:hover{box-shadow:0 10px 22px -8px color-mix(in srgb, var(--accent) 65%, transparent)}
+  .btn-ghost{background:#fff;color:var(--ink-2);border-color:var(--line)}
+  .btn-ghost:hover{border-color:#D4DBE6;color:var(--ink)}
+  .btn-icon{padding:11px;width:42px;justify-content:center}
+
+  /* ── layout grid ── */
+  .grid{display:grid;grid-template-columns:1fr 320px;gap:22px;margin-top:30px;align-items:start}
+  .col-main{display:flex;flex-direction:column;gap:18px;min-width:0}
+  .col-side{display:flex;flex-direction:column;gap:18px;position:sticky;top:66px}
+
+  section.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .card-head h2{font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .card-head .count{font-size:12px;font-weight:700;color:var(--accent-ink);background:var(--accent-soft);padding:2px 9px;border-radius:999px}
+  .seeall{font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;cursor:pointer}
+
+  .about p{font-size:16px;line-height:1.6;color:var(--ink-2);font-weight:450}
+  .about .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+  .tag{font-size:12.5px;font-weight:600;color:var(--ink-2);background:var(--line-soft);border:1px solid var(--line);padding:5px 11px;border-radius:999px}
+
+  /* ── blueprint cards ── */
+  .bp{display:flex;flex-direction:column;gap:12px}
+  .bp-card{display:block;text-decoration:none;color:inherit;border:1px solid var(--line);border-radius:14px;padding:16px;transition:border-color .15s ease, box-shadow .15s ease, transform .08s ease;background:#fff;cursor:pointer}
+  .bp-card:hover{border-color:color-mix(in srgb,var(--accent) 35%, var(--line));box-shadow:var(--shadow);transform:translateY(-1px)}
+  .bp-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+  .bp-title{font-size:17px;font-weight:800;letter-spacing:-.02em;line-height:1.25}
+  .bp-sub{color:var(--muted);font-size:13.5px;margin-top:3px;font-weight:500}
+  .bp-price{flex:none;text-align:right}
+  .bp-price .p{font-weight:800;font-size:15px;color:var(--ink)}
+  .bp-price .c{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .bp-price .free{color:var(--green)}
+  .phases{display:flex;gap:6px;margin-top:14px}
+  .phase{flex:1;text-align:center;font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:7px 0;border-radius:8px;background:var(--line-soft);position:relative;overflow:hidden}
+  .phase.active{color:var(--accent-ink);background:var(--accent-soft)}
+  .bp-foot{display:flex;align-items:center;gap:14px;margin-top:13px;color:var(--muted);font-size:12.5px;font-weight:600}
+  .bp-foot .who{display:flex;align-items:center;gap:-6px}
+  .ava{width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:#cdd5e0;margin-left:-7px;font-size:0}
+  .ava:first-child{margin-left:0}
+
+  /* ── cohorts ── */
+  .coh{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft)}
+  .coh:last-child{border-bottom:0;padding-bottom:0}
+  .coh:first-child{padding-top:0}
+  .coh-ic{width:40px;height:40px;border-radius:12px;flex:none;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center}
+  .coh-ic svg{width:20px;height:20px}
+  .coh-body{flex:1;min-width:0}
+  .coh-body .t{font-weight:700;font-size:15px}
+  .coh-body .s{color:var(--muted);font-size:13px;font-weight:500}
+  .coh-meta{flex:none;text-align:right;font-size:12px;font-weight:700;color:var(--ink-2)}
+  .progress{width:74px;height:6px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:5px;margin-left:auto}
+  .progress > i{display:block;height:100%;background:var(--accent);border-radius:999px}
+
+  /* ── organizers ── */
+  .people{display:flex;flex-direction:column;gap:2px}
+  .person{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .person:last-child{border-bottom:0}
+  .p-ava{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;font-family:'Manrope'}
+  .p-body{flex:1}
+  .p-body .n{font-weight:700;font-size:14.5px}
+  .p-body .r{color:var(--muted);font-size:12.5px;font-weight:600}
+  .p-follow{font-family:inherit;font-size:12.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border:0;padding:6px 13px;border-radius:999px;cursor:pointer}
+
+  /* ── sidebar: at a glance ── */
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+  .fact{background:#fff;padding:14px}
+  .fact .v{font-size:20px;font-weight:800;letter-spacing:-.02em;font-family:'Manrope'}
+  .fact .l{font-size:11.5px;font-weight:600;color:var(--muted);margin-top:1px}
+
+  /* ── sidebar: sites map ── */
+  .map{height:130px;border-radius:12px;overflow:hidden;position:relative;border:1px solid var(--line);margin-bottom:12px;
+    background:
+      linear-gradient(0deg, rgba(0,0,0,.04), rgba(0,0,0,.04)),
+      repeating-linear-gradient(0deg, #E9EEF5 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, #E9EEF5 0 1px, transparent 1px 26px),
+      linear-gradient(135deg,#EAF0F7,#F3F6FA);
+  }
+  .pin{position:absolute;width:26px;height:26px;transform:translate(-50%,-100%)}
+  .pin i{position:absolute;left:50%;top:0;transform:translateX(-50%);width:18px;height:18px;border-radius:50% 50% 50% 0;rotate:-45deg;background:var(--accent);box-shadow:0 3px 6px rgba(16,24,40,.3);border:2px solid #fff}
+  .site-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:13.5px}
+  .site-row:last-child{border-bottom:0}
+  .site-row .sd{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+  .site-row .sn{font-weight:600;flex:1}
+  .site-row .sm{color:var(--muted);font-size:12px;font-weight:600}
+
+  /* ── sidebar: membership tiers ── */
+  .tier{border:1px solid var(--line);border-radius:13px;padding:13px;margin-bottom:10px}
+  .tier:last-child{margin-bottom:0}
+  .tier.hi{border-color:color-mix(in srgb,var(--accent) 35%,var(--line));background:color-mix(in srgb,var(--accent-soft) 50%, #fff)}
+  .tier-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .tier-name{font-weight:800;font-size:14.5px}
+  .tier-price{font-weight:800;font-size:14px;color:var(--accent-ink)}
+  .tier-aud{color:var(--muted);font-size:12.5px;font-weight:500;margin-top:2px}
+
+  /* ── claim banner (placeholder state) ── */
+  .claim{border:1px dashed color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent-soft) 60%,#fff);border-radius:16px;padding:18px}
+  .claim h3{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+  .claim h3 svg{width:18px;height:18px;color:var(--accent)}
+  .claim p{font-size:13.5px;color:var(--ink-2);line-height:1.55;margin:8px 0 13px}
+  .claim .btn-primary{width:100%;justify-content:center}
+
+  .note{font-size:12px;color:var(--muted);text-align:center;margin:34px auto 0;max-width:560px;line-height:1.5}
+
+  @media (max-width:840px){
+    .grid{grid-template-columns:1fr}
+    .col-side{position:static;order:-1}
+    .id-text h1{font-size:26px}
+    .mark{width:80px;height:80px;border-radius:20px;font-size:38px}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap row">
+    <a class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Orgs</a>
+    <div class="topbar-spacer"></div>
+    <div class="switcher" id="switcher">
+      <button class="on" data-org="pradan">PRADAN</button>
+      <button data-org="jhson">JHSON</button>
+      <button data-org="rhkyc">RHKYC</button>
+      <button data-org="placeholder">Unclaimed</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="glow"></div>
+  </div>
+
+  <!-- IDENTITY -->
+  <div class="identity">
+    <div class="mark" id="mark">P</div>
+    <div class="id-text">
+      <div class="eyebrow" id="eyebrow">Association · Livelihoods &amp; Enterprise</div>
+      <h1 id="orgname">PRADAN — Ranchi Food Hub</h1>
+      <div class="id-meta">
+        <span class="verified" id="verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Verified</span>
+        <span class="loc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> <span id="place">Ranchi, Jharkhand · India</span></span>
+        <span class="dot"></span>
+        <span><b id="members">214</b> members</span>
+        <span class="dot"></span>
+        <span><b id="bpcount">3</b> blueprints</span>
+        <span class="dot"></span>
+        <span id="join">By invitation</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="btn btn-primary" id="cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Request to join</button>
+    <button class="btn btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> Open map</button>
+    <button class="btn btn-ghost btn-icon" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>
+  </div>
+
+  <!-- BODY GRID -->
+  <div class="grid">
+    <!-- MAIN -->
+    <div class="col-main">
+
+      <section class="card about">
+        <div class="card-head"><h2>About</h2></div>
+        <p id="about">PRADAN’s Ranchi Food Hub helps women’s self-help groups turn local harvests into packaged, market-ready food products. Members move through a shared playbook covering sourcing, food-safety, branding, and getting onto shelves — with cohort support at every step.</p>
+        <div class="tags" id="tags">
+          <span class="tag">Food processing</span>
+          <span class="tag">Self-help groups</span>
+          <span class="tag">Market linkage</span>
+          <span class="tag">FSSAI compliance</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Blueprints</h2><a class="seeall">See all 3 →</a></div>
+        <div class="bp">
+          <a class="bp-card">
+            <div class="bp-top">
+              <div>
+                <div class="bp-title">From Harvest to Shelf</div>
+                <div class="bp-sub">12-week path · sourcing → packaged product</div>
+              </div>
+              <div class="bp-price"><div class="p free">Free</div><div class="c">to members</div></div>
+            </div>
+            <div class="phases"><div class="phase active">Plan</div><div class="phase active">Do</div><div class="phase">Review</div><div class="phase">Discuss</div></div>
+            <div class="bp-foot">
+              <span class="who"><i class="ava"></i><i class="ava"></i><i class="ava"></i></span>
+              <span>86 subscribed</span><span class="dot"></span><span>9 steps</span>
+            </div>
+          </a>
+          <a class="bp-card">
+            <div class="bp-top">
+              <div>
+                <div class="bp-title">FSSAI &amp; Food-Safety Basics</div>
+                <div class="bp-sub">Get licensed and audit-ready</div>
+              </div>
+              <div class="bp-price"><div class="p free">Free</div><div class="c">to members</div></div>
+            </div>
+            <div class="phases"><div class="phase active">Plan</div><div class="phase active">Do</div><div class="phase active">Review</div><div class="phase">Discuss</div></div>
+            <div class="bp-foot">
+              <span class="who"><i class="ava"></i><i class="ava"></i></span>
+              <span>54 subscribed</span><span class="dot"></span><span>6 steps</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Cohorts</h2><span class="count">2 active</span></div>
+        <div class="coh">
+          <div class="coh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13A4 4 0 0116 11"/></svg></div>
+          <div class="coh-body"><div class="t">Monsoon 2026 batch</div><div class="s">28 members · Khunti & Ranchi blocks</div></div>
+          <div class="coh-meta">Week 5 of 12<div class="progress"><i style="width:42%"></i></div></div>
+        </div>
+        <div class="coh">
+          <div class="coh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13A4 4 0 0116 11"/></svg></div>
+          <div class="coh-body"><div class="t">Pickle &amp; preserves pilot</div><div class="s">11 members · Hazaribagh</div></div>
+          <div class="coh-meta">Week 9 of 12<div class="progress"><i style="width:75%"></i></div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Organizers</h2><a class="seeall">All members →</a></div>
+        <div class="people">
+          <div class="person">
+            <div class="p-ava" style="background:#C2410C">SM</div>
+            <div class="p-body"><div class="n">Sunita Mahato</div><div class="r">Program lead · Ranchi</div></div>
+            <button class="p-follow">Follow</button>
+          </div>
+          <div class="person">
+            <div class="p-ava" style="background:#1D4ED8">RK</div>
+            <div class="p-body"><div class="n">Rahul Kujur</div><div class="r">Food-safety mentor</div></div>
+            <button class="p-follow">Follow</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="col-side">
+
+      <section class="card" style="padding:16px">
+        <div class="card-head"><h2>At a glance</h2></div>
+        <div class="facts">
+          <div class="fact"><div class="v">2019</div><div class="l">Established</div></div>
+          <div class="fact"><div class="v">214</div><div class="l">Members</div></div>
+          <div class="fact"><div class="v">4</div><div class="l">Sites</div></div>
+          <div class="fact"><div class="v">Assoc.</div><div class="l">Org type</div></div>
+        </div>
+      </section>
+
+      <section class="card" style="padding:16px">
+        <div class="card-head"><h2>Sites</h2><span class="count">4</span></div>
+        <div class="map">
+          <div class="pin" style="left:34%;top:46%"><i></i></div>
+          <div class="pin" style="left:58%;top:62%"><i></i></div>
+          <div class="pin" style="left:70%;top:38%"><i></i></div>
+          <div class="pin" style="left:46%;top:74%"><i></i></div>
+        </div>
+        <div class="site-row"><span class="sd"></span><span class="sn">Ranchi processing unit</span><span class="sm">HQ</span></div>
+        <div class="site-row"><span class="sd"></span><span class="sn">Khunti collection center</span><span class="sm">28 km</span></div>
+        <div class="site-row"><span class="sd"></span><span class="sn">Hazaribagh pilot kitchen</span><span class="sm">91 km</span></div>
+      </section>
+
+      <section class="card" style="padding:16px">
+        <div class="card-head"><h2>Membership</h2></div>
+        <div class="tier hi">
+          <div class="tier-top"><span class="tier-name">SHG member</span><span class="tier-price">Free</span></div>
+          <div class="tier-aud">Women in an affiliated self-help group</div>
+        </div>
+        <div class="tier">
+          <div class="tier-top"><span class="tier-name">Partner org</span><span class="tier-price">Institutional</span></div>
+          <div class="tier-aud">NGOs & govt programs running cohorts</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <p class="note">Design mock for <b>/organizations/[slug]</b> — not wired into the app. The whole page tints from one <code>org.brand_color</code> field. Switch example orgs (incl. the honest <b>Unclaimed</b> state) using the pills up top.</p>
+</div>
+
+<script>
+  // Per-org content + accent. In the app these come from the org row
+  // (brand_color, organization_type, join_mode, counts) — here they're
+  // inline so the single --accent idea is visible.
+  const ORGS = {
+    pradan:{
+      accent:'#C2410C', soft:'#FBEDE6', ink:'#7C2D12', mark:'P',
+      eyebrow:'Association · Livelihoods & Enterprise',
+      name:'PRADAN — Ranchi Food Hub', place:'Ranchi, Jharkhand · India',
+      members:'214', bp:'3', join:'By invitation', cta:'Request to join',
+      verified:true,
+      about:'PRADAN’s Ranchi Food Hub helps women’s self-help groups turn local harvests into packaged, market-ready food products. Members move through a shared playbook covering sourcing, food-safety, branding, and getting onto shelves — with cohort support at every step.',
+      tags:['Food processing','Self-help groups','Market linkage','FSSAI compliance'],
+      claim:false
+    },
+    jhson:{
+      accent:'#1E5BB8', soft:'#E8F0FB', ink:'#11366E', mark:'J',
+      eyebrow:'Institution · Nursing',
+      name:'Johns Hopkins School of Nursing', place:'Baltimore, Maryland · USA',
+      members:'1.2k', bp:'9', join:'By invitation', cta:'Request to join',
+      verified:true,
+      about:'A clinical-competency platform for nursing students: rotation blueprints, evidence logging across hospital sites, and a capability framework that maps every shift to the skills it builds.',
+      tags:['Clinical rotations','Competency evidence','Preceptorship','Sim lab'],
+      claim:false
+    },
+    rhkyc:{
+      accent:'#0E7C66', soft:'#E2F2EE', ink:'#0A4E40', mark:'R',
+      eyebrow:'Club · Sail Racing',
+      name:'Royal Hong Kong Yacht Club', place:'Victoria Harbour · Hong Kong',
+      members:'640', bp:'5', join:'Request to join', cta:'Request to join',
+      verified:true,
+      about:'Race-week prep, fleet calendars, and coaching blueprints for one of Asia’s oldest yacht clubs. Subscribe to a class blueprint, join a fleet, and track conditions on the Atlas.',
+      tags:['Dragon class','Fleet racing','Coaching','Victoria Harbour'],
+      claim:false
+    },
+    placeholder:{
+      accent:'#7A828F', soft:'#EEF1F5', ink:'#3F4754', mark:'?',
+      eyebrow:'Unclaimed placeholder',
+      name:'Lakeside Sailing Association', place:'Location not set',
+      members:'—', bp:'0', join:'Unclaimed', cta:'Claim this organization',
+      verified:false,
+      about:'BetterAt created this placeholder so the organization can be discovered and linked. No members, blueprints, or sites have been added yet. Claiming it unlocks the full profile — publish blueprints, run cohorts, and verify members.',
+      tags:[],
+      claim:true
+    }
+  };
+
+  const $ = s => document.querySelector(s);
+  function paint(key){
+    const o = ORGS[key];
+    const r = document.documentElement.style;
+    r.setProperty('--accent', o.accent);
+    r.setProperty('--accent-soft', o.soft);
+    r.setProperty('--accent-ink', o.ink);
+    $('#mark').textContent = o.mark;
+    $('#eyebrow').textContent = o.eyebrow;
+    $('#orgname').textContent = o.name;
+    $('#place').textContent = o.place;
+    $('#members').textContent = o.members;
+    $('#bpcount').textContent = o.bp;
+    $('#join').textContent = o.join;
+    $('#about').textContent = o.about;
+    $('#cta').lastChild.textContent = ' ' + o.cta;
+    $('#verified').style.display = o.verified ? '' : 'none';
+    const tags = $('#tags'); tags.innerHTML = o.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+    // dim the rich body for the unclaimed/empty state
+    document.querySelectorAll('.col-main .card:not(.about), .col-side .card').forEach(c=>{
+      c.style.opacity = o.claim ? .32 : 1;
+      c.style.pointerEvents = o.claim ? 'none' : '';
+    });
+    let banner = $('#claimBanner');
+    if(o.claim){
+      if(!banner){
+        banner = document.createElement('section');
+        banner.id='claimBanner'; banner.className='claim';
+        banner.innerHTML = `<h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4a1 1 0 011-1h13l-2 4 2 4H6"/></svg> Claim this organization</h3><p>This is a placeholder BetterAt created so the org could be found. If you run it, claim it to publish blueprints, run cohorts, and verify members.</p><button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Start claim</button>`;
+        $('.col-side').prepend(banner);
+      }
+      banner.style.display='';
+    } else if(banner){ banner.style.display='none'; }
+  }
+
+  $('#switcher').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#switcher button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    paint(b.dataset.org);
+  });
+  paint('pradan');
+</script>
+</body>
+</html>

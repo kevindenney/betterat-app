@@ -48,6 +48,7 @@ import {
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { Gradient } from '@/components/studio/Gradient';
 import { StatRow } from '@/components/studio/StatRow';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export default function StudioHomePage() {
   const router = useRouter();
@@ -556,13 +557,15 @@ const styles = StyleSheet.create({
   kpiLabel: {
     fontSize: 11,
     color: 'rgba(60, 60, 67, 0.6)',
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   kpiValue: {
     fontSize: 26,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: '#1C1C1E',
     letterSpacing: -0.5,
     marginTop: 6,
@@ -627,7 +630,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 4,
   },
-  coverOrgBadgeText: { fontSize: 8.5, fontWeight: '700', color: '#FFFFFF' },
+  coverOrgBadgeText: { fontSize: 8.5, fontFamily: fontFamily.mono, fontWeight: '500', color: '#FFFFFF' },
   coverLabel: {
     color: 'rgba(255,255,255,0.85)',
     fontSize: 9,
@@ -655,11 +658,11 @@ const styles = StyleSheet.create({
   },
   bpPillAmber: { backgroundColor: 'rgba(201, 150, 50, 0.12)' },
   bpPillGreen: { backgroundColor: 'rgba(52, 199, 89, 0.12)' },
-  bpPillText: { fontSize: 10.5, fontWeight: '600', color: 'rgba(60, 60, 67, 0.85)' },
+  bpPillText: { fontSize: 10.5, fontFamily: fontFamily.mono, fontWeight: '500', color: 'rgba(60, 60, 67, 0.85)' },
   bpPillTextAmber: { color: '#C99632' },
   bpPillTextGreen: { color: '#1E8F47' },
   bpActions: { alignItems: 'flex-end', gap: 6 },
-  bpLastEdit: { fontSize: 10.5, color: 'rgba(60, 60, 67, 0.6)' },
+  bpLastEdit: { fontSize: 10.5, fontFamily: fontFamily.mono, fontWeight: '500', color: 'rgba(60, 60, 67, 0.6)' },
 
   // New-blueprint row
   newBlueprintRow: {
@@ -687,7 +690,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 4,
   },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#1C1C1E' },
+  emptyTitle: { fontSize: 16, fontFamily: fontFamily.serif, fontWeight: '500', color: '#1C1C1E', letterSpacing: -0.3 },
   emptyBody: {
     fontSize: 13,
     color: 'rgba(60, 60, 67, 0.6)',
@@ -728,7 +731,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  threadAviText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  threadAviText: { color: '#FFFFFF', fontSize: 11, fontFamily: fontFamily.mono, fontWeight: '500' },
   threadBody: { flex: 1, minWidth: 0 },
   threadHeadRow: { flexDirection: 'row', alignItems: 'baseline' },
   threadName: { fontSize: 12.5, fontWeight: '600', color: '#1C1C1E' },
@@ -740,7 +743,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   threadAgeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
-  threadAge: { fontSize: 10.5, color: 'rgba(60, 60, 67, 0.6)' },
+  threadAge: { fontSize: 10.5, fontFamily: fontFamily.mono, fontWeight: '500', color: 'rgba(60, 60, 67, 0.6)' },
   threadAgeAwaiting: { color: '#FF6B6B', fontWeight: '600' },
 
   // View-all

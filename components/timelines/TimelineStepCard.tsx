@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 type PillState = 'settled' | 'current' | 'planned';
 type AddState = 'add' | 'added' | 'fork' | 'forked' | 'saw-it';
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 30,
     color: '#111827',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
   },
   sub: {

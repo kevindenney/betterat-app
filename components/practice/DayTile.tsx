@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { HingeDayEntryKind, HingeDayEntry } from '@/services/HingeBuildService';
 
 export interface DayTileProps {
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     color: '#1F2937',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
     marginTop: 4,
   },

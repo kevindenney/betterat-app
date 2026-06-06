@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export interface SettledFoundationRowProps {
   name: string;
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 18,
     color: '#1C1C1E',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
   },
   meta: {

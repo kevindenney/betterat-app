@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Timeline zoom · mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FAF8F4; --paper-2:#F3F0EA; --card:#FFFFFF;
+    --ink:#1A1C22; --ink-2:#565B66; --ink-3:#8A8F99;
+    --hair:#E9E5DD; --hair-2:#EFEBE3; --line:#D8D2C8;
+    --azure:#2E62F0; --azure-deep:#1B3FA8; --azure-soft:#EAF0FE;
+    --amber:#E08A2B; --amber-soft:#FBEFDD;
+    --green:#1E9E6A; --green-soft:#E2F3EB;
+    --rose:#D9476B; --red:#FF3B30;
+    --plan:#5b61e8; --plan-soft:#ECECFC;
+    --do:#d9831a;   --do-soft:#FBEED7;
+    --rev:#a8554a;  --rev-soft:#F3E4E0;
+    --shadow:0 1px 2px rgba(26,28,34,.04), 0 8px 24px rgba(26,28,34,.06);
+    --shadow-lg:0 2px 6px rgba(26,28,34,.05), 0 18px 50px rgba(26,28,34,.10);
+    --r:18px; --r-sm:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-font-smoothing:antialiased;}
+  body{
+    font-family:'Figtree',system-ui,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 88% -8%, #EFF3FE 0%, rgba(239,243,254,0) 55%),
+      radial-gradient(900px 500px at -6% 4%, #FBF2E4 0%, rgba(251,242,228,0) 50%),
+      #EEEAE2;
+    color:var(--ink); min-height:100vh; line-height:1.45; padding:40px 0 80px;
+  }
+  .pagehead{max-width:1280px;margin:0 auto 26px;padding:0 30px;}
+  .pagehead h1{font-family:'Newsreader',serif;font-weight:500;font-size:26px;letter-spacing:-.01em;}
+  .pagehead p{color:var(--ink-2);font-size:13.5px;max-width:80ch;margin-top:5px;}
+  .pagehead b{color:var(--ink);}
+
+  .rack{display:flex;gap:34px;flex-wrap:wrap;justify-content:center;align-items:flex-start;max-width:1320px;margin:0 auto;padding:0 24px;}
+  .col{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .caplabel{font-family:'Manrope';font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);}
+  .caplabel b{color:var(--azure);}
+
+  /* ---------- phone frame ---------- */
+  .phone{width:390px;background:#000;border-radius:46px;padding:11px;box-shadow:var(--shadow-lg);}
+  .screen{background:var(--paper);border-radius:36px;overflow:hidden;position:relative;}
+  .statusbar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 26px 0 30px;font-family:'Manrope';font-weight:700;font-size:14px;color:var(--ink);position:relative;}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:118px;height:30px;background:#000;border-radius:18px;}
+  .statusbar .ico{display:flex;gap:6px;align-items:center;font-size:12px;}
+
+  .apphead{display:flex;align-items:center;justify-content:space-between;padding:4px 16px 10px;}
+  .apphead.l1-apphead{padding-top:6px;gap:8px;}
+  .swt{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--hair);padding:6px 12px 6px 7px;border-radius:999px;box-shadow:var(--shadow);}
+  .swt .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#3E70F4,#1B3FA8);display:grid;place-items:center;color:#fff;font-size:13px;}
+  .swt .lbl{font-weight:700;font-size:14px;letter-spacing:-.01em;}
+  .swt .car{color:var(--ink-3);font-size:11px;}
+  .swt .stepchip{color:var(--ink-3);font-weight:700;border-left:1px solid var(--hair);padding-left:9px;}
+  .head-actions{display:flex;align-items:center;gap:7px;}
+  .roundbtn{width:30px;height:30px;border-radius:50%;border:0;background:var(--azure);color:#fff;display:grid;place-items:center;font-family:'Manrope';font-weight:800;font-size:22px;box-shadow:0 8px 18px rgba(46,98,240,.25);cursor:pointer;}
+  .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#E08A2B,#C8631A);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px;}
+
+  /* zoom segmented */
+  .zoom{display:flex;margin:0 16px 6px;background:var(--paper-2);border:1px solid var(--hair);border-radius:999px;padding:3px;gap:2px;box-shadow:var(--shadow);}
+  .zoom .zb{flex:1;text-align:center;font-family:'Figtree';font-weight:600;font-size:12px;color:var(--ink-2);padding:7px 4px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .zoom .zb .z{font-family:'Manrope';font-weight:800;font-size:10px;color:var(--ink-3);background:#fff;border:1px solid var(--hair);border-radius:5px;padding:1px 4px;}
+  .zoom .zb.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow);}
+  .zoom .zb.on .z{color:var(--azure);border-color:#CBD9FB;}
+  .pinch{text-align:center;color:var(--ink-3);font-size:10.5px;margin:0 0 6px;}
+
+  .body{padding:6px 16px 14px;}
+  .lvltag{font-family:'Manrope';font-weight:800;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:6px 2px 2px;}
+  .h1{font-family:'Newsreader',serif;font-weight:500;font-size:22px;letter-spacing:-.01em;line-height:1.12;}
+  .h1 .dim{color:var(--ink-3);}
+  .sub{color:var(--ink-2);font-size:12px;margin:4px 2px 0;}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid;}
+  .pill .pd{width:6px;height:6px;border-radius:50%;}
+  .pill.now{background:rgba(0,122,255,.12);border-color:var(--azure);color:var(--azure-deep);} .pill.now .pd{background:var(--azure);}
+  .pill.done{background:var(--green-soft);border-color:rgba(30,158,106,.5);color:#157048;} .pill.done .pd{background:var(--green);}
+  .pill.next{background:var(--paper-2);border-color:var(--hair);color:var(--ink-2);} .pill.next .pd{background:var(--ink-3);}
+
+  /* ===== L1 mobile ===== */
+  .youhere{background:var(--card);border:1px dashed var(--hair);border-radius:var(--r-sm);padding:10px 12px 12px;margin:8px 0 12px;}
+  .youhere .lbl{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;}
+  .strip{display:flex;align-items:center;gap:0;height:12px;}
+  .strip .tk{flex:1;height:3px;background:var(--line);position:relative;}
+  .strip .tk.done{background:var(--azure);}
+  .strip .tk .nd{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:var(--line);}
+  .strip .tk.done .nd{background:var(--azure);}
+  .strip .tk.here .nd{width:14px;height:14px;background:#fff;border:3px solid var(--azure);box-shadow:0 0 0 4px rgba(46,98,240,.14);}
+
+  .l1stage{position:relative;overflow:hidden;margin-top:10px;}
+  .l1track{display:flex;width:100%;touch-action:pan-y;transition:transform .24s ease;transform:translateX(-100%);}
+  .step-pane{flex:0 0 100%;padding:0 1px;}
+  .step-pane.ghost .l1card{opacity:.78;transform:scale(.98);}
+  .l1navhint{display:flex;justify-content:space-between;margin:8px 5px 0;color:var(--ink-3);font-size:10px;font-weight:700;}
+  .l1card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;}
+  .l1top{padding:14px 15px 14px;border-left:4px solid var(--do);}
+  .l1meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:9px;}
+  .ptag{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--do);background:var(--do-soft);padding:3px 7px;border-radius:5px;}
+  .stepno{margin-left:auto;font-family:'Manrope';font-weight:700;font-size:11px;color:var(--ink-3);}
+  .l1title{font-family:'Newsreader',serif;font-weight:500;font-style:italic;font-size:21px;line-height:1.2;letter-spacing:-.01em;}
+  .l1when{color:var(--ink-2);font-size:11.5px;margin-top:9px;display:flex;gap:12px;flex-wrap:wrap;}
+  .l1when b{color:var(--ink);font-weight:600;}
+  .editfield{border-radius:10px;outline:none;}
+  .editfield:focus{box-shadow:0 0 0 2px rgba(46,98,240,.18);background:var(--azure-soft);}
+  .phase.plan .phbody{padding-left:15px;}
+  .fieldblock{margin:0 0 12px;}
+  .fieldblock:last-child{margin-bottom:0;}
+  .fieldlabel{font-family:'Manrope';font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;}
+  .fieldcopy{font-size:13px;color:var(--ink-2);line-height:1.4;padding:6px 8px;margin-left:-8px;}
+  .fieldcopy.strong{font-family:'Newsreader',serif;font-size:17px;color:var(--ink);line-height:1.28;}
+  .people-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .addperson{border:1px dashed #BBD0FB;background:var(--azure-soft);color:var(--azure-deep);border-radius:999px;padding:5px 10px;font-weight:800;font-size:11px;cursor:pointer;}
+  .mapbox{background:linear-gradient(135deg,#EAF0FE,#FBEFDD);border:1px solid var(--hair);border-radius:13px;overflow:hidden;margin-top:7px;}
+  .mapbox svg{display:block;width:100%;height:112px;}
+  .mapmeta{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.7);padding:7px 10px;font-size:11px;color:var(--ink-2);}
+  .mapmeta b{color:var(--ink);}
+  .phase.do .phbody{padding-left:15px;}
+  .beatbox{background:var(--do-soft);border:1px solid rgba(217,131,26,.22);border-radius:13px;padding:10px 11px;margin-top:10px;}
+  .beathead{display:flex;align-items:center;justify-content:space-between;font-family:'Manrope';font-weight:800;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--do);margin-bottom:8px;}
+  .beatrow{display:grid;grid-template-columns:54px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid rgba(217,131,26,.15);font-size:12px;color:var(--ink-2);}
+  .beatrow:first-of-type{border-top:0;}
+  .beatrow b{color:var(--ink);}
+  .beatrow .mark{width:8px;height:8px;border-radius:50%;background:var(--do);}
+  .schedule{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px;}
+  .sched{background:var(--paper-2);border:1px solid var(--hair);border-radius:10px;padding:8px 9px;font-size:11px;color:var(--ink-2);}
+  .sched b{display:block;color:var(--ink);font-size:12px;margin-bottom:2px;}
+  .discussion{display:flex;flex-direction:column;gap:8px;}
+  .msg{background:var(--paper-2);border:1px solid var(--hair);border-radius:12px;padding:8px 10px;font-size:12px;color:var(--ink-2);}
+  .msg b{color:var(--ink);}
+  .composer{border:1px dashed var(--hair);border-radius:12px;padding:9px 10px;color:var(--ink-3);font-size:12px;}
+
+  .phase{border-top:1px solid var(--hair-2);}
+  .phhead{display:flex;align-items:center;gap:8px;padding:12px 15px;cursor:pointer;}
+  .phhead .pdot{width:9px;height:9px;border-radius:50%;}
+  .phhead .nm{font-family:'Manrope';font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase;}
+  .phhead .summ{margin-left:auto;font-size:11px;font-weight:600;color:var(--ink-3);display:flex;align-items:center;gap:7px;}
+  .phhead .chev{color:var(--ink-3);font-size:12px;transition:transform .2s;}
+  .phase.open .chev{transform:rotate(90deg);}
+  .phase.plan .pdot{background:var(--plan);} .phase.plan .nm{color:var(--plan);}
+  .phase.do .pdot{background:var(--do);} .phase.do .nm{color:var(--do);}
+  .phase.rev .pdot{background:var(--rev);} .phase.rev .nm{color:var(--rev);}
+  .phase.discuss .pdot{background:var(--azure);} .phase.discuss .nm{color:var(--azure);}
+  .phbody{display:none;padding:0 15px 14px 38px;}
+  .phase.open .phbody{display:block;}
+  .substep{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--ink-2);margin-bottom:9px;line-height:1.35;}
+  .substep .ck{flex:0 0 auto;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line);margin-top:1px;display:grid;place-items:center;font-size:10px;color:#fff;}
+  .substep.done .ck{background:var(--green);border-color:var(--green);}
+  .substep.done span{color:var(--ink-3);text-decoration:line-through;text-decoration-color:rgba(138,143,153,.5);}
+  .phbody .empty{font-size:12px;color:var(--ink-3);font-style:italic;}
+
+  .mini{display:flex;gap:10px;margin-top:12px;}
+  .mini .mc{flex:1;background:var(--card);border:1px solid var(--hair);border-radius:var(--r-sm);box-shadow:var(--shadow);padding:11px 12px;}
+  .mini .mc h5{font-family:'Manrope';font-weight:800;font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:9px;}
+  .cap{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+  .cap .cic{width:26px;height:26px;border-radius:7px;background:var(--plan-soft);color:var(--plan);display:grid;place-items:center;font-size:12px;flex:0 0 auto;}
+  .cap .ct{font-size:11.5px;font-weight:600;line-height:1.1;}
+  .cap .cs{font-size:10px;color:var(--ink-3);}
+  .person{display:inline-flex;align-items:center;gap:6px;background:var(--paper-2);border:1px solid var(--hair);border-radius:999px;padding:3px 9px 3px 3px;font-size:11px;font-weight:600;margin:0 5px 5px 0;}
+  .person .pa{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:9px;font-weight:700;}
+  .fromc{background:var(--card);border:1px solid var(--hair);border-radius:var(--r-sm);box-shadow:var(--shadow);padding:11px 13px;margin-top:10px;font-size:12px;color:var(--ink-2);line-height:1.4;}
+  .fromc b{color:var(--do);}
+  .contextcard h5{font-family:'Manrope';font-weight:800;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px;}
+  .contextcard .ctxbody{font-size:12px;color:var(--ink-2);line-height:1.42;}
+  .contextcard .ctxbody b{color:var(--ink);}
+
+  /* ===== chart card (L2/L3) ===== */
+  .chartcard{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);box-shadow:var(--shadow);padding:13px 14px 12px;margin:10px 0;}
+  .chartcard h4{font-family:'Manrope';font-weight:800;font-size:12px;letter-spacing:-.01em;}
+  .chartcard .csub{color:var(--ink-3);font-size:10.5px;margin-top:1px;}
+  .toggles{display:flex;background:var(--paper-2);border:1px solid var(--hair);border-radius:999px;padding:3px;gap:2px;margin-top:10px;}
+  .toggles .tb{flex:1;text-align:center;font-family:'Figtree';font-weight:600;font-size:11px;color:var(--ink-2);padding:6px 4px;border-radius:999px;}
+  .toggles .tb.on{background:#fff;color:var(--ink);box-shadow:var(--shadow);}
+  .cbody{position:relative;margin-top:11px;}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:10.5px;font-weight:600;padding:5px 8px;border-radius:7px;opacity:0;transition:opacity .12s;white-space:nowrap;transform:translate(-50%,-110%);z-index:5;}
+  .cfoot{display:flex;justify-content:space-between;margin-top:6px;color:var(--ink-3);font-size:9px;font-weight:600;}
+  .ins{display:flex;gap:8px;margin-top:11px;}
+  .ins .i{flex:1;background:var(--paper-2);border:1px solid var(--hair-2);border-radius:10px;padding:9px 10px;}
+  .ins .n{font-family:'Manrope';font-weight:800;font-size:17px;}
+  .ins .n .u{font-size:10px;color:var(--ink-3);}
+  .ins .l{font-size:9.5px;color:var(--ink-2);line-height:1.2;margin-top:1px;}
+  .ins .d{font-size:9px;font-weight:700;margin-top:4px;}
+  .ins .d.up{color:var(--green);} .ins .d.down{color:var(--rose);}
+
+  /* ===== snake ===== */
+  .snake{position:relative;margin-top:6px;}
+  .snake svg.thread{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:0;}
+  .lane{display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:1;}
+  .lane.rev{flex-direction:row-reverse;}
+
+  /* L2 cards */
+  .l2 .lane{padding:26px 22px 4px;}
+  .scard{position:relative;width:47%;background:var(--card);border:1px solid var(--hair);border-radius:var(--r-sm);box-shadow:var(--shadow);padding:10px 11px 10px;}
+  .scard .node{position:absolute;top:-27px;left:50%;transform:translateX(-50%);width:12px;height:12px;border-radius:50%;background:var(--line);border:2.5px solid var(--paper);z-index:3;}
+  .scard.done .node{background:var(--azure);}
+  .scard.now{border-color:var(--azure);box-shadow:0 0 0 1px var(--azure),var(--shadow-lg);}
+  .scard.now .node{width:16px;height:16px;background:#fff;border:3px solid var(--azure);box-shadow:0 0 0 4px rgba(46,98,240,.16);top:-29px;}
+  .scard .top{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+  .scard .sn{margin-left:auto;font-family:'Manrope';font-weight:700;font-size:10px;color:var(--ink-3);}
+  .scard .pt{font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px;}
+  .scard h3{font-family:'Newsreader',serif;font-weight:500;font-style:italic;font-size:14px;line-height:1.18;letter-spacing:-.01em;}
+  .scard .meta{font-size:9.5px;color:var(--ink-3);margin-top:6px;}
+  .scard .dots{display:flex;gap:4px;margin-top:7px;}
+  .scard .dots i{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--line);}
+  .scard .dots i.plan.f{background:var(--plan);border-color:var(--plan);}
+  .scard .dots i.do.f{background:var(--do);border-color:var(--do);}
+  .scard .dots i.rev.f{background:var(--rev);border-color:var(--rev);}
+  .scard .dots i.half{background:linear-gradient(90deg,currentColor 50%,transparent 50%);}
+  .scard .stripe{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:var(--r-sm) 0 0 var(--r-sm);}
+
+  /* L3 nodes */
+  .l3 .lane{padding:22px 20px 2px;justify-content:flex-start;}
+  .l3 .lane.rev{justify-content:flex-end;}
+  .nnode{position:relative;display:flex;flex-direction:column;align-items:center;width:18%;}
+  .nnode .d{width:11px;height:11px;border-radius:50%;border:2px solid var(--paper);z-index:3;background:var(--sc);}
+  .nnode.big .d{width:15px;height:15px;}
+  .nnode .lab{font-size:8.5px;color:var(--ink-3);font-weight:600;margin-top:5px;text-align:center;line-height:1.1;height:22px;}
+  .nnode.milestone .lab{color:var(--ink);font-weight:700;}
+  .nnode .star{position:absolute;top:-14px;font-size:10px;}
+  .seasontag{font-family:'Manrope';font-weight:800;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px;position:absolute;top:-26px;z-index:4;background:color-mix(in srgb,var(--sc) 14%,#fff);color:var(--sc);}
+  .s0{--sc:#1E9E6A;} .s1{--sc:#2E62F0;} .s2{--sc:#E08A2B;} .s3{--sc:#8B5CF6;}
+
+  .legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 2px 4px;color:var(--ink-2);font-size:10px;}
+  .legend .k{display:inline-flex;align-items:center;gap:5px;}
+  .legend .sw{width:9px;height:9px;border-radius:50%;}
+  .legend .ln{width:18px;height:3px;border-radius:2px;}
+
+  /* bottom tab bar */
+  .tabbar{display:flex;border-top:1px solid var(--hair);background:rgba(255,255,255,.92);backdrop-filter:blur(8px);padding:9px 6px 22px;}
+  .tab{flex:1;text-align:center;color:var(--ink-3);font-size:9.5px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .tab .ic{font-size:18px;line-height:1;}
+  .tab.on{color:var(--azure);}
+  .tab.on .ic{filter:none;}
+</style>
+</head>
+<body>
+  <div class="pagehead">
+    <h1>Timeline zoom — mobile</h1>
+    <p>The snaking river holds up on a phone: lanes just get shorter (<b>2 step-cards per lane at L2</b>, <b>~5 nodes at L3</b>) and keep alternating direction with the same NOW-anchored thread. <b>L1 is the editable step workspace</b> — no zoom chrome, no pinch instruction, and no persistent side peeks; swipe reveals the previous or next step only while the current card moves.</p>
+  </div>
+
+  <div class="rack">
+
+    <!-- ============================== L1 PHONE ============================== -->
+    <div class="col">
+      <div class="caplabel"><b>L1</b> · single step — full detail</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><div class="notch"></div><span>9:41</span><span class="ico">●●● ▮▮ 􀛨</span></div>
+        <div class="apphead l1-apphead">
+          <div class="swt"><div class="dot">⛵</div><div class="lbl">Sail racing</div><span class="car">›</span><span class="stepchip">Step 6 ▾</span></div>
+          <div class="head-actions"><button class="roundbtn" type="button" aria-label="Add step">+</button><div class="av">KD</div></div>
+        </div>
+        <div class="body">
+          <div class="lvltag">L1 · full detail</div>
+          <div class="h1">Big-boat helm <span class="dim">— HKDW prep</span></div>
+
+          <div class="l1stage" data-l1-slider>
+            <div class="l1track">
+              <div class="step-pane ghost">
+                <div class="l1card">
+                  <div class="l1top">
+                    <div class="l1meta"><span class="pill done"><span class="pd"></span>Done</span><span class="ptag">Practice line</span><span class="stepno">5 / 12</span></div>
+                    <div class="l1title">Start-line timing, holding a clean lane for the first beat.</div>
+                    <div class="l1when"><span>Jan 11 · reviewed</span><span>📍 Middle Harbour</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="step-pane">
+                <div class="l1card">
+                  <div class="l1top">
+                    <div class="l1meta">
+                      <span class="pill now"><span class="pd"></span>Now</span>
+                      <span class="ptag">HKDW · step 6 of 12</span>
+                      <span class="stepno">6 / 12</span>
+                    </div>
+                    <div class="l1title editfield" contenteditable="true">Take the helm through a full windward-leeward, holding lane off the start.</div>
+                    <div class="l1when"><span>🗓️ <b>Sat 7 Jun</b> · 14:00</span><span>⏱️ <b>~2h</b></span></div>
+                  </div>
+
+                  <div class="phase plan open" data-acc data-phase="plan">
+                    <div class="phhead"><span class="pdot"></span><span class="nm">Plan</span>
+                      <span class="summ"><span style="color:var(--green)">Ready</span><span class="chev">›</span></span></div>
+                    <div class="phbody">
+                      <div class="fieldblock">
+                        <div class="fieldlabel">What</div>
+                        <div class="fieldcopy strong editfield" contenteditable="true">Compare the pre-start lane options, then commit to a boat-end start with enough speed to tack cleanly.</div>
+                      </div>
+                      <div class="fieldblock">
+                        <div class="fieldlabel">Why</div>
+                        <div class="fieldcopy editfield" contenteditable="true">The race starts are crowded; this step is about keeping the boat moving while protecting clean air.</div>
+                      </div>
+                      <div class="fieldblock">
+                        <div class="fieldlabel">Where</div>
+                        <div class="fieldcopy editfield" contenteditable="true">Victoria Harbour, Hong Kong</div>
+                        <div class="mapbox" aria-label="Editable race map preview">
+                          <svg viewBox="0 0 320 112" role="img">
+                            <rect width="320" height="112" fill="#dceafa"/>
+                            <path d="M0 76 C58 50 92 84 148 56 C200 30 236 68 320 34 L320 112 L0 112 Z" fill="#b9d1ea"/>
+                            <path d="M34 78 C86 44 127 91 177 56 C225 22 266 54 300 29" fill="none" stroke="#2E62F0" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 7"/>
+                            <circle cx="54" cy="73" r="8" fill="#E08A2B"/><circle cx="177" cy="56" r="8" fill="#fff" stroke="#2E62F0" stroke-width="4"/><path d="M262 30 l14 6 -14 6 z" fill="#1E9E6A"/>
+                            <text x="18" y="23" font-family="Manrope, sans-serif" font-size="11" font-weight="800" fill="#1A1C22">HKDW course area</text>
+                          </svg>
+                          <div class="mapmeta"><span><b>Race map</b> · windward-leeward</span><span>edit ›</span></div>
+                        </div>
+                      </div>
+                      <div class="fieldblock">
+                        <div class="fieldlabel">Who</div>
+                        <div class="people-row" data-people>
+                          <span class="person"><span class="pa" style="background:linear-gradient(135deg,#2E62F0,#1B3FA8)">JM</span>Coach Mak</span>
+                          <span class="person"><span class="pa" style="background:linear-gradient(135deg,#E08A2B,#C8631A)">LW</span>Lena</span>
+                          <button class="addperson" type="button" data-add-person>Add people</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="phase do open" data-acc data-phase="do">
+                    <div class="phhead"><span class="pdot"></span><span class="nm">Do · how</span>
+                      <span class="summ">0 of 4 <span class="chev">›</span></span></div>
+                    <div class="phbody">
+                      <div class="substep"><span class="ck"></span><span>Win the boat-end at the gun, hold a clear lane</span></div>
+                      <div class="substep"><span class="ck"></span><span>Two clean tacks per beat, call the layline late</span></div>
+                      <div class="substep"><span class="ck"></span><span>Gybe-set at the windward mark</span></div>
+                      <div class="substep"><span class="ck"></span><span>Call one reset if the lane collapses before mark one</span></div>
+                      <div class="schedule">
+                        <div class="sched"><b>14:00</b>Dock brief</div>
+                        <div class="sched"><b>14:25</b>Practice start</div>
+                        <div class="sched"><b>14:45</b>Race sim</div>
+                        <div class="sched"><b>15:40</b>Quick debrief</div>
+                      </div>
+                      <div class="beatbox">
+                        <div class="beathead"><span>Race beats</span><span>editable</span></div>
+                        <div class="beatrow"><b>Start</b><span>Boat-end approach, speed build, no early tack</span><span class="mark"></span></div>
+                        <div class="beatrow"><b>Beat 1</b><span>Two tacks max; call layline late</span><span class="mark"></span></div>
+                        <div class="beatrow"><b>Run</b><span>Gybe-set if lane is blocked at the top mark</span><span class="mark"></span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="phase rev" data-acc data-phase="review">
+                    <div class="phhead"><span class="pdot"></span><span class="nm">Review · reflections</span>
+                      <span class="summ">Not started <span class="chev">›</span></span></div>
+                    <div class="phbody">
+                      <div class="fieldblock">
+                        <div class="fieldlabel">Reflection prompt</div>
+                        <div class="fieldcopy editfield" contenteditable="true">After sailing, log what protected the lane, where speed bled away, and what changed in current or traffic.</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="phase discuss" data-acc data-phase="discuss">
+                    <div class="phhead"><span class="pdot"></span><span class="nm">Discuss</span>
+                      <span class="summ">2 notes <span class="chev">›</span></span></div>
+                    <div class="phbody">
+                      <div class="discussion">
+                        <div class="msg"><b>Coach Mak</b><br>Check whether the committee boat favors late acceleration or a timed run-in.</div>
+                        <div class="msg"><b>Lena</b><br>I can call traffic on port tack if you want to keep your head out of the boat.</div>
+                        <div class="composer editfield" contenteditable="true">Add a note or question...</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="step-pane ghost">
+                <div class="l1card">
+                  <div class="l1top">
+                    <div class="l1meta"><span class="pill next"><span class="pd"></span>Next</span><span class="ptag">HKDW prep</span><span class="stepno">7 / 12</span></div>
+                    <div class="l1title">Heavy-air downwind, keeping the kite stable through gybes.</div>
+                    <div class="l1when"><span>Planned · Jan 25</span><span>📍 Victoria Harbour</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="l1navhint"><span>‹ previous step</span><span>swipe step card</span><span>next step ›</span></div>
+          </div>
+
+          <div class="mini">
+            <div class="mc">
+              <h5>Capability</h5>
+              <div class="cap"><div class="cic">🎯</div><div><div class="ct">Starting &amp; first beat</div><div class="cs">core skill</div></div></div>
+              <div class="cap"><div class="cic" style="background:var(--do-soft);color:var(--do)">⛵</div><div><div class="ct">Big-boat helming</div><div class="cs">building</div></div></div>
+            </div>
+            <div class="mc">
+              <h5>Evidence</h5>
+              <div class="cap"><div class="cic" style="background:var(--green-soft);color:var(--green)">✓</div><div><div class="ct">Plan ready</div><div class="cs">what, why, where, who</div></div></div>
+              <div class="cap"><div class="cic" style="background:var(--azure-soft);color:var(--azure)">💬</div><div><div class="ct">2 discussion notes</div><div class="cs">coach + crew</div></div></div>
+            </div>
+          </div>
+          <div class="fromc contextcard" data-context-card><h5>Do context</h5><div class="ctxbody">Race-type sailing step: keep the <b>course map</b>, beat plan, and timed practice schedule visible while executing.</div></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><span class="ic">🏠</span>Today</div>
+          <div class="tab"><span class="ic">📚</span>Library</div>
+          <div class="tab on"><span class="ic">🧭</span>Plan</div>
+          <div class="tab"><span class="ic">🗺️</span>Atlas</div>
+          <div class="tab"><span class="ic">👤</span>You</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============================== L2 PHONE ============================== -->
+    <div class="col">
+      <div class="caplabel"><b>L2</b> · season — medium detail</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><div class="notch"></div><span>9:41</span><span class="ico">●●● ▮▮ 􀛨</span></div>
+        <div class="apphead">
+          <div class="swt"><div class="dot">⛵</div><div class="lbl">Sail racing</div><span class="car">▾</span></div>
+          <div class="av">KD</div>
+        </div>
+        <div class="zoom">
+          <div class="zb"><span class="z">L1</span>Step</div>
+          <div class="zb on"><span class="z">L2</span>Season</div>
+          <div class="zb"><span class="z">L3</span>All time</div>
+        </div>
+        <div class="pinch">🤏 pinch in for a step · out for all time</div>
+        <div class="body">
+          <div class="lvltag">L2 · medium detail</div>
+          <div class="h1">Winter 2025–2026 <span class="dim">· 12 steps</span></div>
+          <div class="sub">The season river snakes down — 2 cards per lane on phone.</div>
+
+          <div class="chartcard">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between"><div><h4>Season at a glance</h4><div class="csub">where the work is going</div></div></div>
+            <div class="toggles" data-chart="l2m">
+              <div class="tb on" data-set="effort">Effort</div>
+              <div class="tb" data-set="phase">By phase</div>
+              <div class="tb" data-set="cap">By capability</div>
+            </div>
+            <div class="cbody"><div class="tip" id="tipL2m"></div><svg id="chartL2m" viewBox="0 0 340 110" preserveAspectRatio="none" style="width:100%;height:110px;display:block"></svg></div>
+            <div class="cfoot"><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span></div>
+            <div class="ins">
+              <div class="i"><div class="n">5<span class="u"> /12</span></div><div class="l">done this season</div><div class="d up">▲ on pace</div></div>
+              <div class="i"><div class="n">62<span class="u">%</span></div><div class="l">in Do phase</div><div class="d up">▲ more on-water</div></div>
+              <div class="i"><div class="n">3</div><div class="l">reviews skipped</div><div class="d down">▼ close the loop</div></div>
+            </div>
+          </div>
+
+          <div class="snake l2" id="snakeL2m">
+            <svg class="thread"><path class="track"/><path class="prog"/></svg>
+            <div class="lane">
+              <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+                <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="sn">1/12</span></div>
+                <div class="pt">Pre-season</div><h3>Rig tuning baseline</h3><div class="meta">Nov 9 · 3 saved</div>
+                <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev f"></i></div></div>
+              <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+                <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="sn">2/12</span></div>
+                <div class="pt">RHKYC</div><h3>Light-air upwind speed</h3><div class="meta">Nov 23 · 2 sessions</div>
+                <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev f"></i></div></div>
+            </div>
+            <div class="lane rev">
+              <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+                <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="sn">4/12</span></div>
+                <div class="pt">Drills</div><h3>Spinnaker sets — W/L</h3><div class="meta">Dec 21 · no review</div>
+                <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev"></i></div></div>
+              <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+                <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="sn">3/12</span></div>
+                <div class="pt">Drills</div><h3>Mark rounding — leeward gate</h3><div class="meta">Dec 7 · reviewed</div>
+                <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev f"></i></div></div>
+            </div>
+            <div class="lane">
+              <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+                <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="sn">5/12</span></div>
+                <div class="pt">Practice line</div><h3>Start-line timing</h3><div class="meta">Jan 11 · 4 saved</div>
+                <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev half" style="color:var(--rev)"></i></div></div>
+              <div class="scard now"><span class="node"></span><span class="stripe" style="background:var(--do)"></span>
+                <div class="top"><span class="pill now"><span class="pd"></span>Now</span><span class="sn">6/12</span></div>
+                <div class="pt">HKDW prep</div><h3>Big-boat helm — HKDW</h3><div class="meta">Sat Jun 7 · briefed</div>
+                <div class="dots"><i class="plan f"></i><i class="do half" style="color:var(--do)"></i><i class="rev"></i></div></div>
+            </div>
+            <div class="lane rev">
+              <div class="scard"><span class="node"></span>
+                <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="sn">8/12</span></div>
+                <div class="pt">Tactics</div><h3>Laylines &amp; shifts</h3><div class="meta">Planned · Feb 1</div>
+                <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div></div>
+              <div class="scard"><span class="node"></span>
+                <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="sn">7/12</span></div>
+                <div class="pt">HKDW prep</div><h3>Heavy-air downwind</h3><div class="meta">Planned · Jan 25</div>
+                <div class="dots"><i class="plan f"></i><i class="do"></i><i class="rev"></i></div></div>
+            </div>
+            <div class="lane">
+              <div class="scard"><span class="node"></span>
+                <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="sn">9/12</span></div>
+                <div class="pt">Crew</div><h3>Crew-work handling</h3><div class="meta">Planned · Feb 15</div>
+                <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div></div>
+              <div class="scard"><span class="node"></span><span class="stripe" style="background:var(--rose)"></span>
+                <div class="top"><span class="pill next"><span class="pd"></span>Race</span><span class="sn">10/12</span></div>
+                <div class="pt">HK Race Week</div><h3>Race 1 — HKDW</h3><div class="meta">Feb 28 · regatta</div>
+                <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div></div>
+            </div>
+            <div class="lane rev">
+              <div class="scard"><span class="node"></span>
+                <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="sn">12/12</span></div>
+                <div class="pt">Close-out</div><h3>Season review &amp; gaps</h3><div class="meta">Planned · Mar 28</div>
+                <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div></div>
+              <div class="scard"><span class="node"></span>
+                <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="sn">11/12</span></div>
+                <div class="pt">Debrief</div><h3>Race series debrief</h3><div class="meta">Planned · Mar 2</div>
+                <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div></div>
+            </div>
+          </div>
+
+          <div class="legend">
+            <span class="k"><span class="ln" style="background:var(--azure)"></span>done</span>
+            <span class="k"><span class="ln" style="background:var(--line)"></span>planned</span>
+            <span class="k"><span class="sw" style="background:var(--plan)"></span>Plan</span>
+            <span class="k"><span class="sw" style="background:var(--do)"></span>Do</span>
+            <span class="k"><span class="sw" style="background:var(--rev)"></span>Review</span>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><span class="ic">🏠</span>Today</div><div class="tab"><span class="ic">📚</span>Library</div>
+          <div class="tab on"><span class="ic">🧭</span>Plan</div><div class="tab"><span class="ic">🗺️</span>Atlas</div>
+          <div class="tab"><span class="ic">👤</span>You</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============================== L3 PHONE ============================== -->
+    <div class="col">
+      <div class="caplabel"><b>L3</b> · all time — least detail</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><div class="notch"></div><span>9:41</span><span class="ico">●●● ▮▮ 􀛨</span></div>
+        <div class="apphead">
+          <div class="swt"><div class="dot">⛵</div><div class="lbl">Sail racing</div><span class="car">▾</span></div>
+          <div class="av">KD</div>
+        </div>
+        <div class="zoom">
+          <div class="zb"><span class="z">L1</span>Step</div>
+          <div class="zb"><span class="z">L2</span>Season</div>
+          <div class="zb on"><span class="z">L3</span>All time</div>
+        </div>
+        <div class="pinch">🤏 pinch in to drop back into a season</div>
+        <div class="body">
+          <div class="lvltag">L3 · least detail</div>
+          <div class="h1">All time <span class="dim">· 4 seasons</span></div>
+          <div class="sub">Every season strung into one river. Steps shrink to nodes; milestones get a label.</div>
+
+          <div class="chartcard">
+            <div><h4>Your work over all time</h4><div class="csub">four seasons — tap a lens</div></div>
+            <div class="toggles" data-chart="l3m">
+              <div class="tb on" data-set="volume">Volume</div>
+              <div class="tb" data-set="cap">Capability</div>
+              <div class="tb" data-set="outcomes">Outcomes</div>
+            </div>
+            <div class="cbody"><div class="tip" id="tipL3m"></div><svg id="chartL3m" viewBox="0 0 340 130" preserveAspectRatio="none" style="width:100%;height:130px;display:block"></svg></div>
+            <div class="cfoot"><span>Su24</span><span>Wi24</span><span>Su25</span><span>Wi25</span></div>
+            <div class="ins" id="insL3m"></div>
+          </div>
+
+          <div class="snake l3" id="snakeL3m"><svg class="thread"><path class="track"/><path class="prog"/></svg></div>
+
+          <div class="legend">
+            <span class="k"><span class="sw s0" style="background:var(--sc)"></span>Su24</span>
+            <span class="k"><span class="sw s1" style="background:var(--sc)"></span>Wi24–25</span>
+            <span class="k"><span class="sw s2" style="background:var(--sc)"></span>Su25</span>
+            <span class="k"><span class="sw s3" style="background:var(--sc)"></span>now</span>
+            <span class="k">⭐ milestone</span>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><span class="ic">🏠</span>Today</div><div class="tab"><span class="ic">📚</span>Library</div>
+          <div class="tab on"><span class="ic">🧭</span>Plan</div><div class="tab"><span class="ic">🗺️</span>Atlas</div>
+          <div class="tab"><span class="ic">👤</span>You</div>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+
+<script>
+/* accordion phases + L1 edit helpers */
+const L1_CONTEXT={
+  plan:['Plan context','Edit the intent, reason, location, map, and people before the on-water session.'],
+  do:['Do context','Race-type sailing step: keep the course map, beat plan, and timed practice schedule visible while executing.'],
+  review:['Review context','After the session, compare the actual start, first beat, and lane choices against the original plan.'],
+  discuss:['Discuss context','Use the thread for coach and crew comments without making discussion a fourth workflow tab.']
+};
+function setL1Context(phase){
+  const card=document.querySelector('[data-context-card]');if(!card||!L1_CONTEXT[phase])return;
+  card.innerHTML=`<h5>${L1_CONTEXT[phase][0]}</h5><div class="ctxbody">${L1_CONTEXT[phase][1]}</div>`;
+}
+document.querySelectorAll('[data-acc] .phhead').forEach(h=>{
+  h.addEventListener('click',()=>{
+    const phase=h.parentElement;
+    phase.classList.toggle('open');
+    setL1Context(phase.dataset.phase||'do');
+  });
+});
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-add-person]');if(!btn)return;
+  const host=btn.closest('[data-people]');if(!host)return;
+  const count=host.querySelectorAll('.person').length+1;
+  const p=document.createElement('span');
+  p.className='person';
+  p.innerHTML=`<span class="pa" style="background:linear-gradient(135deg,#1E9E6A,#157048)">+${count}</span>crew`;
+  host.insertBefore(p,btn);
+});
+document.querySelectorAll('[data-l1-slider]').forEach(stage=>{
+  const track=stage.querySelector('.l1track');
+  let startX=0,dx=0,dragging=false;
+  const snap=(extra=0,animate=true)=>{
+    track.style.transition=animate?'transform .24s ease':'none';
+    track.style.transform=`translateX(calc(-100% + ${extra}px))`;
+  };
+  stage.addEventListener('pointerdown',e=>{
+    if(e.target.closest('button,[contenteditable="true"]'))return;
+    dragging=true;startX=e.clientX;dx=0;stage.setPointerCapture(e.pointerId);snap(0,false);
+  });
+  stage.addEventListener('pointermove',e=>{if(!dragging)return;dx=Math.max(-170,Math.min(170,e.clientX-startX));snap(dx,false);});
+  stage.addEventListener('pointerup',()=>{
+    if(!dragging)return;dragging=false;
+    if(Math.abs(dx)>86){
+      snap(dx>0?260:-260,true);
+      setTimeout(()=>snap(0,true),260);
+    }else snap(0,true);
+  });
+  stage.addEventListener('pointercancel',()=>{dragging=false;snap(0,true);});
+});
+
+/* ---- L3 node data ---- */
+const L3=[
+  ...mk(0,8,'Su 2024',[[0,'First sail'],[5,'Joined RHKYC',1],[7,'Crew spot']]),
+  ...mk(1,10,'Wi 24–25',[[2,'First start',1],[6,'Capsize'],[9,'Review']]),
+  ...mk(2,12,'Su 2025',[[3,'Twilight'],[8,'First podium',1],[11,'Helm debut',1]]),
+  ...mk(3,6,'Wi 25–26',[[2,'HKDW'],[5,'NOW',2]]),
+];
+function mk(season,count,name,labels){
+  const m=Object.fromEntries(labels.map(l=>[l[0],l]));const out=[];
+  for(let i=0;i<count;i++){const l=m[i];out.push({season,name:i===0?name:'',label:l?l[1]:'',ms:l?(l[2]||0):0,first:i===0});}
+  return out;
+}
+function renderL3(){
+  const host=document.getElementById('snakeL3m');const PER=5;const lanes=[];
+  for(let i=0;i<L3.length;i+=PER)lanes.push(L3.slice(i,i+PER));
+  let h='<svg class="thread"><path class="track"/><path class="prog"/></svg>';
+  lanes.forEach((lane,li)=>{
+    h+=`<div class="lane ${li%2?'rev':''}">`;
+    lane.forEach(n=>{
+      const big=n.ms?'big milestone':'';
+      const star=n.ms===2?'<span class="star">🔴</span>':n.ms?'<span class="star">⭐</span>':'';
+      h+=`<div class="nnode s${n.season} ${big}">${star}<span class="d"></span>`+
+         (n.first?`<span class="seasontag">${n.name}</span>`:'')+
+         `<span class="lab">${n.label||''}</span></div>`;
+    });
+    h+='</div>';
+  });
+  host.innerHTML=h;
+}
+
+/* ---- snake thread ---- */
+function thread(id,prog){
+  const host=document.getElementById(id);if(!host)return;
+  const svg=host.querySelector('svg.thread');const hb=host.getBoundingClientRect();
+  svg.setAttribute('viewBox',`0 0 ${hb.width} ${hb.height}`);
+  const isL2=id.indexOf('L2')>-1;const sel=isL2?'.scard':'.nnode';
+  const nodes=[...host.querySelectorAll(sel)];const mid=hb.width/2;
+  const pts=nodes.map(n=>{const r=n.getBoundingClientRect();return{x:r.left-hb.left+r.width/2,y:r.top-hb.top+(isL2?-6:6)};});
+  if(pts.length<2)return;
+  const seg=(a,b)=>{
+    if(Math.abs(b.y-a.y)<12)return ` L ${b.x} ${b.y}`;
+    const out=(a.x>mid?1:-1)*Math.min(24,Math.max(16,Math.abs(b.y-a.y)*0.5));
+    return ` C ${a.x+out} ${a.y}, ${b.x+out} ${b.y}, ${b.x} ${b.y}`;
+  };
+  let full=`M ${pts[0].x} ${pts[0].y}`;for(let i=1;i<pts.length;i++)full+=seg(pts[i-1],pts[i]);
+  let pr=`M ${pts[0].x} ${pts[0].y}`;for(let i=1;i<Math.min(prog,pts.length);i++)pr+=seg(pts[i-1],pts[i]);
+  const t=svg.querySelector('.track'),p=svg.querySelector('.prog');
+  t.setAttribute('d',full);p.setAttribute('d',pr);
+  t.setAttribute('fill','none');t.setAttribute('stroke','var(--line)');t.setAttribute('stroke-width','3');t.setAttribute('stroke-linecap','round');t.setAttribute('stroke-dasharray','1 8');t.setAttribute('stroke-linejoin','round');
+  p.setAttribute('fill','none');p.setAttribute('stroke',isL2?'var(--azure)':'var(--green)');p.setAttribute('stroke-width','3.2');p.setAttribute('stroke-linecap','round');p.setAttribute('stroke-linejoin','round');
+}
+
+/* ---- charts ---- */
+const D={
+  l2m:{
+    effort:{type:'bar',v:[2,3,4,2,1],c:'var(--do)',lab:m=>`${m} sessions`,labels:['Nov','Dec','Jan','Feb','Mar']},
+    phase:{type:'stack',keys:['Plan','Do','Review'],cols:['var(--plan)','var(--do)','var(--rev)'],v:[[1,1,0],[1,2,1],[1,3,1],[0,2,1],[0,1,0]],labels:['Nov','Dec','Jan','Feb','Mar']},
+    cap:{type:'stack',keys:['Speed','Starts','Tactics','Crew'],cols:['#2E62F0','#E08A2B','#1E9E6A','#8B5CF6'],v:[[2,1,0,0],[1,2,1,1],[1,1,2,1],[0,1,1,1],[0,0,1,0]],labels:['Nov','Dec','Jan','Feb','Mar']},
+  },
+  l3m:{
+    volume:{type:'bar',v:[28,41,57,12],c:'#8B5CF6',lab:m=>`${m} steps`,labels:['Su24','Wi24–25','Su25','Wi25–26']},
+    cap:{type:'stack',keys:['Speed','Starts','Tactics','Crew'],cols:['#2E62F0','#E08A2B','#1E9E6A','#8B5CF6'],v:[[12,6,4,6],[14,10,9,8],[16,14,16,11],[4,3,3,2]],labels:['Su24','Wi24–25','Su25','Wi25–26']},
+    outcomes:{type:'line',series:[{name:'Races',c:'var(--azure)',v:[0,3,7,1]},{name:'Podiums',c:'var(--rose)',v:[0,0,2,0]}],labels:['Su24','Wi24–25','Su25','Wi25–26']},
+  }
+};
+const INS={
+  volume:[['138','steps all-time','up','▲ 4 seasons'],['+39%','per season','up','▲ compounding'],['57','peak Su25','up','▲ twilight']],
+  cap:[['46','speed reps','up','▲ strongest'],['Tactics','fastest-grow','up','▲ 4→16'],['Crew','thinnest','down','▼ add steps']],
+  outcomes:[['11','races','up','▲ all time'],['2','podiums','up','▲ first Su25'],['18%','podium rate','up','▲ rising']],
+};
+function chart(svgId,tipId,d){
+  const svg=document.getElementById(svgId),tip=document.getElementById(tipId);
+  const W=340,H=svgId.indexOf('L3')>-1?130:110,pad={l:4,r:4,t:8,b:4};
+  const n=(d.v||d.series[0].v).length,bw=(W-pad.l-pad.r)/n;let max=1;
+  if(d.type==='bar')max=Math.max(...d.v);
+  if(d.type==='stack')max=Math.max(...d.v.map(r=>r.reduce((a,b)=>a+b,0)));
+  if(d.type==='line')max=Math.max(...d.series.flatMap(s=>s.v));
+  max=max*1.15||1;const y=v=>pad.t+(H-pad.t-pad.b)*(1-v/max);let s='';
+  const show=(e,html)=>{const r=svg.getBoundingClientRect();tip.style.left=(e.clientX-r.left)+'px';tip.style.top=(e.clientY-r.top)+'px';tip.innerHTML=html;tip.style.opacity=1;};
+  const hide=()=>tip.style.opacity=0;
+  if(d.type==='bar')d.v.forEach((v,i)=>{const x=pad.l+i*bw+bw*0.2,w=bw*0.6,yy=y(v);s+=`<rect class="bar" x="${x}" y="${yy}" width="${w}" height="${H-pad.b-yy}" rx="4" fill="${d.c}"/>`;});
+  if(d.type==='stack')d.v.forEach((row,i)=>{let acc=0;row.forEach((v,k)=>{const x=pad.l+i*bw+bw*0.2,w=bw*0.6,yT=y(acc+v),yB=y(acc);acc+=v;s+=`<rect class="bar" x="${x}" y="${yT}" width="${w}" height="${Math.max(0,yB-yT)}" fill="${d.cols[k]}"/>`;});});
+  if(d.type==='line')d.series.forEach(se=>{let pth='';se.v.forEach((v,i)=>{const x=pad.l+i*bw+bw/2,yy=y(v);pth+=(i?'L':'M')+x+' '+yy+' ';});s+=`<path d="${pth}" fill="none" stroke="${se.c}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`;se.v.forEach((v,i)=>{const x=pad.l+i*bw+bw/2,yy=y(v);s+=`<circle cx="${x}" cy="${yy}" r="4" fill="#fff" stroke="${se.c}" stroke-width="2.3"/>`;});});
+  svg.innerHTML=s;
+  const lb=d.labels;
+  if(d.type==='bar')[...svg.querySelectorAll('.bar')].forEach((el,i)=>{el.addEventListener('mousemove',e=>show(e,`<b>${lb[i]}</b> · ${d.lab?d.lab(d.v[i]):d.v[i]}`));el.addEventListener('mouseleave',hide);});
+  if(d.type==='stack'){let bi=0;d.v.forEach((row,i)=>row.forEach((v,k)=>{const el=svg.querySelectorAll('.bar')[bi++];el.addEventListener('mousemove',e=>show(e,`<b>${lb[i]}</b> · ${d.keys[k]}: ${v}`));el.addEventListener('mouseleave',hide);}));}
+  if(d.type==='line')[...svg.querySelectorAll('circle')].forEach((c,idx)=>{const si=Math.floor(idx/n),pi=idx%n,se=d.series[si];c.addEventListener('mousemove',e=>show(e,`<b>${lb[pi]}</b> · ${se.name}: ${se.v[pi]}`));c.addEventListener('mouseleave',hide);});
+}
+function insL3(k){const host=document.getElementById('insL3m');host.innerHTML=(INS[k]||INS.volume).map(r=>`<div class="i"><div class="n">${r[0]}</div><div class="l">${r[1]}</div><div class="d ${r[2]}">${r[3]}</div></div>`).join('');}
+
+document.querySelectorAll('.toggles').forEach(tg=>{
+  tg.addEventListener('click',e=>{const b=e.target.closest('.tb');if(!b)return;
+    tg.querySelectorAll('.tb').forEach(x=>x.classList.toggle('on',x===b));
+    const w=tg.dataset.chart;
+    if(w==='l2m')chart('chartL2m','tipL2m',D.l2m[b.dataset.set]);
+    else{chart('chartL3m','tipL3m',D.l3m[b.dataset.set]);insL3(b.dataset.set);}
+  });
+});
+
+renderL3();
+function boot(){chart('chartL2m','tipL2m',D.l2m.effort);chart('chartL3m','tipL3m',D.l3m.volume);insL3('volume');thread('snakeL2m',5);thread('snakeL3m',2);}
+window.addEventListener('load',boot);
+window.addEventListener('resize',()=>{thread('snakeL2m',5);thread('snakeL3m',2);});
+</script>
+</body>
+</html>

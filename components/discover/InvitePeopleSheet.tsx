@@ -35,6 +35,7 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 interface InvitePeopleSheetProps {
   visible: boolean;
@@ -593,14 +594,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(60,60,67,0.16)',
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: IOS_REGISTER.label },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.3,
+  },
   headerBtn: { minWidth: 56, paddingVertical: 4 },
   headerBtnText: { fontSize: 16, color: IOS_COLORS.systemBlue },
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 32, gap: 12 },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_REGISTER.labelSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -707,7 +715,8 @@ const styles = StyleSheet.create({
   },
   linkLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_REGISTER.labelSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.4,

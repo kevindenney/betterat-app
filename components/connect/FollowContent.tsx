@@ -10,7 +10,6 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -30,6 +29,7 @@ import {
   IOS_SPACING,
   IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { getConnectDemoData } from '@/configs/connectDemoData';
@@ -301,7 +301,8 @@ const s = StyleSheet.create({
   },
   sectionHeaderText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.5,
     color: IOS_COLORS.secondaryLabel,
   },

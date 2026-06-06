@@ -28,6 +28,7 @@ import { TUFTE_BACKGROUND } from '@/components/cards';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { supabase } from '@/services/supabase';
 import { getSafeImageUri } from '@/lib/utils/safeImageUri';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -359,8 +360,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_COLORS.label,
+    letterSpacing: -0.3,
   },
   saveButton: {
     backgroundColor: IOS_COLORS.systemBlue,
@@ -390,7 +393,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
     letterSpacing: 0.5,

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Atlas redesign — steps, not just races</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --grouped:#F2F2F7;
+  --card:#FFFFFF;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);
+  --label3:rgba(60,60,67,0.32);
+  --sep:rgba(60,60,67,0.13);
+  --blue:#007AFF;
+  --navy:#14213D;
+  --wind:#2563EB;       /* breeze */
+  --current:#0E7490;    /* tide / set / practice */
+  --wave:#7C3AED;       /* sea state / learn */
+  --fav:#16A34A;        /* favored side / coach green */
+  --fav-bg:rgba(34,197,94,.16);
+  --tune:#C2700E;       /* boat work / land prep amber */
+  /* light top-down basemap (Positron-ish) */
+  --water:#AFD4E6;
+  --land:#EEEBE3;
+  --land2:#E6E1D5;
+  --park:#CFE3C4;
+  --road:#FBFAF7;
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1640px;margin:0 auto 4px;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1640px;margin:0 auto 26px;font-size:13px;color:#41495A;line-height:1.6;}
+.page-sub b{color:#1a1f29;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1640px;margin:0 auto;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+.col-cap .tag.fix{background:#B42318;}
+.col-cap .tag.new{background:#1B7A3D;}
+.col-cap .tag.keep{background:#2547B5;}
+
+/* phone shell */
+.phone{position:relative;background:#0B1A2E;border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.30);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:#1C1C1E;z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+
+/* ===== LIGHT TOP-DOWN BASEMAP (keep land, real geography) ===== */
+.map{position:absolute;inset:0;background:var(--water);overflow:hidden;}
+/* land masses — organic blobs, warm light fill */
+.land{position:absolute;background:var(--land);box-shadow:inset 0 0 0 0.5px rgba(0,0,0,.04);}
+.land.kowloon{left:-8%;top:-10%;width:118%;height:34%;border-radius:0 0 46% 30%/0 0 70% 90%;}
+.land.island{left:-12%;bottom:-16%;width:96%;height:40%;border-radius:38% 60% 0 0/60% 40% 0 0;background:var(--land2);}
+.land.kellett{left:50%;top:46%;width:90px;height:54px;border-radius:50% 46% 52% 48%;transform:rotate(-12deg);}
+.park{position:absolute;background:var(--park);border-radius:50% 40% 55% 45%;opacity:.9;}
+.road{position:absolute;height:3px;background:var(--road);border-radius:2px;box-shadow:0 0 0 0.5px rgba(0,0,0,.04);}
+.maplbl{position:absolute;font-size:10px;font-weight:700;letter-spacing:.06em;color:rgba(60,70,82,.55);text-transform:uppercase;}
+.maplbl.water{color:rgba(40,90,120,.5);font-style:italic;text-transform:none;letter-spacing:.02em;}
+
+/* wind field — pressure-encoded, soft slate, sits UNDER pins */
+.wind-arrow{position:absolute;color:#5B7488;font-weight:700;opacity:.3;transform:rotate(10deg);z-index:5;}
+
+/* ===== STEP PINS (any kind — racing is one of several) ===== */
+.spin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;z-index:20;}
+.spin .glyph{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;border:2px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.28);}
+.spin .cap{margin-top:4px;font-size:9.5px;font-weight:700;color:#2c3742;background:rgba(255,255,255,.9);padding:1px 6px;border-radius:6px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.14);}
+.spin.race  .glyph{background:var(--wind);}
+.spin.tune  .glyph{background:var(--tune);}
+.spin.prac  .glyph{background:var(--current);}
+.spin.learn .glyph{background:var(--wave);}
+.spin.coach .glyph{background:var(--fav);}
+.spin.sel .glyph{width:38px;height:38px;font-size:18px;border-width:3px;box-shadow:0 0 0 5px rgba(0,122,255,.18),0 4px 12px rgba(0,0,0,.3);}
+.spin.sel .cap{font-size:10.5px;font-weight:800;}
+/* faint course geometry, drawn ON the real water (kept, but lighter) */
+.course{position:absolute;z-index:8;}
+.course .beat{position:absolute;left:50%;top:0;bottom:0;width:2px;background:repeating-linear-gradient(180deg,rgba(37,99,235,.5) 0 5px,transparent 5px 10px);transform:translateX(-50%);}
+.course .fav{position:absolute;right:0;top:0;width:50%;height:100%;background:var(--fav-bg);clip-path:polygon(50% 0,100% 100%,0 100%);}
+
+/* ===== TOP CHROME (Apple-Maps style, consolidated) ===== */
+.topchrome{position:absolute;top:52px;left:14px;right:14px;z-index:40;display:flex;gap:9px;align-items:center;}
+.search{flex:1;height:38px;border-radius:11px;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);display:flex;align-items:center;gap:8px;padding:0 13px;font-size:13.5px;color:var(--label2);box-shadow:0 2px 10px rgba(0,0,0,.16);}
+.iconbtn{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 10px rgba(0,0,0,.16);}
+/* filter is by STEP KIND now, not just race layers */
+.layerseg{position:absolute;top:100px;left:14px;right:14px;z-index:40;display:flex;gap:7px;overflow:hidden;}
+.layerseg div{font-size:11px;font-weight:700;color:var(--label2);padding:6px 11px;border-radius:9px;background:rgba(255,255,255,.92);box-shadow:0 1px 6px rgba(0,0,0,.12);display:flex;align-items:center;gap:5px;}
+.layerseg div.on{background:var(--navy);color:#fff;}
+.layerseg .kdot{width:7px;height:7px;border-radius:50%;}
+
+/* ===== STEP COCKPIT (kind-adaptive — the hero) ===== */
+.cockpit{position:absolute;left:0;right:0;bottom:64px;z-index:45;background:var(--card);
+  border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.24);padding:8px 0 14px;}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--label3);margin:0 auto 10px;}
+.cp-head{display:flex;align-items:flex-start;justify-content:space-between;padding:0 18px 11px;border-bottom:0.5px solid var(--sep);gap:10px;}
+.cp-head .ttl{font-size:16px;font-weight:700;letter-spacing:-.2px;}
+.cp-head .ttl small{display:block;font-size:11.5px;font-weight:500;color:var(--label2);margin-top:2px;}
+.cp-head .when{font-size:11px;font-weight:700;color:var(--blue);background:rgba(0,122,255,.10);padding:5px 10px;border-radius:8px;white-space:nowrap;flex:none;}
+/* kind eyebrow — tells you what KIND of step before anything else */
+.kind{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;}
+.kind .kdot{width:8px;height:8px;border-radius:50%;}
+.kind.race{color:var(--wind);}  .kind.race .kdot{background:var(--wind);}
+.kind.tune{color:var(--tune);}  .kind.tune .kdot{background:var(--tune);}
+.kind.prac{color:var(--current);} .kind.prac .kdot{background:var(--current);}
+.kind.learn{color:var(--wave);} .kind.learn .kdot{background:var(--wave);}
+
+/* conditions gauges — ONLY for on-water steps (race / practice) */
+.cond{display:flex;padding:13px 14px 4px;gap:9px;}
+.gauge{flex:1;border-radius:13px;padding:10px 11px;border:0.5px solid var(--sep);}
+.gauge .k{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:5px;}
+.gauge .v{font-size:21px;font-weight:800;letter-spacing:-.5px;margin-top:5px;line-height:1;}
+.gauge .v small{font-size:11px;font-weight:700;color:var(--label2);}
+.gauge .sub{font-size:11px;color:var(--label2);margin-top:4px;display:flex;align-items:center;gap:4px;}
+.dot{width:7px;height:7px;border-radius:50%;}
+.g-wind{background:rgba(37,99,235,.05);} .g-wind .k{color:var(--wind);} .g-wind .dot{background:var(--wind);}
+.g-cur{background:rgba(14,116,144,.05);} .g-cur .k{color:var(--current);} .g-cur .dot{background:var(--current);}
+.g-wave{background:rgba(124,58,237,.05);} .g-wave .k{color:var(--wave);} .g-wave .dot{background:var(--wave);}
+.arrow{display:inline-block;font-weight:900;}
+
+/* strategy call — on-water steps */
+.strat{margin:12px 14px 0;border-radius:14px;background:var(--fav-bg);border:0.5px solid rgba(34,197,94,.30);padding:12px 13px;}
+.strat .lead{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--fav);}
+.strat h4{margin:7px 0 0;font-size:15px;font-weight:700;line-height:1.35;color:#0F3D22;}
+.strat p{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:#235437;}
+.strat .seg{display:flex;gap:7px;margin-top:10px;}
+.strat .seg span{flex:1;font-size:10px;font-weight:700;color:#2B6B41;background:rgba(255,255,255,.55);border-radius:7px;padding:6px 5px;text-align:center;}
+.strat .seg span b{display:block;font-size:9px;font-weight:800;letter-spacing:.05em;color:#16A34A;opacity:.8;margin-bottom:2px;}
+
+/* ===== LAND-STEP BODY (tune / fix) — targets + checklist ===== */
+.tunebody{padding:13px 14px 0;}
+.targets{display:flex;gap:9px;}
+.tcell{flex:1;border-radius:13px;padding:10px 11px;border:0.5px solid var(--sep);background:rgba(194,112,14,.05);}
+.tcell .k{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tune);}
+.tcell .v{font-size:19px;font-weight:800;letter-spacing:-.4px;margin-top:5px;line-height:1;}
+.tcell .v small{font-size:11px;font-weight:700;color:var(--label2);}
+.tcell .sub{font-size:10.5px;color:var(--label2);margin-top:4px;}
+.tlead{font-size:11px;font-weight:700;color:var(--label2);margin:14px 2px 7px;display:flex;align-items:center;gap:6px;}
+.check{margin:0 2px;}
+.crow{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:0.5px solid var(--sep);}
+.crow:last-child{border-bottom:0;}
+.crow .box{width:21px;height:21px;border-radius:7px;border:1.5px solid var(--label3);flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;}
+.crow.done .box{background:var(--tune);border-color:var(--tune);}
+.crow .ct{flex:1;font-size:13.5px;font-weight:600;}
+.crow.done .ct{color:var(--label2);text-decoration:line-through;}
+.crow .cm{font-size:11px;color:var(--label3);}
+
+/* ===== "WHY THIS STEP" / capability link (every kind has one) ===== */
+.why{margin:13px 14px 0;display:flex;align-items:center;gap:10px;background:var(--grouped);border-radius:12px;padding:10px 12px;}
+.why .ico{width:30px;height:30px;border-radius:9px;background:rgba(124,58,237,.14);color:var(--wave);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+.why .b{flex:1;min-width:0;}
+.why .b .kl{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);}
+.why .b h5{margin:2px 0 0;font-size:13px;font-weight:600;}
+.why .chev{color:var(--label3);font-size:16px;}
+
+/* ===== NEXT-STEP chip (collapsed, kind-tinted, never collides) ===== */
+.nextchip{position:absolute;left:14px;right:14px;bottom:74px;z-index:44;background:rgba(255,255,255,.97);backdrop-filter:blur(18px);border-radius:15px;box-shadow:0 6px 22px rgba(0,0,0,.22);padding:11px 13px;display:flex;align-items:center;gap:11px;}
+.nextchip .spine{width:4px;align-self:stretch;border-radius:3px;background:var(--tune);}
+.nextchip .body{flex:1;min-width:0;}
+.nextchip .klabel{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tune);display:flex;align-items:center;gap:5px;}
+.nextchip h5{margin:3px 0 0;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nextchip p{margin:2px 0 0;font-size:11.5px;color:var(--label2);}
+.nextchip .go{width:34px;height:34px;border-radius:50%;background:var(--tune);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;}
+
+/* ===== NEARBY (kept — real names, verb-states already generalize) ===== */
+.sheet{position:absolute;left:0;right:0;bottom:64px;top:150px;z-index:45;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;}
+.sheet-h{padding:8px 18px 10px;border-bottom:0.5px solid var(--sep);}
+.sheet-h .grab{margin-bottom:9px;}
+.sheet-h .row{display:flex;align-items:center;justify-content:space-between;}
+.sheet-h h3{margin:0;font-size:18px;font-weight:800;letter-spacing:-.3px;}
+.sheet-h .sub{font-size:12px;color:var(--label2);margin-top:2px;}
+.sheet-h .close{width:30px;height:30px;border-radius:50%;background:rgba(118,118,128,.12);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--label2);}
+.scope{display:flex;gap:7px;margin-top:11px;}
+.scope span{font-size:11px;font-weight:700;padding:6px 11px;border-radius:8px;background:rgba(118,118,128,.12);color:var(--label2);}
+.scope span.on{background:var(--navy);color:#fff;}
+.nlist{flex:1;overflow:hidden;padding:8px 0;}
+.nrow{display:flex;align-items:center;gap:12px;padding:11px 18px;}
+.nrow .av{width:42px;height:42px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;position:relative;}
+.nrow .av .ping{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;background:var(--fav);border:2px solid #fff;}
+.nrow .b{flex:1;min-width:0;}
+.nrow .b h5{margin:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p{margin:2px 0 0;font-size:12px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p .verb{font-weight:700;}
+.nrow .b p .verb.tune{color:var(--tune);} .nrow .b p .verb.prac{color:var(--current);}
+.nrow .b p .verb.learn{color:var(--wave);} .nrow .b p .verb.race{color:var(--wind);}
+.nrow .dist{font-size:11px;font-weight:700;color:var(--label2);text-align:right;flex:none;}
+.nrow .dist small{display:block;font-weight:500;color:var(--label3);font-size:10px;margin-top:2px;}
+.nrow .pin{width:32px;height:32px;border-radius:9px;background:rgba(0,122,255,.10);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;}
+.nsep{height:0.5px;background:var(--sep);margin:0 18px 0 72px;}
+
+/* tab bar */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(248,248,250,.94);border-top:0.5px solid var(--sep);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;backdrop-filter:blur(20px);z-index:55;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--label3);}
+.tab.on{color:var(--blue);}
+.tab .ic{font-size:19px;}
+
+.legend{max-width:1640px;margin:36px auto 0;background:#fff;border-radius:14px;padding:20px 24px;font-size:13px;line-height:1.65;color:#2a2f3a;}
+.legend h2{font-size:15px;margin:0 0 12px;}
+.legend h3{font-size:13px;margin:18px 0 6px;color:#111;}
+.legend ul{margin:4px 0 0;padding-left:20px;}
+.legend li{margin:5px 0;}
+.legend b{color:#111;}
+.legend .pill{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-right:5px;}
+.legend .pill.fix{background:#FEE4E2;color:#B42318;}
+.legend .pill.new{background:#D1FADF;color:#1B7A3D;}
+.legend .pill.keep{background:#E0EAFF;color:#2547B5;}
+</style>
+</head>
+<body>
+<div class="page-h">Atlas — a map of your <i>steps</i>, not just your races</div>
+<div class="page-sub">
+  Keeps the v22 look &amp; feel — consolidated top chrome, the legible bottom <b>cockpit card</b>, pressure-encoded wind,
+  the slim next-step chip, the fixed Nearby — but corrects two things. (1) The chart stays a <b>real top-down geographic
+  map with land</b>, because most BetterAt steps happen ashore. (2) The cockpit is a <b>step cockpit</b>, not a race
+  cockpit: racing is just one <b>kind</b> of step. Tuning, fixing, reading, practicing, coaching all live on the same map
+  and each gets a body that fits — gauges + strategy for on-water steps, targets + a checklist for boat work, a resource
+  for learning. Sailing is the first vertical; the kind-adaptive pattern generalizes.
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME A — Map of steps (mixed kinds) ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">RHKYC · Victoria Hbr ▾</span></div>
+      <div class="map">
+        <!-- real top-down geography, land kept -->
+        <div class="land kowloon"></div>
+        <div class="land island"></div>
+        <div class="land kellett"></div>
+        <div class="park" style="left:6%;bottom:2%;width:30%;height:20%;"></div>
+        <div class="road" style="left:-2%;bottom:18%;width:70%;transform:rotate(-7deg);"></div>
+        <div class="road" style="left:8%;bottom:9%;width:46%;transform:rotate(4deg);"></div>
+        <div class="road" style="left:-4%;top:22%;width:55%;transform:rotate(6deg);"></div>
+        <div class="maplbl" style="left:8%;top:9%;">Kowloon</div>
+        <div class="maplbl" style="left:10%;bottom:13%;">Causeway Bay</div>
+        <div class="maplbl water" style="left:40%;top:40%;">Victoria Harbour</div>
+        <div class="maplbl" style="left:52%;top:50%;font-size:9px;">Kellett Is.</div>
+        <!-- pressure-encoded wind over the water -->
+        <span class="wind-arrow" style="left:40%;top:30%;font-size:13px;opacity:.22;">↗</span>
+        <span class="wind-arrow" style="left:62%;top:34%;font-size:18px;opacity:.4;">↗</span>
+        <span class="wind-arrow" style="left:78%;top:44%;font-size:15px;opacity:.3;">↗</span>
+        <!-- faint race-course geometry, on the actual water -->
+        <div class="course" style="left:60%;top:24%;width:90px;height:130px;">
+          <div class="fav"></div><div class="beat"></div>
+        </div>
+        <!-- STEP PINS — most are ashore, racing is one of several -->
+        <div class="spin tune" style="left:18%;bottom:24%;"><div class="glyph">🔧</div><div class="cap">Tune rig</div></div>
+        <div class="spin learn" style="left:30%;bottom:11%;"><div class="glyph">📖</div><div class="cap">Mark roundings</div></div>
+        <div class="spin coach" style="left:14%;top:30%;"><div class="glyph">🧭</div><div class="cap">Coach review</div></div>
+        <div class="spin prac" style="left:44%;top:50%;"><div class="glyph">🎯</div><div class="cap">Tacking drill</div></div>
+        <div class="spin race" style="left:66%;top:22%;"><div class="glyph">⛵</div><div class="cap">Race 1</div></div>
+      </div>
+      <div class="topchrome">
+        <div class="search">🔍 Search venues, clubs, sailors…</div>
+        <div class="iconbtn">⚲</div>
+      </div>
+      <!-- filter by STEP KIND, not race-only layers -->
+      <div class="layerseg">
+        <div class="on">All steps</div>
+        <div><span class="kdot" style="background:var(--tune)"></span>Boat work</div>
+        <div><span class="kdot" style="background:var(--current)"></span>Practice</div>
+        <div><span class="kdot" style="background:var(--wave)"></span>Learn</div>
+      </div>
+
+      <!-- collapsed cockpit — next step is ASHORE, no gauges -->
+      <div class="cockpit" style="bottom:64px;padding-bottom:12px;">
+        <div class="grab"></div>
+        <div class="cp-head">
+          <div class="ttl">
+            <span class="kind tune"><span class="kdot"></span>Boat work · ashore</span>
+            Tune the rig for Race 1
+            <small>Causeway Bay boatyard · 0.6 km · do before Sat</small>
+          </div>
+          <div class="when">next</div>
+        </div>
+        <div class="tunebody" style="padding-bottom:2px;">
+          <div class="tlead" style="margin-top:11px;">3 of 5 done · ~25 min left</div>
+          <div class="check">
+            <div class="crow done"><div class="box">✓</div><div class="ct">Set shroud tension to 28</div><div class="cm">Loos B</div></div>
+            <div class="crow"><div class="box"></div><div class="ct">Pin mast rake at 24′6″</div><div class="cm">tape</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">A</span><b>The map shows steps of every kind.</b>
+      Real top-down chart with land kept — boatyard, club, harbour. Pins are color-coded by <b>step kind</b>
+      (🔧 boat work, 📖 learn, 🎯 practice, 🧭 coach, ⛵ race), and the filter row swaps race-layers for
+      <b>step kinds</b>. The next step here is ashore, so the cockpit shows a checklist, not wind gauges.</div>
+  </div>
+
+  <!-- ============ FRAME B — On-water step → race cockpit (kept) ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">RHKYC · Victoria Hbr ▾</span></div>
+      <div class="map">
+        <div class="land kowloon" style="height:26%;"></div>
+        <div class="maplbl" style="left:8%;top:7%;">Kowloon</div>
+        <div class="maplbl water" style="left:24%;top:30%;">Victoria Harbour</div>
+        <span class="wind-arrow" style="left:36%;top:20%;font-size:14px;opacity:.26;">↗</span>
+        <span class="wind-arrow" style="left:66%;top:18%;font-size:18px;opacity:.4;">↗</span>
+        <!-- the selected RACE step's course, on real water -->
+        <div class="course" style="left:54%;top:14%;width:120px;height:140px;">
+          <div class="fav"></div><div class="beat"></div>
+        </div>
+        <div class="spin race sel" style="left:62%;top:13%;"><div class="glyph">⛵</div><div class="cap">Race 1 · 14:00</div></div>
+      </div>
+      <div class="cockpit" style="bottom:64px;top:296px;overflow:hidden;">
+        <div class="grab"></div>
+        <div class="cp-head">
+          <div class="ttl">
+            <span class="kind race"><span class="kdot"></span>On-water · racing</span>
+            Beat strategy<small>Looking upwind · right side pays</small>
+          </div>
+          <div class="when">live</div>
+        </div>
+        <div class="cond">
+          <div class="gauge g-wind"><div class="k"><span class="dot"></span>WIND</div><div class="v">12<small> kn</small></div><div class="sub"><span class="arrow" style="color:var(--wind)">↑</span> 180° S</div></div>
+          <div class="gauge g-cur"><div class="k"><span class="dot"></span>CURRENT</div><div class="v">0.8<small> kn</small></div><div class="sub"><span class="arrow" style="color:var(--current)">→</span> flood W</div></div>
+          <div class="gauge g-wave"><div class="k"><span class="dot"></span>SEA</div><div class="v">0.4<small> m</small></div><div class="sub">chop</div></div>
+        </div>
+        <div class="strat">
+          <div class="lead">⛵ Right side favored</div>
+          <h4>Go right off the line — the flood relief and the Kowloon shore bend both pay on the right.</h4>
+          <p>Current sets you down the course, so protect the right and tack on the headers. Watch the right shore for pressure.</p>
+          <div class="seg">
+            <span><b>BOTTOM ⅓</b>Start at boat end, punch right</span>
+            <span><b>MIDDLE ⅓</b>Consolidate, tack on headers</span>
+            <span><b>UPPER ⅓</b>Lay the mark on starboard</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag keep">B · KEEP</span><b>On-water step → the race cockpit you liked.</b>
+      When the selected step <i>is</i> racing, the cockpit is exactly v22: three domain gauges (wind / current / sea),
+      the plain-English favored-side call, and the per-third game plan — now floating over the real harbour with land,
+      not a dark schematic.</div>
+  </div>
+
+  <!-- ============ FRAME C — Land step → tune cockpit (NEW idea) ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">RHKYC · Victoria Hbr ▾</span></div>
+      <div class="map">
+        <div class="land island" style="height:54%;bottom:-22%;"></div>
+        <div class="land kowloon" style="height:18%;"></div>
+        <div class="park" style="left:8%;bottom:8%;width:34%;height:24%;"></div>
+        <div class="road" style="left:0%;bottom:22%;width:72%;transform:rotate(-6deg);"></div>
+        <div class="maplbl" style="left:10%;bottom:12%;">Causeway Bay</div>
+        <div class="maplbl" style="left:46%;bottom:30%;font-size:9px;">Boatyard</div>
+        <div class="spin tune sel" style="left:46%;bottom:28%;"><div class="glyph">🔧</div><div class="cap">Tune rig · here</div></div>
+        <div class="spin learn" style="left:22%;bottom:14%;"><div class="glyph">📖</div><div class="cap">Mark roundings</div></div>
+      </div>
+      <div class="cockpit" style="bottom:64px;top:248px;overflow:hidden;">
+        <div class="grab"></div>
+        <div class="cp-head">
+          <div class="ttl">
+            <span class="kind tune"><span class="kdot"></span>Boat work · ashore</span>
+            Tune the rig for Race 1<small>Causeway Bay boatyard · J/80 · do before Sat</small>
+          </div>
+          <div class="when">2 days</div>
+        </div>
+        <!-- no wind gauges — a land step shows TARGETS + a checklist -->
+        <div class="tunebody">
+          <div class="targets">
+            <div class="tcell"><div class="k">SHROUDS</div><div class="v">28<small> Loos</small></div><div class="sub">cap · 12–15 kn</div></div>
+            <div class="tcell"><div class="k">MAST RAKE</div><div class="v">24′6″</div><div class="sub">to transom</div></div>
+            <div class="tcell"><div class="k">PRE-BEND</div><div class="v">40<small> mm</small></div><div class="sub">mid-mast</div></div>
+          </div>
+          <div class="tlead">⚓ Tuning checklist · class targets for today's breeze</div>
+          <div class="check">
+            <div class="crow done"><div class="box">✓</div><div class="ct">Set cap-shroud tension</div><div class="cm">Loos 28</div></div>
+            <div class="crow done"><div class="box">✓</div><div class="ct">Match lowers, both sides</div><div class="cm">even</div></div>
+            <div class="crow"><div class="box"></div><div class="ct">Pin mast rake at 24′6″</div><div class="cm">tape drop</div></div>
+            <div class="crow"><div class="box"></div><div class="ct">Set pre-bend, check spreaders</div><div class="cm">40 mm</div></div>
+            <div class="crow"><div class="box"></div><div class="ct">Forestay pinned + taped</div><div class="cm">safety</div></div>
+          </div>
+          <div class="why">
+            <div class="ico">🎯</div>
+            <div class="b"><div class="kl">Why this step · capability</div><h5>Upwind boatspeed in 12–15 kn</h5></div>
+            <div class="chev">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">C · NEW</span><b>Land step → the cockpit adapts.</b>
+      Most steps aren't racing. Select an ashore step and the same card body swaps gauges for what that work needs:
+      <b>class target numbers</b> + a <b>tuning checklist</b>, and the <b>“why this step”</b> capability link every
+      kind carries. Reading, fixing, practicing follow the same template with their own body.</div>
+  </div>
+
+  <!-- ============ FRAME D — Nearby (kept; verbs already generalize) ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">RHKYC · Victoria Hbr ▾</span></div>
+      <div class="map">
+        <div class="land kowloon" style="height:30%;"></div>
+        <div class="land island"></div>
+        <div class="maplbl" style="left:8%;top:9%;">Kowloon</div>
+        <span class="wind-arrow" style="left:55%;top:18%;font-size:15px;opacity:.3;">↗</span>
+        <div class="spin tune" style="left:24%;top:34%;"><div class="glyph">🔧</div><div class="cap">MH</div></div>
+        <div class="spin prac" style="left:60%;top:28%;"><div class="glyph">🎯</div><div class="cap">EC</div></div>
+      </div>
+      <div class="sheet">
+        <div class="sheet-h">
+          <div class="grab"></div>
+          <div class="row">
+            <div><h3>Sailors nearby</h3><div class="sub">7 working steps at this venue · within 25 km</div></div>
+            <div class="close">✕</div>
+          </div>
+          <div class="scope"><span class="on">Sailing</span><span>Following</span><span>All</span></div>
+        </div>
+        <div class="nlist">
+          <div class="nrow">
+            <div class="av" style="background:#3F6FA8;">MH<span class="ping"></span></div>
+            <div class="b"><h5>Markus Holt</h5><p><span class="verb tune">Tuning</span> rig for Race 1 · J/80</p></div>
+            <div class="dist">0.4 km<small>Boatyard</small></div>
+            <div class="pin">⊙</div>
+          </div>
+          <div class="nsep"></div>
+          <div class="nrow">
+            <div class="av" style="background:#9A5B9E;">EC</div>
+            <div class="b"><h5>Elena Cruz</h5><p><span class="verb prac">Logged</span> a practice beat · 2h ago</p></div>
+            <div class="dist">1.1 km<small>Middle Is.</small></div>
+            <div class="pin">⊙</div>
+          </div>
+          <div class="nsep"></div>
+          <div class="nrow">
+            <div class="av" style="background:#7C3AED;">TK</div>
+            <div class="b"><h5>Tom Kwok</h5><p><span class="verb learn">Reading</span> mark-rounding tactics</p></div>
+            <div class="dist">0.6 km<small>RHKYC</small></div>
+            <div class="pin">⊙</div>
+          </div>
+          <div class="nsep"></div>
+          <div class="nrow">
+            <div class="av" style="background:#2B7A4B;">SL<span class="ping"></span></div>
+            <div class="b"><h5>Sophie Lam</h5><p><span class="verb race">Racing</span> Saturday Series · on the water</p></div>
+            <div class="dist">2.3 km<small>Causeway</small></div>
+            <div class="pin">⊙</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag keep">D · KEEP</span><b>Nearby — unchanged, and it already fits.</b>
+      Real names, deduped, one row each, <b>tap-⊙-to-fly-to-map</b>. The verb-state line was always step-kind aware —
+      <span style="color:var(--tune);font-weight:700">Tuning</span>,
+      <span style="color:var(--current);font-weight:700">Logged a practice beat</span>,
+      <span style="color:var(--wave);font-weight:700">Reading</span>,
+      <span style="color:var(--wind);font-weight:700">Racing</span> — so it carries over with no change.</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>What changed from v22 (and what we kept)</h2>
+
+  <h3>The two corrections</h3>
+  <ul>
+    <li><span class="pill fix">FIX</span><b>Keep the real top-down map with land.</b> v22 leaned toward a dark schematic
+      course canvas. But most steps happen <b>ashore</b> — the boatyard, the club, home — so the chart stays a real
+      light geographic basemap (land + water + place labels), top-down, no 3D. Course geometry is drawn lightly
+      <i>on the actual water</i> for racing steps, not as the whole canvas.</li>
+    <li><span class="pill fix">FIX</span><b>The cockpit is a <i>step</i> cockpit, not a race cockpit.</b> Racing is one
+      <b>kind</b> of step. The card keeps the v22 shell (kind eyebrow, title, when, drag-to-expand) and swaps the body
+      by kind:
+      <ul>
+        <li><b>On-water (race / practice)</b> → wind / current / sea gauges + favored-side strategy + per-third plan.</li>
+        <li><b>Boat work (tune / fix)</b> → class target numbers + a tuning checklist with progress.</li>
+        <li><b>Learn (read / watch)</b> → the resource + why-it-matters (same <code>why</code> capability link).</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>Kept from v22 (the look &amp; feel you liked)</h3>
+  <ul>
+    <li><span class="pill keep">KEEP</span><b>Consolidated top chrome</b> — one search + filter row, Apple-Maps style.
+      The filter now toggles <b>step kinds</b> (All / Boat work / Practice / Learn / Race) instead of race-only layers.</li>
+    <li><span class="pill keep">KEEP</span><b>The bottom cockpit card</b> as the hero, drag-to-expand, with the same
+      type scale, domain colors, and the green strategy block for on-water steps.</li>
+    <li><span class="pill keep">KEEP</span><b>Pressure-encoded wind</b> over the water, <b>slim next-step chip</b>
+      (now tinted by the next step's kind), and the <b>fixed Nearby</b> sheet — verbs already generalize.</li>
+    <li><span class="pill keep">KEEP</span><b>Favored-side green + BOTTOM/MIDDLE/UPPER thirds</b> for racing steps,
+      and <b>Atlas as the universal “where” lens</b> — the kind-adaptive cockpit is what makes a nurse's clinical site
+      or a runner's route fit the same frame later.</li>
+  </ul>
+
+  <h3>New in v23</h3>
+  <ul>
+    <li><span class="pill new">NEW</span><b>Step pins by kind</b> — 🔧 boat work, 📖 learn, 🎯 practice, 🧭 coach, ⛵ race —
+      so the map answers “where is everything I'm working on,” not just “where's the race.”</li>
+    <li><span class="pill new">NEW</span><b>Kind-adaptive cockpit body</b> — targets + checklist for land steps, gauges +
+      strategy for water steps, resource for learning.</li>
+    <li><span class="pill new">NEW</span><b>“Why this step” capability link</b> on every kind — ties the step (even a land
+      chore like tuning) back to the capability it builds.</li>
+  </ul>
+</div>
+
+</body>
+</html>

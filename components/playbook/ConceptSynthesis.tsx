@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 // The synthesis body is AI-drafted Markdown using a narrow subset — ATX
 // headings (#/##/###), inline **bold**, and blank-line-separated paragraphs.
@@ -77,14 +78,14 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 26,
     color: '#1C1C1E',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
   },
   heading: {
     fontSize: 19,
     lineHeight: 26,
     fontWeight: '700',
     color: '#1C1C1E',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
   },
   bold: {
     fontWeight: '700',

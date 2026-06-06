@@ -216,6 +216,26 @@ export function StepPlanQuestions({
   // Phase N.4 — the Step ⟷ Race selector is sailing-only: a race is the one
   // step distinction that carries venue/course/marks/conditions for Atlas.
   const showRaceSelector = normalizedSlug === 'sail-racing';
+  // One-line summary of the saved race plan for the "Race area & course" reveal
+  // row, so a picked course reads as saved rather than the generic prompt.
+  const raceCourseSummary = useMemo(() => {
+    if (!showRaceSelector) return undefined;
+    const plan = (step?.metadata as StepMetadata | undefined)?.race_plan;
+    if (!plan) return undefined;
+    const parts: string[] = [];
+    if (plan.area_name) parts.push(plan.area_name);
+    if (plan.course_label) parts.push(plan.course_label);
+    if (plan.laps) parts.push(`${plan.laps} lap${plan.laps === 1 ? '' : 's'}`);
+    return parts.length > 0 ? parts.join(' · ') : undefined;
+  }, [showRaceSelector, step?.metadata]);
+  // Structured race plan for the schematic course map (area polygon + marks).
+  const racePlanForMap = useMemo(
+    () =>
+      showRaceSelector
+        ? (step?.metadata as StepMetadata | undefined)?.race_plan
+        : undefined,
+    [showRaceSelector, step?.metadata],
+  );
   useEffect(() => {
     if (!user?.id || !isOrgLocationInterest) return;
     const loadOrgLocations = async () => {
@@ -1327,6 +1347,8 @@ RULES:
           onOpenRaceCourse={
             showRaceSelector ? () => router.push(`/race/ios/water/${step.id}` as any) : undefined
           }
+          courseSummary={raceCourseSummary}
+          racePlan={racePlanForMap}
         />
 
         {!readOnly && (
@@ -1890,6 +1912,8 @@ RULES:
         onOpenRaceCourse={
           showRaceSelector ? () => router.push(`/race/ios/water/${step.id}` as any) : undefined
         }
+        courseSummary={raceCourseSummary}
+        racePlan={racePlanForMap}
       />
     );
   }

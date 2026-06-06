@@ -36,6 +36,7 @@ import {
   IOS_TOUCH,
   REGISTER_SECTION_ACCENT,
 } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 /**
  * Phone breakpoint. Below this the fixed 248px rail collapses into a top bar
@@ -620,7 +621,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  orgMonoText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
+  orgMonoText: { color: '#FFFFFF', fontSize: 11, fontFamily: fontFamily.mono, fontWeight: '500', letterSpacing: 0.4 },
   orgInfo: { flex: 1, minWidth: 0 },
   orgName: { fontSize: 13, fontWeight: '600', color: '#1C1C1E', letterSpacing: -0.1 },
   orgRole: { fontSize: 11, color: 'rgba(60, 60, 67, 0.6)', marginTop: 2 },
@@ -652,7 +653,8 @@ const s = StyleSheet.create({
   navScroll: { flex: 1 },
   navEyebrow: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: 'rgba(60, 60, 67, 0.6)',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -743,7 +745,7 @@ const c = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  topMonoText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
+  topMonoText: { color: '#FFFFFF', fontSize: 11, fontFamily: fontFamily.mono, fontWeight: '500', letterSpacing: 0.4 },
   topTitleCol: { flex: 1, minWidth: 0 },
   topTitle: {
     fontSize: 17,
@@ -807,9 +809,10 @@ const h = StyleSheet.create({
   titleCol: { flex: 1, minWidth: 200 },
   title: {
     fontSize: 28,
-    fontWeight: '600',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: '#1C1C1E',
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
     marginBottom: 6,
     lineHeight: 32,
   },

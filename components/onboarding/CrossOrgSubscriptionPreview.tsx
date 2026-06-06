@@ -22,7 +22,8 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { PhoneFrame } from './StudentOnboardingPreview';
@@ -440,7 +441,7 @@ const s = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: -0.5,
     lineHeight: 30,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     marginBottom: 6,
   },
   f15CoverSub: {
@@ -480,7 +481,7 @@ const s = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 20,
     color: '#1C1C1E',
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
   },
   f15LedeEm: { fontStyle: 'italic' },
   f15Stats: { flexDirection: 'row', gap: 14, marginTop: 18 },
@@ -829,7 +830,7 @@ const s = StyleSheet.create({
     lineHeight: 20,
     color: '#1C1C1E',
     fontStyle: 'italic',
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     paddingHorizontal: 18,
   },
   f17PromptAttr: {

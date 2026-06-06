@@ -5,6 +5,10 @@ export interface NotificationGroup {
   latest: SocialNotification;
   count: number;
   ids: string[];
+  // Every notification in the group, newest-first. `latest` is members[0].
+  // Carried so digest UIs can render a per-item preview (e.g. the step
+  // names behind a "15 new steps" thread) without re-querying.
+  members: SocialNotification[];
   hasUnread: boolean;
   latestAt: string;
 }
@@ -30,7 +34,19 @@ function getNotificationEntityType(notification: SocialNotification): string {
 
 function getNotificationEntityId(notification: SocialNotification): string {
   const data = notification.data || {};
-  const candidates = [data.entity_id, data.entityId, data.target_id, data.targetId, notification.regattaId];
+  // blueprint_id keeps a burst keyed to its source blueprint, so the same
+  // author publishing to two blueprints yields two digests, not one merged
+  // (and mislabeled) thread. step_id is deliberately excluded — it's unique
+  // per row and would defeat grouping entirely.
+  const candidates = [
+    data.entity_id,
+    data.entityId,
+    data.target_id,
+    data.targetId,
+    data.blueprint_id,
+    data.blueprintId,
+    notification.regattaId,
+  ];
   const found = candidates.find((value) => value !== null && value !== undefined && String(value).trim() !== '');
   return found ? String(found).trim() : '';
 }
@@ -73,6 +89,7 @@ export const groupNotifications = (
         latest: notification,
         count: 1,
         ids: [notification.id],
+        members: [notification],
         hasUnread: !notification.isRead,
         latestAt: notification.createdAt,
       });
@@ -83,6 +100,7 @@ export const groupNotifications = (
     const group = groups[targetIndex];
     group.count += 1;
     group.ids.push(notification.id);
+    group.members.push(notification);
     group.hasUnread = group.hasUnread || !notification.isRead;
   });
 

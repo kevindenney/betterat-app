@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { STEP_COLORS } from '@/lib/step-theme';
 import { useUserBlueprints, useAddStepToBlueprint } from '@/hooks/useBlueprint';
 import type { BlueprintRecord } from '@/types/blueprint';
@@ -243,8 +244,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontFamily: fontFamily.serif,
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: -0.3,
     color: IOS_COLORS.label,
   },
   closeButton: {
@@ -297,8 +300,9 @@ const styles = StyleSheet.create({
     gap: IOS_SPACING.sm,
   },
   pickLabel: {
+    fontFamily: fontFamily.mono,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -340,6 +344,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   blueprintMetaText: {
+    fontFamily: fontFamily.mono,
     fontSize: 12,
     color: IOS_COLORS.secondaryLabel,
     fontWeight: '500',

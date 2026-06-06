@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { FORMAT_TINT } from './formatStyles';
 import type { CollectionCard } from './types';
 
@@ -58,7 +59,9 @@ const styles = StyleSheet.create({
   },
   ct: {
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
     color: IOS_COLORS.label,
     letterSpacing: -0.5,
   },

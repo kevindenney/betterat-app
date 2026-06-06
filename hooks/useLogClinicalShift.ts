@@ -24,6 +24,7 @@ import { supabase } from '@/services/supabase';
 import { createStep, resolveInterestId } from '@/services/TimelineStepService';
 import { logger } from '@/lib/logger';
 import { NURSING_SITE_COVERAGE_KEY } from '@/hooks/useNursingSiteCoverage';
+import { NURSING_COMPETENCY_COVERAGE_KEY } from '@/hooks/useNursingCompetencyCoverage';
 
 export type ShiftSelfRating = 'confident' | 'proficient' | 'developing' | 'needs_practice';
 
@@ -183,6 +184,7 @@ export function useLogClinicalShift() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NURSING_SITE_COVERAGE_KEY, user?.id] });
+      queryClient.invalidateQueries({ queryKey: [NURSING_COMPETENCY_COVERAGE_KEY, user?.id] });
       queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     },
   });

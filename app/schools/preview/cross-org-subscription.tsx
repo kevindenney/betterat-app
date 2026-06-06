@@ -19,6 +19,7 @@ import {
   PracticeDrawingFrame,
 } from '@/components/onboarding/CrossOrgSubscriptionPreview';
 import { MktNav } from '@/components/marketing/MktNav';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { Footer } from '../index';
 
 export default function CrossOrgSubscriptionPreviewPage() {
@@ -165,7 +166,7 @@ const s = StyleSheet.create({
     color: '#0E1117',
     letterSpacing: -0.6,
     marginBottom: 14,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
   },
   sub: { fontSize: 15.5, lineHeight: 24, color: 'rgba(60, 60, 67, 0.7)', maxWidth: 720 },
   subEm: { fontStyle: 'italic' },

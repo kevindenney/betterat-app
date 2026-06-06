@@ -12,8 +12,8 @@
  * once step_location has enough rows to be meaningful.
  */
 
-import React, { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -28,6 +28,8 @@ import {
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { AtlasPickerBus, type AtlasPickerResult } from '@/services/AtlasPickerBus';
 import { useVocabulary } from '@/hooks/useVocabulary';
+import { useAtlasPois } from '@/hooks/useAtlasPois';
+import { useNursingCuratedSites } from '@/hooks/useNursingCuratedSites';
 
 /** Quick-pick chip (e.g. an org's known venues like "RHKYC Clubhouse"). */
 export interface PlanWhereQuickPick {
@@ -35,6 +37,15 @@ export interface PlanWhereQuickPick {
   name: string;
   lat?: number;
   lng?: number;
+}
+
+interface ClinicalSitePick {
+  id: string;
+  name: string;
+  detail: string;
+  lat?: number;
+  lng?: number;
+  source: 'curated' | 'poi' | 'quick-pick';
 }
 
 /**
@@ -65,12 +76,30 @@ interface PlanWhereCardProps {
   onChange: (next: StepLocation | undefined) => void;
   /** Optional pre-seeded venues (e.g. user's club's racing areas). */
   quickPicks?: PlanWhereQuickPick[];
+  interestSlug?: string;
+  interestName?: string;
+  stepCategory?: string;
 }
 
-export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: PlanWhereCardProps) {
+export function PlanWhereCard({
+  location,
+  readOnly,
+  onChange,
+  quickPicks,
+  interestSlug,
+  interestName,
+  stepCategory,
+}: PlanWhereCardProps) {
   const router = useRouter();
   const { vocab } = useVocabulary();
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [clinicalSitePickerVisible, setClinicalSitePickerVisible] = useState(false);
+  const isNursing =
+    interestSlug?.toLowerCase().includes('nurs') ||
+    interestName?.toLowerCase().includes('nurs') ||
+    stepCategory === 'clinical';
+  const { pois } = useAtlasPois();
+  const { partner, sites: curatedSites } = useNursingCuratedSites();
   const { data: neighbors } = useStepLocationNeighbors(location?.lat, location?.lng, 5);
   // Subtract the current user's own pin if applicable — we want "OTHER peers".
   const otherSailors = Math.max(0, (neighbors?.sailors ?? 0) - 1);
@@ -108,6 +137,78 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
     [onChange, location?.venue_id, location?.location_precision],
   );
 
+  const clinicalSites = useMemo<ClinicalSitePick[]>(() => {
+    if (!isNursing) return [];
+    const byId = new Map<string, ClinicalSitePick>();
+    for (const site of curatedSites) {
+      byId.set(site.poiId, {
+        id: site.poiId,
+        name: site.label,
+        detail:
+          site.role === 'simulation'
+            ? 'Simulation suite'
+            : partner?.name
+              ? `${partner.name} clinical placement`
+              : 'Clinical placement',
+        lat: site.lat ?? undefined,
+        lng: site.lng ?? undefined,
+        source: 'curated',
+      });
+    }
+    if (byId.size === 0) {
+      for (const poi of pois) {
+        if (!poi.is_healthcare_site) continue;
+        byId.set(poi.id, {
+          id: poi.id,
+          name: poi.name,
+          detail:
+            poi.kind === 'sim_lab'
+              ? 'Simulation suite'
+              : poi.org_name
+                ? `${poi.org_name} site`
+                : 'Clinical site',
+          lat: poi.lat,
+          lng: poi.lng,
+          source: 'poi',
+        });
+      }
+    }
+    for (const pick of quickPicks ?? []) {
+      if (byId.has(pick.id)) continue;
+      byId.set(pick.id, {
+        id: pick.id,
+        name: pick.name,
+        detail: 'Saved site',
+        lat: pick.lat,
+        lng: pick.lng,
+        source: 'quick-pick',
+      });
+    }
+    const sourceRank: Record<ClinicalSitePick['source'], number> = {
+      curated: 0,
+      poi: 1,
+      'quick-pick': 2,
+    };
+    return Array.from(byId.values()).sort((a, b) => {
+      if (a.source !== b.source) return sourceRank[a.source] - sourceRank[b.source];
+      return a.name.localeCompare(b.name);
+    });
+  }, [curatedSites, isNursing, partner?.name, pois, quickPicks]);
+
+  const handleClinicalSitePick = useCallback(
+    (site: ClinicalSitePick) => {
+      onChange({
+        name: site.name,
+        lat: site.lat,
+        lng: site.lng,
+        venue_id: site.id,
+        location_precision: 'site',
+      });
+      setClinicalSitePickerVisible(false);
+    },
+    [onChange],
+  );
+
   /**
    * Per brief A9, the legacy LocationMapPicker modal is absorbed into
    * Atlas. When ATLAS_MAPLIBRE_CANVAS is on, "Pick on map" pushes to
@@ -116,6 +217,10 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
    * still opens (so this lands as additive — old path stays as fallback).
    */
   const handleOpenPicker = useCallback(() => {
+    if (isNursing) {
+      setClinicalSitePickerVisible(true);
+      return;
+    }
     if (!FEATURE_FLAGS.ATLAS_MAPLIBRE_CANVAS) {
       setPickerVisible(true);
       return;
@@ -129,8 +234,11 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
         location_precision: location?.location_precision,
       });
     });
-    router.push({ pathname: '/(tabs)/atlas', params: { fromPlan: '1' } });
-  }, [router, onChange, location?.venue_id, location?.location_precision]);
+    router.push({
+      pathname: '/(tabs)/atlas',
+      params: { fromPlan: '1' },
+    });
+  }, [router, onChange, location?.venue_id, location?.location_precision, isNursing]);
 
   const handleClear = useCallback(() => {
     onChange(undefined);
@@ -163,7 +271,9 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
     <View style={styles.card}>
       <View style={styles.head}>
         <Ionicons name="location-outline" size={12} color={STEP_COLORS.secondaryLabel} />
-        <Text style={styles.eyebrow}>Where will you do this?</Text>
+        <Text style={styles.eyebrow}>
+          {isNursing ? 'Where is this clinical step?' : 'Where will you do this?'}
+        </Text>
       </View>
 
       {hasName ? (
@@ -181,7 +291,9 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
             {hasCoords && otherSailors > 0 ? (
               <Pressable onPress={handleOpenOnAtlas} hitSlop={6}>
                 <Text style={[styles.venueSub, styles.venueSubLink]} numberOfLines={1}>
-                  {otherSailors} {otherSailors === 1 ? peersSingular : peersPlural} set steps within 5 km →
+                  {isNursing
+                    ? 'Open Atlas to compare site coverage →'
+                    : `${otherSailors} ${otherSailors === 1 ? peersSingular : peersPlural} set steps within 5 km →`}
                 </Text>
               </Pressable>
             ) : hasCoords ? (
@@ -276,13 +388,96 @@ export function PlanWhereCard({ location, readOnly, onChange, quickPicks }: Plan
         <Pressable style={styles.pickBtn} onPress={handleOpenPicker}>
           <Ionicons name="map-outline" size={16} color={STEP_COLORS.accent} />
           <Text style={styles.pickText}>
-            {hasName ? 'Change location' : 'Pick on map'}
+            {hasName
+              ? (isNursing ? 'Change clinical site' : 'Change location')
+              : (isNursing ? 'Pick clinical site' : 'Pick on map')}
           </Text>
           {!hasName ? (
-            <Text style={styles.pickHint}> · see what other sailors did here</Text>
+            <Text style={styles.pickHint}>
+              {isNursing ? ' · choose from your clinical sites' : ' · see what other sailors did here'}
+            </Text>
           ) : null}
         </Pressable>
       )}
+
+      <Modal
+        visible={clinicalSitePickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setClinicalSitePickerVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setClinicalSitePickerVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close clinical site picker"
+          />
+          <View style={styles.siteSheet}>
+            <View style={styles.sheetHandleRow}>
+              <View style={styles.sheetHandle} />
+              <Pressable
+                style={styles.sheetClose}
+                onPress={() => setClinicalSitePickerVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Ionicons name="close" size={20} color={IOS_COLORS.secondaryLabel} />
+              </Pressable>
+            </View>
+            <Text style={styles.sheetTitle}>Pick clinical site</Text>
+            <Text style={styles.sheetSubtitle}>
+              Choose the ward, hospital, or sim site where this step will happen.
+            </Text>
+            <ScrollView
+              style={styles.siteList}
+              contentContainerStyle={styles.siteListContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {clinicalSites.length > 0 ? (
+                clinicalSites.map((site) => {
+                  const selected = location?.venue_id === site.id || location?.name === site.name;
+                  return (
+                    <Pressable
+                      key={site.id}
+                      style={[styles.siteRow, selected && styles.siteRowActive]}
+                      onPress={() => handleClinicalSitePick(site)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                    >
+                      <View style={[styles.siteIcon, selected && styles.siteIconActive]}>
+                        <Ionicons
+                          name={site.detail.includes('Simulation') ? 'flask-outline' : 'medical-outline'}
+                          size={18}
+                          color={selected ? '#FFFFFF' : STEP_COLORS.accent}
+                        />
+                      </View>
+                      <View style={styles.siteText}>
+                        <Text style={styles.siteName} numberOfLines={1}>
+                          {site.name}
+                        </Text>
+                        <Text style={styles.siteSub} numberOfLines={1}>
+                          {site.detail}
+                        </Text>
+                      </View>
+                      {selected ? (
+                        <Ionicons name="checkmark" size={20} color={STEP_COLORS.accent} />
+                      ) : null}
+                    </Pressable>
+                  );
+                })
+              ) : (
+                <View style={styles.siteEmpty}>
+                  <Ionicons name="medical-outline" size={22} color={IOS_COLORS.secondaryLabel} />
+                  <Text style={styles.siteEmptyText}>
+                    No clinical sites are available yet. Add a site to your nursing Atlas, then pick it here.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <LocationMapPickerModal
         visible={pickerVisible}
@@ -430,5 +625,117 @@ const styles = StyleSheet.create({
   pickHint: {
     fontSize: 12,
     color: IOS_COLORS.tertiaryLabel,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  siteSheet: {
+    maxHeight: '74%',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 24,
+    shadowColor: '#000000',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: -8 },
+    elevation: 12,
+  },
+  sheetHandleRow: {
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetHandle: {
+    width: 52,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: IOS_COLORS.systemGray4,
+  },
+  sheetClose: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_COLORS.systemGray6,
+  },
+  sheetTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: IOS_COLORS.label,
+  },
+  sheetSubtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  siteList: {
+    marginTop: 14,
+  },
+  siteListContent: {
+    gap: 8,
+    paddingBottom: 8,
+  },
+  siteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 64,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: IOS_COLORS.systemGray5,
+    backgroundColor: '#FFFFFF',
+  },
+  siteRowActive: {
+    borderColor: STEP_COLORS.accent,
+    backgroundColor: STEP_COLORS.accentLight,
+  },
+  siteIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: STEP_COLORS.accentLight,
+  },
+  siteIconActive: {
+    backgroundColor: STEP_COLORS.accent,
+  },
+  siteText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  siteName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  siteSub: {
+    marginTop: 2,
+    fontSize: 12,
+    color: IOS_COLORS.secondaryLabel,
+  },
+  siteEmpty: {
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 28,
+  },
+  siteEmptyText: {
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
   },
 });

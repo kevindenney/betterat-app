@@ -70,12 +70,19 @@ function insertOptimisticNextUpStep(
 export interface UniversalPlusContextValue {
   open: () => void;
   close: () => void;
+  /**
+   * Create a step straight from a payload, bypassing the full composer sheet.
+   * Lets surfaces (e.g. the Step-level Add sheet) author a blank step inline
+   * and reuse the same optimistic-insert + toast + navigation pipeline.
+   */
+  submit: (payload: QuickCapturePayload) => Promise<void>;
   isAvailable: boolean;
 }
 
 const UniversalPlusContext = createContext<UniversalPlusContextValue>({
   open: () => undefined,
   close: () => undefined,
+  submit: async () => undefined,
   isAvailable: false,
 });
 
@@ -291,8 +298,8 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
   );
 
   const value = useMemo<UniversalPlusContextValue>(
-    () => ({ open, close, isAvailable: enabled }),
-    [open, close, enabled],
+    () => ({ open, close, submit: handleQuickCapture, isAvailable: enabled }),
+    [open, close, handleQuickCapture, enabled],
   );
 
   return (

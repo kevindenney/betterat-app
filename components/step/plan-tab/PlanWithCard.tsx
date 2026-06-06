@@ -24,6 +24,9 @@ interface PlanWithCardProps {
   onChange: (next: StepCollaborator[]) => void;
   /** Optional share affordance for off-platform collaborators. */
   onShareWithCollaborator?: (displayName: string) => void;
+  interestSlug?: string;
+  interestName?: string;
+  stepCategory?: string;
 }
 
 export function PlanWithCard({
@@ -31,9 +34,19 @@ export function PlanWithCard({
   readOnly,
   onChange,
   onShareWithCollaborator,
+  interestSlug,
+  interestName,
+  stepCategory,
 }: PlanWithCardProps) {
   const [showAddPeoplePicker, setShowAddPeoplePicker] = useState(false);
   const [roleEditing, setRoleEditing] = useState<StepCollaborator | null>(null);
+  const isNursing =
+    interestSlug?.toLowerCase().includes('nurs') ||
+    interestName?.toLowerCase().includes('nurs') ||
+    stepCategory === 'clinical';
+  const roleOptions = isNursing
+    ? ['preceptor', 'cohort peer', 'faculty', 'patient care team', 'observer']
+    : undefined;
 
   const handleSetRole = useCallback(
     (collabId: string, role: string | undefined) => {
@@ -75,7 +88,9 @@ export function PlanWithCard({
     <View style={styles.card}>
       <View style={styles.head}>
         <Ionicons name="people-outline" size={12} color={STEP_COLORS.secondaryLabel} />
-        <Text style={styles.eyebrow}>With whom will you do this?</Text>
+        <Text style={styles.eyebrow}>
+          {isNursing ? 'Who is part of this clinical step?' : 'With whom will you do this?'}
+        </Text>
       </View>
 
       {collaborators.length > 0 ? (
@@ -136,7 +151,11 @@ export function PlanWithCard({
           ))}
         </View>
       ) : (
-        <Text style={styles.hint}>No collaborators yet.</Text>
+        <Text style={styles.hint}>
+          {isNursing
+            ? 'Add a preceptor to co-sign evidence, plus cohort peers if they worked with you.'
+            : 'No collaborators yet.'}
+        </Text>
       )}
 
       {!readOnly && (
@@ -150,6 +169,7 @@ export function PlanWithCard({
         visible={!!roleEditing}
         collaboratorName={roleEditing?.display_name ?? ''}
         currentRole={roleEditing?.role}
+        options={roleOptions}
         onClose={() => setRoleEditing(null)}
         onSelect={(role) => {
           if (roleEditing) handleSetRole(roleEditing.id, role);

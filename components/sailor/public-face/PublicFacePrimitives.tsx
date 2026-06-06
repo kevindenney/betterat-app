@@ -28,7 +28,6 @@
 
 import React from 'react';
 import {
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -37,6 +36,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { pickAvatarMarkColor } from '@/components/discover/canonical';
 
 // =============================================================================
@@ -51,11 +51,7 @@ const BLUE = IOS_COLORS.systemBlue;
 const GROUND_BG = '#F2F2F7';
 const ACCENT_DISCOVER = '#D97757';
 
-const SERIF_FAMILY = Platform.select({
-  ios: 'Iowan Old Style',
-  android: 'serif',
-  default: 'Georgia',
-});
+const SERIF_FAMILY = fontFamily.serif;
 
 // =============================================================================
 // LARGE HERO — bigger mark + name for the public face

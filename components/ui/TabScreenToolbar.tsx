@@ -31,6 +31,7 @@ import {
   IOS_ANIMATIONS,
   IOS_TYPOGRAPHY,
 } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { triggerHaptic } from '@/lib/haptics';
 import { AppChromeRow } from '@/components/ui/AppChromeRow';
 
@@ -426,13 +427,15 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   largeTitle: {
-    // SF Pro Large Title per iOS register (Phase 1, supersedes the serif
-    // treatment from audit commit ee631e61). Applies to Session/Playbook/
-    // Discover/Reflect headers (every screen mounting TabScreenToolbar).
+    // Newsreader serif Large Title per the v4 reflection-network register —
+    // screen titles are display moments. Reintroduces the serif treatment
+    // (reverses the Phase-1 SF-Pro flip from ee631e61) across every screen
+    // mounting TabScreenToolbar (Library/Watch/Atlas/Inbox/Reflect/…).
+    fontFamily: fontFamily.serif,
     fontSize: IOS_TYPOGRAPHY.largeTitle.fontSize,
-    fontWeight: IOS_TYPOGRAPHY.largeTitle.fontWeight,
+    fontWeight: '500',
     lineHeight: IOS_TYPOGRAPHY.largeTitle.lineHeight,
-    letterSpacing: IOS_TYPOGRAPHY.largeTitle.letterSpacing,
+    letterSpacing: -0.4,
     color: IOS_COLORS.label,
   },
   loadingSpinner: {

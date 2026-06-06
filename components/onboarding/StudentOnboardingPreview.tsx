@@ -17,8 +17,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 // ---------------------------------------------------------------------------
 // Phone frame chrome — shared
@@ -504,7 +505,7 @@ const s = StyleSheet.create({
     letterSpacing: -0.5,
     color: '#FFFFFF',
     textAlign: 'center',
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
   },
   f13H1Em: { fontStyle: 'italic' },
   f13Sub: {
@@ -768,7 +769,7 @@ const s = StyleSheet.create({
     lineHeight: 19,
     color: '#1C1C1E',
     fontStyle: 'italic',
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     marginBottom: 10,
   },
   f14StepBodyAttr: { fontSize: 11, color: 'rgba(60, 60, 67, 0.6)' },

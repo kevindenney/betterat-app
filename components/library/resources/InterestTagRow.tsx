@@ -12,6 +12,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useInterest } from '@/providers/InterestProvider';
 import { useLibraryItemInterestTagsBinding } from '@/hooks/useLibraryItemInterestTags';
 
@@ -80,8 +81,10 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.7,
+    textTransform: 'uppercase',
     color: IOS_COLORS.secondaryLabel,
   },
   chips: {

@@ -11,11 +11,10 @@
 import { useMemo } from 'react';
 import { useAtlasPois, type AtlasPoi } from './useAtlasPois';
 import { useAtlasPeerSteps, type AtlasPeerStep } from './useAtlasPeerSteps';
-import { useAtlasOrgSteps } from './useAtlasOrgSteps';
+import { useAtlasOrgSteps, type AtlasOrgStep } from './useAtlasOrgSteps';
 import { useUserAtlasSteps, type PickerStep, type UserAtlasStep } from './useUserAtlasSteps';
 import { useSailingPoisNear, type SailingPoiRow } from './useSailingPoisNear';
 import type { AtlasPinSpec, AtlasPeerMember } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
-import { stepKindFor, isRaceStep } from '@/lib/step-kind-config';
 
 interface UseAtlasFramePinsArgs {
   /** bbox center lat — taken from the frame's camera preset */
@@ -261,7 +260,15 @@ export function useAtlasFramePins({
   showMarinas = false,
   showSailServices = false,
   restrictPeersToUserIds = null,
-}: UseAtlasFramePinsArgs): { pins: AtlasPinSpec[]; pickerSteps: PickerStep[]; loading: boolean } {
+}: UseAtlasFramePinsArgs): {
+  pins: AtlasPinSpec[];
+  pickerSteps: PickerStep[];
+  /** Raw peer steps (un-clustered) — the ★ Saved sheet lists these by relationship. */
+  peerSteps: AtlasPeerStep[];
+  /** Org-published located steps nearby — the ★ Saved sheet's "Groups" section. */
+  orgSteps: AtlasOrgStep[];
+  loading: boolean;
+} {
   const { pois, loading: poisLoading } = useAtlasPois();
   // restrictPeersToUserIds (chip-row contextual group filter) is pushed
   // down to the RPC via restrict_user_ids[] so the bbox scan narrows at
@@ -505,9 +512,9 @@ export function useAtlasFramePins({
         label,
         subtitle: subtitleParts.join(' · ') || undefined,
         stepId: step.step_id,
-        isRace: isRaceStep({ category: step.category, title: step.title, is_race: step.is_race }),
-        stepKind: stepKindFor({ category: step.category, title: step.title, isRace: step.is_race }),
+        isRace: step.is_race === true,
         raceContext: step.raceContext,
+        raceStartAt: step.is_race === true ? step.starts_at : null,
       });
     }
 
@@ -517,6 +524,8 @@ export function useAtlasFramePins({
   return {
     pins,
     pickerSteps,
+    peerSteps: peers,
+    orgSteps,
     loading: poisLoading || peersLoading || orgStepsLoading || userStepsLoading,
   };
 }

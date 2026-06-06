@@ -12,6 +12,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useFollowedPeopleForLibrary } from '@/hooks/useFollowedPeopleForLibrary';
 import { PersonRowCard } from '@/components/library/people/PersonRowCard';
 import { useVocabulary } from '@/hooks/useVocabulary';
@@ -73,7 +74,9 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    letterSpacing: -0.3,
     color: IOS_COLORS.label,
   },
   emptyBlurb: {

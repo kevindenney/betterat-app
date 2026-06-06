@@ -401,6 +401,178 @@ export async function updateStep(
   }
 }
 
+type OrderedStepForPlacement = Pick<
+  TimelineStepRecord,
+  'id' | 'status' | 'sort_order'
+>;
+
+async function getOwnedInterestStepOrder(
+  userId: string,
+  interestId: string,
+): Promise<OrderedStepForPlacement[]> {
+  const { data, error } = await supabase
+    .from('timeline_steps')
+    .select('id,status,sort_order')
+    .eq('user_id', userId)
+    .eq('interest_id', interestId)
+    .eq('is_plan_template', false)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as OrderedStepForPlacement[];
+}
+
+async function resequenceIfChanged(orderedIds: string[]): Promise<void> {
+  if (orderedIds.length === 0) return;
+  await resequenceTimelineSortOrders(orderedIds);
+}
+
+async function placeStepBeforeFirstActive(
+  step: Pick<TimelineStepRecord, 'id' | 'user_id' | 'interest_id'>,
+): Promise<void> {
+  const rows = await getOwnedInterestStepOrder(step.user_id, step.interest_id);
+  const without = rows.filter((row) => row.id !== step.id);
+  const insertAt = without.findIndex((row) =>
+    row.status === 'pending' || row.status === 'in_progress'
+  );
+  const orderedIds = without.map((row) => row.id);
+  orderedIds.splice(insertAt >= 0 ? insertAt : orderedIds.length, 0, step.id);
+  await resequenceIfChanged(orderedIds);
+}
+
+async function placeStepAfterOriginal(
+  newStepId: string,
+  sourceStep: Pick<TimelineStepRecord, 'id' | 'user_id' | 'interest_id'>,
+): Promise<void> {
+  const rows = await getOwnedInterestStepOrder(sourceStep.user_id, sourceStep.interest_id);
+  const orderedIds = rows.map((row) => row.id).filter((id) => id !== newStepId);
+  const sourceIdx = orderedIds.indexOf(sourceStep.id);
+  orderedIds.splice(sourceIdx >= 0 ? sourceIdx + 1 : orderedIds.length, 0, newStepId);
+  await resequenceIfChanged(orderedIds);
+}
+
+/**
+ * Mark a step as settled and place it as the newest completed item: directly
+ * before the first pending/in-progress step, which is the timeline's NOW
+ * anchor. This keeps out-of-order completion aligned with the bottom
+ * DONE/NOW/NEXT grammar.
+ */
+export async function settleStepAndPlaceBeforeNow(
+  stepId: string,
+): Promise<TimelineStepRecord> {
+  const settled = await updateStep(stepId, { status: 'settled' });
+  await placeStepBeforeFirstActive(settled);
+  return settled;
+}
+
+/**
+ * Reopen a completed/settled step without deleting its plan, captures, or
+ * reflection. The reopened step becomes the current active step by moving to
+ * the active boundary and setting status back to in_progress.
+ */
+export async function reopenStepForWork(
+  stepId: string,
+): Promise<TimelineStepRecord> {
+  const reopened = await updateStep(stepId, { status: 'in_progress' });
+  await placeStepBeforeFirstActive(reopened);
+  return reopened;
+}
+
+function metadataForRedo(source: TimelineStepRecord): StepMetadata {
+  const metadata = { ...((source.metadata ?? {}) as StepMetadata) };
+  delete (metadata as Record<string, unknown>).act;
+  delete (metadata as Record<string, unknown>).review;
+  delete (metadata as Record<string, unknown>).brain_dump;
+  return metadata;
+}
+
+/**
+ * Duplicate a step for another attempt. Copies the planning/source context
+ * but starts with fresh Do/Reflect state and status=pending, then places the
+ * new row immediately after the original in the sequence.
+ */
+export async function redoStepAsNewStep(
+  sourceStepId: string,
+): Promise<TimelineStepRecord> {
+  try {
+    const source = await getStepById(sourceStepId);
+    const metadata = metadataForRedo(source);
+    const collaborators = (metadata.plan as any)?.collaborators as
+      | { type: string; user_id?: string }[]
+      | undefined;
+    const collaboratorUserIds = (collaborators ?? [])
+      .filter((c) => c.type === 'platform' && c.user_id)
+      .map((c) => c.user_id!);
+    const title = typeof source.title === 'string' && source.title.trim()
+      ? source.title.trim()
+      : 'Untitled step';
+    const rows = await getOwnedInterestStepOrder(source.user_id, source.interest_id);
+    const nextSort = rows.length;
+
+    const { data, error } = await supabase
+      .from('timeline_steps')
+      .insert({
+        user_id: source.user_id,
+        interest_id: source.interest_id,
+        organization_id: source.organization_id,
+        program_session_id: source.program_session_id,
+        source_type: 'user_fork',
+        source_id: source.id,
+        copied_from_user_id: source.user_id,
+        source_blueprint_id: source.source_blueprint_id,
+        source_blueprint_step_id: source.source_blueprint_step_id ?? null,
+        title,
+        description: source.description,
+        category: source.category,
+        status: 'pending',
+        starts_at: null,
+        ends_at: null,
+        due_at: null,
+        location_name: source.location_name,
+        location_lat: source.location_lat,
+        location_lng: source.location_lng,
+        location_place_id: source.location_place_id,
+        visibility: source.visibility,
+        share_approximate_location: source.share_approximate_location,
+        sort_order: nextSort,
+        metadata,
+        collaborator_user_ids: collaboratorUserIds,
+        is_race: source.is_race ?? false,
+        is_timed: source.is_timed ?? false,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    const created = data as TimelineStepRecord;
+    await placeStepAfterOriginal(created.id, source);
+
+    void (async () => {
+      try {
+        const [{ syncStepCollaborators }, { syncStepLocation }] = await Promise.all([
+          import('@/services/StepCollaboratorService'),
+          import('@/services/StepLocationService'),
+        ]);
+        await Promise.allSettled([
+          syncStepCollaborators(created.id, source.user_id, (collaborators ?? []) as any),
+          syncStepLocation(
+            created.id,
+            source.user_id,
+            (metadata.plan as any)?.where_location,
+          ),
+        ]);
+      } catch (syncErr) {
+        logger.warn('redo step collaborator/location sync failed (non-fatal)', syncErr);
+      }
+    })();
+
+    return created;
+  } catch (err) {
+    logger.error('Failed to redo step as new step', err);
+    throw err;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 5. Delete a timeline step
 // ---------------------------------------------------------------------------

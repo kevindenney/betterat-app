@@ -17,11 +17,18 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronDown, ChevronLeft } from 'lucide-react-native';
-import { IOS_BLUE, LABEL, LABEL_3 } from '@/lib/design-tokens-step-loop-ios';
+import {
+  GRAY_5,
+  IOS_BLUE,
+  IOS_BLUE_TINT,
+  LABEL_2,
+  LABEL_3,
+} from '@/lib/design-tokens-step-loop-ios';
 
 export interface TopHeaderProps {
   /** Active interest name shown on the left (mutually exclusive with backLabel). */
   interestName?: string;
+  interestAccentColor?: string | null;
   onInterestPress?: () => void;
   /** Step counter text shown in the middle (e.g. "Step 4 of 10"). */
   stepCounter?: string;
@@ -35,6 +42,7 @@ export interface TopHeaderProps {
 
 export function TopHeader({
   interestName,
+  interestAccentColor,
   onInterestPress,
   stepCounter,
   rightCluster,
@@ -63,16 +71,28 @@ export function TopHeader({
         ) : interestName ? (
           <Pressable
             accessibilityRole={onInterestPress ? 'button' : 'text'}
-            accessibilityLabel={`Active interest: ${interestName}`}
+            accessibilityLabel={
+              onInterestPress
+                ? `Current interest: ${interestName}. Tap to switch.`
+                : `Active interest: ${interestName}`
+            }
             onPress={onInterestPress}
             disabled={!onInterestPress}
             hitSlop={6}
             style={styles.interest}
           >
+            <View
+              style={[
+                styles.interestDot,
+                { backgroundColor: interestAccentColor ?? IOS_BLUE },
+              ]}
+            />
             <Text style={styles.interestName} numberOfLines={1}>
               {interestName}
             </Text>
-            <ChevronDown size={14} color={LABEL_3} style={styles.switcherIcon} />
+            {onInterestPress ? (
+              <ChevronDown size={12} color={LABEL_3} style={styles.switcherIcon} />
+            ) : null}
           </Pressable>
         ) : (
           <View />
@@ -127,17 +147,31 @@ const styles = StyleSheet.create({
   },
   interest: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '100%',
+    minHeight: 30,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 15,
+    backgroundColor: IOS_BLUE_TINT,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GRAY_5,
+  },
+  interestDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   interestName: {
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: -0.25,
-    color: LABEL,
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0,
+    color: LABEL_2,
   },
   switcherIcon: {
-    marginLeft: -2,
+    marginLeft: -1,
     alignSelf: 'center',
   },
   backButton: {

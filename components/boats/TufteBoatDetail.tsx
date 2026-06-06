@@ -25,6 +25,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
 } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -47,11 +48,9 @@ import {
   useEquipmentTemplates,
   formatLifespan,
   formatMaintenanceInterval,
-  CATEGORY_GROUPS,
   COMMON_MANUFACTURERS,
-  type CategoryGroup,
 } from '@/hooks/useEquipmentTemplates';
-import { type EquipmentTemplate, type EquipmentCategory } from '@/services/EquipmentService';
+import { type EquipmentTemplate } from '@/services/EquipmentService';
 
 const logger = createLogger('TufteBoatDetail');
 
@@ -115,12 +114,6 @@ interface EquipmentItem {
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
-
-const formatDate = (dateString: string | null): string => {
-  if (!dateString) return '—';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-};
 
 const getConditionIndicator = (score: number | null | undefined): { label: string; color: string } => {
   if (score == null) return { label: 'Not inspected', color: TUFTE.inkMuted };
@@ -290,7 +283,7 @@ function EmptyState({ message, action }: EmptyStateProps) {
 
 type SailType = 'mainsail' | 'jib' | 'genoa' | 'spinnaker' | 'code_zero';
 
-const SAIL_TYPES: Array<{ key: SailType; label: string }> = [
+const SAIL_TYPES: { key: SailType; label: string }[] = [
   { key: 'mainsail', label: 'Mainsail' },
   { key: 'jib', label: 'Jib' },
   { key: 'genoa', label: 'Genoa' },
@@ -709,7 +702,6 @@ function AddEquipmentModal({
   boatId,
   sailorId,
   classId,
-  className,
   onClose,
   onEquipmentAdded,
 }: AddEquipmentModalProps) {
@@ -725,9 +717,7 @@ function AddEquipmentModal({
 
   // Fetch equipment templates
   const {
-    categories,
     categoryGroups,
-    templates,
     isLoading,
     getTemplatesForCategory,
     getCategoryName,
@@ -1079,7 +1069,7 @@ const modalStyles = StyleSheet.create({
     padding: 4,
   },
   title: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontFamily: fontFamily.serif,
     fontSize: 18,
     color: TUFTE.ink,
   },
@@ -1623,7 +1613,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   errorText: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontFamily: fontFamily.serif,
     fontSize: 18,
     color: TUFTE.ink,
     marginBottom: 16,
@@ -1676,7 +1666,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   boatTitle: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontFamily: fontFamily.serif,
     fontSize: 32,
     fontWeight: '400',
     color: TUFTE.ink,
@@ -1707,7 +1697,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontFamily: fontFamily.serif,
     fontSize: 18,
     fontWeight: '400',
     color: TUFTE.ink,

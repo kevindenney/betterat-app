@@ -2,8 +2,9 @@
  * RaceCoursePicker — the inline "Race area & course" reveal that appears under
  * the Step ⟷ Race selector when a step is flagged a Race (mockup 27, frame 2).
  *
- * Captures the genuinely authorable-at-create-time inputs: which racing area
- * (from the venue's venue_racing_areas) and which course type + laps. Marks
+ * Lists the racing areas the user can pick — their own Atlas-drawn areas plus
+ * the step venue's mapped areas (see useMyRacingAreas) — and offers a path to
+ * draw a new one on the Atlas tab. Also captures course type + laps. Marks
  * geometry and live wind/tide are derived/live and refined later on the
  * on-water screen, so they are not edited here — this only emits a RacePlan.
  *
@@ -14,8 +15,11 @@
 import React, { useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-import { useVenueRacingAreas, type RacingAreaGeometry } from '@/hooks/useVenueRacingAreas';
+import { fontFamily } from '@/lib/design-tokens-editorial';
+import type { RacingAreaGeometry } from '@/hooks/useVenueRacingAreas';
+import { useMyRacingAreas } from '@/hooks/useMyRacingAreas';
 import type { RacePlan } from '@/types/step-detail';
 
 const RACE = '#2563EB';
@@ -75,13 +79,30 @@ interface RaceCoursePickerProps {
   onChange: (next: RacePlan) => void;
 }
 
-export function RaceCoursePicker({ venueId, venueName, value, onChange }: RaceCoursePickerProps) {
-  const { racingAreas, isLoading } = useVenueRacingAreas(venueId ?? undefined);
+export function RaceCoursePicker({ venueId, value, onChange }: RaceCoursePickerProps) {
+  const router = useRouter();
+  const { racingAreas, isLoading } = useMyRacingAreas(venueId ?? undefined);
 
   const selectedArea = useMemo(
     () => racingAreas.find((a) => a.id === value.area_id),
     [racingAreas, value.area_id],
   );
+
+  const openAtlasToDraw = () => {
+    router.push({
+      pathname: '/(tabs)/atlas',
+      params: {
+        intent: 'new-racing-area',
+        ...(value.center
+          ? {
+              lat: String(value.center.lat),
+              lng: String(value.center.lng),
+            }
+          : {}),
+        ...(value.area_name ? { area: value.area_name } : {}),
+      },
+    } as any);
+  };
 
   // Course options: the selected area's typicalCourses when present, else the
   // generic list. Always de-duped and resolved to {key,label}.
@@ -98,11 +119,16 @@ export function RaceCoursePicker({ venueId, venueName, value, onChange }: RaceCo
   const selectArea = (areaId: string) => {
     const area = racingAreas.find((a) => a.id === areaId);
     if (!area) return;
+    const center =
+      geometryCenter(area.geometry) ??
+      (area.centerLat != null && area.centerLng != null
+        ? { lat: area.centerLat, lng: area.centerLng }
+        : undefined);
     onChange({
       ...value,
       area_id: area.id,
       area_name: area.areaName,
-      center: geometryCenter(area.geometry),
+      center,
     });
   };
 
@@ -127,21 +153,11 @@ export function RaceCoursePicker({ venueId, venueName, value, onChange }: RaceCo
         <Text style={styles.eyebrowQuiet}>race only</Text>
       </View>
 
-      {!venueId ? (
-        <Text style={styles.note}>
-          Set a home venue to pick a racing area. You can still save the race and
-          add its course later on the water.
-        </Text>
-      ) : isLoading ? (
+      {isLoading ? (
         <View style={styles.loadingRow}>
           <ActivityIndicator size="small" color={RACE} />
           <Text style={styles.note}>Loading racing areas…</Text>
         </View>
-      ) : racingAreas.length === 0 ? (
-        <Text style={styles.note}>
-          No racing areas mapped for {venueName?.trim() || 'this venue'} yet. Save
-          the race and set its course on the water.
-        </Text>
       ) : (
         <>
           <Text style={styles.fieldLabel}>Racing area</Text>
@@ -162,7 +178,23 @@ export function RaceCoursePicker({ venueId, venueName, value, onChange }: RaceCo
                 </Pressable>
               );
             })}
+            <Pressable
+              style={[styles.chip, styles.chipCreate]}
+              onPress={openAtlasToDraw}
+              accessibilityRole="button"
+              accessibilityLabel="Create a new racing area on the Atlas tab"
+            >
+              <Ionicons name="add" size={13} color={RACE} />
+              <Text style={[styles.chipText, styles.chipTextActive]}>New in Atlas</Text>
+            </Pressable>
           </View>
+
+          {racingAreas.length === 0 ? (
+            <Text style={styles.note}>
+              No racing areas yet. Draw one on the Atlas tab, or save the race and
+              set its course later on the water.
+            </Text>
+          ) : null}
 
           {value.area_id ? (
             <>
@@ -247,14 +279,18 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 10.5,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.6,
     color: RACE,
+    textTransform: 'uppercase',
   },
   eyebrowQuiet: {
     fontSize: 10.5,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: 'rgba(37,99,235,0.5)',
+    textTransform: 'uppercase',
   },
   fieldLabel: {
     fontSize: 11,
@@ -279,6 +315,14 @@ const styles = StyleSheet.create({
   chipActive: {
     borderColor: RACE,
     backgroundColor: 'rgba(37,99,235,0.12)',
+  },
+  chipCreate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderColor: RACE,
+    borderStyle: 'dashed',
+    backgroundColor: 'transparent',
   },
   chipText: {
     fontSize: 12.5,
@@ -311,7 +355,8 @@ const styles = StyleSheet.create({
   },
   stepperValue: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.label,
     minWidth: 16,
     textAlign: 'center',

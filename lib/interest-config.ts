@@ -12,6 +12,9 @@ export interface InterestReflectTabConfig {
   settledPillLabel: string;
   saveCtaLabel: string;
   questionPair: [string, string];
+  keyTakeawayPrompt?: string;
+  teachingPrompt?: string;
+  headerLabel?: string;
   synthesisDraftCopy: (count: number) => string;
 }
 
@@ -55,7 +58,10 @@ export const INTEREST_REFLECT_TAB_CONFIG: Record<DoTabInterestKind, InterestRefl
     statePillLabel: 'Reflect · ready',
     settledPillLabel: 'Settled',
     saveCtaLabel: 'Mark done',
-    questionPair: ['What worked well today?', 'Where do you need more practice?'],
+    questionPair: ['What worked well?', 'Where do you need more practice?'],
+    keyTakeawayPrompt: 'The one thing to remember.',
+    teachingPrompt: 'If you taught this to someone, what evidence would you ask them to show?',
+    headerLabel: 'Reflect — same 4 questions every step',
     synthesisDraftCopy: (count) =>
       `Want a first draft from your ${count} observations? Tap to draft, or write the first line yourself.`,
   },

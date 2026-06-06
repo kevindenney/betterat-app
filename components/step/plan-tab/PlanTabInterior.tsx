@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { STEP_COLORS } from '@/lib/step-theme';
-import type { StepPlanData, SubStep } from '@/types/step-detail';
+import type { RacePlan, StepPlanData, SubStep } from '@/types/step-detail';
 import { SubStepEditor } from '../SubStepEditor';
 import { ConversationalCapture } from '../ConversationalCapture';
 import { getPlanInteriorState, isPlanReady } from './planState';
@@ -64,6 +64,11 @@ interface PlanTabInteriorProps {
   isRace?: boolean;
   onToggleRace?: (next: boolean) => void;
   onOpenRaceCourse?: () => void;
+  onOpenRaceCourseAtlas?: () => void;
+  /** One-line summary of the saved race plan, shown on the reveal row. */
+  courseSummary?: string;
+  /** Saved race plan; drives the schematic course map once an area is set. */
+  racePlan?: Pick<RacePlan, 'area_id' | 'area_name' | 'course_label' | 'laps'>;
   /**
    * D37 "Before the shift" library checklist. When items exist, renders
    * a card above the manual fields. Pass items + onToggle from the
@@ -102,6 +107,9 @@ export function PlanTabInterior({
   isRace,
   onToggleRace,
   onOpenRaceCourse,
+  onOpenRaceCourseAtlas,
+  courseSummary,
+  racePlan,
   libraryBefore,
 }: PlanTabInteriorProps) {
   const showRaceSelector = typeof isRace === 'boolean' && Boolean(onToggleRace);
@@ -168,6 +176,9 @@ export function PlanTabInterior({
             onChange={onToggleRace!}
             readOnly={readOnly}
             onOpenRaceCourse={onOpenRaceCourse}
+            onOpenRaceCourseAtlas={onOpenRaceCourseAtlas}
+            courseSummary={courseSummary}
+            racePlan={racePlan}
           />
         </View>
       )}

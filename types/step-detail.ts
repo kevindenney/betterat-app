@@ -514,6 +514,12 @@ export interface BusinessOutcomeData {
   captured_at?: string;
 }
 
+export interface LivelihoodStepData {
+  haat_calendar_id?: string | null;
+  ledger_entry_id?: string | null;
+  evidence_source?: 'atlas_haat_cockpit' | 'step_outcome_card' | 'mentor_visit' | string;
+}
+
 export interface StepMetadata {
   plan?: StepPlanData;
   act?: StepActData;
@@ -521,6 +527,8 @@ export interface StepMetadata {
   brain_dump?: BrainDumpData;
   /** Entrepreneur vocab — the money/sales this step produced. */
   outcome?: BusinessOutcomeData;
+  /** Rural entrepreneur vocab — haat/scheme/evidence linkage for Atlas #29/#30. */
+  livelihood?: LivelihoodStepData;
   /** Sailing — race-area + course choice when the step is_race (mockup 27). */
   race_plan?: RacePlan;
   [key: string]: unknown;

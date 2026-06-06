@@ -20,7 +20,7 @@
  */
 
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
@@ -212,7 +212,7 @@ export function AtlasPin({
   );
 }
 
-function pinAt(leftPct: number, topPct: number, size: number) {
+function pinAt(leftPct: number, topPct: number, size: number): ViewStyle {
   return {
     left: `${leftPct}%`,
     top: `${topPct}%`,

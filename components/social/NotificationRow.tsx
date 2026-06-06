@@ -37,6 +37,7 @@ import {
   IOS_SPACING,
 } from '@/lib/design-tokens-ios';
 import { STEP_PALETTE } from '@/lib/step-theme';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 // =============================================================================
 // TYPES
@@ -435,7 +436,9 @@ const styles = StyleSheet.create({
   },
   time: {
     color: IOS_COLORS.tertiaryLabel,
-    fontWeight: '400',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
   },
 
   // Follow button - Instagram-style text-only

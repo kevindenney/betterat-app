@@ -18,6 +18,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useInterest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -619,14 +620,17 @@ const styles = StyleSheet.create({
   },
   origin: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    color: IOS_COLORS.systemIndigo,
+    color: IOS_COLORS.secondaryLabel,
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    letterSpacing: -0.4,
     color: IOS_COLORS.label,
     marginTop: 2,
   },
@@ -692,6 +696,8 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.tertiaryLabel,
   },
   askSection: {
@@ -705,8 +711,9 @@ const styles = StyleSheet.create({
   },
   askTitle: {
     fontSize: 13,
-    fontWeight: '700',
-    color: IOS_COLORS.systemIndigo,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
@@ -821,8 +828,9 @@ const styles = StyleSheet.create({
   },
   relatedTitle: {
     fontSize: 12,
-    fontWeight: '700',
-    color: IOS_COLORS.systemTeal,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },

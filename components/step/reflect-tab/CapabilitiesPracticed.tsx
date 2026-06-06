@@ -5,8 +5,6 @@ import {
   GRAY_4,
   GRAY_5,
   GRAY_6,
-  IOS_BLUE,
-  IOS_BLUE_TINT,
   IOS_GREEN,
   IOS_GREEN_TINT,
   IOS_PURPLE_DEEP,
@@ -14,6 +12,7 @@ import {
   LABEL_2,
   LABEL_3,
 } from '@/lib/design-tokens-step-loop-ios';
+import { REFLECT } from '@/lib/design-tokens-ios';
 
 export type EvidenceStrength = 'worth-noting' | 'material' | 'strong';
 
@@ -24,11 +23,17 @@ export interface CapabilityEvidenceRow {
   strength: EvidenceStrength;
   pipLevel: number;
   evidenceCount: number;
+  /** Where the row came from — 'ai' rows are model suggestions awaiting confirmation. */
+  source?: 'plan' | 'ai' | 'manual';
 }
+
+export type CapabilitySuggestState = 'idle' | 'loading' | 'done';
 
 export interface CapabilitiesPracticedProps {
   rows: CapabilityEvidenceRow[];
   capturesCount: number;
+  suggestState: CapabilitySuggestState;
+  onSuggest: () => void;
   onToggleConfirm: (id: string) => void;
   onChangeStrength: (id: string, strength: EvidenceStrength) => void;
   onAddCapability: () => void;
@@ -39,10 +44,14 @@ const STRENGTH_ORDER: EvidenceStrength[] = ['worth-noting', 'material', 'strong'
 export function CapabilitiesPracticed({
   rows,
   capturesCount,
+  suggestState,
+  onSuggest,
   onToggleConfirm,
   onChangeStrength,
   onAddCapability,
 }: CapabilitiesPracticedProps) {
+  const capturesLabel = `${capturesCount} capture${capturesCount === 1 ? '' : 's'}`;
+  const hasAiRows = rows.some((row) => row.source === 'ai');
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
@@ -51,7 +60,7 @@ export function CapabilitiesPracticed({
           <Text style={styles.eyebrow}>Capabilities you practiced</Text>
         </View>
         <Pressable accessibilityRole="button" onPress={onAddCapability} style={styles.addButton}>
-          <Plus size={13} color={IOS_BLUE} />
+          <Plus size={13} color={REFLECT.base} />
           <Text style={styles.addText}>add</Text>
         </Pressable>
       </View>
@@ -71,9 +80,29 @@ export function CapabilitiesPracticed({
         </View>
       )}
 
-      <Text style={styles.hint}>
-        AI tagged these from your {capturesCount} captures · tap to confirm or remove
-      </Text>
+      {capturesCount > 0 ? (
+        suggestState === 'loading' ? (
+          <View style={styles.suggestRow}>
+            <Sparkles size={13} color={IOS_PURPLE_DEEP} />
+            <Text style={styles.hint}>Reading your {capturesLabel}…</Text>
+          </View>
+        ) : suggestState === 'done' ? (
+          <Text style={styles.hint}>
+            {hasAiRows
+              ? 'AI suggested from your captures · tap ✓ to confirm or ✗ to remove'
+              : 'No new capabilities found in your captures.'}
+          </Text>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onSuggest}
+            style={styles.suggestButton}
+          >
+            <Sparkles size={13} color={IOS_PURPLE_DEEP} />
+            <Text style={styles.suggestText}>Suggest from your {capturesLabel}</Text>
+          </Pressable>
+        )
+      ) : null}
     </View>
   );
 }
@@ -103,6 +132,7 @@ function CapabilityRow({
         <Text style={styles.name}>{row.capabilityName}</Text>
         <View style={styles.metaRow}>
           <Pips level={row.pipLevel} />
+          {row.source === 'ai' ? <Text style={styles.aiChip}>AI</Text> : null}
           <Text style={styles.meta}>{row.evidenceCount} captures evidence this</Text>
         </View>
       </View>
@@ -178,7 +208,7 @@ const styles = StyleSheet.create({
   addText: {
     fontSize: 12,
     fontWeight: '700',
-    color: IOS_BLUE,
+    color: REFLECT.base,
   },
   list: {
     gap: 8,
@@ -245,7 +275,7 @@ const styles = StyleSheet.create({
     backgroundColor: GRAY_6,
   },
   badgeMaterial: {
-    backgroundColor: IOS_BLUE_TINT,
+    backgroundColor: REFLECT.tint,
   },
   badgeStrong: {
     backgroundColor: IOS_GREEN_TINT,
@@ -265,5 +295,36 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: LABEL_3,
     fontStyle: 'italic',
+  },
+  suggestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  suggestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: GRAY_6,
+  },
+  suggestText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: IOS_PURPLE_DEEP,
+  },
+  aiChip: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: IOS_PURPLE_DEEP,
+    backgroundColor: GRAY_6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
 });

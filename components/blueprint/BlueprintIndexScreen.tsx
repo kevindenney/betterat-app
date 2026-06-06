@@ -9,13 +9,14 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Share2 } from 'lucide-react-native';
 import {
   BlueprintStepRow,
   type BlueprintIndexStep,
 } from '@/components/blueprint/BlueprintStepRow';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export type { BlueprintIndexStep } from '@/components/blueprint/BlueprintStepRow';
 
@@ -55,7 +56,6 @@ const C = {
   line: '#E5E5EA',
   gray6: '#F2F2F7',
   blue: '#007AFF',
-  serif: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }) as string,
 };
 
 export function BlueprintIndexScreen({
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   title: {
-    fontFamily: C.serif,
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
     fontSize: 18,
     fontWeight: '500',
@@ -301,6 +301,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   metaLine: {
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     fontSize: 11,
     color: C.label3,
     letterSpacing: -0.05,
@@ -323,6 +325,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   progressMetaText: {
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     fontSize: 10,
     color: C.label3,
     letterSpacing: -0.05,
@@ -366,6 +370,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   chipCount: {
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
     fontSize: 11,
     color: C.label3,
   },

@@ -22,6 +22,7 @@
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useStepActCaptureController } from '@/hooks/useStepActCaptureController';
 import { DoTabInterior } from './DoTabInterior';
 import { DoQuickNoteModal } from './DoQuickNoteModal';
@@ -61,13 +62,16 @@ export function DoTabIOSRegisterShell({
   embedded,
   rightInset,
 }: DoTabIOSRegisterShellProps) {
+  const router = useRouter();
+  const effectiveMoveToReflect =
+    onMoveToReflect ?? (() => router.setParams({ tab: 'review' }));
   const controller = useStepActCaptureController({
     stepId,
     readOnly,
     interestId,
     interestName,
     interestSlug,
-    onMoveToReflect,
+    onMoveToReflect: effectiveMoveToReflect,
   });
 
   return (

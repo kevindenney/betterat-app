@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Step WHERE · WHO · Review connective tissue</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --serif:'Iowan Old Style',Georgia,serif;
+  --grouped:#F2F2F7;--card:#FFFFFF;--label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);--label3:rgba(60,60,67,0.34);--sep:rgba(60,60,67,0.13);
+  --blue:#007AFF;--done:#16A34A;--purple:#7C3AED;
+  --accent:#0E7490;--accent-bg:rgba(14,116,137,.07);--accent-line:rgba(14,116,137,.26);
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1660px;margin:0 auto 4px;font-size:21px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1660px;margin:0 auto 10px;font-size:13px;color:#41495A;line-height:1.6;}
+.page-sub b{color:#1a1f29;}
+.thesis{max-width:1660px;margin:0 auto 22px;background:#fff;border:0.5px solid rgba(0,0,0,.1);border-left:3px solid var(--blue);border-radius:10px;padding:14px 17px;font-size:12.5px;line-height:1.65;color:#2b3340;}
+.thesis b{color:#111;}
+.thesis .k{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--blue);border-radius:5px;padding:2px 7px;margin-right:7px;vertical-align:1px;}
+.band-h{max-width:1660px;margin:30px auto 2px;font-size:16px;font-weight:800;letter-spacing:-.2px;display:flex;align-items:center;gap:9px;}
+.band-h .b{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:6px;padding:3px 8px;}
+.band-sub{max-width:1660px;margin:0 auto 14px;font-size:12.5px;color:#41495A;line-height:1.55;}
+.band-sub b{color:#1a1f29;}
+.frames{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1660px;margin:0 auto;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.5;margin:13px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+
+/* phone shell */
+.phone{position:relative;background:#fff;border-radius:42px;overflow:hidden;border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.30);height:760px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:#000;z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+
+/* sheet (picker presentation) */
+.sheethead{position:absolute;top:0;left:0;right:0;padding:46px 18px 12px;z-index:45;background:#fff;border-bottom:0.5px solid var(--sep);}
+.sheethead .grab{width:36px;height:5px;border-radius:3px;background:var(--label3);margin:0 auto 12px;}
+.sheethead .row{display:flex;align-items:center;justify-content:space-between;}
+.sheethead .q{font-size:18px;font-weight:800;letter-spacing:-.3px;}
+.sheethead .done{font-size:15px;font-weight:700;color:var(--accent);}
+.sheethead .season{margin-top:7px;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--accent);background:var(--accent-bg);border:0.5px solid var(--accent-line);border-radius:20px;padding:4px 11px;}
+
+.seg{display:flex;background:var(--grouped);border-radius:10px;padding:3px;margin-top:11px;}
+.seg .s{flex:1;text-align:center;font-size:12.5px;font-weight:700;color:var(--label2);padding:6px;border-radius:8px;}
+.seg .s.on{background:#fff;color:var(--label);box-shadow:0 1px 2px rgba(0,0,0,.12);}
+
+.sbody{position:absolute;left:0;right:0;bottom:0;overflow:hidden;padding:14px 16px 30px;}
+.sbody.tall{top:158px;}
+.sbody.short{top:128px;}
+
+/* generic picker rows */
+.prow{display:flex;align-items:flex-start;gap:11px;padding:13px 13px;border:0.5px solid var(--sep);border-radius:14px;margin-bottom:10px;background:#fff;}
+.prow.sel{border-color:var(--accent);background:var(--accent-bg);}
+.prow .pin{font-size:18px;margin-top:1px;}
+.prow .mid{flex:1;}
+.prow .nm{font-size:14.5px;font-weight:700;}
+.prow .nm .sub{font-size:11.5px;font-weight:500;color:var(--label2);}
+.prow .meta{font-size:11.5px;color:var(--label2);margin-top:3px;line-height:1.4;}
+.prow .rt{font-size:11px;color:var(--label2);text-align:right;flex:none;}
+.prow .badge{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:5px;padding:2px 6px;margin-top:4px;}
+.covchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.covchips .c{font-size:10.5px;font-weight:600;color:var(--accent);background:var(--accent-bg);border:0.5px solid var(--accent-line);border-radius:6px;padding:2px 6px;}
+.peerline{font-size:11px;color:var(--label2);margin-top:6px;display:flex;align-items:center;gap:5px;}
+.peerline b{color:var(--label);}
+.precision{font-size:11px;color:var(--label3);font-style:italic;text-align:center;margin-top:6px;}
+
+/* mini hole map (golf) */
+.holemap{height:150px;border-radius:14px;background:linear-gradient(160deg,#dcebd9,#c4ddbf);border:0.5px solid var(--accent-line);position:relative;overflow:hidden;margin-bottom:11px;}
+.holemap .fair{position:absolute;border-radius:40px;background:rgba(255,255,255,.45);}
+.holemap .flag{position:absolute;font-size:13px;}
+.holemap .ht{position:absolute;font-size:9px;font-weight:800;color:#15663B;background:rgba(255,255,255,.8);border-radius:4px;padding:1px 4px;}
+.heatnote{font-size:11px;color:var(--label2);text-align:center;margin-bottom:10px;}
+.modeline{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--accent);font-weight:700;background:var(--accent-bg);border:0.5px solid var(--accent-line);border-radius:11px;padding:9px 12px;margin-bottom:10px;}
+
+/* market map (entrepreneur) */
+.mktmap{height:118px;border-radius:14px;background:linear-gradient(160deg,#e7f0df,#d3e6c8);border:0.5px solid var(--accent-line);position:relative;overflow:hidden;margin-bottom:11px;}
+.mktmap .vp{position:absolute;font-size:11px;}
+.mktmap .you{position:absolute;left:48%;top:54%;font-size:9px;font-weight:800;color:#15803D;background:#fff;border-radius:5px;padding:1px 5px;}
+
+/* course mini (sailing) */
+.coursemap{height:150px;border-radius:14px;background:linear-gradient(160deg,#dbe9f7,#c5dbf0);border:0.5px solid var(--accent-line);position:relative;overflow:hidden;margin-bottom:11px;}
+.coursemap .mk{position:absolute;font-size:9px;font-weight:800;color:#2563EB;background:rgba(255,255,255,.85);border-radius:4px;padding:1px 5px;}
+.coursemap .leg{position:absolute;height:0;border-top:1.5px dashed rgba(37,99,235,.5);}
+
+/* WHO role groups */
+.rolegrp{margin-bottom:13px;}
+.rolelab{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin-bottom:8px;}
+.rolelab .hint{margin-left:auto;font-size:10px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--accent);}
+.person{display:flex;align-items:center;gap:10px;padding:9px 11px;border:0.5px solid var(--sep);border-radius:12px;margin-bottom:7px;background:#fff;}
+.person.val{border-color:var(--accent-line);background:var(--accent-bg);}
+.person .ava{width:30px;height:30px;border-radius:50%;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;}
+.person .pm{flex:1;}
+.person .pm .n{font-size:13.5px;font-weight:700;}
+.person .pm .r{font-size:11px;color:var(--label2);margin-top:1px;}
+.person .vbadge{font-size:9.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:5px;padding:3px 7px;flex:none;}
+.person .pos{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-bg);border-radius:6px;padding:3px 8px;flex:none;}
+.addp{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--accent);padding:4px 2px;}
+
+/* ===== REVIEW card ===== */
+.locator{position:absolute;top:46px;left:0;right:0;height:30px;display:flex;align-items:center;justify-content:center;gap:12px;z-index:44;background:#fff;border-bottom:0.5px solid var(--sep);font-size:11.5px;color:var(--label2);font-weight:600;}
+.locator b{color:var(--label);}
+.rbody{position:absolute;top:76px;bottom:0;left:0;right:0;overflow:hidden;padding:13px 15px 30px;}
+.rcard{background:#fff;border-radius:20px;border:0.5px solid var(--sep);overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.05);}
+.phasehead{padding:13px 16px 0;}
+.phaserow{display:flex;align-items:center;}
+.phaserow .seg2{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--label3);}
+.phaserow .seg2 .pd{width:14px;height:14px;border-radius:50%;border:2px solid var(--label3);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;}
+.phaserow .seg2.done{color:var(--label2);}
+.phaserow .seg2.done .pd{background:var(--done);border-color:var(--done);}
+.phaserow .seg2.active{color:var(--accent);}
+.phaserow .seg2.active .pd{background:var(--accent);border-color:var(--accent);}
+.phaserow .lk{flex:1;height:2px;background:var(--done);margin:0 6px;border-radius:2px;}
+.phaserow .thread{margin-left:8px;font-size:11px;font-weight:700;color:var(--label2);background:var(--grouped);border-radius:20px;padding:3px 9px;}
+.kindrow{display:flex;align-items:center;gap:7px;padding:12px 16px 0;}
+.kindpill{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:6px;padding:3px 8px;}
+.kindrow .when{font-size:11px;color:var(--label2);margin-left:auto;}
+.rh1{font-family:var(--serif);font-size:23px;font-weight:600;line-height:1.12;letter-spacing:-.4px;padding:6px 16px 12px;}
+
+.rsec{padding:14px 16px;border-top:0.5px solid var(--sep);}
+.rseclab{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin-bottom:10px;}
+.rseclab .ai{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--purple);letter-spacing:0;text-transform:none;}
+
+/* capability + validator co-sign */
+.capb{display:flex;align-items:center;gap:11px;padding:9px 0;border-top:0.5px solid var(--sep);}
+.capb:first-of-type{border-top:none;}
+.capb .ck{width:22px;height:22px;border-radius:50%;background:var(--done);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none;}
+.capb .ck.q{background:var(--label3);}
+.capb .cm{flex:1;}
+.capb .cm .t{font-size:14px;font-weight:700;}
+.capb .cm .e{font-size:11px;color:var(--label2);margin-top:2px;}
+.capb .cm .e .sign{color:var(--accent);font-weight:700;}
+.capb .lvl{display:flex;gap:3px;flex:none;}
+.capb .lvl i{width:7px;height:7px;border-radius:50%;background:rgba(124,58,237,.2);}
+.capb .lvl i.on{background:var(--purple);}
+
+/* WHERE roll-up */
+.rollup{background:var(--accent-bg);border:0.5px solid var(--accent-line);border-radius:14px;padding:12px 13px;}
+.rollup .rt{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-bottom:9px;}
+.rollup .big{font-size:14px;font-weight:700;line-height:1.35;}
+.rollup .big b{color:var(--accent);}
+/* coverage grid */
+.covgrid{display:flex;gap:4px;flex-wrap:wrap;margin-top:9px;}
+.covgrid i{width:15px;height:15px;border-radius:4px;background:rgba(14,116,137,.16);}
+.covgrid i.on{background:var(--accent);}
+/* market bars */
+.mbars{display:flex;align-items:flex-end;gap:9px;height:60px;margin-top:10px;}
+.mbars .mb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.mbars .mb .bar{width:100%;border-radius:5px 5px 0 0;background:var(--accent-line);}
+.mbars .mb.best .bar{background:var(--accent);}
+.mbars .mb .lb{font-size:9.5px;color:var(--label2);font-weight:600;}
+.mbars .mb .vl{font-size:10px;font-weight:700;}
+/* heat strip */
+.heatstrip{display:flex;gap:2px;margin-top:9px;}
+.heatstrip i{flex:1;height:16px;border-radius:2px;}
+
+/* SEASON roll-up band */
+.seasonband{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 78%,#000));color:#fff;border-radius:16px;padding:14px 15px;margin:13px 16px 16px;}
+.seasonband .sl{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.85;margin-bottom:7px;}
+.seasonband .goal{font-size:15px;font-weight:800;letter-spacing:-.2px;}
+.seasonband .prog{height:7px;border-radius:4px;background:rgba(255,255,255,.25);margin:10px 0 6px;overflow:hidden;}
+.seasonband .prog i{display:block;height:100%;background:#fff;border-radius:4px;}
+.seasonband .pl{font-size:11.5px;opacity:.92;display:flex;justify-content:space-between;}
+
+/* reflective questions — the user answers; same 4 for every interest & step */
+.reflectlab{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);padding:13px 16px 2px;border-top:0.5px solid var(--sep);}
+.reflectlab .ai{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--purple);letter-spacing:0;text-transform:none;}
+.qcard{padding:10px 16px;border-top:0.5px solid var(--sep);}
+.qcard:first-of-type{border-top:none;}
+.qn{display:flex;align-items:flex-start;gap:8px;}
+.qnum{font-size:11px;font-weight:800;color:var(--accent);flex:none;margin-top:1px;}
+.qq{font-size:13px;font-weight:700;line-height:1.3;}
+.qseed{display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.4;color:#6D28D9;background:rgba(124,58,237,.06);border:0.5px solid rgba(124,58,237,.18);border-radius:9px;padding:6px 9px;margin:7px 0 0 18px;}
+.qseed .use{margin-left:auto;font-weight:700;color:var(--purple);white-space:nowrap;flex:none;}
+.qans{margin:7px 0 0 18px;font-size:13.5px;line-height:1.4;}
+.qans.filled{font-family:var(--serif);color:var(--label);}
+.qans.empty{color:var(--label3);font-style:italic;display:flex;align-items:center;gap:7px;}
+.qans.empty .mic{width:22px;height:22px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-style:normal;flex:none;}
+
+/* compact payoff — data lands AFTER reflection */
+.payoff{border-top:0.5px solid var(--sep);padding:12px 16px 2px;}
+.pl2{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);margin-bottom:9px;}
+.pcap{display:flex;align-items:center;gap:10px;}
+.pcap .ck{width:20px;height:20px;border-radius:50%;background:var(--done);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;flex:none;}
+.pcap .ck.q{background:var(--label3);}
+.pcap .cm{flex:1;}
+.pcap .cm .t{font-size:13px;font-weight:700;}
+.pcap .cm .e{font-size:10.5px;color:var(--label2);margin-top:1px;}
+.pcap .cm .e .sign{color:var(--accent);font-weight:700;}
+.pcap .lvl{display:flex;gap:3px;flex:none;}
+.pcap .lvl i{width:6px;height:6px;border-radius:50%;background:rgba(124,58,237,.2);}
+.pcap .lvl i.on{background:var(--purple);}
+
+/* legend */
+.legend{max-width:1660px;margin:30px auto 0;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:14px;padding:20px 24px;}
+.legend h3{margin:0 0 4px;font-size:15px;}
+.legend .sub{font-size:12px;color:var(--label2);margin-bottom:16px;}
+.vtab{width:100%;border-collapse:collapse;font-size:12px;}
+.vtab th,.vtab td{text-align:left;padding:8px 10px;border-bottom:0.5px solid var(--sep);vertical-align:top;}
+.vtab th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--label2);font-weight:800;}
+.vtab td b{color:#111;}
+.vtab .craft{font-weight:700;}
+.legend .princ{margin-top:18px;font-size:12.5px;line-height:1.6;color:#2b3340;}
+.legend .princ b{color:#111;}
+.legend .princ .n{display:inline-block;width:19px;height:19px;border-radius:5px;background:var(--blue);color:#fff;font-size:11px;font-weight:800;text-align:center;line-height:19px;margin-right:6px;}
+</style>
+</head>
+<body>
+
+<div class="page-h">Step — WHERE · WHO · Review connective tissue</div>
+<div class="page-sub">How the Plan-tab <b>WHERE</b> and <b>WHO</b> fields become persona-native, and how they (plus capabilities and the season) all <b>cash out in Review</b>. Row A = where-pickers, Row B = role-typed who-pickers, Row C = the Review payoff.</div>
+
+<div class="thesis"><span class="k">The loop</span> <b>Plan</b> sets a <b>where</b> (a craft-native spatial object), a <b>who</b> (role-typed — one of them a validator), and a <b>capability</b>. <b>Do</b> captures evidence <i>at that where, with those who, tagged to that capability</i>. <b>Review</b> is where all three converge: the where becomes a comparison axis, the validator <b>co-signs</b>, the capability grows, and it all <b>rolls up to the season goal</b>. Season is light in Plan, silent in Do, and the payoff in Review.</div>
+
+<!-- ============================ ROW A · WHERE ============================ -->
+<div class="band-h"><span class="b">Row A</span> WHERE — deep-link to the craft's native spatial object, not a generic pin</div>
+<div class="band-sub">Most map-centric → least: sailing authors a course · golf annotates a published one · entrepreneur chooses among markets · nursing selects a unit (list-first, map demoted).</div>
+<div class="frames">
+
+<!-- A1 Nursing sites -->
+<div class="col">
+<div class="phone" style="--accent:#0E7490;--accent-bg:rgba(14,116,137,.07);--accent-line:rgba(14,116,137,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="sheethead">
+    <div class="grab"></div>
+    <div class="row"><div class="q">Where will you do this?</div><div class="done">Done</div></div>
+    <div class="season">🩺 Med-Surg rotation · week 3 of 6</div>
+    <div class="seg"><div class="s on">Sites</div><div class="s">Map</div></div>
+  </div>
+  <div class="sbody tall">
+    <div class="prow sel">
+      <span class="pin">🏥</span>
+      <div class="mid">
+        <div class="nm">Johns Hopkins — East Baltimore<div class="sub"> · Med-Surg 4E</div></div>
+        <div class="covchips"><span class="c">Assessment</span><span class="c">Meds</span><span class="c">Telemetry</span><span class="c">+3</span></div>
+        <div class="peerline">👥 <b>14</b> students logged shifts here</div>
+      </div>
+      <div class="rt"><span class="badge">Assigned</span></div>
+    </div>
+    <div class="prow">
+      <span class="pin">🏥</span>
+      <div class="mid">
+        <div class="nm">JH Bayview<div class="sub"> · ICU</div></div>
+        <div class="covchips"><span class="c">Escalation</span><span class="c">Vents</span><span class="c">Drips</span></div>
+        <div class="peerline">covers <b>4</b> competencies you still need</div>
+      </div>
+      <div class="rt">2.1 mi</div>
+    </div>
+    <div class="prow">
+      <span class="pin">🏥</span>
+      <div class="mid">
+        <div class="nm">East Balt. Community Clinic<div class="sub"> · Outpatient</div></div>
+        <div class="covchips"><span class="c">Intake</span><span class="c">Patient ed</span></div>
+      </div>
+      <div class="rt">3.4 mi</div>
+    </div>
+    <div class="precision">Precision is the <b>unit</b>, not coordinates — the lens is competency coverage.</div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">A1 · Nursing</span><b>Site-first, map demoted.</b> WHERE opens the Atlas <b>Sites</b> list; each row carries its <b>competency-coverage</b> lens + peer shift count. "What other sailors did here" → "what this unit lets you practice + who logged here."</div>
+</div>
+
+<!-- A2 Golf holes -->
+<div class="col">
+<div class="phone" style="--accent:#15663B;--accent-bg:rgba(21,102,59,.07);--accent-line:rgba(21,102,59,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="sheethead">
+    <div class="grab"></div>
+    <div class="row"><div class="q">Where will you play?</div><div class="done">Done</div></div>
+    <div class="season">⛳ Club championship run · break 80</div>
+    <div class="seg"><div class="s on">Course</div><div class="s">Simulator</div></div>
+  </div>
+  <div class="sbody tall">
+    <div class="prow sel" style="display:block;">
+      <div class="nm" style="margin-bottom:8px;">⛳ Oakridge CC <span class="sub"> · blue tees · 72.1/131</span></div>
+      <div class="holemap">
+        <div class="fair" style="left:18px;top:90px;width:80px;height:26px;transform:rotate(-18deg);"></div>
+        <div class="fair" style="left:120px;top:40px;width:90px;height:24px;transform:rotate(12deg);"></div>
+        <div class="fair" style="left:230px;top:80px;width:80px;height:26px;transform:rotate(-8deg);"></div>
+        <div class="flag" style="left:96px;top:74px;">🚩</div><div class="ht" style="left:60px;top:108px;">4</div>
+        <div class="flag" style="left:206px;top:30px;">🚩</div><div class="ht" style="left:150px;top:58px;">9</div>
+        <div class="flag" style="left:300px;top:66px;">🚩</div><div class="ht" style="left:248px;top:98px;">16</div>
+      </div>
+      <div class="heatnote">3 key holes flagged · colored by your avg-vs-par</div>
+    </div>
+    <div class="modeline">🖥️ Or play Oakridge <b>virtually</b> · GolfTec sim · Trackman data</div>
+    <div class="prow"><span class="pin">⛳</span><div class="mid"><div class="nm">Riverside (public)<div class="sub"> · 69.8/118</div></div><div class="peerline">league plays here Aug 12</div></div><div class="rt">6 mi</div></div>
+    <div class="precision">Course geometry is <b>published &amp; loaded</b> — you annotate the holes where strokes live.</div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">A2 · Golf</span><b>Pick + annotate published geometry.</b> Loads the 18-hole routing; you flag the 2–3 key holes (the bridge to the strokes-gained heat). Unique 2nd mode sailing lacks: play the same course <b>virtually</b> in the sim.</div>
+</div>
+
+<!-- A3 Entrepreneur market -->
+<div class="col">
+<div class="phone" style="--accent:#15803D;--accent-bg:rgba(21,128,61,.07);--accent-line:rgba(21,128,61,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="sheethead">
+    <div class="grab"></div>
+    <div class="row"><div class="q">कहाँ बेचोगे?</div><div class="done">हो गया</div></div>
+    <div class="season">🪔 त्योहार बिक्री सीज़न</div>
+    <div class="seg"><div class="s on">नक्शा</div><div class="s">सूची</div></div>
+  </div>
+  <div class="sbody tall">
+    <div class="mktmap">
+      <div class="vp" style="left:46%;top:50%;">📍</div><div class="you">तुम</div>
+      <div class="vp" style="left:70%;top:30%;">🛒</div><div class="ht" style="position:absolute;left:74%;top:24%;font-size:9px;font-weight:700;color:#15803D;">बुंडू</div>
+      <div class="vp" style="left:22%;top:36%;">🛒</div>
+      <div class="vp" style="left:60%;top:74%;">🛒</div>
+    </div>
+    <div class="prow sel">
+      <span class="pin">🛒</span>
+      <div class="mid"><div class="nm">बुंडू हाट <span class="sub"> · मंगलवार</span></div>
+        <div class="peerline">🥭 अचार: <b>4 दीदी</b> ने औसत ₹820 कमाया</div>
+        <div class="peerline">भीड़ ज़्यादा · 9 कि.मी. · बस ₹20</div></div>
+      <div class="rt"><span class="badge">सुझाव</span></div>
+    </div>
+    <div class="prow"><span class="pin">🛒</span><div class="mid"><div class="nm">ओरमांझी हाट <span class="sub"> · बुध</span></div><div class="peerline">नया बाज़ार · कोई दीदी नहीं</div></div><div class="rt">12 कि.मी.</div></div>
+    <div class="precision">बाज़ार चुनना = <b>आमदनी का फैसला</b> — नया बाज़ार ज़्यादा बिक्री।</div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">A3 · Entrepreneur</span><b>Choosing WHERE is an income lever.</b> Haats rotate by day; the map compares them on <b>peer earnings</b> ("4 didis averaged ₹820 on pickle here") + transport cost. Picking a new market = the "new markets" income move. Feeds the money ledger (#31).</div>
+</div>
+
+<!-- A4 Sailing course (solved) -->
+<div class="col">
+<div class="phone" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.06);--accent-line:rgba(37,99,235,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="sheethead">
+    <div class="grab"></div>
+    <div class="row"><div class="q">Where will you race?</div><div class="done">Done</div></div>
+    <div class="season">🏁 Spring Series · race 3 of 6 · podium</div>
+    <div class="seg"><div class="s on">Course</div><div class="s">Areas</div></div>
+  </div>
+  <div class="sbody tall">
+    <div class="coursemap">
+      <div class="mk" style="left:140px;top:18px;">▲ Windward</div>
+      <div class="mk" style="left:150px;top:118px;">▼ Leeward</div>
+      <div class="mk" style="left:42px;top:70px;">⚑ Pin</div>
+      <div class="mk" style="left:250px;top:70px;">⚑ Boat</div>
+      <div class="leg" style="left:60px;top:80px;width:110px;transform:rotate(-32deg);"></div>
+      <div class="leg" style="left:165px;top:40px;width:90px;transform:rotate(58deg);"></div>
+    </div>
+    <div class="prow sel"><span class="pin">🚩</span><div class="mid"><div class="nm">Victoria Harbour <span class="sub"> · windward-leeward</span></div><div class="peerline">👥 <b>12</b> racing areas mapped · what sailors did here</div></div><div class="rt"><span class="badge">Set</span></div></div>
+    <div class="precision">You <b>author</b> the course — drop marks, draw legs. The map <b>is</b> the plan. <span style="color:var(--done);font-weight:700;">(already shipped)</span></div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">A4 · Sailing</span><b>The reference pattern.</b> WHERE is a course you draw — marks + legs, with the racing-areas peer layer. The other three each get their own spatial object instead of inheriting "drop a pin on a chart."</div>
+</div>
+
+</div>
+
+<!-- ============================ ROW B · WHO ============================ -->
+<div class="band-h"><span class="b">Row B</span> WHO — role-typed: co-doers · a validator · the group/field</div>
+<div class="band-sub">Same three archetypes everywhere; each craft names them. The <b>validator</b> (preceptor / CRP / coach) is load-bearing — their presence is what lets them <b>co-sign capability evidence</b> in Review. Sailing's WHO is mostly co-doers-with-positions; its validator slot is optional.</div>
+<div class="frames">
+
+<!-- B1 Nursing -->
+<div class="col">
+<div class="phone" style="--accent:#0E7490;--accent-bg:rgba(14,116,137,.07);--accent-line:rgba(14,116,137,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="sheethead">
+    <div class="grab"></div>
+    <div class="row"><div class="q">With whom?</div><div class="done">Done</div></div>
+  </div>
+  <div class="sbody short">
+    <div class="rolegrp">
+      <div class="rolelab">Validator <span class="hint">co-signs your evidence</span></div>
+      <div class="person val"><span class="ava" style="background:#0E7490">MD</span><div class="pm"><div class="n">Dr. Maria Delgado, RN</div><div class="r">Preceptor</div></div><span class="vbadge">Signs off</span></div>
+    </div>
+    <div class="rolegrp">
+      <div class="rolelab">With you</div>
+      <div class="person"><span class="ava" style="background:#2563EB">MP</span><div class="pm"><div class="n">Maya Patel</div><div class="r">Cohort peer</div></div></div>
+    </div>
+    <div class="rolegrp">
+      <div class="rolelab">Group <span class="hint">shares to thread</span></div>
+      <div class="person"><span class="ava" style="background:#E0792F">🎓</span><div class="pm"><div class="n">JHU Nursing · Cohort '26</div><div class="r">14 members</div></div></div>
+    </div>
+    <div class="addp">＋ Add people</div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">B1 · Nursing</span>Validator = <b>preceptor</b> (co-signs). Co-doer = cohort peer. Group = the cohort thread. The "Signs off" badge is what wires this person into Review's capability confirmation.</div>
+</div>
+
+<!-- B2 Sailing -->
+<div class="col">
+<div class="phone" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.06);--accent-line:rgba(37,99,235,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="sheethead">
+    <div class="grab"></div>
+    <div class="row"><div class="q">Who's aboard?</div><div class="done">Done</div></div>
+  </div>
+  <div class="sbody short">
+    <div class="rolegrp">
+      <div class="rolelab">Crew <span class="hint">positions</span></div>
+      <div class="person"><span class="ava" style="background:#2563EB">You</span><div class="pm"><div class="n">You</div><div class="r">Helm</div></div><span class="pos">Helm</span></div>
+      <div class="person"><span class="ava" style="background:#E0792F">RK</span><div class="pm"><div class="n">Raj Kapoor</div><div class="r">Trim</div></div><span class="pos">Main</span></div>
+      <div class="person"><span class="ava" style="background:#16A34A">PS</span><div class="pm"><div class="n">Priya Sharma</div><div class="r">Foredeck</div></div><span class="pos">Bow</span></div>
+    </div>
+    <div class="rolegrp">
+      <div class="rolelab">Coach <span class="hint">optional · signs off</span></div>
+      <div class="person" style="opacity:.7"><span class="ava" style="background:var(--label3)">＋</span><div class="pm"><div class="n">Add a coach</div><div class="r">none on this race</div></div></div>
+    </div>
+    <div class="rolegrp">
+      <div class="rolelab">Field</div>
+      <div class="person"><span class="ava" style="background:#1D4ED8">🏆</span><div class="pm"><div class="n">Spring Series fleet</div><div class="r">11 boats · compare tracks</div></div></div>
+    </div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">B2 · Sailing</span><b>The craft difference.</b> WHO leads with <b>co-doers + positions</b> (helm/main/bow), not a validator — the coach slot is optional. The field (fleet) is the comparison axis, not a sign-off authority.</div>
+</div>
+
+<!-- B3 Entrepreneur -->
+<div class="col">
+<div class="phone" style="--accent:#15803D;--accent-bg:rgba(21,128,61,.07);--accent-line:rgba(21,128,61,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="sheethead">
+    <div class="grab"></div>
+    <div class="row"><div class="q">किसके साथ?</div><div class="done">हो गया</div></div>
+  </div>
+  <div class="sbody short">
+    <div class="rolegrp">
+      <div class="rolelab">मार्गदर्शक <span class="hint">हुनर पक्का करती है</span></div>
+      <div class="person val"><span class="ava" style="background:#15803D">मी</span><div class="pm"><div class="n">CRP मीना</div><div class="r">सखी · JSLPS</div></div><span class="vbadge">पुष्टि</span></div>
+    </div>
+    <div class="rolegrp">
+      <div class="rolelab">समूह · परिवार</div>
+      <div class="person"><span class="ava" style="background:#E0792F">सु</span><div class="pm"><div class="n">सुनीता दीदी</div><div class="r">सखी मंडल (SHG)</div></div></div>
+      <div class="person"><span class="ava" style="background:#7C3AED">👨‍👩‍👧</span><div class="pm"><div class="n">परिवार</div><div class="r">पैकिंग · ढुलाई में मदद</div></div></div>
+    </div>
+    <div class="rolegrp">
+      <div class="rolelab">मंडल <span class="hint">जवाबदेही</span></div>
+      <div class="person"><span class="ava" style="background:#166534">🤝</span><div class="pm"><div class="n">रानी सखी मंडल</div><div class="r">12 दीदी · बचत समूह</div></div></div>
+    </div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">B3 · Entrepreneur</span>Validator = <b>CRP मीना</b> (the government Sakhi who confirms skill). Co-doers = SHG sisters + <b>family</b> (who do the work with her). Group = her सखी मंडल — the savings group she's accountable to.</div>
+</div>
+
+<!-- B4 Golf -->
+<div class="col">
+<div class="phone" style="--accent:#15663B;--accent-bg:rgba(21,102,59,.07);--accent-line:rgba(21,102,59,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="sheethead">
+    <div class="grab"></div>
+    <div class="row"><div class="q">Who's in your group?</div><div class="done">Done</div></div>
+  </div>
+  <div class="sbody short">
+    <div class="rolegrp">
+      <div class="rolelab">Coach <span class="hint">signs off lessons</span></div>
+      <div class="person val"><span class="ava" style="background:#15663B">CD</span><div class="pm"><div class="n">Coach Diaz</div><div class="r">PGA pro · GolfTec</div></div><span class="vbadge">Signs off</span></div>
+    </div>
+    <div class="rolegrp">
+      <div class="rolelab">Playing partners <span class="hint">foursome</span></div>
+      <div class="person"><span class="ava" style="background:#E0792F">TM</span><div class="pm"><div class="n">Tom Murphy</div><div class="r">14.2 hcp</div></div></div>
+      <div class="person"><span class="ava" style="background:#2563EB">RK</span><div class="pm"><div class="n">Raj Kapoor</div><div class="r">9.0 hcp</div></div></div>
+    </div>
+    <div class="rolegrp">
+      <div class="rolelab">League <span class="hint">leaderboard</span></div>
+      <div class="person"><span class="ava" style="background:#15663B">⛳</span><div class="pm"><div class="n">Men's League</div><div class="r">24 players</div></div></div>
+    </div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">B4 · Golf</span>Validator = <b>PGA coach</b> (signs off lessons → strokes-gained progress). Co-doers = the foursome. Group = the league leaderboard (comparison). Same shape as nursing.</div>
+</div>
+
+</div>
+
+<!-- ============================ ROW C · REVIEW ============================ -->
+<div class="band-h"><span class="b">Row C</span> REVIEW — the user answers the same 4 reflective questions; pulled-forward data seeds them, then lands as payoff</div>
+<div class="band-sub">The reflection ritual stays exactly as today: <b>four generalized questions, identical for every interest and every step</b>, that the user writes or speaks. What's new is the pulled-forward data <b>seeds</b> each question (✨ from the Do captures) and <b>lands</b> below as the capability co-sign + season roll-up. Notice the four questions are <b>verbatim the same</b> across nursing, the entrepreneur (translated), and golf.</div>
+<div class="frames">
+
+<!-- C1 Nursing Review -->
+<div class="col">
+<div class="phone" style="--accent:#0E7490;--accent-bg:rgba(14,116,137,.07);--accent-line:rgba(14,116,137,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="locator"><span>Step <b>12</b> of 17</span></div>
+  <div class="rbody">
+    <div class="rcard">
+      <div class="phasehead"><div class="phaserow">
+        <div class="seg2 done"><span class="pd">✓</span>Plan</div><div class="lk"></div>
+        <div class="seg2 done"><span class="pd">✓</span>Do</div><div class="lk"></div>
+        <div class="seg2 active"><span class="pd">3</span>Review</div><div class="thread">💬 2</div>
+      </div></div>
+      <div class="kindrow"><span class="kindpill">🩺 Clinical</span><span class="when">Shift complete · 23:10</span></div>
+      <div class="rh1">Neuro checks q2h</div>
+
+      <div class="reflectlab">Reflect — same 4 questions every step<span class="ai">✨ seeded from 4 captures</span></div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">1</span><span class="qq">What worked well?</span></div>
+        <div class="qseed">✨ Your captures show you caught the left-grip change before round 2.<span class="use">Use ›</span></div>
+        <div class="qans filled">Catching the grip change early — I flagged it before it became a problem.</div>
+      </div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">2</span><span class="qq">Where do you need more practice?</span></div>
+        <div class="qseed">✨ Clinical escalation has just 1 capture — your thinnest area.<span class="use">Use ›</span></div>
+        <div class="qans empty"><span class="mic">🎙</span>Tap to write · or hold to speak</div>
+      </div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">3</span><span class="qq">The one thing to remember.</span></div>
+        <div class="qans filled">A 1-point grip change is worth charting even when GCS holds.</div>
+      </div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">4</span><span class="qq">If you taught this to someone, what evidence would you ask them to show?</span></div>
+        <div class="qseed">✨ Your 4 captures + Dr. Delgado's co-sign are that evidence.<span class="use">Use ›</span></div>
+        <div class="qans empty"><span class="mic">🎙</span>Tap to write · or hold to speak</div>
+      </div>
+
+      <div class="payoff">
+        <div class="pl2">What it added up to</div>
+        <div class="pcap"><span class="ck">✓</span><div class="cm"><div class="t">Neuro assessment</div><div class="e">4 captures · <span class="sign">co-signed by Dr. Delgado</span></div></div><div class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+      </div>
+
+      <div class="seasonband">
+        <div class="sl">🩺 Med-Surg rotation · season</div>
+        <div class="goal">11/18 competencies · week 3 of 6</div>
+        <div class="prog"><i style="width:61%"></i></div>
+        <div class="pl"><span>On track for preceptor sign-off</span><span>61%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">C1 · Nursing</span><b>The user answers the 4 questions.</b> Each is <b>seeded</b> by pulled-forward data (✨ purple) the user can pull into their answer or ignore. Below, the data <b>lands</b>: capability co-signed by Dr. Delgado + the rotation/season roll-up.</div>
+</div>
+
+<!-- C2 Entrepreneur Review -->
+<div class="col">
+<div class="phone" style="--accent:#15803D;--accent-bg:rgba(21,128,61,.07);--accent-line:rgba(21,128,61,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="locator"><span>कदम <b>4</b> / 9</span></div>
+  <div class="rbody">
+    <div class="rcard">
+      <div class="phasehead"><div class="phaserow">
+        <div class="seg2 done"><span class="pd">✓</span>योजना</div><div class="lk"></div>
+        <div class="seg2 done"><span class="pd">✓</span>करो</div><div class="lk"></div>
+        <div class="seg2 active"><span class="pd">3</span>हिसाब</div><div class="thread">💬 3</div>
+      </div></div>
+      <div class="kindrow"><span class="kindpill" style="background:#15803D">🛒 हाट</span><span class="when">हाट बंद · दोपहर 1</span></div>
+      <div class="rh1">बुंडू हाट में अचार</div>
+
+      <div class="reflectlab">सोचो — हर कदम पर वही 4 सवाल<span class="ai">✨ 5 कैप्चर से</span></div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">1</span><span class="qq">क्या अच्छा रहा?</span></div>
+        <div class="qseed">✨ बुंडू में ₹900 — तुम्हारे बाज़ारों में सबसे ज़्यादा।<span class="use">लो ›</span></div>
+        <div class="qans filled">बड़ा लेबल देखकर लोग रुके — दाम पूछने लगे।</div>
+      </div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">2</span><span class="qq">कहाँ और अभ्यास चाहिए?</span></div>
+        <div class="qseed">✨ मोल-भाव अभी ●●○○○ — और मज़बूत करो।<span class="use">लो ›</span></div>
+        <div class="qans empty"><span class="mic">🎙</span>लिखो · या बोलकर बताओ</div>
+      </div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">3</span><span class="qq">याद रखने वाली एक बात।</span></div>
+        <div class="qans filled">नमूना चखाने से बिक्री बढ़ती है।</div>
+      </div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">4</span><span class="qq">किसी और को सिखाओ तो कौन-सा सबूत माँगोगी?</span></div>
+        <div class="qseed">✨ 5 कैप्चर + CRP मीना की पुष्टि — यही सबूत है।<span class="use">लो ›</span></div>
+        <div class="qans empty"><span class="mic">🎙</span>लिखो · या बोलकर बताओ</div>
+      </div>
+
+      <div class="payoff">
+        <div class="pl2">इसका हिसाब</div>
+        <div class="pcap"><span class="ck">✓</span><div class="cm"><div class="t">मोल-भाव</div><div class="e">5 कैप्चर · <span class="sign">CRP मीना ने पुष्टि की</span></div></div><div class="lvl"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div>
+      </div>
+
+      <div class="seasonband">
+        <div class="sl">🪔 लखपति दीदी · राह</div>
+        <div class="goal">₹64,000 / ₹1,00,000</div>
+        <div class="prog"><i style="width:64%"></i></div>
+        <div class="pl"><span>इस महीने ₹6,400 · ▲ ₹900</span><span>64%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">C2 · Entrepreneur</span><b>Same 4 questions, her language</b> — voice-first (🎙 on every answer). Seeds pull from her ₹ and skill data; the payoff lands as CRP मीना's confirmation + the Lakhpati season roll-up. The reflection scaffold is identical to nursing's.</div>
+</div>
+
+<!-- C3 Golf Review -->
+<div class="col">
+<div class="phone" style="--accent:#15663B;--accent-bg:rgba(21,102,59,.07);--accent-line:rgba(21,102,59,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="locator"><span>Step <b>6</b> of 12</span></div>
+  <div class="rbody">
+    <div class="rcard">
+      <div class="phasehead"><div class="phaserow">
+        <div class="seg2 done"><span class="pd">✓</span>Plan</div><div class="lk"></div>
+        <div class="seg2 done"><span class="pd">✓</span>Play</div><div class="lk"></div>
+        <div class="seg2 active"><span class="pd">3</span>Review</div><div class="thread">💬 4</div>
+      </div></div>
+      <div class="kindrow"><span class="kindpill" style="background:#15663B">⛳ Round</span><span class="when">Round complete · 84 (+12)</span></div>
+      <div class="rh1">Men's League — Round 4</div>
+
+      <div class="reflectlab">Reflect — same 4 questions every step<span class="ai">✨ seeded from your scorecard</span></div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">1</span><span class="qq">What worked well?</span></div>
+        <div class="qseed">✨ No double bogeys — your course management held up.<span class="use">Use ›</span></div>
+        <div class="qans filled">Stuck to the game plan — took my medicine on the par-5s.</div>
+      </div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">2</span><span class="qq">Where do you need more practice?</span></div>
+        <div class="qseed">✨ Putting cost you +4 — three-putts on holes 9 &amp; 16.<span class="use">Use ›</span></div>
+        <div class="qans empty"><span class="mic">🎙</span>Tap to write · or hold to speak</div>
+      </div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">3</span><span class="qq">The one thing to remember.</span></div>
+        <div class="qans filled">Lag the first putt; never leave myself a knee-knocker.</div>
+      </div>
+      <div class="qcard">
+        <div class="qn"><span class="qnum">4</span><span class="qq">If you taught this to someone, what evidence would you ask them to show?</span></div>
+        <div class="qseed">✨ Your scorecard + Coach Diaz's review are that evidence.<span class="use">Use ›</span></div>
+        <div class="qans empty"><span class="mic">🎙</span>Tap to write · or hold to speak</div>
+      </div>
+
+      <div class="payoff">
+        <div class="pl2">What it added up to</div>
+        <div class="pcap"><span class="ck q">!</span><div class="cm"><div class="t">Putting</div><div class="e">−3.1 strokes-gained · <span class="sign">still the leak · Coach Diaz reviewed</span></div></div><div class="lvl"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div>
+      </div>
+
+      <div class="seasonband">
+        <div class="sl">⛳ Club championship · season</div>
+        <div class="goal">Handicap 14.2 → trending 9.0</div>
+        <div class="prog"><i style="width:48%"></i></div>
+        <div class="pl"><span>Round 4 of run · break-80 goal</span><span>−0.4 this round</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">C3 · Golf</span><b>Identical four questions</b> — the seeds here come from the scorecard/strokes-gained, so Q2 surfaces the putting leak. Payoff: Coach Diaz's review + handicap trending to 9.0. The reflection is the activity; the data just makes it sharper.</div>
+</div>
+
+</div>
+
+<!-- ============================ LEGEND ============================ -->
+<div class="legend">
+  <h3>The connective tissue, summarized</h3>
+  <div class="sub">WHERE and WHO aren't generic form fields — they're typed objects whose payoff is realized in Review and the season.</div>
+  <table class="vtab">
+    <tr><th>Craft</th><th>WHERE object</th><th>WHO validator</th><th>WHERE roll-up in Review</th><th>Season roll-up</th></tr>
+    <tr><td class="craft">Nursing</td><td>Unit (site-list)</td><td>Preceptor — co-signs</td><td>Competency coverage grid across sites</td><td>11/18 comps · rotation wk 3/6</td></tr>
+    <tr><td class="craft">Sailing</td><td>Course you author</td><td>Coach — <b>optional</b></td><td>Your track vs the fleet at each mark</td><td>2 of 6 races · podium</td></tr>
+    <tr><td class="craft">Entrepreneur</td><td>Market you choose</td><td>CRP/Sakhi — confirms</td><td>Earnings vs your other markets</td><td>₹64k → ₹1L Lakhpati</td></tr>
+    <tr><td class="craft">Golf</td><td>Course you annotate (+ sim)</td><td>PGA coach — signs off</td><td>Strokes-gained heat per hole</td><td>Handicap 14.2 → 9.0</td></tr>
+  </table>
+  <div class="princ">
+    <div style="margin-bottom:8px;"><span class="n">1</span><b>Review is reflection-first.</b> The user still answers <b>four generalized questions, identical for every interest and every step</b> (what worked · where to practice · the one thing to remember · what evidence you'd ask a learner for) — exactly the ritual the current app has. Pulled-forward data never replaces the answer; it <b>seeds</b> each question and <b>lands</b> below as payoff.</div>
+    <div style="margin-bottom:8px;"><span class="n">2</span><b>WHO is role-typed, not just tagged.</b> Co-doers (positions) · a validator · the group. The validator's "signs off" flag is the only thing that wires a person into Review's capability confirmation — so the field has to capture role, not just name.</div>
+    <div style="margin-bottom:8px;"><span class="n">3</span><b>Capabilities are used only where they earn it.</b> Set lightly in Plan (a chip), grown silently by Do captures, and <b>confirmed</b> in Review with evidence + co-sign. If a step builds no capability, the chip is absent — never a forced field.</div>
+    <div><span class="n">4</span><b>Season is weighted by phase.</b> A thin context line in Plan ("why this step now"), silent in Do, and the <b>payoff band</b> in Review — the one place a single step visibly moves the bigger goal. Same concept, persona vocab (rotation / series / selling season / championship run).</div>
+  </div>
+</div>
+
+</body>
+</html>

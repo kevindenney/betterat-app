@@ -43,6 +43,7 @@ import {
   type MapRef,
   type PressEvent,
 } from '@maplibre/maplibre-react-native';
+import type { StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 
 import {
   HongKongOverviewMap,
@@ -60,7 +61,6 @@ import {
 } from '@/lib/atlas-map-styles';
 import { ensureMapLibreCss, ensureMapLibreScript } from '@/lib/maplibreWeb';
 import { windColorForKnots } from '@/lib/wind-color';
-import { type StepKind } from '@/lib/step-kind-config';
 import { useAtlasRacingAreas } from '@/hooks/useAtlasRacingAreas';
 import { useAtlasRaceCourses } from '@/hooks/useAtlasRaceCourses';
 import type { CourseEnvironment } from '@/lib/venueCourseGeoJSON';
@@ -143,22 +143,22 @@ const NAUTICAL_MAP_STYLE = {
   ],
 };
 
-function mapStyleForFrame(frame: AtlasFrameId, basemap: AtlasBasemap = 'map'): string | object {
-  if (basemap === 'satellite') return SATELLITE_MAP_STYLE;
-  if (basemap === 'nautical') return NAUTICAL_MAP_STYLE;
+function mapStyleForFrame(frame: AtlasFrameId, basemap: AtlasBasemap = 'map'): string | StyleSpecification {
+  if (basemap === 'satellite') return SATELLITE_MAP_STYLE as StyleSpecification;
+  if (basemap === 'nautical') return NAUTICAL_MAP_STYLE as StyleSpecification;
   // Sailing — custom brand-palette: cream land + soft blue water, no
   // labels/roads. Lets race-marks + wind/tide arrows + POI pins dominate.
   if (frame === 'f1' || frame === 'f2' || frame === 'f3' || frame === 'f6') {
-    return SAILING_MAP_STYLE;
+    return SAILING_MAP_STYLE as StyleSpecification;
   }
   // Nursing — quiet urban: cream land + faint major roads + building
   // footprints at z13+. Cohort heatmap + preceptor diamonds dominate.
   if (frame === 'f4' || frame === 'f5') {
-    return NURSING_MAP_STYLE;
+    return NURSING_MAP_STYLE as StyleSpecification;
   }
-  // Entrepreneur — sparse rural: cream land + rivers + faint road net.
-  if (frame === 'f7') {
-    return ENTREPRENEUR_MAP_STYLE;
+  // Entrepreneur / mentor — sparse rural: cream land + rivers + faint road net.
+  if (frame === 'f7' || frame === 'f8') {
+    return ENTREPRENEUR_MAP_STYLE as StyleSpecification;
   }
   return MAP_STYLE_POSITRON;
 }
@@ -186,6 +186,8 @@ const FRAME_CAMERA: Record<AtlasFrameId, CameraPreset> = {
   f5: { center: [-76.595, 39.30], zoom: 12.5 },        // East Baltimore (Hopkins)
   f6: { center: [114.182, 22.286], zoom: 13.4 },       // Commit-mode at Victoria Harbour
   f7: { center: [85.45, 23.27], zoom: 9.8 },           // Ranchi · Jharkhand · entrepreneur network
+  f8: { center: [85.35, 23.36], zoom: 9.6 },           // Ranchi · Jharkhand · mentor/org cluster
+  f9: { center: [-122.1124, 37.4178], zoom: 13.8 },    // Oakridge CC · golf venues
 };
 
 /**
@@ -277,6 +279,16 @@ const COURSE_WEB_LAYERS: {
     type: 'fill',
     filter: ['==', ['get', 'type'], 'start-box'],
     paint: { 'fill-color': 'rgba(20, 33, 61, 0.12)' },
+  },
+  {
+    id: 'atlas-web-course-legs',
+    type: 'line',
+    filter: ['==', ['get', 'type'], 'course-leg'],
+    paint: {
+      'line-color': 'rgba(20, 33, 61, 0.72)',
+      'line-width': 1.8,
+      'line-dasharray': [4, 2],
+    },
   },
   {
     id: 'atlas-web-course-laylines',
@@ -390,6 +402,8 @@ export interface AtlasPinSpec {
     | 'poi-haat'
     | 'poi-supplier'
     | 'poi-mentee'
+    | 'mentor-cluster-alert'
+    | 'mentor-cluster-ok'
     | 'poi-home-anchor'
     | 'walk-annotation'
     | 'wind-arrow'
@@ -462,17 +476,9 @@ export interface AtlasPinSpec {
    */
   stepId?: string;
   /**
-   * Phase 1 (kind lens) — resolved activity kind for my-step-* pins. Tints
-   * the dot + supplies the glyph (race ⛵ / boat_work 🔧 / practice 🎯 /
-   * learn 📖 / coach 🧭) so the map reads as a field of mixed activity,
-   * not just on-water racing. Derived in useAtlasFramePins via stepKindFor.
-   */
-  stepKind?: StepKind;
-  /**
    * Phase N.4 — the only first-class step distinction. True when this step is
    * a race (carries course/marks/conditions); drives the ⛵ race pin + race
-   * cockpit. `stepKind` stays populated for the still-live Phase M lens, but
-   * new binary code should branch on `isRace`, not the 5-kind taxonomy.
+   * cockpit. False/absent means an ordinary step.
    */
   isRace?: boolean;
   /**
@@ -482,6 +488,8 @@ export interface AtlasPinSpec {
    * my-step pins; null/absent everywhere else.
    */
   raceContext?: { areaName: string | null; courseLabel: string | null } | null;
+  /** Scheduled race/step start time, when available. Used for race-time forecast context. */
+  raceStartAt?: string | null;
   /**
    * Optional connector line for non-pin annotations such as walk-time
    * labels. Coordinates are [lng, lat]. The map renders these as dashed
@@ -518,6 +526,10 @@ interface AtlasMapLibreCanvasProps {
     lat: number;
     bounds?: [number, number, number, number];
   } | null;
+  /** Camera padding for focusLocation. Full-screen Atlas uses large bottom padding for sheets; embedded maps can pass compact padding. */
+  focusPadding?: { top: number; bottom: number; left: number; right: number };
+  /** Zoom level for point focusLocation. Defaults to Atlas's full-screen street zoom. */
+  focusZoomLevel?: number;
   /** When provided, an amber NEXT marker drops at the venue centroid. */
   nextEvent?: (AtlasNextEvent & { lng: number; lat: number }) | null;
   /**
@@ -639,6 +651,8 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'poi-haat',
   'poi-supplier',
   'poi-mentee',
+  'mentor-cluster-alert',
+  'mentor-cluster-ok',
   'poi-home-anchor',
   'cohort-cell',
   'my-step-next',
@@ -652,6 +666,8 @@ export function AtlasMapLibreCanvas({
   frame,
   pins = [],
   focusLocation = null,
+  focusPadding,
+  focusZoomLevel = 14,
   nextEvent,
   onMapPress,
   candidate,
@@ -814,7 +830,7 @@ export function AtlasMapLibreCanvas({
       onPinPress?.(pin);
       cameraRef.current?.flyTo({
         center: [pin.lng, pin.lat],
-        zoomLevel: 15,
+        zoom: 15,
         padding: { top: 120, bottom: 380 },
         duration: 400,
       });
@@ -830,19 +846,19 @@ export function AtlasMapLibreCanvas({
     if (focusLocation.bounds) {
       void cameraRef.current?.setStop({
         bounds: focusLocation.bounds,
-        padding: { top: 120, bottom: 380, left: 32, right: 32 },
+        padding: focusPadding ?? { top: 120, bottom: 380, left: 32, right: 32 },
         duration: 600,
       });
       return;
     }
     cameraRef.current?.flyTo({
       center: [focusLocation.lng, focusLocation.lat],
-      zoomLevel: 14,
-      padding: { top: 120, bottom: 380 },
+      zoom: focusZoomLevel,
+      padding: focusPadding ?? { top: 120, bottom: 380, left: 32, right: 32 },
       duration: 500,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds]);
+  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, focusPadding, focusZoomLevel]);
   const walkLineCollection = useMemo<GeoJSON.FeatureCollection>(() => {
     const features: GeoJSON.Feature[] = pins
       .filter((pin) => pin.kind === 'walk-annotation' && pin.walkLine)
@@ -864,6 +880,8 @@ export function AtlasMapLibreCanvas({
         frame={frame}
         pins={pins}
         focusLocation={focusLocation}
+        focusPadding={focusPadding}
+        focusZoomLevel={focusZoomLevel}
         nextEvent={nextEvent}
         onMapPress={onMapPress}
         candidate={candidate}
@@ -981,7 +999,7 @@ export function AtlasMapLibreCanvas({
             <MLLayer
               id="atlas-course-sides"
               type="fill"
-              minZoomLevel={COURSE_MIN_ZOOM}
+              minzoom={COURSE_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'course-side']}
               style={{
                 fillColor: [
@@ -995,7 +1013,7 @@ export function AtlasMapLibreCanvas({
             <MLLayer
               id="atlas-course-thirds"
               type="line"
-              minZoomLevel={COURSE_MIN_ZOOM}
+              minzoom={COURSE_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'course-third']}
               style={{
                 lineColor: 'rgba(20, 33, 61, 0.35)',
@@ -1006,7 +1024,7 @@ export function AtlasMapLibreCanvas({
             <MLLayer
               id="atlas-course-third-labels"
               type="symbol"
-              minZoomLevel={COURSE_MIN_ZOOM}
+              minzoom={COURSE_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'course-third-label']}
               style={{
                 textField: ['get', 'label'],
@@ -1022,7 +1040,7 @@ export function AtlasMapLibreCanvas({
             <MLLayer
               id="atlas-course-side-labels"
               type="symbol"
-              minZoomLevel={COURSE_MIN_ZOOM}
+              minzoom={COURSE_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'course-side-label']}
               style={{
                 textField: ['get', 'label'],
@@ -1043,14 +1061,24 @@ export function AtlasMapLibreCanvas({
             <MLLayer
               id="atlas-course-start-box"
               type="fill"
-              minZoomLevel={COURSE_MIN_ZOOM}
+              minzoom={COURSE_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'start-box']}
               style={{ fillColor: 'rgba(20, 33, 61, 0.12)' }}
             />
             <MLLayer
+              id="atlas-course-legs"
+              type="line"
+              filter={['==', ['get', 'type'], 'course-leg']}
+              style={{
+                lineColor: 'rgba(20, 33, 61, 0.72)',
+                lineWidth: 1.8,
+                lineDasharray: [4, 2],
+              }}
+            />
+            <MLLayer
               id="atlas-course-laylines"
               type="line"
-              minZoomLevel={COURSE_MIN_ZOOM}
+              minzoom={COURSE_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'layline']}
               style={{
                 lineColor: 'rgba(20, 33, 61, 0.55)',
@@ -1061,21 +1089,21 @@ export function AtlasMapLibreCanvas({
             <MLLayer
               id="atlas-course-start-line"
               type="line"
-              minZoomLevel={COURSE_MIN_ZOOM}
+              minzoom={COURSE_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'start-line']}
               style={{ lineColor: 'rgb(20, 33, 61)', lineWidth: 2 }}
             />
             <MLLayer
               id="atlas-course-finish-line"
               type="line"
-              minZoomLevel={COURSE_MIN_ZOOM}
+              minzoom={COURSE_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'finish-line']}
               style={{ lineColor: 'rgb(20, 33, 61)', lineWidth: 2 }}
             />
             <MLLayer
               id="atlas-course-marks"
               type="circle"
-              minZoomLevel={COURSE_MIN_ZOOM}
+              minzoom={COURSE_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'course-mark']}
               style={{
                 circleRadius: 5,
@@ -1103,6 +1131,16 @@ export function AtlasMapLibreCanvas({
               type="fill"
               filter={['==', ['get', 'type'], 'start-box']}
               style={{ fillColor: 'rgba(20, 33, 61, 0.12)' }}
+            />
+            <MLLayer
+              id="atlas-course-preview-legs"
+              type="line"
+              filter={['==', ['get', 'type'], 'course-leg']}
+              style={{
+                lineColor: 'rgba(20, 33, 61, 0.72)',
+                lineWidth: 1.8,
+                lineDasharray: [4, 2],
+              }}
             />
             <MLLayer
               id="atlas-course-preview-laylines"
@@ -1200,7 +1238,7 @@ export function AtlasMapLibreCanvas({
           <MLMarker
             id="atlas-next-event"
             lngLat={[nextEvent.lng, nextEvent.lat]}
-            anchor={{ x: 0.5, y: 1 }}
+            anchor="bottom"
           >
             {onNextEventPress ? (
               <Pressable onPress={onNextEventPress} hitSlop={4}>
@@ -1257,6 +1295,8 @@ function WebAtlasMapLibreCanvas({
   frame,
   pins,
   focusLocation,
+  focusPadding,
+  focusZoomLevel = 14,
   nextEvent,
   onMapPress,
   candidate,
@@ -1419,7 +1459,7 @@ function WebAtlasMapLibreCanvas({
           [east, north],
         ],
         {
-          padding: { top: 120, bottom: 380, left: 32, right: 32 },
+          padding: focusPadding ?? { top: 120, bottom: 380, left: 32, right: 32 },
           duration: 600,
         },
       );
@@ -1427,8 +1467,8 @@ function WebAtlasMapLibreCanvas({
     }
     map.easeTo({
       center: [focusLocation.lng, focusLocation.lat],
-      zoom: 14,
-      padding: { top: 120, bottom: 380 },
+      zoom: focusZoomLevel,
+      padding: focusPadding ?? { top: 120, bottom: 380, left: 32, right: 32 },
       duration: 500,
     });
     // Depend only on the lat/lng/bounds values — including the
@@ -1436,7 +1476,7 @@ function WebAtlasMapLibreCanvas({
     // parent render (the parent recreates the object inline), which
     // flies the camera back to its last focus on every state change
     // unrelated to focus.
-  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, focusPadding, focusZoomLevel, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1798,6 +1838,77 @@ function createWebPinElement({
     });
   }
 
+  if (pin.kind === 'mentor-cluster-alert' || pin.kind === 'mentor-cluster-ok') {
+    const [name, countStr, subLabelRaw] = (pin.label ?? '').split('|');
+    const count = Number(countStr) || pin.clusterCount || 0;
+    const alert = pin.kind === 'mentor-cluster-alert';
+    const toneColor = alert ? '#D97706' : '#15803D';
+    const bubble = document.createElement('span');
+    bubble.style.display = 'inline-flex';
+    bubble.style.alignItems = 'center';
+    bubble.style.gap = '6px';
+    bubble.style.height = '46px';
+    bubble.style.padding = '0 11px';
+    bubble.style.borderRadius = '18px';
+    bubble.style.background = '#fff';
+    bubble.style.border = `3px solid ${toneColor}`;
+    bubble.style.boxShadow = '0 7px 18px rgba(30,22,12,0.22)';
+
+    const icon = document.createElement('span');
+    icon.textContent = '👥';
+    icon.style.display = 'inline-flex';
+    icon.style.alignItems = 'center';
+    icon.style.justifyContent = 'center';
+    icon.style.width = '25px';
+    icon.style.height = '25px';
+    icon.style.borderRadius = '999px';
+    icon.style.background = toneColor;
+    icon.style.color = '#fff';
+    icon.style.fontSize = '13px';
+    icon.style.lineHeight = '1';
+    bubble.appendChild(icon);
+
+    const countEl = document.createElement('strong');
+    countEl.textContent = String(count);
+    countEl.style.fontSize = '18px';
+    countEl.style.fontWeight = '900';
+    countEl.style.color = '#1F2937';
+    countEl.style.letterSpacing = '-0.2px';
+    bubble.appendChild(countEl);
+    root.appendChild(bubble);
+
+    if (showLabel && name) {
+      const labelWrap = document.createElement('span');
+      labelWrap.style.display = 'inline-flex';
+      labelWrap.style.flexDirection = 'column';
+      labelWrap.style.maxWidth = '130px';
+      labelWrap.style.padding = '4px 8px';
+      labelWrap.style.borderRadius = '10px';
+      labelWrap.style.background = 'rgba(255,255,255,0.94)';
+      labelWrap.style.boxShadow = '0 4px 12px rgba(30,22,12,0.12)';
+
+      const nameEl = document.createElement('span');
+      nameEl.textContent = name;
+      nameEl.style.fontSize = '12px';
+      nameEl.style.fontWeight = '900';
+      nameEl.style.color = '#1F2937';
+      nameEl.style.whiteSpace = 'nowrap';
+      nameEl.style.overflow = 'hidden';
+      nameEl.style.textOverflow = 'ellipsis';
+      labelWrap.appendChild(nameEl);
+
+      const subEl = document.createElement('span');
+      subEl.textContent = subLabelRaw || (alert ? 'needs attention' : 'on track');
+      subEl.style.fontSize = '9.5px';
+      subEl.style.fontWeight = '800';
+      subEl.style.color = toneColor;
+      subEl.style.whiteSpace = 'nowrap';
+      labelWrap.appendChild(subEl);
+      root.appendChild(labelWrap);
+    }
+    return root;
+  }
+
   const marker = document.createElement('span');
   marker.style.display = 'inline-flex';
   marker.style.alignItems = 'center';
@@ -1867,7 +1978,7 @@ function createWebPinElement({
   return root;
 }
 
-function createWebArrowElement(pin: AtlasPinSpec) {
+function createWebArrowElement(pin: AtlasPinSpec, hideArrowChips = false) {
   const root = document.createElement('div');
   root.style.display = 'flex';
   root.style.flexDirection = 'column';
@@ -1918,9 +2029,46 @@ function createWebArrowElement(pin: AtlasPinSpec) {
   // Up-arrow (wind) / chevron-up (tide), both natively point north so
   // rotation maps cleanly to compass bearings.
   glyph.textContent = isWind ? '↑' : '⌃';
-  root.appendChild(glyph);
 
-  if (!isField && knots > 0) {
+  if (!isField) {
+    const typeLabel = document.createElement('span');
+    typeLabel.textContent = isWind ? 'WIND' : isWave ? 'SWELL' : 'CURRENT';
+    typeLabel.style.padding = '1px 5px';
+    typeLabel.style.borderRadius = '5px';
+    typeLabel.style.background = 'rgba(255,255,255,0.82)';
+    typeLabel.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    typeLabel.style.fontSize = '8px';
+    typeLabel.style.fontWeight = '800';
+    typeLabel.style.letterSpacing = '0';
+    typeLabel.style.color = isWind
+      ? 'rgba(37, 99, 235, 0.95)'
+      : isWave
+        ? 'rgba(94, 92, 230, 0.95)'
+        : 'rgba(0, 140, 140, 0.95)';
+    typeLabel.style.whiteSpace = 'nowrap';
+    root.appendChild(typeLabel);
+
+    const disc = document.createElement('div');
+    disc.style.width = '40px';
+    disc.style.height = '40px';
+    disc.style.borderRadius = '999px';
+    disc.style.display = 'flex';
+    disc.style.alignItems = 'center';
+    disc.style.justifyContent = 'center';
+    disc.style.background = 'rgba(255,255,255,0.88)';
+    disc.style.border = isWind
+      ? '1px solid rgba(37,99,235,0.38)'
+      : isWave
+        ? '1px solid rgba(94,92,230,0.38)'
+        : '1px solid rgba(0,168,168,0.42)';
+    disc.style.boxShadow = '0 4px 12px rgba(0,0,0,0.16)';
+    disc.appendChild(glyph);
+    root.appendChild(disc);
+  } else {
+    root.appendChild(glyph);
+  }
+
+  if (!isField && !hideArrowChips && knots > 0) {
     const chip = document.createElement('span');
     const padded = ((Math.round(deg) % 360) + 360) % 360;
     const padStr = padded.toString().padStart(3, '0');
@@ -2033,6 +2181,7 @@ function approxDistanceKm(a: AtlasPinSpec, b: AtlasPinSpec): number {
 function shouldShowLabel(pin: AtlasPinSpec, allPins: AtlasPinSpec[]): boolean {
   if (!pin.label) return false;
   if (pin.kind === 'race-mark') return true;
+  if (pin.kind === 'mentor-cluster-alert' || pin.kind === 'mentor-cluster-ok') return true;
   // Diamond curation pins (preceptor, sim-lab) always show their label —
   // they're intentional faculty/institutional guidance, named by design.
   // The label-hide-when-dense rule applies only to interchangeable
@@ -2069,6 +2218,15 @@ function pickSvgMap(frame: AtlasFrameId): React.ComponentType {
       // after the SVG era. Web fallback returns the world map so the
       // route still renders something non-blank; native uses MapLibre.
       return WorldDragonMap;
+    case 'f8':
+      return WorldDragonMap;
+    case 'f9':
+      // Golf should normally render the live MapLibre satellite canvas.
+      // If web MapLibre fails before tiles load, use the neutral JHU
+      // schematic rather than silently falling through to an undefined
+      // component. The surrounding GolfAtlasSurface still owns the golf
+      // pins and cards, and the error banner below explains the failure.
+      return JhuCuratedMap;
   }
 }
 
@@ -2167,6 +2325,8 @@ const PIN_TONE: Record<
   'poi-haat': { size: 14, color: 'rgba(34, 139, 80, 0.95)', shape: 'diamond' },
   'poi-supplier': { size: 11, color: 'rgba(255, 255, 255, 0.95)', shape: 'square' },
   'poi-mentee': { size: 9, color: 'rgba(34, 139, 80, 0.9)', shape: 'circle' },
+  'mentor-cluster-alert': { size: 46, color: '#D97706', shape: 'circle' },
+  'mentor-cluster-ok': { size: 42, color: '#15803D', shape: 'circle' },
   'poi-home-anchor': { size: 14, color: 'rgba(0, 122, 255, 0.95)', shape: 'circle' },
   // Walk-time annotation — no pin glyph at all, just a grey distance pill
   // floating between two same-campus institution pins. The 0-size sentinel
@@ -2359,6 +2519,7 @@ function LabeledPin({
     const fieldOpacity = 0.4 + t * 0.42;
     return (
       <View style={isField ? styles.windFieldWrap : styles.windArrowWrap}>
+        {!isField ? <Text style={[styles.arrowTypeLabel, styles.windTypeLabel]}>WIND</Text> : null}
         <View style={[isField ? styles.fieldArrowDisc : styles.arrowDisc, { transform: [{ rotate: `${downwindDeg}deg` }] }]}>
           <Ionicons
             name="arrow-up"
@@ -2390,6 +2551,7 @@ function LabeledPin({
     const isField = variant === 'field';
     return (
       <View style={isField ? styles.windFieldWrap : styles.tideArrowWrap}>
+        {!isField ? <Text style={[styles.arrowTypeLabel, styles.currentTypeLabel]}>CURRENT</Text> : null}
         <View
           style={[
             isField ? styles.fieldArrowDisc : styles.arrowDisc,
@@ -2420,6 +2582,7 @@ function LabeledPin({
     const isField = variant === 'field';
     return (
       <View style={isField ? styles.windFieldWrap : styles.tideArrowWrap}>
+        {!isField ? <Text style={[styles.arrowTypeLabel, styles.waveTypeLabel]}>SWELL</Text> : null}
         <View
           style={[
             isField ? styles.fieldArrowDisc : styles.arrowDisc,
@@ -2478,17 +2641,30 @@ function LabeledPin({
   // Smaller halo than NEXT, green-tinted, with a DONE badge.
   if (kind === 'my-step-done-just') {
     const titleLabel = (label ?? '').split('|')[0] ?? '';
+    if (raceCfg) {
+      return (
+        <View style={styles.pinRow}>
+          <View style={styles.glyphCol}>
+            <View pointerEvents="none" style={styles.myStepRaceHalo} />
+            <View style={styles.myStepRaceDot}>
+              <Text style={styles.myStepGlyphHero}>{raceCfg.glyph}</Text>
+            </View>
+          </View>
+          {showLabel && titleLabel ? (
+            <Text style={styles.pinLabel} numberOfLines={1}>
+              {titleLabel}
+            </Text>
+          ) : null}
+        </View>
+      );
+    }
     return (
       <View style={styles.pinRow}>
         <View style={styles.glyphCol}>
           <View pointerEvents="none" style={styles.myStepDoneJustHalo} />
           <View
-            style={[
-              styles.myStepDoneJustDot,
-              raceCfg ? { backgroundColor: raceCfg.color } : null,
-            ]}
+            style={styles.myStepDoneJustDot}
           >
-            {raceCfg ? <Text style={styles.myStepGlyph}>{raceCfg.glyph}</Text> : null}
           </View>
         </View>
         <View style={styles.myStepHeroLabelCol}>
@@ -2557,6 +2733,40 @@ function LabeledPin({
           {'⬢'}
         </Text>
         <Text style={[styles.hexCount, { lineHeight: diameter }]}>{count}</Text>
+      </View>
+    );
+  }
+  if (kind === 'mentor-cluster-alert' || kind === 'mentor-cluster-ok') {
+    const [name, countStr, subLabelRaw] = (label ?? '').split('|');
+    const count = Number(countStr) || clusterCount || 0;
+    const alert = kind === 'mentor-cluster-alert';
+    const tone = alert ? '#D97706' : '#15803D';
+    const subLabel = subLabelRaw || (alert ? 'needs attention' : 'on track');
+    return (
+      <View style={styles.mentorClusterPin}>
+        <View
+          style={[
+            styles.mentorClusterBubble,
+            alert && styles.mentorClusterBubbleAlert,
+          ]}
+        >
+          <View style={[styles.mentorClusterIcon, { backgroundColor: tone }]}>
+            <Ionicons name="people" size={17} color="#FFFFFF" />
+          </View>
+          <Text style={[styles.mentorClusterCount, { color: tone }]}>
+            {count}
+          </Text>
+        </View>
+        {showLabel && name ? (
+          <View style={styles.mentorClusterLabel}>
+            <Text style={styles.mentorClusterName} numberOfLines={1}>
+              {name}
+            </Text>
+            <Text style={[styles.mentorClusterSub, { color: tone }]} numberOfLines={1}>
+              {subLabel}
+            </Text>
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -2809,6 +3019,33 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     letterSpacing: 0.2,
   },
+  webMapError: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: 96,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60, 60, 67, 0.18)',
+    shadowColor: '#000',
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  webMapErrorTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1C1C1E',
+  },
+  webMapErrorBody: {
+    marginTop: 3,
+    fontSize: 11,
+    lineHeight: 15,
+    color: '#636366',
+  },
   compassButton: {
     position: 'absolute',
     right: 12,
@@ -2842,6 +3079,65 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     maxWidth: 120,
     overflow: 'hidden',
+  },
+  mentorClusterPin: {
+    alignItems: 'center',
+    gap: 5,
+  },
+  mentorClusterBubble: {
+    minWidth: 72,
+    height: 48,
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#15803D',
+    shadowColor: '#1E160C',
+    shadowOpacity: 0.23,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  mentorClusterBubbleAlert: {
+    borderColor: '#D97706',
+  },
+  mentorClusterIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mentorClusterCount: {
+    fontSize: 19,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  mentorClusterLabel: {
+    maxWidth: 138,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    shadowColor: '#1E160C',
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    alignItems: 'center',
+  },
+  mentorClusterName: {
+    color: '#1F2937',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  mentorClusterSub: {
+    marginTop: 1,
+    fontSize: 9.5,
+    fontWeight: '800',
   },
   clubAnchorDisc: {
     width: 28,
@@ -2981,18 +3277,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   arrowDisc: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.95)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  arrowTypeLabel: {
+    marginBottom: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 5,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0,
+  },
+  windTypeLabel: {
+    color: '#2563EB',
+  },
+  currentTypeLabel: {
+    color: '#008C8C',
+  },
+  waveTypeLabel: {
+    color: '#5E5CE6',
   },
   arrowChip: {
     marginTop: 2,
@@ -3179,6 +3495,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F7A3A',
     letterSpacing: 0.7,
+  },
+  myStepRaceHalo: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    top: -5,
+    left: -5,
+    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(37, 99, 235, 0.55)',
+  },
+  myStepRaceDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: RACE_PIN_COLOR,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOpacity: 0.14,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   nextTag: {
     backgroundColor: '#FFE6B0',

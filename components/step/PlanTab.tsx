@@ -6,6 +6,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { STEP_COLORS } from '@/lib/step-theme';
 import { PlanQuestionCard } from './PlanQuestionCard';
 import { SubStepEditor } from './SubStepEditor';
@@ -23,7 +24,7 @@ import { DateEnrichmentCard } from './DateEnrichmentCard';
 import { createStep } from '@/services/TimelineStepService';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import type { StepPlanData, StepCollaborator, StepLocation, SubStep, BrainDumpData } from '@/types/step-detail';
+import type { StepPlanData, StepCollaborator, StepLocation, SubStep, BrainDumpData, RacePlan } from '@/types/step-detail';
 import type { LibraryResourceRecord } from '@/types/library';
 import type { Competency } from '@/types/competency';
 import { useCompetenciesForInterest } from '@/hooks/useCompetencies';
@@ -73,6 +74,28 @@ interface PlanTabProps {
   isRace?: boolean;
   onToggleRace?: (next: boolean) => void;
   onOpenRaceCourse?: () => void;
+  /** Opens Atlas centered on the saved race area/course. */
+  onOpenRaceCourseAtlas?: () => void;
+  /** One-line summary of the saved race plan, shown on the reveal row. */
+  courseSummary?: string;
+  /** Saved race plan; drives the course map once an area is set. */
+  racePlan?: Pick<
+    RacePlan,
+    'area_id' | 'area_name' | 'center' | 'course_label' | 'laps' | 'course_type'
+  >;
+  /** Render the live Atlas map instead of the schematic (detail view only). */
+  liveMap?: boolean;
+  /**
+   * The race's scheduled time (step.starts_at). The live course map forecasts
+   * wind/current/wave for THIS moment — not "now" — and orients the course to
+   * the forecast wind. Null/absent ⇒ the map says conditions need a race time.
+   */
+  raceTime?: string | null;
+  /**
+   * Right gutter (pt) so the tab body clears the floating zoom rail on the
+   * standalone step-detail screen. Forwarded to PlanTabIOSRegisterInterior.
+   */
+  rightInset?: number;
   /**
    * When true, the tab body renders without its own ScrollView so the
    * parent (e.g. StepCard scrollAsUnit) can scroll the whole card. Only
@@ -171,7 +194,8 @@ export function PlanTab({
   brainDumpData, onBrainDumpChange, onStructureWithAI,
   isStructuring, hasPlanContent, interestSlug, interestName,
   useConversationalCapture, onConversationalCreate, stepCategory,
-  isRace, onToggleRace, onOpenRaceCourse,
+  isRace, onToggleRace, onOpenRaceCourse, onOpenRaceCourseAtlas, courseSummary, racePlan, liveMap,
+  raceTime, rightInset,
   embedded,
 }: PlanTabProps) {
   const { user } = useAuth();
@@ -377,6 +401,7 @@ export function PlanTab({
           onUpdate={onUpdate}
           readOnly={readOnly}
           interestId={interestId}
+          interestSlug={interestSlug}
           interestName={interestName}
           stepTitle={planData.what_will_you_do || 'New step'}
           stepCategory={stepCategory}
@@ -384,6 +409,12 @@ export function PlanTab({
           isRace={isRace}
           onToggleRace={onToggleRace}
           onOpenRaceCourse={onOpenRaceCourse}
+          onOpenRaceCourseAtlas={onOpenRaceCourseAtlas}
+          courseSummary={courseSummary}
+          racePlan={racePlan}
+          liveMap={liveMap}
+          raceTime={raceTime}
+          rightInset={rightInset}
           capabilities={capabilityChips}
           onRemoveCapability={(id) => {
             if (id.startsWith(FREEFORM_CAPABILITY_PREFIX)) {
@@ -414,11 +445,17 @@ export function PlanTab({
                 collaborators={collaborators}
                 readOnly={readOnly}
                 onChange={handleCollaboratorsChange}
+                interestSlug={interestSlug}
+                interestName={interestName}
+                stepCategory={stepCategory}
               />
               <PlanWhereCard
                 location={planData.where_location}
                 readOnly={readOnly}
                 onChange={handleLocationChange}
+                interestSlug={interestSlug}
+                interestName={interestName}
+                stepCategory={stepCategory}
               />
               {/* Beats render on Plan as well as Do — the run-through
                   belongs in planning, and the same per-step beats are
@@ -696,7 +733,7 @@ export function PlanTab({
             <AddToStepPlanSheet
               visible={addPickerDestination !== null}
               destinationLabel={addPickerDestination ?? ''}
-              destinationContext={planData.what_doing || undefined}
+              destinationContext={planData.what_will_you_do || undefined}
               interestId={interestId}
               excludeKeys={[
                 ...linkedIds.map((id) => `resource:${id}`),
@@ -723,7 +760,7 @@ export function PlanTab({
           <LocationMapPickerModal
             visible={showLocationPicker}
             onClose={() => setShowLocationPicker(false)}
-            onSelectLocation={(loc) => {
+            onSelectLocation={(loc: { name: string; lat: number; lng: number }) => {
               handleLocationChange({ name: loc.name, lat: loc.lat, lng: loc.lng });
               setShowLocationPicker(false);
             }}
@@ -751,6 +788,12 @@ export function PlanTab({
         onConversationalCreate={useConversationalCapture ? onConversationalCreate : undefined}
         optionalAddOns={optionalAddOns}
         footer={footer}
+        isRace={isRace}
+        onToggleRace={onToggleRace}
+        onOpenRaceCourse={onOpenRaceCourse}
+        onOpenRaceCourseAtlas={onOpenRaceCourseAtlas}
+        courseSummary={courseSummary}
+        racePlan={racePlan}
         libraryBefore={libraryBefore}
       />
     );
@@ -1215,7 +1258,7 @@ export function PlanTab({
         <AddToStepPlanSheet
           visible={addPickerDestination !== null}
           destinationLabel={addPickerDestination ?? ''}
-          destinationContext={planData.what_doing || undefined}
+          destinationContext={planData.what_will_you_do || undefined}
           interestId={interestId}
           excludeKeys={[
             ...linkedIds.map((id) => `resource:${id}`),
@@ -1246,7 +1289,7 @@ export function PlanTab({
         <LocationMapPickerModal
           visible={showLocationPicker}
           onClose={() => setShowLocationPicker(false)}
-          onSelectLocation={(loc) => {
+          onSelectLocation={(loc: { name: string; lat: number; lng: number }) => {
             handleLocationChange({ name: loc.name, lat: loc.lat, lng: loc.lng });
             setShowLocationPicker(false);
           }}
@@ -1269,12 +1312,7 @@ export function PlanTab({
  * via the existing PlanQuestionCards. When all three fields are
  * empty the row collapses entirely.
  */
-const SERIF_FAMILY = Platform.select({
-  ios: 'Georgia',
-  android: 'serif',
-  web: 'Georgia, "Times New Roman", serif',
-  default: 'Georgia',
-}) as string;
+const SERIF_FAMILY = fontFamily.serif;
 
 function WhyWithWhereSummary({
   why,
@@ -1420,6 +1458,11 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.label,
     fontWeight: '500',
     flexShrink: 1,
+  },
+  goalHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: STEP_COLORS.secondaryLabel,
   },
   addLibraryButton: {
     flexDirection: 'row',

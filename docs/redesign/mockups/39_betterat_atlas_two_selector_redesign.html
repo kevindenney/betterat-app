@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Atlas redesign — lead with whose steps, not search</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --serif:'Iowan Old Style',Georgia,serif;
+  --mono:'IBM Plex Mono','SF Mono',ui-monospace,Menlo,monospace;
+  --grouped:#F2F2F7;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);
+  --label3:rgba(60,60,67,0.34);
+  --sep:rgba(60,60,67,0.13);
+  --done:#16A34A;
+  --now:#EA580C;
+  --accent:#2563EB;            /* plan-indigo / steps */
+  --accent-bg:rgba(37,99,235,.07);
+  --accent-line:rgba(37,99,235,.26);
+  --race:#0E7490;              /* teal — the race lens (blue↔teal theme-swap) */
+  --race-bg:rgba(14,116,144,.08);
+  --race-line:rgba(14,116,144,.30);
+  --me:#2563EB; --crew:#E5484D; --fleet:#14213D; --following:#6D28D9;
+  --water:#B7D3DE; --land:#E9E4D6;
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1660px;margin:0 auto 4px;font-size:21px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1660px;margin:0 auto 14px;font-size:13px;color:#41495A;line-height:1.6;}
+.page-sub b{color:#1a1f29;}
+.thesis{max-width:1660px;margin:0 auto 26px;background:#fff;border:0.5px solid rgba(0,0,0,.1);border-left:3px solid var(--accent);border-radius:10px;padding:14px 17px;font-size:12.5px;line-height:1.65;color:#2b3340;}
+.thesis b{color:#111;}
+.thesis code{font-family:var(--mono);font-size:11px;background:var(--grouped);padding:1px 5px;border-radius:4px;}
+.thesis .k{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:5px;padding:2px 7px;margin-right:7px;vertical-align:1px;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1660px;margin:0 auto;}
+.col{width:384px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+.col-cap .tag.fix{background:#B42318;}
+.col-cap .tag.new{background:#1B7A3D;}
+
+/* phone shell */
+.phone{position:relative;border-radius:42px;overflow:hidden;height:812px;background:var(--water);
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.30);}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:#000;z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+
+/* light basemap */
+.map{position:absolute;inset:0;background:var(--water);}
+.land{position:absolute;background:var(--land);}
+.land.tl{left:-12%;top:-6%;width:46%;height:30%;border-radius:0 0 60% 20%;}
+.land.bl{left:-8%;bottom:-10%;width:60%;height:40%;border-radius:0 50% 0 0;}
+.land.br{right:-14%;bottom:-12%;width:52%;height:46%;border-radius:46% 0 0 0;}
+.maplbl{position:absolute;color:rgba(60,60,67,.45);font-size:10px;font-style:italic;font-weight:500;}
+
+/* ===== TOP BAR — Google-Maps-lean: context · search · saved · profile ===== */
+.appbar{position:absolute;top:44px;left:10px;right:10px;height:46px;z-index:46;display:flex;align-items:center;gap:7px;padding:0 7px 0 7px;
+  background:rgba(252,252,253,.78);backdrop-filter:blur(22px);border:0.5px solid rgba(255,255,255,.6);border-radius:24px;box-shadow:0 6px 20px rgba(20,28,45,.14);}
+.ctx{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;padding:6px 9px;border-radius:15px;background:rgba(118,118,128,.10);white-space:nowrap;flex:none;}
+.ctx .d{width:7px;height:7px;border-radius:50%;background:var(--accent);}
+.ctx .chev{font-size:9px;color:var(--label2);}
+.appbar .spacer{flex:1;min-width:0;}
+.appbar .search{width:32px;height:32px;border-radius:50%;background:rgba(118,118,128,.10);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--label2);flex:none;}
+.appbar .saved{width:32px;height:32px;border-radius:50%;background:rgba(118,118,128,.10);display:flex;align-items:center;justify-content:center;font-size:15px;color:#E8A317;flex:none;}
+.appbar .av{position:relative;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;}
+.appbar .av .bd{position:absolute;top:-2px;right:-2px;background:#FF3B30;color:#fff;font-size:8px;font-weight:800;border-radius:9px;padding:0 4px;border:1.5px solid #fff;}
+
+/* ===== SCROLLABLE LENS STRIP — Google's "popular categories" row ===== */
+.chiprow{position:absolute;top:98px;left:0;right:0;z-index:45;display:flex;align-items:center;gap:7px;padding:0 10px;overflow:hidden;}
+.chip{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--label);white-space:nowrap;flex:none;
+  background:rgba(252,252,253,.86);backdrop-filter:blur(18px);border:0.5px solid rgba(255,255,255,.6);border-radius:16px;box-shadow:0 4px 12px rgba(20,28,45,.12);padding:6px 12px;}
+.chip .cd{width:8px;height:8px;border-radius:50%;}
+.chip.on{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 3px 9px rgba(37,99,235,.3);}
+.chip.on.race{background:var(--race);box-shadow:0 3px 9px rgba(14,116,144,.3);}
+.chip.div{width:0.5px;height:22px;background:var(--sep);padding:0;margin:0 1px;box-shadow:none;border:none;background:rgba(60,60,67,.2);border-radius:0;}
+.chiprow .fade{position:absolute;right:0;top:0;bottom:0;width:36px;background:linear-gradient(90deg,rgba(183,211,222,0),var(--water));pointer-events:none;}
+
+/* ===== SAVED / JUMP dropdown (favorites-style; the ONE step picker) ===== */
+.saveddrop{position:absolute;top:84px;right:10px;width:268px;z-index:47;background:#fff;border-radius:18px;border:0.5px solid var(--sep);box-shadow:0 18px 48px rgba(20,28,45,.3);overflow:hidden;}
+.saveddrop .sh{display:flex;align-items:center;gap:7px;font-family:var(--serif);font-size:16px;font-weight:600;padding:13px 15px 11px;}
+.saveddrop .sh .star{color:#E8A317;font-size:14px;}
+.saveddrop .grp{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);padding:9px 15px 5px;border-top:0.5px solid var(--sep);background:#FAFAFB;}
+.saveddrop .grp .gd{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+.saveddrop .it{display:flex;align-items:center;gap:10px;padding:9px 15px;font-size:13.5px;}
+.saveddrop .it .dot{width:9px;height:9px;border-radius:50%;background:var(--label3);flex:none;}
+.saveddrop .it .dot.now{background:var(--now);} .saveddrop .it .dot.done{background:var(--done);} .saveddrop .it .dot.race{background:var(--race);}
+.saveddrop .it .ic{width:22px;text-align:center;font-size:14px;flex:none;}
+.saveddrop .it .b{flex:1;min-width:0;}
+.saveddrop .it .b h5{margin:0;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.saveddrop .it .b p{margin:1px 0 0;font-size:10.5px;color:var(--label2);}
+.saveddrop .it .rt{font-size:8.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--now);flex:none;}
+.saveddrop .add{display:flex;align-items:center;gap:7px;padding:10px 15px;font-size:12.5px;font-weight:700;color:var(--accent);border-top:0.5px solid var(--sep);}
+
+/* pins */
+.pin{position:absolute;transform:translate(-50%,-50%);z-index:30;}
+.pin .dot{width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);}
+.pin.me .dot{background:var(--me);} .pin.crew .dot{background:var(--crew);} .pin.fleet .dot{background:var(--fleet);}
+.pin.now .dot{background:var(--now);box-shadow:0 0 0 6px rgba(234,88,12,.18),0 2px 6px rgba(0,0,0,.3);}
+.pin .tag{position:absolute;left:24px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:800;letter-spacing:.05em;color:var(--now);background:rgba(234,88,12,.12);border-radius:6px;padding:3px 7px;white-space:nowrap;}
+.orgpin{position:absolute;transform:translate(-50%,-50%);z-index:30;display:flex;align-items:center;}
+.orgpin .ic{width:30px;height:30px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 7px rgba(0,0,0,.25);}
+.orgpin .lbl{background:var(--accent);color:#fff;font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:14px;margin-left:6px;box-shadow:0 2px 7px rgba(0,0,0,.2);white-space:nowrap;}
+.orgpin.sel .ic{outline:3px solid var(--accent);outline-offset:1px;}
+
+/* over-the-pin callout (compact) */
+.callout{position:absolute;z-index:42;width:300px;background:#fff;border-radius:18px;box-shadow:0 14px 40px rgba(23,33,56,.26);border:0.5px solid var(--sep);padding:14px 15px 13px;}
+.callout::after{content:"";position:absolute;bottom:-9px;left:50%;transform:translateX(-50%) rotate(45deg);width:18px;height:18px;background:#fff;border-right:0.5px solid var(--sep);border-bottom:0.5px solid var(--sep);}
+.callout .kind{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--now);}
+.callout .kind.fleet{color:var(--crew);}
+.callout h4{font-family:var(--serif);font-size:19px;font-weight:600;line-height:1.15;letter-spacing:-.3px;margin:6px 0 0;}
+.callout .meta{font-size:11.5px;color:var(--label2);margin-top:5px;line-height:1.4;}
+.callout .cta{display:flex;gap:8px;margin-top:12px;}
+.callout .cta .go{flex:1;background:var(--race);color:#fff;border-radius:11px;padding:10px;text-align:center;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;}
+.callout .cta .sec{width:42px;border-radius:11px;background:var(--grouped);color:var(--label2);display:flex;align-items:center;justify-content:center;font-size:15px;}
+
+/* ===== FOCUSED STEP CARD — no in-card pickers anymore ===== */
+.stepcard{position:absolute;left:10px;right:10px;bottom:80px;z-index:44;background:#fff;border-radius:22px;border:1px solid var(--accent-line);box-shadow:0 14px 40px rgba(23,33,56,.2);padding:15px 16px 14px;}
+.sc-top{display:flex;align-items:center;gap:8px;}
+.sc-kind{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:6px;padding:3px 8px;}
+.sc-stat{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--now);background:rgba(234,88,12,.1);border-radius:6px;padding:3px 8px;}
+.sc-collapse{margin-left:auto;width:28px;height:28px;border-radius:50%;background:var(--grouped);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--label2);}
+.sc-h{font-family:var(--serif);font-size:21px;font-weight:600;line-height:1.16;letter-spacing:-.3px;margin:11px 0 0;}
+.sc-loc{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--label2);margin-top:7px;}
+.sc-count{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--label2);margin-top:11px;letter-spacing:.02em;}
+.sc-sub{display:flex;align-items:flex-start;gap:10px;margin-top:9px;}
+.sc-sub .box{width:19px;height:19px;border-radius:6px;border:1.8px solid var(--label3);flex:none;margin-top:1px;}
+.sc-sub .t{font-size:13.5px;line-height:1.38;}
+.sc-cta{display:flex;margin-top:14px;}
+.sc-cta .go{flex:1;background:var(--accent);color:#fff;border-radius:13px;padding:12px;text-align:center;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;}
+
+/* ===== PLACE DETAIL SHEET (Google sidebar → mobile sheet) ===== */
+.placesheet{position:absolute;left:0;right:0;bottom:0;top:300px;z-index:45;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -10px 36px rgba(0,0,0,.26);display:flex;flex-direction:column;overflow:hidden;}
+.placesheet .grab{width:38px;height:5px;border-radius:3px;background:var(--label3);margin:9px auto 0;}
+.cover{height:118px;margin:11px 14px 0;border-radius:14px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#7FA9C4,#5C86A6 60%,#476E8C);display:flex;align-items:flex-end;}
+.cover .ph{position:absolute;left:12px;bottom:10px;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.32);border-radius:9px;padding:5px 9px;}
+.ps-body{padding:13px 16px 0;}
+.ps-kind{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--following);}
+.ps-h{font-family:var(--serif);font-size:23px;font-weight:600;line-height:1.12;letter-spacing:-.4px;margin:5px 0 0;}
+.ps-meta{font-size:12px;color:var(--label2);margin-top:6px;line-height:1.45;}
+.ps-prov{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--following);background:rgba(109,40,217,.08);border-radius:7px;padding:4px 8px;margin-top:9px;}
+.ps-actions{display:flex;gap:9px;padding:14px 16px 4px;}
+.actbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:var(--accent);}
+.actbtn .r{width:46px;height:46px;border-radius:50%;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.actbtn.fill .r{background:var(--accent);color:#fff;}
+.ps-row{display:flex;align-items:center;gap:11px;padding:12px 16px;border-top:0.5px solid var(--sep);font-size:13px;color:var(--label);}
+.ps-row .i{width:20px;text-align:center;color:var(--label2);}
+
+/* tab bar */
+.tabbar{position:absolute;bottom:16px;left:14px;right:14px;height:56px;display:flex;background:rgba(250,250,252,.74);backdrop-filter:blur(24px);border:0.5px solid rgba(255,255,255,.55);border-radius:26px;box-shadow:0 10px 28px rgba(20,28,45,.18);z-index:48;}
+.tabbar .tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9.5px;font-weight:600;color:var(--label3);}
+.tabbar .tb.on{color:var(--accent);}
+.tabbar .tb .g{font-size:18px;}
+
+/* FAB — capture/add, lifted out of the top bar */
+.fab{position:absolute;right:16px;bottom:84px;z-index:47;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:27px;font-weight:300;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(37,99,235,.44);}
+.locbtn{position:absolute;right:18px;bottom:150px;z-index:43;width:38px;height:38px;border-radius:50%;background:#fff;border:0.5px solid var(--sep);box-shadow:0 4px 12px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--accent);}
+
+/* race overlay */
+.rc{position:absolute;left:50%;top:300px;transform:translateX(-50%);width:188px;height:250px;z-index:25;}
+.rc .beat{position:absolute;left:50%;top:0;bottom:0;width:2px;background:repeating-linear-gradient(180deg,rgba(14,116,144,.7) 0 6px,transparent 6px 12px);transform:translateX(-50%);}
+.rc .box{position:absolute;left:50%;top:0;bottom:0;width:140%;transform:translateX(-50%);border:1.5px dashed rgba(14,116,144,.45);border-radius:8px;}
+.rc .mk{position:absolute;width:12px;height:12px;border-radius:50%;border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 1px 4px rgba(0,0,0,.4);}
+.rc .mk.w{background:var(--now);left:50%;top:0;} .rc .mk.p{background:var(--crew);left:30%;top:100%;} .rc .mk.c{background:#fff;left:70%;top:100%;}
+.rc .lbl{position:absolute;font-size:8px;font-weight:800;letter-spacing:.05em;color:var(--race);transform:translate(-50%,-50%);text-transform:uppercase;}
+
+/* legend */
+.legend{max-width:1660px;margin:36px auto 0;background:#fff;border-radius:14px;padding:22px 26px;font-size:13px;line-height:1.65;color:#2a2f3a;}
+.legend h2{font-size:16px;margin:0 0 12px;}
+.legend h3{font-size:13.5px;margin:18px 0 6px;color:#111;}
+.legend ul{margin:4px 0 0;padding-left:20px;}
+.legend li{margin:6px 0;}
+.legend b{color:#111;}
+.legend code{font-family:var(--mono);font-size:11px;background:var(--grouped);padding:1px 5px;border-radius:4px;}
+.legend .pill{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-right:5px;}
+.legend .pill.fix{background:#FEE4E2;color:#B42318;}
+.legend .pill.new{background:#D1FADF;color:#1B7A3D;}
+.legend .pill.keep{background:#E0EAFF;color:#2547B5;}
+</style>
+</head>
+<body>
+<div class="page-h">Atlas — lead with whose steps, not search</div>
+<div class="page-sub">
+  Corrected priority: <b>search isn't the hero of Atlas.</b> The two jobs that are: <b>seeing the steps of people you follow &amp; know</b> (Crew · Fleet · Following) and <b>mapping your own steps</b>.
+  So the <b>relationship lens leads</b> — search demotes to a small icon. We still keep the rest of the review's fixes: <b>one step picker</b> (the Saved&nbsp;★ dropdown, no more "Pick another"),
+  a <b>de-crowded bar</b>, capture on a <b>FAB</b>, and place-select → <b>detail sheet</b>.
+</div>
+<div class="thesis"><span class="k">Why not search-first</span>Google Maps leads with search because its job is finding a <i>destination</i>. Atlas's job is different: <b>your steps on the map</b>, plus the steps of <b>people you follow &amp; know</b>. So the hero is the <b>relationship strip</b> — <code>My steps</code> on by default, then <code>Crew · Fleet · Following</code> — and search shrinks to a 🔍 icon beside Saved and your profile. We still borrow Google's <b>scrollable chip strip</b>, <b>Saved ★ favorites dropdown</b> (= the one step picker), and <b>place-detail sheet</b>; we just don't put a search field where the lens should be.</div>
+
+<div class="frames">
+
+  <!-- ===================== FRAME A — Decluttered bar, scrollable lens, clean card ===================== -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>4:40</span><span class="r">▪▪▪ ᯤ 🔋</span></div>
+      <div class="map">
+        <div class="land tl"></div><div class="land bl"></div><div class="land br"></div>
+        <div class="maplbl" style="left:54%;top:31%;">對面海 Tui Min Hoi</div>
+      </div>
+
+      <!-- TOP BAR: context · search · saved · profile (4 elements, like Google) -->
+      <div class="appbar">
+        <div class="ctx"><span class="d"></span>Sail Racing<span class="chev">▾</span></div>
+        <div class="spacer"></div>
+        <div class="search">🔍</div>
+        <div class="saved">★</div>
+        <div class="av">KD<span class="bd">1</span></div>
+      </div>
+
+      <!-- SCROLLABLE LENS STRIP -->
+      <div class="chiprow">
+        <div class="chip on"><span class="cd" style="background:#fff"></span>My steps</div>
+        <div class="chip"><span class="cd" style="background:var(--crew)"></span>Crew</div>
+        <div class="chip"><span class="cd" style="background:var(--fleet)"></span>Fleet</div>
+        <div class="chip"><span class="cd" style="background:var(--following)"></span>Following</div>
+        <div class="chip div"></div>
+        <div class="chip race">⛵ Races</div>
+        <div class="chip">▦ Layers</div>
+        <div class="fade"></div>
+      </div>
+
+      <div class="pin now" style="left:44%;top:50%;"><div class="dot"></div><div class="tag">NEXT</div></div>
+      <div class="orgpin" style="left:48%;top:62%;"><div class="ic">📅</div><div class="lbl">Youth Academy — Race Coaching</div></div>
+      <div class="pin fleet" style="left:24%;top:41%;"><div class="dot"></div></div>
+      <div class="pin crew" style="left:70%;top:70%;"><div class="dot"></div></div>
+
+      <!-- focused-step card: ONE job, no pickers -->
+      <div class="stepcard">
+        <div class="sc-top">
+          <span class="sc-kind">Step</span>
+          <span class="sc-stat">Next</span>
+          <div class="sc-collapse">▾</div>
+        </div>
+        <div class="sc-h">Compare New North Sails rig dimensions to our current sails</div>
+        <div class="sc-loc">📍 Che Keng Tuk Road, Hong Kong</div>
+        <div class="sc-count">0 OF 1 DONE</div>
+        <div class="sc-sub"><div class="box"></div><div class="t">Photo our current sail labels. Mast maker and label photos. Hull maker and photo.</div></div>
+        <div class="sc-cta"><div class="go">⤢ Open step</div></div>
+      </div>
+
+      <div class="fab">+</div>
+      <div class="tabbar">
+        <div class="tb"><span class="g">✓</span>Practice</div>
+        <div class="tb"><span class="g">▤</span>Library</div>
+        <div class="tb"><span class="g">👁</span>Watch</div>
+        <div class="tb on"><span class="g">📖</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">A</span><b>The lens leads, search recedes.</b> Bar = context chip · 🔍 (now just an icon) · Saved&nbsp;★ · profile (inbox badge on the avatar). The hero is the <b>relationship strip</b> right beneath it — <b>My steps</b> on, then Crew · Fleet · Following, with Races + Layers after a divider. Capture is a <b>FAB</b>; the card just shows the focused step + <b>Open step</b>.</div>
+  </div>
+
+  <!-- ===================== FRAME B — Saved/Jump dropdown (the one step picker) ===================== -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>4:41</span><span class="r">▪▪▪ ᯤ 🔋</span></div>
+      <div class="map">
+        <div class="land tl"></div><div class="land bl"></div><div class="land br"></div>
+      </div>
+      <div class="appbar">
+        <div class="ctx"><span class="d"></span>Sail Racing<span class="chev">▾</span></div>
+        <div class="spacer"></div>
+        <div class="search">🔍</div>
+        <div class="saved" style="background:rgba(232,163,23,.16);">★</div>
+        <div class="av">KD<span class="bd">1</span></div>
+      </div>
+
+      <!-- the favorites-style dropdown = whose-steps jump list + saved places -->
+      <div class="saveddrop">
+        <div class="sh"><span class="star">★</span>Saved &amp; jump to</div>
+
+        <!-- jump list now grouped by relationship (mirrors the lens strip) -->
+        <div class="grp"><span class="gd" style="background:var(--me)"></span>My steps · 4</div>
+        <div class="it"><span class="dot now"></span><div class="b"><h5>Compare New North Sails rig dimensions</h5><p>Che Keng Tuk Road · 0 of 1</p></div><span class="rt">Next</span></div>
+        <div class="it"><span class="dot done"></span><div class="b"><h5>Build your tuning matrix</h5><p>Middle Island · 4 of 4</p></div><span class="rt" style="color:var(--done)">Done</span></div>
+
+        <div class="grp"><span class="gd" style="background:var(--crew)"></span>Crew · 2</div>
+        <div class="it"><span class="dot"></span><div class="b"><h5>Spinnaker peel drill — bowman notes</h5><p>Alex · Port Shelter</p></div></div>
+
+        <div class="grp"><span class="gd" style="background:var(--fleet)"></span>Fleet · 3</div>
+        <div class="it"><span class="dot"></span><div class="b"><h5>Dragon class tuning session</h5><p>Middle Island · 6 boats</p></div></div>
+
+        <div class="grp"><span class="gd" style="background:var(--following)"></span>Following</div>
+        <div class="it"><span class="dot"></span><div class="b"><h5>Light-air starts clinic</h5><p>Coach Tanner · Hebe Haven</p></div></div>
+
+        <div class="grp"><span class="gd" style="background:var(--race)"></span>Nearby · 5</div>
+        <div class="it"><span class="dot race"></span><div class="b"><h5>Hong Kong Impala fleet race</h5><p>Race · Port Shelter · 1.1 km</p></div></div>
+
+        <div class="grp">Groups</div>
+        <div class="it"><span class="ic">⚑</span><div class="b"><h5>RHKYC Dragon Class</h5><p>Org · 14 mapped steps</p></div></div>
+
+        <div class="grp">Your racing areas</div>
+        <div class="it"><span class="ic">⬡</span><div class="b"><h5>Port Shelter</h5><p>1.3 km · Dragon</p></div></div>
+
+        <div class="grp">Saved venues</div>
+        <div class="it"><span class="ic">⚓</span><div class="b"><h5>RHKYC — Kellett Island</h5><p>4.0 km away</p></div></div>
+
+        <div class="add">＋ Add the place in view to Saved</div>
+      </div>
+
+      <div class="pin now" style="left:44%;top:52%;"><div class="dot"></div></div>
+
+      <div class="fab">+</div>
+      <div class="tabbar">
+        <div class="tb"><span class="g">✓</span>Practice</div>
+        <div class="tb"><span class="g">▤</span>Library</div>
+        <div class="tb"><span class="g">👁</span>Watch</div>
+        <div class="tb on"><span class="g">📖</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">B</span><b>Saved ★ = the one whose-steps + places menu.</b> The jump list isn't just yours anymore — it's grouped by the same lens as the strip: <b>My steps · Crew · Fleet · Following · Nearby</b> (dot-coded to match), then <b>Groups</b>, <b>Your racing areas</b> and <b>Saved venues</b>. One menu does what "Pick another" + the racing-areas sheet + venue bookmarks + the separate Nearby list each did before.</div>
+  </div>
+
+  <!-- ===================== FRAME C — Select a place → detail sheet (Google sidebar) ===================== -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>4:42</span><span class="r">▪▪▪ ᯤ 🔋</span></div>
+      <div class="map">
+        <div class="land tl"></div><div class="land bl" style="height:30%;"></div>
+        <div class="orgpin sel" style="left:48%;top:24%;"><div class="ic">📅</div></div>
+      </div>
+      <div class="appbar">
+        <div class="ctx"><span class="d"></span>Sail Racing<span class="chev">▾</span></div>
+        <div class="spacer"></div>
+        <div class="search">🔍</div>
+        <div class="saved">★</div>
+        <div class="av">KD<span class="bd">1</span></div>
+      </div>
+
+      <!-- place/session detail sheet — mobile equivalent of the web sidebar -->
+      <div class="placesheet">
+        <div class="grab"></div>
+        <div class="cover"><div class="ph">📷 See photos</div></div>
+        <div class="ps-body">
+          <div class="ps-kind">Organization session</div>
+          <div class="ps-h">Youth Academy — Race Coaching</div>
+          <div class="ps-meta">Shelter Cove Station · Youth Sailing Academy · Sat 09:00</div>
+          <div class="ps-prov">🏛 Royal Hong Kong Yacht Club</div>
+        </div>
+        <div class="ps-actions">
+          <div class="actbtn fill"><div class="r">⤢</div>Open</div>
+          <div class="actbtn"><div class="r">◎</div>Fly to</div>
+          <div class="actbtn"><div class="r">★</div>Save</div>
+          <div class="actbtn"><div class="r">↗</div>Share</div>
+        </div>
+        <div class="ps-row"><span class="i">📍</span>Shelter Cove Station, Sai Kung</div>
+        <div class="ps-row"><span class="i">🧭</span>Bring: PFD, gloves, hiking strap · 12 attending</div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tb"><span class="g">✓</span>Practice</div>
+        <div class="tb"><span class="g">▤</span>Library</div>
+        <div class="tb"><span class="g">👁</span>Watch</div>
+        <div class="tb on"><span class="g">📖</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag new">C</span><b>Select a place → a real detail sheet.</b> Google opens a sidebar on web; on mobile that's a bottom sheet. Cover photo, serif title, one provenance chip, and a Google-style <b>action row</b> (Open · Fly to · Save · Share). The pin stays selected (blue ring) behind it. <b>Save</b> drops it straight into the ★ dropdown from Frame B.</div>
+  </div>
+
+  <!-- ===================== FRAME D — Races lens (teal) + compact callout ===================== -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>4:43</span><span class="r">▪▪▪ ᯤ 🔋</span></div>
+      <div class="map">
+        <div class="land tl"></div><div class="land bl"></div><div class="land br"></div>
+        <div class="rc">
+          <div class="box"></div><div class="beat"></div>
+          <div class="mk w"></div><div class="lbl" style="left:50%;top:-16px;">WIND</div>
+          <div class="mk p"></div><div class="mk c"></div>
+          <div class="lbl" style="left:50%;top:14%;">UPPER</div>
+          <div class="lbl" style="left:50%;top:50%;">MIDDLE</div>
+          <div class="lbl" style="left:50%;top:86%;">BOTTOM</div>
+        </div>
+      </div>
+      <div class="appbar">
+        <div class="ctx"><span class="d"></span>Sail Racing<span class="chev">▾</span></div>
+        <div class="spacer"></div>
+        <div class="search">🔍</div>
+        <div class="saved">★</div>
+        <div class="av">KD<span class="bd">1</span></div>
+      </div>
+      <div class="chiprow">
+        <div class="chip"><span class="cd" style="background:var(--me)"></span>My steps</div>
+        <div class="chip"><span class="cd" style="background:var(--crew)"></span>Crew</div>
+        <div class="chip"><span class="cd" style="background:var(--fleet)"></span>Fleet</div>
+        <div class="chip"><span class="cd" style="background:var(--following)"></span>Following</div>
+        <div class="chip div"></div>
+        <div class="chip on race">⛵ Races</div>
+        <div class="chip">▦ Layers</div>
+        <div class="fade"></div>
+      </div>
+
+      <div class="pin now" style="left:50%;top:44%;"><div class="dot"></div></div>
+      <div class="callout" style="left:42px;top:300px;">
+        <div class="kind">Race · W/L · 1.2 nm</div>
+        <h4>Saturday Series — Race 1</h4>
+        <div class="meta">Wind <b>180° S · 12 kn</b> · start 14:00 · right side pays</div>
+        <div class="cta"><div class="go">⤢ Open race</div><div class="sec">★</div></div>
+      </div>
+
+      <div class="locbtn">◎</div>
+      <div class="fab">+</div>
+      <div class="tabbar">
+        <div class="tb"><span class="g">✓</span>Practice</div>
+        <div class="tb"><span class="g">▤</span>Library</div>
+        <div class="tb"><span class="g">👁</span>Watch</div>
+        <div class="tb on"><span class="g">📖</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag keep" style="background:#1B7A3D;color:#fff;border-radius:5px;padding:2px 6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;">D</span> <b>The lens still works on the strip.</b> Flip to <b>Races</b> on the chip strip → accent swaps to teal, course geometry draws, the callout themes teal. A pin tap shows the compact callout; its ★ saves the course, its drag-up expands into the Frame-C detail sheet.</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>What changed &amp; why</h2>
+
+  <h3>The two fixes you called out</h3>
+  <ul>
+    <li><span class="pill fix">FIX</span><b>Duplicate step picker removed.</b> "Pick another" is gone from the bottom card. The single picker is the <b>Saved ★ dropdown</b> in the top bar (Frame B) — the one you said to keep. The card's job shrinks to: show the focused step + <code>Open step</code>.</li>
+    <li><span class="pill fix">FIX</span><b>Top bar de-crowded.</b> Was: interest ▾ · org ▾ · search · layers · + · inbox · avatar (7). Now: <b>context · 🔍 · ★ · avatar</b> (4). Inbox badge sits on the avatar; <b>org switching folds into the context chip</b>; <b>Layers</b> moves onto the chip strip; <b>＋ capture</b> becomes a FAB.</li>
+    <li><span class="pill fix">FIX</span><b>Search is no longer the hero.</b> You called it: search isn't key — <b>seeing the steps of people you follow &amp; know, and mapping your own, is</b>. Search drops to a 🔍 icon; the <b>relationship strip</b> takes the headline slot.</li>
+  </ul>
+
+  <h3>What we borrowed from Google Maps (minus search-first)</h3>
+  <ul>
+    <li><span class="pill new">NEW</span><b>Relationship strip is the hero</b> (where Google puts its category row): <code>My steps · Crew · Fleet · Following | Races · Layers</code>. <b>My steps on by default</b> (maps your steps); add others' steps by tapping their dot-coded chip. WHOSE leads, the WHAT/Races filter follows after a hairline divider.</li>
+    <li><span class="pill new">NEW</span><b>Favorites dropdown</b> → <b>Saved &amp; jump</b>: the jump list is <b>grouped by relationship</b> (<code>My steps · Crew · Fleet · Following · Nearby · Groups</code>, dot-coded to the lens strip), then <b>Your racing areas</b> and <b>Saved venues</b> in the same menu. This absorbs the old standalone <b>Nearby</b> list — finding the steps of people you follow &amp; know now lives in one place. Saving a place from the detail sheet drops it here.</li>
+    <li><span class="pill new">NEW</span><b>Inbox folds onto the avatar — everywhere.</b> The standalone bell is gone; the unread count rides as a red badge on the profile avatar, and the menu carries an <b>Inbox</b> row. Adopted on <b>every profile-bearing surface</b> (Atlas, Practice, Library, Watch), not just here — one less icon in every top bar.</li>
+    <li><span class="pill new">NEW</span><b>Select a place → detail panel.</b> Google's left sidebar becomes a mobile bottom sheet: cover photo, serif title, provenance, and an action row (Open · Fly to · Save · Share). The compact callout is the glance; drag up for the full sheet.</li>
+  </ul>
+
+  <h3>Open questions for you</h3>
+  <ul>
+    <li>Does the active <b>org</b> (Community / RHKYC) deserve its own chip, or is folding it into the <b>Sail Racing ▾</b> context switcher enough?</li>
+    <li>Now that the strip leads with <b>WHOSE</b> (My/Crew/Fleet/Following), should those relationship chips be <b>multi-select</b> (stack My + Crew + Fleet on the map at once) or single-pick? Multi-select is what "see everyone I know" really wants.</li>
+    <li>Should the FAB be a plain <code>+</code> (add step) or a small menu (Add step · Log now · Draw race area)?</li>
+  </ul>
+</div>
+
+</body>
+</html>

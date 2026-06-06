@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { TimelinePlacement } from '@/services/AddToTimelineService';
 
 interface AddToTimelineSheetProps {
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 32,
     color: '#111827',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
   },
   body: {

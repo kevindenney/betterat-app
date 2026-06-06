@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   italic: {
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
   },
   body: {

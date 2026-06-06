@@ -8,10 +8,11 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Anchor, ChevronLeft, Filter as FilterIcon } from 'lucide-react-native';
 import { PeerCard, type FleetPeer, type FleetPeerStatus } from '@/components/fleets/PeerCard';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export type { FleetPeer, FleetPeerStatus } from '@/components/fleets/PeerCard';
 
@@ -42,7 +43,7 @@ const C = {
   gray6: '#F2F2F7',
   blue: '#007AFF',
   greenDeep: '#0A6B2A',
-  serif: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }) as string,
+  serif: fontFamily.serif,
 };
 
 export function FleetPlansScreen({

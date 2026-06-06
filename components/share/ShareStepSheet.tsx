@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Anchor, ChevronRight, Link as LinkIcon, Send, Sparkles } from 'lucide-react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export type ShareMode = 'direct' | 'group' | 'link' | 'suggest';
 
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
   },
   previewTitle: {
     fontSize: 18,
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
     color: '#111827',
   },

@@ -37,6 +37,16 @@ import {
   Manrope_600SemiBold,
   Manrope_700Bold,
 } from '@expo-google-fonts/manrope';
+import {
+  Newsreader_400Regular,
+  Newsreader_500Medium,
+  Newsreader_600SemiBold,
+  Newsreader_700Bold,
+} from '@expo-google-fonts/newsreader';
+import {
+  IBMPlexMono_400Regular,
+  IBMPlexMono_500Medium,
+} from '@expo-google-fonts/ibm-plex-mono';
 import React, { useEffect, useState, useRef } from 'react';
 import { LogBox, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -58,10 +68,28 @@ LogBox.ignoreLogs([
   'RNMapsAirModule',
   'LocationPreviewMap',
   'PhaseContentErrorBoundary',
+  // MapLibre native emits red-box console errors for transient tile
+  // network timeouts. The map recovers as tiles retry; keep real JS
+  // errors visible while hiding this noisy dev overlay.
+  'MapLibre Native [ERROR] [-[MLNNetworkConfiguration errorLog:]] Requesting:',
+  'MapLibre Native [ERROR] [virtual bool mbgl::MLNCoreLoggingObserver::onRecord',
+  'Failed to load tile',
 ]);
 
 // Suppress red box errors for native modules not available in Expo Go (native platforms only)
 if (Platform.OS !== 'web' && __DEV__) {
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    const first = typeof args[0] === 'string' ? args[0] : '';
+    if (
+      first.includes('MapLibre Native [ERROR]') &&
+      (first.includes('Requesting:') || first.includes('Failed to load tile'))
+    ) {
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+
   // ErrorUtils is a React Native global for error handling
   const RNErrorUtils = (global as any).ErrorUtils;
   if (RNErrorUtils) {
@@ -545,11 +573,19 @@ function StackWithSplash() {
 }
 
 export default function RootLayout() {
-  // Load Manrope font family from Google Fonts
+  // Load the three type-role families: Manrope (body/UI), Newsreader
+  // (display — hero facts, section heads, step titles), IBM Plex Mono (data —
+  // dates, counts, capability tags). See lib/design-tokens-editorial.ts.
   useFonts({
     Manrope_400Regular,
     Manrope_600SemiBold,
     Manrope_700Bold,
+    Newsreader_400Regular,
+    Newsreader_500Medium,
+    Newsreader_600SemiBold,
+    Newsreader_700Bold,
+    IBMPlexMono_400Regular,
+    IBMPlexMono_500Medium,
   });
 
   // Initialize image cache and inject global CSS for web

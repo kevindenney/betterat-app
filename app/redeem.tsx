@@ -17,6 +17,7 @@ import { HKDW_BLUEPRINT_SLUG } from '@/lib/hkdwPhaseP';
 import { useBlueprint, useBlueprintSubscription, useSubscribe } from '@/hooks/useBlueprint';
 import { getEventTabRoute } from '@/lib/navigation-config';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 const C = {
   cream: '#F6F4EE',
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: C.navy,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     fontSize: 40,
     lineHeight: 46,
     fontWeight: '500',
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: C.navy2,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     fontSize: 18,
     lineHeight: 28,
     maxWidth: 650,
@@ -568,7 +569,7 @@ const styles = StyleSheet.create({
   sailCaption: {
     color: 'rgba(255,255,255,0.72)',
     fontSize: 13,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     lineHeight: 20,
     maxWidth: 220,
   },
@@ -597,7 +598,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     color: C.navy2,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     fontSize: 15,
     lineHeight: 23,
   },

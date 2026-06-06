@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
@@ -80,7 +81,52 @@ function toSampleStatus(status: string): SampleTimelineStep['status'] {
   return 'upcoming';
 }
 
-type ProfileTab = 'timelines' | 'activities' | 'organizations';
+const PALETTE = {
+  bg: '#ffffff',
+  band: '#f1f6fd',
+  card: '#ffffff',
+  line: '#e2e5ec',
+  lineSoft: '#edeff4',
+  txt: '#1b1d23',
+  txt2: '#5c616b',
+  txt3: '#8b909a',
+  blue: '#2d7ff9',
+  blueD: '#1c6df0',
+  green: '#34c759',
+  purple: '#bf5af2',
+  do: '#a8554a',
+} as const;
+
+const PHASE_BAND = [
+  { key: 'plan', label: 'Plan', glyph: '1', color: PALETTE.blue },
+  { key: 'do', label: 'Do', glyph: '2', color: PALETTE.do },
+  { key: 'review', label: 'Review', glyph: '3', color: PALETTE.green },
+  { key: 'discuss', label: 'Discuss', glyph: '💬', color: PALETTE.purple },
+] as const;
+
+/** PLAN · DO · REVIEW · DISCUSS phase band (kept per design — see memory). */
+function PhaseBand() {
+  return (
+    <View style={dbStyles.phaseBand}>
+      {PHASE_BAND.map((p, i) => (
+        <React.Fragment key={p.key}>
+          {i > 0 && <View style={dbStyles.phaseSep} />}
+          <View style={dbStyles.phaseItem}>
+            <View style={[dbStyles.phaseDot, { backgroundColor: p.color }]}>
+              <Text style={dbStyles.phaseDotText}>{p.glyph}</Text>
+            </View>
+            <Text style={dbStyles.phaseLabel}>{p.label}</Text>
+          </View>
+        </React.Fragment>
+      ))}
+    </View>
+  );
+}
+
+function capitalize(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 function DbUserProfile({ userId }: { userId: string }) {
   const { user } = useAuth();
@@ -97,7 +143,7 @@ function DbUserProfile({ userId }: { userId: string }) {
   const [organizations, setOrganizations] = useState<Map<string, OrganizationRow>>(new Map());
   const [activities, setActivities] = useState<{ id: string; name: string; date: string | null; venue: string | null }[]>([]);
   const [blueprints, setBlueprints] = useState<BlueprintRecord[]>([]);
-  const [activeTab, setActiveTab] = useState<ProfileTab>('timelines');
+  const [libExpanded, setLibExpanded] = useState(false);
   const timelineQuery = useUserTimeline(userId);
   const { allInterests } = useInterest();
 
@@ -363,11 +409,61 @@ function DbUserProfile({ userId }: { userId: string }) {
 
   const timelineCount = timelineQuery.data?.length ?? 0;
 
-  const tabs: { key: ProfileTab; label: string; icon: string; count?: number }[] = [
-    { key: 'timelines', label: 'Timelines', icon: 'git-branch-outline', count: timelineCount },
-    { key: 'activities', label: 'Activities', icon: 'trophy-outline', count: activities.length },
-    { key: 'organizations', label: 'Orgs', icon: 'business-outline', count: displayOrgs.length },
-  ];
+  const firstName = name.split(' ')[0] || name;
+
+  // Blueprints ranked by reach; the top one is featured, the rest split into
+  // active coaching blueprints (have subscribers) vs zero-subscriber
+  // curriculum-template library.
+  const sortedBlueprints = useMemo(
+    () => [...blueprints].sort((a, b) => (b.subscriber_count ?? 0) - (a.subscriber_count ?? 0)),
+    [blueprints],
+  );
+  const featuredBlueprint = sortedBlueprints[0] ?? null;
+  const coachingBlueprints = useMemo(
+    () => sortedBlueprints.slice(1).filter((b) => (b.subscriber_count ?? 0) > 0),
+    [sortedBlueprints],
+  );
+  const libraryBlueprints = useMemo(
+    () => sortedBlueprints.slice(1).filter((b) => (b.subscriber_count ?? 0) === 0),
+    [sortedBlueprints],
+  );
+  const subscriberTotal = useMemo(
+    () => blueprints.reduce((sum, b) => sum + (b.subscriber_count ?? 0), 0),
+    [blueprints],
+  );
+
+  // "Working on now": active steps first, then what's queued up next.
+  const nowSteps = useMemo(() => {
+    const data = timelineQuery.data ?? [];
+    const active = data.filter((s) => s.status === 'in_progress');
+    const upcoming = data.filter((s) => s.status !== 'in_progress' && s.status !== 'completed');
+    return [...active, ...upcoming].slice(0, 6);
+  }, [timelineQuery.data]);
+
+  // Distinct interests this person has steps in — identity chips for the hero.
+  const interestChips = useMemo(() => {
+    const data = timelineQuery.data ?? [];
+    const seen = new Set<string>();
+    const chips: { id: string; name: string }[] = [];
+    for (const s of data) {
+      if (s.interest_id && !seen.has(s.interest_id)) {
+        seen.add(s.interest_id);
+        const it = allInterests.find((i) => i.id === s.interest_id);
+        if (it) chips.push({ id: it.id, name: it.name });
+      }
+    }
+    return chips.slice(0, 4);
+  }, [timelineQuery.data, allInterests]);
+
+  const interestNameById = useCallback(
+    (interestId: string | null | undefined) =>
+      interestId ? allInterests.find((i) => i.id === interestId)?.name ?? null : null,
+    [allInterests],
+  );
+
+  const primaryRole = displayOrgs.length > 0
+    ? `${capitalize(displayOrgs[0].role)} · ${displayOrgs[0].name}`
+    : null;
 
   return (
     <SafeAreaView style={dbStyles.safeArea} edges={isOwner ? ['bottom', 'left', 'right'] : undefined}>
@@ -406,135 +502,209 @@ function DbUserProfile({ userId }: { userId: string }) {
 
       {!loading && !errorText ? (
         <ScrollView contentContainerStyle={[dbStyles.scrollContent, isOwner && { paddingTop: toolbarHeight }]} showsVerticalScrollIndicator={false}>
-          {/* ── Profile Hero ── */}
+          {/* ── Identity Hero ── */}
           <View style={dbStyles.heroSection}>
-            <View style={dbStyles.avatar}>
-              <Text style={dbStyles.avatarText}>{initials}</Text>
+            <View style={dbStyles.heroRow}>
+              <LinearGradient
+                colors={[PALETTE.blue, PALETTE.blueD]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={dbStyles.avatar}
+              >
+                <Text style={dbStyles.avatarText}>{initials}</Text>
+              </LinearGradient>
+              <View style={dbStyles.heroBody}>
+                <Text style={dbStyles.heroName}>{name}</Text>
+                {primaryRole && <Text style={dbStyles.heroRole}>{primaryRole}</Text>}
+                {interestChips.length > 0 && (
+                  <View style={dbStyles.chips}>
+                    {interestChips.map((c) => (
+                      <View key={c.id} style={dbStyles.chip}>
+                        <Text style={dbStyles.chipText}>{c.name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                <View style={dbStyles.heroActions}>
+                  {isOwner ? (
+                    <Pressable
+                      style={dbStyles.editBtn}
+                      onPress={() => router.push('/settings/edit-profile' as any)}
+                    >
+                      <Ionicons name="create-outline" size={15} color={PALETTE.txt} />
+                      <Text style={dbStyles.editBtnText}>Edit profile</Text>
+                    </Pressable>
+                  ) : isSignedIn ? (
+                    <FollowButton
+                      isFollowing={following}
+                      isLoading={followLoading}
+                      userName={name}
+                      onFollow={handleFollow}
+                      onUnfollow={handleUnfollow}
+                      size="medium"
+                      showDropdown={false}
+                    />
+                  ) : null}
+                </View>
+              </View>
             </View>
-            <Text style={dbStyles.heroName}>{name}</Text>
-            {email && <Text style={dbStyles.heroEmail}>{email}</Text>}
 
-            {/* Stats row */}
+            {/* Stats */}
             <View style={dbStyles.statsRow}>
+              <View style={dbStyles.statItem}>
+                <Text style={dbStyles.statValue}>{subscriberTotal}</Text>
+                <Text style={dbStyles.statLabel}>Subscribers</Text>
+              </View>
+              <View style={dbStyles.statItem}>
+                <Text style={dbStyles.statValue}>{blueprints.length}</Text>
+                <Text style={dbStyles.statLabel}>Blueprints</Text>
+              </View>
               <View style={dbStyles.statItem}>
                 <Text style={dbStyles.statValue}>{timelineCount}</Text>
                 <Text style={dbStyles.statLabel}>Steps</Text>
               </View>
-              <View style={dbStyles.statDivider} />
-              <View style={dbStyles.statItem}>
-                <Text style={dbStyles.statValue}>{activities.length}</Text>
-                <Text style={dbStyles.statLabel}>Activities</Text>
-              </View>
-              <View style={dbStyles.statDivider} />
               <View style={dbStyles.statItem}>
                 <Text style={dbStyles.statValue}>{displayOrgs.length}</Text>
                 <Text style={dbStyles.statLabel}>Orgs</Text>
               </View>
             </View>
-
-            {/* Follow button for visitors */}
-            {isSignedIn && !isOwner && (
-              <View style={dbStyles.followContainer}>
-                <FollowButton
-                  isFollowing={following}
-                  isLoading={followLoading}
-                  userName={name}
-                  onFollow={handleFollow}
-                  onUnfollow={handleUnfollow}
-                  size="medium"
-                  showDropdown={false}
-                />
-              </View>
-            )}
           </View>
 
-          {/* ── Tab Navigation ── */}
-          <View style={dbStyles.tabBar}>
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.key;
-              return (
-                <Pressable
-                  key={tab.key}
-                  style={[dbStyles.tab, isActive && dbStyles.tabActive]}
-                  onPress={() => setActiveTab(tab.key)}
+          <View style={dbStyles.sections}>
+            {/* ── Working on now ── */}
+            {nowSteps.length > 0 && (
+              <View style={dbStyles.section}>
+                <Text style={dbStyles.secHeadText}>Working on now</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={dbStyles.nowStrip}
                 >
-                  <Ionicons
-                    name={tab.icon as any}
-                    size={16}
-                    color={isActive ? '#2563EB' : '#9CA3AF'}
-                  />
-                  <Text style={[dbStyles.tabLabel, isActive && dbStyles.tabLabelActive]}>
-                    {tab.label}
-                  </Text>
-                  {(tab.count ?? 0) > 0 && (
-                    <View style={[dbStyles.tabBadge, isActive && dbStyles.tabBadgeActive]}>
-                      <Text style={[dbStyles.tabBadgeText, isActive && dbStyles.tabBadgeTextActive]}>
-                        {tab.count}
-                      </Text>
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {/* ── Tab Content ── */}
-          <View style={dbStyles.tabContent}>
-            {/* Timelines Tab */}
-            {activeTab === 'timelines' && (
-              <>
-                {/* Published Blueprints */}
-                {blueprints.length > 0 && (
-                  <View style={dbStyles.blueprintsSection}>
-                    <Text style={dbStyles.sectionHeader}>Published Blueprints</Text>
-                    {blueprints.map((bp) => (
-                      <Pressable
-                        key={bp.id}
-                        style={dbStyles.blueprintCard}
-                        onPress={() => router.push(`/blueprint/${bp.slug}` as any)}
-                      >
-                        <View style={dbStyles.blueprintIcon}>
-                          <Ionicons name="layers" size={18} color="#2563EB" />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={dbStyles.blueprintTitle}>{bp.title}</Text>
-                          {bp.description && (
-                            <Text style={dbStyles.blueprintDesc} numberOfLines={2}>{bp.description}</Text>
-                          )}
-                          <Text style={dbStyles.blueprintMeta}>
-                            {bp.subscriber_count} subscriber{bp.subscriber_count !== 1 ? 's' : ''}
+                  {nowSteps.map((step) => {
+                    const isDo = step.status === 'in_progress';
+                    const chipInterest = interestNameById(step.interest_id);
+                    return (
+                      <View key={step.id} style={dbStyles.nowCard}>
+                        <View style={[dbStyles.nowPhase, isDo ? dbStyles.phDo : dbStyles.phPlan]}>
+                          <Text style={[dbStyles.nowPhaseText, isDo ? dbStyles.phDoText : dbStyles.phPlanText]}>
+                            {isDo ? 'Do' : 'Plan'}
                           </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
+                        <Text style={dbStyles.nowTitle} numberOfLines={2}>{step.title}</Text>
+                        {chipInterest && (
+                          <View style={dbStyles.nowInterest}>
+                            <View style={dbStyles.nowInterestDot} />
+                            <Text style={dbStyles.nowInterestText} numberOfLines={1}>{chipInterest}</Text>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
 
-                {(!timelineQuery.data || timelineQuery.data.length === 0) && (
-                  <View style={dbStyles.emptyState}>
-                    <Ionicons
-                      name={isOwner ? 'git-branch-outline' : (!following ? 'people-outline' : 'git-branch-outline')}
-                      size={32}
-                      color="#D1D5DB"
-                    />
-                    <Text style={dbStyles.emptyTitle}>
-                      {isOwner
-                        ? 'No timelines yet'
-                        : !following
-                          ? 'Follow to see timelines'
-                          : 'No visible timelines'}
-                    </Text>
-                    <Text style={dbStyles.emptyText}>
-                      {isOwner
-                        ? 'Start building your timeline by adding steps.'
-                        : !following
-                          ? `Follow ${name.split(' ')[0]} to see their timeline steps and progress.`
-                          : 'This person hasn\'t shared any timeline steps yet.'}
-                    </Text>
+            {/* ── Featured blueprint ── */}
+            {featuredBlueprint && (
+              <View style={dbStyles.section}>
+                <Text style={dbStyles.secHeadText}>Featured blueprint</Text>
+                <Pressable
+                  style={dbStyles.feature}
+                  onPress={() => router.push(`/blueprint/${featuredBlueprint.slug}` as any)}
+                >
+                  <View style={dbStyles.featureTop}>
+                    <View style={{ flex: 1 }}>
+                      {featuredBlueprint.subscriber_count > 0 && (
+                        <View style={dbStyles.featureEyebrow}>
+                          <Ionicons name="star" size={12} color="#f5a623" />
+                          <Text style={dbStyles.featureEyebrowText}>Most subscribed</Text>
+                        </View>
+                      )}
+                      <Text style={dbStyles.featureTitle}>{featuredBlueprint.title}</Text>
+                      {(featuredBlueprint.tagline || featuredBlueprint.description) && (
+                        <Text style={dbStyles.featureDesc} numberOfLines={2}>
+                          {featuredBlueprint.tagline || featuredBlueprint.description}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={dbStyles.featureBadge}>
+                      <Text style={dbStyles.featureBadgeNum}>{featuredBlueprint.subscriber_count}</Text>
+                      <Text style={dbStyles.featureBadgeLabel}>
+                        {featuredBlueprint.subscriber_count === 1 ? 'Sub' : 'Subs'}
+                      </Text>
+                    </View>
                   </View>
-                )}
-                {timelineQuery.data && timelineQuery.data.length > 0 && (() => {
+                  <PhaseBand />
+                  <View style={dbStyles.featureFoot}>
+                    <Text style={dbStyles.featureFootText} numberOfLines={1}>
+                      By {firstName}
+                      {featuredBlueprint.duration_weeks ? ` · ${featuredBlueprint.duration_weeks} wks` : ''}
+                    </Text>
+                    <View style={dbStyles.featureCta}>
+                      <Text style={dbStyles.featureCtaText}>View</Text>
+                      <Ionicons name="chevron-forward" size={14} color="#fff" />
+                    </View>
+                  </View>
+                </Pressable>
+              </View>
+            )}
+
+            {/* ── Coaching blueprints ── */}
+            {coachingBlueprints.length > 0 && (
+              <View style={dbStyles.section}>
+                <Text style={dbStyles.secHeadText}>
+                  {isOwner ? 'Your coaching blueprints' : `${firstName}'s coaching blueprints`}
+                </Text>
+                <View style={dbStyles.bpGrid}>
+                  {coachingBlueprints.map((bp) => (
+                    <Pressable
+                      key={bp.id}
+                      style={dbStyles.bpCard}
+                      onPress={() => router.push(`/blueprint/${bp.slug}` as any)}
+                    >
+                      <View style={dbStyles.bpIcon}>
+                        <Ionicons name="layers" size={16} color={PALETTE.blue} />
+                      </View>
+                      <Text style={dbStyles.bpTitle} numberOfLines={1}>{bp.title}</Text>
+                      {bp.description && (
+                        <Text style={dbStyles.bpDesc} numberOfLines={2}>{bp.description}</Text>
+                      )}
+                      <Text style={dbStyles.bpSubCt}>
+                        {bp.subscriber_count} subscriber{bp.subscriber_count !== 1 ? 's' : ''}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* ── Timelines ── */}
+            <View style={dbStyles.section}>
+              <Text style={dbStyles.secHeadText}>Timelines</Text>
+              {(!timelineQuery.data || timelineQuery.data.length === 0) && (
+                <View style={dbStyles.emptyState}>
+                  <Ionicons
+                    name={isOwner ? 'git-branch-outline' : (!following ? 'people-outline' : 'git-branch-outline')}
+                    size={32}
+                    color="#D1D5DB"
+                  />
+                  <Text style={dbStyles.emptyTitle}>
+                    {isOwner
+                      ? 'No timelines yet'
+                      : !following
+                        ? 'Follow to see timelines'
+                        : 'No visible timelines'}
+                  </Text>
+                  <Text style={dbStyles.emptyText}>
+                    {isOwner
+                      ? 'Start building your timeline by adding steps.'
+                      : !following
+                        ? `Follow ${firstName} to see their timeline steps and progress.`
+                        : 'This person hasn\'t shared any timeline steps yet.'}
+                  </Text>
+                </View>
+              )}
+              {timelineQuery.data && timelineQuery.data.length > 0 && (() => {
                   const byInterest = new Map<string, TimelineStepRecord[]>();
                   for (const step of timelineQuery.data) {
                     const key = step.interest_id || '__none__';
@@ -659,23 +829,50 @@ function DbUserProfile({ userId }: { userId: string }) {
                     );
                   });
                 })()}
-              </>
+            </View>
+
+            {/* ── Curriculum library ── */}
+            {libraryBlueprints.length > 0 && (
+              <View style={dbStyles.lib}>
+                <View style={dbStyles.libHead}>
+                  <Text style={dbStyles.libTitle}>Curriculum library</Text>
+                  <Text style={dbStyles.libCt}>
+                    {libraryBlueprints.length} pathway template{libraryBlueprints.length !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+                <Text style={dbStyles.libSub}>
+                  Standards-based training pathways — adopt one wholesale or branch your own.
+                </Text>
+                <View>
+                  {(libExpanded ? libraryBlueprints : libraryBlueprints.slice(0, 5)).map((bp) => (
+                    <Pressable
+                      key={bp.id}
+                      style={dbStyles.libRow}
+                      onPress={() => router.push(`/blueprint/${bp.slug}` as any)}
+                    >
+                      <Text style={dbStyles.libRowName} numberOfLines={1}>{bp.title}</Text>
+                      <Ionicons name="chevron-forward" size={14} color={PALETTE.txt3} />
+                    </Pressable>
+                  ))}
+                </View>
+                {libraryBlueprints.length > 5 && (
+                  <Pressable style={dbStyles.libToggle} onPress={() => setLibExpanded((v) => !v)}>
+                    <Text style={dbStyles.libToggleText}>
+                      {libExpanded ? 'Show less' : `Show all ${libraryBlueprints.length} templates`}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
             )}
 
-            {/* Activities Tab */}
-            {activeTab === 'activities' && (
-              <>
-                {activities.length === 0 && (
-                  <View style={dbStyles.emptyState}>
-                    <Ionicons name="trophy-outline" size={32} color="#D1D5DB" />
-                    <Text style={dbStyles.emptyTitle}>No activities yet</Text>
-                    <Text style={dbStyles.emptyText}>Activities will appear here once created.</Text>
-                  </View>
-                )}
+            {/* ── Activities ── */}
+            {activities.length > 0 && (
+              <View style={dbStyles.section}>
+                <Text style={dbStyles.secHeadText}>Activities</Text>
                 {activities.map((activity) => (
                   <View key={activity.id} style={dbStyles.activityCard}>
                     <View style={dbStyles.activityIconWrap}>
-                      <Ionicons name="flag-outline" size={16} color="#2563EB" />
+                      <Ionicons name="flag-outline" size={16} color={PALETTE.blue} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={dbStyles.activityName}>{activity.name}</Text>
@@ -698,44 +895,35 @@ function DbUserProfile({ userId }: { userId: string }) {
                     </View>
                   </View>
                 ))}
-              </>
+              </View>
             )}
 
-            {/* Organizations Tab */}
-            {activeTab === 'organizations' && (
-              <>
-                {displayOrgs.length === 0 && (
-                  <View style={dbStyles.emptyState}>
-                    <Ionicons name="business-outline" size={32} color="#D1D5DB" />
-                    <Text style={dbStyles.emptyTitle}>No organizations</Text>
-                    <Text style={dbStyles.emptyText}>No active organization memberships.</Text>
-                  </View>
-                )}
-                {displayOrgs.map((org, idx) => (
-                  <Pressable
-                    key={`${org.name}-${idx}`}
-                    style={dbStyles.orgCard}
-                    onPress={() => {
-                      if (org.slug && org.interestSlug) {
-                        router.push(`/${org.interestSlug}/${org.slug}` as any);
-                      }
-                    }}
-                  >
-                    <View style={dbStyles.orgIconWrap}>
-                      <Ionicons name="business" size={18} color="#6366F1" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={dbStyles.orgName}>{org.name}</Text>
-                      <Text style={dbStyles.orgMeta}>
-                        {org.interestSlug || 'General'} · {org.role}
-                      </Text>
-                    </View>
-                    {org.slug && (
-                      <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-                    )}
-                  </Pressable>
-                ))}
-              </>
+            {/* ── Organizations ── */}
+            {displayOrgs.length > 0 && (
+              <View style={dbStyles.section}>
+                <Text style={dbStyles.secHeadText}>Organizations</Text>
+                <View style={dbStyles.orgChips}>
+                  {displayOrgs.map((org, idx) => (
+                    <Pressable
+                      key={`${org.name}-${idx}`}
+                      style={dbStyles.orgChip}
+                      onPress={() => {
+                        if (org.slug && org.interestSlug) {
+                          router.push(`/${org.interestSlug}/${org.slug}` as any);
+                        }
+                      }}
+                    >
+                      <View style={dbStyles.orgChipIcon}>
+                        <Text style={dbStyles.orgChipIconText}>{org.name.charAt(0).toUpperCase()}</Text>
+                      </View>
+                      <View style={{ flexShrink: 1 }}>
+                        <Text style={dbStyles.orgChipName} numberOfLines={1}>{org.name}</Text>
+                        <Text style={dbStyles.orgChipRole}>{capitalize(org.role)}</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
             )}
           </View>
         </ScrollView>
@@ -744,8 +932,10 @@ function DbUserProfile({ userId }: { userId: string }) {
   );
 }
 
+const MAXW = 720;
+
 const dbStyles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F8FAFC' },
+  safeArea: { flex: 1, backgroundColor: PALETTE.bg },
 
   // Nav bar
   navBar: {
@@ -753,9 +943,9 @@ const dbStyles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PALETTE.bg,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: PALETTE.line,
   },
   navBtn: {
     width: 36,
@@ -767,172 +957,345 @@ const dbStyles = StyleSheet.create({
 
   // Loading / error
   centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 48, gap: 12 },
-  stateText: { fontSize: 14, color: '#6B7280' },
+  stateText: { fontSize: 14, color: PALETTE.txt2 },
   errorText: { fontSize: 14, color: '#B91C1C', textAlign: 'center', paddingHorizontal: 24 },
   errorBackBtn: {
     marginTop: 8,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#1F2937',
+    backgroundColor: PALETTE.txt,
   },
   errorBackBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
 
-  scrollContent: { paddingBottom: 32 },
+  scrollContent: { paddingBottom: 48 },
 
   // Hero
   heroSection: {
-    alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E7EB',
+    width: '100%',
+    maxWidth: MAXW,
+    alignSelf: 'center',
+    paddingTop: 28,
+    paddingBottom: 22,
+    paddingHorizontal: 20,
+  },
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 18,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#1E40AF',
+    width: 76,
+    height: 76,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  heroBody: { flex: 1, minWidth: 0 },
+  heroName: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: PALETTE.txt,
+    letterSpacing: -0.5,
+  },
+  heroRole: {
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: PALETTE.blue,
+    marginTop: 3,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: PALETTE.line,
+    backgroundColor: PALETTE.bg,
+    borderRadius: 980,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  chipText: { fontSize: 12.5, fontWeight: '500', color: PALETTE.txt2 },
+  heroActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 16,
+  },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: PALETTE.bg,
+    borderWidth: 1,
+    borderColor: PALETTE.line,
+    borderRadius: 980,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    ...Platform.select({ web: { cursor: 'pointer' } }),
+  },
+  editBtnText: { fontSize: 14, fontWeight: '600', color: PALETTE.txt },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 28,
+    marginTop: 22,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: PALETTE.lineSoft,
+  },
+  statItem: { alignItems: 'flex-start' },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: PALETTE.txt,
+    letterSpacing: -0.4,
+  },
+  statLabel: {
+    fontSize: 12.5,
+    color: PALETTE.txt3,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+
+  // Section scaffolding
+  sections: {
+    width: '100%',
+    maxWidth: MAXW,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    gap: 34,
+    marginTop: 12,
+  },
+  section: { gap: 14 },
+  secHeadText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: PALETTE.txt3,
+  },
+
+  // Working on now
+  nowStrip: { gap: 12, paddingBottom: 4 },
+  nowCard: {
+    width: 220,
+    backgroundColor: PALETTE.card,
+    borderWidth: 1,
+    borderColor: PALETTE.line,
+    borderRadius: 16,
+    padding: 15,
+    ...Platform.select({ web: { boxShadow: '0 8px 30px rgba(28,40,64,.06)' } }),
+  },
+  nowPhase: {
+    alignSelf: 'flex-start',
+    borderRadius: 980,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  phDo: { backgroundColor: 'rgba(168,85,74,.13)' },
+  phPlan: { backgroundColor: 'rgba(45,127,249,.12)' },
+  nowPhaseText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  phDoText: { color: PALETTE.do },
+  phPlanText: { color: PALETTE.blue },
+  nowTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: PALETTE.txt,
+    letterSpacing: -0.2,
+    marginTop: 11,
+    lineHeight: 19,
+  },
+  nowInterest: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  nowInterestDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: PALETTE.blue },
+  nowInterestText: { fontSize: 11.5, fontWeight: '600', color: PALETTE.txt2, flexShrink: 1 },
+
+  // Featured blueprint
+  feature: {
+    backgroundColor: PALETTE.card,
+    borderWidth: 1,
+    borderColor: PALETTE.line,
+    borderRadius: 20,
+    overflow: 'hidden',
+    ...Platform.select({ web: { boxShadow: '0 22px 60px rgba(28,40,64,.11)', cursor: 'pointer' } }),
+  },
+  featureTop: {
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'flex-start',
+    padding: 22,
+    paddingBottom: 18,
+  },
+  featureEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  featureEyebrowText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: PALETTE.blue,
+  },
+  featureTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: PALETTE.txt,
+    letterSpacing: -0.5,
+    lineHeight: 26,
+  },
+  featureDesc: {
+    fontSize: 14.5,
+    color: PALETTE.txt2,
+    marginTop: 9,
+    lineHeight: 20,
+  },
+  featureBadge: {
+    alignItems: 'center',
+    backgroundColor: PALETTE.band,
+    borderWidth: 1,
+    borderColor: PALETTE.lineSoft,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  featureBadgeNum: { fontSize: 22, fontWeight: '700', color: PALETTE.blue, letterSpacing: -0.4 },
+  featureBadgeLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: PALETTE.txt3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  phaseBand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: PALETTE.lineSoft,
+  },
+  phaseItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  phaseSep: { flex: 1, height: 1, backgroundColor: PALETTE.lineSoft, minWidth: 10 },
+  phaseDot: { width: 19, height: 19, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  phaseDotText: { fontSize: 10, fontWeight: '700', color: '#FFFFFF' },
+  phaseLabel: { fontSize: 12.5, fontWeight: '600', color: PALETTE.txt },
+  featureFoot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 14,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    backgroundColor: PALETTE.band,
+  },
+  featureFootText: { flex: 1, fontSize: 13, color: PALETTE.txt2 },
+  featureCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: PALETTE.blue,
+    borderRadius: 980,
+    paddingLeft: 16,
+    paddingRight: 12,
+    paddingVertical: 8,
+  },
+  featureCtaText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+
+  // Coaching blueprint grid
+  bpGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  bpCard: {
+    flexGrow: 1,
+    flexBasis: 200,
+    minWidth: 0,
+    backgroundColor: PALETTE.card,
+    borderWidth: 1,
+    borderColor: PALETTE.line,
+    borderRadius: 16,
+    padding: 18,
+    ...Platform.select({ web: { boxShadow: '0 8px 30px rgba(28,40,64,.06)', cursor: 'pointer' } }),
+  },
+  bpIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: PALETTE.band,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  avatarText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 1,
+  bpTitle: { fontSize: 16, fontWeight: '600', color: PALETTE.txt, letterSpacing: -0.3 },
+  bpDesc: { fontSize: 13.5, color: PALETTE.txt2, marginTop: 6, lineHeight: 19 },
+  bpSubCt: { fontSize: 12.5, fontWeight: '600', color: PALETTE.blue, marginTop: 13 },
+
+  // Curriculum library
+  lib: {
+    backgroundColor: PALETTE.band,
+    borderWidth: 1,
+    borderColor: PALETTE.lineSoft,
+    borderRadius: 20,
+    padding: 22,
   },
-  heroName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#111827',
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  heroEmail: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  statsRow: {
+  libHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 0,
+    justifyContent: 'space-between',
+    gap: 14,
     marginBottom: 4,
   },
-  statItem: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 1,
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: '#E5E7EB',
-  },
-  followContainer: {
-    marginTop: 12,
-  },
-
-  // Tab bar
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E7EB',
-  },
-  tab: {
-    flex: 1,
+  libTitle: { fontSize: 16, fontWeight: '700', color: PALETTE.txt, letterSpacing: -0.3 },
+  libCt: { fontSize: 13, fontWeight: '600', color: PALETTE.txt3 },
+  libSub: { fontSize: 13.5, color: PALETTE.txt2, marginBottom: 12, lineHeight: 19 },
+  libRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: '#2563EB',
-  },
-  tabLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#9CA3AF',
-  },
-  tabLabelActive: {
-    color: '#2563EB',
-  },
-  tabBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
-  },
-  tabBadgeActive: {
-    backgroundColor: '#EFF6FF',
-  },
-  tabBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#9CA3AF',
-  },
-  tabBadgeTextActive: {
-    color: '#2563EB',
-  },
-
-  // Tab content
-  tabContent: {
-    padding: 16,
     gap: 12,
+    paddingVertical: 11,
+    borderTopWidth: 1,
+    borderTopColor: PALETTE.line,
+    ...Platform.select({ web: { cursor: 'pointer' } }),
   },
+  libRowName: { flex: 1, fontSize: 14.5, fontWeight: '500', color: PALETTE.txt },
+  libToggle: {
+    alignSelf: 'center',
+    marginTop: 14,
+    backgroundColor: PALETTE.bg,
+    borderWidth: 1,
+    borderColor: PALETTE.line,
+    borderRadius: 980,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    ...Platform.select({ web: { cursor: 'pointer' } }),
+  },
+  libToggleText: { fontSize: 13.5, fontWeight: '600', color: PALETTE.txt2 },
 
   // Empty state
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 36,
     gap: 8,
   },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    maxWidth: 260,
-  },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: PALETTE.txt2 },
+  emptyText: { fontSize: 13, color: PALETTE.txt3, textAlign: 'center', maxWidth: 280 },
 
   // Timeline cards
   timelineCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: PALETTE.card,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: PALETTE.line,
     padding: 16,
     gap: 12,
+    ...Platform.select({ web: { boxShadow: '0 8px 30px rgba(28,40,64,.06)' } }),
   },
-  timelineHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
+  timelineHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   timelineIcon: {
     width: 36,
     height: 36,
@@ -940,26 +1303,10 @@ const dbStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  timelineTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  timelineSubtitle: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 1,
-  },
-  progressTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#F3F4F6',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 4,
-    borderRadius: 2,
-  },
+  timelineTitle: { fontSize: 15, fontWeight: '700', color: PALETTE.txt },
+  timelineSubtitle: { fontSize: 12, color: PALETTE.txt3, marginTop: 1 },
+  progressTrack: { height: 4, borderRadius: 2, backgroundColor: PALETTE.lineSoft, overflow: 'hidden' },
+  progressFill: { height: 4, borderRadius: 2 },
   visibilityBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -967,16 +1314,16 @@ const dbStyles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: PALETTE.band,
   },
-  visibilityLabel: { fontSize: 11, color: '#6B7280', fontWeight: '600' },
+  visibilityLabel: { fontSize: 11, color: PALETTE.txt2, fontWeight: '600' },
 
   // Adopt section
   adoptSection: { gap: 0 },
   adoptHeading: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: PALETTE.txt3,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -989,15 +1336,9 @@ const dbStyles = StyleSheet.create({
     borderRadius: 8,
     gap: 8,
   },
-  adoptRowDone: {
-    backgroundColor: '#F0FDF4',
-  },
-  adoptStatusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  adoptStepTitle: { flex: 1, fontSize: 14, color: '#374151' },
+  adoptRowDone: { backgroundColor: '#F0FDF4' },
+  adoptStatusDot: { width: 8, height: 8, borderRadius: 4 },
+  adoptStepTitle: { flex: 1, fontSize: 14, color: PALETTE.txt2 },
   adoptBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1007,7 +1348,7 @@ const dbStyles = StyleSheet.create({
     borderRadius: 8,
   },
   adoptBtnDone: {},
-  adoptBtnText: { fontSize: 13, fontWeight: '600', color: '#2563EB' },
+  adoptBtnText: { fontSize: 13, fontWeight: '600', color: PALETTE.blue },
   adoptBtnTextDone: { color: '#059669' },
 
   // Activity cards
@@ -1015,80 +1356,51 @@ const dbStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: PALETTE.card,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: PALETTE.line,
     padding: 14,
   },
   activityIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: PALETTE.band,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activityName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 3,
-  },
-  activityMeta: {
-    flexDirection: 'row',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  activityMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  activityMetaText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
+  activityName: { fontSize: 15, fontWeight: '600', color: PALETTE.txt, marginBottom: 3 },
+  activityMeta: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  activityMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  activityMetaText: { fontSize: 12, color: PALETTE.txt3 },
 
-  // Org cards
-  orgCard: {
+  // Org chips
+  orgChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 11 },
+  orgChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    gap: 11,
+    backgroundColor: PALETTE.card,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 14,
-    ...Platform.select({ web: { cursor: 'pointer' } }),
+    borderColor: PALETTE.line,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingLeft: 12,
+    paddingRight: 16,
+    ...Platform.select({ web: { boxShadow: '0 8px 30px rgba(28,40,64,.06)', cursor: 'pointer' } }),
   },
-  orgIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#EEF2FF',
+  orgChipIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: PALETTE.blue,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  orgName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  orgMeta: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 1,
-  },
-
-  // Blueprint cards
-  blueprintsSection: { marginBottom: 16 },
-  sectionHeader: { fontSize: 13, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingHorizontal: 16 },
-  blueprintCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginHorizontal: 16, marginBottom: 8, gap: 10 },
-  blueprintIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center' },
-  blueprintTitle: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  blueprintDesc: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  blueprintMeta: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  orgChipIconText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
+  orgChipName: { fontSize: 14.5, fontWeight: '600', color: PALETTE.txt },
+  orgChipRole: { fontSize: 12, color: PALETTE.txt3, fontWeight: '500', marginTop: 1 },
 });
 
 // ── Sample data public profile ──────────────────────────────────────

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +6,9 @@ import { useAuth } from '../../providers/AuthProvider';
 import { isAppleSignInAvailable } from '@/lib/auth/nativeOAuth';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePersonaParam, type PersonaRole } from '@/lib/auth/signupPersona';
+import { PENDING_CREATE_ORG_KEY } from '@/services/onboarding/commitSignupContext';
 import { getOnboardingContext } from '@/lib/onboarding/interestContext';
 import { SAMPLE_INTERESTS } from '@/lib/landing/sampleData';
 import { OnboardingStateService } from '@/services/onboarding/OnboardingStateService';
@@ -37,7 +38,6 @@ const getSignupErrorMessage = (error: any): string => {
 type SignupStep = 'interest' | 'persona';
 
 export default function SignUp() {
-  const { t } = useTranslation('auth');
   const { signUp, signInWithGoogle, signInWithApple, loading: authLoading } = useAuth();
   const params = useLocalSearchParams<{
     persona?: string;
@@ -49,6 +49,7 @@ export default function SignUp() {
     returnTo?: string;
     blueprint?: string;
     blueprintName?: string;
+    intent?: string;
   }>();
 
   // If interest comes from URL, skip the interest picker step
@@ -57,6 +58,7 @@ export default function SignUp() {
   const returnTo = params.returnTo || undefined;
   const blueprintRef = params.blueprint || undefined;
   const blueprintName = params.blueprintName || undefined;
+  const wantsCreateOrg = params.intent === 'create-org';
 
   const [selectedInterest, setSelectedInterest] = useState<string | undefined>(paramInterest);
   const [step, setStep] = useState<SignupStep>(paramInterest ? 'persona' : 'interest');
@@ -83,8 +85,7 @@ export default function SignUp() {
     setPersona(normalizePersonaParam(params.persona));
   }, [params.persona]);
 
-  // Always use generic persona labels on signup — interest-specific terminology is for inside the app
-  const personaLabels = { sailor: 'Learner', coach: 'Coach', club: 'Organization' };
+  // Generic subtitles on signup — interest-specific terminology is for inside the app
   const personaSubtitles = {
     sailor: 'Start learning and tracking your progress',
     coach: 'Set up your coaching profile',
@@ -180,6 +181,14 @@ export default function SignUp() {
             console.warn('[Signup] Post-signup state save failed, continuing:', profileErr);
           }
         }
+        if (wantsCreateOrg) {
+          // Came from a "set up your org" CTA: skip the learner trial
+          // celebration and drop straight onto the orgs surface, which
+          // auto-opens CreateOrgSheet via the pending flag.
+          await AsyncStorage.setItem(PENDING_CREATE_ORG_KEY, '1');
+          router.replace('/(tabs)/library?zone=orgs' as any);
+          return;
+        }
         router.replace('/onboarding/trial-activation');
       } else if (persona === 'club') {
         const chatRoute = selectedInterest
@@ -200,6 +209,7 @@ export default function SignUp() {
   const handleGoogleSignUp = async () => {
     setErrorMessage(null);
     try {
+      if (wantsCreateOrg) await AsyncStorage.setItem(PENDING_CREATE_ORG_KEY, '1');
       await signInWithGoogle(persona);
       // OAuth has no userId until callback.tsx runs after the redirect;
       // dual-write AsyncStorage now, DB commit happens post-callback.
@@ -219,6 +229,7 @@ export default function SignUp() {
   const handleAppleSignUp = async () => {
     setErrorMessage(null);
     try {
+      if (wantsCreateOrg) await AsyncStorage.setItem(PENDING_CREATE_ORG_KEY, '1');
       await signInWithApple(persona);
       await commitSignupContext({
         interestSlug: selectedInterest,
@@ -373,31 +384,6 @@ export default function SignUp() {
           <Text testID="signup-title" style={styles.title}>Create your account</Text>
           <Text key={persona} style={styles.subtitle}>{getSubtitle()}</Text>
 
-          {/* Persona Picker */}
-          <View style={styles.personaPicker}>
-            {(['sailor', 'club'] as PersonaRole[]).map((p) => (
-              <TouchableOpacity
-                key={p}
-                style={[
-                  styles.personaPill,
-                  persona === p && styles.personaPillActive,
-                ]}
-                onPress={() => setPersona(p)}
-                accessibilityRole="button"
-                accessibilityLabel={`Sign up as ${personaLabels[p]}`}
-              >
-                <Text
-                  style={[
-                    styles.personaPillText,
-                    persona === p && styles.personaPillTextActive,
-                  ]}
-                >
-                  {personaLabels[p]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
           {/* Error Message Banner */}
           {errorMessage && (
             <View style={styles.errorBanner}>
@@ -440,18 +426,6 @@ export default function SignUp() {
                 </TouchableOpacity>
               )
             )}
-
-            {/* Phone + OTP — dev-context entry (plan §4 Step 5). */}
-            <TouchableOpacity
-              testID="signup-phone-button"
-              accessibilityRole="button"
-              style={[styles.socialButton, isLoading && styles.buttonDisabled]}
-              onPress={() => router.push('/(auth)/phone' as any)}
-              disabled={isLoading}
-            >
-              <Ionicons name="call-outline" size={18} color="#1A1918" />
-              <Text style={styles.socialButtonText}>{t('signup.signUpWithPhone')}</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Divider */}
@@ -661,36 +635,6 @@ const styles = StyleSheet.create({
   orgContextText: {
     fontSize: 13,
     fontWeight: '600',
-  },
-
-  // Persona Picker
-  personaPicker: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 20,
-  },
-  personaPill: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-  },
-  personaPillActive: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
-  },
-  personaPillText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  personaPillTextActive: {
-    color: '#2563EB',
   },
 
   // Social Buttons

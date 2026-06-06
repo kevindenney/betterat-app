@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { StatePill } from '@/components/step-loop';
 import { DayTile } from './DayTile';
 import { HingeBookend } from './HingeBookend';
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     fontWeight: '400',
     color: '#111827',
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
   },
   dates: {

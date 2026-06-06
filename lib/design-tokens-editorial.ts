@@ -25,24 +25,41 @@ import { Platform } from 'react-native';
  *
  * Font loading status:
  *   - sans 'Manrope' is loaded in app/_layout.tsx via @expo-google-fonts/manrope
- *   - serif fallbacks rely on platform-bundled faces today
- *     (iOS: 'Iowan Old Style' bundled; Android: 'serif' resolves to Noto Serif;
- *      web: 'Iowan Old Style, Georgia, serif').
- *   - A bundled Source Serif 4 install is planned for the step-detail serif
- *     migration commit; until then these tokens render via fallbacks.
+ *   - serif 'Newsreader' (the locked display face — Acme-style restrained Scotch)
+ *     is loaded in app/_layout.tsx via @expo-google-fonts/newsreader; this is the
+ *     single --font-display family, scoped to display moments (hero facts, section
+ *     heads, the next-Step title, first-person reflection voice).
+ *   - mono 'IBM Plex Mono' (the data role — dates, counts, capability tags) is
+ *     loaded in app/_layout.tsx via @expo-google-fonts/ibm-plex-mono.
+ *   - Weight-suffixed family names (e.g. Newsreader_600SemiBold) are required on
+ *     native; pair each `fontFamily` with its matching loaded weight.
  */
 export const fontFamily = {
+  // Display / headline serif — the single --font-display family.
   serif: Platform.select({
-    ios: 'Iowan Old Style',
-    android: 'serif',
-    web: '"Iowan Old Style", Georgia, "Times New Roman", serif',
-    default: 'serif',
+    ios: 'Newsreader_500Medium',
+    android: 'Newsreader_500Medium',
+    web: 'Newsreader_500Medium, "Newsreader", Georgia, "Times New Roman", serif',
+    default: 'Newsreader_500Medium',
+  }) as string,
+  serifSemibold: Platform.select({
+    ios: 'Newsreader_600SemiBold',
+    android: 'Newsreader_600SemiBold',
+    web: 'Newsreader_600SemiBold, "Newsreader", Georgia, "Times New Roman", serif',
+    default: 'Newsreader_600SemiBold',
   }) as string,
   sans: Platform.select({
     ios: 'Manrope_400Regular',
     android: 'Manrope_400Regular',
     web: 'Manrope_400Regular, -apple-system, BlinkMacSystemFont, "Inter", sans-serif',
     default: 'Manrope_400Regular',
+  }) as string,
+  // Data role — timestamps, counts, capability tags. Tabular numerals.
+  mono: Platform.select({
+    ios: 'IBMPlexMono_400Regular',
+    android: 'IBMPlexMono_400Regular',
+    web: 'IBMPlexMono_400Regular, "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace',
+    default: 'IBMPlexMono_400Regular',
   }) as string,
 } as const;
 
@@ -100,5 +117,18 @@ export const text = {
     fontSize: 15,
     fontWeight: '400' as const,
     lineHeight: 22,
+  },
+  // Data role — IBM Plex Mono. Dates, counts, capability tags, timeline meta.
+  monoMeta: {
+    fontFamily: fontFamily.mono,
+    fontSize: 12.5,
+    fontWeight: '400' as const,
+    letterSpacing: 0.1,
+  },
+  monoLabel: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    fontWeight: '500' as const,
+    letterSpacing: 0.2,
   },
 } as const;

@@ -11,6 +11,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { PhaseProgress, StepCardH } from '@/components/timeline/types';
 
 interface Props {
@@ -330,9 +331,11 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   nowDividerText: {
+    fontFamily: fontFamily.mono,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '500',
     color: '#007AFF',
     letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
 });

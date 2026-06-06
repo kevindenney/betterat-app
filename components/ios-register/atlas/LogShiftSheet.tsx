@@ -5,7 +5,7 @@
  * clinical shift: site (preselected), unit, the competencies practiced, a
  * self-rating, and an optional PHI-linted reflection. Writes through
  * useLogClinicalShift, which produces located competency evidence so the Sites
- * coverage bars fill in. Site-level only — there is no room/unit/patient field.
+ * coverage bars fill in. Site-level only — there is no patient, room, or bed field.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   useLogClinicalShift,
@@ -98,7 +99,14 @@ export function LogShiftSheet({
 
   const grouped = useMemo(() => {
     const map = new Map<string, CompetencyRow[]>();
+    const seenTitles = new Set<string>();
     for (const c of competencies) {
+      const normalizedTitle = (c.title ?? `competency-${c.id}`)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+      if (seenTitles.has(normalizedTitle)) continue;
+      seenTitles.add(normalizedTitle);
       const cat = c.category ?? 'Other';
       const arr = map.get(cat) ?? [];
       arr.push(c);
@@ -175,7 +183,12 @@ export function LogShiftSheet({
             </Text>
             {site?.unit ? <Text style={styles.subtitle}>{site.unit}</Text> : null}
           </View>
-          <Pressable onPress={onClose} hitSlop={8} style={styles.close}>
+          <Pressable
+            onPress={onClose}
+            hitSlop={8}
+            style={styles.close}
+            accessibilityLabel="Close log shift"
+          >
             <Ionicons name="close" size={20} color={IOS_COLORS.secondaryLabel} />
           </Pressable>
         </View>
@@ -241,7 +254,7 @@ export function LogShiftSheet({
           <View style={styles.privacyRow}>
             <Ionicons name="lock-closed" size={11} color={IOS_COLORS.tertiaryLabel} />
             <Text style={styles.privacyText}>
-              Logged at site level and shared with your cohort only — never a room, unit, or patient.
+              Logged at site level and shared with your cohort only — never a patient, room, bed, MRN, or DOB.
             </Text>
           </View>
         </ScrollView>
@@ -284,14 +297,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 4 },
-  kicker: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6, color: IOS_COLORS.secondaryLabel },
-  title: { fontSize: 20, fontWeight: '700', color: IOS_COLORS.label, letterSpacing: -0.4 },
+  kicker: { fontFamily: fontFamily.mono, fontSize: 11, fontWeight: '500', letterSpacing: 0.6, color: IOS_COLORS.secondaryLabel, textTransform: 'uppercase' },
+  title: { fontFamily: fontFamily.serif, fontSize: 21, fontWeight: '500', color: IOS_COLORS.label, letterSpacing: -0.3 },
   subtitle: { fontSize: 13, color: IOS_COLORS.secondaryLabel, marginTop: 1 },
   close: { padding: 4 },
   body: { marginTop: 8 },
   sectionLabel: {
+    fontFamily: fontFamily.mono,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
     letterSpacing: 0.4,

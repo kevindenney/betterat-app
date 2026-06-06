@@ -25,6 +25,7 @@ import { useAtlasPois, type AtlasPoi } from '@/hooks/useAtlasPois';
 import { useNursingSiteCoverage, type CoverageCluster } from '@/hooks/useNursingSiteCoverage';
 import { useNursingCuratedSites, type CuratedSiteRole } from '@/hooks/useNursingCuratedSites';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { AtlasNextEvent } from '@/components/ios-register/atlas/AtlasScreen';
 
 // Competency cluster colors — shared with the mockup (#23) and the cohort
@@ -191,7 +192,14 @@ export interface NursingSitesSurfaceProps {
   nextEvent: AtlasNextEvent;
   toolbarOffset?: number;
   bottomOffset?: number;
-  onSitePress?: (site: { id: string; name: string; lat?: number; lng?: number }) => void;
+  onSitePress?: (site: {
+    id: string;
+    name: string;
+    lat?: number;
+    lng?: number;
+    unit?: string;
+    statusLabel?: string;
+  }) => void;
   /** Open the log-shift sheet for a site. Preferred over onSitePress when set. */
   onLogShift?: (site: {
     id: string;
@@ -249,7 +257,17 @@ export function NursingSitesSurface({
     return curatedSites.filter((s) => !shown.has(s.poiId));
   }, [partner, curatedSites, groups]);
 
-  const heroWhere = nextEvent.where ?? 'Your next rotation';
+  const heroTitle = nextEvent.label === 'Clinical' ? 'MICU · Bayview' : nextEvent.label;
+  const heroWhere =
+    nextEvent.label === 'Clinical'
+      ? 'Johns Hopkins Bayview Medical Center'
+      : (nextEvent.where ?? 'Your next rotation');
+  const liveCoverageSites = Object.keys(coverage).length;
+  const liveLoggedShifts = Object.values(coverage).reduce((sum, site) => sum + site.shifts, 0);
+  const evidenceStatus =
+    liveLoggedShifts > 0
+      ? `${liveLoggedShifts} logged shift${liveLoggedShifts === 1 ? '' : 's'} across ${liveCoverageSites} site${liveCoverageSites === 1 ? '' : 's'}`
+      : 'Demo rotation shape · log a shift to make coverage live';
 
   return (
     <ScrollView
@@ -263,7 +281,7 @@ export function NursingSitesSurface({
       {/* Hero — NEXT rotation */}
       <View style={styles.hero}>
         <Text style={styles.heroKicker}>▸ Next rotation</Text>
-        <Text style={styles.heroTitle}>{nextEvent.label}</Text>
+        <Text style={styles.heroTitle}>{heroTitle}</Text>
         <Text style={styles.heroWhere}>
           {[heroWhere, nextEvent.when ? `starts ${nextEvent.when}` : null].filter(Boolean).join(' · ')}
         </Text>
@@ -284,6 +302,17 @@ export function NursingSitesSurface({
         ) : null}
       </View>
 
+      <View style={[styles.evidenceBanner, liveLoggedShifts > 0 && styles.evidenceBannerLive]}>
+        <Ionicons
+          name={liveLoggedShifts > 0 ? 'checkmark-circle' : 'information-circle'}
+          size={14}
+          color={liveLoggedShifts > 0 ? '#16A34A' : IOS_COLORS.secondaryLabel}
+        />
+        <Text style={[styles.evidenceBannerText, liveLoggedShifts > 0 && styles.evidenceBannerTextLive]}>
+          {evidenceStatus}
+        </Text>
+      </View>
+
       {groups.map((group) => (
         <View key={group.eyebrow}>
           <Text style={styles.eyebrow}>{group.eyebrow}</Text>
@@ -295,23 +324,22 @@ export function NursingSitesSurface({
             const real = coverage[card.id];
             const total = card.coverage?.total ?? 12;
             const display = real
-              ? {
+              ? (card.coverage ?? {
                   evidenced: real.evidenced,
                   total,
                   weekLabel: `${real.shifts} shift${real.shifts === 1 ? '' : 's'} logged`,
                   segments: buildSegments(real.byCluster, total),
-                }
+                })
               : card.coverage ?? null;
             const press = () =>
-              onLogShift
-                ? onLogShift({
-                    id: card.id,
-                    name: card.name,
-                    lat: card.lat,
-                    lng: card.lng,
-                    unit: card.unit,
-                  })
-                : onSitePress?.({ id: card.id, name: card.name, lat: card.lat, lng: card.lng });
+              onSitePress?.({
+                id: card.id,
+                name: card.name,
+                lat: card.lat,
+                lng: card.lng,
+                unit: card.unit,
+                statusLabel: card.statusLabel,
+              });
             return (
             <Pressable
               key={card.id}
@@ -319,6 +347,7 @@ export function NursingSitesSurface({
               onPress={press}
               accessibilityRole="button"
               accessibilityLabel={`${card.name}, ${card.unit}`}
+              testID={`atlas-nursing-site-${card.match.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
             >
               <View style={styles.siteHead}>
                 <View style={[styles.badge, { backgroundColor: STATUS_BG[card.status] }]}>
@@ -468,11 +497,13 @@ const styles = StyleSheet.create({
   },
   heroKicker: {
     color: '#7FB2FF',
+    fontFamily: fontFamily.mono,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
     letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
-  heroTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
+  heroTitle: { color: '#FFFFFF', fontFamily: fontFamily.serif, fontSize: 23, fontWeight: '500', letterSpacing: -0.3 },
   heroWhere: { color: 'rgba(235,235,245,0.7)', fontSize: 13 },
   heroMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   heroMetaItem: { color: 'rgba(235,235,245,0.85)', fontSize: 12 },
@@ -497,9 +528,34 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 4,
   },
-  eyebrow: {
-    fontSize: 11,
+  evidenceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.separator,
+  },
+  evidenceBannerLive: {
+    backgroundColor: 'rgba(22,163,74,0.08)',
+    borderColor: 'rgba(22,163,74,0.22)',
+  },
+  evidenceBannerText: {
+    flex: 1,
+    fontSize: 12,
     fontWeight: '700',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  evidenceBannerTextLive: {
+    color: '#166534',
+  },
+  eyebrow: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    fontWeight: '500',
     letterSpacing: 0.6,
     color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
@@ -527,12 +583,12 @@ const styles = StyleSheet.create({
   siteName: { fontSize: 15, fontWeight: '700', color: IOS_COLORS.label, letterSpacing: -0.2 },
   siteUnit: { fontSize: 12, color: IOS_COLORS.secondaryLabel },
   statPill: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999 },
-  statPillText: { fontSize: 12, fontWeight: '700' },
+  statPillText: { fontFamily: fontFamily.mono, fontSize: 12, fontWeight: '500', textTransform: 'uppercase' },
   cov: { gap: 6 },
   covLab: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   covLabText: { fontSize: 12, color: IOS_COLORS.label },
   covLabBold: { fontWeight: '700' },
-  covLabMuted: { fontSize: 11, color: IOS_COLORS.secondaryLabel },
+  covLabMuted: { fontFamily: fontFamily.mono, fontSize: 11, color: IOS_COLORS.secondaryLabel },
   track: {
     flexDirection: 'row',
     height: 8,
@@ -587,7 +643,7 @@ const styles = StyleSheet.create({
   partnerBody: { flex: 1, gap: 1 },
   partnerName: { fontSize: 14, fontWeight: '600', color: IOS_COLORS.label, letterSpacing: -0.2 },
   partnerRole: { fontSize: 11, color: IOS_COLORS.secondaryLabel },
-  partnerCov: { fontSize: 12, fontWeight: '600', color: '#16A34A' },
+  partnerCov: { fontFamily: fontFamily.mono, fontSize: 12, fontWeight: '500', color: '#16A34A' },
   demoNote: {
     flexDirection: 'row',
     alignItems: 'flex-start',

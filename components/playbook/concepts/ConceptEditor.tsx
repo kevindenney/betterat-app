@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import {
   useCreatePlaybookConcept,
   useUpdatePlaybookConcept,
@@ -182,7 +183,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    letterSpacing: -0.3,
     color: IOS_COLORS.label,
   },
   body: {
@@ -191,7 +194,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: IOS_COLORS.secondaryLabel,

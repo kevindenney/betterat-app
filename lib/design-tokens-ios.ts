@@ -304,6 +304,59 @@ export const IOS_REGISTER = {
 } as const;
 
 /**
+ * Step-state signal triad (2026-06) — "color is signal, not decoration."
+ *
+ * From the locked Reflection Network system (Claude Design handoff). The
+ * Plan → Do → Review states are the ONLY saturated colors on the Practice/Step
+ * surfaces; everything else is neutral chrome. The triad is theme-independent
+ * (identical across every interest) so a "Review" always reads the same — the
+ * per-interest accent (Interest.accent_color) carries identity separately.
+ *
+ *   plan    — indigo   (#5b61e8)  intention / what you'll do
+ *   do      — amber    (#d9831a)  in-progress / the next beat
+ *   review  — clay     (#a8554a)  reflection — ALIAS of REFLECT below
+ *
+ * Reflection owns clay (terracotta): the single warm hue in an otherwise cool
+ * system, deliberately distinct from the Do amber. Used wherever the
+ * reflection/Review voice appears (Review stage, mentor guidance, next Step,
+ * "Logbook noticed" callouts). Success-green stays its own separate signal.
+ *
+ * This is the single source for these hues; the web/NativeWind mirror lives as
+ * --signal-* CSS vars in components/ui/gluestack-ui-provider/config.ts.
+ */
+export const STEP_STATE = {
+  plan:        '#5b61e8',
+  planTint:    '#ececfc',
+  planInk:     '#3a3fb0',
+  do:          '#d9831a',
+  doTint:      '#fbeed7',
+  doInk:       '#a3610f',
+  review:      '#a8554a',
+  reviewTint:  '#f3e4e0',
+  reviewInk:   '#8a4035',
+} as const;
+
+/**
+ * Reflection — clay / terracotta. Reflection's own ownable color (see STEP_STATE
+ * above). `review` is the same hue: Review IS the reflection voice.
+ */
+export const REFLECT = {
+  base:   '#a8554a',
+  tint:   '#f3e4e0',
+  ink:    '#8a4035',
+  strong: '#934739',
+  on:     '#ffffff',
+} as const;
+
+/**
+ * Success — green, kept as its own signal apart from reflection-clay.
+ */
+export const SIGNAL_OK = {
+  base: '#0f9d74',
+  tint: '#e0f5ee',
+} as const;
+
+/**
  * Register section-identity accents (2026-06) — the "whose surface is this"
  * wayfinding hue, NOT an action color. Distinct from IOS_REGISTER.accentUserAction
  * (#007AFF), which is reserved for buttons/checkboxes/interactive controls.
@@ -398,6 +451,7 @@ export type IOSRadius = keyof typeof IOS_RADIUS;
 export type IOSShadow = keyof typeof IOS_SHADOWS;
 export type IOSRegisterColor = keyof typeof IOS_REGISTER;
 export type IOSRegisterText = keyof typeof IOS_REGISTER_TEXT;
+export type StepStateToken = keyof typeof STEP_STATE;
 
 /**
  * Helper function to get colors based on color scheme

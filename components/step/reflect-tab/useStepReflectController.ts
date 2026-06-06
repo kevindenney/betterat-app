@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
-import { useUpdateStep } from '@/hooks/useTimelineSteps';
 import { useInterest } from '@/providers/InterestProvider';
+import { settleStepAndPlaceBeforeNow } from '@/services/TimelineStepService';
 import {
   getInterestReflectTabConfig,
   type InterestReflectTabConfig,
@@ -16,9 +16,10 @@ import {
 } from '@/lib/step/getReviewSections';
 import { draftReflectSynthesis } from '@/services/SynthesisService';
 import {
+  autoTagAndWriteStepCapabilityEvidence,
   buildCapabilityEvidenceRows,
-  writeStepCapabilityEvidence,
 } from '@/services/CapabilityEvidenceService';
+import { suggestCapabilityTags } from '@/services/CapabilityTagService';
 import { dropInsight } from '@/services/QuickCaptureService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { addConceptTrailQuote, getStepConceptLinks } from '@/services/PlaybookService';
@@ -28,6 +29,7 @@ import { useToast } from '@/components/ui/AppToast';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import type {
   CapabilityEvidenceRow,
+  CapabilitySuggestState,
   EvidenceStrength,
 } from './CapabilitiesPracticed';
 import type {
@@ -62,6 +64,7 @@ export interface ReflectQuestionField {
   id: ReflectFieldId;
   prompt: string;
   value: string;
+  seedSuggestion?: string;
   isDrafted?: boolean;
 }
 
@@ -73,6 +76,7 @@ export interface Phase4ReflectViewProps {
   activeFieldId?: ReflectFieldId;
   synthesisState: ReflectSynthesisState;
   capabilities: CapabilityEvidenceRow[];
+  capabilitySuggestState: CapabilitySuggestState;
   conceptPrompts: {
     conceptId: string;
     title: string;
@@ -90,6 +94,7 @@ export interface Phase4ReflectViewProps {
   onToggleCapability: (id: string) => void;
   onChangeCapabilityStrength: (id: string, strength: EvidenceStrength) => void;
   onAddCapability: () => void;
+  onSuggestCapabilities: () => Promise<void>;
   onMarkFieldAsConceptSeed: (id: ReflectFieldId) => Promise<void>;
   onAnswerConceptPrompt: (conceptId: string, answer: boolean) => void;
   onSettle: () => Promise<void>;
@@ -183,22 +188,111 @@ function getCaptureCount(act: StepActData): number {
   );
 }
 
+function captureSnippets(act: StepActData): string[] {
+  return [
+    ...(act.observations ?? []).map((row) => row.text),
+    ...(act.media_uploads ?? []).map((row) => row.caption),
+    ...(act.media_links ?? []).map((row) => row.caption),
+  ]
+    .map((text) => text?.trim())
+    .filter((text): text is string => Boolean(text))
+    .slice(0, 4);
+}
+
+function reflectionTextFromFields(fields: ReflectQuestionField[]): string {
+  return fields
+    .map((field) => field.value.trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+function mergeCapabilityRows(
+  base: CapabilityEvidenceRow[],
+  incoming: CapabilityEvidenceRow[],
+): CapabilityEvidenceRow[] {
+  const present = new Set(base.map((row) => row.capabilityName.trim().toLowerCase()));
+  const merged = [...base];
+  for (const row of incoming) {
+    const key = row.capabilityName.trim().toLowerCase();
+    if (present.has(key)) continue;
+    present.add(key);
+    merged.push(row);
+  }
+  return merged;
+}
+
+function buildReviewFromFields(
+  current: StepMetadata,
+  fields: ReflectQuestionField[],
+): StepReviewData {
+  let working: StepMetadata = { ...current };
+  for (const field of fields) {
+    const review = FLAT_REVIEW_FIELDS.has(field.id)
+      ? buildReviewWithFlatField(
+          working,
+          field.id as 'key_takeaway' | 'teaching',
+          field.value,
+        )
+      : buildReviewWithSection(working, field.id, field.value);
+    working = { ...working, review };
+  }
+  return (working.review ?? {}) as StepReviewData;
+}
+
+function buildSeedForField(
+  id: ReflectFieldId,
+  plan: StepPlanData,
+  act: StepActData,
+  capturesCount: number,
+): string | undefined {
+  const snippets = captureSnippets(act);
+  const firstCapture = snippets[0];
+  if (id === 'what_worked' && firstCapture) {
+    return `Your captures mention: ${firstCapture}`;
+  }
+  if (id === 'what_didnt') {
+    const capability = plan.capability_goals?.[0];
+    if (capability) {
+      return `${capability} has ${capturesCount} capture${capturesCount === 1 ? '' : 's'} so far — use that to decide what still needs practice.`;
+    }
+    if (capturesCount > 0) {
+      return `${capturesCount} capture${capturesCount === 1 ? '' : 's'} from Do can point to the area that needs another rep.`;
+    }
+  }
+  if (id === 'key_takeaway') {
+    const doneSubStep = plan.how_sub_steps?.find((row) => row.completed)?.text?.trim();
+    const firstSubStep = plan.how_sub_steps?.find((row) => row.text.trim())?.text?.trim();
+    const source = doneSubStep || firstSubStep;
+    if (source) return `Your plan centered on: ${source}`;
+  }
+  if (id === 'teaching') {
+    const where = plan.where_location?.name?.trim();
+    if (where && capturesCount > 0) {
+      return `Your ${capturesCount} capture${capturesCount === 1 ? '' : 's'} at ${where} are the evidence to ask a learner to show.`;
+    }
+    if (capturesCount > 0) {
+      return `Your ${capturesCount} capture${capturesCount === 1 ? '' : 's'} from Do are the evidence to ask a learner to show.`;
+    }
+  }
+  return undefined;
+}
+
 export function useStepReflectController({
   stepId,
   readOnly,
 }: UseStepReflectControllerInput): StepReflectControllerView {
   const { data: step, isLoading } = useStepDetail(stepId);
   const updateMetadata = useUpdateStepMetadata(stepId);
-  const updateStep = useUpdateStep();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { currentInterest } = useInterest();
+  const { currentInterest, allInterests } = useInterest();
   const [synthesisState, setSynthesisState] = useState<ReflectSynthesisState>('idle');
   const [activeFieldId, setActiveFieldId] = useState<ReflectFieldId | undefined>('what_worked');
   const [showAnythingElse, setShowAnythingElse] = useState(false);
   const [draftedFieldIds, setDraftedFieldIds] = useState<Set<ReflectFieldId>>(() => new Set());
   const [localFields, setLocalFields] = useState<Partial<Record<ReflectFieldId, string>>>({});
   const [localCapabilities, setLocalCapabilities] = useState<CapabilityEvidenceRow[] | null>(null);
+  const [capabilitySuggestState, setCapabilitySuggestState] = useState<CapabilitySuggestState>('idle');
   const [settling, setSettling] = useState(false);
   const [conceptPrompts, setConceptPrompts] = useState<{ conceptId: string; title: string; answer: boolean | null }[]>([]);
   const timersRef = useRef<Partial<Record<ReflectFieldId, ReturnType<typeof setTimeout>>>>({});
@@ -214,10 +308,14 @@ export function useStepReflectController({
     () => getReviewSections(metadata, step?.completed_at ?? step?.updated_at ?? null),
     [metadata, step?.completed_at, step?.updated_at],
   );
+  const stepInterest = useMemo(
+    () => allInterests.find((interest) => interest.id === step?.interest_id) ?? null,
+    [allInterests, step?.interest_id],
+  );
   const config = getInterestReflectTabConfig({
     interestId: step?.interest_id ?? currentInterest?.id,
-    interestName: currentInterest?.name,
-    interestSlug: currentInterest?.slug,
+    interestName: stepInterest?.name ?? currentInterest?.name,
+    interestSlug: stepInterest?.slug ?? currentInterest?.slug,
   });
   const capturesCount = getCaptureCount(actData);
 
@@ -239,12 +337,14 @@ export function useStepReflectController({
         id: 'what_worked',
         prompt: config.questionPair[0],
         value: localFields.what_worked ?? serverWorked,
+        seedSuggestion: buildSeedForField('what_worked', planData, actData, capturesCount),
         isDrafted: draftedFieldIds.has('what_worked'),
       },
       {
         id: 'what_didnt',
         prompt: config.questionPair[1],
         value: localFields.what_didnt ?? serverDidnt,
+        seedSuggestion: buildSeedForField('what_didnt', planData, actData, capturesCount),
         isDrafted: draftedFieldIds.has('what_didnt'),
       },
     ];
@@ -254,6 +354,7 @@ export function useStepReflectController({
         id: 'anything_else',
         prompt: 'Anything else?',
         value: anythingValue,
+        seedSuggestion: buildSeedForField('anything_else', planData, actData, capturesCount),
         isDrafted: draftedFieldIds.has('anything_else'),
       });
     }
@@ -261,19 +362,26 @@ export function useStepReflectController({
     // then the teaching-transfer prompt closes the reflection.
     nextFields.push({
       id: 'key_takeaway',
-      prompt: 'Key takeaway — the one thing to remember',
+      prompt: config.keyTakeawayPrompt ?? 'Key takeaway — the one thing to remember',
       value: localFields.key_takeaway ?? serverKeyTakeaway,
+      seedSuggestion: buildSeedForField('key_takeaway', planData, actData, capturesCount),
       isDrafted: draftedFieldIds.has('key_takeaway'),
     });
     nextFields.push({
       id: 'teaching',
-      prompt: TEACHING_PROMPT,
+      prompt: config.teachingPrompt ?? TEACHING_PROMPT,
       value: localFields.teaching ?? serverTeaching,
+      seedSuggestion: buildSeedForField('teaching', planData, actData, capturesCount),
       isDrafted: draftedFieldIds.has('teaching'),
     });
     return nextFields;
   }, [
     config.questionPair,
+    config.keyTakeawayPrompt,
+    config.teachingPrompt,
+    planData,
+    actData,
+    capturesCount,
     draftedFieldIds,
     localFields,
     serverAnything,
@@ -292,7 +400,7 @@ export function useStepReflectController({
   const state: ReflectPhase4State =
     step?.status === 'settled' || step?.status === 'completed'
       ? 'settled'
-      : settling || updateStep.isPending
+      : settling
         ? 'settling'
         : 'ready';
 
@@ -404,10 +512,41 @@ export function useStepReflectController({
           strength: 'worth-noting',
           pipLevel: 2,
           evidenceCount: capturesCount,
+          source: 'manual',
         },
       ];
     });
   }, [capturesCount, seededCapabilities]);
+
+  const onSuggestCapabilities = useCallback(async () => {
+    if (readOnly || capabilitySuggestState === 'loading') return;
+    setCapabilitySuggestState('loading');
+    try {
+      const base = localCapabilities ?? seededCapabilities;
+      const suggestions = await suggestCapabilityTags({
+        interestId: step?.interest_id ?? currentInterest?.id ?? null,
+        captures: captureSnippets(actData),
+        reflection: reflectionTextFromFields(fields),
+        existingNames: base.map((row) => row.capabilityName),
+        capturesCount,
+      });
+      if (suggestions.length > 0) {
+        setLocalCapabilities(mergeCapabilityRows(base, suggestions));
+      }
+    } finally {
+      setCapabilitySuggestState('done');
+    }
+  }, [
+    readOnly,
+    capabilitySuggestState,
+    localCapabilities,
+    seededCapabilities,
+    fields,
+    step?.interest_id,
+    currentInterest?.id,
+    actData,
+    capturesCount,
+  ]);
 
   const onMarkFieldAsConceptSeed = useCallback(async (id: ReflectFieldId) => {
     if (!step || readOnly) return;
@@ -477,9 +616,20 @@ export function useStepReflectController({
           clearTimeout(timer);
           delete timersRef.current[field.id];
         }
-        flushField(field.id, field.value);
       }
-      await writeStepCapabilityEvidence({ stepId, rows: capabilities });
+      const review = buildReviewFromFields(metadataRef.current, fields);
+      const updatedStep = await updateMetadata.mutateAsync({ review });
+      const capabilityRowsToWrite = await autoTagAndWriteStepCapabilityEvidence({
+        step: {
+          ...updatedStep,
+          metadata: {
+            ...((updatedStep.metadata ?? {}) as StepMetadata),
+            review,
+          },
+        },
+        baseRows: capabilities,
+      });
+      setLocalCapabilities(capabilityRowsToWrite);
       const observations = actData.observations ?? [];
       const uploads = actData.media_uploads ?? [];
       const firstObservation = observations[0]?.text?.trim();
@@ -497,8 +647,9 @@ export function useStepReflectController({
             }).catch(() => undefined),
           ),
       );
-      await updateStep.mutateAsync({ stepId, input: { status: 'settled' } });
+      await settleStepAndPlaceBeforeNow(stepId);
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
 
       if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER && step.user_id && step.interest_id) {
         try {
@@ -535,7 +686,7 @@ export function useStepReflectController({
     } finally {
       setSettling(false);
     }
-  }, [step, readOnly, fields, flushField, stepId, capabilities, updateStep, queryClient, actData.observations, actData.media_uploads, conceptPrompts, toast]);
+  }, [step, readOnly, fields, stepId, updateMetadata, capabilities, actData.observations, actData.media_uploads, queryClient, conceptPrompts, toast]);
 
   return {
     loading: isLoading,
@@ -548,9 +699,10 @@ export function useStepReflectController({
       activeFieldId,
       synthesisState,
       capabilities,
+      capabilitySuggestState,
       conceptPrompts,
-      saveEnabled: !readOnly && state !== 'settled',
-      disabledHint: 'Write a line or hold to speak',
+      saveEnabled: !readOnly && state !== 'settled' && fields.some((field) => field.value.trim()),
+      disabledHint: 'Answer one question or hold to speak',
       readOnly,
       onDismissSynthesis: () => setSynthesisState('dismissed'),
       onDraftSynthesis,
@@ -561,10 +713,11 @@ export function useStepReflectController({
       onToggleCapability,
       onChangeCapabilityStrength,
       onAddCapability,
+      onSuggestCapabilities,
       onMarkFieldAsConceptSeed,
       onAnswerConceptPrompt,
       onSettle,
     },
-    isSettling: settling || updateStep.isPending,
+    isSettling: settling,
   };
 }

@@ -11,6 +11,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-n
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { MktNav } from '@/components/marketing/MktNav';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export default function SchoolsLanding() {
   const router = useRouter();
@@ -260,7 +261,7 @@ const s = StyleSheet.create({
     fontWeight: '500',
     color: '#0E1117',
     marginBottom: 22,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
   },
   heroTitleEm: { fontStyle: 'italic' },
   heroSub: {
@@ -463,7 +464,7 @@ const s = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
     color: '#1B1B1F',
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
   },
 
   // Three-up
@@ -483,7 +484,7 @@ const s = StyleSheet.create({
     maxWidth: 720,
     alignSelf: 'center',
     marginBottom: 38,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
   },
   threeUpRow: {
     flexDirection: 'row',
@@ -527,7 +528,7 @@ const s = StyleSheet.create({
     letterSpacing: -0.4,
     color: '#0E1117',
     marginBottom: 12,
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     textAlign: 'center',
   },
   ctaStripBody: {

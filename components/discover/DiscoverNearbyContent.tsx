@@ -21,6 +21,7 @@ import { useAtlasPeerSteps } from '@/hooks/useAtlasPeerSteps';
 import { useAtlasOrgSteps } from '@/hooks/useAtlasOrgSteps';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 
 interface DiscoverNearbyContentProps {
@@ -318,7 +319,8 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.6,
     color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
@@ -340,7 +342,8 @@ const styles = StyleSheet.create({
   // clubs exist?" affordance, not co-equal with attendable activity above.
   sectionEyebrowQuiet: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
     letterSpacing: 0.2,
     textTransform: 'uppercase',
@@ -443,10 +446,11 @@ const styles = StyleSheet.create({
     borderColor: IOS_COLORS.separator,
   },
   emptyTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_COLORS.label,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
     textAlign: 'center',
   },
   emptyCopy: {

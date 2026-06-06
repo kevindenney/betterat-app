@@ -8,10 +8,11 @@
  */
 
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import type { SubscribedPlanRow } from '@/hooks/useSubscribedPlansForLibrary';
 
@@ -243,23 +244,20 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   pillText: {
+    fontFamily: fontFamily.mono,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '500',
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   title: {
     // Canonical uses a serif at regular weight to give the title an
     // editorial feel — the card reads as a "plan you're walking",
-    // not a list item. "Iowan Old Style" ships on iOS; Android falls
-    // back to its system serif.
-    fontFamily: Platform.select({
-      ios: 'Iowan Old Style',
-      android: 'serif',
-      default: 'serif',
-    }),
+    // not a list item.
+    fontFamily: fontFamily.serif,
     fontSize: 17,
-    fontWeight: '400',
-    letterSpacing: -0.2,
+    fontWeight: '500',
+    letterSpacing: -0.3,
     color: IOS_COLORS.label,
     lineHeight: 22,
   },
@@ -280,6 +278,8 @@ const styles = StyleSheet.create({
     // Color comes from the inline LinearGradient — no backgroundColor.
   },
   progressMeta: {
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     fontSize: 11,
     color: IOS_COLORS.secondaryLabel,
   },
@@ -298,6 +298,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   footText: {
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     fontSize: 12,
     color: IOS_COLORS.secondaryLabel,
   },

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Atlas for the mentor & org that grows the Ranchi didis</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans Devanagari','Inter','Segoe UI',sans-serif;
+  --cream:#F3EADA;
+  --grouped:#EFE6D3;
+  --card:#FFFDF8;
+  --label:#2A2118;
+  --label2:rgba(60,48,32,0.60);
+  --label3:rgba(60,48,32,0.32);
+  --sep:rgba(80,60,40,0.12);
+  --terra:#C2410C;     /* making / production */
+  --marigold:#D97706;  /* selling / market */
+  --indigo:#4338CA;    /* money / savings / credit / org */
+  --grow:#15803D;      /* sourcing / growth / thriving */
+  --teal:#0E7490;      /* digital / UPI / WhatsApp */
+  --terra-bg:rgba(194,65,12,.10);
+  --marigold-bg:rgba(217,119,6,.12);
+  --indigo-bg:rgba(67,56,202,.10);
+  --grow-bg:rgba(21,128,61,.10);
+  --teal-bg:rgba(14,116,144,.10);
+  /* status of a didi under mentoring */
+  --thriving:#15803D;
+  --watch:#D97706;
+  --stalled:#9A7B52;
+  --field:#D9E3C2;
+  --field2:#CBD8AE;
+  --soil:#E7D8BF;
+  --river:#9CC4D4;
+  --road:#EFE3CC;
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C6BCA8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1320px;margin:0 auto 4px;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1320px;margin:0 auto 26px;font-size:13px;color:#4A3D2C;line-height:1.62;}
+.page-sub b{color:#241c12;}
+.page-sub .tt{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:#4338CA;border-radius:5px;padding:2px 7px;margin-right:4px;vertical-align:1px;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1320px;margin:0 auto;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#3d3324;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#1c1610;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#4338CA;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+
+/* phone shell */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(60,40,20,.28);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:var(--label);z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--label2);}
+
+/* nav header — mentor register is indigo (org/authority) instead of terra */
+.nav{position:absolute;top:42px;left:0;right:0;z-index:40;padding:6px 18px 10px;}
+.nav.solid{background:var(--grouped);}
+.nav .top{display:flex;align-items:center;justify-content:space-between;}
+.nav .eyebrow{font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--indigo);display:flex;align-items:center;gap:6px;}
+.nav .eyebrow .role{background:var(--indigo);color:#fff;border-radius:5px;padding:1px 6px;letter-spacing:.04em;}
+.nav h1{font-size:27px;font-weight:800;letter-spacing:-.3px;margin:1px 0 0;line-height:1.05;}
+.nav .sub{font-size:12.5px;color:var(--label2);margin-top:2px;}
+.nav .acts{display:flex;gap:8px;}
+.nav .ic{width:36px;height:36px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(60,40,20,.16);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--indigo);}
+.seg{display:flex;background:rgba(67,56,202,.12);border-radius:10px;padding:3px;margin-top:12px;}
+.seg div{flex:1;text-align:center;font-size:13.5px;font-weight:700;color:var(--label2);padding:7px 0;border-radius:8px;}
+.seg div.on{background:#fff;color:var(--label);box-shadow:0 1px 3px rgba(60,40,20,.16);}
+.seg div small{font-weight:500;color:var(--label3);font-size:10px;}
+.chips{display:flex;gap:7px;margin-top:11px;overflow:hidden;}
+.chips span{font-size:12px;font-weight:700;padding:7px 12px;border-radius:9px;background:#fff;color:var(--label2);white-space:nowrap;box-shadow:0 1px 3px rgba(60,40,20,.10);display:flex;align-items:center;gap:5px;}
+.chips span.on{background:var(--indigo);color:#fff;}
+.chips span .ct{font-size:10px;opacity:.8;}
+
+/* ===== CLUSTER MAP — mentor sees many SHGs across villages ===== */
+.lmap{position:absolute;left:0;right:0;top:198px;bottom:64px;background:var(--soil);overflow:hidden;}
+.lmap .field{position:absolute;background:var(--field);border-radius:46% 54% 50% 50%/50% 46% 54% 50%;box-shadow:inset 0 0 0 .5px rgba(80,100,40,.10);}
+.lmap .field.d{background:var(--field2);}
+.lmap .river{position:absolute;background:var(--river);box-shadow:inset 0 0 0 .5px rgba(40,90,120,.10);}
+.lmap .road{position:absolute;height:7px;background:var(--road);border-radius:4px;box-shadow:0 0 0 .5px rgba(90,60,30,.07);transform-origin:left center;}
+.lmap .glbl{position:absolute;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:rgba(90,70,45,.55);}
+.lmap .glbl.wlbl{color:rgba(40,95,120,.6);font-style:italic;}
+
+/* a village SHG cluster the mentor covers */
+.vil{position:absolute;transform:translate(-50%,-50%);z-index:20;display:flex;flex-direction:column;align-items:center;width:108px;}
+.vil .mk{min-width:46px;height:46px;padding:0 9px;border-radius:15px;border:3px solid #fff;display:flex;align-items:center;justify-content:center;gap:5px;background:#fff;box-shadow:0 5px 14px rgba(70,45,20,.26);}
+.vil .mk .ico{font-size:19px;}
+.vil .mk .cnt{font-size:14px;font-weight:800;color:#2a2012;}
+.vil .nm{margin-top:5px;font-size:11px;font-weight:800;color:#3a2c1a;text-align:center;line-height:1.15;text-shadow:0 1px 0 rgba(255,253,248,.9);}
+/* status dots = the didis in that SHG */
+.vil .dots{display:flex;gap:3px;margin-top:3px;}
+.vil .dots i{width:8px;height:8px;border-radius:50%;display:block;box-shadow:0 0 0 1.5px #fff;}
+.d-thr{background:var(--thriving);} .d-wat{background:var(--watch);} .d-stl{background:var(--stalled);}
+/* the cluster that needs a visit pulses a ring */
+.vil.alert .mk{box-shadow:0 0 0 5px rgba(217,119,6,.20),0 5px 14px rgba(70,45,20,.26);border-color:var(--watch);}
+.vil .flag{position:absolute;top:-9px;right:6px;background:var(--watch);color:#fff;font-size:9px;font-weight:800;border-radius:6px;padding:1px 5px;box-shadow:0 2px 5px rgba(70,45,20,.25);}
+
+/* mentor home base */
+.base{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:25;display:flex;flex-direction:column;align-items:center;}
+.base .ring{width:60px;height:60px;border-radius:20px;background:#fff;border:3px solid var(--indigo);display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 0 0 6px rgba(67,56,202,.12),0 8px 20px rgba(70,45,20,.30);}
+.base .nm{margin-top:6px;font-size:11px;font-weight:800;color:#2a2012;background:#fff;padding:3px 10px;border-radius:9px;box-shadow:0 2px 6px rgba(70,45,20,.18);}
+
+/* map legend chip cluster */
+.maplgnd{position:absolute;left:12px;bottom:236px;z-index:46;background:rgba(255,253,248,.94);border-radius:11px;padding:8px 11px;box-shadow:0 3px 10px rgba(70,45,20,.2);font-size:10px;font-weight:700;color:#4A3D2C;}
+.maplgnd .ln{display:flex;align-items:center;gap:6px;margin:3px 0;}
+.maplgnd .ln i{width:9px;height:9px;border-radius:50%;}
+
+/* mentor "who needs me" hero */
+.needhero{position:absolute;left:14px;right:14px;bottom:74px;z-index:45;background:var(--card);border-radius:20px;box-shadow:0 10px 28px rgba(70,45,20,.26);padding:14px 15px 13px;border:0.5px solid var(--sep);overflow:hidden;}
+.needhero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--watch);}
+.needhero .k{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#B45309;display:flex;align-items:center;gap:6px;}
+.needhero .listen{margin-left:auto;font-size:14px;color:var(--indigo);}
+.needhero h2{margin:5px 0 0;font-size:19px;font-weight:800;letter-spacing:-.2px;}
+.needhero .row{display:flex;gap:8px;margin-top:11px;}
+.needhero .who{flex:1;display:flex;align-items:center;gap:8px;background:var(--grouped);border-radius:12px;padding:8px 9px;}
+.needhero .who .av{width:32px;height:32px;border-radius:50%;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;}
+.needhero .who .t{min-width:0;}
+.needhero .who .t b{font-size:12.5px;font-weight:800;display:block;}
+.needhero .who .t span{font-size:10.5px;color:#B45309;font-weight:700;}
+.needhero .cta{display:flex;gap:9px;margin-top:12px;}
+.needhero .cta button{flex:1;border:none;font-family:var(--sans);font-size:14px;font-weight:800;padding:12px 0;border-radius:12px;}
+.needhero .cta .pri{background:var(--indigo);color:#fff;}
+.needhero .cta .sec{background:var(--indigo-bg);color:var(--indigo);}
+
+/* ===== FRAME F — mentee roster / mentoring queue ===== */
+.sheet-h{padding:8px 18px 11px;border-bottom:0.5px solid var(--sep);background:var(--card);}
+.sheet-h .row{display:flex;align-items:center;justify-content:space-between;}
+.sheet-h h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.2px;}
+.sheet-h .sub{font-size:12px;color:var(--label2);margin-top:2px;}
+.sheet-h .close{width:30px;height:30px;border-radius:50%;background:rgba(67,56,202,.12);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--indigo);}
+.qfilter{display:flex;gap:7px;padding:11px 18px 4px;background:var(--card);}
+.qfilter span{font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:9px;background:var(--grouped);color:var(--label2);}
+.qfilter span.on{background:var(--watch);color:#fff;}
+.sectlab{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);padding:14px 18px 4px;background:var(--grouped);}
+.mrow{display:flex;align-items:flex-start;gap:12px;padding:13px 18px;background:var(--card);}
+.mrow .av{width:44px;height:44px;border-radius:50%;color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;position:relative;}
+.mrow .av .sd{position:absolute;right:-2px;bottom:-2px;width:15px;height:15px;border-radius:50%;border:2px solid #fff;}
+.mrow .b{flex:1;min-width:0;}
+.mrow .b h5{margin:0;font-size:15px;font-weight:800;}
+.mrow .b h5 small{font-weight:600;font-size:11px;color:var(--label2);}
+.mrow .b .st{margin:3px 0 0;font-size:12px;color:var(--label2);}
+.mrow .b .st .v{font-weight:800;}
+.mrow .b .st .v.watch{color:var(--watch);} .mrow .b .st .v.thr{color:var(--thriving);} .mrow .b .st .v.stl{color:var(--stalled);}
+.mrow .b .nudge{margin-top:8px;display:flex;align-items:center;gap:7px;background:#FFF4E6;border:0.5px solid rgba(217,119,6,.30);border-radius:11px;padding:8px 10px;}
+.mrow .b .nudge .ni{font-size:14px;}
+.mrow .b .nudge p{margin:0;font-size:11.5px;color:#9A3412;line-height:1.4;flex:1;}
+.mrow .b .nudge p b{color:#7C2D12;}
+.mrow .b .nudge button{border:none;background:var(--indigo);color:#fff;font-family:var(--sans);font-size:11px;font-weight:800;padding:7px 11px;border-radius:9px;white-space:nowrap;}
+.mrow .dist{font-size:11px;font-weight:800;color:var(--label2);text-align:right;flex:none;}
+.mrow .dist small{display:block;font-weight:600;color:var(--label3);font-size:10px;margin-top:2px;}
+.msep{height:0.5px;background:var(--sep);margin:0 18px 0 74px;}
+
+/* ===== FRAME G — CLF / Lakhpati cohort dashboard (org) ===== */
+.dt-back{position:absolute;top:48px;left:14px;z-index:50;font-size:15px;color:var(--indigo);font-weight:700;display:flex;align-items:center;gap:3px;}
+.dt-hero{padding:76px 20px 16px;background:var(--card);border-bottom:0.5px solid var(--sep);}
+.dt-hero .stat{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;padding:5px 11px;border-radius:8px;margin-bottom:9px;background:var(--indigo-bg);color:var(--indigo);}
+.dt-hero h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-.4px;}
+.dt-hero .sub{font-size:13px;color:var(--label2);margin-top:3px;}
+.body{position:absolute;left:0;right:0;top:172px;bottom:64px;overflow:hidden;padding:4px 16px 12px;}
+.ring-wrap{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:18px;border:0.5px solid var(--sep);padding:16px;margin-top:8px;box-shadow:0 1px 3px rgba(70,45,20,.06);}
+.ring{width:90px;height:90px;border-radius:50%;flex:none;background:conic-gradient(var(--indigo) 0 36%, rgba(120,90,50,.16) 36% 100%);display:flex;align-items:center;justify-content:center;}
+.ring .inner{width:66px;height:66px;border-radius:50%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring .inner b{font-size:17px;font-weight:800;letter-spacing:-.3px;}
+.ring .inner span{font-size:9px;color:var(--label2);font-weight:700;margin-top:1px;text-align:center;line-height:1.1;}
+.ring-wrap .t h3{margin:0;font-size:16px;font-weight:800;}
+.ring-wrap .t p{margin:5px 0 0;font-size:12.5px;color:var(--label2);line-height:1.45;}
+.ring-wrap .t p b{color:var(--indigo);}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--label3);margin:18px 4px 8px;}
+/* scheme uptake bars */
+.bar{display:flex;align-items:center;gap:11px;padding:9px 4px;}
+.bar .nm{width:120px;font-size:12.5px;font-weight:700;flex:none;}
+.bar .nm small{display:block;font-size:10px;font-weight:600;color:var(--label2);}
+.bar .track{flex:1;height:9px;border-radius:5px;background:rgba(120,90,50,.14);overflow:hidden;}
+.bar .track i{display:block;height:100%;border-radius:5px;}
+.bar .pct{font-size:12px;font-weight:800;width:40px;text-align:right;flex:none;}
+/* village coverage grid */
+.cov{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.cov .v{flex:1 1 30%;min-width:96px;border-radius:12px;padding:10px 11px;border:0.5px solid var(--sep);}
+.cov .v h6{margin:0;font-size:12.5px;font-weight:800;}
+.cov .v .n{font-size:10.5px;color:var(--label2);margin-top:2px;font-weight:700;}
+.cov .v .pr{font-size:11px;font-weight:800;margin-top:7px;}
+.cov .v.good{background:var(--grow-bg);} .cov .v.good .pr{color:var(--thriving);}
+.cov .v.mid{background:var(--marigold-bg);} .cov .v.mid .pr{color:#B45309;}
+.cov .v.low{background:rgba(154,123,82,.12);} .cov .v.low .pr{color:var(--stalled);}
+
+/* ===== FRAME H — log a mentoring visit on one didi ===== */
+.cockpit{position:absolute;left:0;right:0;bottom:64px;z-index:45;background:var(--card);border-radius:24px 24px 0 0;box-shadow:0 -8px 30px rgba(70,45,20,.26);overflow:hidden;}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--label3);margin:9px auto 0;}
+.cp-head{display:flex;align-items:center;gap:12px;padding:11px 18px 12px;border-bottom:0.5px solid var(--sep);}
+.cp-head .av{width:46px;height:46px;border-radius:50%;background:#A14A26;color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;position:relative;}
+.cp-head .av .sd{position:absolute;right:-2px;bottom:-2px;width:16px;height:16px;border-radius:50%;border:2px solid #fff;background:var(--watch);}
+.cp-head .ttl{flex:1;}
+.cp-head .ttl .kind{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--indigo);}
+.cp-head .ttl h4{margin:2px 0 0;font-size:18px;font-weight:800;letter-spacing:-.2px;}
+.cp-head .ttl h4 small{font-weight:600;font-size:12px;color:var(--label2);}
+.cp-head .when{font-size:11px;font-weight:800;color:#B45309;background:var(--marigold-bg);padding:6px 11px;border-radius:9px;white-space:nowrap;flex:none;}
+/* her gaps the mentor reads before the visit */
+.gaprow{display:flex;gap:8px;padding:12px 14px 2px;}
+.gaprow .g{flex:1;border-radius:13px;padding:10px;border:0.5px solid var(--sep);text-align:center;}
+.gaprow .g .gi{font-size:17px;}
+.gaprow .g .gn{font-size:10px;font-weight:800;margin-top:4px;}
+.gaprow .g .gs{font-size:10px;font-weight:800;margin-top:3px;}
+.gaprow .g.ok .gs{color:var(--thriving);} .gaprow .g.ok{background:var(--grow-bg);}
+.gaprow .g.weak .gs{color:var(--watch);} .gaprow .g.weak{background:var(--marigold-bg);}
+.gaprow .g.no .gs{color:var(--stalled);} .gaprow .g.no{background:rgba(154,123,82,.12);}
+/* the mentoring plan the mentor sets */
+.mplan{margin:13px 14px 0;border-radius:16px;background:var(--indigo-bg);border:0.5px solid rgba(67,56,202,.28);padding:13px 14px;}
+.mplan .lead{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--indigo);}
+.mplan h4{margin:7px 0 0;font-size:15px;font-weight:800;line-height:1.4;color:#312E81;}
+.mplan p{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:#3730A3;}
+.mplan .assign{margin-top:11px;display:flex;align-items:center;gap:9px;background:#fff;border-radius:12px;padding:10px 11px;box-shadow:0 1px 3px rgba(70,45,20,.08);}
+.mplan .assign .ic{width:32px;height:32px;border-radius:10px;background:var(--terra-bg);color:var(--terra);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;}
+.mplan .assign .t{flex:1;}
+.mplan .assign .t b{font-size:12.5px;font-weight:800;display:block;}
+.mplan .assign .t span{font-size:11px;color:var(--label2);}
+.mplan .assign .chk{font-size:18px;color:var(--thriving);}
+/* visit logging cockpit cta */
+.logrow{display:flex;align-items:center;gap:12px;margin:13px 14px 0;background:var(--grouped);border-radius:14px;padding:12px 13px;}
+.logrow .ic{width:36px;height:36px;border-radius:11px;background:var(--indigo-bg);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;}
+.logrow .b{flex:1;}
+.logrow .b .kl{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);}
+.logrow .b h5{margin:2px 0 0;font-size:13px;font-weight:700;}
+.cp-cta{display:flex;gap:9px;padding:13px 14px 16px;}
+.cp-cta button{border:none;font-family:var(--sans);font-weight:800;border-radius:13px;}
+.cp-cta .voice{width:52px;background:var(--indigo-bg);color:var(--indigo);font-size:21px;}
+.cp-cta .ready{flex:1;background:var(--indigo);color:#fff;font-size:15px;}
+
+/* tab bar — MENTOR mode (extra Didis tab is active) */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(252,249,243,.95);border-top:0.5px solid var(--sep);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;backdrop-filter:blur(20px);z-index:55;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--label3);}
+.tab small{font-size:8px;font-weight:600;color:var(--label3);}
+.tab.on{color:var(--indigo);}
+.tab .ic{font-size:18px;}
+
+.legend{max-width:1320px;margin:36px auto 0;background:#fff;border-radius:14px;padding:22px 26px;font-size:13px;line-height:1.65;color:#33291c;}
+.legend h2{font-size:15px;margin:0 0 12px;}
+.legend h3{font-size:13px;margin:18px 0 6px;color:#1c1610;}
+.legend ul{margin:4px 0 0;padding-left:20px;}
+.legend li{margin:5px 0;}
+.legend b{color:#1c1610;}
+.legend code{background:#F0E9DB;padding:1px 5px;border-radius:4px;font-size:12px;}
+.legend .pill{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-right:5px;}
+.legend .pill.fix{background:#FEE4E2;color:#B42318;}
+.legend .pill.new{background:#D1FADF;color:#1B7A3D;}
+.legend .pill.keep{background:#E6E0FF;color:#3B2EA0;}
+.legend table{border-collapse:collapse;margin-top:8px;width:100%;font-size:12.5px;}
+.legend td{border:0.5px solid #E7DFD0;padding:7px 10px;vertical-align:top;}
+.legend td:first-child{font-weight:800;white-space:nowrap;background:#FAF6EE;}
+</style>
+</head>
+<body>
+<div class="page-h">Atlas, for the mentor &amp; org that grows the Ranchi didis</div>
+<div class="page-sub">
+  <span class="tt">Companion to #29</span>
+  Mockup #29 is the entrepreneur's <b>own</b> Atlas. But she doesn't grow alone — her <b>सखी मंडल</b> (SHG), a <b>CRP / Sakhi</b> mentor, and the
+  <b>JSLPS / CLF</b> government federation all use BetterAt to mentor her and the other village women. This is the <b>same warm landmark map, seen from the
+  mentor &amp; org side.</b> A Community Resource Person opens it to a <b>cluster of SHGs</b> and immediately sees <b>who needs a visit</b>; a CLF coordinator
+  sees the <b>Lakhpati Didi cohort</b> progress and scheme uptake across villages. Mentoring becomes a located, evidenced loop — not a clipboard.
+  The didi's four frames stay exactly as in #29; these four are role-gated for mentors &amp; org admins. Register shifts <b>terra → indigo</b> to signal "org authority."
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME E — mentor's cluster map ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">रातू क्लस्टर ▾</span></div>
+      <div class="nav">
+        <div class="top">
+          <div>
+            <div class="eyebrow"><span class="role">CRP · सखी</span> Atlas</div>
+            <h1>मेरा क्लस्टर</h1>
+            <div class="sub">अनिता दीदी · 6 गाँव · 38 दीदी</div>
+          </div>
+          <div class="acts"><div class="ic">🔍</div><div class="ic">⤬</div></div>
+        </div>
+        <div class="seg"><div class="on">नक्शा <small>Map</small></div><div>दीदी <small>Roster</small></div></div>
+        <div class="chips">
+          <span class="on">सब <span class="ct">38</span></span>
+          <span>मदद चाहिए <span class="ct">5</span></span>
+          <span>रुकी <span class="ct">3</span></span>
+          <span>लखपति <span class="ct">9</span></span>
+        </div>
+      </div>
+
+      <div class="lmap">
+        <div class="field" style="left:-6%;top:-3%;width:44%;height:28%;"></div>
+        <div class="field d" style="right:-8%;top:6%;width:42%;height:25%;"></div>
+        <div class="field" style="left:0%;bottom:1%;width:40%;height:24%;"></div>
+        <div class="field d" style="right:-6%;bottom:-3%;width:40%;height:24%;"></div>
+        <div class="river" style="left:-6%;top:62%;width:118%;height:8%;border-radius:50%;transform:rotate(-5deg);"></div>
+        <div class="road" style="left:-8%;top:46%;width:124%;transform:rotate(4deg);"></div>
+        <div class="road" style="left:46%;top:-6%;width:90%;transform:rotate(74deg);"></div>
+        <div class="glbl" style="left:7%;top:5%;">रातू ब्लॉक</div>
+        <div class="glbl wlbl" style="left:36%;top:58%;">नाला</div>
+
+        <!-- village SHG clusters (status dots = member didis) -->
+        <div class="vil" style="left:24%;top:20%;">
+          <div class="mk"><span class="ico">👭</span><span class="cnt">7</span></div>
+          <div class="nm">हुटप · जय माँ समूह</div>
+          <div class="dots"><i class="d-thr"></i><i class="d-thr"></i><i class="d-thr"></i><i class="d-wat"></i><i class="d-stl"></i></div>
+        </div>
+        <div class="vil alert" style="left:73%;top:24%;">
+          <div class="flag">मदद</div>
+          <div class="mk"><span class="ico">👭</span><span class="cnt">6</span></div>
+          <div class="nm">बेड़ो · सरस्वती समूह</div>
+          <div class="dots"><i class="d-thr"></i><i class="d-wat"></i><i class="d-wat"></i><i class="d-stl"></i></div>
+        </div>
+        <div class="vil" style="left:82%;top:62%;">
+          <div class="mk"><span class="ico">👭</span><span class="cnt">5</span></div>
+          <div class="nm">ओरमांझी · एकता</div>
+          <div class="dots"><i class="d-thr"></i><i class="d-thr"></i><i class="d-wat"></i></div>
+        </div>
+        <div class="vil alert" style="left:20%;top:72%;">
+          <div class="flag">मदद</div>
+          <div class="mk"><span class="ico">👭</span><span class="cnt">7</span></div>
+          <div class="nm">तिगरा · दुर्गा समूह</div>
+          <div class="dots"><i class="d-wat"></i><i class="d-stl"></i><i class="d-stl"></i></div>
+        </div>
+        <div class="vil" style="left:50%;top:14%;">
+          <div class="mk"><span class="ico">👭</span><span class="cnt">8</span></div>
+          <div class="nm">रातू · लक्ष्मी समूह</div>
+          <div class="dots"><i class="d-thr"></i><i class="d-thr"></i><i class="d-thr"></i><i class="d-thr"></i></div>
+        </div>
+
+        <!-- mentor base -->
+        <div class="base">
+          <div class="ring">🧭</div>
+          <div class="nm">मेरा केंद्र · रातू</div>
+        </div>
+
+        <div class="maplgnd">
+          <div class="ln"><i class="d-thr"></i>बढ़ रही</div>
+          <div class="ln"><i class="d-wat"></i>ध्यान चाहिए</div>
+          <div class="ln"><i class="d-stl"></i>रुकी हुई</div>
+        </div>
+      </div>
+
+      <div class="needhero">
+        <div class="k">▸ इस हफ़्ते किसे देखूँ <span class="listen">🔊</span></div>
+        <h2>3 दीदी को मदद चाहिए</h2>
+        <div class="row">
+          <div class="who"><div class="av" style="background:#A14A26">सु</div><div class="t"><b>सुनीता</b><span>2 हाट से बिक्री नहीं</span></div></div>
+          <div class="who"><div class="av" style="background:var(--stalled)">गी</div><div class="t"><b>गीता</b><span>लोन किस्त रुकी</span></div></div>
+        </div>
+        <div class="cta">
+          <button class="pri">दौरा तय करें</button>
+          <button class="sec">सबको देखें</button>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab"><span class="ic">◉</span>दीदी<small>Mentees</small></div>
+        <div class="tab on"><span class="ic">🧭</span>क्लस्टर<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">E</span><b>Same map, mentor's eyes — a cluster of SHGs, not one circuit.</b>
+      A CRP / Sakhi opens Atlas to <b>her 6 villages</b>. Each SHG is a cluster pin with a member count and <b>status dots</b>
+      (<span style="color:var(--thriving);font-weight:800">growing</span> / <span style="color:var(--watch);font-weight:800">needs attention</span> /
+      <span style="color:var(--stalled);font-weight:800">stalled</span>); the two SHGs that need a visit pulse a <b>मदद</b> flag. The hero answers the only
+      question a mentor has on Monday — <b>"who do I see this week?"</b> — and routes her straight to a visit. The tab row gains a <b>दीदी / Mentees</b> entry.</div>
+  </div>
+
+  <!-- ============ FRAME F — mentee roster / mentoring queue ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">रातू क्लस्टर ▾</span></div>
+      <div class="sheet-h" style="position:absolute;top:42px;left:0;right:0;z-index:40;">
+        <div class="row">
+          <div><h3>दीदी · मदद की कतार</h3><div class="sub">अनिता का क्लस्टर · ज़रूरत के क्रम में</div></div>
+          <div class="close">⤬</div>
+        </div>
+        <div class="qfilter">
+          <span class="on">मदद चाहिए · 5</span>
+          <span>लखपति राह · 9</span>
+          <span>सब · 38</span>
+        </div>
+      </div>
+      <div class="body" style="top:168px;padding:0;">
+        <div class="sectlab">इस हफ़्ते देखें</div>
+
+        <div class="mrow">
+          <div class="av" style="background:#A14A26">सु<span class="sd" style="background:var(--watch)"></span></div>
+          <div class="b">
+            <h5>सुनीता देवी <small>· बेड़ो · अचार</small></h5>
+            <div class="st">स्थिति: <span class="v watch">2 हाट से बिक्री नहीं</span> · स्टॉक पड़ा है</div>
+            <div class="nudge"><span class="ni">💡</span><p><b>बुंडू हाट</b> सुझाएँ — वहाँ कोई अचार-वाली नहीं, रेखा साथ जाती है।</p><button>दौरा</button></div>
+          </div>
+          <div class="dist">0.4 km<small>बेड़ो</small></div>
+        </div>
+        <div class="msep"></div>
+
+        <div class="mrow">
+          <div class="av" style="background:var(--stalled)">गी<span class="sd" style="background:var(--stalled)"></span></div>
+          <div class="b">
+            <h5>गीता कुमारी <small>· तिगरा · सिलाई</small></h5>
+            <div class="st">स्थिति: <span class="v stl">मुद्रा किस्त 2 माह रुकी</span></div>
+            <div class="nudge"><span class="ni">🏦</span><p>बैंक मित्र के साथ <b>री-शेड्यूल</b> में मदद करें — डिफ़ॉल्ट से बचाएँ।</p><button>दौरा</button></div>
+          </div>
+          <div class="dist">3.1 km<small>तिगरा</small></div>
+        </div>
+        <div class="msep"></div>
+
+        <div class="mrow">
+          <div class="av" style="background:var(--grow)">फू<span class="sd" style="background:var(--watch)"></span></div>
+          <div class="b">
+            <h5>फूलमणि कुमारी <small>· हुटप · मशरूम</small></h5>
+            <div class="st">स्थिति: <span class="v thr">पहली फसल बिकी</span> · अब FSSAI चाहिए</div>
+            <div class="nudge"><span class="ni">📋</span><p>CLF में <b>FSSAI + PMFME</b> फ़ॉर्म भरवाएँ — पैकेजिंग सब्सिडी।</p><button>जोड़ें</button></div>
+          </div>
+          <div class="dist">1.1 km<small>हुटप</small></div>
+        </div>
+        <div class="msep"></div>
+
+        <div class="sectlab">लखपति राह पर · करीब</div>
+        <div class="mrow">
+          <div class="av" style="background:var(--indigo)">रे<span class="sd" style="background:var(--thriving)"></span></div>
+          <div class="b">
+            <h5>रेखा देवी <small>· बेड़ो · 2 हाट</small></h5>
+            <div class="st">₹88k / ₹1 लाख · <span class="v thr">₹12k और</span> में लखपति</div>
+          </div>
+          <div class="dist">0.6 km<small>बेड़ो</small></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab on"><span class="ic">◉</span>दीदी<small>Mentees</small></div>
+        <div class="tab"><span class="ic">🧭</span>क्लस्टर<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">F</span><b>The mentoring queue — didis sorted by who needs help, each with one concrete nudge.</b>
+      Every mentee shows a plain-language <b>status</b> drawn from her real activity (no sales in 2 haats, loan instalment stalled, first harvest sold) and a
+      <b>BetterAt-generated nudge</b> the mentor can act on in one tap — suggest the underserved Bundu haat, help reschedule a Mudra instalment, file the
+      PMFME/FSSAI form. The second band, <b>"on the Lakhpati path,"</b> shows who's close so the mentor can push them over ₹1 lakh. This is the NGO/government
+      doing the mentoring <i>through</i> the app.</div>
+  </div>
+
+  <!-- ============ FRAME G — CLF / Lakhpati cohort dashboard ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r"></span></div>
+      <div class="dt-back">‹ CLF रातू</div>
+      <div class="dt-hero">
+        <span class="stat">🏛️ JSLPS · CLF रातू</span>
+        <h2>लखपति दीदी · प्रगति</h2>
+        <div class="sub">रातू क्लस्टर · 12 SHG · 240 दीदी · FY 2025–26</div>
+      </div>
+      <div class="body" style="top:172px;">
+        <div class="ring-wrap">
+          <div class="ring"><div class="inner"><b>86</b><span>/ 240<br>लखपति</span></div></div>
+          <div class="t">
+            <h3>36% दीदी लखपति बनीं</h3>
+            <p>इस तिमाही <b>+19</b>। <b>44 दीदी</b> ₹80k पार — एक धक्का और चाहिए। 3 गाँव पीछे हैं।</p>
+          </div>
+        </div>
+
+        <div class="eyebrow">सरकारी योजना · uptake across the cluster</div>
+        <div class="bar"><div class="nm">PMFME<small>फूड सब्सिडी</small></div><div class="track"><i style="width:42%;background:var(--terra)"></i></div><div class="pct" style="color:var(--terra)">42%</div></div>
+        <div class="bar"><div class="nm">मुद्रा लोन<small>क्रेडिट</small></div><div class="track"><i style="width:61%;background:var(--indigo)"></i></div><div class="pct" style="color:var(--indigo)">61%</div></div>
+        <div class="bar"><div class="nm">UPI / डिजिटल<small>भुगतान</small></div><div class="track"><i style="width:74%;background:var(--teal)"></i></div><div class="pct" style="color:var(--teal)">74%</div></div>
+        <div class="bar"><div class="nm">FSSAI<small>लाइसेंस</small></div><div class="track"><i style="width:28%;background:var(--marigold)"></i></div><div class="pct" style="color:var(--marigold)">28%</div></div>
+
+        <div class="eyebrow">गाँव · coverage (didis crossing ₹1 lakh)</div>
+        <div class="cov">
+          <div class="v good"><h6>रातू</h6><div class="n">22 दीदी</div><div class="pr">▲ 59% लखपति</div></div>
+          <div class="v good"><h6>बेड़ो</h6><div class="n">18 दीदी</div><div class="pr">▲ 50%</div></div>
+          <div class="v mid"><h6>हुटप</h6><div class="n">21 दीदी</div><div class="pr">◆ 33%</div></div>
+          <div class="v mid"><h6>ओरमांझी</h6><div class="n">19 दीदी</div><div class="pr">◆ 31%</div></div>
+          <div class="v low"><h6>तिगरा</h6><div class="n">23 दीदी</div><div class="pr">▼ 14% · पीछे</div></div>
+          <div class="v low"><h6>नगड़ी</h6><div class="n">17 दीदी</div><div class="pr">▼ 11% · पीछे</div></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>काम<small>Work</small></div>
+        <div class="tab"><span class="ic">▤</span>सीखो<small>Learn</small></div>
+        <div class="tab"><span class="ic">◉</span>दीदी<small>Mentees</small></div>
+        <div class="tab on"><span class="ic">🧭</span>क्लस्टर<small>Atlas</small></div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">G</span><b>The org's view — a CLF coordinator watches the whole Lakhpati cohort.</b>
+      Zoom out one more level and the same Atlas becomes the <b>government federation's coverage dashboard</b>: how many of 240 didis crossed
+      <b>₹1 lakh</b>, <b>scheme uptake</b> (PMFME / Mudra / UPI / FSSAI) as progress bars, and a <b>village coverage grid</b> that flags the two lagging
+      villages (तिगरा, नगड़ी) for targeted CRP deployment. This is JSLPS / DAY-NRLM using BetterAt as its real-time livelihoods MIS — the same evidence
+      the didi logs, aggregated up the SHG → VO → CLF federation.</div>
+  </div>
+
+  <!-- ============ FRAME H — log a mentoring visit on one didi ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>10:39</span><span class="r">बेड़ो · सुनीता</span></div>
+      <div class="lmap" style="bottom:auto;height:300px;top:0;">
+        <div class="field" style="left:-6%;top:8%;width:50%;height:40%;"></div>
+        <div class="field d" style="right:-8%;top:18%;width:44%;height:36%;"></div>
+        <div class="road" style="left:-8%;top:60%;width:124%;transform:rotate(4deg);"></div>
+        <div class="base" style="left:36%;top:74%;"><div class="ring" style="width:50px;height:50px;font-size:22px;">🧭</div></div>
+        <div class="vil" style="left:66%;top:38%;">
+          <div class="mk" style="border-color:var(--watch);box-shadow:0 0 0 5px rgba(217,119,6,.2),0 6px 16px rgba(70,45,20,.3);"><span class="ico">🫙</span></div>
+          <div class="nm">सुनीता · बेड़ो</div>
+        </div>
+      </div>
+      <div class="cockpit" style="top:272px;">
+        <div class="grab"></div>
+        <div class="cp-head">
+          <div class="av">सु<span class="sd"></span></div>
+          <div class="ttl">
+            <div class="kind">मेंटरिंग दौरा · दर्ज करें</div>
+            <h4>सुनीता देवी<small> · अचार · सरस्वती समूह</small></h4>
+          </div>
+          <div class="when">आज</div>
+        </div>
+
+        <!-- her capability gaps the mentor reads first (mirrors #29 Frame C) -->
+        <div class="gaprow">
+          <div class="g ok"><div class="gi">🥭</div><div class="gn">बनाना</div><div class="gs">मज़बूत</div></div>
+          <div class="g weak"><div class="gi">🏪</div><div class="gn">बेचना</div><div class="gs">1 हाट</div></div>
+          <div class="g no"><div class="gi">📱</div><div class="gn">डिजिटल</div><div class="gs">अभी नहीं</div></div>
+        </div>
+
+        <div class="mplan">
+          <div class="lead">🎯 इस दौरे का लक्ष्य</div>
+          <h4>सुनीता को दूसरा बाज़ार दिलाएँ — बुंडू हाट।</h4>
+          <p>रेखा के साथ मंगल का टेम्पो साझा कराएँ; ₹50 दाम पर 20 जार आज़माएँ। साथ में WhatsApp कैटलॉग का पहला कदम दिखाएँ।</p>
+          <div class="assign">
+            <div class="ic">🫙</div>
+            <div class="t"><b>ब्लूप्रिंट कदम सौंपा</b><span>"नया हाट आज़माएँ" · CLF अचार योजना से</span></div>
+            <div class="chk">✓</div>
+          </div>
+        </div>
+
+        <div class="logrow">
+          <div class="ic">🗒️</div>
+          <div class="b"><div class="kl">पिछला दौरा · 3 हफ़्ते पहले</div><h5>FSSAI नंबर लेने में मदद की · <b>पूरा हुआ ✓</b></h5></div>
+        </div>
+
+        <div class="cp-cta">
+          <button class="voice">🎙️</button>
+          <button class="ready">दौरा दर्ज करें</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">H</span><b>The mentoring loop closes — a located, evidenced visit, not a clipboard.</b>
+      Tapping a didi opens her from the mentor's side: her <b>capability gaps</b> up top (the same sourcing / selling / digital read the didi sees in #29
+      Frame C), a <b>visit goal</b> the mentor sets, and a <b>blueprint step assigned</b> straight into Sunita's own plan — so the next time Sunita opens her
+      Atlas, "try Bundu haat" is waiting. <b>🎙️</b> lets the mentor dictate the visit note; the logged visit becomes <b>evidence</b> that rolls up to Frame G.
+      Mentoring is now a first-class, repeatable step — exactly how the SHG, NGO and government were always meant to grow her.</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>One Atlas, three vantage points — how the mentor &amp; org side works</h2>
+
+  <h3>Why a companion, not a rebuild</h3>
+  <ul>
+    <li><span class="pill keep">#29 STANDS</span>The entrepreneur's four frames (her circuit, the haat cockpit, her Lakhpati health, her SHG-scoped Nearby) are unchanged. <b>These four are the same Atlas seen by the people who mentor her.</b></li>
+    <li><span class="pill new">ROLE-GATED</span>BetterAt already has the <b>four-tier social model</b> (interests · orgs · programs · people). A user's <b>role in the org</b> (didi vs CRP/Sakhi vs CLF coordinator) decides which Atlas vantage they get — same data, different altitude.</li>
+    <li><span class="pill new">REGISTER</span>Mentor/org frames shift the accent <b>terra → indigo</b> to signal "you're acting with org authority," and the tab row gains a <b>दीदी / Mentees</b> entry that only mentors see.</li>
+  </ul>
+
+  <h3>Three altitudes of the same "where" lens</h3>
+  <table>
+    <tr><td>Didi <i>(#29)</i></td><td>Her own livelihood circuit — one home, one haat, her savings. "What do I do this week?"</td></tr>
+    <tr><td>CRP / Sakhi <i>(E·F·H)</i></td><td>A <b>cluster of SHGs</b> she mentors. Who needs a visit, one nudge each, log the visit as evidence. "Who do I help, and how?"</td></tr>
+    <tr><td>CLF / JSLPS <i>(G)</i></td><td>The <b>whole Lakhpati cohort</b> across villages. Crossing-₹1-lakh coverage, scheme uptake, laggard villages. "Is the program working?"</td></tr>
+  </table>
+
+  <h3>Who the mentors actually are (real DAY-NRLM cadres)</h3>
+  <ul>
+    <li><b>CRP / Sakhi</b> — Community Resource Person &amp; the <b>Aajeevika / Bank / Krishi / Pashu Sakhi</b> cadres: village women, already trusted, already paid to mentor. Frame E/F/H is built for the phone in <i>their</i> hand.</li>
+    <li><b>VO → CLF coordinator</b> — the Village Organization and <b>Cluster Level Federation</b> staff under <b>JSLPS</b> (Jharkhand State Livelihood Promotion Society, the state DAY-NRLM mission). Frame G is their MIS.</li>
+    <li><b>Schemes as Programs</b> — <b>Lakhpati Didi</b>, <b>PMFME</b> (food-processing subsidy), <b>Mudra</b> credit, FSSAI licensing. The didi <i>subscribes</i>; the mentor <i>routes</i> her to them; the org <i>tracks</i> uptake.</li>
+  </ul>
+
+  <h3>Primitive mapping (the mentor side)</h3>
+  <ul>
+    <li><b>Mentoring visit = a Step</b> with a who (the didi), a where (her village/haat), and evidence (the note + the blueprint step assigned). It rolls up the SHG → VO → CLF federation as real data.</li>
+    <li><b>A nudge = a routed Blueprint step.</b> When the mentor assigns "try Bundu haat," it lands in the didi's own plan (the Plan-is-a-menu pattern) — the two sides share one timeline.</li>
+    <li><b>Frame G coverage = aggregated Competency/Evidence.</b> "86 of 240 crossed ₹1 lakh" and scheme-uptake bars are the cohort roll-up of the same sales/savings/licence evidence each didi logs — not a separate report.</li>
+  </ul>
+
+  <h3>Same real-user constraints as #29</h3>
+  <ul>
+    <li><span class="pill new">VOICE</span>Mentors are village women too — <b>🎙️ dictate the visit note</b>, 🔊 read-aloud everywhere, big touch targets, vernacular (Hindi shown; Santhali/Sadri/Mundari/Kurukh on localization).</li>
+    <li><span class="pill new">EDGE</span>CRPs walk between villages with patchy signal — the cluster map, roster and visit log <b>cache offline</b> and sync later; ₹ &amp; UPI-native throughout.</li>
+    <li><span class="pill new">TRUST</span>A mentor sees a didi <b>because she's in their assigned SHG cluster</b>, never anonymous distance — matching how JSLPS/DAY-NRLM actually assigns CRPs.</li>
+  </ul>
+
+  <h3>Build order (still isolated from sailing &amp; nursing)</h3>
+  <ul>
+    <li><b>E5 — Role gating:</b> resolve org-role → Atlas vantage (didi / CRP / CLF). Reuses the membership-role plumbing; the heavy lift is the new mentor frames, not new data.</li>
+    <li><b>E6 — Cluster map &amp; roster</b> (Frames E·F) · <b>E7 — Log-a-visit loop + blueprint routing</b> (Frame H, the keystone — it's what makes mentoring evidenced) · <b>E8 — CLF cohort dashboard</b> (Frame G).</li>
+    <li><b>Data caveat:</b> needs the SHG→VO→CLF org tree with <b>CRP-to-SHG assignments</b>, a didi <b>status signal</b> (derivable from sales/savings cadence), and a <b>scheme catalog</b>. Verify what a Jharkhand demo can seed before building — this completes the rural-Indian-entrepreneur slot in the per-persona Atlas rollout with its mentor/org half.</li>
+  </ul>
+</div>
+
+</body>
+</html>

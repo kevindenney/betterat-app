@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>betterat_l3_studio_log_redesign</title>
+<style>
+:root {
+  --font-serif: 'Iowan Old Style', Georgia, serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  --bg-primary: #FAFAF7;
+  --bg-secondary: #F0EEE8;
+  --text-primary: #2A2824;
+  --text-secondary: #58544A;
+  --text-tertiary: #8A8478;
+  --text-info: #5A4078;
+  --info-bg: #E5E1F0;
+  --border-tertiary: #DDD8CA;
+  --now: #FF6B5A;
+  --lilac: #9D70C9;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 28px 16px 60px;
+  background: #E8E4D8;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+.page-title { max-width: 920px; margin: 0 auto 6px; font-size: 15px; font-weight: 600; }
+.page-sub { max-width: 920px; margin: 0 auto 28px; font-size: 12px; color: #6B6558; line-height:1.5; }
+.frames { display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+.col { width: 392px; }
+.col-label { text-align: center; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6558; margin-bottom: 10px; }
+.col-label.bad { color: #B0593F; }
+.col-label.good { color: #4E7A55; }
+.phone {
+  position: relative;
+  background: var(--bg-primary); border-radius: 34px; overflow: hidden;
+  border: 0.5px solid var(--border-tertiary); box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+}
+.statusbar { padding: 13px 24px 6px; display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); }
+.dots { letter-spacing: 2px; }
+.topnav { padding: 4px 22px 2px; display:flex; align-items:center; gap:6px; font-size:14px; color:var(--text-secondary);}
+.h-title { padding: 2px 22px 0; }
+.h-title h1 { font-size: 26px; margin: 2px 0 0; letter-spacing: -0.02em; }
+.h-step { padding: 0 22px 14px; font-size: 13px; color: var(--lilac); font-weight: 600; }
+.section { padding: 0 22px; }
+.eyebrow { font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-tertiary); margin: 18px 0 6px; font-weight: 600; display:flex; justify-content:space-between; align-items:baseline;}
+.eyebrow .sub { letter-spacing:0; text-transform:none; font-weight:400; font-style:italic; color:var(--text-tertiary); }
+
+.headline { font-family: var(--font-serif); font-size: 18px; line-height: 1.35; color: var(--text-primary); margin: 2px 0 12px; }
+.headline b { font-weight: 600; }
+
+.chartwrap { position: relative; }
+svg { display: block; width: 100%; }
+.now-label { font: 700 9px var(--font-sans); fill: var(--now); letter-spacing: 0.4px; }
+.tick { font: 400 9px var(--font-sans); fill: var(--text-tertiary); }
+.tick.now { fill: var(--now); font-weight: 700; }
+.bad-label { font: 600 11px var(--font-sans); }
+
+/* shared spine sub-lanes */
+.spine-cap { font-size: 10px; color: var(--text-tertiary); margin: 2px 0 0; }
+.spine-cap b { color: var(--lilac); font-weight:600; }
+
+.callout {
+  position: absolute; pointer-events: none; min-width: 150px;
+  background: rgba(255,255,255,0.98); border: 0.5px solid var(--border-tertiary);
+  border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,0.16); padding: 9px 11px;
+  font-size: 11px; transform: translate(-50%, -100%); transition: opacity .1s; opacity: 0; z-index:5;
+}
+.callout .wk { font-size: 10px; color: var(--text-tertiary); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 5px; }
+.callout .row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+.callout .sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.callout .nm { color: var(--text-secondary); flex: 1; }
+.callout .vn { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+.callout .meta { margin-top:6px; padding-top:6px; border-top:0.5px solid var(--border-tertiary); color:var(--text-secondary); font-size:10.5px; }
+.callout .meta.pause { color: var(--lilac); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 4px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 5px 10px 5px 8px; border-radius: 999px; background: var(--bg-secondary);
+  border: 0.5px solid var(--border-tertiary); font-size: 12px; color: var(--text-secondary);
+  transition: all .15s; user-select: none;
+}
+.chip .sw { width: 9px; height: 9px; border-radius: 3px; }
+.chip .av { width:17px; height:17px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:9px; font-weight:700; }
+.chip .vn { color: var(--text-tertiary); font-variant-numeric: tabular-nums; font-size: 11px; }
+.chip.dim { opacity: 0.34; }
+.chip.active { background: #fff; border-color: #B8B2A2; color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.hint { font-size: 11px; color: var(--text-tertiary); margin: 7px 0 0; font-style: italic; }
+
+/* drill-in: steps that make up the selected thread / person */
+.drill { margin: 10px 0 2px; border-left: 2.5px solid var(--border-tertiary); padding-left: 12px; }
+.drill .dh { font-size: 11px; color: var(--text-secondary); margin-bottom: 7px; }
+.drill .dh b { color: var(--text-primary); font-weight:600; }
+.step { display:flex; align-items:center; gap:8px; padding:7px 6px 7px 0; border-bottom:0.5px solid #EDEAE0; cursor:pointer; border-radius:8px; transition:background .12s; }
+.step:last-child { border-bottom:0; }
+.step:hover { background:#F4F1E8; padding-left:6px; }
+.step .st { width:14px; height:14px; border-radius:999px; border:1.5px solid var(--border-tertiary); flex:none; display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; }
+.step .st.done { background:#5BA46F; border-color:#5BA46F; }
+.step .st.prog { border-color: var(--now); border-style:dashed; }
+.step .ti { font-size:12.5px; color:var(--text-primary); flex:1; }
+.step .wk { font-size:10.5px; color:var(--text-tertiary); }
+.step .go { color:var(--text-tertiary); font-size:14px; opacity:0; transition:opacity .12s; }
+.step:hover .go { opacity:1; }
+
+.libcard { margin: 18px 0 4px; background: var(--info-bg); border-radius: 14px; padding: 13px 15px; }
+.libcard .lab { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-info); font-weight: 600; }
+.libcard p { font-family: var(--font-serif); font-size: 14.5px; line-height: 1.5; color: #3A3550; margin: 6px 0 0; }
+
+.tabbar { display: flex; justify-content: space-around; padding: 12px 0 22px; border-top: 0.5px solid var(--border-tertiary); margin-top: 18px; font-size: 10px; color: var(--text-tertiary); }
+.tabbar .t { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.tabbar .t.on { color: #3478F6; }
+.tabbar .dotic { width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; }
+
+.note { max-width: 920px; margin: 26px auto 0; font-size: 12.5px; line-height: 1.6; color: #4A463C; }
+.note b { color: #2A2824; }
+.note ul { margin: 6px 0 0; padding-left: 18px; }
+.note li { margin: 4px 0; }
+.empty-inset { margin: 12px 0 4px; border: 1px dashed var(--border-tertiary); border-radius: 12px; padding: 16px; text-align: center; max-width:330px;}
+.empty-inset .big { font-family: var(--font-serif); font-size: 15px; color: var(--text-secondary); }
+.empty-inset .small { font-size: 11.5px; color: var(--text-tertiary); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="page-title">L3 redesign — STUDIO LOG · REFLECTIONS · "who helped you most" on one shared spine</div>
+<div class="page-sub">betterat redesign mockup · Drawing sketchbook, week 6 of 8 · parts (b)+. Hover any lane to scrub the week. Tap a capability chip OR a person to isolate their thread <b>and drill into the steps that make it up</b>.</div>
+
+<div class="frames">
+
+  <!-- ============ BEFORE ============ -->
+  <div class="col">
+    <div class="col-label bad">Before — what's on screen now (drawing)</div>
+    <div class="phone">
+      <div class="statusbar"><span>6:51</span><span class="dots">•••• ⏚ ▮</span></div>
+      <div class="topnav">Drawing ▾</div>
+      <div class="h-title"><h1>Spring ▾</h1></div>
+      <div class="h-step">Step 1 of 8 ▾</div>
+      <div class="section">
+        <div class="eyebrow">Studio log</div>
+        <div class="chartwrap"><svg viewBox="0 0 346 180" id="badChart"></svg></div>
+        <div class="eyebrow">Reflections <span class="sub">weeks you paused to think</span></div>
+        <svg viewBox="0 0 346 30"><rect x="12" y="6" width="40" height="18" rx="2" fill="#9D70C9" opacity="0.5"/><line x1="12" x2="334" y1="25" y2="25" stroke="rgba(0,0,0,0.1)"/></svg>
+        <div class="eyebrow">Studio <span class="sub">who shaped your work</span></div>
+        <div class="chartwrap"><svg viewBox="0 0 346 96" id="badPeer"></svg></div>
+      </div>
+      <div class="tabbar">
+        <div class="t on"><div class="dotic"></div>Practice</div><div class="t"><div class="dotic"></div>Library</div>
+        <div class="t"><div class="dotic"></div>Watch</div><div class="t"><div class="dotic"></div>Atlas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ AFTER ============ -->
+  <div class="col">
+    <div class="col-label good">After — shared spine · headline · chips · scrub · drill-in</div>
+    <div class="phone">
+      <div class="statusbar"><span>6:51</span><span class="dots">•••• ⏚ ▮</span></div>
+      <div class="topnav">Drawing ▾</div>
+      <div class="h-title"><h1>Spring ▾</h1></div>
+      <div class="h-step">Week 6 of 8 ▾</div>
+      <div class="section">
+        <div class="eyebrow">Studio log</div>
+        <p class="headline" id="headline"></p>
+
+        <!-- shared-spine stack: bands -> reflection strip -> peer lane -->
+        <div class="chartwrap" id="spine">
+          <svg viewBox="0 0 346 168" id="goodChart"></svg>
+          <p class="spine-cap" id="reflCap"></p>
+          <svg viewBox="0 0 346 30" id="reflStrip"></svg>
+          <div class="callout" id="callout"></div>
+        </div>
+
+        <div class="legend" id="legend"></div>
+        <p class="hint">Tap a thread to isolate + see its steps · drag across to scrub</p>
+        <div id="capDrill"></div>
+
+        <div class="eyebrow" style="margin-top:22px;">Studio — who helped you most</div>
+        <p class="headline" id="peerHeadline"></p>
+        <div class="chartwrap" id="peerWrap">
+          <svg viewBox="0 0 346 86" id="peerChart"></svg>
+        </div>
+        <div class="legend" id="people"></div>
+        <div id="peerDrill"></div>
+
+        <div class="libcard">
+          <div class="lab">✷ This sketchbook · studio notes</div>
+          <p>Proportion carried the work; perspective only surfaced twice, both times alongside Pat. Want a perspective-led week before Spring closes?</p>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="t on"><div class="dotic"></div>Practice</div><div class="t"><div class="dotic"></div>Library</div>
+        <div class="t"><div class="dotic"></div>Watch</div><div class="t"><div class="dotic"></div>Atlas</div>
+      </div>
+      <div id="jumpToast" style="position:absolute; left:50%; bottom:84px; transform:translateX(-50%); background:#2A2824; color:#fff; font-size:11.5px; padding:8px 14px; border-radius:999px; opacity:0; transition:opacity .15s; pointer-events:none; white-space:nowrap;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>How the next two sections integrate:</b>
+  <ul>
+    <li><b>One shared spine.</b> Bands, reflection strip, and people lane use the identical week axis + NOW rule, stacked with no gaps — it reads as one annotated timeline, not three charts.</li>
+    <li><b>REFLECTIONS shrinks to a strip.</b> No standalone titled chart — just lilac ticks on the weeks you paused, with a one-line caption ("you paused wk 3 · wk 5"). The detail lives in the scrub callout.</li>
+    <li><b>"Who helped you most" = headline + people out of the plot.</b> Peer dots ride the spine; the floating "suggested it" text is gone. Identity + relationship live in the chips ("Pat · coach · 4", "Dana · suggested 2 steps").</li>
+    <li><b>Unified scrub.</b> Hover any lane → one callout for that week: capability mix + "you paused here" + who was involved.</li>
+    <li><b>Drill-in preserved (your ask).</b> Tapping a capability chip <i>or</i> a person isolates the thread <b>and</b> lists the exact steps that compose it — keeping today's tap-into-a-band behavior, just made explicit.</li>
+  </ul>
+  <div class="empty-inset">
+    <div class="big">Not enough sessions yet</div>
+    <div class="small">Your studio log fills in around week 4 — keep drawing.</div>
+  </div>
+  <p style="margin-top:14px;"><b>Re: "is this already what you designed?"</b> The sailing PRACTICE LOG already shows clean short labels because <code>SAILING_VOCAB</code> has a palette — so the bands half is partly live there. Still missing everywhere: the headline, chips/scrub/isolate, the drill-in, and this de-cluttered FLEET/"who helped you most" lane.</p>
+</div>
+
+<script>
+const PALETTE = [
+  { id:'proportion', label:'Proportion',  color:'#C46E49' },
+  { id:'line',       label:'Line control',color:'#5BA46F' },
+  { id:'perspective',label:'Perspective', color:'#5A7A98' },
+  { id:'observation',label:'Observation', color:'#7E6FC8' },
+  { id:'shape',      label:'Shape',       color:'#C99632' },
+];
+const PEOPLE = [
+  { id:'pat',  initials:'P', name:'Pat',  rel:'coach', caption:'coach · 4 sessions',  color:'#C46E49' },
+  { id:'dana', initials:'D', name:'Dana', rel:'peer',  caption:'suggested 2 steps',   color:'#7E6FC8' },
+  { id:'you',  initials:'K', name:'You',  rel:'self',  caption:'suggested 1 step',    color:'#5A7A98' },
+];
+// Single source of truth: the steps. Everything else derives from this.
+const STEPS = [
+  { id:1, title:'Gesture warm-ups',         wk:1, status:'done', caps:['proportion','observation'],            people:[] ,        reflected:false },
+  { id:2, title:'Still-life block-in',      wk:2, status:'done', caps:['proportion','shape'],                  people:['pat'],    reflected:false },
+  { id:3, title:'One-point box study',      wk:3, status:'done', caps:['perspective','line'],                  people:['pat','dana'], reflected:true },
+  { id:4, title:'Contour line drills',      wk:4, status:'done', caps:['proportion','line'],                   people:['you'],    reflected:false },
+  { id:5, title:'Value + form study',       wk:5, status:'done', caps:['proportion','observation','line'],     people:['pat','dana'], reflected:true },
+  { id:6, title:'Two-point room sketch',    wk:6, status:'prog', caps:['proportion','perspective','line','shape'], people:['pat'], reflected:false },
+];
+const TOTAL=8, CURRENT=6;
+
+// derive per-week capability counts
+const WEEKS = Array.from({length:TOTAL},()=>({}));
+STEPS.forEach(s=>s.caps.forEach(c=>{ WEEKS[s.wk-1][c]=(WEEKS[s.wk-1][c]||0)+1; }));
+const reflWeeks = STEPS.filter(s=>s.reflected).map(s=>s.wk);
+const peerWeeks = {}; PEOPLE.forEach(p=>peerWeeks[p.id]=STEPS.filter(s=>s.people.includes(p.id)).map(s=>s.wk));
+const capTotals={}; PALETTE.forEach(p=>capTotals[p.id]=STEPS.filter(s=>s.caps.includes(p.id)).length);
+const capOrder=[...PALETTE].sort((a,b)=>capTotals[b.id]-capTotals[a.id]);
+
+let capIso=null, peerIso=null;
+
+// ---- geometry shared by all lanes ----
+const W=346, padX=14, padBottom=18;
+const iW=W-padX*2, col=iW/TOTAL;
+const nowX=padX+(CURRENT-0.5)*col;
+let maxStack=1; WEEKS.forEach(w=>{let s=0;PALETTE.forEach(p=>s+=(w[p.id]||0));if(s>maxStack)maxStack=s;});
+
+// ---------- bands ----------
+function drawBands(){
+  const H=168, padTop=22, iH=H-padTop-padBottom, scale=v=>(v/maxStack)*iH;
+  let s='';
+  WEEKS.forEach((w,i)=>{
+    let y=padTop+iH;
+    capOrder.forEach(p=>{ const v=w[p.id]||0; if(!v)return; const h=scale(v); y-=h;
+      const dim=capIso&&capIso!==p.id;
+      s+=`<rect x="${padX+i*col+0.5}" y="${y}" width="${col-1}" height="${h}" fill="${p.color}" opacity="${dim?0.12:0.92}"/>`;});
+  });
+  s+=`<line x1="${padX}" x2="${padX+iW}" y1="${padTop+iH+0.5}" y2="${padTop+iH+0.5}" stroke="rgba(0,0,0,0.12)"/>`;
+  s+=`<line x1="${nowX}" x2="${nowX}" y1="${padTop-4}" y2="${padTop+iH+4}" stroke="#FF6B5A" stroke-width="1" opacity="0.85"/>`;
+  s+=`<text class="now-label" x="${nowX}" y="${padTop-8}" text-anchor="middle">NOW</text>`;
+  [1,CURRENT,TOTAL].forEach(wk=>{const x=padX+(wk-0.5)*col;s+=`<text class="tick ${wk===CURRENT?'now':''}" x="${x}" y="${H-4}" text-anchor="middle">wk ${wk}</text>`;});
+  document.getElementById('goodChart').innerHTML=s;
+}
+// ---------- reflection strip ----------
+function drawRefl(){
+  let s=''; const y=4,h=16;
+  for(let wk=1;wk<=TOTAL;wk++){const x=padX+(wk-0.5)*col; const on=reflWeeks.includes(wk);
+    s+=`<rect x="${x-5}" y="${on?y:y+6}" width="10" height="${on?h:4}" rx="2" fill="${on?'#9D70C9':'#D8D2E4'}" opacity="${on?0.85:0.6}"/>`;}
+  s+=`<line x1="${nowX}" x2="${nowX}" y1="0" y2="26" stroke="#FF6B5A" stroke-width="1" opacity="0.3"/>`;
+  document.getElementById('reflStrip').innerHTML=s;
+  document.getElementById('reflCap').innerHTML=`<b>✷ Reflections</b> — you paused ${reflWeeks.map(w=>'wk '+w).join(' · ')}`;
+}
+// ---------- peer lane ----------
+function drawPeers(){
+  const H=86, top=8, rh=22; let s='';
+  PEOPLE.forEach((p,r)=>{
+    const cy=top+r*rh+8; const wks=peerWeeks[p.id]; if(!wks.length)return;
+    const dim=peerIso&&peerIso!==p.id;
+    const op=dim?0.18:1;
+    // hairline first->now
+    const x0=padX+(wks[0]-0.5)*col;
+    s+=`<line x1="${x0}" x2="${nowX}" y1="${cy}" y2="${cy}" stroke="${p.color}" stroke-width="1" opacity="${dim?0.1:0.35}"/>`;
+    wks.forEach((wk,wi)=>{const x=padX+(wk-0.5)*col;
+      s+=`<circle cx="${x}" cy="${cy}" r="${wi===0?8:5}" fill="${p.color}" opacity="${op}"/>`;
+      if(wi===0)s+=`<text x="${x}" y="${cy+3}" text-anchor="middle" font-size="8" font-weight="700" fill="#fff" opacity="${op}">${p.initials}</text>`;});
+  });
+  s+=`<line x1="${nowX}" x2="${nowX}" y1="0" y2="${H-18}" stroke="#FF6B5A" stroke-width="1" opacity="0.5"/>`;
+  [1,CURRENT,TOTAL].forEach(wk=>{const x=padX+(wk-0.5)*col;s+=`<text class="tick ${wk===CURRENT?'now':''}" x="${x}" y="${H-4}" text-anchor="middle">wk ${wk}</text>`;});
+  document.getElementById('peerChart').innerHTML=s;
+}
+// ---------- chips ----------
+function drawLegend(){
+  document.getElementById('legend').innerHTML=capOrder.map(p=>{
+    const cls=capIso?(capIso===p.id?'active':'dim'):'';
+    return `<span class="chip ${cls}" data-cap="${p.id}"><span class="sw" style="background:${p.color}"></span>${p.label}<span class="vn">${capTotals[p.id]}</span></span>`;}).join('');
+  document.querySelectorAll('[data-cap]').forEach(c=>c.onclick=()=>{capIso=capIso===c.dataset.cap?null:c.dataset.cap; peerIso=null; render();});
+}
+function drawPeopleChips(){
+  document.getElementById('people').innerHTML=PEOPLE.map(p=>{
+    const cls=peerIso?(peerIso===p.id?'active':'dim'):'';
+    return `<span class="chip ${cls}" data-peer="${p.id}"><span class="av" style="background:${p.color}">${p.initials}</span>${p.name} <span class="vn">· ${p.caption}</span></span>`;}).join('');
+  document.querySelectorAll('[data-peer]').forEach(c=>c.onclick=()=>{peerIso=peerIso===c.dataset.peer?null:c.dataset.peer; capIso=null; render();});
+}
+// ---------- drill-ins ----------
+function stepRow(s){const ic=s.status==='done'?'<span class="st done">✓</span>':'<span class="st prog"></span>';
+  return `<div class="step" onclick="jumpToStep(${s.id})">${ic}<span class="ti">${s.title}</span><span class="wk">wk ${s.wk}</span><span class="go">›</span></div>`;}
+function jumpToStep(id){const s=STEPS.find(x=>x.id===id);
+  const c=document.getElementById('jumpToast'); c.textContent=`→ Opens "${s.title}" at L1 (step detail)`; c.style.opacity=1;
+  clearTimeout(window._jt); window._jt=setTimeout(()=>c.style.opacity=0,1800);}
+function drawCapDrill(){const el=document.getElementById('capDrill');
+  if(!capIso){el.innerHTML='';return;} const p=PALETTE.find(x=>x.id===capIso);
+  const ss=STEPS.filter(s=>s.caps.includes(capIso));
+  el.innerHTML=`<div class="drill" style="border-color:${p.color}"><div class="dh"><b>${p.label}</b> — ${ss.length} steps built this thread</div>${ss.map(stepRow).join('')}</div>`;}
+function drawPeerDrill(){const el=document.getElementById('peerDrill');
+  if(!peerIso){el.innerHTML='';return;} const p=PEOPLE.find(x=>x.id===peerIso);
+  const ss=STEPS.filter(s=>s.people.includes(peerIso));
+  el.innerHTML=`<div class="drill" style="border-color:${p.color}"><div class="dh"><b>${p.name}</b> shaped ${ss.length} steps</div>${ss.map(stepRow).join('')}</div>`;}
+// ---------- headlines ----------
+function drawHeadlines(){
+  const h=document.getElementById('headline');
+  if(capIso){const p=PALETTE.find(x=>x.id===capIso); const inWk=WEEKS.slice(0,CURRENT).filter(w=>w[capIso]).length;
+    h.innerHTML=`Showing <b style="color:${p.color}">${p.label}</b> — in ${inWk} of ${CURRENT} sessions.`;}
+  else h.innerHTML=`<b style="color:#C46E49">Proportion</b> led this sketchbook — in 5 of 6 sessions.`;
+  document.getElementById('peerHeadline').innerHTML=peerIso
+    ? `Showing <b style="color:${PEOPLE.find(x=>x.id===peerIso).color}">${PEOPLE.find(x=>x.id===peerIso).name}</b>'s thread.`
+    : `<b style="color:#C46E49">Pat</b> shaped this sketchbook most — 4 of 6 sessions.`;
+}
+function render(){drawBands();drawRefl();drawPeers();drawLegend();drawPeopleChips();drawCapDrill();drawPeerDrill();drawHeadlines();}
+
+// ---------- unified scrub ----------
+const callout=document.getElementById('callout');
+function scrub(e){
+  const sp=document.getElementById('goodChart'); const r=sp.getBoundingClientRect();
+  const px=(e.clientX-r.left)/r.width*W; let idx=Math.floor((px-padX)/col);
+  if(idx<0||idx>=CURRENT){callout.style.opacity=0;return;}
+  const w=WEEKS[idx]; const rows=PALETTE.filter(p=>w[p.id]).sort((a,b)=>(w[b.id]||0)-(w[a.id]||0));
+  if(!rows.length){callout.style.opacity=0;return;}
+  const wk=idx+1; const ppl=PEOPLE.filter(p=>peerWeeks[p.id].includes(wk)).map(p=>p.name);
+  let html=`<div class="wk">Week ${wk}</div>`+rows.map(p=>`<div class="row"><span class="sw" style="background:${p.color}"></span><span class="nm">${p.label}</span><span class="vn">${w[p.id]}</span></div>`).join('');
+  if(reflWeeks.includes(wk))html+=`<div class="meta pause">✷ You paused to reflect</div>`;
+  if(ppl.length)html+=`<div class="meta">● with ${ppl.join(', ')}</div>`;
+  callout.innerHTML=html;
+  callout.style.left=((padX+(idx+0.5)*col)/W*r.width)+'px';
+  callout.style.top='14px'; callout.style.opacity=1;
+}
+const spineEl=document.getElementById('spine');
+spineEl.addEventListener('mousemove',scrub);
+spineEl.addEventListener('mouseleave',()=>callout.style.opacity=0);
+
+// ---------- BEFORE (reproduce the mess) ----------
+function drawBad(){
+  const goals=['Improve understanding of 3D forms','Enhance observational drawing skills','Develop consistent daily drawing habits','architectural perspective sketching','structural form and proportion','Pencil control and line quality','Basic shape construction','Sail Racing'];
+  const colors=['#9B9085','#B0A28E','#8C9CA8','#9B9085','#B0A28E','#8C9CA8','#9B9085','#2F8FB0'];
+  const ys=[60,72,84,84,96,108,120,90], xs=[150,175,210,150,120,150,200,300];
+  let s=`<rect x="14" y="120" width="318" height="34" fill="#B0A28E" opacity="0.25"/><line x1="14" x2="332" y1="154" y2="154" stroke="rgba(0,0,0,0.12)"/><line x1="32" x2="32" y1="18" y2="158" stroke="#FF6B5A" opacity="0.85"/><text class="now-label" x="32" y="14" text-anchor="middle">NOW</text>`;
+  goals.forEach((g,i)=>s+=`<text class="bad-label" x="${xs[i]}" y="${ys[i]}" fill="${colors[i]}" text-anchor="middle">${g}</text>`);
+  document.getElementById('badChart').innerHTML=s;
+  // before peer lane: clustered avatars + floating text
+  let p=`<line x1="32" x2="32" y1="6" y2="78" stroke="#FF6B5A" opacity="0.4"/>`;
+  ['R','E','B','G'].forEach((ini,i)=>{const cy=14+i*18;p+=`<circle cx="32" cy="${cy}" r="8" fill="#8C9CA8"/><text x="32" y="${cy+3}" text-anchor="middle" font-size="8" fill="#fff" font-weight="700">${ini}</text>`;});
+  p+=`<circle cx="300" cy="32" r="8" fill="#7E6FC8"/><text x="300" y="35" text-anchor="middle" font-size="8" fill="#fff" font-weight="700">D</text>`;
+  p+=`<text x="250" y="35" font-size="11" fill="#8A8478" font-style="italic">suggested it</text>`;
+  document.getElementById('badPeer').innerHTML=p;
+}
+
+drawBad(); render();
+</script>
+</body>
+</html>

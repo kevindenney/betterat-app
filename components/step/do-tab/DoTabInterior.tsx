@@ -235,7 +235,7 @@ export function DoTabInterior({
         {stepId ? beatsList : null}
         {outcomeCard}
         {onMoveToReflect && !readOnly ? (
-          <MoveToReviewCTA onPress={onMoveToReflect} />
+          <MoveToReflectCTA onPress={onMoveToReflect} />
         ) : null}
         {libraryCard}
         {footer}
@@ -309,6 +309,7 @@ export function DoTabInterior({
               onVoiceNote={onVoiceNote}
               onPhotoOrVideo={onPhotoOrVideo}
               onQuickNoteSubmit={onQuickNoteSubmit}
+              onMoveToReflect={onMoveToReflect}
             />
             {howChecklist}
             {stepId ? beatsList : null}
@@ -336,6 +337,7 @@ export function DoTabInterior({
             onVoiceNote={onVoiceNote}
             onPhotoOrVideo={onPhotoOrVideo}
             onQuickNoteSubmit={onQuickNoteSubmit}
+            onMoveToReflect={onMoveToReflect}
           />
           {howChecklist}
           {stepId ? beatsList : null}
@@ -386,16 +388,16 @@ const styles = StyleSheet.create({
   },
 });
 
-function MoveToReviewCTA({ onPress }: { onPress: () => void }) {
+function MoveToReflectCTA({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
       style={({ pressed }) => [styles.moveToReview, pressed && styles.moveToReviewPressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Move to Review"
+      accessibilityLabel="Move to Reflect"
     >
       <Ionicons name="checkmark-done-outline" size={18} color="#FFFFFF" />
-      <Text style={styles.moveToReviewText}>Move to Review</Text>
+      <Text style={styles.moveToReviewText}>Move to Reflect</Text>
       <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
     </Pressable>
   );

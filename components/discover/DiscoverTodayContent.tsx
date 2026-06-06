@@ -49,6 +49,7 @@ import { usePopularCommunities } from '@/hooks/useCommunities';
 import { useSailorSuggestions } from '@/hooks/useSailorSuggestions';
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import {
   initialsForName,
   pickAvatarMarkColor,
@@ -857,9 +858,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.15,
     fontStyle: 'italic',
     ...Platform.select({
-      ios: { fontFamily: 'Georgia' },
-      android: { fontFamily: 'serif' },
-      web: { fontFamily: 'Georgia, "Times New Roman", serif' } as any,
+      ios: { fontFamily: fontFamily.serif },
+      android: { fontFamily: fontFamily.serif },
+      web: { fontFamily: fontFamily.serif } as any,
     }),
   },
   cardSourceSep: {

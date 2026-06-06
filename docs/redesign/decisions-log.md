@@ -252,6 +252,22 @@ Organized by category. Each item is a deferred design decision or unfinished sur
 
 ---
 
+## Race model & org admin calendar (added 2026-06-06)
+
+**D30. A race is a Step with `is_race = true`, not a separate step type.** We rejected a `step_kind` taxonomy (Phase M.5). A step is a step; race vs. non-race is the only first-class subtype, carried by the boolean `timeline_steps.is_race`. See `specs/ORG_ADMIN_CALENDAR_RACE_MODEL_SPEC.md`.
+
+**D31. `is_race` is the branch point for the race machinery.** When true, a step earns race-only affordances (⛵ Atlas marker, course/marks/conditions cockpit, scoring/results). When false it stays a generic scheduled step. One surface, one boolean — no per-vertical forks. An org-admin race calendar is just scheduled shared steps with the flag set.
+
+**D32. Race detail lives in a JOIN, not in `timeline_steps` columns.** `timeline_steps` stays the universal spine; when `is_race = true` it joins (nullable `regatta_race_id` FK) to the existing `regattas`/`regatta_races`/`race_results` scoring backend. Don't bloat the universal table with sailing-only columns, and don't rebuild scoring on day one.
+
+**D33. Scoring rows are minted lazily, not on the `is_race` toggle.** Flipping `is_race = true` creates only the `timeline_steps` row — `regatta_race_id` stays null until someone actually scores the race. Most club races never get formally scored; eager creation would litter `regatta_races` with empty rows. The race cockpit mints the scoring row on first use.
+
+**D34. A "season" is a series of many race steps under one series container, not one fat step.** A recurring program (e.g. a Saturday series, Oct–Mar) generates **one `is_race` step per occurrence**, all linked to a single series row (`race_series` / `regattas`). This is distinct from a single multi-race regatta weekend (still open question #3), which stays one schedulable step fanning out to child `regatta_races`. Series = many steps; regatta-weekend = one step.
+
+**D35. Rolling a calendar forward re-anchors by recurrence rule, not a naive date offset.** Cloning last season into this season shifts each step **by its recurrence (snap races back to their weekday/ordinal: "first Saturday of October"), not by +364 days**, which would drift the weekday. The clone copies `is_race`, course, and series linkage; resets `status` to pending; and drops results + `regatta_race_id` (fresh scoring rows per D33). Admin bulk-clone is legitimate here — the "Plan is a menu, never bulk-adopt a season" rule governs a *member's personal timeline*, not the org's canonical calendar.
+
+---
+
 ## Implementation order (recommended)
 
 From the design spec, recommended rough order for engineering:

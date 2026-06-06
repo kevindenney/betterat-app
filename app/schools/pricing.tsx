@@ -11,6 +11,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform, Pan
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { MktNav } from '@/components/marketing/MktNav';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { Footer } from './index';
 
 const PER_SEAT_STUDENT = 9.5;       // $/mo
@@ -422,7 +423,7 @@ const s = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: -1,
     color: '#0E1117',
-    fontFamily: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }),
+    fontFamily: fontFamily.serif,
     marginBottom: 12,
     textAlign: 'center',
   },

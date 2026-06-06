@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import {
   useVenueSearch,
   useSetHomeVenue,
@@ -167,10 +168,11 @@ const styles = StyleSheet.create({
     borderBottomColor: IOS_REGISTER.separator,
   },
   title: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 18,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_REGISTER.label,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 12,

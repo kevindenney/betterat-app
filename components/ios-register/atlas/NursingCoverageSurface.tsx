@@ -19,26 +19,66 @@ import {
   useNursingCompetencyCoverage,
   type CategoryCoverage,
 } from '@/hooks/useNursingCompetencyCoverage';
-import type { CoverageCluster } from '@/hooks/useNursingSiteCoverage';
+import { useUserUpcomingEvents } from '@/hooks/useUserUpcomingEvents';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
-
-const CLUSTER_COLORS: Record<CoverageCluster, string> = {
-  cardiac: '#E5484D',
-  resp: '#0E7490',
-  med: '#7C3AED',
-  general: '#16A34A',
-  assess: '#D97706',
-};
+import { fontFamily } from '@/lib/design-tokens-editorial';
+import type { NursingSiteDetailTarget } from './NursingSiteDetailSurface';
 
 export interface NursingCoverageSurfaceProps {
   toolbarOffset?: number;
   bottomOffset?: number;
-  /** Route to plan a step for the named gap area. */
-  onPlanGap?: (category: string) => void;
+  /** Route to plan a step at the site that can close the gap. */
+  onPlanGap?: (site: NursingSiteDetailTarget, suggestedTitle: string) => void;
 }
+
+const FALLBACK_GAP_SITE: NursingSiteDetailTarget = {
+  id: 'howard-county-general',
+  name: 'Howard County General Hospital',
+  unit: 'Clinical placement',
+  statusLabel: 'Week 9',
+  lat: 39.2137,
+  lng: -76.8868,
+};
 
 const RING_SIZE = 88;
 const RING_STROKE = 9;
+
+function gapStepTitle(gap: CategoryCoverage | null): string {
+  if (!gap) return 'Review nursing competency coverage';
+  return gap.category;
+}
+
+function gapHeadline(gap: CategoryCoverage | null): string {
+  if (!gap) return 'Every framework area has evidence.';
+  return `${gap.category} needs evidence.`;
+}
+
+function gapBody(gap: CategoryCoverage | null, site: NursingSiteDetailTarget): string {
+  if (!gap) {
+    return 'Keep logging site-level shifts so your coverage map stays current.';
+  }
+  const count = `${gap.total} competenc${gap.total === 1 ? 'y' : 'ies'}`;
+  return `${count} in this framework area still need evidence. Plan a step at ${site.name} so you know what to practice when you arrive.`;
+}
+
+function upcomingSiteFromEvent(raw: {
+  id: string;
+  label: string;
+  subtitle?: string;
+  lat?: number;
+  lng?: number;
+}): NursingSiteDetailTarget | null {
+  if (raw.lat == null || raw.lng == null) return null;
+  const firstSubtitle = raw.subtitle?.split(' · ')[0]?.trim();
+  return {
+    id: `upcoming-${raw.id}`,
+    name: firstSubtitle || raw.label,
+    unit: raw.label,
+    statusLabel: 'Upcoming',
+    lat: raw.lat,
+    lng: raw.lng,
+  };
+}
 
 function CoverageRing({ evidenced, total }: { evidenced: number; total: number }) {
   const r = (RING_SIZE - RING_STROKE) / 2;
@@ -77,53 +117,13 @@ function CoverageRing({ evidenced, total }: { evidenced: number; total: number }
   );
 }
 
-function summaryLine(evidenced: number, total: number, gaps: number): string {
-  if (evidenced === 0) {
-    return 'Log a clinical shift to start evidencing competencies. Each one is located to the site where you earned it.';
-  }
-  const pct = Math.round((evidenced / total) * 100);
-  if (gaps === 0) {
-    return `You're ${pct}% covered, with at least one competency evidenced in every framework area.`;
-  }
-  return `You're ${pct}% covered. ${gaps} framework area${gaps === 1 ? '' : 's'} have no evidence yet — see the gap below.`;
-}
-
-function CategoryRow({ row }: { row: CategoryCoverage }) {
-  const color = CLUSTER_COLORS[row.cluster];
-  const frac = row.total > 0 ? row.evidenced / row.total : 0;
-  return (
-    <View style={styles.catRow}>
-      <View style={[styles.catDot, { backgroundColor: row.evidenced > 0 ? color : 'rgba(118,118,128,0.3)' }]} />
-      <View style={styles.catBody}>
-        <View style={styles.catTop}>
-          <Text style={[styles.catName, row.evidenced === 0 && styles.catNameGap]} numberOfLines={1}>
-            {row.category}
-          </Text>
-          <Text style={styles.catCount}>
-            {row.evidenced} / {row.total}
-          </Text>
-        </View>
-        <View style={styles.catTrack}>
-          <View
-            style={{
-              width: `${Math.round(frac * 100)}%`,
-              backgroundColor: color,
-              height: '100%',
-              borderRadius: 3,
-            }}
-          />
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export function NursingCoverageSurface({
   toolbarOffset = 0,
   bottomOffset = 0,
   onPlanGap,
 }: NursingCoverageSurfaceProps) {
   const { coverage, isLoading } = useNursingCompetencyCoverage();
+  const { data: upcomingEvents = [] } = useUserUpcomingEvents();
 
   if (isLoading || !coverage) {
     return (
@@ -133,8 +133,34 @@ export function NursingCoverageSurface({
     );
   }
 
-  const { frameworkTotal, evidencedTotal, byCategory, sites, gaps } = coverage;
-  const topGap = gaps[0] ?? null;
+  const evidencedTotal = coverage.evidencedTotal;
+  const frameworkTotal = coverage.frameworkTotal;
+  const remainingTotal = Math.max(frameworkTotal - evidencedTotal, 0);
+  const gapCount = coverage.gaps.length;
+  const topGap = coverage.gaps[0] ?? null;
+  const evidencedSites = coverage.sites.slice(0, 3);
+  const upcomingGapSite =
+    upcomingEvents
+      .filter((event) => ['clinical_shift', 'sim_session', 'assessment'].includes(event.kind))
+      .map(upcomingSiteFromEvent)
+      .find((site): site is NursingSiteDetailTarget => Boolean(site)) ?? null;
+  const gapSite = upcomingGapSite ?? FALLBACK_GAP_SITE;
+  const suggestedGapTitle = gapStepTitle(topGap);
+  const statusText =
+    frameworkTotal === 0
+      ? 'No framework'
+      : remainingTotal === 0
+        ? 'Complete'
+        : evidencedTotal > 0
+          ? 'In progress'
+          : 'Start logging';
+  const ringTitle = remainingTotal === 0 ? 'JHSON framework covered' : 'JHSON framework coverage';
+  const ringSummary =
+    remainingTotal === 0
+      ? `All ${frameworkTotal} framework competencies have evidence from logged shifts.`
+      : evidencedTotal > 0
+        ? `${remainingTotal} of ${frameworkTotal} framework competencies still need evidence across ${gapCount} gap ${gapCount === 1 ? 'area' : 'areas'}.`
+        : `Log a shift to start evidence against the ${frameworkTotal}-competency JHSON framework.`;
 
   return (
     <ScrollView
@@ -149,77 +175,61 @@ export function NursingCoverageSurface({
       <View style={styles.ringWrap}>
         <CoverageRing evidenced={evidencedTotal} total={frameworkTotal} />
         <View style={styles.ringText}>
-          <Text style={styles.ringTitle}>JHSON framework</Text>
-          <Text style={styles.ringSummary}>
-            {summaryLine(evidencedTotal, frameworkTotal, gaps.length)}
-          </Text>
+          <Text style={styles.statusText}>{statusText}</Text>
+          <Text style={styles.ringTitle}>{ringTitle}</Text>
+          <Text style={styles.ringSummary}>{ringSummary}</Text>
         </View>
       </View>
 
-      {/* Per-category coverage */}
-      <Text style={styles.eyebrow}>Coverage by area</Text>
+      <Text style={styles.eyebrow}>Where you&apos;ve evidenced this</Text>
       <View style={styles.card}>
-        {byCategory.map((row, i) => (
-          <View key={row.category}>
-            {i > 0 ? <View style={styles.sep} /> : null}
-            <CategoryRow row={row} />
-          </View>
-        ))}
-      </View>
-
-      {/* Where evidenced — real sites */}
-      {sites.length > 0 ? (
-        <>
-          <Text style={styles.eyebrow}>Where you've evidenced this</Text>
-          <View style={styles.card}>
-            {sites.map((s, i) => (
-              <View key={s.poiId}>
-                {i > 0 ? <View style={styles.sep} /> : null}
-                <View style={styles.evRow}>
-                  <View style={styles.evPin}>
-                    <Ionicons name="location" size={15} color="#16A34A" />
-                  </View>
-                  <View style={styles.evBody}>
-                    <Text style={styles.evName} numberOfLines={1}>
-                      {s.name}
-                    </Text>
-                    <Text style={styles.evSub}>
-                      {s.shifts} shift{s.shifts === 1 ? '' : 's'} logged
-                    </Text>
-                  </View>
-                  <Text style={styles.evCount}>
-                    {s.competencies} comp{s.competencies === 1 ? '' : 's'}
+        {evidencedSites.length > 0 ? (
+          evidencedSites.map((row, i) => (
+            <View key={row.poiId}>
+              {i > 0 ? <View style={styles.sep} /> : null}
+              <View style={styles.evRow}>
+                <View style={styles.evPin}>
+                  <Ionicons name="medkit" size={15} color="#16A34A" />
+                </View>
+                <View style={styles.evBody}>
+                  <Text style={styles.evName} numberOfLines={1}>
+                    {row.name}
+                  </Text>
+                  <Text style={styles.evSub}>
+                    {row.shifts} logged shift{row.shifts === 1 ? '' : 's'}
                   </Text>
                 </View>
+                <Text style={styles.evCount}>×{row.competencies}</Text>
               </View>
-            ))}
+            </View>
+          ))
+        ) : (
+          <View style={styles.emptyEvidence}>
+            <Text style={styles.emptyEvidenceTitle}>No logged-shift evidence yet</Text>
+            <Text style={styles.emptyEvidenceBody}>
+              Log a site-level shift and this list will show where each competency was evidenced.
+            </Text>
           </View>
-        </>
-      ) : null}
+        )}
+      </View>
 
       {/* Gap card — routes the biggest unevidenced area to plan a step */}
-      {topGap ? (
-        <Pressable
-          style={styles.gapCard}
-          onPress={() => onPlanGap?.(topGap.category)}
-          accessibilityRole="button"
-          accessibilityLabel={`Plan a step for ${topGap.category}`}
-        >
-          <Text style={styles.gapKicker}>⚠ Biggest gap</Text>
-          <Text style={styles.gapTitle}>
-            {topGap.category} isn&apos;t evidenced yet
-            {gaps.length > 1 ? ` (+${gaps.length - 1} more area${gaps.length - 1 === 1 ? '' : 's'})` : ''}.
-          </Text>
-          <Text style={styles.gapBody}>
-            {topGap.total} competenc{topGap.total === 1 ? 'y' : 'ies'} in this area have no evidence.
-            Plan a step at an upcoming rotation so it&apos;s ready when you arrive.
-          </Text>
-          <View style={styles.gapCta}>
-            <Text style={styles.gapCtaText}>Plan a step</Text>
-            <Ionicons name="arrow-forward" size={13} color="#B45309" />
-          </View>
-        </Pressable>
-      ) : null}
+      <Pressable
+        style={styles.gapCard}
+        onPress={() => onPlanGap?.(gapSite, suggestedGapTitle)}
+        accessibilityRole="button"
+        accessibilityLabel={`Plan a step for ${topGap?.category ?? 'nursing competency coverage'}`}
+        accessibilityHint={`Opens a planned nursing step at ${gapSite.name}`}
+        testID="atlas-nursing-coverage-gap-card"
+      >
+        <Text style={styles.gapKicker}>{topGap ? '⚠ Biggest gap' : 'Coverage ready'}</Text>
+        <Text style={styles.gapTitle}>{gapHeadline(topGap)}</Text>
+        <Text style={styles.gapBody}>{gapBody(topGap, gapSite)}</Text>
+        <View style={styles.gapCta}>
+          <Text style={styles.gapCtaText}>Plan at {gapSite.name}</Text>
+          <Ionicons name="arrow-forward" size={13} color="#B45309" />
+        </View>
+      </Pressable>
 
       <View style={styles.demoNote}>
         <Ionicons name="lock-closed" size={11} color={IOS_COLORS.tertiaryLabel} />
@@ -256,14 +266,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ringNum: { fontSize: 18, fontWeight: '800', color: IOS_COLORS.label, letterSpacing: -0.5 },
+  ringNum: { fontFamily: fontFamily.mono, fontSize: 18, fontWeight: '500', color: IOS_COLORS.label, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
   ringLab: { fontSize: 9, color: IOS_COLORS.secondaryLabel, fontWeight: '600' },
   ringText: { flex: 1, gap: 4 },
-  ringTitle: { fontSize: 16, fontWeight: '700', color: IOS_COLORS.label },
+  statusText: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 3,
+    backgroundColor: 'rgba(22,163,74,0.12)',
+    color: '#15803D',
+    fontFamily: fontFamily.mono,
+    fontSize: 13,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  ringTitle: { fontFamily: fontFamily.serif, fontSize: 17, fontWeight: '500', color: IOS_COLORS.label, letterSpacing: -0.3 },
   ringSummary: { fontSize: 12.5, color: IOS_COLORS.secondaryLabel, lineHeight: 18 },
   eyebrow: {
+    fontFamily: fontFamily.mono,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '500',
     letterSpacing: 0.6,
     color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
@@ -278,19 +299,9 @@ const styles = StyleSheet.create({
     borderColor: IOS_COLORS.separator,
   },
   sep: { height: StyleSheet.hairlineWidth, backgroundColor: IOS_COLORS.separator },
-  catRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 },
-  catDot: { width: 9, height: 9, borderRadius: 5 },
-  catBody: { flex: 1, gap: 6 },
-  catTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  catName: { fontSize: 13, fontWeight: '600', color: IOS_COLORS.label, flex: 1 },
-  catNameGap: { color: IOS_COLORS.tertiaryLabel, fontWeight: '500' },
-  catCount: { fontSize: 12, color: IOS_COLORS.secondaryLabel, fontWeight: '600' },
-  catTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(60,60,67,0.10)',
-    overflow: 'hidden',
-  },
+  emptyEvidence: { paddingVertical: IOS_SPACING.md, gap: 4 },
+  emptyEvidenceTitle: { fontSize: 14, fontWeight: '700', color: IOS_COLORS.label },
+  emptyEvidenceBody: { fontSize: 12, color: IOS_COLORS.secondaryLabel, lineHeight: 17 },
   evRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 11 },
   evPin: {
     width: 30,
@@ -303,7 +314,7 @@ const styles = StyleSheet.create({
   evBody: { flex: 1, gap: 2 },
   evName: { fontSize: 14, fontWeight: '700', color: IOS_COLORS.label, letterSpacing: -0.2 },
   evSub: { fontSize: 12, color: IOS_COLORS.secondaryLabel },
-  evCount: { fontSize: 12, fontWeight: '700', color: IOS_COLORS.secondaryLabel },
+  evCount: { fontFamily: fontFamily.mono, fontSize: 12, fontWeight: '500', color: IOS_COLORS.secondaryLabel },
   gapCard: {
     backgroundColor: '#FFF7ED',
     borderWidth: StyleSheet.hairlineWidth,
@@ -314,8 +325,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   gapKicker: {
+    fontFamily: fontFamily.mono,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '500',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     color: '#B45309',

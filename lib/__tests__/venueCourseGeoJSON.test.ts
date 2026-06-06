@@ -135,6 +135,24 @@ describe('venueCoursesToFeatureCollection', () => {
     expect(ids).toEqual(new Set(['a', 'b']));
   });
 
+  it('renders triangle courses as triangle legs instead of W/L laylines', () => {
+    const fc = venueCoursesToFeatureCollection([
+      course({
+        id: 'triangle-1',
+        name: 'Victoria Harbour — Triangle',
+        courseType: 'triangle',
+        geometry: { ...baseParams, courseType: 'triangle' },
+      }),
+    ]);
+    const byType = (t: string) => fc.features.filter((x) => x.properties?.type === t);
+    expect(byType('course-leg')).toHaveLength(1);
+    expect(byType('layline')).toHaveLength(0);
+    expect(byType('course-third-label')).toHaveLength(0);
+    expect(
+      byType('course-mark').some((x) => x.properties?.markType === 'wing'),
+    ).toBe(true);
+  });
+
   it('skips a degenerate course rather than aborting the whole layer', () => {
     const degenerate = course({
       id: 'bad',

@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useInterest } from '@/providers/InterestProvider';
 import {
@@ -294,7 +295,9 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    letterSpacing: -0.3,
     color: IOS_COLORS.label,
   },
   emptyText: {

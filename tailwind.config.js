@@ -28,6 +28,11 @@ module.exports = {
     {
       pattern: /p-(tufte-tight|tufte-compact|tufte-standard|tufte-section)/,
     },
+    // Step-state signal triad (Plan/Do/Review + reflection clay + ok)
+    {
+      pattern:
+        /(bg|border|text|stroke|fill)-signal-(plan|plan-tint|plan-ink|do|do-tint|do-ink|review|review-tint|review-ink|reflect-strong|ok|ok-tint)/,
+    },
   ],
   theme: {
     extend: {
@@ -191,6 +196,24 @@ module.exports = {
           gray: "#F5F5F7",      // Apple's signature warm gray background
           card: "#FFFFFF",      // Pure white for cards
           divider: "#E5E5EA",   // Apple's divider color
+        },
+        // Step-state signal triad — "color is signal." Plan/Do/Review are the
+        // only saturated colors on Practice/Step; clay = reflection. Vars defined
+        // in gluestack-ui-provider/config.ts; TS mirror is STEP_STATE in
+        // lib/design-tokens-ios.ts.
+        signal: {
+          plan: "rgb(var(--signal-plan)/<alpha-value>)",
+          "plan-tint": "rgb(var(--signal-plan-tint)/<alpha-value>)",
+          "plan-ink": "rgb(var(--signal-plan-ink)/<alpha-value>)",
+          do: "rgb(var(--signal-do)/<alpha-value>)",
+          "do-tint": "rgb(var(--signal-do-tint)/<alpha-value>)",
+          "do-ink": "rgb(var(--signal-do-ink)/<alpha-value>)",
+          review: "rgb(var(--signal-review)/<alpha-value>)",
+          "review-tint": "rgb(var(--signal-review-tint)/<alpha-value>)",
+          "review-ink": "rgb(var(--signal-review-ink)/<alpha-value>)",
+          "reflect-strong": "rgb(var(--signal-reflect-strong)/<alpha-value>)",
+          ok: "rgb(var(--signal-ok)/<alpha-value>)",
+          "ok-tint": "rgb(var(--signal-ok-tint)/<alpha-value>)",
         },
       },
       fontFamily: {

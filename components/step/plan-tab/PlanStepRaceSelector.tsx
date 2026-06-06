@@ -2,6 +2,9 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import type { RacePlan } from '@/types/step-detail';
+import { RaceCourseMiniMap } from './RaceCourseMiniMap';
+import { RaceCourseLiveMap } from './RaceCourseLiveMap';
 
 /**
  * Phase N.4 — the Step ⟷ Race selector that sits at the top of the Plan
@@ -22,6 +25,36 @@ interface PlanStepRaceSelectorProps {
   readOnly?: boolean;
   /** Opens the race area & course authoring flow (on-water screen). */
   onOpenRaceCourse?: () => void;
+  /** Opens Atlas centered on the saved race area/course. */
+  onOpenRaceCourseAtlas?: () => void;
+  /**
+   * One-line summary of the saved race plan (e.g. "Port shelter ·
+   * Windward–Leeward · 2 laps"). When set, the reveal row shows it in place of
+   * the generic prompt so a picked course reads as saved, not unset.
+   */
+  courseSummary?: string;
+  /**
+   * The saved race plan. When it carries an area, the reveal row is replaced by
+   * a schematic course map (area polygon, marks, start line) per the redesign,
+   * with "Edit course" linking back into the authoring flow.
+   */
+  racePlan?: Pick<
+    RacePlan,
+    'area_id' | 'area_name' | 'center' | 'course_label' | 'laps' | 'course_type'
+  >;
+  /**
+   * Render the live Atlas MapLibre map (real area polygon + course geometry +
+   * live wind/current/wave overlays) instead of the lightweight SVG schematic.
+   * Set only on the single step-detail Plan tab — the timeline carousel cards
+   * keep the schematic so we don't mount N live WebGL canvases.
+   */
+  liveMap?: boolean;
+  /**
+   * The race's scheduled time (step.starts_at). Threaded to the live map so its
+   * conditions forecast targets race start, not "now". Null ⇒ the map prompts
+   * for a race time instead of showing conditions.
+   */
+  raceTime?: string | null;
   /**
    * Suppress the "Race area & course ›" reveal row when course authoring is
    * handled inline below this selector (the + composer renders RaceCoursePicker
@@ -35,8 +68,14 @@ export function PlanStepRaceSelector({
   onChange,
   readOnly,
   onOpenRaceCourse,
+  onOpenRaceCourseAtlas,
+  courseSummary,
+  racePlan,
+  liveMap,
+  raceTime,
   hideCourseReveal,
 }: PlanStepRaceSelectorProps) {
+  const hasArea = Boolean(racePlan?.area_id || racePlan?.area_name);
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
@@ -64,7 +103,26 @@ export function PlanStepRaceSelector({
           a step a <Text style={styles.noteStrong}>Race</Text> only when it
           happens on a course with marks — that unlocks the race grammar.
         </Text>
-      ) : hideCourseReveal ? null : (
+      ) : hideCourseReveal ? null : hasArea ? (
+        <View style={styles.mapBlock}>
+          <Text style={styles.revealTitle}>Race area & course</Text>
+          {liveMap && racePlan?.center ? (
+            <RaceCourseLiveMap
+              racePlan={racePlan}
+              raceTime={raceTime}
+              onEditCourse={readOnly ? undefined : onOpenRaceCourse}
+              onOpenAtlas={onOpenRaceCourseAtlas}
+            />
+          ) : (
+            <RaceCourseMiniMap
+              areaName={racePlan?.area_name}
+              courseLabel={racePlan?.course_label}
+              laps={racePlan?.laps}
+              onEditCourse={readOnly ? undefined : onOpenRaceCourse}
+            />
+          )}
+        </View>
+      ) : (
         <Pressable
           style={({ pressed }) => [styles.revealRow, pressed && styles.revealPressed]}
           onPress={readOnly ? undefined : onOpenRaceCourse}
@@ -74,7 +132,11 @@ export function PlanStepRaceSelector({
           <Ionicons name="navigate-circle-outline" size={18} color={RACE} />
           <View style={styles.revealText}>
             <Text style={styles.revealTitle}>Race area & course</Text>
-            <Text style={styles.revealSub}>Set the course geometry, marks, and conditions</Text>
+            {courseSummary ? (
+              <Text style={styles.revealSummary}>{courseSummary}</Text>
+            ) : (
+              <Text style={styles.revealSub}>Set the course geometry, marks, and conditions</Text>
+            )}
           </View>
           <Ionicons name="chevron-forward" size={16} color={RACE} />
         </Pressable>
@@ -180,6 +242,9 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.label,
     fontWeight: '700',
   },
+  mapBlock: {
+    gap: 8,
+  },
   revealRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -206,6 +271,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     color: IOS_COLORS.secondaryLabel,
+    marginTop: 1,
+  },
+  revealSummary: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    color: RACE,
     marginTop: 1,
   },
 });

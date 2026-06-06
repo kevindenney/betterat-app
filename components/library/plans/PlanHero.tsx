@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { PlanSummary } from './types';
 
 interface Props {
@@ -39,11 +40,12 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_COLORS.systemBackground,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontSize: 23,
+    fontWeight: '500',
     color: IOS_COLORS.label,
-    letterSpacing: -0.4,
-    lineHeight: 27,
+    letterSpacing: -0.3,
+    lineHeight: 28,
   },
   byRow: {
     flexDirection: 'row',
@@ -66,6 +68,8 @@ const styles = StyleSheet.create({
   },
   byline: {
     flex: 1,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     fontSize: 13,
     color: IOS_COLORS.secondaryLabel,
   },

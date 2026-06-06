@@ -25,6 +25,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
@@ -603,7 +604,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_COLORS.label,
     letterSpacing: -0.3,
   },
@@ -692,9 +694,11 @@ const styles = StyleSheet.create({
   },
   uploadedGlyphText: {
     fontSize: 9,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: '#FF3B30',
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   uploadedBody: {
     flex: 1,
@@ -742,7 +746,8 @@ const styles = StyleSheet.create({
   },
   autoEyebrowText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: '#5C2DAA',
     letterSpacing: 0.3,
     textTransform: 'uppercase',
@@ -807,7 +812,8 @@ const styles = StyleSheet.create({
   },
   titleLbl: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
@@ -822,7 +828,8 @@ const styles = StyleSheet.create({
   },
   relevantForLbl: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
@@ -859,7 +866,8 @@ const styles = StyleSheet.create({
   },
   attachLbl: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
     letterSpacing: 0.3,
     textTransform: 'uppercase',

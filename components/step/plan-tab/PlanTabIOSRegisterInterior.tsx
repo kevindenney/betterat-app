@@ -33,7 +33,8 @@ import {
   LABEL_3,
 } from '@/lib/design-tokens-step-loop-ios';
 import { IOS_SPACING } from '@/lib/design-tokens-ios';
-import type { StepPlanData, SubStep } from '@/types/step-detail';
+import { useInterest } from '@/providers/InterestProvider';
+import type { RacePlan, StepPlanData, SubStep } from '@/types/step-detail';
 import { SubStepEditor } from '../SubStepEditor';
 import { ConversationalCapture } from '../ConversationalCapture';
 import { AIHelperLine } from './AIHelperLine';
@@ -44,6 +45,7 @@ import { BottomCTA } from './BottomCTA';
 import { PlanStepRaceSelector } from './PlanStepRaceSelector';
 import { deriveAIHelperState } from './aiHelperState';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { resolveDoTabInterestKind } from '@/lib/interest-config';
 import { WorkingWithConcepts } from './WorkingWithConcepts';
 import {
   BeforeTheShiftCard,
@@ -56,6 +58,7 @@ export interface PlanTabIOSRegisterInteriorProps {
   onUpdate: (data: Partial<StepPlanData>) => void;
   readOnly?: boolean;
   interestId?: string;
+  interestSlug?: string;
   interestName?: string;
   stepTitle?: string;
   stepCategory?: string;
@@ -90,6 +93,19 @@ export interface PlanTabIOSRegisterInteriorProps {
   onToggleRace?: (next: boolean) => void;
   /** Opens the race area & course authoring flow when Race is selected. */
   onOpenRaceCourse?: () => void;
+  /** Opens Atlas centered on the saved race area/course. */
+  onOpenRaceCourseAtlas?: () => void;
+  /** One-line summary of the saved race plan, shown on the reveal row. */
+  courseSummary?: string;
+  /** Saved race plan; drives the course map once an area is set. */
+  racePlan?: Pick<
+    RacePlan,
+    'area_id' | 'area_name' | 'center' | 'course_label' | 'laps' | 'course_type'
+  >;
+  /** Render the live Atlas map instead of the schematic (detail view only). */
+  liveMap?: boolean;
+  /** The race's scheduled time (step.starts_at) — forecasts conditions at race start. */
+  raceTime?: string | null;
   /** Additional rows rendered inside More Options below the timed-row. */
   optionalAddOns?: React.ReactNode;
   /** Pressed on the bottom CTA when enabled. */
@@ -139,6 +155,8 @@ export interface PlanTabIOSRegisterInteriorProps {
 }
 
 const WHAT_PLACEHOLDER = 'Race 4, holding right-side discipline in shifty light air…';
+const NURSING_WHAT_PLACEHOLDER = 'Prep for clinical shift, assessments, meds, and competency goals…';
+const GOLF_WHAT_PLACEHOLDER = 'Practice the shot, drill, or round plan you want to execute next…';
 const HOW_PLACEHOLDER = 'List 2–4 sub-steps…';
 const WHY_PLACEHOLDER = 'What makes this the right next step?';
 
@@ -147,6 +165,7 @@ export function PlanTabIOSRegisterInterior({
   onUpdate,
   readOnly,
   interestId,
+  interestSlug,
   interestName,
   stepTitle,
   stepCategory,
@@ -166,6 +185,11 @@ export function PlanTabIOSRegisterInterior({
   isRace,
   onToggleRace,
   onOpenRaceCourse,
+  onOpenRaceCourseAtlas,
+  courseSummary,
+  racePlan,
+  liveMap,
+  raceTime,
   optionalAddOns,
   onNextPhase,
   footer,
@@ -177,6 +201,8 @@ export function PlanTabIOSRegisterInterior({
 }: PlanTabIOSRegisterInteriorProps) {
   const [coachOpen, setCoachOpen] = useState(false);
   const [moreExpanded, setMoreExpanded] = useState(false);
+  const { currentInterest } = useInterest();
+  const accent = currentInterest?.accent_color ?? undefined;
 
   const helperState = useMemo(() => deriveAIHelperState(planData), [planData]);
 
@@ -184,6 +210,23 @@ export function PlanTabIOSRegisterInterior({
   const why = planData.why_reasoning ?? '';
   const subSteps = planData.how_sub_steps ?? [];
   const hasWhat = Boolean(what.trim());
+  const interestKind = resolveDoTabInterestKind({
+    interestSlug,
+    interestName,
+    interestId,
+  });
+  const isNursingPlan =
+    interestKind === 'nursing' ||
+    stepCategory === 'clinical' ||
+    planData.target_event_kind === 'clinical_shift';
+  const isGolfPlan =
+    interestName?.toLowerCase().includes('golf') ||
+    stepCategory?.toLowerCase().includes('golf');
+  const whatPlaceholder = isNursingPlan
+    ? NURSING_WHAT_PLACEHOLDER
+    : isGolfPlan
+      ? GOLF_WHAT_PLACEHOLDER
+      : WHAT_PLACEHOLDER;
 
   const showTimedToggle =
     FEATURE_FLAGS.PRACTICE_DO_TAB_PER_STEP_TIMING &&
@@ -237,6 +280,11 @@ export function PlanTabIOSRegisterInterior({
             onChange={onToggleRace!}
             readOnly={readOnly}
             onOpenRaceCourse={onOpenRaceCourse}
+            onOpenRaceCourseAtlas={onOpenRaceCourseAtlas}
+            courseSummary={courseSummary}
+            racePlan={racePlan}
+            liveMap={liveMap}
+            raceTime={raceTime}
           />
         </View>
       ) : null}
@@ -263,7 +311,7 @@ export function PlanTabIOSRegisterInterior({
       <FieldCard
         eyebrow="What will you do?"
         icon="bulb"
-        placeholder={WHAT_PLACEHOLDER}
+        placeholder={whatPlaceholder}
         value={what}
         onChangeText={(v) => onUpdate({ what_will_you_do: v })}
         readOnly={readOnly}
@@ -354,6 +402,7 @@ export function PlanTabIOSRegisterInterior({
             hint={ctaHint}
             disabled={ctaDisabled}
             onPress={() => onNextPhase?.()}
+            accentColor={accent}
           />
         </View>
       ) : null}

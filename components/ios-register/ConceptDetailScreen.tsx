@@ -51,6 +51,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { ReflectionCard } from './ReflectionCard';
 import type { SourceGlyphVariant } from './SourceGlyph';
 
@@ -501,7 +502,8 @@ const styles = StyleSheet.create({
   },
   titleEyebrow: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     color: IOS_REGISTER.labelSecondary,
@@ -509,9 +511,10 @@ const styles = StyleSheet.create({
   },
   titleH1: {
     fontSize: 30,
-    fontWeight: '600',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     lineHeight: 33,
-    letterSpacing: -0.78,
+    letterSpacing: -0.4,
     color: IOS_REGISTER.label,
     marginBottom: 14,
   },
@@ -566,7 +569,8 @@ const styles = StyleSheet.create({
   },
   statePillText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.1,
   },
   // ----- read/work segmented -----
@@ -631,12 +635,15 @@ const styles = StyleSheet.create({
   },
   synthEyebrow: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.5,
     color: IOS_REGISTER.labelSecondary,
   },
   synthStamp: {
     fontSize: 12,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_REGISTER.labelTertiary,
     letterSpacing: -0.05,
   },
@@ -663,7 +670,8 @@ const styles = StyleSheet.create({
   },
   suggestEyebrow: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.5,
     color: IOS_REGISTER.labelSecondary,
   },
@@ -692,7 +700,8 @@ const styles = StyleSheet.create({
   },
   aiOfferLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.5,
     color: IOS_REGISTER.accentMarkedContent,
   },
@@ -747,6 +756,8 @@ const styles = StyleSheet.create({
   },
   shelfCount: {
     fontSize: 13,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_REGISTER.labelSecondary,
     letterSpacing: -0.08,
   },
@@ -765,6 +776,8 @@ const styles = StyleSheet.create({
   },
   dormantStamp: {
     fontSize: 13,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_REGISTER.labelTertiary,
     letterSpacing: -0.08,
   },

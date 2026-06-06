@@ -20,15 +20,15 @@ import { useNotifications } from '@/hooks/useNotifications';
 export function useInboxCount() {
   const itemsQuery = useInboxItems();
   const fleetInvitesQuery = useFleetInvites();
-  const { rawNotifications } = useNotifications();
+  const { unreadGroupCount } = useNotifications();
 
   const itemsCount = itemsQuery.data?.length ?? 0;
   // Pending fleet invites render as actionable cards in the Act panel.
   const fleetInviteCount = fleetInvitesQuery.data?.length ?? 0;
-  // RAW unread count (every individual unread row), not grouped — must
-  // match what the Read panel actually renders inside the Inbox.
-  const notifUnread = rawNotifications.filter((n) => !n.isRead).length;
-  const total = itemsCount + fleetInviteCount + notifUnread;
+  // GROUPED unread count (one per digest thread), not raw — the Read panel
+  // collapses an unread burst into a single digest card, so the badge must
+  // count threads to match what's actually rendered.
+  const total = itemsCount + fleetInviteCount + unreadGroupCount;
   // Preserve the shape callers depend on by wrapping the merged total
   // back into the original query result.
   return { ...itemsQuery, data: total };

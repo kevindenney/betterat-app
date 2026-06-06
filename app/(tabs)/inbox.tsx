@@ -23,7 +23,6 @@ import type { LayoutChangeEvent } from 'react-native';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -35,11 +34,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { IOS_COLORS, IOS_REGISTER, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useQueryClient } from '@tanstack/react-query';
 import { useInboxItems } from '@/hooks/useInboxItems';
 import { useFleetInvites, FLEET_INVITES_QUERY_KEY } from '@/hooks/useFleetInvites';
 import { useNotifications } from '@/hooks/useNotifications';
 import type { SocialNotification } from '@/services/NotificationService';
+import type { NotificationGroup } from '@/lib/notifications/dedupe';
 import { useAuth } from '@/providers/AuthProvider';
 import { routeCohortDiscussionNotification } from '@/lib/notifications/routeDiscussionNotification';
 import { fleetService, type FleetInvite } from '@/services/fleetService';
@@ -96,16 +97,13 @@ export default function InboxTabScreen() {
   // for terseness, but inside the Inbox we render each row as its own
   // card — so the count must match what the user can actually see.
   const {
-    rawNotifications,
+    unreadGroups,
+    unreadGroupCount,
     isLoading: notifsLoading,
     markAsRead: markNotificationAsRead,
     markAllAsRead: markAllNotificationsAsRead,
+    markGroupAsRead: markNotificationGroupAsRead,
   } = useNotifications();
-  const unreadNotifications = useMemo(
-    () => rawNotifications.filter((n) => !n.isRead),
-    [rawNotifications],
-  );
-  const notifUnreadCount = unreadNotifications.length;
 
   const items = useMemo(
     () => (fetched ?? []).filter((it) => !dismissedIds.has(it.id)),
@@ -131,12 +129,12 @@ export default function InboxTabScreen() {
     [items],
   );
   const actCount = actItems.length + fleetInvites.length;
-  // Read segment count = active reflections + unread notifications, so the
-  // segment-pill total stays in sync with the bottom Inbox tab badge
-  // (which sums inbox_items + unread notifications). Without this, the
-  // badge would read "9+" while the Read pill only shows "1" reflection
-  // and the user wouldn't know where the other ~8 items live.
-  const readCount = readItems.length + notifUnreadCount;
+  // Read segment count = active reflections + unread notification *groups*,
+  // so the segment-pill total stays in sync with the bottom Inbox tab badge
+  // (useInboxCount also counts groups) and with what the panel renders —
+  // a burst of 15 blueprint-step notifications collapses to one digest row,
+  // so it should add 1 to this count, not 15.
+  const readCount = readItems.length + unreadGroupCount;
 
   // Practice grouping — design key is "the practice each item is about."
   // The closest analog in the current data model is the source step the
@@ -319,10 +317,11 @@ export default function InboxTabScreen() {
               isLoading={isLoading}
               items={readItems}
               onArchive={handleArchive}
-              notifications={unreadNotifications}
+              notificationGroups={unreadGroups}
               notifsLoading={notifsLoading}
-              notifUnreadCount={notifUnreadCount}
+              notifUnreadCount={unreadGroupCount}
               onMarkNotificationRead={(id) => void markNotificationAsRead(id)}
+              onMarkGroupRead={(ids) => void markNotificationGroupAsRead(ids)}
               onMarkAllNotificationsRead={() => void markAllNotificationsAsRead()}
               onCohortNotificationTap={handleCohortNotificationTap}
             />
@@ -685,20 +684,22 @@ function ReadPanel({
   isLoading,
   items,
   onArchive,
-  notifications,
+  notificationGroups,
   notifsLoading,
   notifUnreadCount,
   onMarkNotificationRead,
+  onMarkGroupRead,
   onMarkAllNotificationsRead,
   onCohortNotificationTap,
 }: {
   isLoading: boolean;
   items: InboxItem[];
   onArchive: (it: InboxItem) => void;
-  notifications: SocialNotification[];
+  notificationGroups: NotificationGroup[];
   notifsLoading: boolean;
   notifUnreadCount: number;
   onMarkNotificationRead: (id: string) => void;
+  onMarkGroupRead: (ids: string[]) => void;
   onMarkAllNotificationsRead: () => void;
   onCohortNotificationTap: (notification: SocialNotification) => void | Promise<void>;
 }) {
@@ -711,7 +712,7 @@ function ReadPanel({
   }
 
   const hasReflections = items.length > 0;
-  const hasNotifications = notifications.length > 0;
+  const hasNotifications = notificationGroups.length > 0;
 
   if (!hasReflections && !hasNotifications) {
     return (
@@ -767,16 +768,28 @@ function ReadPanel({
             ) : null}
           </View>
           <View style={styles.group}>
-            {notifications.map((n) => (
-              <ActivityCard
-                key={n.id}
-                notification={n}
-                onPress={() => {
-                  if (!n.isRead) onMarkNotificationRead(n.id);
-                  routeNotificationTap(n, onCohortNotificationTap);
-                }}
-              />
-            ))}
+            {notificationGroups.map((group) =>
+              group.count > 1 ? (
+                <DigestCard
+                  key={group.latest.id}
+                  group={group}
+                  onMarkGroupRead={() => onMarkGroupRead(group.ids)}
+                  onOpenMember={(n) => {
+                    if (!n.isRead) onMarkNotificationRead(n.id);
+                    routeNotificationTap(n, onCohortNotificationTap);
+                  }}
+                />
+              ) : (
+                <ActivityCard
+                  key={group.latest.id}
+                  notification={group.latest}
+                  onPress={() => {
+                    if (!group.latest.isRead) onMarkNotificationRead(group.latest.id);
+                    routeNotificationTap(group.latest, onCohortNotificationTap);
+                  }}
+                />
+              ),
+            )}
           </View>
         </>
       ) : null}
@@ -827,6 +840,99 @@ function ActivityCard({
         <Text style={styles.activityWhen}>{relativeTime}</Text>
       </View>
     </Pressable>
+  );
+}
+
+// Digest card — collapses an unread burst (e.g. one author publishing 15
+// blueprint steps) into a single thread. Headline is the shared title +
+// a count chip; each member's body becomes a glanceable preview line.
+// First 3 show by default; the rest expand in place. The whole group
+// marks read together.
+const DIGEST_PREVIEW_LIMIT = 3;
+
+function notificationInitials(name: string | null | undefined): string {
+  return (name ?? '··')
+    .split(/\s+/)
+    .map((p) => p[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || '··';
+}
+
+function DigestCard({
+  group,
+  onMarkGroupRead,
+  onOpenMember,
+}: {
+  group: NotificationGroup;
+  onMarkGroupRead: () => void;
+  onOpenMember: (n: SocialNotification) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const latest = group.latest;
+  const tint = latest.actorAvatarColor ?? IOS_REGISTER.labelSecondary;
+  const visible = expanded
+    ? group.members
+    : group.members.slice(0, DIGEST_PREVIEW_LIMIT);
+  const remaining = group.count - DIGEST_PREVIEW_LIMIT;
+
+  return (
+    <View
+      style={[
+        styles.card,
+        styles.cardActivity,
+        group.hasUnread && styles.cardActivityUnread,
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={[styles.activityAvatar, { backgroundColor: tint }]}>
+          <Text style={styles.activityAvatarText}>
+            {latest.actorAvatarEmoji ?? notificationInitials(latest.actorName)}
+          </Text>
+        </View>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.activityTitle} numberOfLines={2}>
+            {latest.title}
+          </Text>
+        </View>
+        <View style={styles.digestCountChip}>
+          <Text style={styles.digestCountChipText}>{group.count}</Text>
+        </View>
+      </View>
+
+      <View style={styles.digestPreview}>
+        {visible.map((member) => (
+          <Pressable
+            key={member.id}
+            onPress={() => onOpenMember(member)}
+            style={styles.digestLine}
+          >
+            <View style={styles.digestBullet} />
+            <Text style={styles.digestLineText} numberOfLines={1}>
+              {member.body || member.title}
+            </Text>
+            <Text style={styles.digestLineWhen}>
+              {formatRelativeTime(member.createdAt)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={styles.digestFoot}>
+        {remaining > 0 ? (
+          <Pressable onPress={() => setExpanded((v) => !v)} hitSlop={6}>
+            <Text style={styles.digestFootLink}>
+              {expanded ? 'Show less' : `+ ${remaining} more`}
+            </Text>
+          </Pressable>
+        ) : (
+          <View />
+        )}
+        <Pressable onPress={onMarkGroupRead} hitSlop={6} style={styles.markAllPill}>
+          <Text style={styles.markAllPillText}>Mark read</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -1078,9 +1184,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_REGISTER.label,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
   segRow: {
     flexDirection: 'row',
@@ -1106,8 +1213,10 @@ const styles = StyleSheet.create({
   },
   segCount: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_REGISTER.labelSecondary,
+    fontVariant: ['tabular-nums'],
   },
   segCountActive: {
     color: '#FFFFFF',
@@ -1125,8 +1234,10 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
     color: IOS_REGISTER.labelSecondary,
   },
   eyebrowPip: {
@@ -1141,7 +1252,9 @@ const styles = StyleSheet.create({
   eyebrowPipText: {
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    fontVariant: ['tabular-nums'],
   },
   eyebrowRowSpace: {
     paddingTop: 28,
@@ -1194,8 +1307,74 @@ const styles = StyleSheet.create({
   },
   activityWhen: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_REGISTER.labelTertiary,
     marginLeft: 6,
+    fontVariant: ['tabular-nums'],
+  },
+  digestCountChip: {
+    minWidth: 22,
+    height: 20,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.fillPill,
+    paddingHorizontal: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 1,
+  },
+  digestCountChipText: {
+    fontSize: 12,
+    fontFamily: fontFamily.mono,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    fontVariant: ['tabular-nums'],
+  },
+  digestPreview: {
+    marginTop: 8,
+    marginLeft: 40,
+  },
+  digestLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: IOS_REGISTER.separator,
+  },
+  digestBullet: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.labelTertiary,
+    flexShrink: 0,
+  },
+  digestLineText: {
+    flex: 1,
+    fontSize: 13.5,
+    color: IOS_REGISTER.label,
+    fontWeight: '500',
+  },
+  digestLineWhen: {
+    fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
+    color: IOS_REGISTER.labelTertiary,
+    fontVariant: ['tabular-nums'],
+    flexShrink: 0,
+  },
+  digestFoot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    marginLeft: 40,
+  },
+  digestFootLink: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: IOS_REGISTER.accentUserAction,
   },
   group: {
     paddingHorizontal: IOS_SPACING.lg,
@@ -1249,12 +1428,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     fontStyle: 'italic',
     color: IOS_REGISTER.label,
-    fontFamily: Platform.select({
-      ios: 'Georgia',
-      android: 'serif',
-      web: 'Georgia, "Times New Roman", serif',
-      default: 'Georgia',
-    }) as string,
+    fontFamily: fontFamily.serif,
     letterSpacing: -0.1,
   },
   cardHeader: {
@@ -1295,7 +1469,10 @@ const styles = StyleSheet.create({
   },
   cardWhen: {
     fontSize: 12,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_REGISTER.labelTertiary,
+    fontVariant: ['tabular-nums'],
   },
   cardTitle: {
     fontSize: 15,
@@ -1367,7 +1544,8 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_REGISTER.label,
     letterSpacing: -0.3,
   },

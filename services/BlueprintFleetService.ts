@@ -102,7 +102,7 @@ async function loadAllPeers(
       blueprint_step_id,
       blueprint_step:blueprint_steps!inner(
         blueprint_id,
-        step:timeline_steps!inner(id, title)
+        step:timeline_steps!step_id!inner(id, title)
       )
       `,
     )
@@ -113,7 +113,7 @@ async function loadAllPeers(
   const { data: viewerProgress } = await supabase
     .from('step_user_progress')
     .select(
-      'blueprint_step_id, status, updated_at, blueprint_step:blueprint_steps!inner(blueprint_id, step:timeline_steps!inner(id))',
+      'blueprint_step_id, status, updated_at, blueprint_step:blueprint_steps!inner(blueprint_id, step:timeline_steps!step_id!inner(id))',
     )
     .eq('blueprint_step.blueprint_id', blueprintId)
     .eq('user_id', viewerUserId);

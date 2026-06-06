@@ -29,6 +29,7 @@ import Slider from '@react-native-community/slider';
 import type { FeatureCollection } from 'geojson';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useCreateVenueRaceCourse } from '@/hooks/useCreateVenueRaceCourse';
 import {
@@ -382,15 +383,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   eyebrow: {
+    fontFamily: fontFamily.mono,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     letterSpacing: 0.5,
     color: IOS_REGISTER.labelSecondary,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontFamily: fontFamily.serif,
+    fontSize: 18,
+    fontWeight: '500',
     color: IOS_REGISTER.label,
+    letterSpacing: -0.3,
     marginTop: 2,
     marginBottom: 10,
   },
@@ -423,8 +428,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   sizeValue: {
+    fontFamily: fontFamily.mono,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: IOS_REGISTER.label,
     fontVariant: ['tabular-nums'],
   },

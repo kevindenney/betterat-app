@@ -20,11 +20,20 @@ export interface CockpitSubStep {
   completed: boolean;
 }
 
+export interface CockpitBeat {
+  id: string;
+  title: string;
+  timeLabel: string | null;
+  body: string | null;
+  done: boolean;
+}
+
 export interface AtlasCockpitStep {
   stepId: string;
   title: string;
   locationName: string | null;
   subSteps: CockpitSubStep[];
+  beats: CockpitBeat[];
 }
 
 export function useAtlasCockpitStep(stepId: string | null) {
@@ -54,11 +63,40 @@ export function useAtlasCockpitStep(stepId: string | null) {
           };
         })
         .filter((s): s is CockpitSubStep => s != null);
+      const { data: beatRows, error: beatsError } = await supabase
+        .from('step_beats')
+        .select('id, title, time_label, body, done')
+        .eq('step_id', stepId)
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (beatsError) {
+        console.warn('[atlas] step beats query error', beatsError);
+      }
+      const beats: CockpitBeat[] = (beatRows ?? [])
+        .map((b) => {
+          const title = typeof b.title === 'string' ? b.title.trim() : '';
+          if (!title) return null;
+          return {
+            id: String(b.id),
+            title,
+            timeLabel:
+              typeof b.time_label === 'string' && b.time_label.trim().length > 0
+                ? b.time_label.trim()
+                : null,
+            body:
+              typeof b.body === 'string' && b.body.trim().length > 0
+                ? b.body.trim()
+                : null,
+            done: b.done === true,
+          };
+        })
+        .filter((b): b is CockpitBeat => b != null);
       return {
         stepId: row.id,
         title: row.title,
         locationName: row.location_name ?? null,
         subSteps,
+        beats,
       };
     },
   });

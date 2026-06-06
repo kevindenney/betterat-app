@@ -26,7 +26,7 @@ import type {
   PeerTimelineStep,
 } from '@/types/blueprint';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
-import { createStep, adoptStep } from '@/services/TimelineStepService';
+import { createStep } from '@/services/TimelineStepService';
 import { resolveInterestId } from '@/services/TimelineStepService';
 
 const logger = createLogger('BlueprintService');
@@ -522,26 +522,6 @@ export async function subscribe(
         .then(({ error: followErr }) => {
           if (followErr) logger.warn('Auto-follow failed (non-blocking)', followErr);
         });
-    }
-
-    // Auto-adopt the first curated step so the subscriber's timeline isn't empty.
-    // Remaining steps surface in the FOR YOU section as the user progresses.
-    try {
-      const steps = await getBlueprintSteps(blueprintId);
-      if (steps.length > 0) {
-        const firstStep = steps[0];
-        logger.debug('Auto-adopting first blueprint step', { stepId: firstStep.id, totalSteps: steps.length });
-        try {
-          const adopted = await adoptStep(subscriberId, firstStep.id, blueprint.interest_id, blueprintId);
-          // Record adopt action so ForYou doesn't re-suggest this step
-          await markStepAction(data.id, firstStep.id, 'adopted', adopted.id);
-        } catch (adoptErr) {
-          logger.warn('Auto-adopt first step failed (non-blocking)', { stepId: firstStep.id, error: adoptErr });
-        }
-      }
-    } catch (adoptErr) {
-      // Non-fatal: subscription succeeded even if auto-adopt fails
-      logger.error('Auto-adopt first blueprint step failed', adoptErr);
     }
 
     return data as BlueprintSubscriptionRecord;
@@ -1114,7 +1094,7 @@ export async function getCoSubscriberProgressForBlueprint(
       updated_at,
       blueprint_step:blueprint_steps!inner(
         blueprint_id,
-        step:timeline_steps!inner(id, title, metadata)
+        step:timeline_steps!step_id!inner(id, title, metadata)
       )
       `,
     )

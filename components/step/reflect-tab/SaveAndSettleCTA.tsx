@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ArrowRight } from 'lucide-react-native';
-import { GRAY_5, IOS_BLUE, LABEL_3 } from '@/lib/design-tokens-step-loop-ios';
+import { GRAY_5, LABEL_3 } from '@/lib/design-tokens-step-loop-ios';
+import { REFLECT } from '@/lib/design-tokens-ios';
 
 export interface SaveAndSettleCTAProps {
   enabled: boolean;
@@ -36,10 +37,9 @@ export function SaveAndSettleCTA({
         accessibilityLabel={label}
         disabled={disabled}
         onPress={handlePress}
-        style={({ pressed }) => [
+        style={[
           styles.button,
           disabled && styles.buttonDisabled,
-          pressed && !disabled && styles.buttonPressed,
         ]}
       >
         <Text style={[styles.text, disabled && styles.textDisabled]}>
@@ -59,12 +59,12 @@ const styles = StyleSheet.create({
   button: {
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: IOS_BLUE,
+    backgroundColor: REFLECT.base,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    shadowColor: IOS_BLUE,
+    shadowColor: REFLECT.base,
     shadowOpacity: 0.24,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -72,9 +72,6 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     backgroundColor: GRAY_5,
     shadowOpacity: 0,
-  },
-  buttonPressed: {
-    opacity: 0.86,
   },
   text: {
     fontSize: 15,

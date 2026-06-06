@@ -23,7 +23,6 @@
 import React, { useCallback, useMemo } from 'react';
 import {
   Linking,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -31,6 +30,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -367,12 +367,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '400',
     color: IOS_REGISTER.label,
-    fontFamily: Platform.select({
-      ios: 'Georgia',
-      android: 'serif',
-      web: 'Georgia, "Times New Roman", serif',
-      default: 'Georgia',
-    }) as string,
+    fontFamily: fontFamily.serif,
     letterSpacing: -0.4,
     textAlign: 'center',
     marginTop: 8,

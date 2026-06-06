@@ -44,6 +44,8 @@ export interface UserAtlasStep {
   status: UserStepStatus;
   /** ISO timestamp the row carries — either starts_at (planned) or updated_at (done). */
   at_iso: string;
+  /** Explicit scheduled start, used by race pins for race-time forecasts. */
+  starts_at: string | null;
   /** 3-letter day-of-week badge for planned steps (e.g. "MON"). null for done. */
   day_badge: string | null;
 }
@@ -63,6 +65,12 @@ export interface PickerStep {
   lat: number | null;
   lng: number | null;
   location_name: string | null;
+}
+
+interface RaceAreaCenter {
+  id: string;
+  name: string;
+  center: { lat: number; lng: number };
 }
 
 interface UseUserAtlasStepsArgs {
@@ -107,6 +115,34 @@ function dayBadge(iso: string): string {
   return DAY_LABELS[d.getDay()] ?? '';
 }
 
+function normalizeAreaName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function geometryCenter(geom: unknown): { lat: number; lng: number } | null {
+  if (!geom || typeof geom !== 'object') return null;
+  const g = geom as { type?: string; coordinates?: unknown };
+  if (!g.coordinates) return null;
+  const collect = (coords: unknown): number[][] => {
+    if (!Array.isArray(coords)) return [];
+    if (typeof coords[0] === 'number') return [coords as number[]];
+    return coords.flatMap(collect);
+  };
+  const points =
+    g.type === 'Polygon' && Array.isArray(g.coordinates)
+      ? ((g.coordinates as number[][][])[0] ?? [])
+      : collect(g.coordinates);
+  const valid = points.filter(
+    (p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]),
+  );
+  if (valid.length === 0) return null;
+  const sum = valid.reduce(
+    (acc, [lng, lat]) => ({ lng: acc.lng + lng, lat: acc.lat + lat }),
+    { lng: 0, lat: 0 },
+  );
+  return { lat: sum.lat / valid.length, lng: sum.lng / valid.length };
+}
+
 /**
  * Lift the race course chips off a step's metadata. Prefers the pre-formatted
  * atlas.race_course_context (scrub_title / scrub_label, written by the
@@ -137,6 +173,36 @@ function extractRaceContext(
   return { areaName, courseLabel };
 }
 
+function extractRacePlanCenter(
+  metadata: Record<string, unknown> | null,
+  areaCenters: RaceAreaCenter[],
+): { lat: number; lng: number } | null {
+  if (!metadata) return null;
+  const plan = metadata.race_plan as
+    | { center?: unknown; area_id?: unknown; area_name?: unknown }
+    | undefined;
+  const center = plan?.center as { lat?: unknown; lng?: unknown } | undefined;
+  if (
+    typeof center?.lat === 'number' &&
+    Number.isFinite(center.lat) &&
+    typeof center.lng === 'number' &&
+    Number.isFinite(center.lng)
+  ) {
+    return { lat: center.lat, lng: center.lng };
+  }
+  const areaId = typeof plan?.area_id === 'string' ? plan.area_id : null;
+  if (areaId) {
+    const match = areaCenters.find((area) => area.id === areaId);
+    if (match) return match.center;
+  }
+  const areaName = typeof plan?.area_name === 'string' ? normalizeAreaName(plan.area_name) : null;
+  if (areaName) {
+    const match = areaCenters.find((area) => normalizeAreaName(area.name) === areaName);
+    if (match) return match.center;
+  }
+  return null;
+}
+
 export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlasStepsArgs) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -165,30 +231,62 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       return rows ?? [];
     },
   });
+  const { data: raceAreaCenters = [], isLoading: raceAreaCentersLoading } = useQuery({
+    queryKey: ['user-atlas-race-area-centers'],
+    enabled: enabled && !!interestSlug,
+    staleTime: 60_000,
+    queryFn: async (): Promise<RaceAreaCenter[]> => {
+      const { data: rows, error } = await supabase
+        .from('venue_racing_areas')
+        .select('id, area_name, geometry, center_lat, center_lng, is_active')
+        .eq('is_active', true);
+      if (error) {
+        console.warn('[atlas] race area center fetch error', error);
+        return [];
+      }
+      return (rows ?? []).flatMap((row: any) => {
+        const center =
+          row.center_lat != null && row.center_lng != null
+            ? { lat: Number(row.center_lat), lng: Number(row.center_lng) }
+            : geometryCenter(row.geometry);
+        if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) {
+          return [];
+        }
+        return [
+          {
+            id: String(row.id),
+            name: String(row.area_name ?? ''),
+            center,
+          },
+        ];
+      });
+    },
+  });
 
   const steps = useMemo<UserAtlasStep[]>(() => {
     type Classified = UserAtlasStep & {
       raw_status: string;
-      starts_at: string | null;
       created_at: string;
       updated_at: string;
     };
     const classified: Classified[] = [];
     for (const row of data) {
+      const metadata = row.metadata as Record<string, unknown> | null;
       const plan = (row.metadata as { plan?: { where_location?: unknown } } | null)?.plan;
       const whereLocation = plan?.where_location as
         | { lat?: unknown; lng?: unknown; name?: unknown }
         | undefined;
+      const isRaceRow = (row as { is_race?: boolean | null }).is_race ?? false;
+      const raceCenter = isRaceRow ? extractRacePlanCenter(metadata, raceAreaCenters) : null;
       const fallbackLat =
         typeof whereLocation?.lat === 'number' ? whereLocation.lat : null;
       const fallbackLng =
         typeof whereLocation?.lng === 'number' ? whereLocation.lng : null;
-      const lat = row.location_lat ?? fallbackLat;
-      const lng = row.location_lng ?? fallbackLng;
+      const lat = raceCenter?.lat ?? row.location_lat ?? fallbackLat;
+      const lng = raceCenter?.lng ?? row.location_lng ?? fallbackLng;
       if (lat == null || lng == null) continue;
-      const isRaceRow = (row as { is_race?: boolean | null }).is_race ?? false;
       const raceContext = isRaceRow
-        ? extractRaceContext(row.metadata as Record<string, unknown> | null)
+        ? extractRaceContext(metadata)
         : null;
       const cls = classify({
         status: row.status,
@@ -206,16 +304,17 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         is_race: isRaceRow,
         raceContext,
         location_name:
+          (raceCenter ? raceContext?.areaName : null) ??
           row.location_name ??
           (typeof whereLocation?.name === 'string' ? whereLocation.name : null),
         status: cls.status,
         at_iso: cls.at_iso,
+        starts_at: row.starts_at,
         day_badge:
           cls.status === 'planned-week' || cls.status === 'planned-next'
             ? dayBadge(cls.at_iso)
             : null,
         raw_status: row.status,
-        starts_at: row.starts_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
       });
@@ -249,8 +348,8 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       classified[justDoneIdx].status = 'done-just-completed';
     }
     // Strip internal fields before returning.
-    return classified.map(({ raw_status: _r, starts_at: _s, created_at: _c, updated_at: _u, ...rest }) => rest);
-  }, [data]);
+    return classified.map(({ raw_status: _r, created_at: _c, updated_at: _u, ...rest }) => rest);
+  }, [data, raceAreaCenters]);
 
   // Picker dataset — every active or recent-done step regardless of
   // whether it has a location yet. Ordered: in_progress first, then
@@ -280,16 +379,19 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         updated_at: row.updated_at,
       });
       if (!cls) continue;
+      const metadata = row.metadata as Record<string, unknown> | null;
       const plan = (row.metadata as { plan?: { where_location?: unknown } } | null)?.plan;
       const whereLocation = plan?.where_location as
         | { lat?: unknown; lng?: unknown; name?: unknown }
         | undefined;
+      const isRaceRow = (row as { is_race?: boolean | null }).is_race ?? false;
+      const raceCenter = isRaceRow ? extractRacePlanCenter(metadata, raceAreaCenters) : null;
       const fallbackLat =
         typeof whereLocation?.lat === 'number' ? whereLocation.lat : null;
       const fallbackLng =
         typeof whereLocation?.lng === 'number' ? whereLocation.lng : null;
-      const lat = row.location_lat ?? fallbackLat;
-      const lng = row.location_lng ?? fallbackLng;
+      const lat = raceCenter?.lat ?? row.location_lat ?? fallbackLat;
+      const lng = raceCenter?.lng ?? row.location_lng ?? fallbackLng;
       const placed = stepMap.get(row.id);
       rows.push({
         step_id: row.id,
@@ -301,6 +403,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         lat,
         lng,
         location_name:
+          (raceCenter ? placed?.raceContext?.areaName : null) ??
           row.location_name ??
           (typeof whereLocation?.name === 'string' ? whereLocation.name : null),
         starts_at: row.starts_at,
@@ -329,7 +432,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       lng: r.lng,
       location_name: r.location_name,
     }));
-  }, [data, steps]);
+  }, [data, raceAreaCenters, steps]);
 
-  return { steps, pickerSteps, loading: isLoading };
+  return { steps, pickerSteps, loading: isLoading || raceAreaCentersLoading };
 }

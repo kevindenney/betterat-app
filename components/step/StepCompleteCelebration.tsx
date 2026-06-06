@@ -26,6 +26,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ArrowRight, Trophy, Users } from 'lucide-react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export interface StepCompleteCelebrationProps {
   /** Step number among the blueprint (1-indexed). */
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   stepTitleQuoted: {
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontSize: 19,
     fontStyle: 'italic',
     color: C.label,

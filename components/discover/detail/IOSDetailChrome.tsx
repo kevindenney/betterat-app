@@ -22,7 +22,6 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -33,6 +32,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 // Import the canonical palette pickers so the list cell and the detail
 // hero produce the same mark colour for the same org (or person). Earlier the
 // detail had a local Record-based palette whose Object.keys order diverged
@@ -1218,11 +1218,7 @@ const conceptStyles = StyleSheet.create({
     opacity: 0.75,
   },
   text: {
-    fontFamily: Platform.select({
-      ios: 'Iowan Old Style',
-      android: 'serif',
-      default: 'Georgia',
-    }),
+    fontFamily: fontFamily.serif,
     fontSize: 17,
     lineHeight: 22,
     letterSpacing: -0.1,

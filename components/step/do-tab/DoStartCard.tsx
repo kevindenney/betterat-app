@@ -2,11 +2,26 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { useInterest } from '@/providers/InterestProvider';
+import { DoMoveToReflectCTA } from './DoMoveToReflectCTA';
+
+/** Per-interest accent at a given alpha — the design's `--accent-tint` is the
+ *  accent fill softened, used for the capture card frame (`.capture` border). */
+function withAlpha(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const n = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  if ([r, g, b].some(Number.isNaN)) return hex;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 interface DoStartCardProps {
   readOnly?: boolean;
   onVoiceNote?: () => void;
   onPhotoOrVideo?: () => void;
+  onMoveToReflect?: () => void;
   /**
    * Direct text submit for the inline quick-note composer. Receives the
    * trimmed body. Caller should write into the captures list and clear UI.
@@ -18,8 +33,11 @@ export function DoStartCard({
   readOnly,
   onVoiceNote,
   onPhotoOrVideo,
+  onMoveToReflect,
   onQuickNoteSubmit,
 }: DoStartCardProps) {
+  const { currentInterest } = useInterest();
+  const accent = currentInterest?.accent_color ?? IOS_COLORS.systemBlue;
   const [draft, setDraft] = useState('');
   const trimmed = draft.trim();
   const canSubmit = !readOnly && trimmed.length > 0;
@@ -31,15 +49,15 @@ export function DoStartCard({
   };
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.eyebrow}>Capture evidence</Text>
+    <View style={[styles.card, { borderColor: withAlpha(accent, 0.22) }]}>
+      <Text style={[styles.eyebrow, { color: accent }]}>Capture evidence</Text>
 
       {/* Inline quick-note composer — the primary capture affordance. Type
           and tap send (or hit Return) to add a note without opening a
           separate sheet. */}
       <View style={styles.composerRow}>
         <View style={styles.composerIcon}>
-          <Ionicons name="create-outline" size={16} color={IOS_COLORS.label} />
+          <Ionicons name="create-outline" size={16} color={IOS_COLORS.tertiaryLabel} />
         </View>
         <TextInput
           style={styles.composerInput}
@@ -56,7 +74,7 @@ export function DoStartCard({
           accessibilityLabel="Quick note"
         />
         <Pressable
-          style={[styles.sendBtn, !canSubmit && styles.sendBtnDisabled]}
+          style={[styles.sendBtn, { backgroundColor: accent }, !canSubmit && styles.sendBtnDisabled]}
           onPress={handleSubmit}
           disabled={!canSubmit}
           hitSlop={6}
@@ -86,6 +104,10 @@ export function DoStartCard({
           accessibilityLabel="Capture photo or video"
         />
       </View>
+
+      {!readOnly && onMoveToReflect ? (
+        <DoMoveToReflectCTA onPress={onMoveToReflect} accentColor={accent} />
+      ) : null}
     </View>
   );
 }

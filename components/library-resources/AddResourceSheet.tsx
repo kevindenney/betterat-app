@@ -20,6 +20,7 @@ import {
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { ResourceTypeIcon, getResourceTypeLabel } from './ResourceTypeIcon';
 import { CourseLessonEditor } from './CourseLessonEditor';
 import { decomposeCourse } from '@/services/ai/CourseDecompositionService';
@@ -534,7 +535,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -679,6 +681,8 @@ const styles = StyleSheet.create({
   },
   uploadedFileSize: {
     fontSize: 12,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.secondaryLabel,
   },
   noteArea: {

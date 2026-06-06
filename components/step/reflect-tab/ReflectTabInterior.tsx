@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { IOS_COLORS, IOS_SPACING, REFLECT } from '@/lib/design-tokens-ios';
 import type { ReflectCompletionState, ReflectPromptAnswer } from './reflectState';
 
 export interface ReflectPatternCallout {
@@ -303,7 +303,8 @@ const REFLECT_GREEN = '#248A3D';
 const REFLECT_GREEN_SOFT = 'rgba(52,199,89,0.13)';
 const REFLECT_PURPLE_SOFT = 'rgba(120,91,169,0.12)';
 const EMPTY_GLYPH_ICON = 'rgba(60,60,67,0.3)';
-const EMPTY_FREEFORM_SUB = 'rgba(0,86,179,0.85)';
+const EMPTY_FREEFORM_SUB = REFLECT.ink;
+const CLAY_PROMPT_BORDER = 'rgba(168,85,74,0.22)';
 const EMPTY_GHOST_BAR = '#F2F2F7';
 const EMPTY_GHOST_STRIPE_GREEN = 'rgba(52,199,89,0.55)';
 const EMPTY_GHOST_STRIPE_PURPLE = 'rgba(88,86,214,0.55)';
@@ -477,9 +478,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(0,122,255,0.10)',
+    backgroundColor: REFLECT.tint,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(0,122,255,0.18)',
+    borderColor: CLAY_PROMPT_BORDER,
   },
   freeformGlyph: {
     width: 28,
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: IOS_COLORS.systemBlue,
+    backgroundColor: REFLECT.base,
   },
   freeformCopy: {
     flex: 1,
@@ -517,7 +518,7 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 50,
     borderRadius: 14,
-    backgroundColor: IOS_COLORS.systemBlue,
+    backgroundColor: REFLECT.base,
     marginTop: 12,
   },
   openDoButtonText: {
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     borderRadius: 999,
-    backgroundColor: 'rgba(0,122,255,0.1)',
+    backgroundColor: REFLECT.tint,
     paddingHorizontal: 11,
     paddingVertical: 7,
   },
@@ -555,7 +556,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: IOS_COLORS.systemBlue,
+    backgroundColor: REFLECT.base,
   },
   statusDotComplete: {
     backgroundColor: REFLECT_GREEN,
@@ -563,7 +564,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '800',
-    color: IOS_COLORS.systemBlue,
+    color: REFLECT.ink,
   },
   statusTextComplete: {
     color: REFLECT_GREEN,
@@ -694,7 +695,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 18,
-    backgroundColor: IOS_COLORS.systemBlue,
+    backgroundColor: REFLECT.base,
     paddingVertical: 14,
   },
   primaryButtonDisabled: {

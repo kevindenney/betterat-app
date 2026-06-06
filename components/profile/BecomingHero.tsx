@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { BecomingArcData } from '@/services/BecomingArcService';
 
 export interface BecomingHeroProps
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   titleEmphasis: {
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
   },
   lede: {

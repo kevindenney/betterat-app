@@ -43,6 +43,13 @@ export const POST_ONBOARDING_RETURN_TO_KEY = 'post_onboarding_return_to';
  * app already subscribed (per onboarding plan §4 Step 3).
  */
 export const ONBOARDING_BLUEPRINT_KEY = 'onboarding_blueprint_ref';
+/**
+ * Set when a signup originates from a "set up your org" CTA (?intent=create-org).
+ * The account is still a normal learner; this flag only tells the Discover orgs
+ * surface to auto-open CreateOrgSheet once the user lands there. Survives both
+ * the email funnel and the OAuth round-trip. Consumed-and-cleared on read.
+ */
+export const PENDING_CREATE_ORG_KEY = 'pending_create_org';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

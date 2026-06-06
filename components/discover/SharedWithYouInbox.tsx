@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MessageCircle, GitFork, ExternalLink } from 'lucide-react-native';
 import type { SharedInboxItem } from '@/types/sharing';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export interface SharedWithYouInboxProps {
   items: SharedInboxItem[];
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: 'Georgia',
+    fontFamily: fontFamily.serif,
     fontStyle: 'italic',
     color: '#111827',
   },

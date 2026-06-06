@@ -8,8 +8,8 @@
  *
  * Both render the same way here: if a real Polygon/MultiPolygon is in
  * `geometry`, use it directly; otherwise synthesize a circle polygon
- * from center + radius. Falls back to the bundled fixture on
- * error/empty so the Atlas tab still shows something offline.
+ * from center + radius. Atlas deliberately does not fall back to bundled
+ * geography here: race-area content must come from persisted user/org rows.
  *
  * When `userClasses` is non-empty, each feature is tagged with a
  * `fillOpacity` property that the canvas can read via a data-driven
@@ -24,7 +24,6 @@ import { useQuery } from '@tanstack/react-query';
 import type { Feature, FeatureCollection, Polygon } from 'geojson';
 
 import { supabase } from '@/services/supabase';
-import { RACE_AREAS_GEOJSON } from '@/lib/atlas-race-areas';
 
 export type RacingAreaSource = 'official' | 'community' | 'imported';
 
@@ -166,18 +165,17 @@ export function useAtlasRacingAreas({
     staleTime: 60_000,
     queryFn: async (): Promise<RawArea[]> => {
       if (centerLat == null || centerLng == null) return [];
-      // No bbox filter for now: official seed rows store only Polygon
-      // geometry (center_lat/lng are NULL), and a bbox on center_lat
-      // would exclude every one of them — the seeded HK areas would
-      // disappear and the fixture-fallback would kick in only as long
-      // as the user hadn't created their own area. Global row count is
-      // small; full SELECT is fine until we have a real spatial RPC.
+      // No bbox filter for now: user-defined rows can store either polygon
+      // geometry or center/radius. Global row count is small; full SELECT is
+      // fine until we have a real spatial RPC. Require created_by so official
+      // placeholder/seed geography does not leak into the Atlas lens.
       const { data, error } = await supabase
         .from('venue_racing_areas')
         .select(
           'id, area_name, geometry, center_lat, center_lng, radius_meters, source, verification_status, classes_used, created_by, is_active',
         )
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .not('created_by', 'is', null);
       if (error) {
         console.warn('[atlas] venue_racing_areas fetch error', error);
         return [];
@@ -196,24 +194,6 @@ export function useAtlasRacingAreas({
     const features = rows
       .map((row) => toFeature(row, userClassesLower))
       .filter((f): f is Feature<Polygon, RacingAreaProperties> => f !== null);
-    if (features.length === 0) {
-      return {
-        type: 'FeatureCollection',
-        features: RACE_AREAS_GEOJSON.features.map((f, i) => ({
-          type: 'Feature' as const,
-          geometry: f.geometry,
-          properties: {
-            id: `fixture-${i}`,
-            name: (f.properties as { name?: string } | null)?.name ?? 'Racing area',
-            source: 'official' as const,
-            verificationStatus: 'verified' as const,
-            classesUsed: [],
-            createdBy: null,
-            fillOpacity: OPACITY_BRIGHT,
-          },
-        })),
-      };
-    }
     return { type: 'FeatureCollection', features };
   }, [query.data, userClassesLower]);
 

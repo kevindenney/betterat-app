@@ -15,6 +15,7 @@ import { supabase } from '@/services/supabase';
 import type { BlueprintRecord } from '@/types/blueprint';
 import type { ProgramRecord } from '@/services/ProgramService';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 // ── Design tokens (matching blueprint page) ──────────────────────────
 const C = {
@@ -508,8 +509,10 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: C.labelDark,
+    letterSpacing: -0.3,
   },
   emptySubtitle: {
     fontSize: 13,
@@ -584,9 +587,11 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: C.labelDark,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   statsRow: {
     flexDirection: 'row',
@@ -600,11 +605,15 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: C.labelDark,
+    fontVariant: ['tabular-nums'],
   },
   statLabel: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: C.labelMid,
     marginTop: 1,
   },
@@ -620,7 +629,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: C.labelDark,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -689,7 +699,10 @@ const styles = StyleSheet.create({
   },
   blueprintCardMeta: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: C.labelMid,
+    fontVariant: ['tabular-nums'],
   },
   blueprintCardCta: {
     flexDirection: 'row',
@@ -722,13 +735,17 @@ const styles = StyleSheet.create({
   },
   degreeBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: C.accent,
     letterSpacing: 0.3,
   },
   degreeMetaText: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: C.labelMid,
+    fontVariant: ['tabular-nums'],
   },
 
   // People
@@ -762,7 +779,8 @@ const styles = StyleSheet.create({
   },
   personInitials: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: C.labelDark,
   },
   personInfo: {
@@ -775,6 +793,8 @@ const styles = StyleSheet.create({
   },
   personRole: {
     fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: C.labelMid,
     marginTop: 1,
   },

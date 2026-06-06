@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Timeline zoom (L1 · L2 · L3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FAF8F4; --paper-2:#F3F0EA; --card:#FFFFFF;
+    --ink:#1A1C22; --ink-2:#565B66; --ink-3:#8A8F99;
+    --hair:#E9E5DD; --hair-2:#EFEBE3;
+    --line:#D8D2C8;
+    --azure:#2E62F0; --azure-deep:#1B3FA8; --azure-soft:#EAF0FE;
+    --amber:#E08A2B; --amber-soft:#FBEFDD;
+    --green:#1E9E6A; --green-soft:#E2F3EB;
+    --rose:#D9476B; --red:#FF3B30;
+    /* phase / capability triad */
+    --plan:#5b61e8; --plan-soft:#ECECFC;
+    --do:#d9831a;   --do-soft:#FBEED7;
+    --rev:#a8554a;  --rev-soft:#F3E4E0;
+    --shadow:0 1px 2px rgba(26,28,34,.04), 0 8px 24px rgba(26,28,34,.06);
+    --shadow-lg:0 2px 6px rgba(26,28,34,.05), 0 18px 50px rgba(26,28,34,.10);
+    --r:18px; --r-sm:12px; --r-xs:9px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-font-smoothing:antialiased;}
+  body{
+    font-family:'Figtree',system-ui,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 88% -8%, #EFF3FE 0%, rgba(239,243,254,0) 55%),
+      radial-gradient(900px 500px at -6% 4%, #FBF2E4 0%, rgba(251,242,228,0) 50%),
+      var(--paper);
+    color:var(--ink); min-height:100vh; line-height:1.45;
+  }
+  .shell{max-width:1040px;margin:0 auto;padding:30px 26px 110px;}
+
+  /* ---------- top chrome ---------- */
+  .chrome{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .switcher{display:inline-flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--hair);padding:8px 14px 8px 10px;border-radius:999px;box-shadow:var(--shadow);}
+  .switcher .dot{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#3E70F4,#1B3FA8);display:grid;place-items:center;color:#fff;font-family:'Manrope';font-weight:800;font-size:14px;}
+  .switcher .lbl{font-weight:700;font-size:15px;letter-spacing:-.01em;}
+  .switcher .tag{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--azure);background:var(--azure-soft);padding:3px 7px;border-radius:6px;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#E08A2B,#C8631A);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px;}
+
+  .lede{color:var(--ink-2);font-size:13px;max-width:74ch;margin:2px 0 18px;}
+  .lede b{color:var(--ink);font-weight:700;}
+
+  /* ---------- zoom rail (segmented) ---------- */
+  .zoombar{position:sticky;top:0;z-index:40;padding:12px 0 14px;margin-bottom:4px;
+    background:linear-gradient(180deg, var(--paper) 62%, rgba(250,248,244,0));}
+  .zoom{display:inline-flex;background:var(--paper-2);border:1px solid var(--hair);border-radius:999px;padding:4px;gap:2px;box-shadow:var(--shadow);}
+  .zoom button{font-family:'Figtree';border:0;background:transparent;color:var(--ink-2);font-weight:600;font-size:13px;padding:8px 16px;border-radius:999px;cursor:pointer;display:flex;align-items:center;gap:8px;}
+  .zoom button .z{font-family:'Manrope';font-weight:800;font-size:11px;color:var(--ink-3);background:#fff;border:1px solid var(--hair);border-radius:6px;padding:1px 5px;}
+  .zoom button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow);}
+  .zoom button.on .z{color:var(--azure);border-color:#CBD9FB;}
+  .zoomhint{display:inline-flex;align-items:center;gap:6px;margin-left:12px;color:var(--ink-3);font-size:11.5px;}
+  .zoomhint b{color:var(--ink-2);font-weight:600;}
+
+  .panel{display:none;animation:fade .25s ease;}
+  .panel.on{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  /* ---------- panel header ---------- */
+  .phead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:6px 0 6px;}
+  .phead .eyebrow{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);}
+  .phead h1{font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:30px;letter-spacing:-.01em;line-height:1.1;margin-top:3px;}
+  .phead h1 .dim{color:var(--ink-3);}
+  .phead .sub{color:var(--ink-2);font-size:13px;margin-top:5px;}
+  .detail-key{display:flex;gap:6px;align-items:center;color:var(--ink-3);font-size:11.5px;font-weight:600;}
+  .detail-key .bar{width:54px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--azure),#CBD9FB);}
+
+  /* ====================================================== L1 ====== */
+  .l1wrap{display:grid;grid-template-columns:1fr 300px;gap:18px;margin-top:14px;}
+  @media(max-width:840px){.l1wrap{grid-template-columns:1fr;}}
+  .l1card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;}
+  .l1top{padding:18px 20px 4px;border-left:4px solid var(--do);}
+  .l1meta-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:9px;}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:4px 9px;border-radius:999px;border:1px solid;}
+  .pill .pd{width:7px;height:7px;border-radius:50%;}
+  .pill.now{background:rgba(0,122,255,.12);border-color:var(--azure);color:var(--azure-deep);}
+  .pill.now .pd{background:var(--azure);}
+  .pill.done{background:var(--green-soft);border-color:rgba(30,158,106,.5);color:#157048;}
+  .pill.done .pd{background:var(--green);}
+  .pill.next{background:var(--paper-2);border-color:var(--hair);color:var(--ink-2);}
+  .pill.next .pd{background:var(--ink-3);}
+  .provtag{font-family:'Figtree';font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--do);background:var(--do-soft);padding:4px 9px;border-radius:6px;}
+  .stepno{margin-left:auto;font-family:'Manrope';font-weight:700;font-size:12px;color:var(--ink-3);}
+  .l1title{font-family:'Newsreader',Georgia,serif;font-weight:500;font-style:italic;font-size:26px;letter-spacing:-.01em;line-height:1.18;}
+  .l1when{color:var(--ink-2);font-size:13px;margin:8px 0 16px;display:flex;gap:14px;flex-wrap:wrap;}
+  .l1when span{display:inline-flex;gap:6px;align-items:center;}
+  .l1when b{color:var(--ink);font-weight:600;}
+
+  .phases{display:flex;gap:0;border-top:1px solid var(--hair-2);}
+  .phase{flex:1;padding:16px 18px 18px;}
+  .phase + .phase{border-left:1px solid var(--hair-2);}
+  .phase h4{font-family:'Manrope';font-weight:800;font-size:11px;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:7px;margin-bottom:10px;}
+  .phase h4 .pdot{width:9px;height:9px;border-radius:50%;}
+  .phase.plan h4{color:var(--plan);} .phase.plan h4 .pdot{background:var(--plan);}
+  .phase.do h4{color:var(--do);} .phase.do h4 .pdot{background:var(--do);}
+  .phase.rev h4{color:var(--rev);} .phase.rev h4 .pdot{background:var(--rev);}
+  .substep{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--ink-2);margin-bottom:8px;line-height:1.35;}
+  .substep .ck{flex:0 0 auto;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line);margin-top:1px;display:grid;place-items:center;font-size:10px;color:#fff;}
+  .substep.done .ck{background:var(--green);border-color:var(--green);}
+  .substep.done span{color:var(--ink-3);text-decoration:line-through;text-decoration-color:rgba(138,143,153,.5);}
+  .phase .empty{font-size:12.5px;color:var(--ink-3);font-style:italic;}
+
+  /* L1 side rail */
+  .rail-card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r-sm);box-shadow:var(--shadow);padding:15px 16px;margin-bottom:14px;}
+  .rail-card h5{font-family:'Manrope';font-weight:800;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:11px;}
+  .cap{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+  .cap .cic{width:30px;height:30px;border-radius:8px;background:var(--plan-soft);color:var(--plan);display:grid;place-items:center;font-size:14px;flex:0 0 auto;}
+  .cap .ct{font-size:12.5px;font-weight:600;}
+  .cap .cs{font-size:11px;color:var(--ink-3);}
+  .cap .meter{margin-left:auto;width:46px;height:6px;border-radius:3px;background:var(--hair-2);overflow:hidden;}
+  .cap .meter i{display:block;height:100%;background:var(--plan);}
+  .person{display:inline-flex;align-items:center;gap:7px;background:var(--paper-2);border:1px solid var(--hair);border-radius:999px;padding:4px 10px 4px 4px;font-size:12px;font-weight:600;margin:0 6px 6px 0;}
+  .person .pa{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:10px;font-weight:700;}
+  .miniline{position:relative;height:46px;margin-top:4px;}
+
+  /* "you are here" mini season strip on L1 */
+  .youhere{background:var(--card);border:1px dashed var(--hair);border-radius:var(--r-sm);padding:12px 14px 14px;margin:14px 0 0;}
+  .youhere .lbl{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;}
+  .strip{display:flex;align-items:center;gap:0;height:14px;}
+  .strip .tick{flex:1;height:3px;background:var(--line);position:relative;}
+  .strip .tick.done{background:var(--azure);}
+  .strip .tick .nd{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:var(--line);}
+  .strip .tick.done .nd{background:var(--azure);}
+  .strip .tick.here .nd{width:15px;height:15px;background:#fff;border:3px solid var(--azure);box-shadow:0 0 0 4px rgba(46,98,240,.14);}
+
+  /* ====================================================== SNAKE ====== */
+  .snake{position:relative;margin-top:20px;}
+  .snake svg.thread{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:0;}
+  .lane{display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:1;}
+  .lane.rev{flex-direction:row-reverse;}
+
+  /* ---- L2 cards ---- */
+  .l2 .lane{padding:30px 4px 6px;}
+  .scard{position:relative;width:30%;background:var(--card);border:1px solid var(--hair);border-radius:var(--r-sm);box-shadow:var(--shadow);padding:13px 13px 12px;}
+  .scard .node{position:absolute;top:-31px;left:50%;transform:translateX(-50%);width:13px;height:13px;border-radius:50%;background:var(--line);border:2.5px solid var(--paper);z-index:3;}
+  .scard.done .node{background:var(--azure);}
+  .scard.now{border-color:var(--azure);box-shadow:0 0 0 1px var(--azure),var(--shadow-lg);}
+  .scard.now .node{width:17px;height:17px;background:#fff;border:3px solid var(--azure);box-shadow:0 0 0 4px rgba(46,98,240,.16);top:-33px;}
+  .scard .top{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .scard .stepno{font-size:11px;}
+  .scard .ptag{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px;}
+  .scard h3{font-family:'Newsreader',Georgia,serif;font-weight:500;font-style:italic;font-size:15.5px;line-height:1.22;letter-spacing:-.01em;}
+  .scard .meta{font-family:'Figtree';font-size:11px;color:var(--ink-3);margin-top:7px;}
+  .scard .dots{display:flex;gap:5px;margin-top:9px;}
+  .scard .dots i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--line);}
+  .scard .dots i.plan.f{background:var(--plan);border-color:var(--plan);}
+  .scard .dots i.do.f{background:var(--do);border-color:var(--do);}
+  .scard .dots i.rev.f{background:var(--rev);border-color:var(--rev);}
+  .scard .dots i.half{background:linear-gradient(90deg,currentColor 50%,transparent 50%);}
+  .scard.done{background:linear-gradient(180deg,#fff,#FBFCFE);}
+  .scard .stripe{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:var(--r-sm) 0 0 var(--r-sm);}
+
+  /* NOW flag floating in the snake */
+  .nowflag{position:absolute;z-index:4;display:inline-flex;align-items:center;gap:6px;background:var(--red);color:#fff;font-family:'Manrope';font-weight:800;font-size:10px;letter-spacing:.08em;padding:4px 9px;border-radius:999px;box-shadow:0 6px 16px rgba(255,59,48,.32);}
+
+  /* legend */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:16px 2px 0;color:var(--ink-2);font-size:11.5px;}
+  .legend .k{display:inline-flex;align-items:center;gap:6px;}
+  .legend .sw{width:11px;height:11px;border-radius:50%;}
+  .legend .ln{width:22px;height:3px;border-radius:2px;}
+
+  /* season chart strip (L2 + L3 share) */
+  .chartcard{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px 14px;margin-top:14px;}
+  .chartcard .ch-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap;}
+  .chartcard h4{font-family:'Manrope';font-weight:800;font-size:13px;letter-spacing:-.01em;}
+  .chartcard .ch-sub{color:var(--ink-3);font-size:11.5px;}
+  .toggles{display:inline-flex;background:var(--paper-2);border:1px solid var(--hair);border-radius:999px;padding:3px;gap:2px;}
+  .toggles button{font-family:'Figtree';border:0;background:transparent;color:var(--ink-2);font-weight:600;font-size:12px;padding:6px 13px;border-radius:999px;cursor:pointer;}
+  .toggles button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow);}
+  .chartbody{position:relative;margin-top:12px;}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:11px;font-weight:600;padding:6px 9px;border-radius:8px;opacity:0;transition:opacity .12s;white-space:nowrap;transform:translate(-50%,-110%);z-index:5;box-shadow:var(--shadow-lg);}
+  .tip b{color:#fff;}
+  .tip:after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--ink);}
+  .ch-foot{display:flex;justify-content:space-between;margin-top:7px;color:var(--ink-3);font-size:10.5px;font-weight:600;}
+  .insights{display:flex;gap:10px;flex-wrap:wrap;margin-top:13px;}
+  .ins{flex:1;min-width:150px;background:var(--paper-2);border:1px solid var(--hair-2);border-radius:var(--r-sm);padding:11px 13px;}
+  .ins .n{font-family:'Manrope';font-weight:800;font-size:20px;}
+  .ins .n .u{font-size:12px;color:var(--ink-3);font-weight:700;}
+  .ins .l{font-size:11px;color:var(--ink-2);margin-top:1px;}
+  .ins .d{font-size:10.5px;font-weight:700;margin-top:5px;}
+  .ins .d.up{color:var(--green);} .ins .d.down{color:var(--rose);}
+
+  /* ---- L3 nodes (less detail) ---- */
+  .l3 .lane{padding:26px 6px 4px;justify-content:flex-start;gap:0;}
+  .l3 .lane.rev{justify-content:flex-end;}
+  .seasonband{position:relative;display:flex;align-items:center;}
+  .nnode{position:relative;display:flex;flex-direction:column;align-items:center;width:46px;}
+  .nnode .d{width:11px;height:11px;border-radius:50%;border:2px solid var(--paper);z-index:3;position:relative;}
+  .nnode.big .d{width:15px;height:15px;}
+  .nnode .lab{font-size:9.5px;color:var(--ink-3);font-weight:600;margin-top:6px;text-align:center;line-height:1.15;height:24px;}
+  .nnode.milestone .lab{color:var(--ink);font-weight:700;}
+  .nnode .star{position:absolute;top:-15px;font-size:11px;}
+  .seasontag{position:absolute;font-family:'Manrope';font-weight:800;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:6px;z-index:4;}
+  /* season colors */
+  .s0{--sc:#1E9E6A;} .s1{--sc:#2E62F0;} .s2{--sc:#E08A2B;} .s3{--sc:#8B5CF6;}
+  .nnode .d{background:var(--sc);}
+  .seasontag{background:color-mix(in srgb,var(--sc) 14%,#fff);color:var(--sc);}
+
+  .footnote{margin-top:34px;color:var(--ink-3);font-size:11.5px;text-align:center;}
+  .footnote code{font-family:'Manrope';background:var(--paper-2);border:1px solid var(--hair);padding:1px 6px;border-radius:5px;font-size:11px;color:var(--ink-2);}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="chrome">
+    <div class="switcher">
+      <div class="dot">⛵</div>
+      <div class="lbl">Sail racing</div>
+      <div class="tag">Interest</div>
+    </div>
+    <div class="avatar">KD</div>
+  </div>
+  <p class="lede">One continuous <b>horizontal timeline that snakes down the page</b> at every zoom. Pinch in for full step detail (L1), out for the season (L2), out again for all-time (L3). <b>Detail thins as you zoom out; the river keeps flowing.</b> Done sits left/up-stream, planned to the right, the red NOW marker is where you are.</p>
+
+  <div class="zoombar">
+    <div class="zoom" id="zoom">
+      <button data-p="l1"><span class="z">L1</span> Step</button>
+      <button data-p="l2" class="on"><span class="z">L2</span> Season</button>
+      <button data-p="l3"><span class="z">L3</span> All time</button>
+    </div>
+    <span class="zoomhint">🤏 <b>Pinch</b> the canvas to move between levels</span>
+  </div>
+
+  <!-- ===================================================== L1 ===== -->
+  <section class="panel" id="l1">
+    <div class="phead">
+      <div>
+        <div class="eyebrow">L1 · Single step — full detail</div>
+        <h1>Big-boat helm <span class="dim">— HKDW prep</span></h1>
+        <div class="sub">Step 6 of 12 · Winter 2025–2026 · the deepest zoom shows plan / do / review in full.</div>
+      </div>
+      <div class="detail-key"><span class="bar"></span>most detail</div>
+    </div>
+
+    <!-- you are here on the season river -->
+    <div class="youhere">
+      <div class="lbl">You are here · Winter 2025–2026</div>
+      <div class="strip">
+        <div class="tick done"><span class="nd"></span></div>
+        <div class="tick done"><span class="nd"></span></div>
+        <div class="tick done"><span class="nd"></span></div>
+        <div class="tick done"><span class="nd"></span></div>
+        <div class="tick done"><span class="nd"></span></div>
+        <div class="tick done here"><span class="nd"></span></div>
+        <div class="tick"><span class="nd"></span></div>
+        <div class="tick"><span class="nd"></span></div>
+        <div class="tick"><span class="nd"></span></div>
+        <div class="tick"><span class="nd"></span></div>
+        <div class="tick"><span class="nd"></span></div>
+        <div class="tick"><span class="nd"></span></div>
+      </div>
+    </div>
+
+    <div class="l1wrap">
+      <div class="l1card">
+        <div class="l1top">
+          <div class="l1meta-row">
+            <span class="pill now"><span class="pd"></span>Now</span>
+            <span class="provtag">HKDW · step 4 of 12</span>
+            <span class="stepno">6 / 12</span>
+          </div>
+          <div class="l1title">Take the helm on the big boat through a full windward-leeward, holding lane off the start.</div>
+          <div class="l1when">
+            <span>🗓️ <b>Sat 7 Jun</b> · 14:00</span>
+            <span>📍 <b>Victoria Harbour</b> · RHKYC</span>
+            <span>⏱️ <b>~2h</b> on the water</span>
+          </div>
+        </div>
+        <div class="phases">
+          <div class="phase plan">
+            <h4><span class="pdot"></span>Plan · what</h4>
+            <div class="substep done"><span class="ck">✓</span><span>Review HKDW race format & start sequence</span></div>
+            <div class="substep done"><span class="ck">✓</span><span>Set rig tension from light-air baseline</span></div>
+            <div class="substep"><span class="ck"></span><span>Brief crew on roles for the upwind legs</span></div>
+          </div>
+          <div class="phase do">
+            <h4><span class="pdot"></span>Do · how</h4>
+            <div class="substep"><span class="ck"></span><span>Win the boat-end at the gun, hold a clear lane</span></div>
+            <div class="substep"><span class="ck"></span><span>Two clean tacks per beat, call the layline late</span></div>
+            <div class="substep"><span class="ck"></span><span>Gybe-set at the windward mark</span></div>
+          </div>
+          <div class="phase rev">
+            <h4><span class="pdot"></span>Review · why</h4>
+            <div class="empty">Log how it went after the session — what worked, where you lost lanes, conditions.</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="rail-card">
+          <h5>Capability · why this step</h5>
+          <div class="cap"><div class="cic">🎯</div><div><div class="ct">Starting & first beat</div><div class="cs">core racing skill</div></div><div class="meter"><i style="width:64%"></i></div></div>
+          <div class="cap"><div class="cic" style="background:var(--do-soft);color:var(--do)">🚤</div><div><div class="ct">Big-boat helming</div><div class="cs">building</div></div><div class="meter"><i style="width:38%;background:var(--do)"></i></div></div>
+        </div>
+        <div class="rail-card">
+          <h5>People · who</h5>
+          <span class="person"><span class="pa" style="background:linear-gradient(135deg,#2E62F0,#1B3FA8)">JM</span>Coach Mak</span>
+          <span class="person"><span class="pa" style="background:linear-gradient(135deg,#E08A2B,#C8631A)">LW</span>Bow · Lena</span>
+          <span class="person"><span class="pa" style="background:linear-gradient(135deg,#1E9E6A,#157048)">+3</span>crew</span>
+        </div>
+        <div class="rail-card">
+          <h5>From</h5>
+          <div style="font-size:12.5px;color:var(--ink-2);line-height:1.4">Adopted from <b style="color:var(--do)">RHKYC · Hong Kong Race Week prep</b> blueprint. Reorder or add a prep step before it from the Plan menu.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== L2 ===== -->
+  <section class="panel on" id="l2">
+    <div class="phead">
+      <div>
+        <div class="eyebrow">L2 · Season — medium detail</div>
+        <h1>Winter 2025–2026 <span class="dim">· 12 steps</span></h1>
+        <div class="sub">The season river snakes down the page. Each card keeps state, title & phase progress — but drops the sub-steps.</div>
+      </div>
+      <div class="detail-key"><span class="bar" style="background:linear-gradient(90deg,var(--do),#F3D9B4)"></span>some detail</div>
+    </div>
+
+    <!-- L2 analysis chart -->
+    <div class="chartcard">
+      <div class="ch-head">
+        <div><h4>Season at a glance</h4><div class="ch-sub">where the work is going this winter</div></div>
+        <div class="toggles" data-chart="l2">
+          <button class="on" data-set="effort">Effort</button>
+          <button data-set="phase">By phase</button>
+          <button data-set="cap">By capability</button>
+        </div>
+      </div>
+      <div class="chartbody"><div class="tip" id="tipL2"></div><svg id="chartL2" viewBox="0 0 720 150" preserveAspectRatio="none" style="width:100%;height:150px;display:block"></svg></div>
+      <div class="ch-foot"><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span></div>
+      <div class="insights">
+        <div class="ins"><div class="n">5<span class="u"> / 12</span></div><div class="l">steps done this season</div><div class="d up">▲ on pace for HKDW</div></div>
+        <div class="ins"><div class="n">62<span class="u">%</span></div><div class="l">time in <b>Do</b> phase</div><div class="d up">▲ more on-water than last winter</div></div>
+        <div class="ins"><div class="n">3</div><div class="l">review steps skipped</div><div class="d down">▼ close the loop after races</div></div>
+      </div>
+    </div>
+
+    <!-- L2 snaking river -->
+    <div class="snake l2" id="snakeL2">
+      <svg class="thread"><path class="track"/><path class="prog"/></svg>
+
+      <div class="lane">
+        <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+          <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="stepno">1 / 12</span></div>
+          <div class="ptag">Pre-season</div>
+          <h3>Rig tuning baseline</h3>
+          <div class="meta">Settled · Nov 9 · 3 ideas saved</div>
+          <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev f"></i></div>
+        </div>
+        <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+          <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="stepno">2 / 12</span></div>
+          <div class="ptag">RHKYC</div>
+          <h3>Light-air upwind speed</h3>
+          <div class="meta">Nov 23 · logged 2 sessions</div>
+          <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev f"></i></div>
+        </div>
+        <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+          <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="stepno">3 / 12</span></div>
+          <div class="ptag">Drills</div>
+          <h3>Mark rounding — leeward gate</h3>
+          <div class="meta">Dec 7 · review logged</div>
+          <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev f"></i></div>
+        </div>
+      </div>
+
+      <div class="lane rev">
+        <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+          <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="stepno">4 / 12</span></div>
+          <div class="ptag">Drills</div>
+          <h3>Spinnaker sets — W/L</h3>
+          <div class="meta">Dec 21 · no review yet</div>
+          <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev"></i></div>
+        </div>
+        <div class="scard done"><span class="node"></span><span class="stripe" style="background:var(--azure)"></span>
+          <div class="top"><span class="pill done"><span class="pd"></span>Done</span><span class="stepno">5 / 12</span></div>
+          <div class="ptag">Practice line</div>
+          <h3>Start-line timing & acceleration</h3>
+          <div class="meta">Jan 11 · 4 ideas saved</div>
+          <div class="dots"><i class="plan f"></i><i class="do f"></i><i class="rev half do" style="color:var(--rev)"></i></div>
+        </div>
+        <div class="scard now"><span class="node"></span><span class="stripe" style="background:var(--do)"></span>
+          <div class="top"><span class="pill now"><span class="pd"></span>Now</span><span class="stepno">6 / 12</span></div>
+          <div class="ptag">HKDW prep</div>
+          <h3>Big-boat helm — HKDW prep</h3>
+          <div class="meta">Sat Jun 7 · crew briefed</div>
+          <div class="dots"><i class="plan f"></i><i class="do half do" style="color:var(--do)"></i><i class="rev"></i></div>
+        </div>
+      </div>
+
+      <div class="lane">
+        <div class="scard"><span class="node"></span>
+          <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="stepno">7 / 12</span></div>
+          <div class="ptag">HKDW prep</div>
+          <h3>Heavy-air downwind control</h3>
+          <div class="meta">Planned · Jan 25</div>
+          <div class="dots"><i class="plan f"></i><i class="do"></i><i class="rev"></i></div>
+        </div>
+        <div class="scard"><span class="node"></span>
+          <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="stepno">8 / 12</span></div>
+          <div class="ptag">Tactics</div>
+          <h3>Laylines & wind shifts</h3>
+          <div class="meta">Planned · Feb 1</div>
+          <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div>
+        </div>
+        <div class="scard"><span class="node"></span>
+          <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="stepno">9 / 12</span></div>
+          <div class="ptag">Crew</div>
+          <h3>Crew-work boat handling</h3>
+          <div class="meta">Planned · Feb 15</div>
+          <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div>
+        </div>
+      </div>
+
+      <div class="lane rev">
+        <div class="scard"><span class="node"></span><span class="stripe" style="background:var(--rose)"></span>
+          <div class="top"><span class="pill next"><span class="pd"></span>Race</span><span class="stepno">10 / 12</span></div>
+          <div class="ptag">Hong Kong Race Week</div>
+          <h3>Race 1 — HKDW</h3>
+          <div class="meta">Feb 28 · regatta day</div>
+          <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div>
+        </div>
+        <div class="scard"><span class="node"></span>
+          <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="stepno">11 / 12</span></div>
+          <div class="ptag">Debrief</div>
+          <h3>Race series debrief</h3>
+          <div class="meta">Planned · Mar 2</div>
+          <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div>
+        </div>
+        <div class="scard"><span class="node"></span>
+          <div class="top"><span class="pill next"><span class="pd"></span>Next</span><span class="stepno">12 / 12</span></div>
+          <div class="ptag">Close-out</div>
+          <h3>Season review & gap analysis</h3>
+          <div class="meta">Planned · Mar 28</div>
+          <div class="dots"><i class="plan"></i><i class="do"></i><i class="rev"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="k"><span class="ln" style="background:var(--azure)"></span>done (upstream)</span>
+      <span class="k"><span class="ln" style="background:var(--line)"></span>planned (downstream)</span>
+      <span class="k"><span class="sw" style="background:var(--plan)"></span>Plan</span>
+      <span class="k"><span class="sw" style="background:var(--do)"></span>Do</span>
+      <span class="k"><span class="sw" style="background:var(--rev)"></span>Review</span>
+      <span class="k"><span class="sw" style="background:var(--rose)"></span>race step</span>
+    </div>
+  </section>
+
+  <!-- ===================================================== L3 ===== -->
+  <section class="panel" id="l3">
+    <div class="phead">
+      <div>
+        <div class="eyebrow">L3 · All time — least detail</div>
+        <h1>All time <span class="dim">· 4 seasons · 138 steps</span></h1>
+        <div class="sub">Every season strung into one river that snakes down the page. Steps shrink to nodes; only milestones get a label.</div>
+      </div>
+      <div class="detail-key"><span class="bar" style="background:linear-gradient(90deg,#8B5CF6,#D6C7F7)"></span>least detail</div>
+    </div>
+
+    <!-- L3 all-time interactive chart -->
+    <div class="chartcard">
+      <div class="ch-head">
+        <div><h4>Your work over all time</h4><div class="ch-sub">four seasons of sail racing — tap a lens</div></div>
+        <div class="toggles" data-chart="l3">
+          <button class="on" data-set="volume">Volume</button>
+          <button data-set="cap">By capability</button>
+          <button data-set="outcomes">Outcomes</button>
+        </div>
+      </div>
+      <div class="chartbody"><div class="tip" id="tipL3"></div><svg id="chartL3" viewBox="0 0 720 190" preserveAspectRatio="none" style="width:100%;height:190px;display:block"></svg></div>
+      <div class="ch-foot"><span>Summer 2024</span><span>Winter 24–25</span><span>Summer 2025</span><span>Winter 25–26</span></div>
+      <div class="insights" id="insL3"></div>
+    </div>
+
+    <!-- L3 snaking river of all time -->
+    <div class="snake l3" id="snakeL3">
+      <svg class="thread"><path class="track"/><path class="prog"/></svg>
+    </div>
+
+    <div class="legend">
+      <span class="k"><span class="sw s0" style="background:var(--sc)"></span>Summer 2024 · learn-to-race</span>
+      <span class="k"><span class="sw s1" style="background:var(--sc)"></span>Winter 24–25 · first season</span>
+      <span class="k"><span class="sw s2" style="background:var(--sc)"></span>Summer 2025 · twilight series</span>
+      <span class="k"><span class="sw s3" style="background:var(--sc)"></span>Winter 25–26 · now</span>
+      <span class="k">⭐ milestone</span>
+    </div>
+  </section>
+
+  <p class="footnote">Mockup · <code>public/timeline-zoom-redesign.html</code> — boustrophedon timeline at L1 / L2 / L3, sailor persona. Detail decreases with zoom; one continuous NOW-anchored river.</p>
+</div>
+
+<script>
+/* ---------- zoom switcher ---------- */
+const zoom=document.getElementById('zoom');
+zoom.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  zoom.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p));
+  requestAnimationFrame(()=>{ if(b.dataset.p==='l2') drawThread('snakeL2',5); if(b.dataset.p==='l3') drawThread('snakeL3',2); });
+});
+
+/* ---------- L3 nodes: build the all-time river ---------- */
+const L3_NODES=[
+  // [season 0-3, label, milestone?]
+  ...mk(0,8,'Summer 2024',[[0,'First sail'],[5,'Joined RHKYC',1],[7,'First crew spot']]),
+  ...mk(1,12,'Winter 24–25',[[2,'First start',1],[6,'Capsize recovery'],[11,'Season review']]),
+  ...mk(2,14,'Summer 2025',[[3,'Twilight series'],[8,'First podium',1],[13,'Helm debut',1]]),
+  ...mk(3,6,'Winter 25–26',[[2,'HKDW prep'],[5,'NOW',2]]),
+];
+function mk(season,count,name,labels){
+  const map=Object.fromEntries(labels.map(l=>[l[0],l]));
+  const out=[];
+  for(let i=0;i<count;i++){
+    const l=map[i];
+    out.push({season,name:i===0?name:'',label:l?l[1]:'',milestone:l?(l[2]||0):0,first:i===0});
+  }
+  return out;
+}
+function renderL3(){
+  const host=document.getElementById('snakeL3');
+  const PER=8; const lanes=[];
+  for(let i=0;i<L3_NODES.length;i+=PER) lanes.push(L3_NODES.slice(i,i+PER));
+  let html='<svg class="thread"><path class="track"/><path class="prog"/></svg>';
+  lanes.forEach((lane,li)=>{
+    html+=`<div class="lane ${li%2?'rev':''}">`;
+    lane.forEach(n=>{
+      const big=n.milestone?'big milestone':'';
+      const star=n.milestone===2?'<span class="star">🔴</span>':n.milestone?'<span class="star">⭐</span>':'';
+      html+=`<div class="nnode s${n.season} ${big}">${star}<span class="d"></span><span class="lab">${n.label||''}</span>`+
+            (n.first?`<span class="seasontag" style="top:-30px">${n.name}</span>`:'')+`</div>`;
+    });
+    html+='</div>';
+  });
+  host.innerHTML=html;
+}
+
+/* ---------- snake thread (boustrophedon SVG) ---------- */
+function drawThread(id,progressCount){
+  const host=document.getElementById(id); if(!host)return;
+  const svg=host.querySelector('svg.thread'); const hb=host.getBoundingClientRect();
+  svg.setAttribute('viewBox',`0 0 ${hb.width} ${hb.height}`);
+  const sel=id==='snakeL2'?'.scard':'.nnode';
+  const nodes=[...host.querySelectorAll(sel)];
+  const mid=hb.width/2;
+  const pts=nodes.map(n=>{
+    const r=n.getBoundingClientRect();
+    const isL2=id==='snakeL2';
+    return {x:r.left-hb.left+r.width/2, y:r.top-hb.top+(isL2?-7:7)};
+  });
+  if(pts.length<2)return;
+  const seg=(a,b)=>{
+    if(Math.abs(b.y-a.y)<14) return ` L ${b.x} ${b.y}`;
+    const out=(a.x>mid?1:-1)*Math.max(40,Math.abs(b.y-a.y)*0.55);
+    return ` C ${a.x+out} ${a.y}, ${b.x+out} ${b.y}, ${b.x} ${b.y}`;
+  };
+  let full=`M ${pts[0].x} ${pts[0].y}`;
+  for(let i=1;i<pts.length;i++) full+=seg(pts[i-1],pts[i]);
+  let prog=`M ${pts[0].x} ${pts[0].y}`;
+  for(let i=1;i<Math.min(progressCount,pts.length);i++) prog+=seg(pts[i-1],pts[i]);
+  const track=svg.querySelector('.track'), p=svg.querySelector('.prog');
+  track.setAttribute('d',full); p.setAttribute('d',prog);
+  track.setAttribute('fill','none'); track.setAttribute('stroke','var(--line)'); track.setAttribute('stroke-width','3'); track.setAttribute('stroke-linecap','round'); track.setAttribute('stroke-dasharray','1 9'); track.setAttribute('stroke-linejoin','round');
+  p.setAttribute('fill','none'); p.setAttribute('stroke',id==='snakeL2'?'var(--azure)':'var(--green)'); p.setAttribute('stroke-width','3.5'); p.setAttribute('stroke-linecap','round'); p.setAttribute('stroke-linejoin','round');
+}
+
+/* ---------- charts ---------- */
+const DATA={
+  l2:{
+    effort:{type:'bar',v:[2,3,4,2,1],c:'var(--do)',lab:m=>`${m} on-water sessions`},
+    phase:{type:'stack',keys:['Plan','Do','Review'],cols:['var(--plan)','var(--do)','var(--rev)'],v:[[1,1,0],[1,2,1],[1,3,1],[0,2,1],[0,1,0]]},
+    cap:{type:'stack',keys:['Speed','Starts','Tactics','Crew'],cols:['#2E62F0','#E08A2B','#1E9E6A','#8B5CF6'],v:[[2,1,0,0],[1,2,1,1],[1,1,2,1],[0,1,1,1],[0,0,1,0]]},
+  },
+  l3:{
+    volume:{type:'bar',v:[28,41,57,12],c:'#8B5CF6',lab:m=>`${m} steps logged`,labels:['Summer 24','Winter 24–25','Summer 25','Winter 25–26']},
+    cap:{type:'stack',keys:['Speed','Starts','Tactics','Crew'],cols:['#2E62F0','#E08A2B','#1E9E6A','#8B5CF6'],v:[[12,6,4,6],[14,10,9,8],[16,14,16,11],[4,3,3,2]],labels:['Summer 24','Winter 24–25','Summer 25','Winter 25–26']},
+    outcomes:{type:'line',series:[{name:'Races',c:'var(--azure)',v:[0,3,7,1]},{name:'Podiums',c:'var(--rose)',v:[0,0,2,0]}],labels:['Summer 24','Winter 24–25','Summer 25','Winter 25–26']},
+  }
+};
+const INS={
+  volume:[['138','steps all-time','up','▲ 4 seasons in'],['+39%','growth per season','up','▲ compounding'],['57','peak — Summer 25','up','▲ twilight series']],
+  cap:[['46','speed reps','up','▲ your strongest line'],['Tactics','fastest-growing','up','▲ 4→16 per season'],['Crew','thinnest area','down','▼ add crew-work steps']],
+  outcomes:[['11','races sailed','up','▲ across all time'],['2','podiums','up','▲ first in Summer 25'],['18%','podium rate','up','▲ trending up']],
+};
+
+function drawChart(svgId,tipId,d){
+  const svg=document.getElementById(svgId); const tip=document.getElementById(tipId);
+  const W=svgId==='chartL2'?720:720, H=svgId==='chartL2'?150:190;
+  const pad={l:6,r:6,t:10,b:6}; const n=(d.v||d.series[0].v).length;
+  const bw=(W-pad.l-pad.r)/n; let max=1;
+  if(d.type==='bar')max=Math.max(...d.v);
+  if(d.type==='stack')max=Math.max(...d.v.map(r=>r.reduce((a,b)=>a+b,0)));
+  if(d.type==='line')max=Math.max(...d.series.flatMap(s=>s.v));
+  max=max*1.15||1;
+  const y=v=>pad.t+(H-pad.t-pad.b)*(1-v/max);
+  let s='';
+  const show=(e,html)=>{const r=svg.getBoundingClientRect();const x=(e.clientX-r.left);tip.style.left=x+'px';tip.style.top=(e.clientY-r.top)+'px';tip.innerHTML=html;tip.style.opacity=1;};
+  const hide=()=>tip.style.opacity=0;
+  if(d.type==='bar'){
+    d.v.forEach((v,i)=>{
+      const x=pad.l+i*bw+bw*0.18, w=bw*0.64, yy=y(v), h=H-pad.b-yy;
+      s+=`<rect x="${x}" y="${yy}" width="${w}" height="${h}" rx="5" fill="${d.c}" class="bar"/>`;
+    });
+  }
+  if(d.type==='stack'){
+    d.v.forEach((row,i)=>{
+      let acc=0;
+      row.forEach((v,k)=>{
+        const tot=row.reduce((a,b)=>a+b,0);
+        const x=pad.l+i*bw+bw*0.18, w=bw*0.64;
+        const yTop=y(acc+v), yBot=y(acc); acc+=v;
+        s+=`<rect x="${x}" y="${yTop}" width="${w}" height="${Math.max(0,yBot-yTop)}" fill="${d.cols[k]}" class="bar" data-k="${k}"/>`;
+      });
+    });
+  }
+  if(d.type==='line'){
+    d.series.forEach(se=>{
+      let path='';
+      se.v.forEach((v,i)=>{const x=pad.l+i*bw+bw/2;const yy=y(v);path+=(i?'L':'M')+x+' '+yy+' ';});
+      s+=`<path d="${path}" fill="none" stroke="${se.c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+      se.v.forEach((v,i)=>{const x=pad.l+i*bw+bw/2;const yy=y(v);s+=`<circle cx="${x}" cy="${yy}" r="4.5" fill="#fff" stroke="${se.c}" stroke-width="2.5"/>`;});
+    });
+  }
+  svg.innerHTML=s;
+  // tooltips
+  const labels=d.labels||['Nov','Dec','Jan','Feb','Mar'];
+  [...svg.querySelectorAll('.bar')].forEach((el,idx)=>{
+    el.style.cursor='pointer';el.style.transition='opacity .15s';
+    el.addEventListener('mousemove',e=>{
+      let html='';
+      if(d.type==='bar')html=`<b>${labels[idx]}</b> · ${d.lab?d.lab(d.v[idx]):d.v[idx]}`;
+      else{const col=idx%1;html=`<b>${labels[Math.floor(idx/d.keys.length)]||''}</b>`;}
+      show(e,html);
+    });
+    el.addEventListener('mouseleave',hide);
+  });
+  if(d.type==='stack'){
+    // re-bind per-column tooltip with correct labels
+    let bi=0;
+    d.v.forEach((row,i)=>row.forEach((v,k)=>{
+      const el=svg.querySelectorAll('.bar')[bi++];
+      el.addEventListener('mousemove',e=>show(e,`<b>${labels[i]}</b> · ${d.keys[k]}: ${v}`));
+    }));
+  }
+  if(d.type==='line'){
+    [...svg.querySelectorAll('circle')].forEach((c,idx)=>{
+      const si=Math.floor(idx/n), pi=idx%n; const se=d.series[si];
+      c.style.cursor='pointer';
+      c.addEventListener('mousemove',e=>show(e,`<b>${labels[pi]}</b> · ${se.name}: ${se.v[pi]}`));
+      c.addEventListener('mouseleave',hide);
+    });
+  }
+}
+function renderInsights(setKey){
+  const host=document.getElementById('insL3'); const rows=INS[setKey]||INS.volume;
+  host.innerHTML=rows.map(r=>`<div class="ins"><div class="n">${r[0]}</div><div class="l">${r[1]}</div><div class="d ${r[2]}">${r[3]}</div></div>`).join('');
+}
+
+/* toggles */
+document.querySelectorAll('.toggles').forEach(tg=>{
+  tg.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b)return;
+    tg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+    const which=tg.dataset.chart;
+    if(which==='l2') drawChart('chartL2','tipL2',DATA.l2[b.dataset.set]);
+    else { drawChart('chartL3','tipL3',DATA.l3[b.dataset.set]); renderInsights(b.dataset.set); }
+  });
+});
+
+/* init */
+renderL3();
+function boot(){
+  drawChart('chartL2','tipL2',DATA.l2.effort);
+  drawChart('chartL3','tipL3',DATA.l3.volume);
+  renderInsights('volume');
+  drawThread('snakeL2',5);
+  drawThread('snakeL3',2);
+}
+window.addEventListener('load',boot);
+window.addEventListener('resize',()=>{drawThread('snakeL2',5);drawThread('snakeL3',2);});
+</script>
+</body>
+</html>

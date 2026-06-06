@@ -102,7 +102,7 @@ import { StepDetailContent } from '@/components/step/StepDetailContent';
 import { BlueprintPanelsStack } from '@/components/cards/BlueprintPanelsStack';
 import { ForYouSection } from '@/components/blueprint/ForYouSection';
 import { PublishBlueprintSheet } from '@/components/blueprint/PublishBlueprintSheet';
-import { useUserBlueprints, useSubscribedBlueprints, useSuggestedNextSteps, useAdoptBlueprintStep, useDismissBlueprintStep, useAutoAdoptSubscribedSteps } from '@/hooks/useBlueprint';
+import { useUserBlueprints, useSubscribedBlueprints, useSuggestedNextSteps, useAdoptBlueprintStep, useDismissBlueprintStep, useBackfillSubscribedStepActions } from '@/hooks/useBlueprint';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { getSeriesLabel } from '@/lib/navigation-config';
@@ -716,8 +716,8 @@ function LegacyRacesScreen() {
   // Fetch user's timeline steps for the current interest
   const _timelineInterestParam = viewMode === 'domain' && effectiveInterestIds.length > 1 ? effectiveInterestIds : currentInterest?.id;
   const { data: myTimelineSteps } = useMyTimeline(_timelineInterestParam);
-  // Backfill: auto-adopt steps for subscriptions that predate the auto-adopt feature
-  useAutoAdoptSubscribedSteps(currentInterest?.id, myTimelineSteps);
+  // Backfill tracking rows for blueprint steps the user explicitly adopted.
+  useBackfillSubscribedStepActions(currentInterest?.id, myTimelineSteps);
   // Lookup map: blueprint_id → title (from own + subscribed blueprints)
   const blueprintTitleById = useMemo(() => {
     const map = new Map<string, string>();

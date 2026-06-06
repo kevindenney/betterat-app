@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { SubscriberRow as SubscriberRowData } from './types';
 
 interface Props {
@@ -130,8 +131,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   stepTag: {
+    fontFamily: fontFamily.mono,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '500',
     fontVariant: ['tabular-nums'],
   },
 });

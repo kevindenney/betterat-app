@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Race step card vs standard step card</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --serif:'Iowan Old Style',Georgia,serif;
+  --grouped:#F2F2F7;
+  --card:#FFFFFF;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);
+  --label3:rgba(60,60,67,0.34);
+  --sep:rgba(60,60,67,0.13);
+  --blue:#007AFF;
+  --race:#2563EB;        /* race step — the one first-class kind */
+  --race-bg:rgba(37,99,235,.06);
+  --race-line:rgba(37,99,235,.30);
+  --mark:#E07A3C;        /* race-mark orange (matches AtlasPins) */
+  --wind:#2563EB;
+  --current:#0E7490;
+  --wave:#7C3AED;
+  --done:#16A34A;
+  --crew:#FF3B30;
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1240px;margin:0 auto 4px;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1240px;margin:0 auto 10px;font-size:13px;color:#41495A;line-height:1.6;}
+.page-sub b{color:#1a1f29;}
+.thesis{max-width:1240px;margin:0 auto 26px;background:#fff;border:0.5px solid rgba(0,0,0,.1);border-left:3px solid var(--race);border-radius:10px;padding:13px 16px;font-size:12.5px;line-height:1.6;color:#2b3340;}
+.thesis b{color:#111;}
+.thesis .k{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--race);border-radius:5px;padding:2px 7px;margin-right:7px;vertical-align:1px;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1240px;margin:0 auto;}
+.col{width:384px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+.col-cap .tag.race{background:var(--race);}
+.col-cap .tag.now{background:#1B7A3D;}
+
+/* phone shell */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.30);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:#000;z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+
+/* nav */
+.nav{position:absolute;top:44px;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:45;
+  background:rgba(248,248,250,.86);backdrop-filter:blur(18px);border-bottom:0.5px solid var(--sep);}
+.nav .lane{display:flex;align-items:center;gap:6px;font-size:16px;font-weight:700;}
+.nav .lane .dot{width:8px;height:8px;border-radius:50%;background:var(--label);}
+.nav .plus{font-size:24px;color:var(--blue);font-weight:300;}
+
+/* timeline body */
+.body{position:absolute;top:94px;bottom:0;left:0;right:0;overflow:hidden;padding:16px 16px 40px;}
+.daygroup{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);margin:6px 4px 9px;}
+
+/* ===== shared step card skeleton ===== */
+.scard{background:#fff;border-radius:16px;border:0.5px solid var(--sep);overflow:hidden;margin-bottom:13px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.scard .top{display:flex;align-items:flex-start;gap:11px;padding:14px 14px 12px;}
+.scard .st{width:20px;height:20px;border-radius:50%;border:2px solid var(--label3);flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;}
+.scard .st.done{background:var(--done);border-color:var(--done);}
+.scard .st.plan{border-style:dashed;border-color:var(--label3);}
+.scard .ttl{flex:1;}
+.scard .ttl .h{font-size:16px;font-weight:650;line-height:1.25;letter-spacing:-.1px;}
+.scard .ttl .meta{font-size:11.5px;color:var(--label2);margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.scard .glyph{font-size:17px;line-height:1;margin-top:1px;}
+
+/* sub-step mini progress (shared) */
+.progress{display:flex;align-items:center;gap:8px;padding:0 14px 13px;}
+.progress .bar{flex:1;height:5px;border-radius:3px;background:rgba(60,60,67,.1);overflow:hidden;}
+.progress .bar i{display:block;height:100%;border-radius:3px;background:var(--done);}
+.progress .lab{font-size:11px;color:var(--label2);font-weight:600;}
+
+/* capability chips (shared) */
+.caps{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 13px;}
+.cap{font-size:11px;font-weight:600;color:#0E5A3A;background:rgba(34,197,94,.11);border:0.5px solid rgba(34,197,94,.28);border-radius:7px;padding:3px 8px;}
+
+/* ===== RACE-ONLY additions ===== */
+.scard.race{border:1px solid var(--race-line);}
+.scard.race .railaccent{height:0;}
+.scard.race .top{border-left:3px solid var(--race);}
+.scard .kindpill{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--race);border-radius:6px;padding:2px 7px;}
+
+/* race course-context strip (area · course · laps) — built from metadata.race_plan */
+.coursestrip{display:flex;align-items:center;gap:9px;padding:10px 14px;background:var(--race-bg);border-top:0.5px solid var(--race-line);border-bottom:0.5px solid var(--race-line);}
+.coursemini{width:46px;height:46px;border-radius:9px;flex:none;position:relative;overflow:hidden;background:radial-gradient(120% 100% at 50% 20%,#1C3A5E,#0E2138);}
+.coursemini .ra{position:absolute;left:18%;top:14%;width:64%;height:72%;border-radius:46% 54% 50% 50%/52% 48% 52% 48%;background:rgba(37,99,235,.18);border:1px dashed rgba(120,170,255,.5);}
+.coursemini .mk{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--mark);border:1px solid #fff;transform:translate(-50%,-50%);}
+.coursemini .mk.w{left:50%;top:26%;} .coursemini .mk.l{left:36%;top:74%;} .coursemini .mk.r{left:64%;top:74%;}
+.coursemini .wind{position:absolute;left:50%;top:6%;transform:translateX(-50%);font-size:9px;color:#9CC0FF;}
+.coursestrip .cinfo{flex:1;}
+.coursestrip .cinfo .area{font-size:13px;font-weight:700;color:var(--race);letter-spacing:-.1px;}
+.coursestrip .cinfo .course{font-size:11.5px;color:var(--label2);margin-top:1px;}
+.coursestrip .open{font-size:11px;font-weight:700;color:var(--race);white-space:nowrap;}
+
+/* live conditions micro-strip */
+.cond{display:flex;gap:8px;padding:10px 14px;}
+.condchip{flex:1;display:flex;align-items:center;gap:6px;border-radius:9px;border:0.5px solid var(--sep);padding:7px 9px;background:#fff;}
+.condchip .ic{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex:none;}
+.condchip .ic.wind{background:var(--wind);} .condchip .ic.tide{background:var(--current);}
+.condchip .cv{line-height:1.15;}
+.condchip .cv .k{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--label3);}
+.condchip .cv .v{font-size:12px;font-weight:700;}
+.condchip .live{margin-left:auto;font-size:8px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--done);background:rgba(22,163,74,.12);border-radius:5px;padding:2px 5px;}
+.condchip.pending{border-style:dashed;border-color:var(--race-line);background:var(--race-bg);}
+.condchip.pending .ic{background:var(--label3);}
+.condchip.pending .v{color:var(--label2);font-weight:600;font-size:11px;}
+
+/* annotation callouts (right frame) */
+.anno{position:absolute;z-index:70;font-size:10.5px;font-weight:700;line-height:1.3;color:#fff;background:var(--race);border-radius:8px;padding:6px 9px;box-shadow:0 4px 14px rgba(37,99,235,.4);max-width:168px;}
+.anno:after{content:"";position:absolute;width:9px;height:9px;background:var(--race);transform:rotate(45deg);}
+.anno.l:after{left:-3px;top:14px;} .anno.r:after{right:-3px;top:14px;}
+.anno small{display:block;font-weight:600;opacity:.9;font-size:9.5px;margin-top:2px;}
+
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:78px;display:flex;background:rgba(248,248,250,.94);backdrop-filter:blur(18px);border-top:0.5px solid var(--sep);z-index:45;}
+.tabbar .t{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;color:var(--label3);font-weight:600;}
+.tabbar .t.on{color:var(--blue);}
+.tabbar .t .ic{width:22px;height:22px;border-radius:6px;background:currentColor;opacity:.85;}
+
+.legend{max-width:1240px;margin:30px auto 0;display:flex;gap:14px;flex-wrap:wrap;}
+.legend .lc{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:10px;padding:11px 14px;font-size:12px;line-height:1.55;color:#2b3340;flex:1;min-width:260px;}
+.legend .lc b{color:#111;}
+.legend .lc .h{font-weight:800;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--race);margin-bottom:5px;}
+.legend .lc.neutral .h{color:#39414C;}
+</style>
+</head>
+<body>
+
+<div class="page-h">Race step card vs standard step card · the timeline view</div>
+<div class="page-sub">What a saved <b>race</b> looks like in the Practice timeline, next to an ordinary step. Same card skeleton — a race only adds the on-water grammar it actually carries: <b>course context, a course glyph, and live wind/tide</b>. Built from the real metadata the + composer now persists (<b>race_plan.area_name · course_label · laps</b>).</div>
+
+<div class="thesis"><span class="k">Model</span><b>No step types — just the <code>is_race</code> flag.</b> A plain step is a neutral status dot + title. A race earns four extra affordances because a race <b>has</b> a venue, a course, marks and conditions an ordinary step doesn't: a race-blue accent + ⛵, an <b>area · course · laps</b> strip, a mini course glyph, and a live wind/tide row that links to the on-water screen. Flip <code>is_race</code> off and all four collapse away.</div>
+
+<div class="frames">
+
+  <!-- FRAME 1 — both cards in the timeline -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">5G ▮▮▮ &nbsp;100%</span></div>
+      <div class="nav"><span class="lane"><span class="dot"></span>Sail Racing ▾</span><span class="plus">+</span></div>
+
+      <div class="body">
+        <div class="daygroup">Next up</div>
+
+        <!-- RACE CARD -->
+        <div class="scard race">
+          <div class="top">
+            <div class="st plan"></div>
+            <div class="ttl">
+              <div class="h">Victoria Harbour · Windward–Leeward</div>
+              <div class="meta"><span class="kindpill">⛵ Race</span><span>Sat 7 Jun · 14:00</span></div>
+            </div>
+            <div class="glyph">⛵</div>
+          </div>
+
+          <!-- area · course · laps  (metadata.race_plan) -->
+          <div class="coursestrip">
+            <div class="coursemini">
+              <div class="wind">↓</div>
+              <div class="ra"></div>
+              <div class="mk w"></div><div class="mk l"></div><div class="mk r"></div>
+            </div>
+            <div class="cinfo">
+              <div class="area">Victoria Harbour</div>
+              <div class="course">Windward–Leeward · 3 laps</div>
+            </div>
+            <div class="open">On the water ›</div>
+          </div>
+
+          <!-- live conditions -->
+          <div class="cond">
+            <div class="condchip"><div class="ic wind">↓</div><div class="cv"><div class="k">Wind</div><div class="v">12 kt E</div></div><div class="live">Live</div></div>
+            <div class="condchip"><div class="ic tide">≈</div><div class="cv"><div class="k">Tide</div><div class="v">ebb 0.8</div></div><div class="live">Live</div></div>
+          </div>
+        </div>
+
+        <div class="daygroup" style="margin-top:18px">Earlier this week</div>
+
+        <!-- STANDARD CARD -->
+        <div class="scard">
+          <div class="top">
+            <div class="st done">✓</div>
+            <div class="ttl">
+              <div class="h">Light-air boat handling — tacks &amp; sets</div>
+              <div class="meta"><span>📍 RHKYC</span><span>·</span><span>Wed 4 Jun</span></div>
+            </div>
+          </div>
+          <div class="progress"><div class="bar"><i style="width:66%"></i></div><div class="lab">2 / 3 sub-steps</div></div>
+          <div class="caps"><div class="cap">Boat handling</div><div class="cap">Light-air speed</div></div>
+        </div>
+
+        <!-- another plain step -->
+        <div class="scard">
+          <div class="top">
+            <div class="st plan"></div>
+            <div class="ttl">
+              <div class="h">Rig check + replace mainsheet</div>
+              <div class="meta"><span>📍 Boat park</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="t on"><div class="ic"></div>Practice</div>
+        <div class="t"><div class="ic"></div>Library</div>
+        <div class="t"><div class="ic"></div>Watch</div>
+        <div class="t"><div class="ic"></div>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag race">1 · In the timeline</span> The race card sits in the same list as ordinary steps but reads instantly as a race: <b>blue rail + ⛵</b>, the <b>area · course · laps</b> strip, and a live wind/tide row. The two plain steps below are neutral dots + titles — no course chrome.</div>
+  </div>
+
+  <!-- FRAME 2 — annotated race card -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span class="r">5G ▮▮▮ &nbsp;100%</span></div>
+      <div class="nav"><span class="lane"><span class="dot"></span>Sail Racing ▾</span><span class="plus">+</span></div>
+
+      <div class="body" style="padding-top:40px">
+        <div class="daygroup">Anatomy of a race card</div>
+
+        <div class="scard race" style="margin-top:40px">
+          <div class="top">
+            <div class="st plan"></div>
+            <div class="ttl">
+              <div class="h">Victoria Harbour · Windward–Leeward</div>
+              <div class="meta"><span class="kindpill">⛵ Race</span><span>Sat 7 Jun · 14:00</span></div>
+            </div>
+            <div class="glyph">⛵</div>
+          </div>
+          <div class="coursestrip">
+            <div class="coursemini">
+              <div class="wind">↓</div><div class="ra"></div>
+              <div class="mk w"></div><div class="mk l"></div><div class="mk r"></div>
+            </div>
+            <div class="cinfo">
+              <div class="area">Victoria Harbour</div>
+              <div class="course">Windward–Leeward · 3 laps</div>
+            </div>
+            <div class="open">On the water ›</div>
+          </div>
+          <div class="cond">
+            <div class="condchip"><div class="ic wind">↓</div><div class="cv"><div class="k">Wind</div><div class="v">12 kt E</div></div><div class="live">Live</div></div>
+            <div class="condchip pending"><div class="ic tide">≈</div><div class="cv"><div class="k">Tide</div><div class="v">— on the water</div></div></div>
+          </div>
+        </div>
+
+        <!-- annotations -->
+        <div class="anno l" style="top:122px;left:18px">Blue rail + ⛵<small>is_race = true</small></div>
+        <div class="anno r" style="top:206px;right:18px">area · course · laps<small>metadata.race_plan (saved now)</small></div>
+        <div class="anno r" style="top:262px;right:18px">mini course glyph<small>derived from course_type</small></div>
+        <div class="anno l" style="top:330px;left:18px">Opens Atlas course/marks<small>on-water screen owns geometry</small></div>
+        <div class="anno l" style="top:392px;left:18px">Live wind/tide<small>weather join — dashed until on-water</small></div>
+      </div>
+
+      <div class="tabbar">
+        <div class="t on"><div class="ic"></div>Practice</div>
+        <div class="t"><div class="ic"></div>Library</div>
+        <div class="t"><div class="ic"></div>Watch</div>
+        <div class="t"><div class="ic"></div>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag now">2 · What's grounded</span> Solid elements are <b>real today</b> — the area/course/laps strip reads straight off the metadata the + composer now writes. The dashed tide chip + "on the water" link are <b>aspirational</b>: live conditions and marks come from a weather + racing-area join that isn't wired yet.</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <div class="lc neutral">
+    <div class="h" style="color:#39414C">Standard step — unchanged</div>
+    Status dot (done / planned), title, optional <b>📍 location</b>, sub-step progress, capability chips. That's it. ~80% of steps. No course, no conditions, no blue.
+  </div>
+  <div class="lc">
+    <div class="h">Race step — earned additions</div>
+    <b>1.</b> Race-blue left rail + ⛵ glyph + "Race" pill. <b>2.</b> Course-context strip: <b>area · course · laps</b> (saved now). <b>3.</b> Mini course glyph from <code>course_type</code>. <b>4.</b> Live wind/tide row → "On the water ›" opens Atlas course &amp; marks.
+  </div>
+  <div class="lc">
+    <div class="h" style="color:#1B7A3D">Build order</div>
+    <b>Now:</b> rail, ⛵, pill, area·course·laps strip — all from existing metadata. <b>Next:</b> course glyph from <code>course_type</code>. <b>Later:</b> live wind/tide + marks via the on-water / weather join (currently dashed placeholder).
+  </div>
+</div>
+
+</body>
+</html>

@@ -21,6 +21,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
+import { useInterest } from '@/providers/InterestProvider';
 import {
   getInterestBeatsConfig,
   type InterestBeatsConfig,
@@ -79,6 +81,8 @@ export function BeatsList({
   onBeatNoteSubmit,
 }: Props) {
   const config = getInterestBeatsConfig({ interestSlug, interestName, interestId });
+  const { currentInterest } = useInterest();
+  const accent = currentInterest?.accent_color ?? '#007AFF';
   const dragEnabled = !readOnly && !!onReorder && beats.length > 1;
 
   const drag = useDragReorder<StepBeat>({
@@ -110,6 +114,7 @@ export function BeatsList({
               dragEnabled={dragEnabled}
               isLifted={drag.liftedId === beat.id}
               showDropBefore={drag.dropTargetIndex === index && drag.liftedId !== beat.id}
+              accent={accent}
               liftedTranslateY={drag.liftedTranslate}
               buildGesture={drag.buildItemGesture}
               registerRowLayout={drag.registerRowLayout}
@@ -130,7 +135,7 @@ export function BeatsList({
         </View>
       )}
 
-      {!readOnly ? <AddBeatRow config={config} onAdd={onAdd} /> : null}
+      {!readOnly ? <AddBeatRow config={config} onAdd={onAdd} accent={accent} /> : null}
     </View>
   );
 }
@@ -140,6 +145,7 @@ interface DraggableBeatProps extends BeatRowProps {
   dragEnabled: boolean;
   isLifted: boolean;
   showDropBefore: boolean;
+  accent: string;
   liftedTranslateY: number;
   buildGesture: ReturnType<typeof useDragReorder>['buildItemGesture'];
   registerRowLayout: ReturnType<typeof useDragReorder>['registerRowLayout'];
@@ -150,6 +156,7 @@ function DraggableBeat({
   dragEnabled,
   isLifted,
   showDropBefore,
+  accent,
   liftedTranslateY,
   buildGesture,
   registerRowLayout,
@@ -187,7 +194,9 @@ function DraggableBeat({
 
   return (
     <View>
-      {showDropBefore ? <View style={styles.dropIndicator} /> : null}
+      {showDropBefore ? (
+        <View style={[styles.dropIndicator, { backgroundColor: accent }]} />
+      ) : null}
       {dragEnabled ? <GestureDetector gesture={gesture}>{body}</GestureDetector> : body}
     </View>
   );
@@ -357,9 +366,11 @@ function BeatRow({
 function AddBeatRow({
   config,
   onAdd,
+  accent,
 }: {
   config: InterestBeatsConfig;
   onAdd: Props['onAdd'];
+  accent: string;
 }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -383,8 +394,8 @@ function AddBeatRow({
   if (!open) {
     return (
       <Pressable style={styles.addRow} onPress={() => setOpen(true)} hitSlop={6}>
-        <Ionicons name="add" size={14} color="#007AFF" />
-        <Text style={styles.addText}>{config.addLabel}</Text>
+        <Ionicons name="add" size={14} color={accent} />
+        <Text style={[styles.addText, { color: accent }]}>{config.addLabel}</Text>
       </Pressable>
     );
   }
@@ -422,6 +433,7 @@ function AddBeatRow({
           <Text
             style={[
               styles.saveText,
+              { color: accent },
               !title.trim() ? styles.saveTextDisabled : null,
             ]}
           >
@@ -518,7 +530,8 @@ const styles = StyleSheet.create({
   },
   beatTime: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontVariant: ['tabular-nums'],
     color: IOS_COLORS.tertiaryLabel,
     letterSpacing: 0.2,
   },
@@ -546,6 +559,8 @@ const styles = StyleSheet.create({
   },
   inputTime: {
     width: 110,
+    fontFamily: fontFamily.mono,
+    fontVariant: ['tabular-nums'],
   },
   inputBody: {
     minHeight: 48,

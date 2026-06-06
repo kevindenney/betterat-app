@@ -25,8 +25,8 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  Platform,
 } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -34,10 +34,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { isValidInviteToken, resolveOrgInviteEntry } from '@/lib/org-invites/routeFlow';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 
-const SERIF: any =
-  Platform.OS === 'web'
-    ? "'Iowan Old Style', 'Source Serif 4', Georgia, serif"
-    : 'Georgia';
+const SERIF = fontFamily.serif;
 
 export default function OrgInviteEntryScreen() {
   const params = useLocalSearchParams<{

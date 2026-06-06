@@ -31,6 +31,7 @@ import {
   IOS_SPACING,
   IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 interface FollowOptionsSheetProps {
   visible: boolean;
@@ -224,6 +225,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...IOS_TYPOGRAPHY.headline,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    letterSpacing: -0.3,
     color: IOS_COLORS.label,
   },
   closeButton: {

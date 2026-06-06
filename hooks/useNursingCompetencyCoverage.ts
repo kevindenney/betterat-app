@@ -170,7 +170,7 @@ export function useNursingCompetencyCoverage(): {
         const nameOf = new Map<string, string>();
         if (poiIds.length > 0) {
           const { data: pois } = await supabase
-            .from('atlas_poi')
+            .from('atlas_pois')
             .select('id, name')
             .in('id', poiIds);
           for (const p of (pois ?? []) as PoiRow[]) {

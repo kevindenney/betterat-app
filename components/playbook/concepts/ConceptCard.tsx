@@ -9,6 +9,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { PlaybookConceptRecord, ConceptOrigin } from '@/types/playbook';
 
 interface ConceptCardProps {
@@ -97,7 +98,8 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -112,12 +114,15 @@ const styles = StyleSheet.create({
   },
   updateText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: IOS_COLORS.systemOrange,
   },
   title: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    letterSpacing: -0.3,
     color: IOS_COLORS.label,
   },
   snippet: {

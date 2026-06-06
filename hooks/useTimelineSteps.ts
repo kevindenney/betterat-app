@@ -16,6 +16,8 @@ import {
   adoptStep,
   adoptQuotedStep,
   createStepsFromCourse,
+  redoStepAsNewStep,
+  reopenStepForWork,
   pinStepToInterest,
   unpinStepFromInterest,
   getStepPinInterestIds,
@@ -182,6 +184,33 @@ export function useUpdateStep() {
       // mutation must invalidate it explicitly or the Atlas picker /
       // pin set goes stale ("saved but didn't appear" pattern from
       // feedback_query_cache_key_invalidation_audit).
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+    },
+  });
+}
+
+export function useReopenStepForWork() {
+  const queryClient = useQueryClient();
+
+  return useMutation<TimelineStepRecord, Error, string>({
+    mutationFn: reopenStepForWork,
+    onSuccess: (_data, stepId) => {
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(stepId) });
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+    },
+  });
+}
+
+export function useRedoStepAsNewStep() {
+  const queryClient = useQueryClient();
+
+  return useMutation<TimelineStepRecord, Error, string>({
+    mutationFn: redoStepAsNewStep,
+    onSuccess: (data, sourceStepId) => {
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(sourceStepId) });
+      queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(data.id) });
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
     },
   });

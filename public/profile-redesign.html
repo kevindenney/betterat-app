@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kevin Denney — BetterAt profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#ffffff;
+    --band:#f1f6fd;
+    --band-warm:#fdf8f1;
+    --card:#ffffff;
+    --line:#e2e5ec;
+    --line-soft:#edeff4;
+    --txt:#1b1d23;
+    --txt-2:#5c616b;
+    --txt-3:#8b909a;
+    --blue:#2d7ff9;
+    --blue-d:#1c6df0;
+    --orange:#a8554a;
+    --green:#34c759;
+    --purple:#bf5af2;
+    --plan:#2d7ff9;
+    --do:#a8554a;
+    --review:#34c759;
+    --radius:20px;
+    --maxw:980px;
+    --shadow:0 8px 30px rgba(28,40,64,.06);
+    --shadow-lg:0 22px 60px rgba(28,40,64,.11);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    color:var(--txt);
+    background:
+      linear-gradient(180deg, rgba(45,127,249,.09) 0%, rgba(45,127,249,.03) 280px, rgba(45,127,249,0) 560px),
+      var(--bg);
+    background-repeat:no-repeat;
+    font-family:'Figtree',-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    line-height:1.5;letter-spacing:-.011em;padding-bottom:80px;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  a{color:inherit;text-decoration:none}
+  .mono{font-family:"SF Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* ---------- NAV ---------- */
+  nav{position:sticky;top:0;z-index:60;height:48px;
+    background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.08)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:100%;max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  .brand{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;letter-spacing:-.02em;color:var(--blue)}
+  .logo{width:26px;height:26px;display:grid;place-items:center;flex:none;border-radius:7px;background:var(--blue);color:#fff;font-weight:800;font-size:14px}
+  .nav-back{font-size:13px;color:var(--txt-2);display:inline-flex;align-items:center;gap:6px}
+  .nav-back:hover{color:var(--txt)}
+
+  /* ---------- HERO / IDENTITY ---------- */
+  .hero{padding:42px 0 8px}
+  .hero-card{display:flex;gap:26px;align-items:flex-start}
+  .avatar{width:108px;height:108px;border-radius:28px;flex:none;
+    background:linear-gradient(150deg,#2d7ff9,#1c6df0);color:#fff;
+    display:grid;place-items:center;font-size:40px;font-weight:700;letter-spacing:-.02em;
+    box-shadow:0 12px 34px rgba(45,127,249,.32)}
+  .hero-body{flex:1;min-width:0}
+  .hero-name{font-size:34px;font-weight:700;letter-spacing:-.028em;line-height:1.05;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+  .verif{width:21px;height:21px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800}
+  .hero-role{font-size:16px;color:var(--blue);font-weight:600;margin-top:3px}
+  .hero-bio{font-size:16.5px;color:var(--txt-2);margin-top:11px;max-width:60ch;line-height:1.45}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--txt-2);
+    background:#fff;border:1px solid var(--line);border-radius:980px;padding:5px 12px}
+  .chip .ic{font-size:13px}
+  .chip.live{color:var(--blue);border-color:rgba(45,127,249,.3);background:rgba(45,127,249,.06);font-weight:600}
+  .chip .gdot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(52,199,89,.18)}
+
+  .hero-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+  .btn-fill{background:var(--blue);color:#fff;border:none;border-radius:980px;font-family:inherit;
+    font-size:15px;font-weight:600;padding:10px 22px;cursor:pointer;transition:.2s}
+  .btn-fill:hover{background:var(--blue-d)}
+  .btn-ghost{background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:980px;font-family:inherit;
+    font-size:15px;font-weight:600;padding:10px 20px;cursor:pointer;transition:.2s}
+  .btn-ghost:hover{border-color:var(--txt-3)}
+
+  /* ---------- STATS ---------- */
+  .stats{display:flex;gap:30px;margin-top:26px;padding:18px 0 0;border-top:1px solid var(--line-soft);flex-wrap:wrap}
+  .stat{display:flex;flex-direction:column;gap:1px}
+  .stat b{font-size:23px;font-weight:700;letter-spacing:-.02em}
+  .stat span{font-size:13px;color:var(--txt-3);font-weight:500}
+
+  /* ---------- SECTION ---------- */
+  section{padding:40px 0 0}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;gap:14px}
+  .sec-head h2{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--txt-3)}
+  .sec-head .more{font-size:13px;color:var(--blue);font-weight:600}
+
+  /* ---------- NOW STRIP ---------- */
+  .now-strip{display:flex;gap:13px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+  .now-strip::-webkit-scrollbar{display:none}
+  .now-card{flex:none;width:230px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 16px;box-shadow:var(--shadow)}
+  .now-phase{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:980px}
+  .ph-plan{background:rgba(45,127,249,.12);color:var(--plan)}
+  .ph-do{background:rgba(168,85,74,.13);color:var(--do)}
+  .ph-review{background:rgba(52,199,89,.14);color:#1f9d43}
+  .now-card h4{font-size:15.5px;font-weight:600;letter-spacing:-.015em;margin:11px 0 4px;line-height:1.25}
+  .now-card .meta{font-size:12.5px;color:var(--txt-3)}
+  .now-card .interest{font-size:11.5px;color:var(--txt-2);font-weight:600;margin-top:9px;display:flex;align-items:center;gap:6px}
+  .now-card .interest .d{width:6px;height:6px;border-radius:50%;background:var(--blue)}
+
+  /* ---------- FEATURED BLUEPRINT ---------- */
+  .feature{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lg);overflow:hidden}
+  .feature-top{padding:22px 24px 0;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+  .feature-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .feature-eyebrow .star{color:#f5a623}
+  .feature h3{font-size:24px;font-weight:700;letter-spacing:-.026em;line-height:1.12;max-width:24ch}
+  .feature .desc{font-size:15px;color:var(--txt-2);margin-top:9px;max-width:62ch;line-height:1.45}
+  .feature-badge{flex:none;text-align:center;background:var(--band);border:1px solid var(--line-soft);border-radius:14px;padding:11px 16px}
+  .feature-badge b{display:block;font-size:22px;font-weight:700;color:var(--blue);letter-spacing:-.02em}
+  .feature-badge span{font-size:11px;color:var(--txt-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+
+  /* phase band (feedback_blueprint_phase_band_wanted) */
+  .mk-tabs{display:flex;align-items:center;gap:7px;padding:14px 24px;margin-top:20px;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+  .mk-tab{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--txt-3)}
+  .mk-tab .b{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:10px;color:var(--txt-3)}
+  .mk-tab.on{color:#1b1d23}
+  .mk-tab.on .b{border:0;color:#fff;font-weight:700}
+  .mk-tab.plan.on .b{background:var(--plan)}
+  .mk-tab.do.on .b{background:var(--do)}
+  .mk-tab.review.on .b{background:var(--review)}
+  .mk-tab.discuss.on .b{background:var(--purple)}
+  .mk-tab .chk{background:var(--review)!important;border:0!important;color:#fff!important}
+  .mk-sep{flex:1;height:1px;background:var(--line-soft);min-width:14px}
+
+  .feature-steps{padding:6px 24px 8px}
+  .fstep{display:flex;align-items:center;gap:13px;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .fstep:last-child{border-bottom:0}
+  .fstep .n{width:26px;height:26px;border-radius:8px;flex:none;background:var(--band);color:var(--txt-2);display:grid;place-items:center;font-size:12px;font-weight:700}
+  .fstep .t{flex:1;min-width:0;font-size:14.5px;font-weight:500}
+  .fstep .ph{font-size:11px;font-weight:700;color:var(--txt-3);text-transform:uppercase;letter-spacing:.04em}
+  .feature-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 24px;background:var(--band);border-top:1px solid var(--line-soft);flex-wrap:wrap}
+  .feature-foot .who{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--txt-2)}
+  .feature-foot .who .av{width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700}
+  .sub-btn{background:var(--blue);color:#fff;border:none;border-radius:980px;font-size:14px;font-weight:600;padding:9px 20px;cursor:pointer;font-family:inherit}
+  .sub-btn:hover{background:var(--blue-d)}
+
+  /* ---------- COACHING BLUEPRINTS ---------- */
+  .bp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .bp-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);transition:.18s}
+  .bp-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  .bp-icon{width:34px;height:34px;border-radius:10px;background:var(--band);display:grid;place-items:center;font-size:16px;margin-bottom:12px}
+  .bp-card h4{font-size:16.5px;font-weight:600;letter-spacing:-.018em;line-height:1.2}
+  .bp-card .d{font-size:13.5px;color:var(--txt-2);margin-top:6px;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .bp-meta{display:flex;align-items:center;gap:13px;margin-top:13px;font-size:12.5px;color:var(--txt-3);font-weight:500}
+  .bp-meta .sub-ct{color:var(--blue);font-weight:600}
+
+  /* ---------- CURRICULUM LIBRARY (collapsed) ---------- */
+  .lib{background:var(--band);border:1px solid var(--line-soft);border-radius:var(--radius);padding:20px 22px}
+  .lib-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:4px}
+  .lib-head h3{font-size:16px;font-weight:700;letter-spacing:-.015em}
+  .lib-head .ct{font-size:13px;color:var(--txt-3);font-weight:600}
+  .lib-sub{font-size:13.5px;color:var(--txt-2);margin-bottom:14px;max-width:64ch}
+  .lib-list{display:flex;flex-direction:column}
+  .lib-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+  .lib-row .org{font-size:11px;font-weight:700;color:#fff;background:var(--txt-3);border-radius:6px;padding:2px 7px;letter-spacing:.02em;flex:none}
+  .lib-row .org.rya{background:#1c6df0}
+  .lib-row .org.hksf{background:var(--orange)}
+  .lib-row .nm{flex:1;min-width:0;font-size:14.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lib-row .lvl{font-size:12px;color:var(--txt-3);font-weight:500;flex:none}
+  .lib-toggle{margin-top:14px;text-align:center}
+  .lib-toggle button{background:#fff;border:1px solid var(--line);border-radius:980px;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--txt-2);padding:8px 18px;cursor:pointer}
+
+  /* ---------- ORGS ---------- */
+  .org-chips{display:flex;flex-wrap:wrap;gap:11px}
+  .org-chip{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 16px 11px 12px;box-shadow:var(--shadow)}
+  .org-chip .ol{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:15px;font-weight:800;color:#fff;flex:none}
+  .org-chip .oi{min-width:0}
+  .org-chip .oi b{display:block;font-size:14.5px;font-weight:600;letter-spacing:-.015em}
+  .org-chip .oi span{font-size:12px;color:var(--txt-3);font-weight:500}
+
+  .note{font-size:12px;color:var(--txt-3);margin-top:40px;text-align:center;line-height:1.5}
+
+  @media(max-width:720px){
+    .hero-card{flex-direction:column;gap:18px}
+    .avatar{width:88px;height:88px;border-radius:24px;font-size:32px}
+    .hero-name{font-size:28px}
+    .bp-grid{grid-template-columns:1fr}
+    .feature-top{flex-direction:column}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="brand" href="#"><span class="logo">B</span>BetterAt</a>
+    <a class="nav-back" href="#">&#8592; Back</a>
+  </div>
+</nav>
+
+<!-- ============ IDENTITY HERO ============ -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-card">
+      <div class="avatar">KD</div>
+      <div class="hero-body">
+        <div class="hero-name">Kevin Denney <span class="verif" title="Verified coach">&#10003;</span></div>
+        <div class="hero-role">Sailing coach &middot; Blueprint author</div>
+        <p class="hero-bio">Dragon-class skipper coaching racers from first tack to world-championship podiums. I publish the exact prep blueprints I run with my own crews — plan, do, review, discuss.</p>
+        <div class="chips">
+          <span class="chip live"><span class="gdot"></span>Coaching live now</span>
+          <span class="chip"><span class="ic">&#9973;</span>Sail Racing</span>
+          <span class="chip"><span class="ic">&#128205;</span>Hong Kong &middot; RHKYC</span>
+        </div>
+        <div class="hero-actions">
+          <button class="btn-fill">+ Follow</button>
+          <button class="btn-ghost">Message</button>
+          <button class="btn-ghost">Share</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>248</b><span>Followers</span></div>
+          <div class="stat"><b>15</b><span>Subscribers</span></div>
+          <div class="stat"><b>3</b><span>Coaching blueprints</span></div>
+          <div class="stat"><b>11</b><span>In curriculum library</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ NOW ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><h2>Working on now</h2><a class="more">View timeline &#8594;</a></div>
+    <div class="now-strip">
+      <div class="now-card">
+        <span class="now-phase ph-do">Do</span>
+        <h4>Dragon Worlds — boat tuning block</h4>
+        <div class="meta">Step 4 of 9 &middot; due Fri</div>
+        <div class="interest"><span class="d"></span>Sail Racing</div>
+      </div>
+      <div class="now-card">
+        <span class="now-phase ph-review">Review</span>
+        <h4>Impala Winter Series — race 6 debrief</h4>
+        <div class="meta">Logged 2 days ago</div>
+        <div class="interest"><span class="d"></span>Sail Racing</div>
+      </div>
+      <div class="now-card">
+        <span class="now-phase ph-plan">Plan</span>
+        <h4>Spinnaker hoist drill set</h4>
+        <div class="meta">Scheduled next week</div>
+        <div class="interest"><span class="d"></span>Sail Racing</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURED BLUEPRINT ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><h2>Featured blueprint</h2></div>
+    <div class="feature">
+      <div class="feature-top">
+        <div>
+          <div class="feature-eyebrow"><span class="star">&#9733;</span>Most subscribed</div>
+          <h3>Achieving Peak Performance at the Dragon Worlds</h3>
+          <p class="desc">A nine-step championship campaign — venue study, boat tuning, crew roles, and race-by-race debriefs — run end to end through every phase of practice.</p>
+        </div>
+        <div class="feature-badge"><b>12</b><span>Subscribers</span></div>
+      </div>
+
+      <div class="mk-tabs">
+        <span class="mk-tab plan on"><span class="b">1</span>Plan</span>
+        <span class="mk-sep"></span>
+        <span class="mk-tab do on"><span class="b">2</span>Do</span>
+        <span class="mk-sep"></span>
+        <span class="mk-tab review on"><span class="b">3</span>Review</span>
+        <span class="mk-sep"></span>
+        <span class="mk-tab discuss on"><span class="b">&#128172;</span>Discuss</span>
+      </div>
+
+      <div class="feature-steps">
+        <div class="fstep"><span class="n">1</span><span class="t">Study the venue &amp; tidal gates</span><span class="ph">Plan</span></div>
+        <div class="fstep"><span class="n">2</span><span class="t">Tune the rig for forecast range</span><span class="ph">Plan</span></div>
+        <div class="fstep"><span class="n">3</span><span class="t">Lock crew roles &amp; manoeuvres</span><span class="ph">Do</span></div>
+        <div class="fstep"><span class="n">4</span><span class="t">Race series — log every start</span><span class="ph">Do</span></div>
+        <div class="fstep"><span class="n">5</span><span class="t">Debrief gaps vs. fleet leaders</span><span class="ph">Review</span></div>
+      </div>
+
+      <div class="feature-foot">
+        <div class="who"><span class="av">KD</span>By Kevin Denney &middot; 9 steps &middot; updated 3 days ago</div>
+        <button class="sub-btn">Subscribe</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COACHING BLUEPRINTS ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><h2>Kevin's coaching blueprints</h2><a class="more">All 3 &#8594;</a></div>
+    <div class="bp-grid">
+      <div class="bp-card">
+        <div class="bp-icon">&#127942;</div>
+        <h4>Impala Winter Series 2025–26</h4>
+        <p class="d">Eight-race club championship campaign with per-race prep and debrief steps.</p>
+        <div class="bp-meta"><span class="sub-ct">2 subscribers</span><span>7 steps</span></div>
+      </div>
+      <div class="bp-card">
+        <div class="bp-icon">&#128168;</div>
+        <h4>Kevin's sail-fast blueprint</h4>
+        <p class="d">The boat-speed fundamentals I drill with every crew before we race.</p>
+        <div class="bp-meta"><span class="sub-ct">1 subscriber</span><span>6 steps</span></div>
+      </div>
+      <div class="bp-card">
+        <div class="bp-icon">&#129504;</div>
+        <h4>Focus and flow</h4>
+        <p class="d">Pre-race mental routine — settle nerves, sharpen attention, hold flow on the water.</p>
+        <div class="bp-meta"><span>New</span><span>5 steps</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CURRICULUM LIBRARY ============ -->
+<section>
+  <div class="wrap">
+    <div class="lib">
+      <div class="lib-head">
+        <h3>Curriculum library</h3>
+        <span class="ct">11 pathway templates</span>
+      </div>
+      <p class="lib-sub">Standards-based training pathways Kevin maintains for clubs and schools — adopt one wholesale or branch your own.</p>
+      <div class="lib-list">
+        <div class="lib-row"><span class="org hksf">HKSF</span><span class="nm">Learn to Sail — HKSF Dinghy Pathway</span><span class="lvl">L1–L4</span></div>
+        <div class="lib-row"><span class="org rya">RYA</span><span class="nm">Keelboat Skipper — RYA Pathway</span><span class="lvl">5 levels</span></div>
+        <div class="lib-row"><span class="org">CLUB</span><span class="nm">Junior Dinghy Scheme</span><span class="lvl">JS1–JS4</span></div>
+        <div class="lib-row"><span class="org">CLUB</span><span class="nm">Youth High Performance Pathway</span><span class="lvl">Squad</span></div>
+        <div class="lib-row"><span class="org">CLUB</span><span class="nm">Instructor Development Pathway</span><span class="lvl">Cert</span></div>
+      </div>
+      <div class="lib-toggle"><button>Show all 11 templates &#8595;</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ORGS ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><h2>Organizations</h2></div>
+    <div class="org-chips">
+      <div class="org-chip">
+        <span class="ol" style="background:linear-gradient(150deg,#1c6df0,#2d7ff9)">R</span>
+        <span class="oi"><b>Royal Hong Kong Yacht Club</b><span>Coach &middot; Dragon fleet</span></span>
+      </div>
+      <div class="org-chip">
+        <span class="ol" style="background:linear-gradient(150deg,#a8554a,#c66b56)">I</span>
+        <span class="oi"><b>Impala Class Association</b><span>Member</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<p class="note">Mock &middot; profile-redesign.html &middot; identity-first profile for /person/[userId] &middot; matches the BetterAt landing visual system</p>
+
+</body>
+</html>

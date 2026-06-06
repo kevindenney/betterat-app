@@ -20,6 +20,12 @@ interface SubtitleProps {
   startsAt?: string | null;
   endsAt?: string | null;
   metadata?: Record<string, unknown> | null;
+  /**
+   * Skip the date / time-range parts and render only preceptor / attribution.
+   * Used where an editable timing chip already shows the date below, so the
+   * subtitle would otherwise duplicate it.
+   */
+  hideTiming?: boolean;
 }
 
 export function StepHeaderEyebrow({ stepId }: { stepId: string }) {
@@ -31,8 +37,8 @@ export function StepHeaderEyebrow({ stepId }: { stepId: string }) {
   return <Text style={styles.eyebrow}>{label}</Text>;
 }
 
-export function StepHeaderSubtitle({ startsAt, endsAt, metadata }: SubtitleProps) {
-  const parts = formatSubtitleParts({ startsAt, endsAt, metadata });
+export function StepHeaderSubtitle({ startsAt, endsAt, metadata, hideTiming }: SubtitleProps) {
+  const parts = formatSubtitleParts({ startsAt, endsAt, metadata, hideTiming });
   if (parts.length === 0) return null;
   return <Text style={styles.subtitle}>{parts.join(' · ')}</Text>;
 }
@@ -41,10 +47,11 @@ function formatSubtitleParts({
   startsAt,
   endsAt,
   metadata,
+  hideTiming,
 }: SubtitleProps): string[] {
   const out: string[] = [];
 
-  if (startsAt) {
+  if (startsAt && !hideTiming) {
     const start = new Date(startsAt);
     if (!Number.isNaN(start.getTime())) {
       out.push(

@@ -12,7 +12,7 @@
  *   - Have home venue but no nearby peers → encouraging copy.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +22,17 @@ import {
   type AtlasPeerStep,
   type AtlasPeerRelationship,
 } from '@/hooks/useAtlasPeerSteps';
+import { WatchFilterRow, type WatchFilterChip } from '@/components/watch/WatchFilterRow';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
+
+// Source filter for the Nearby feed. People = individual relationships
+// (graph follows + your crew); Groups = fleets and cohorts. Orgs is a
+// future addition pending an atlas_peer_steps_near migration that returns
+// the org behind each step.
+type NearbySource = 'all' | 'people' | 'groups';
+const PEOPLE_RELS = new Set<AtlasPeerRelationship>(['following', 'crew']);
+const GROUP_RELS = new Set<AtlasPeerRelationship>(['fleet', 'cohort']);
 
 interface WatchNearbySectionProps {
   homeVenueLat: number | null;
@@ -67,6 +77,7 @@ export function WatchNearbySection({
   interestSlug,
 }: WatchNearbySectionProps) {
   const hasVenue = homeVenueLat != null && homeVenueLng != null;
+  const [source, setSource] = useState<NearbySource>('all');
 
   const { data: peerSteps = [], isLoading } = useAtlasPeerSteps({
     lat: homeVenueLat,
@@ -83,6 +94,25 @@ export function WatchNearbySection({
         .sort((a, b) => b.set_at.localeCompare(a.set_at)),
     [peerSteps],
   );
+
+  // Only offer a source chip when that source actually has nearby rows —
+  // matches the "drop empty pills" rule from the redesign.
+  const sourceChips = useMemo<WatchFilterChip[]>(() => {
+    const chips: WatchFilterChip[] = [{ id: 'all', label: 'All' }];
+    if (visibleSteps.some((s) => PEOPLE_RELS.has(s.relationship))) {
+      chips.push({ id: 'people', label: 'People' });
+    }
+    if (visibleSteps.some((s) => GROUP_RELS.has(s.relationship))) {
+      chips.push({ id: 'groups', label: 'Groups' });
+    }
+    return chips;
+  }, [visibleSteps]);
+
+  const shownSteps = useMemo(() => {
+    if (source === 'people') return visibleSteps.filter((s) => PEOPLE_RELS.has(s.relationship));
+    if (source === 'groups') return visibleSteps.filter((s) => GROUP_RELS.has(s.relationship));
+    return visibleSteps;
+  }, [visibleSteps, source]);
 
   if (!hasVenue) {
     return (
@@ -115,14 +145,25 @@ export function WatchNearbySection({
 
   return (
     <View style={styles.section}>
+      {sourceChips.length > 1 ? (
+        <WatchFilterRow
+          categories={sourceChips}
+          selectedId={source}
+          onSelect={(id) => setSource(id as NearbySource)}
+        />
+      ) : null}
       <Text style={styles.sectionEyebrow}>
         Within 25km · {homeVenueLabel ?? 'your area'}
       </Text>
-      <View style={styles.feed}>
-        {visibleSteps.map((step) => (
-          <NearbyStepCard key={step.step_id} step={step} />
-        ))}
-      </View>
+      {shownSteps.length > 0 ? (
+        <View style={styles.feed}>
+          {shownSteps.map((step) => (
+            <NearbyStepCard key={step.step_id} step={step} />
+          ))}
+        </View>
+      ) : (
+        <Text style={styles.loading}>No nearby activity from this source.</Text>
+      )}
     </View>
   );
 }
@@ -163,7 +204,8 @@ const styles = StyleSheet.create({
   },
   sectionEyebrow: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.6,
     color: IOS_COLORS.secondaryLabel,
     textTransform: 'uppercase',
@@ -220,7 +262,8 @@ const styles = StyleSheet.create({
   },
   relText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
@@ -236,10 +279,11 @@ const styles = StyleSheet.create({
     borderColor: IOS_COLORS.separator,
   },
   emptyTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: IOS_COLORS.label,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
     textAlign: 'center',
   },
   emptyCopy: {

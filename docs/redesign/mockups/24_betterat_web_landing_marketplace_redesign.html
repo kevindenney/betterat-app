@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>betterat_web_landing_marketplace_redesign</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+:root{
+  --serif:'Lyon Display','Iowan Old Style',Georgia,serif;
+  --sans:'Söhne',-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+  --mono:'SF Mono','Menlo',monospace;
+
+  --ink:#14161A;
+  --ink-2:#3C4048;
+  --ink-3:#6B7079;
+  --ink-4:#9AA0A8;
+  --line:#E6E4DD;
+  --line-2:#EFEDE6;
+  --paper:#FFFFFF;
+  --paper-2:#FAF9F5;
+  --paper-3:#F3F1EA;
+
+  --blue:#2E5FE8;
+  --blue-soft:#EAF0FE;
+  --hero:#15161B;
+
+  /* interest taxonomy accents (from lib/landing/sampleData.ts) */
+  --c-health:#6366F1;
+  --c-arts:#F59E0B;
+  --c-sport:#0EA5E9;
+  --c-live:#D35400;
+  --c-edu:#5C6BC0;
+  --c-agri:#2E7D32;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:#DEDBD1;
+  font-family:var(--sans);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.55;
+}
+
+/* ---------- deck scaffolding ---------- */
+.deck-head{
+  max-width:1180px;margin:0 auto;padding:56px 24px 8px;
+}
+.deck-eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+.deck-title{font-family:var(--serif);font-size:42px;line-height:1.1;font-weight:500;letter-spacing:-.02em;margin:10px 0 14px;}
+.deck-sub{font-size:17px;color:var(--ink-2);max-width:680px;margin:0;line-height:1.6;}
+.deck-meta{font-family:var(--mono);font-size:11px;color:var(--ink-4);margin-top:18px;letter-spacing:.02em;}
+
+.section-label{
+  max-width:1180px;margin:64px auto 0;padding:0 24px;
+  display:flex;align-items:center;gap:14px;
+}
+.section-label .num{font-family:var(--mono);font-size:12px;color:var(--ink-4);}
+.section-label .txt{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+.section-label .rule{flex:1;height:1px;background:#C9C5B9;}
+
+.frame-wrap{max-width:1180px;margin:18px auto 0;padding:0 24px;}
+.browser{
+  background:var(--paper);border-radius:16px;overflow:hidden;
+  box-shadow:0 30px 70px -30px rgba(20,22,26,.45),0 2px 0 rgba(255,255,255,.4) inset;
+  border:1px solid rgba(20,22,26,.06);
+}
+.chrome{
+  height:42px;background:#F0EEE7;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px;padding:0 16px;
+}
+.dot{width:11px;height:11px;border-radius:50%;}
+.dot.r{background:#F0685E;}.dot.y{background:#F4BE4F;}.dot.g{background:#62C554;}
+.url{
+  margin-left:14px;background:#fff;border:1px solid var(--line);border-radius:8px;
+  height:26px;display:flex;align-items:center;padding:0 12px;gap:8px;
+  font-size:12px;color:var(--ink-3);font-family:var(--mono);min-width:320px;
+}
+.url i{font-size:13px;color:var(--ink-4);}
+
+/* annotation callouts between frames */
+.callouts{max-width:1180px;margin:18px auto 0;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.callout{background:rgba(255,255,255,.55);border:1px solid rgba(20,22,26,.08);border-radius:12px;padding:16px 18px;}
+.callout .k{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--blue);margin:0 0 6px;}
+.callout p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.55;}
+
+/* ---------- shared page bits ---------- */
+.nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 36px;border-bottom:1px solid var(--line-2);
+}
+.nav.dark{background:var(--hero);border-bottom:1px solid rgba(255,255,255,.08);}
+.brand{font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;}
+.brand .mk{width:26px;height:26px;border-radius:7px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-family:var(--sans);font-weight:800;}
+.navlinks{display:flex;align-items:center;gap:28px;font-size:14.5px;color:var(--ink-2);}
+.navlinks.dark{color:#C4C8D2;}
+.navlinks a{color:inherit;text-decoration:none;display:flex;align-items:center;gap:5px;}
+.navlinks a.active{color:var(--blue);font-weight:600;}
+.navlinks.dark a.active{color:#7FA8FF;}
+.btn{font-family:var(--sans);font-size:14px;font-weight:600;border-radius:10px;padding:10px 18px;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--line);}
+.btn-ghost.dark{color:#fff;border-color:rgba(255,255,255,.25);}
+.btn-sm{padding:8px 14px;font-size:13px;}
+
+/* ---------- HERO ---------- */
+.hero{background:var(--hero);color:#fff;padding:84px 36px 72px;position:relative;overflow:hidden;}
+.hero .glow{position:absolute;inset:auto;width:680px;height:680px;border-radius:50%;
+  background:radial-gradient(circle,rgba(46,95,232,.32),transparent 62%);top:-280px;left:50%;transform:translateX(-50%);filter:blur(8px);}
+.hero-inner{position:relative;max-width:860px;margin:0 auto;text-align:center;}
+.hero-eyebrow{font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:#7FA8FF;font-weight:600;}
+.hero h1{font-family:var(--serif);font-weight:500;font-size:64px;line-height:1.04;letter-spacing:-.025em;margin:22px 0 0;}
+.hero h1 em{font-style:italic;color:#9DB8FF;}
+.hero p.lede{font-size:19px;line-height:1.6;color:#AFB4BF;max-width:640px;margin:22px auto 0;}
+.hero-search{margin:34px auto 0;max-width:580px;background:#202229;border:1px solid rgba(255,255,255,.12);border-radius:14px;height:58px;display:flex;align-items:center;padding:0 8px 0 18px;gap:12px;}
+.hero-search i{font-size:20px;color:#8990A0;}
+.hero-search .ph{flex:1;text-align:left;color:#8990A0;font-size:15.5px;}
+.hero-search .go{background:var(--blue);color:#fff;height:42px;padding:0 20px;border-radius:10px;display:flex;align-items:center;font-weight:600;font-size:14px;}
+.hero-cta{display:flex;gap:12px;justify-content:center;margin-top:22px;}
+.hero-foot{margin-top:30px;font-size:13px;color:#80868F;}
+
+/* ---------- UNIVERSALITY PROOF ---------- */
+.proof{background:var(--paper);padding:74px 36px;border-bottom:1px solid var(--line-2);}
+.proof-head{max-width:760px;margin:0 auto;text-align:center;}
+.proof-head .lbl{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);font-weight:700;}
+.proof-head h2{font-family:var(--serif);font-weight:500;font-size:38px;letter-spacing:-.02em;margin:12px 0 10px;}
+.proof-head p{font-size:16.5px;color:var(--ink-2);margin:0;}
+.proof-grid{max-width:1060px;margin:40px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.proof-card{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--paper-2);}
+.proof-card .top{padding:16px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);}
+.proof-card .ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;}
+.proof-card .top b{font-size:15px;}
+.proof-card .top span{font-size:12px;color:var(--ink-3);display:block;}
+.proof-card .rows{padding:6px 18px 16px;}
+.prow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.prow:last-child{border-bottom:none;}
+.prow .term{color:var(--ink-4);font-size:11px;letter-spacing:.06em;text-transform:uppercase;}
+.prow .val{color:var(--ink);font-weight:600;text-align:right;}
+
+/* ---------- BROWSE BY INTEREST ---------- */
+.browse{background:var(--paper-2);padding:74px 36px;}
+.browse-head{max-width:1060px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;}
+.browse-head h2{font-family:var(--serif);font-weight:500;font-size:34px;letter-spacing:-.02em;margin:0;}
+.browse-head p{font-size:15px;color:var(--ink-2);margin:6px 0 0;max-width:520px;}
+.browse-head a{font-size:14px;color:var(--blue);font-weight:600;text-decoration:none;white-space:nowrap;}
+.cat{max-width:1060px;margin:34px auto 0;}
+.cat-title{display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin:0 0 14px;}
+.cat-dot{width:9px;height:9px;border-radius:50%;}
+.cat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:26px;}
+.icard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;transition:.15s;}
+.icard:hover{box-shadow:0 14px 30px -16px rgba(20,22,26,.25);transform:translateY(-2px);}
+.icard .ihead{display:flex;align-items:center;gap:12px;}
+.icard .iic{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;color:#fff;}
+.icard .iname{font-size:16.5px;font-weight:700;}
+.icard .istat{font-size:12.5px;color:var(--ink-3);margin-top:1px;}
+.icard .ifoot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line-2);padding-top:11px;}
+.icard .ipills{display:flex;gap:6px;}
+.pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--paper-3);color:var(--ink-2);}
+.icard .iexp{font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px;}
+
+/* ---------- FEATURED MARKETPLACE ON LANDING ---------- */
+.feat{background:var(--paper);padding:74px 36px;border-top:1px solid var(--line-2);}
+.feat-head{max-width:1060px;margin:0 auto;text-align:center;}
+.feat-head .lbl{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);font-weight:700;}
+.feat-head h2{font-family:var(--serif);font-weight:500;font-size:34px;letter-spacing:-.02em;margin:12px 0 8px;}
+.feat-head p{font-size:15.5px;color:var(--ink-2);margin:0;max-width:560px;margin:0 auto;}
+.bp-grid{max-width:1060px;margin:36px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:18px;}
+.bp{border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;background:#fff;}
+.bp .cover{height:120px;display:flex;align-items:flex-end;padding:16px;color:#fff;}
+.bp .cover .tag{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.22);padding:4px 9px;border-radius:6px;}
+.bp .body{padding:18px;display:flex;flex-direction:column;gap:10px;flex:1;}
+.bp .bt{font-size:18px;font-weight:700;letter-spacing:-.01em;}
+.bp .author{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);}
+.bp .av{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.bp .desc{font-size:13.5px;color:var(--ink-3);line-height:1.5;}
+.bp .meta{display:flex;align-items:center;gap:14px;font-size:12.5px;color:var(--ink-3);margin-top:2px;}
+.bp .meta .star{color:var(--c-arts);}
+.bp .bfoot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line-2);padding:14px 18px;background:var(--paper-2);}
+.bp .price{font-size:18px;font-weight:800;}
+.bp .price span{font-size:12px;font-weight:500;color:var(--ink-3);}
+.bp .trial{font-size:12px;color:var(--ink-3);}
+
+/* ---------- PRICING TEASER (two models) ---------- */
+.price-band{background:var(--hero);color:#fff;padding:70px 36px;}
+.pb-head{max-width:920px;margin:0 auto;text-align:center;}
+.pb-head h2{font-family:var(--serif);font-weight:500;font-size:34px;letter-spacing:-.02em;margin:0 0 10px;}
+.pb-head p{font-size:16px;color:#AFB4BF;margin:0;}
+.pb-two{max-width:920px;margin:34px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.pb-card{background:#1E2027;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:24px;}
+.pb-card h3{font-size:18px;margin:0 0 4px;display:flex;align-items:center;gap:9px;}
+.pb-card .sub{font-size:13.5px;color:#9AA0AC;margin:0 0 16px;}
+.pb-card .line{display:flex;align-items:center;gap:9px;font-size:14px;color:#D6D9E0;padding:6px 0;}
+.pb-card .line i{color:#7FA8FF;font-size:17px;}
+.pb-card .foot{margin-top:16px;font-size:12.5px;color:#80868F;}
+.split-note{max-width:920px;margin:18px auto 0;text-align:center;font-size:13px;color:#80868F;}
+
+/* ---------- ORG BAND ---------- */
+.org-band{background:var(--paper);padding:56px 36px;border-top:1px solid var(--line-2);}
+.org-inner{max-width:1060px;margin:0 auto;background:var(--paper-3);border:1px solid var(--line);border-radius:18px;padding:30px 34px;display:flex;align-items:center;justify-content:space-between;gap:24px;}
+.org-inner h3{font-family:var(--serif);font-weight:500;font-size:26px;margin:0 0 6px;}
+.org-inner p{font-size:15px;color:var(--ink-2);margin:0;max-width:560px;}
+
+/* ---------- footer ---------- */
+.foot{background:var(--hero);color:#9AA0AC;padding:40px 36px;font-size:13px;display:flex;justify-content:space-between;align-items:center;}
+.foot .brand{color:#fff;}
+
+/* ================= FRAME 2: INTEREST = MARKETPLACE ================= */
+.ip-hero{padding:46px 40px 30px;border-bottom:1px solid var(--line-2);background:linear-gradient(180deg,#FBF7EE,#fff);}
+.ip-crumb{font-size:13px;color:var(--ink-3);margin-bottom:16px;}
+.ip-crumb a{color:var(--blue);text-decoration:none;}
+.ip-top{display:flex;align-items:center;gap:18px;}
+.ip-ic{width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;}
+.ip-h1{font-family:var(--serif);font-weight:500;font-size:40px;letter-spacing:-.02em;margin:0;}
+.ip-sub{font-size:15px;color:var(--ink-2);margin:4px 0 0;}
+.ip-actions{margin-left:auto;display:flex;gap:10px;}
+.ip-stats{display:flex;gap:28px;margin-top:22px;}
+.ip-stat b{font-family:var(--serif);font-size:26px;font-weight:500;display:block;}
+.ip-stat span{font-size:12px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;}
+.tier-tabs{display:flex;gap:6px;padding:0 40px;border-bottom:1px solid var(--line-2);background:#fff;}
+.tier-tab{padding:16px 16px;font-size:14px;font-weight:600;color:var(--ink-3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;}
+.tier-tab.on{color:var(--ink);border-bottom-color:var(--c-arts);}
+.tier-tab .vb{font-size:11px;color:var(--ink-4);font-weight:500;}
+.ip-body{padding:30px 40px 46px;background:var(--paper-2);}
+.ip-section{margin-bottom:34px;}
+.ip-sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.ip-sec-head .l{display:flex;align-items:center;gap:10px;}
+.ip-sec-head .l b{font-size:17px;}
+.ip-sec-head .verb{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--blue-soft);color:var(--blue);}
+.ip-sec-head a{font-size:13px;color:var(--blue);text-decoration:none;font-weight:600;}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.row2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.mini{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:9px;}
+.mini .mt{font-size:15.5px;font-weight:700;}
+.mini .md{font-size:13px;color:var(--ink-3);line-height:1.5;}
+.mini .mf{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line-2);padding-top:11px;margin-top:auto;}
+.mini .mprice{font-weight:800;font-size:15px;}
+.mini .mprice span{font-size:11px;font-weight:500;color:var(--ink-3);}
+.person{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 15px;}
+.person .pa{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;}
+.person .pn{font-size:14.5px;font-weight:600;}
+.person .pr{font-size:12px;color:var(--ink-3);}
+.person .pf{margin-left:auto;}
+
+/* ================= IA DIAGRAM ================= */
+.ia{max-width:1180px;margin:18px auto 0;padding:0 24px;}
+.ia-grid{display:grid;grid-template-columns:1fr 56px 1fr;gap:0;align-items:center;background:rgba(255,255,255,.55);border:1px solid rgba(20,22,26,.08);border-radius:16px;overflow:hidden;}
+.ia-col{padding:26px 28px;}
+.ia-col h4{margin:0 0 4px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;}
+.ia-col.bad h4{color:#C0392B;}
+.ia-col.good h4{color:var(--c-agri);}
+.ia-col p.s{font-size:12.5px;color:var(--ink-3);margin:0 0 16px;}
+.ia-node{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px;margin-bottom:8px;}
+.ia-node i{font-size:16px;color:var(--ink-4);}
+.ia-node .x{margin-left:auto;color:#C0392B;font-size:15px;}
+.ia-node.linked{border-color:var(--c-agri);}
+.ia-node.linked .x{color:var(--c-agri);}
+.ia-arrow{display:flex;align-items:center;justify-content:center;color:var(--ink-4);font-size:26px;}
+.ia-spine{background:var(--blue);color:#fff;border-radius:10px;padding:11px 13px;font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:9px;}
+.ia-child{margin-left:18px;border-left:2px solid var(--blue-soft);padding-left:14px;}
+@media(max-width:700px){.proof-grid,.cat-row,.bp-grid,.pb-two,.row3,.row2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- =================== DECK HEADER =================== -->
+<div class="deck-head">
+  <div class="deck-eyebrow">BetterAt · Web redesign</div>
+  <div class="deck-title">Landing &amp; Marketplace,<br>finally on the same rails</div>
+  <p class="deck-sub">Today the public site has three discovery surfaces that never connect: landing interest cards route to <code>/[interest]</code>, the marketplace lives at <code>/marketplace</code>, and they pull from different data sources. A visitor who clicks <b>Drawing</b> can't subscribe to <b>“Learning to Draw.”</b> This deck unifies them: the interest becomes the spine, the marketplace becomes the inventory.</p>
+  <div class="deck-meta">24_betterat_web_landing_marketplace_redesign.html · 2026-06-03 · desktop frames @ 1180</div>
+</div>
+
+<!-- =================== IA: BEFORE / AFTER =================== -->
+<div class="section-label"><span class="num">00</span><span class="txt">The structural fix</span><span class="rule"></span></div>
+<div class="ia">
+  <div class="ia-grid">
+    <div class="ia-col bad">
+      <h4>Today — three silos</h4>
+      <p class="s">Separate routes, separate hooks, no path between them.</p>
+      <div class="ia-node"><i class="ti ti-home"></i> Landing interest card<span class="x">⤍ /[interest]</span></div>
+      <div class="ia-node"><i class="ti ti-map-2"></i> /[interest] · discoverBlueprints()<span class="x">⤍ /blueprint/[slug]</span></div>
+      <div class="ia-node"><i class="ti ti-building-store"></i> /marketplace · useMarketplaceBlueprints()<span class="x">orphaned</span></div>
+      <p class="s" style="margin-top:14px;color:#C0392B;">No interest card ever reaches the marketplace. “Learning to Draw” is unsellable from Drawing.</p>
+    </div>
+    <div class="ia-arrow"><i class="ti ti-arrow-right"></i></div>
+    <div class="ia-col good">
+      <h4>Redesign — one spine</h4>
+      <p class="s">Interest is the entry point; marketplace is the content, filtered.</p>
+      <div class="ia-spine"><i class="ti ti-compass"></i> Interest = /marketplace?interest=slug</div>
+      <div class="ia-child">
+        <div class="ia-node linked"><i class="ti ti-map-2"></i> Blueprints — subscribe<span class="x">✓</span></div>
+        <div class="ia-node linked"><i class="ti ti-building"></i> Organizations — join<span class="x">✓</span></div>
+        <div class="ia-node linked"><i class="ti ti-users"></i> People — follow<span class="x">✓</span></div>
+      </div>
+      <p class="s" style="margin-top:14px;color:var(--c-agri);">One blueprint card component + one data source feed both the interest page and the global marketplace.</p>
+    </div>
+  </div>
+</div>
+
+<!-- =================== FRAME 1: LANDING =================== -->
+<div class="section-label"><span class="num">01</span><span class="txt">Landing page</span><span class="rule"></span></div>
+<div class="frame-wrap">
+  <div class="browser">
+    <div class="chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <div class="url"><i class="ti ti-lock"></i> better.at</div>
+    </div>
+
+    <!-- nav -->
+    <div class="nav dark">
+      <div class="brand" style="color:#fff;"><span class="mk">B</span> BetterAt</div>
+      <div class="navlinks dark">
+        <a href="#">Interests <i class="ti ti-chevron-down" style="font-size:14px;"></i></a>
+        <a href="#">How it works</a>
+        <a href="#">Marketplace</a>
+        <a href="#">Pricing</a>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <a class="btn btn-ghost dark btn-sm" href="#">Sign in</a>
+        <a class="btn btn-primary btn-sm" href="#">Get started</a>
+      </div>
+    </div>
+
+    <!-- hero -->
+    <div class="hero">
+      <div class="glow"></div>
+      <div class="hero-inner">
+        <div class="hero-eyebrow">Deliberate practice platform</div>
+        <h1>Get measurably better<br>at <em>anything</em> you practice.</h1>
+        <p class="lede">One model for every craft — organizations, groups, people, and timelines. Subscribe to a blueprint from a practitioner who's already walked the path, and work it step by step.</p>
+        <div class="hero-search">
+          <i class="ti ti-search"></i>
+          <span class="ph">Search interests, organizations, blueprints, people…</span>
+          <span class="go">Search</span>
+        </div>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#">Browse the marketplace</a>
+          <a class="btn btn-ghost dark" href="#">For organizations</a>
+        </div>
+        <div class="hero-foot">Free to start · 4 blueprints from independent authors and growing</div>
+      </div>
+    </div>
+
+    <!-- universality proof -->
+    <div class="proof">
+      <div class="proof-head">
+        <div class="lbl">One engine, every domain</div>
+        <h2>The same structure, in your field's words</h2>
+        <p>Whether you're a nurse, a sailor, or learning to draw — the four tiers stay the same. Only the vocabulary changes.</p>
+      </div>
+      <div class="proof-grid">
+        <div class="proof-card">
+          <div class="top"><div class="ic" style="background:var(--c-health);"><i class="ti ti-stethoscope"></i></div><div><b>Nursing</b><span>Johns Hopkins School of Nursing</span></div></div>
+          <div class="rows">
+            <div class="prow"><span class="term">Organization</span><span class="val">Hospital / School</span></div>
+            <div class="prow"><span class="term">Program</span><span class="val">MSN cohort</span></div>
+            <div class="prow"><span class="term">Step</span><span class="val">Clinical shift</span></div>
+            <div class="prow"><span class="term">Competency</span><span class="val">AACN domain</span></div>
+          </div>
+        </div>
+        <div class="proof-card">
+          <div class="top"><div class="ic" style="background:var(--c-sport);"><i class="ti ti-sailboat"></i></div><div><b>Sail Racing</b><span>Royal Hong Kong Yacht Club</span></div></div>
+          <div class="rows">
+            <div class="prow"><span class="term">Organization</span><span class="val">Yacht club</span></div>
+            <div class="prow"><span class="term">Program</span><span class="val">Race series</span></div>
+            <div class="prow"><span class="term">Step</span><span class="val">Race / practice</span></div>
+            <div class="prow"><span class="term">Competency</span><span class="val">Boat-handling skill</span></div>
+          </div>
+        </div>
+        <div class="proof-card">
+          <div class="top"><div class="ic" style="background:var(--c-arts);"><i class="ti ti-palette"></i></div><div><b>Drawing</b><span>Independent authors</span></div></div>
+          <div class="rows">
+            <div class="prow"><span class="term">Organization</span><span class="val">Art school</span></div>
+            <div class="prow"><span class="term">Program</span><span class="val">Fundamentals course</span></div>
+            <div class="prow"><span class="term">Step</span><span class="val">Daily exercise</span></div>
+            <div class="prow"><span class="term">Competency</span><span class="val">Proportion · value</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- browse by interest -->
+    <div class="browse">
+      <div class="browse-head">
+        <div>
+          <h2>Browse by interest</h2>
+          <p>Each interest opens its marketplace — the blueprints, organizations, and people working in that field.</p>
+        </div>
+        <a href="#">View all interests <i class="ti ti-arrow-right"></i></a>
+      </div>
+
+      <div class="cat">
+        <div class="cat-title" style="color:var(--c-health);"><span class="cat-dot" style="background:var(--c-health);"></span> Healthcare</div>
+        <div class="cat-row">
+          <div class="icard">
+            <div class="ihead"><div class="iic" style="background:var(--c-health);"><i class="ti ti-stethoscope"></i></div><div><div class="iname">Nursing</div><div class="istat">Bedside skills, clinical reasoning</div></div></div>
+            <div class="ifoot"><div class="ipills"><span class="pill">3 blueprints</span><span class="pill">4 orgs</span></div><span class="iexp" style="color:var(--c-health);">Open <i class="ti ti-arrow-right"></i></span></div>
+          </div>
+          <div class="icard">
+            <div class="ihead"><div class="iic" style="background:var(--c-health);"><i class="ti ti-world-heart"></i></div><div><div class="iname">Global Health</div><div class="istat">Field practice & public health</div></div></div>
+            <div class="ifoot"><div class="ipills"><span class="pill">1 blueprint</span><span class="pill">2 orgs</span></div><span class="iexp" style="color:var(--c-health);">Open <i class="ti ti-arrow-right"></i></span></div>
+          </div>
+          <div class="icard">
+            <div class="ihead"><div class="iic" style="background:var(--c-edu);"><i class="ti ti-bulb"></i></div><div><div class="iname">Self-Mastery</div><div class="istat">Habits, focus, deliberate growth</div></div></div>
+            <div class="ifoot"><div class="ipills"><span class="pill">2 blueprints</span></div><span class="iexp" style="color:var(--c-edu);">Open <i class="ti ti-arrow-right"></i></span></div>
+          </div>
+        </div>
+
+        <div class="cat-title" style="color:var(--c-arts);"><span class="cat-dot" style="background:var(--c-arts);"></span> Creative Arts</div>
+        <div class="cat-row">
+          <div class="icard" style="outline:2px solid var(--c-arts);outline-offset:-2px;">
+            <div class="ihead"><div class="iic" style="background:var(--c-arts);"><i class="ti ti-palette"></i></div><div><div class="iname">Drawing</div><div class="istat">Line, value, proportion</div></div></div>
+            <div class="ifoot"><div class="ipills"><span class="pill">1 blueprint</span><span class="pill">1 org</span></div><span class="iexp" style="color:var(--c-arts);">Open <i class="ti ti-arrow-right"></i></span></div>
+          </div>
+          <div class="icard">
+            <div class="ihead"><div class="iic" style="background:var(--c-arts);"><i class="ti ti-pencil"></i></div><div><div class="iname">Design</div><div class="istat">Visual & product design</div></div></div>
+            <div class="ifoot"><div class="ipills"><span class="pill">1 org</span></div><span class="iexp" style="color:var(--c-arts);">Open <i class="ti ti-arrow-right"></i></span></div>
+          </div>
+          <div class="icard">
+            <div class="ihead"><div class="iic" style="background:var(--c-arts);"><i class="ti ti-needle-thread"></i></div><div><div class="iname">Knitting</div><div class="istat">Technique & pattern work</div></div></div>
+            <div class="ifoot"><div class="ipills"><span class="pill">8 orgs</span></div><span class="iexp" style="color:var(--c-arts);">Open <i class="ti ti-arrow-right"></i></span></div>
+          </div>
+        </div>
+
+        <div class="cat-title" style="color:var(--c-sport);"><span class="cat-dot" style="background:var(--c-sport);"></span> Sports &amp; Outdoors</div>
+        <div class="cat-row">
+          <div class="icard">
+            <div class="ihead"><div class="iic" style="background:var(--c-sport);"><i class="ti ti-sailboat"></i></div><div><div class="iname">Sail Racing</div><div class="istat">Tactics, boat handling, rig</div></div></div>
+            <div class="ifoot"><div class="ipills"><span class="pill">2 orgs</span></div><span class="iexp" style="color:var(--c-sport);">Open <i class="ti ti-arrow-right"></i></span></div>
+          </div>
+          <div class="icard">
+            <div class="ihead"><div class="iic" style="background:var(--c-sport);"><i class="ti ti-golf"></i></div><div><div class="iname">Golf</div><div class="istat">Swing, short game, course play</div></div></div>
+            <div class="ifoot"><div class="ipills"><span class="pill">1 org</span></div><span class="iexp" style="color:var(--c-sport);">Open <i class="ti ti-arrow-right"></i></span></div>
+          </div>
+          <div class="icard">
+            <div class="ihead"><div class="iic" style="background:var(--c-sport);"><i class="ti ti-barbell"></i></div><div><div class="iname">Health &amp; Fitness</div><div class="istat">Strength, conditioning, recovery</div></div></div>
+            <div class="ifoot"><div class="ipills"><span class="pill">4 orgs</span></div><span class="iexp" style="color:var(--c-sport);">Open <i class="ti ti-arrow-right"></i></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- featured marketplace blueprints ON the landing -->
+    <div class="feat">
+      <div class="feat-head">
+        <div class="lbl">From the marketplace</div>
+        <h2>Featured blueprints</h2>
+        <p>Practical, step-by-step paths authored by practitioners. Subscribe month-to-month — 70% routes to the author via Stripe.</p>
+      </div>
+      <div class="bp-grid">
+        <div class="bp">
+          <div class="cover" style="background:linear-gradient(135deg,#5A4A78,#3A2F55);"><span class="tag">★ Featured</span></div>
+          <div class="body">
+            <div class="bt">Discharge teach-back</div>
+            <div class="author"><span class="av" style="background:var(--c-health);">NA</span> Noor Aziz · Johns Hopkins School of Nursing</div>
+            <div class="desc">A 5-step playbook used in JHSON's discharge handoff training. Plain-language method with built-in teach-back verification.</div>
+            <div class="meta"><span class="star"><i class="ti ti-star-filled"></i> 4.6 (5)</span><span><i class="ti ti-users"></i> 4 subscribers</span><span><i class="ti ti-stairs"></i> 5 steps</span></div>
+          </div>
+          <div class="bfoot"><div class="price">$19<span>/mo</span></div><div style="display:flex;align-items:center;gap:12px;"><span class="trial">7-day trial</span><a class="btn btn-primary btn-sm" href="#">Subscribe</a></div></div>
+        </div>
+        <div class="bp">
+          <div class="cover" style="background:linear-gradient(135deg,#1F3A5F,#13243C);"><span class="tag">★ Featured</span></div>
+          <div class="body">
+            <div class="bt">First-night-on-call survival</div>
+            <div class="author"><span class="av" style="background:#1F3A5F;">SO</span> Sam Okafor, PA-C</div>
+            <div class="desc">Built from 400+ overnight shifts on a hospitalist service. The triage-before-you-stand-up step alone changes how interns respond to nighttime pages.</div>
+            <div class="meta"><span class="star"><i class="ti ti-star-filled"></i> 5.0 (2)</span><span><i class="ti ti-users"></i> 2 subscribers</span><span><i class="ti ti-stairs"></i> 7 steps</span></div>
+          </div>
+          <div class="bfoot"><div class="price">$24<span>/mo</span></div><div style="display:flex;align-items:center;gap:12px;"><span class="trial">14-day trial</span><a class="btn btn-primary btn-sm" href="#">Subscribe</a></div></div>
+        </div>
+        <div class="bp">
+          <div class="cover" style="background:linear-gradient(135deg,#3F7D52,#2A5638);"></div>
+          <div class="body">
+            <div class="bt">Learning to Draw</div>
+            <div class="author"><span class="av">KD</span> Kevin Denney</div>
+            <div class="desc">A guided drawing fundamentals course: line, shape, proportion, value, and perspective. Daily 20-minute exercises build the habits and eye of a confident sketcher.</div>
+            <div class="meta"><span><i class="ti ti-sparkles"></i> Be the first to try this</span><span><i class="ti ti-stairs"></i> drafting</span></div>
+          </div>
+          <div class="bfoot"><div class="price">$5<span>/mo</span></div><div style="display:flex;align-items:center;gap:12px;"><span class="trial">7-day trial</span><a class="btn btn-primary btn-sm" href="#">Subscribe</a></div></div>
+        </div>
+        <div class="bp">
+          <div class="cover" style="background:linear-gradient(135deg,#8B7355,#5E4D38);"></div>
+          <div class="body">
+            <div class="bt">Pressure-injury rounding</div>
+            <div class="author"><span class="av" style="background:var(--c-health);">MD</span> Dr. Maria Delgado, RN</div>
+            <div class="desc">A 6-step playbook for bedside nurses doing daily skin assessments. Built from 18 months of QI data at a 600-bed academic hospital.</div>
+            <div class="meta"><span class="star"><i class="ti ti-star-filled"></i> 4.3 (3)</span><span><i class="ti ti-users"></i> 2 subscribers</span><span><i class="ti ti-stairs"></i> 6 steps</span></div>
+          </div>
+          <div class="bfoot"><div class="price">$15<span>/mo</span></div><div style="display:flex;align-items:center;gap:12px;"><span class="trial">7-day trial</span><a class="btn btn-primary btn-sm" href="#">Subscribe</a></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- pricing teaser (two models) -->
+    <div class="price-band">
+      <div class="pb-head">
+        <h2>Two things you can pay for — kept separate</h2>
+        <p>The platform plan powers your tools. Blueprint subscriptions pay the authors. They never get confused.</p>
+      </div>
+      <div class="pb-two">
+        <div class="pb-card">
+          <h3><i class="ti ti-rocket" style="color:#7FA8FF;"></i> Your BetterAt plan</h3>
+          <p class="sub">Free · Plus $9/mo · Pro $29/mo</p>
+          <div class="line"><i class="ti ti-check"></i> Unlimited interests &amp; steps</div>
+          <div class="line"><i class="ti ti-check"></i> AI insights, capture &amp; the Telegram assistant</div>
+          <div class="line"><i class="ti ti-check"></i> Atlas, analytics, offline</div>
+          <div class="foot">Billed by BetterAt. Powers the app, not the content.</div>
+        </div>
+        <div class="pb-card">
+          <h3><i class="ti ti-building-store" style="color:#7FA8FF;"></i> Blueprint subscriptions</h3>
+          <p class="sub">Set by each author · $5–$24/mo</p>
+          <div class="line"><i class="ti ti-check"></i> Subscribe per blueprint, month-to-month</div>
+          <div class="line"><i class="ti ti-check"></i> Steps land in your timeline; cancel anytime</div>
+          <div class="line"><i class="ti ti-check"></i> 70% to the author via Stripe, 30% platform</div>
+          <div class="foot">Billed through the author's Stripe Connect account.</div>
+        </div>
+      </div>
+      <div class="split-note">See full <u>individual</u> and <u>institutional</u> pricing →</div>
+    </div>
+
+    <!-- org band -->
+    <div class="org-band">
+      <div class="org-inner">
+        <div>
+          <h3>Run a school, club, or program?</h3>
+          <p>Give students, faculty, or members a Pro seat under one bill — plus a member dashboard, usage analytics, and SSO. Publish your own blueprints to your cohort.</p>
+        </div>
+        <a class="btn btn-primary" href="#">View institutional plans</a>
+      </div>
+    </div>
+
+    <div class="foot"><span class="brand">BetterAt</span><span>Interests · Marketplace · Pricing · For organizations · © 2026</span></div>
+  </div>
+</div>
+
+<div class="callouts">
+  <div class="callout"><p class="k"><i class="ti ti-arrow-narrow-right"></i> Cards now sell</p><p>Every interest card shows live inventory (“3 blueprints · 4 orgs”) and opens the interest's marketplace — not a dead-end in-app screen.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-building-store"></i> Marketplace surfaced</p><p>Featured blueprints live on the homepage. The marketplace is no longer reachable only by typing the URL.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-receipt"></i> Pricing disambiguated</p><p>Platform plan vs. per-author blueprint subscription are visibly two different things — today they read as one confusing page.</p></div>
+</div>
+
+<!-- =================== FRAME 2: INTEREST = MARKETPLACE =================== -->
+<div class="section-label"><span class="num">02</span><span class="txt">Interest page = marketplace, filtered</span><span class="rule"></span></div>
+<div class="frame-wrap">
+  <div class="browser">
+    <div class="chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <div class="url"><i class="ti ti-lock"></i> better.at/drawing</div>
+    </div>
+
+    <div class="nav">
+      <div class="brand"><span class="mk">B</span> BetterAt</div>
+      <div class="navlinks">
+        <a href="#">Interests <i class="ti ti-chevron-down" style="font-size:14px;"></i></a>
+        <a href="#">How it works</a>
+        <a class="active" href="#">Marketplace</a>
+        <a href="#">Pricing</a>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <a class="btn btn-ghost btn-sm" href="#">Sign in</a>
+        <a class="btn btn-primary btn-sm" href="#">Get started</a>
+      </div>
+    </div>
+
+    <div class="ip-hero">
+      <div class="ip-crumb"><a href="#">Marketplace</a> › <a href="#">Creative Arts</a> › Drawing</div>
+      <div class="ip-top">
+        <div class="ip-ic" style="background:var(--c-arts);"><i class="ti ti-palette"></i></div>
+        <div>
+          <h1 class="ip-h1">Drawing</h1>
+          <p class="ip-sub">Build the habits and eye of a confident sketcher — line, shape, proportion, value, perspective.</p>
+        </div>
+        <div class="ip-actions">
+          <a class="btn btn-ghost" href="#"><i class="ti ti-plus"></i> Add interest</a>
+          <a class="btn btn-primary" href="#">Start practicing</a>
+        </div>
+      </div>
+      <div class="ip-stats">
+        <div class="ip-stat"><b>1</b><span>Blueprint</span></div>
+        <div class="ip-stat"><b>1</b><span>Organization</span></div>
+        <div class="ip-stat"><b>3</b><span>People</span></div>
+        <div class="ip-stat"><b>$5</b><span>From / month</span></div>
+      </div>
+    </div>
+
+    <div class="tier-tabs">
+      <div class="tier-tab on"><i class="ti ti-map-2"></i> Blueprints <span class="vb">subscribe</span></div>
+      <div class="tier-tab"><i class="ti ti-building"></i> Organizations <span class="vb">join</span></div>
+      <div class="tier-tab"><i class="ti ti-users"></i> People <span class="vb">follow</span></div>
+      <div class="tier-tab"><i class="ti ti-info-circle"></i> About</div>
+    </div>
+
+    <div class="ip-body">
+      <!-- blueprints = the marketplace, filtered to interest=drawing -->
+      <div class="ip-section">
+        <div class="ip-sec-head">
+          <div class="l"><b>Blueprints</b><span class="verb">subscribe</span></div>
+          <a href="#">See all in marketplace <i class="ti ti-arrow-right" style="font-size:13px;"></i></a>
+        </div>
+        <div class="bp-grid">
+          <div class="bp">
+            <div class="cover" style="background:linear-gradient(135deg,#3F7D52,#2A5638);"></div>
+            <div class="body">
+              <div class="bt">Learning to Draw</div>
+              <div class="author"><span class="av">KD</span> Kevin Denney</div>
+              <div class="desc">A guided drawing fundamentals course: line, shape, proportion, value, and perspective. Daily 20-minute exercises.</div>
+              <div class="meta"><span><i class="ti ti-sparkles"></i> Be the first to try this</span><span><i class="ti ti-clock"></i> 7-day trial</span></div>
+            </div>
+            <div class="bfoot"><div class="price">$5<span>/mo</span></div><a class="btn btn-primary btn-sm" href="#">Subscribe</a></div>
+          </div>
+          <div class="bp" style="border-style:dashed;background:var(--paper-2);">
+            <div class="body" style="justify-content:center;align-items:flex-start;gap:8px;min-height:200px;">
+              <div style="width:40px;height:40px;border-radius:11px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:20px;"><i class="ti ti-pencil-plus"></i></div>
+              <div class="bt" style="font-size:16px;">Know how to draw well?</div>
+              <div class="desc">Publish a blueprint for Drawing. Authors keep 70% of subscriptions.</div>
+              <a class="btn btn-ghost btn-sm" href="#" style="margin-top:4px;">Become an author</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- organizations -->
+      <div class="ip-section">
+        <div class="ip-sec-head"><div class="l"><b>Organizations</b><span class="verb">join</span></div></div>
+        <div class="row3">
+          <div class="mini">
+            <div style="display:flex;align-items:center;gap:10px;"><div style="width:34px;height:34px;border-radius:9px;background:var(--c-arts);color:#fff;display:flex;align-items:center;justify-content:center;"><i class="ti ti-building"></i></div><div class="mt" style="font-size:15px;">Circle Line Art School</div></div>
+            <div class="md">Foundational drawing courses and ateliers, online and in-studio.</div>
+            <div class="mf"><span style="font-size:12px;color:var(--ink-3);"><i class="ti ti-users"></i> Open to all</span><a class="btn btn-ghost btn-sm" href="#">Join</a></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- people -->
+      <div class="ip-section">
+        <div class="ip-sec-head"><div class="l"><b>People</b><span class="verb">follow</span></div></div>
+        <div class="row3">
+          <div class="person"><div class="pa" style="background:#3F7D52;">KD</div><div><div class="pn">Kevin Denney</div><div class="pr">Author · Learning to Draw</div></div><a class="btn btn-ghost btn-sm pf" href="#">Follow</a></div>
+          <div class="person"><div class="pa" style="background:var(--c-arts);">MR</div><div><div class="pn">Maya Rao</div><div class="pr">Practitioner · daily sketcher</div></div><a class="btn btn-ghost btn-sm pf" href="#">Follow</a></div>
+          <div class="person"><div class="pa" style="background:var(--c-edu);">JL</div><div><div class="pn">Jordan Lee</div><div class="pr">Instructor · Circle Line</div></div><a class="btn btn-ghost btn-sm pf" href="#">Follow</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot"><span class="brand">BetterAt</span><span>This page is the marketplace, filtered to <b style="color:#fff;">interest = drawing</b></span></div>
+  </div>
+</div>
+
+<div class="callouts">
+  <div class="callout"><p class="k"><i class="ti ti-route"></i> Same data source</p><p>Blueprints here come from <code>list_marketplace_blueprints(interest_id)</code> — the exact RPC the marketplace uses. No more <code>discoverBlueprints()</code> fork.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-vocabulary"></i> Four tiers, right verbs</p><p>Blueprints <b>subscribe</b>, orgs <b>join</b>, people <b>follow</b>, interests <b>add</b>. The model is the page structure.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-pencil-plus"></i> Authoring loop visible</p><p>An empty-ish interest invites a practitioner to author — turning thin categories into supply.</p></div>
+</div>
+
+<!-- =================== FRAME 3: MARKETPLACE STOREFRONT =================== -->
+<div class="section-label"><span class="num">03</span><span class="txt">Marketplace — the unfiltered version of the same surface</span><span class="rule"></span></div>
+<div class="frame-wrap">
+  <div class="browser">
+    <div class="chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <div class="url"><i class="ti ti-lock"></i> better.at/marketplace</div>
+    </div>
+
+    <div class="nav">
+      <div class="brand"><span class="mk">B</span> BetterAt</div>
+      <div class="navlinks">
+        <a href="#">Interests <i class="ti ti-chevron-down" style="font-size:14px;"></i></a>
+        <a href="#">How it works</a>
+        <a class="active" href="#">Marketplace</a>
+        <a href="#">Pricing</a>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <a class="btn btn-ghost btn-sm" href="#">Sign in</a>
+        <a class="btn btn-primary btn-sm" href="#">Get started</a>
+      </div>
+    </div>
+
+    <div style="padding:40px 40px 0;">
+      <div style="font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);font-weight:700;">Marketplace</div>
+      <h1 style="font-family:var(--serif);font-weight:500;font-size:40px;letter-spacing:-.02em;margin:10px 0 8px;">Blueprints from practitioners</h1>
+      <p style="font-size:16px;color:var(--ink-2);margin:0;max-width:640px;">Step-by-step playbooks you can subscribe to month-to-month. Authored by people who've done the work; payouts route via Stripe Connect.</p>
+
+      <!-- interest filter chips = the link back to interests -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:24px 0 4px;align-items:center;">
+        <span style="font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-right:4px;">Filter</span>
+        <span class="pill" style="background:var(--ink);color:#fff;">All</span>
+        <span class="pill" style="background:#fff;border:1px solid var(--line);"><i class="ti ti-stethoscope" style="color:var(--c-health);"></i> Nursing</span>
+        <span class="pill" style="background:#fff;border:1px solid var(--line);"><i class="ti ti-palette" style="color:var(--c-arts);"></i> Drawing</span>
+        <span class="pill" style="background:#fff;border:1px solid var(--line);"><i class="ti ti-sailboat" style="color:var(--c-sport);"></i> Sail Racing</span>
+        <span class="pill" style="background:#fff;border:1px solid var(--line);"><i class="ti ti-world-heart" style="color:var(--c-health);"></i> Global Health</span>
+        <span class="pill" style="background:#fff;border:1px solid var(--line);"><i class="ti ti-clock"></i> Trial available</span>
+      </div>
+    </div>
+
+    <div class="feat" style="border-top:none;padding-top:30px;">
+      <div class="bp-grid">
+        <div class="bp">
+          <div class="cover" style="background:linear-gradient(135deg,#5A4A78,#3A2F55);"><span class="tag">★ Featured</span></div>
+          <div class="body">
+            <div class="bt">Discharge teach-back</div>
+            <div class="author"><span class="av" style="background:var(--c-health);">NA</span> Noor Aziz · JHSON <span class="pill" style="margin-left:auto;"><i class="ti ti-stethoscope" style="color:var(--c-health);"></i> Nursing</span></div>
+            <div class="desc">A 5-step playbook used in JHSON's discharge handoff training. Plain-language method with built-in teach-back verification.</div>
+            <div class="meta"><span class="star"><i class="ti ti-star-filled"></i> 4.6 (5)</span><span><i class="ti ti-users"></i> 4</span><span><i class="ti ti-stairs"></i> 5 steps</span></div>
+          </div>
+          <div class="bfoot"><div class="price">$19<span>/mo</span></div><div style="display:flex;align-items:center;gap:12px;"><span class="trial">7-day trial</span><a class="btn btn-primary btn-sm" href="#">Subscribe</a></div></div>
+        </div>
+        <div class="bp">
+          <div class="cover" style="background:linear-gradient(135deg,#1F3A5F,#13243C);"><span class="tag">★ Featured</span></div>
+          <div class="body">
+            <div class="bt">First-night-on-call survival</div>
+            <div class="author"><span class="av" style="background:#1F3A5F;">SO</span> Sam Okafor, PA-C <span class="pill" style="margin-left:auto;"><i class="ti ti-stethoscope" style="color:var(--c-health);"></i> Nursing</span></div>
+            <div class="desc">Built from 400+ overnight shifts on a hospitalist service. The triage-before-you-stand-up step alone changes how interns respond to nighttime pages.</div>
+            <div class="meta"><span class="star"><i class="ti ti-star-filled"></i> 5.0 (2)</span><span><i class="ti ti-users"></i> 2</span><span><i class="ti ti-stairs"></i> 7 steps</span></div>
+          </div>
+          <div class="bfoot"><div class="price">$24<span>/mo</span></div><div style="display:flex;align-items:center;gap:12px;"><span class="trial">14-day trial</span><a class="btn btn-primary btn-sm" href="#">Subscribe</a></div></div>
+        </div>
+        <div class="bp">
+          <div class="cover" style="background:linear-gradient(135deg,#3F7D52,#2A5638);"></div>
+          <div class="body">
+            <div class="bt">Learning to Draw</div>
+            <div class="author"><span class="av">KD</span> Kevin Denney <span class="pill" style="margin-left:auto;"><i class="ti ti-palette" style="color:var(--c-arts);"></i> Drawing</span></div>
+            <div class="desc">A guided drawing fundamentals course: line, shape, proportion, value, and perspective. Daily 20-minute exercises.</div>
+            <div class="meta"><span><i class="ti ti-sparkles"></i> Be the first to try this</span></div>
+          </div>
+          <div class="bfoot"><div class="price">$5<span>/mo</span></div><div style="display:flex;align-items:center;gap:12px;"><span class="trial">7-day trial</span><a class="btn btn-primary btn-sm" href="#">Subscribe</a></div></div>
+        </div>
+        <div class="bp">
+          <div class="cover" style="background:linear-gradient(135deg,#8B7355,#5E4D38);"></div>
+          <div class="body">
+            <div class="bt">Pressure-injury rounding</div>
+            <div class="author"><span class="av" style="background:var(--c-health);">MD</span> Dr. Maria Delgado, RN <span class="pill" style="margin-left:auto;"><i class="ti ti-stethoscope" style="color:var(--c-health);"></i> Nursing</span></div>
+            <div class="desc">A 6-step playbook for bedside nurses doing daily skin assessments. Built from 18 months of QI data at a 600-bed academic hospital.</div>
+            <div class="meta"><span class="star"><i class="ti ti-star-filled"></i> 4.3 (3)</span><span><i class="ti ti-users"></i> 2</span><span><i class="ti ti-stairs"></i> 6 steps</span></div>
+          </div>
+          <div class="bfoot"><div class="price">$15<span>/mo</span></div><div style="display:flex;align-items:center;gap:12px;"><span class="trial">7-day trial</span><a class="btn btn-primary btn-sm" href="#">Subscribe</a></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot"><span class="brand">BetterAt</span><span>4 blueprints · 4 authors · 8 active subscribers</span></div>
+  </div>
+</div>
+
+<div class="callouts" style="margin-bottom:64px;">
+  <div class="callout"><p class="k"><i class="ti ti-filter"></i> Filter = interest link</p><p>Clicking a filter chip is identical to landing on <code>/[interest]</code>. The interest page and the storefront are one component in two states.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-puzzle"></i> One card component</p><p>The same <code>&lt;BlueprintCard&gt;</code> renders on landing, interest page, and storefront — author, interest pill, rating, price, Subscribe.</p></div>
+  <div class="callout"><p class="k"><i class="ti ti-arrows-shuffle"></i> Cross-navigation</p><p>Each card's interest pill links back to the interest; each interest's “see all” links here. The loop closes.</p></div>
+</div>
+
+</body>
+</html>

@@ -8,6 +8,9 @@ export interface DoMoveToReflectCTAProps {
   onPress?: () => void;
   disabled?: boolean;
   label?: string;
+  /** Per-interest accent (design `.btn-primary` background). Falls back to
+   *  iOS blue when the interest accent is unavailable. */
+  accentColor?: string;
 }
 
 /**
@@ -30,6 +33,7 @@ export function DoMoveToReflectCTA({
   onPress,
   disabled,
   label = 'Move to Reflect',
+  accentColor = IOS_BLUE,
 }: DoMoveToReflectCTAProps) {
   return (
     <TouchableOpacity
@@ -39,7 +43,11 @@ export function DoMoveToReflectCTA({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: Boolean(disabled) }}
-      style={[styles.btn, disabled && styles.btnDisabled]}
+      style={[
+        styles.btn,
+        { backgroundColor: accentColor, shadowColor: accentColor },
+        disabled && styles.btnDisabled,
+      ]}
       hitSlop={6}
     >
       <View style={styles.row}>

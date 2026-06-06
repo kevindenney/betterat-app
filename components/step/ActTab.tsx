@@ -16,6 +16,7 @@ import { StepDrawContent } from './StepDrawContent';
 import { StepFocusConcepts } from './StepFocusConcepts';
 import { DateEnrichmentCard } from './DateEnrichmentCard';
 import { DoTabIOSRegisterShell } from './do-tab';
+import { RaceDoTabSection } from './RaceDoTabSection';
 import type { DateEnrichment } from '@/types/step-detail';
 
 interface ActTabProps {
@@ -29,11 +30,20 @@ interface ActTabProps {
   interestSlug?: string;
   /** When true, the tab body renders without its own ScrollView. */
   embedded?: boolean;
+  /** Race steps swap the Do tab for the on-water capture cockpit. */
+  isRace?: boolean;
 }
 
-export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, interestId, interestName, interestSlug, embedded }: ActTabProps) {
+export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, interestId, interestName, interestSlug, embedded, isRace }: ActTabProps) {
+  // Race steps keep the mostly-standard Do tab, just with the START SEQUENCE
+  // and LIVE TRACKING cards prepended (the full atmospheric cockpit lives only
+  // on the standalone /race/ios/water route now).
+  const raceSection = isRace ? (
+    <RaceDoTabSection stepId={stepId} readOnly={readOnly} />
+  ) : null;
+
   if (FEATURE_FLAGS.PRACTICE_DO_TAB_IOS_REGISTER) {
-    return (
+    const shell = (
       <DoTabIOSRegisterShell
         stepId={stepId}
         readOnly={readOnly}
@@ -44,6 +54,18 @@ export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, in
         footer={footer}
         embedded={embedded}
       />
+    );
+    if (!raceSection) return shell;
+    return embedded ? (
+      <>
+        {raceSection}
+        {shell}
+      </>
+    ) : (
+      <View style={styles.container}>
+        {raceSection}
+        {shell}
+      </View>
     );
   }
 
@@ -56,6 +78,8 @@ export function ActTab({ stepId, dateEnrichment, onNextTab, readOnly, footer, in
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
+      {raceSection}
+
       {/* Conditions reference card */}
       {hasConditions ? (
         <View style={styles.conditionsContainer}>

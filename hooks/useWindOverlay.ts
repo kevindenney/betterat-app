@@ -136,16 +136,25 @@ export function useWindOverlay({
         : `${degrees}|${knots}`;
     const label = `${degrees}|${knots}`;
 
-    // Water-anchored: one large arrow per anchor (offset upwind slightly
-    // so the arrow tip doesn't sit on top of the racing-area POI dot).
+    // Water-anchored: one large arrow per anchor, offset toward the wind
+    // source so it doesn't sit directly on the racing-area label/pin.
     if (waterAnchors && waterAnchors.length > 0) {
-      return waterAnchors.map((a, idx) => ({
-        id: `wind-water:${idx}`,
-        lat: a.lat,
-        lng: a.lng,
-        kind: 'wind-arrow' as const,
-        label,
-      }));
+      const offsetKm = 0.42;
+      const sourceRad = (degrees * Math.PI) / 180;
+      // Compass bearing -> lat/lng delta. North = +lat. East = +lng.
+      const dLatKm = Math.cos(sourceRad) * offsetKm;
+      const dLngKm = Math.sin(sourceRad) * offsetKm;
+      return waterAnchors.map((a, idx) => {
+        const dLat = dLatKm / 111;
+        const dLng = dLngKm / (111 * Math.cos((a.lat * Math.PI) / 180));
+        return {
+          id: `wind-water:${idx}`,
+          lat: a.lat + dLat,
+          lng: a.lng + dLng,
+          kind: 'wind-arrow' as const,
+          label,
+        };
+      });
     }
 
     // Fallback grid. Surrounding arrows use the canvas's `|field`

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { ArrowRight, Sparkles } from 'lucide-react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export interface RedeemLandingBlueprint {
   id: string;
@@ -67,7 +67,7 @@ const COLORS = {
   greenSoft: '#B7E8C2',
   greenTint: '#E8F8EC',
   gray6: '#F2F2F7',
-  serif: Platform.select({ ios: 'Iowan Old Style', default: 'Georgia' }) as string,
+  serif: fontFamily.serif,
 };
 
 export function RedeemLanding({

@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { PlanResourceRow } from './types';
 
 interface Props {
@@ -89,6 +90,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   meta: {
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     fontSize: 12,
     color: IOS_COLORS.secondaryLabel,
     marginTop: 2,

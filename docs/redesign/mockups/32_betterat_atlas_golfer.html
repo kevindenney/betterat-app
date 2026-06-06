@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · Atlas for a golfer getting better at golf</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --grouped:#EAF0E6;
+  --card:#FFFFFF;
+  --label:#16261A;
+  --label2:rgba(28,46,32,0.60);
+  --label3:rgba(28,46,32,0.34);
+  --sep:rgba(30,70,40,0.12);
+  /* golf register — fairway greens, sand, water, flag red */
+  --turf:#15663B;      /* primary course green */
+  --fair:#4FA56A;      /* fairway */
+  --rough:#0F4A2B;     /* deep green */
+  --flag:#C42E2E;      /* pin / flag accent */
+  --sand:#D7C089;      /* bunker */
+  --hazard:#2E73A8;    /* water */
+  --sky:#DCEBF2;
+  --turf-bg:rgba(21,102,59,.10);
+  --flag-bg:rgba(196,46,46,.10);
+  /* strokes-gained category colors */
+  --tee:#2E73A8;       /* off the tee */
+  --app:#15663B;       /* approach */
+  --short:#B45309;     /* short game */
+  --putt:#6D28D9;      /* putting */
+  --mgmt:#475569;      /* course management */
+  /* scoring heat */
+  --under:#15803D; --even:#0E7490; --over1:#D97706; --over2:#C42E2E;
+  /* basemap */
+  --bg-fair:#CFE6C4; --bg-fair2:#BFDCB0; --bg-rough:#A9CFA0; --bg-green:#7FC08C; --bg-tree:#2F7A45;
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#B9C9B2;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1320px;margin:0 auto 4px;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1320px;margin:0 auto 26px;font-size:13px;color:#2c3b2f;line-height:1.62;}
+.page-sub b{color:#0f1f14;}
+.page-sub .q{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:var(--turf);border-radius:5px;padding:2px 7px;margin-right:4px;vertical-align:1px;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1320px;margin:0 auto;}
+.col{width:372px;}
+.col-cap{font-size:12px;color:#24331f;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#0f1f14;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--turf);border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+
+/* phone shell */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(20,50,30,.28);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:var(--label);z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--label2);}
+
+/* nav header */
+.nav{position:absolute;top:42px;left:0;right:0;z-index:40;padding:6px 18px 10px;}
+.nav .top{display:flex;align-items:center;justify-content:space-between;}
+.nav .eyebrow{font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--turf);}
+.nav h1{font-size:27px;font-weight:800;letter-spacing:-.4px;margin:1px 0 0;line-height:1.05;}
+.nav .sub{font-size:12.5px;color:var(--label2);margin-top:2px;}
+.nav .acts{display:flex;gap:8px;}
+.nav .ic{width:36px;height:36px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(20,50,30,.16);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--turf);}
+.seg{display:flex;background:rgba(21,102,59,.12);border-radius:10px;padding:3px;margin-top:12px;}
+.seg div{flex:1;text-align:center;font-size:13.5px;font-weight:700;color:var(--label2);padding:7px 0;border-radius:8px;}
+.seg div.on{background:#fff;color:var(--label);box-shadow:0 1px 3px rgba(20,50,30,.16);}
+.seg div small{font-weight:500;color:var(--label3);font-size:10px;}
+.chips{display:flex;gap:7px;margin-top:11px;overflow:hidden;}
+.chips span{font-size:12px;font-weight:700;padding:7px 12px;border-radius:9px;background:#fff;color:var(--label2);white-space:nowrap;box-shadow:0 1px 3px rgba(20,50,30,.10);}
+.chips span.on{background:var(--turf);color:#fff;}
+
+/* ===== course basemap (fairway sketch) ===== */
+.gmap{position:absolute;left:0;right:0;top:198px;bottom:64px;background:var(--bg-rough);overflow:hidden;}
+.gmap .fair{position:absolute;background:var(--bg-fair);border-radius:50% 50% 48% 52%/55% 45% 55% 45%;box-shadow:inset 0 0 0 .5px rgba(40,90,50,.10);}
+.gmap .fair.d{background:var(--bg-fair2);}
+.gmap .green{position:absolute;background:var(--bg-green);border-radius:50%;box-shadow:inset 0 0 0 1px rgba(20,90,45,.18);}
+.gmap .bunker{position:absolute;background:var(--sand);border-radius:50% 50% 45% 55%/60% 40% 60% 40%;box-shadow:inset 0 1px 2px rgba(150,120,50,.3);}
+.gmap .water{position:absolute;background:var(--hazard);opacity:.55;border-radius:48% 52% 50% 50%/50% 48% 52% 50%;}
+.gmap .tree{position:absolute;width:18px;height:18px;border-radius:50%;background:var(--bg-tree);box-shadow:0 1px 3px rgba(20,60,30,.25);}
+.gmap .glbl{position:absolute;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:rgba(30,80,45,.6);}
+
+/* venue pin (a place you play / practice) */
+.gpin{position:absolute;transform:translate(-50%,-50%);z-index:20;display:flex;flex-direction:column;align-items:center;width:104px;}
+.gpin .mk{width:48px;height:48px;border-radius:15px;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:22px;background:#fff;box-shadow:0 5px 14px rgba(20,50,30,.28);}
+.gpin.course .mk{background:var(--turf-bg);}
+.gpin.range  .mk{background:rgba(46,115,168,.12);}
+.gpin.sim    .mk{background:rgba(109,40,217,.10);}
+.gpin.green  .mk{background:rgba(21,128,61,.12);}
+.gpin .nm{margin-top:5px;font-size:11px;font-weight:800;color:#16341f;text-align:center;line-height:1.15;text-shadow:0 1px 0 rgba(255,255,255,.9);}
+.gpin .meta{margin-top:2px;font-size:9.5px;font-weight:700;color:#3c6347;background:rgba(255,255,255,.92);padding:1px 7px;border-radius:7px;box-shadow:0 1px 3px rgba(20,50,30,.14);white-space:nowrap;}
+.gpin .meta b{color:var(--turf);}
+/* home club */
+.home{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:25;display:flex;flex-direction:column;align-items:center;}
+.home .ring{width:70px;height:70px;border-radius:22px;background:#fff;border:3px solid var(--turf);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 0 6px rgba(21,102,59,.12),0 8px 20px rgba(20,50,30,.30);}
+.home .nm{margin-top:6px;font-size:12px;font-weight:800;color:#143;background:#fff;padding:3px 11px;border-radius:9px;box-shadow:0 2px 6px rgba(20,50,30,.18);}
+
+/* next tee-time hero (the "race") */
+.teehero{position:absolute;left:14px;right:14px;bottom:74px;z-index:45;background:var(--card);border-radius:20px;box-shadow:0 10px 28px rgba(20,50,30,.26);padding:14px 15px 13px;border:0.5px solid var(--sep);overflow:hidden;}
+.teehero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--flag);}
+.teehero .k{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--flag);display:flex;align-items:center;gap:6px;}
+.teehero h2{margin:5px 0 0;font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.teehero h2 small{font-weight:600;font-size:13px;color:var(--label2);}
+.teehero .where{font-size:13px;color:var(--label2);margin-top:2px;}
+.teehero .meta{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;}
+.teehero .meta .m{font-size:11.5px;font-weight:700;color:#3c6347;background:var(--grouped);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:5px;}
+.teehero .cta{display:flex;gap:9px;margin-top:13px;}
+.teehero .cta button{flex:1;border:none;font-family:var(--sans);font-size:14px;font-weight:800;padding:12px 0;border-radius:12px;}
+.teehero .cta .pri{background:var(--turf);color:#fff;}
+.teehero .cta .sec{background:var(--turf-bg);color:var(--turf);}
+
+/* ===== FRAME B — course routing + round cockpit ===== */
+.heatstrip{position:absolute;left:10px;right:10px;bottom:6px;z-index:22;background:rgba(255,255,255,.92);border-radius:10px;padding:7px 8px;box-shadow:0 2px 8px rgba(20,50,30,.18);}
+.heatstrip .lab{font-size:8.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);margin-bottom:4px;display:flex;justify-content:space-between;}
+.heatstrip .holes{display:flex;gap:2px;}
+.heatstrip .holes i{flex:1;height:14px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:7.5px;font-weight:800;color:#fff;}
+.flagpin{position:absolute;transform:translate(-50%,-100%);z-index:21;display:flex;flex-direction:column;align-items:center;}
+.flagpin .fl{font-size:13px;line-height:1;}
+.flagpin .hn{margin-top:-2px;width:20px;height:20px;border-radius:50%;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(20,50,30,.3);border:1.5px solid #fff;}
+.cockpit{position:absolute;left:0;right:0;bottom:64px;z-index:45;background:var(--card);border-radius:24px 24px 0 0;box-shadow:0 -8px 30px rgba(20,50,30,.26);overflow:hidden;}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--label3);margin:9px auto 0;}
+.cp-head{display:flex;align-items:flex-start;justify-content:space-between;padding:10px 18px 12px;border-bottom:0.5px solid var(--sep);gap:10px;}
+.cp-head .kind{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--flag);}
+.cp-head .kind .kdot{width:8px;height:8px;border-radius:50%;background:var(--flag);}
+.cp-head .ttl{font-size:18px;font-weight:800;letter-spacing:-.2px;margin-top:5px;}
+.cp-head .ttl small{display:block;font-size:12px;font-weight:600;color:var(--label2);margin-top:3px;}
+.cp-head .when{font-size:11px;font-weight:800;color:var(--flag);background:var(--flag-bg);padding:6px 11px;border-radius:9px;white-space:nowrap;flex:none;}
+.gauges{display:flex;padding:13px 14px 4px;gap:8px;}
+.gauge{flex:1;border-radius:14px;padding:10px 9px;border:0.5px solid var(--sep);}
+.gauge .gk{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:4px;color:var(--label2);}
+.gauge .gv{font-size:17px;font-weight:800;letter-spacing:-.4px;margin-top:6px;line-height:1;}
+.gauge .gv small{font-size:10px;font-weight:700;color:var(--label2);}
+.gauge .gs{font-size:10px;color:var(--label2);margin-top:5px;}
+.g-wind{background:rgba(46,115,168,.06);} .g-wind .gk{color:var(--hazard);}
+.g-green{background:rgba(21,102,59,.06);} .g-green .gk{color:var(--turf);}
+.g-tee{background:rgba(180,83,9,.06);} .g-tee .gk{color:var(--short);}
+.plan{margin:13px 14px 0;border-radius:16px;background:var(--turf-bg);border:0.5px solid rgba(21,102,59,.30);padding:13px 14px;}
+.plan .lead{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#0F5130;}
+.plan h4{margin:7px 0 0;font-size:15px;font-weight:800;line-height:1.4;color:#0F4A2B;}
+.plan p{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:#1c5a36;}
+.plan .seg3{display:flex;gap:7px;margin-top:11px;}
+.plan .seg3 span{flex:1;font-size:10px;font-weight:700;color:#0F4A2B;background:rgba(255,255,255,.6);border-radius:8px;padding:7px 5px;text-align:center;}
+.plan .seg3 span b{display:block;font-size:9px;font-weight:800;letter-spacing:.04em;color:var(--turf);opacity:.85;margin-bottom:2px;}
+.lastround{display:flex;align-items:center;gap:12px;margin:13px 14px 0;background:var(--grouped);border-radius:14px;padding:12px 13px;}
+.lastround .ic{width:36px;height:36px;border-radius:11px;background:var(--flag-bg);color:var(--flag);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;font-weight:800;}
+.lastround .b{flex:1;}
+.lastround .b .kl{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);}
+.lastround .b h5{margin:2px 0 0;font-size:13.5px;font-weight:700;}
+.lastround .b h5 b{color:var(--flag);}
+.cp-cta{display:flex;gap:9px;padding:13px 14px 16px;}
+.cp-cta button{border:none;font-family:var(--sans);font-weight:800;border-radius:13px;}
+.cp-cta .alt{width:52px;background:var(--turf-bg);color:var(--turf);font-size:19px;}
+.cp-cta .ready{flex:1;background:var(--turf);color:#fff;font-size:15px;}
+
+/* ===== FRAME C — handicap + strokes-gained ===== */
+.dt-back{position:absolute;top:48px;left:14px;z-index:50;font-size:15px;color:var(--turf);font-weight:700;display:flex;align-items:center;gap:3px;}
+.dt-hero{padding:76px 20px 16px;background:var(--card);border-bottom:0.5px solid var(--sep);}
+.dt-hero .stat{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;padding:5px 11px;border-radius:8px;margin-bottom:9px;background:var(--turf-bg);color:var(--turf);}
+.dt-hero h2{margin:0;font-size:23px;font-weight:800;letter-spacing:-.4px;}
+.dt-hero .sub{font-size:13px;color:var(--label2);margin-top:3px;}
+.body{position:absolute;left:0;right:0;top:176px;bottom:64px;overflow:hidden;padding:4px 16px 12px;}
+.ring-wrap{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:18px;border:0.5px solid var(--sep);padding:16px;margin-top:8px;box-shadow:0 1px 3px rgba(20,50,30,.06);}
+.ring{width:90px;height:90px;border-radius:50%;flex:none;background:conic-gradient(var(--turf) 0 58%, rgba(30,70,40,.14) 58% 100%);display:flex;align-items:center;justify-content:center;}
+.ring .inner{width:66px;height:66px;border-radius:50%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring .inner b{font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.ring .inner span{font-size:9px;color:var(--label2);font-weight:700;margin-top:1px;}
+.ring-wrap .t h3{margin:0;font-size:16px;font-weight:800;}
+.ring-wrap .t p{margin:5px 0 0;font-size:12.5px;color:var(--label2);line-height:1.45;}
+.ring-wrap .t p b{color:var(--turf);}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--label3);margin:18px 4px 8px;}
+.sg{display:flex;align-items:center;gap:11px;padding:11px 4px;border-bottom:0.5px solid var(--sep);}
+.sg .dot{width:11px;height:11px;border-radius:4px;flex:none;}
+.sg .b{flex:1;min-width:0;}
+.sg .b h5{margin:0;font-size:14px;font-weight:700;}
+.sg .b p{margin:1px 0 0;font-size:11px;color:var(--label2);}
+.sg .b p .where{font-weight:800;color:var(--turf);}
+.sg .val{font-size:13px;font-weight:800;flex:none;text-align:right;white-space:nowrap;}
+.sg .val.ok{color:var(--under);} .sg .val.weak{color:var(--over1);} .sg .val.bad{color:var(--over2);}
+.sg .val small{display:block;font-size:8.5px;font-weight:700;color:var(--label3);margin-top:1px;}
+.gapcard{background:#FFF6F6;border:0.5px solid rgba(196,46,46,.25);border-radius:16px;padding:14px 15px;margin-top:16px;}
+.gapcard .k{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--flag);display:flex;align-items:center;gap:6px;}
+.gapcard h4{margin:7px 0 0;font-size:15px;font-weight:800;color:#7f1d1d;line-height:1.42;}
+.gapcard p{margin:6px 0 0;font-size:12.5px;color:#991b1b;line-height:1.5;}
+.gapcard p b{color:#7f1d1d;}
+.gapcard .act{margin-top:11px;display:flex;gap:8px;}
+.gapcard .act button{flex:1;border:none;font-family:var(--sans);font-size:12.5px;font-weight:800;padding:10px 0;border-radius:11px;}
+.gapcard .act .pri{background:var(--turf);color:#fff;}
+.gapcard .act .sec{background:var(--turf-bg);color:var(--turf);}
+
+/* ===== FRAME D — nearby players, coaches & tee times ===== */
+.sheet-h{padding:8px 18px 11px;border-bottom:0.5px solid var(--sep);background:var(--card);}
+.sheet-h .row{display:flex;align-items:center;justify-content:space-between;}
+.sheet-h h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.2px;}
+.sheet-h .sub{font-size:12px;color:var(--label2);margin-top:2px;}
+.sheet-h .close{width:30px;height:30px;border-radius:50%;background:rgba(21,102,59,.10);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--turf);}
+.sectlab{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);padding:14px 18px 4px;background:var(--grouped);}
+.nrow{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--card);}
+.nrow .av{width:44px;height:44px;color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;}
+.nrow .av.place{border-radius:13px;}
+.nrow .av.person{border-radius:50%;position:relative;}
+.nrow .av.person .crp{position:absolute;right:-2px;bottom:-2px;width:17px;height:17px;border-radius:50%;background:var(--flag);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;}
+.nrow .b{flex:1;min-width:0;}
+.nrow .b h5{margin:0;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p{margin:2px 0 0;font-size:12px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nrow .b p .verb{font-weight:800;}
+.nrow .b p .verb.play{color:var(--turf);} .nrow .b p .verb.win{color:var(--flag);}
+.nrow .b p .verb.coach{color:var(--putt);}
+.nrow .dist{font-size:11px;font-weight:800;color:var(--label2);text-align:right;flex:none;}
+.nrow .dist small{display:block;font-weight:600;color:var(--label3);font-size:10px;margin-top:2px;}
+.nrow .join{font-size:11px;font-weight:800;border:none;background:var(--turf);color:#fff;font-family:var(--sans);padding:8px 12px;border-radius:9px;flex:none;}
+.nrow .pin{width:34px;height:34px;border-radius:10px;background:var(--turf-bg);color:var(--turf);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+.nsep{height:0.5px;background:var(--sep);margin:0 18px 0 74px;}
+
+/* tab bar */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(248,251,246,.95);border-top:0.5px solid var(--sep);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;backdrop-filter:blur(20px);z-index:55;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--label3);}
+.tab.on{color:var(--turf);}
+.tab .ic{font-size:18px;}
+
+.legend{max-width:1320px;margin:36px auto 0;background:#fff;border-radius:14px;padding:22px 26px;font-size:13px;line-height:1.65;color:#23311f;}
+.legend h2{font-size:15px;margin:0 0 12px;}
+.legend h3{font-size:13px;margin:18px 0 6px;color:#0f1f14;}
+.legend ul{margin:4px 0 0;padding-left:20px;}
+.legend li{margin:5px 0;}
+.legend b{color:#0f1f14;}
+.legend .pill{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:5px;margin-right:5px;}
+.legend .pill.new{background:#D1FADF;color:#1B7A3D;}
+.legend .pill.keep{background:#E6E0FF;color:#3B2EA0;}
+.legend .pill.ans{background:#FFE8D6;color:#9A3412;}
+.legend table{border-collapse:collapse;margin-top:8px;width:100%;font-size:12.5px;}
+.legend td{border:0.5px solid #DDE7D6;padding:7px 10px;vertical-align:top;}
+.legend td:first-child{font-weight:800;white-space:nowrap;background:#F2F7EE;}
+.legend code{background:#EAF0E6;padding:1px 5px;border-radius:4px;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="page-h">Atlas, for a golfer getting better at golf</div>
+<div class="page-sub">
+  <span class="q">Persona 3 of the Atlas rollout</span>
+  A sailor's "where" is a <b>nautical chart</b>; a nurse's is a <b>coverage grid of clinical sites</b>; a Ranchi entrepreneur's is a <b>landmark livelihood circuit</b>.
+  A golfer's is a small set of <b>named places she returns to</b> — her <b>country club</b>, the courses she plays, the <b>driving range</b>, the <b>practice green</b>, and the
+  <b>indoor simulator</b> — <u>plus</u> something no other persona has: the course is <b>hole-by-hole, so her skill is spatially located.</b> So this Atlas keeps the shared
+  <b>Sites | Map</b> shell but adds the golf superpower — a <b>strokes-gained heat map per hole</b> that shows exactly where she bleeds shots. Venues replace racing
+  areas; the single-course hole-map replaces the race course; the <b>round / tournament is her "race."</b> (Sailing, nursing &amp; entrepreneur frames untouched.)
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME A — venues: courses, range, sim, green ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>7:42</span><span class="r">Oakridge · 2 mi ▾</span></div>
+      <div class="nav">
+        <div class="top">
+          <div>
+            <div class="eyebrow">Atlas</div>
+            <h1>Your Golf</h1>
+            <div class="sub">courses, range &amp; sim nearby</div>
+          </div>
+          <div class="acts"><div class="ic">🔍</div><div class="ic">＋</div></div>
+        </div>
+        <div class="seg"><div class="on">Courses <small>Sites</small></div><div>Map</div></div>
+        <div class="chips"><span class="on">Mine</span><span>Club</span><span>Coach</span><span>Group</span></div>
+      </div>
+
+      <div class="gmap">
+        <div class="fair" style="left:-8%;top:-2%;width:50%;height:30%;"></div>
+        <div class="fair d" style="right:-10%;top:6%;width:46%;height:28%;"></div>
+        <div class="fair" style="left:-4%;bottom:0%;width:44%;height:26%;"></div>
+        <div class="fair d" style="right:-6%;bottom:-3%;width:42%;height:24%;"></div>
+        <div class="water" style="left:30%;top:58%;width:34%;height:16%;"></div>
+        <div class="bunker" style="left:58%;top:40%;width:40px;height:24px;"></div>
+        <div class="bunker" style="left:22%;top:30%;width:34px;height:20px;"></div>
+        <div class="green" style="left:71%;top:23%;width:30px;height:24px;"></div>
+        <div class="tree" style="left:12%;top:60%"></div><div class="tree" style="left:18%;top:66%"></div>
+        <div class="tree" style="left:84%;top:70%"></div><div class="tree" style="left:88%;top:62%"></div>
+        <div class="glbl" style="left:7%;top:6%;">Oakridge CC</div>
+        <div class="glbl" style="left:60%;bottom:8%;">Riverside (public)</div>
+
+        <!-- home country club -->
+        <div class="home">
+          <div class="ring">🏌️</div>
+          <div class="nm">Oakridge CC · home</div>
+        </div>
+        <!-- public course you also play -->
+        <div class="gpin course" style="left:74%;top:74%;">
+          <div class="mk">⛳</div>
+          <div class="nm">Riverside GC</div>
+          <div class="meta">Par 71 · 9 mi</div>
+        </div>
+        <!-- driving range -->
+        <div class="gpin range" style="left:21%;top:26%;">
+          <div class="mk">🎯</div>
+          <div class="nm">Practice Range</div>
+          <div class="meta"><b>open</b> · at club</div>
+        </div>
+        <!-- indoor simulator -->
+        <div class="gpin sim" style="left:78%;top:30%;">
+          <div class="mk">🖥️</div>
+          <div class="nm">GolfTec Sim</div>
+          <div class="meta">Trackman · 4 mi</div>
+        </div>
+        <!-- practice putting green -->
+        <div class="gpin green" style="left:30%;top:74%;">
+          <div class="mk">🟢</div>
+          <div class="nm">Putting Green</div>
+          <div class="meta">11.5 Stimp</div>
+        </div>
+      </div>
+
+      <div class="teehero">
+        <div class="k">▸ next round · your "race"</div>
+        <h2>Saturday Men's League <small>· Sat 8:10</small></h2>
+        <div class="where">Oakridge CC · White tees · with your foursome</div>
+        <div class="meta">
+          <span class="m">🌬️ 12 mph SW</span>
+          <span class="m">🟢 greens 11.5 (fast)</span>
+          <span class="m">⛳ pins back-right</span>
+        </div>
+        <div class="cta">
+          <button class="pri">Game plan</button>
+          <button class="sec">What to work on</button>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>Play</div>
+        <div class="tab"><span class="ic">▤</span>Learn</div>
+        <div class="tab"><span class="ic">◉</span>Group</div>
+        <div class="tab on"><span class="ic">🧭</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">A</span><b>Sites-first venues — courses, range, sim &amp; green replace racing areas.</b>
+      The Atlas opens on the small set of places a golfer returns to: <b>Oakridge CC</b> (home) at the center, the public course she also plays, and — as
+      first-class sites — the <b>driving range</b>, <b>practice green</b> (with greens speed), and the <b>indoor simulator</b> (with its launch-monitor brand). The
+      hero is the <b>next round</b> — her "race" — already showing the conditions that decide strategy (wind, greens speed, pin positions). This is the same
+      <b>Sites | Map</b> shell the nursing redesign introduced, reskinned to the fairway register.</div>
+  </div>
+
+  <!-- ============ FRAME B — course hole-map + round cockpit ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>7:42</span><span class="r">Oakridge CC</span></div>
+      <div class="gmap" style="bottom:auto;height:312px;top:0;">
+        <div class="fair" style="left:-10%;top:6%;width:54%;height:42%;"></div>
+        <div class="fair d" style="right:-12%;top:16%;width:50%;height:40%;"></div>
+        <div class="fair" style="left:6%;bottom:-6%;width:52%;height:40%;"></div>
+        <div class="water" style="left:40%;top:46%;width:30%;height:18%;"></div>
+        <div class="bunker" style="left:52%;top:30%;width:38px;height:22px;"></div>
+        <div class="bunker" style="left:26%;top:62%;width:34px;height:20px;"></div>
+        <div class="green" style="left:64%;top:24%;width:28px;height:22px;"></div>
+        <div class="green" style="left:18%;top:38%;width:24px;height:20px;"></div>
+        <div class="tree" style="left:10%;top:18%"></div><div class="tree" style="left:86%;top:54%"></div>
+        <div class="glbl" style="left:5%;top:4%;">Front 9 routing · your scoring heat</div>
+
+        <!-- a few featured holes pinned, colored by your avg vs par -->
+        <div class="flagpin" style="left:20%;top:42%;"><div class="fl">⛳</div><div class="hn" style="background:var(--under)">1</div></div>
+        <div class="flagpin" style="left:40%;top:30%;"><div class="fl">⛳</div><div class="hn" style="background:var(--even)">3</div></div>
+        <div class="flagpin" style="left:66%;top:28%;"><div class="fl">⛳</div><div class="hn" style="background:var(--over2)">7</div></div>
+        <div class="flagpin" style="left:54%;top:58%;"><div class="fl">⛳</div><div class="hn" style="background:var(--over1)">5</div></div>
+        <div class="flagpin" style="left:80%;top:46%;"><div class="fl">⛳</div><div class="hn" style="background:var(--even)">9</div></div>
+
+        <div class="heatstrip">
+          <div class="lab"><span>Where you lose strokes · avg vs par, all 18</span><span>tap a hole</span></div>
+          <div class="holes">
+            <i style="background:var(--under)">1</i><i style="background:var(--even)">2</i><i style="background:var(--even)">3</i>
+            <i style="background:var(--over1)">4</i><i style="background:var(--over1)">5</i><i style="background:var(--even)">6</i>
+            <i style="background:var(--over2)">7</i><i style="background:var(--even)">8</i><i style="background:var(--even)">9</i>
+            <i style="background:var(--even)">10</i><i style="background:var(--over1)">11</i><i style="background:var(--under)">12</i>
+            <i style="background:var(--even)">13</i><i style="background:var(--over2)">14</i><i style="background:var(--even)">15</i>
+            <i style="background:var(--even)">16</i><i style="background:var(--over1)">17</i><i style="background:var(--even)">18</i>
+          </div>
+        </div>
+      </div>
+
+      <div class="cockpit" style="top:300px;">
+        <div class="grab"></div>
+        <div class="cp-head">
+          <div>
+            <span class="kind"><span class="kdot"></span>Round day · Oakridge</span>
+            <div class="ttl">Saturday game plan<small>White tees · 6,210y · par 71</small></div>
+          </div>
+          <div class="when">in 2 days</div>
+        </div>
+        <div class="gauges">
+          <div class="gauge g-wind"><div class="gk">🌬️ Wind</div><div class="gv">12<small>mph</small></div><div class="gs">SW, hurts 4 &amp; 12</div></div>
+          <div class="gauge g-green"><div class="gk">🟢 Greens</div><div class="gv">11.5</div><div class="gs">fast &amp; firm</div></div>
+          <div class="gauge g-tee"><div class="gk">⛳ Pins</div><div class="gv">Back</div><div class="gs">right-side</div></div>
+        </div>
+        <div class="plan">
+          <div class="lead">🎯 your edge today</div>
+          <h4>Greens are fast &amp; firm — favor below the hole and club down into 7 &amp; 12. Your tee miss is right; aim left-center off every tee.</h4>
+          <p>#7 is your worst hole (+0.9 avg) — lay back to 120y instead of driver, take your par-and-go. Two-putt from above the hole is a win on these greens.</p>
+          <div class="seg3">
+            <span><b>Front</b>Steady, avoid the big number on 5 &amp; 7</span>
+            <span><b>Turn</b>Hydrate, check pin sheet</span>
+            <span><b>Back</b>Birdie looks on 12 &amp; 15</span>
+          </div>
+        </div>
+        <div class="lastround">
+          <div class="ic">84</div>
+          <div class="b"><div class="kl">last round · Oakridge</div><h5>Shot <b>84 (+13)</b> · 31 putts · 6/14 fairways · 3 doubles</h5></div>
+        </div>
+        <div class="cp-cta">
+          <button class="alt">🎙️</button>
+          <button class="ready">Lock the plan</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">B</span><b>The course, hole-by-hole — the golf "race course," with your scoring heat.</b>
+      Tap a course and the Atlas becomes a <b>routing map of its holes, colored by your average vs par</b> — #7 glows red (your worst), 12 is green. The
+      <b>heat strip</b> shows all 18 at a glance so you see exactly <b>where you bleed strokes</b>. The bottom sheet is the <b>round cockpit</b> (the same pattern as
+      sailing's and the entrepreneur's): gauges become <b>wind / greens speed / pin positions</b>, the green block is a plain-language <b>game plan</b> built from
+      your tendencies and today's conditions, and it opens with your <b>last round</b> so the plan is grounded in real scoring.</div>
+  </div>
+
+  <!-- ============ FRAME C — handicap + strokes-gained, located ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>7:42</span><span class="r"></span></div>
+      <div class="dt-back">‹ My Game</div>
+      <div class="dt-hero">
+        <span class="stat">📉 trending down · improving</span>
+        <h2>Handicap 14.2</h2>
+        <div class="sub">goal: break 80 · single digits by fall</div>
+      </div>
+      <div class="body" style="top:172px;">
+        <div class="ring-wrap">
+          <div class="ring"><div class="inner"><b>14.2</b><span>→ 9.0 goal</span></div></div>
+          <div class="t">
+            <h3>5.2 to single digits</h3>
+            <p>You're scoring like a <b>~83</b>. Almost the whole gap is <b>putting</b> and <b>150–175y approach</b> — fix those and 79s come.</p>
+            <span style="margin-top:8px;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--turf)">▸ see the math</span>
+          </div>
+        </div>
+
+        <div class="eyebrow">strokes gained · where you win &amp; lose shots</div>
+        <div class="sg"><span class="dot" style="background:var(--tee)"></span><div class="b"><h5>Off the tee</h5><p>Distance fine · <span class="where">miss right</span></p></div><span class="val ok">+0.4<small>vs goal</small></span></div>
+        <div class="sg"><span class="dot" style="background:var(--app)"></span><div class="b"><h5>Approach</h5><p>Bleeds from <span class="where">150–175y</span></p></div><span class="val weak">−2.1<small>per round</small></span></div>
+        <div class="sg"><span class="dot" style="background:var(--short)"></span><div class="b"><h5>Short game</h5><p>Up-and-down 48% · solid</p></div><span class="val ok">+0.2<small>per round</small></span></div>
+        <div class="sg"><span class="dot" style="background:var(--putt)"></span><div class="b"><h5>Putting</h5><p>Worst on <span class="where">fast greens</span> · 3-putts</p></div><span class="val bad">−3.1<small>per round</small></span></div>
+        <div class="sg"><span class="dot" style="background:var(--mgmt)"></span><div class="b"><h5>Course management</h5><p>Big numbers on par 5s</p></div><span class="val weak">−1.0<small>per round</small></span></div>
+
+        <div class="gapcard">
+          <div class="k">⚑ biggest leak · fastest strokes back</div>
+          <h4>Putting costs you 3.1 shots a round — mostly speed on fast greens.</h4>
+          <p>Your home greens run <b>11.5 Stimp</b>; you 3-putt from above the hole. Book the <b>Sim putting lab</b> (Tue, 4 mi) for a speed drill, and a <b>lesson with Coach Diaz</b> on your 150–175y wedge gapping — together that's ~4 strokes.</p>
+          <div class="act">
+            <button class="pri">Book sim practice</button>
+            <button class="sec">Book a lesson</button>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>Play</div>
+        <div class="tab"><span class="ic">▤</span>Learn</div>
+        <div class="tab"><span class="ic">◉</span>Group</div>
+        <div class="tab on"><span class="ic">🧭</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">C</span><b>Game health — handicap + strokes-gained, and every leak is located.</b>
+      The nurse's competency constellation becomes a <b>strokes-gained</b> view anchored to the golfer's real goal: <b>break 80 / single digits</b>. Each category is
+      <b>located</b> — approach bleeds from <b>150–175y</b>, putting is worst on <b>fast greens</b>, big numbers come on par 5s — so it reads like a coach, not a
+      spreadsheet. The gap card <b>routes the fix to a place and a person</b>: a speed drill at the <b>simulator</b>, a wedge-gapping <b>lesson with the club pro</b>.
+      This is the "am I getting better?" frame, and it's why the located data matters.</div>
+  </div>
+
+  <!-- ============ FRAME D — nearby players, coaches & tee times ============ -->
+  <div class="col">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="statusbar"><span>7:42</span><span class="r">Oakridge · 25 mi ▾</span></div>
+      <div class="sheet-h" style="position:absolute;top:42px;left:0;right:0;z-index:40;">
+        <div class="row">
+          <div><h3>Nearby · players &amp; tee times</h3><div class="sub">your club &amp; group · 25 mi</div></div>
+          <div class="close">✕</div>
+        </div>
+      </div>
+      <div class="body" style="top:150px;padding:0;">
+        <div class="sectlab">Open tee times · join a group</div>
+        <div class="nrow"><div class="av place" style="background:var(--flag)">⛳</div><div class="b"><h5>Sat 8:10 · Men's League</h5><p>Oakridge · needs a 4th · your foursome</p></div><button class="join">Join</button></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av place" style="background:var(--turf)">⛳</div><div class="b"><h5>Sun 7:30 · casual 18</h5><p>Riverside GC · 2 spots · 9 mi</p></div><button class="join">Join</button></div>
+
+        <div class="sectlab">Practice venues · 3 nearby</div>
+        <div class="nrow"><div class="av place" style="background:var(--hazard)">🖥️</div><div class="b"><h5>GolfTec Sim · Trackman</h5><p>indoor · weather-proof · 4 mi</p></div><div class="pin">⊙</div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av place" style="background:var(--tee)">🎯</div><div class="b"><h5>Practice Range · Oakridge</h5><p>grass tees · short-game area</p></div><div class="pin">⊙</div></div>
+
+        <div class="sectlab">Your group · 6 playing nearby</div>
+        <div class="nrow"><div class="av person" style="background:#1f6b43">TM</div><div class="b"><h5>Tom Murphy</h5><p><span class="verb play">played</span> · 79 at Riverside · foursome</p></div><div class="dist">9 mi<small>Riverside</small></div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av person" style="background:#2E73A8">RK</div><div class="b"><h5>Raj Kapoor</h5><p><span class="verb win">won</span> · Sat flight · hcp 11</p></div><div class="dist">at club<small>Oakridge</small></div></div>
+        <div class="nsep"></div>
+        <div class="nrow"><div class="av person" style="background:#6D28D9">CD<span class="crp">★</span></div><div class="b"><h5>Coach Diaz · PGA pro</h5><p><span class="verb coach">coaches</span> · lessons Tue–Thu · sim &amp; range</p></div><div class="dist">at club<small>Oakridge</small></div></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="ic">◷</span>Play</div>
+        <div class="tab"><span class="ic">▤</span>Learn</div>
+        <div class="tab"><span class="ic">◉</span>Group</div>
+        <div class="tab on"><span class="ic">🧭</span>Atlas</div>
+      </div>
+    </div>
+    <div class="col-cap"><span class="tag">D</span><b>Nearby — tee times to join, practice venues, your group &amp; the pro.</b>
+      Discovery is <b>club- and group-scoped</b>, not anonymous distance: <b>open tee times you can join</b> (the Sat league needs a 4th), the <b>practice venues</b>
+      (sim &amp; range), then your <b>playing partners</b> with verb-states (<span style="color:var(--turf);font-weight:800">played</span> 79,
+      <span style="color:var(--flag);font-weight:800">won</span> the flight) and the <b>PGA coach</b> marked ★ with lesson availability. This is the four-tier
+      social model in golf vocab — your club (org), the league &amp; lesson program (programs), your foursome &amp; coach (people).</div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>How the universal "where" lens re-charts for golf</h2>
+
+  <h3>Your questions, answered</h3>
+  <ul>
+    <li><span class="pill ans">Q</span><b>Do courses, sims &amp; ranges replace racing areas + the race course?</b> Yes. <b>Venues</b> (home club, courses played, driving range, putting green, simulator) are the golf analog of sailing's <b>racing areas</b>, and the <b>single-course hole-map</b> is the analog of the <b>race course</b> — same Sites|Map shell, reskinned.</li>
+    <li><span class="pill ans">Q</span><b>What makes it great for golfers (vs. a copy of sailing)?</b> Golf's "where" is <b>discrete &amp; repeated</b> (a handful of named places) <i>and</i> <b>hole-by-hole</b>, so skill is <b>spatially located</b>. That unlocks the <b>strokes-gained heat map per hole</b> (Frame B) and <b>located leaks</b> (Frame C: "approach bleeds from 150–175y", "putting worst on fast greens") — a coach's-eye view a continuous nautical chart can't give.</li>
+    <li><span class="pill ans">Q</span><b>The simulator gets special treatment.</b> It's <b>weather-independent</b>, <b>data-rich</b> (Trackman / launch-monitor), and can <b>virtually play a course you'll compete on</b> — so it's both a practice venue (Frame A/D) and the destination the gap-router sends you to (Frame C).</li>
+  </ul>
+
+  <h3>The reframe (per craft, the medium changes)</h3>
+  <ul>
+    <li><span class="pill keep">SAME</span><b>Atlas is still the "where" lens</b> on the same platform primitives — Steps, Blueprints, Competencies/Evidence, Cohorts, the four-tier social model — and the same <b>Sites | Map</b> shell from the nursing redesign.</li>
+    <li><span class="pill new">NEW</span><b>Chart → venues + a hole-by-hole course map.</b> A small set of <b>named, repeated places</b> (club, courses, range, green, sim), and — unique to golf — a <b>course map where your scoring heat is plotted per hole.</b></li>
+    <li><span class="pill new">NEW</span><b>The round / tournament is the "race."</b> A time-and-place-bound event she prepares for, plays, and reviews — so it gets the cockpit (conditions + game plan + last round), in golf vocab (wind, Stimp, pins, fairways/GIR/putts).</li>
+  </ul>
+
+  <h3>Four-tier model → golf vocabulary</h3>
+  <table>
+    <tr><td>Interest <i>(add)</i></td><td>golf — getting better at golf (lower handicap, break 80/single digits)</td></tr>
+    <tr><td>Organization <i>(join)</i></td><td>her <b>country club</b> (Oakridge CC), a public-course league, or a golf association</td></tr>
+    <tr><td>Program <i>(subscribe)</i></td><td><b>club championship</b> pathway, <b>member-guest</b>, the pro's <b>lesson program</b>, a "break 80" training plan, junior academy</td></tr>
+    <tr><td>People <i>(follow)</i></td><td>her <b>foursome regulars</b> + the <b>PGA coach</b> / club pros</td></tr>
+  </table>
+
+  <h3>Primitive mapping</h3>
+  <ul>
+    <li><b>Step</b> = a <i>round, lesson, range session, sim session, or tournament</i>. A <b>Blueprint</b> = a coach's or club's training plan she adopts step by step (Plan-is-a-menu).</li>
+    <li><b>Competency / Evidence</b> → <b>strokes-gained categories</b> (off-the-tee · approach · short game · putting · course management), evidenced by <i>real</i> scores, fairways/GIR/putts, and launch-monitor data — not checkboxes. Frame C is the strokes-gained constellation, and <b>every category is located on the course.</b></li>
+    <li><b>Gap routing</b> is <b>spatial</b>: a leak (putting speed, 150–175y wedges) routes to a <b>place</b> (sim putting lab, range station) and a <b>person</b> (the club pro) — the "where" makes the next practice concrete.</li>
+  </ul>
+
+  <h3>Build order (isolated from sailing, nursing &amp; entrepreneur surfaces)</h3>
+  <ul>
+    <li><b>G0 — Coherence:</b> golf venue types (course / range / sim / green) + fairway register + Sites|Map shell for the golf frame. Reuses the shared Atlas shell; golf specifics go in the frame + resolvers + vocab.</li>
+    <li><b>G1 — Venues &amp; next-round hero</b> (A) · <b>G2 — Course hole-map + round cockpit</b> (B, the keystone — the located scoring heat is the golf "wow") · <b>G3 — Handicap + strokes-gained located + gap routing</b> (C) · <b>G4 — Nearby tee-times / group / coach + lesson &amp; sim booking</b> (D).</li>
+    <li><b>Data caveat:</b> needs a <b>courses + holes</b> model (par, yardage, hole geometry), a <b>per-hole scoring</b> log (or a scorecard import / GHIN handicap feed), and ideally a <b>launch-monitor</b> ingest for the simulator. The hole-level scoring heat is the real lift; venue list &amp; nearby reuse existing org/place plumbing. Verify what a demo can seed before building — this is the <b>golf</b> slot in the per-persona Atlas rollout (after nursing &amp; sailing, before the rural-entrepreneur mentor/money work).</li>
+  </ul>
+</div>
+
+</body>
+</html>

@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   IOS_PURPLE,
@@ -23,13 +23,9 @@ import {
   LABEL_2,
   LABEL_3,
 } from '@/lib/design-tokens-step-loop-ios';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 
-const SERIF_FAMILY = Platform.select({
-  ios: 'Georgia',
-  android: 'serif',
-  web: 'Georgia, "Times New Roman", serif',
-  default: 'Georgia',
-}) as string;
+const SERIF_FAMILY = fontFamily.serif;
 
 export interface PeerReflectionQuoteProps {
   /** Author's display name (full name, will be shown as written). */

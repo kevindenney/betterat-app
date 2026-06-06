@@ -5,13 +5,13 @@
  * Pipeline (all pure, no React / MapLibre):
  *   CourseGeometryParams
  *     → courseParamsToOverlayInput()   (derive windward mark + start line)
- *     → deriveCourseOverlay()          (lib/courseGeometry — full overlay)
+ *     → deriveCourseOverlay()          (lib/courseGeometry — W/L overlay)
  *     → courseOverlayToFeatures()      (tag each piece with properties.type)
  *
  * Emitted feature `properties.type` values (so the canvas can paint each
- * differently): 'start-line', 'finish-line', 'layline', 'start-box',
- * 'course-mark'. Laylines carry `tack: 'port'|'starboard'` and
- * `anchor: 'windward'|'start'`; marks carry `markType`.
+ * differently): 'course-leg', 'start-line', 'finish-line', 'layline',
+ * 'start-box', 'course-mark'. Laylines carry `tack: 'port'|'starboard'`
+ * and `anchor: 'windward'|'start'`; marks carry `markType`.
  *
  * Handedness caveat: port vs starboard layline sides are assigned
  * parametrically about the wind axis here and must be verified against a
@@ -282,6 +282,80 @@ export function courseOverlayToFeatures(
   return features;
 }
 
+function startLineCenter(params: CourseGeometryParams): Coord {
+  return {
+    latitude: (params.pin.lat + params.committee.lat) / 2,
+    longitude: (params.pin.lng + params.committee.lng) / 2,
+  };
+}
+
+function triangleCourseToFeatures(params: CourseGeometryParams, courseId: string): Feature[] {
+  const start = startLineCenter(params);
+  const pin: Coord = { latitude: params.pin.lat, longitude: params.pin.lng };
+  const committee: Coord = {
+    latitude: params.committee.lat,
+    longitude: params.committee.lng,
+  };
+  const windwardPoint = destinationPoint(
+    start.latitude,
+    start.longitude,
+    params.windDirectionDeg,
+    params.legLengthNm,
+  );
+  const windward: Coord = {
+    latitude: windwardPoint.lat,
+    longitude: windwardPoint.lng,
+  };
+  const wingAxis = destinationPoint(
+    start.latitude,
+    start.longitude,
+    params.windDirectionDeg,
+    params.legLengthNm * 0.5,
+  );
+  const wingPoint = destinationPoint(
+    wingAxis.lat,
+    wingAxis.lng,
+    params.windDirectionDeg + 90,
+    params.legLengthNm * 0.866,
+  );
+  const wing: Coord = {
+    latitude: wingPoint.lat,
+    longitude: wingPoint.lng,
+  };
+
+  return [
+    lineFeature(`${courseId}:start-line`, [pin, committee], {
+      type: 'start-line',
+      courseId,
+    }),
+    lineFeature(`${courseId}:triangle-leg`, [start, windward, wing, start], {
+      type: 'course-leg',
+      courseId,
+      courseType: 'triangle',
+    }),
+    pointFeature(`${courseId}:mark-windward`, windward, {
+      type: 'course-mark',
+      markType: 'windward',
+      courseId,
+    }),
+    pointFeature(`${courseId}:mark-wing`, wing, {
+      type: 'course-mark',
+      markType: 'wing',
+      courseId,
+    }),
+    pointFeature(`${courseId}:mark-pin`, pin, {
+      type: 'course-mark',
+      markType: 'pin',
+      courseId,
+    }),
+    pointFeature(`${courseId}:mark-committee`, committee, {
+      type: 'course-mark',
+      markType: 'committee',
+      courseId,
+    }),
+  ];
+}
+
 /**
  * Convert a list of venue race courses into a single FeatureCollection
  * ready for the Atlas canvas. Courses whose geometry can't be derived
@@ -299,6 +373,16 @@ export function venueCoursesToFeatureCollection(
       env.windDirection != null
         ? reorientCourseToWind(course.geometry, env.windDirection)
         : course.geometry;
+    if (geometry.courseType === 'triangle' || course.courseType === 'triangle') {
+      features.push(...triangleCourseToFeatures(geometry, course.id));
+      continue;
+    }
+    if (
+      geometry.courseType !== 'windward_leeward' &&
+      course.courseType !== 'windward_leeward'
+    ) {
+      continue;
+    }
     const overlay = deriveCourseOverlay(courseParamsToOverlayInput(geometry, env));
     if (!overlay) continue;
     features.push(...courseOverlayToFeatures(overlay, geometry, course.id));

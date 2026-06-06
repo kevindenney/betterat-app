@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt · L2 Week / period — redesign</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',sans-serif;
+  --serif:'Iowan Old Style',Georgia,serif;
+  --grouped:#F2F2F7;
+  --card:#FFFFFF;
+  --label:#1C1C1E;
+  --label2:rgba(60,60,67,0.62);
+  --label3:rgba(60,60,67,0.34);
+  --sep:rgba(60,60,67,0.13);
+  --blue:#007AFF;
+  --done:#16A34A;
+  --now:#EA580C;
+  --accent:#2563EB;
+  --accent-bg:rgba(37,99,235,.07);
+  --accent-line:rgba(37,99,235,.26);
+}
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;padding:34px 20px 90px;background:#C9CFD8;font-family:var(--sans);color:var(--label);}
+.page-h{max-width:1660px;margin:0 auto 4px;font-size:21px;font-weight:800;letter-spacing:-.3px;}
+.page-sub{max-width:1660px;margin:0 auto 10px;font-size:13px;color:#41495A;line-height:1.6;}
+.page-sub b{color:#1a1f29;}
+.thesis{max-width:1660px;margin:0 auto 26px;background:#fff;border:0.5px solid rgba(0,0,0,.1);border-left:3px solid var(--blue);border-radius:10px;padding:14px 17px;font-size:12.5px;line-height:1.65;color:#2b3340;}
+.thesis b{color:#111;}
+.thesis .k{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--blue);border-radius:5px;padding:2px 7px;margin-right:7px;vertical-align:1px;}
+.frames{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start;max-width:1660px;margin:0 auto;}
+.col{width:384px;}
+.col-cap{font-size:12px;color:#39414C;line-height:1.55;margin:14px 4px 0;}
+.col-cap b{color:#111;}
+.col-cap .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#39414C;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;}
+
+/* phone shell */
+.phone{position:relative;background:var(--grouped);border-radius:42px;overflow:hidden;
+  border:0.5px solid rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.30);height:812px;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#000;border-radius:18px;z-index:60;}
+.statusbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-size:14px;font-weight:600;color:#000;z-index:50;}
+.statusbar .r{display:flex;gap:6px;align-items:center;font-size:12px;}
+
+/* nav */
+.nav{position:absolute;top:44px;left:0;right:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:45;
+  background:rgba(248,248,250,.9);backdrop-filter:blur(18px);border-bottom:0.5px solid var(--sep);}
+.nav .lane{display:flex;align-items:center;gap:5px;font-size:15px;font-weight:700;}
+.nav .lane .chev{font-size:11px;color:var(--label2);}
+.nav .icons{display:flex;align-items:center;gap:14px;}
+.nav .plus{font-size:23px;color:var(--label);font-weight:300;line-height:1;}
+.nav .inbox{position:relative;font-size:16px;}
+.nav .inbox .badge{position:absolute;top:-6px;right:-8px;background:#FF3B30;color:#fff;font-size:8px;font-weight:800;border-radius:9px;padding:1px 4px;min-width:14px;text-align:center;}
+.nav .av{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+/* DOCKED zoom ladder — no longer a floating rail over content */
+.zoomdock{position:absolute;top:90px;left:0;right:0;height:42px;z-index:44;display:flex;align-items:center;padding:6px 14px;
+  background:rgba(248,248,250,.92);backdrop-filter:blur(18px);border-bottom:0.5px solid var(--sep);}
+.ladder{display:flex;width:100%;background:rgba(120,120,128,.12);border-radius:9px;padding:2px;gap:2px;}
+.ladder .z{flex:1;text-align:center;font-size:11.5px;font-weight:700;color:var(--label2);padding:5px 0;border-radius:7px;}
+.ladder .z.on{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.13);}
+
+/* scroll body — top clears nav(90)+dock(42); bottom clears tab bar */
+.body{position:absolute;top:132px;bottom:60px;left:0;right:0;overflow:hidden;padding:13px 0 40px;}
+.pad{padding:0 14px;}
+
+/* ===== season / period header ===== */
+.seasonhead{background:#fff;border-radius:18px;border:0.5px solid var(--sep);box-shadow:0 2px 10px rgba(0,0,0,.05);padding:14px 15px;margin-bottom:14px;}
+.shrow{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.ppill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-bg);border:0.5px solid var(--accent-line);border-radius:20px;padding:4px 11px;}
+.pdate{font-size:11px;color:var(--label3);font-weight:600;}
+.verbchip{margin-left:auto;font-size:9.5px;font-weight:800;letter-spacing:.07em;color:var(--accent);background:var(--accent-bg);border-radius:6px;padding:3px 8px;}
+.shapeeyebrow{display:flex;align-items:center;gap:5px;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);margin-bottom:7px;}
+.shape{font-family:var(--serif);font-size:16.5px;line-height:1.34;color:var(--label);margin-bottom:14px;}
+.shape b{color:var(--accent);font-weight:600;}
+.capbar{display:flex;height:9px;border-radius:5px;overflow:hidden;gap:2px;margin-bottom:9px;}
+.capbar .sg{height:100%;}
+.capbar .dn{background:var(--done);}
+.capbar .pl{background:var(--accent);}
+.capbar .qu{background:rgba(120,120,128,.20);}
+.caplabels{display:flex;gap:15px;font-size:11px;font-weight:600;color:var(--label2);}
+.cdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;}
+.cdot.dn{background:var(--done);}
+.cdot.pl{background:var(--accent);}
+.cdot.qu{background:rgba(120,120,128,.30);}
+
+/* ===== HORIZONTAL step timeline with a NOW bar ===== */
+.htl{margin-bottom:14px;}
+.htlhead{display:flex;align-items:center;justify-content:space-between;padding:0 14px;margin-bottom:11px;}
+.htlhead .l{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--label3);}
+.htlhead .r{font-size:11px;color:var(--label2);font-weight:600;}
+.htlscroll{display:flex;align-items:stretch;gap:9px;padding:2px 14px 6px;overflow:hidden;}
+
+/* step card on the horizontal track */
+.hcard{width:152px;flex:none;background:#fff;border-radius:14px;border:0.5px solid var(--sep);padding:0 11px 11px;box-shadow:0 1px 5px rgba(0,0,0,.04);display:flex;flex-direction:column;}
+/* timeline node + connector at the card's top — adjacent cards' lines read as one track */
+.conn{display:flex;align-items:center;height:13px;margin:0 -11px 9px;}
+.conn .ln{flex:1;height:2px;background:var(--sep);}
+.conn .node{width:13px;height:13px;border-radius:50%;flex:none;border:2px solid var(--label3);background:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;line-height:1;}
+.hcard .tg{align-self:flex-start;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border-radius:5px;padding:2px 6px;margin-bottom:7px;}
+.hcard .ht{font-size:13px;font-weight:700;line-height:1.2;letter-spacing:-.2px;}
+.hcard .hf{margin-top:auto;padding-top:9px;font-size:10.5px;color:var(--label2);font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.hcard .hbar{display:flex;width:100%;height:5px;border-radius:3px;overflow:hidden;background:rgba(120,120,128,.18);margin-top:8px;}
+.hcard .hbar i{height:100%;background:var(--accent);display:block;}
+.hcard .av3{display:flex;}
+.hcard .av3 i{width:15px;height:15px;border-radius:50%;border:1.5px solid #fff;margin-left:-5px;font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;}
+
+/* DONE — muted, green node + check, behind NOW */
+.hcard.done{background:var(--grouped);opacity:.92;}
+.hcard.done .conn .node{background:var(--done);border-color:var(--done);}
+.hcard.done .conn .ln{background:var(--done);opacity:.45;}
+.hcard.done .tg{color:var(--done);background:rgba(22,163,74,.11);}
+.hcard.done .ht{color:var(--label2);}
+.hcard.done .hf .ck{color:var(--done);font-weight:800;}
+
+/* ACTIVE — accent, sits under the NOW bar */
+.hcard.active{border:1.4px solid var(--accent);box-shadow:0 6px 18px var(--accent-line);}
+.hcard.active .conn .node{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-line);}
+.hcard.active .conn .ln.right{background:var(--label3);opacity:.4;}
+
+/* PLAN — hollow, dashed, ahead of NOW */
+.hcard.plan{border:1px dashed rgba(60,60,67,.30);box-shadow:none;}
+.hcard.plan .conn .ln{background:var(--label3);opacity:.4;}
+.hcard.plan .tg{color:var(--label2);background:var(--grouped);}
+.hcard .qd{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);}
+
+/* NOW marker — vertical bar splitting done (left) from planned (right) */
+.nowmark{flex:none;align-self:stretch;width:30px;display:flex;flex-direction:column;align-items:center;position:relative;}
+.nowmark .np{font-size:9px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--now);border-radius:6px;padding:3px 6px;white-space:nowrap;z-index:2;box-shadow:0 2px 6px rgba(234,88,12,.4);}
+.nowmark .nv{flex:1;width:2px;background:repeating-linear-gradient(var(--now) 0 5px,transparent 5px 9px);margin-top:4px;}
+.nowtime{padding:7px 14px 0;font-size:10.5px;color:var(--now);font-weight:700;}
+
+/* ===== consolidated adopt menu ===== */
+.adopt{background:rgba(124,58,237,.04);border:0.5px solid rgba(124,58,237,.18);border-radius:16px;padding:13px 14px;margin:0 14px;}
+.adopt .eb{display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#6D28D9;margin-bottom:6px;}
+.adopt .q{font-size:13.5px;font-weight:600;color:var(--label);line-height:1.34;margin-bottom:6px;}
+.arow{display:flex;align-items:center;gap:11px;padding:10px 0;border-top:0.5px solid rgba(124,58,237,.13);}
+.arow .am{flex:1;min-width:0;}
+.arow .am .t{font-size:13.5px;font-weight:600;line-height:1.2;}
+.arow .am .s{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--label3);margin-top:4px;}
+.arow .am .s.cross{color:#6D28D9;}
+.arow .add{width:27px;height:27px;border-radius:50%;background:var(--accent);color:#fff;font-size:19px;font-weight:300;line-height:1;display:flex;align-items:center;justify-content:center;flex:none;}
+
+/* frame-5 reorder bits */
+.hcard.lifted{transform:translateY(-8px) rotate(-1.4deg);box-shadow:0 16px 34px rgba(0,0,0,.24);border:1.4px solid var(--accent);background:#fff;opacity:1;}
+.hcard.lifted .grab{font-size:13px;color:var(--accent);letter-spacing:-2px;}
+.hslot{width:104px;flex:none;align-self:stretch;border:1.6px dashed var(--accent);border-radius:14px;background:var(--accent-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;padding:8px;}
+.hslot .ic{font-size:18px;color:var(--accent);}
+.hslot .t{font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);line-height:1.25;}
+.grabhint{padding:11px 14px 0;font-size:11px;color:var(--label2);font-style:italic;line-height:1.45;}
+
+/* tab bar */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:60px;display:flex;background:rgba(248,248,250,.94);backdrop-filter:blur(18px);border-top:0.5px solid var(--sep);padding-bottom:6px;z-index:48;}
+.tabbar .tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9.5px;font-weight:600;color:var(--label3);}
+.tabbar .tb.on{color:var(--accent);}
+.tabbar .tb .g{font-size:18px;}
+
+/* legend */
+.legend{max-width:1660px;margin:30px auto 0;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:14px;padding:20px 24px;}
+.legend h3{margin:0 0 4px;font-size:15px;}
+.legend .sub{font-size:12px;color:var(--label2);margin-bottom:16px;}
+.legend .grid{display:grid;grid-template-columns:1fr 1fr;gap:13px 30px;}
+.legend .item{font-size:12.5px;line-height:1.55;color:#2b3340;}
+.legend .item b{color:#111;}
+.legend .num{display:inline-block;width:19px;height:19px;border-radius:5px;background:var(--blue);color:#fff;font-size:11px;font-weight:800;text-align:center;line-height:19px;margin-right:7px;vertical-align:1px;}
+.vtab{width:100%;border-collapse:collapse;margin-top:20px;font-size:12px;}
+.vtab th,.vtab td{text-align:left;padding:8px 10px;border-bottom:0.5px solid var(--sep);vertical-align:top;}
+.vtab th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--label2);font-weight:800;}
+.vtab td b{color:#111;}
+.vtab .craft{font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="page-h">L2 Week / period — redesign</div>
+<div class="page-sub">The WEEK zoom keeps its <b>horizontal step timeline split by a NOW bar</b> — done steps to the left, planned steps to the right — but fixes what surrounded it: the <b>floating zoom rail</b> that overlapped cards is now docked, the season banner becomes one <b>period header</b>, and the "librarian noticed" + "suggestions shaping this plan" cards merge into a single <b>adopt menu</b>. Frames 1–4 prove it across sailing / nursing / entrepreneur / golf; frame 5 shows adoption dropped onto the track by order.</div>
+
+<div class="thesis"><span class="k">Core move</span> <b>The horizontal track stays — done vs planned just reads at a glance.</b> One continuous timeline runs left→right; a <b>NOW bar</b> splits it. Left of NOW: <b>done</b> steps, muted with a filled-green node + ✓. Under NOW: the <b>active</b> step, accent ring + sub-step progress. Right of NOW: <b>planned</b> steps, hollow dashed node, "queued". Everything else is calmer scaffolding — a docked ladder (persona-native middle label), one period header voiced by the craft's logbook/preceptor/books/coach, and one adopt menu for selective, reorderable adoption (never a bulk season import).</div>
+
+<div class="frames">
+
+<!-- ============ FRAME 1 · SAILING ============ -->
+<div class="col">
+<div class="phone" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.07);--accent-line:rgba(37,99,235,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane">Sail Racing <span class="chev">▾</span></div>
+    <div class="icons"><span class="plus">+</span><span class="inbox">✉︎<span class="badge">9</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomdock">
+    <div class="ladder"><span class="z">All</span><span class="z">Arc</span><span class="z on">Week</span><span class="z">Step</span></div>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="seasonhead">
+        <div class="shrow"><span class="ppill">⛵ Winter Series</span><span class="pdate">Oct 31 – Mar 30</span><span class="verbchip">RACING</span></div>
+        <div class="shapeeyebrow">✻ This arc · logbook noticed</div>
+        <div class="shape">This arc is running <b>race-heavy</b> — four races, no tuning since November.</div>
+        <div class="capbar"><span class="sg dn" style="flex:1"></span><span class="sg pl" style="flex:3"></span></div>
+        <div class="caplabels"><span><span class="cdot dn"></span>1 done</span><span><span class="cdot pl"></span>3 in play</span><span><span class="cdot qu"></span>0 queued</span></div>
+      </div>
+    </div>
+
+    <div class="htl">
+      <div class="htlhead"><span class="l">Timeline</span><span class="r">just done → now → next</span></div>
+      <div class="htlscroll">
+        <div class="hcard done">
+          <div class="conn"><span class="ln"></span><span class="node">✓</span><span class="ln"></span></div>
+          <span class="tg">Race</span>
+          <div class="ht">Race 1 — Middle Island</div>
+          <div class="hf"><span class="ck">✓ Done</span><span>Sat 2:00p</span></div>
+        </div>
+        <div class="nowmark"><span class="np">NOW</span><span class="nv"></span></div>
+        <div class="hcard active">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln right"></span></div>
+          <span class="tg">Race</span>
+          <div class="ht">Race 2 — Middle Island</div>
+          <div class="hf"><span class="av3"><i style="background:#E2792E">K</i><i style="background:#2563EB">D</i><i style="background:#16A34A">M</i></span><span>helm · 2/3</span></div>
+          <div class="hbar"><i style="width:66%"></i></div>
+        </div>
+        <div class="hcard plan">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln"></span></div>
+          <span class="tg">Prep</span>
+          <div class="ht">Rig tune — measure rake</div>
+          <div class="hf"><span class="qd">Queued · before Race 3</span></div>
+        </div>
+      </div>
+      <div class="nowtime">NOW · Sat 14:40</div>
+    </div>
+
+    <div class="adopt">
+      <div class="eb">✻ Add to this arc · logbook</div>
+      <div class="q">Race is carrying the weight. Balance it with prep?</div>
+      <div class="arow"><div class="am"><div class="t">Rig-tune check-off</div><div class="s">From RHKYC blueprint</div></div><span class="add">+</span></div>
+      <div class="arow"><div class="am"><div class="t">Wind cheat sheet</div><div class="s cross">⇄ From Design</div></div><span class="add">+</span></div>
+      <div class="arow"><div class="am"><div class="t">Core circuit</div><div class="s cross">⇄ From Fitness</div></div><span class="add">+</span></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tb on"><span class="g">⛟</span>Practice</div>
+    <div class="tb"><span class="g">▥</span>Library</div>
+    <div class="tb"><span class="g">⚲</span>Watch</div>
+    <div class="tb"><span class="g">◬</span>Atlas</div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">1 · Sailing</span><b>Horizontal track kept; done vs planned now read instantly.</b> Race 1 is muted with a green ✓ node, Race 2 sits under the NOW bar with sub-step progress, the rig-tune step is dashed/queued to the right. The floating rail is docked; the two old AI cards became one adopt menu below.</div>
+</div>
+
+<!-- ============ FRAME 2 · NURSING ============ -->
+<div class="col">
+<div class="phone" style="--accent:#0E7490;--accent-bg:rgba(14,116,137,.07);--accent-line:rgba(14,116,137,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane">Nursing <span class="chev">▾</span></div>
+    <div class="icons"><span class="plus">+</span><span class="inbox">✉︎<span class="badge">4</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomdock">
+    <div class="ladder"><span class="z">All</span><span class="z">Rotation</span><span class="z on">Week</span><span class="z">Step</span></div>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="seasonhead">
+        <div class="shrow"><span class="ppill">🩺 Med-Surg</span><span class="pdate">Rotation · wk 3 of 6</span><span class="verbchip">ROTATING</span></div>
+        <div class="shapeeyebrow">✻ This rotation · preceptor's read</div>
+        <div class="shape">An <b>assessment-heavy</b> week — strong on neuro, light on medication practice.</div>
+        <div class="capbar"><span class="sg dn" style="flex:4"></span><span class="sg pl" style="flex:2"></span><span class="sg qu" style="flex:3"></span></div>
+        <div class="caplabels"><span><span class="cdot dn"></span>4 done</span><span><span class="cdot pl"></span>2 in play</span><span><span class="cdot qu"></span>3 queued</span></div>
+      </div>
+    </div>
+
+    <div class="htl">
+      <div class="htlhead"><span class="l">Timeline</span><span class="r">just done → now → next</span></div>
+      <div class="htlscroll">
+        <div class="hcard done">
+          <div class="conn"><span class="ln"></span><span class="node">✓</span><span class="ln"></span></div>
+          <span class="tg">Clinical</span>
+          <div class="ht">Neuro checks q2h</div>
+          <div class="hf"><span class="ck">✓ Done</span><span>preceptor</span></div>
+        </div>
+        <div class="nowmark"><span class="np">NOW</span><span class="nv"></span></div>
+        <div class="hcard active">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln right"></span></div>
+          <span class="tg">Pharm</span>
+          <div class="ht">Med pass — 6 patients</div>
+          <div class="hf"><span>w/ Maya · 1/4</span></div>
+          <div class="hbar"><i style="width:25%"></i></div>
+        </div>
+        <div class="hcard plan">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln"></span></div>
+          <span class="tg">Docs</span>
+          <div class="ht">Care-plan writeup</div>
+          <div class="hf"><span class="qd">Queued · post-shift</span></div>
+        </div>
+        <div class="hcard plan">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln"></span></div>
+          <span class="tg">Sim lab</span>
+          <div class="ht">IV insertion — first stick</div>
+          <div class="hf"><span class="qd">Queued · Fri</span></div>
+        </div>
+      </div>
+      <div class="nowtime">NOW · Wed 19:04 · Round 1</div>
+    </div>
+
+    <div class="adopt">
+      <div class="eb">✻ Add to this rotation · preceptor</div>
+      <div class="q">Light on meds this week. Add a medication shift?</div>
+      <div class="arow"><div class="am"><div class="t">Med-safety check-off</div><div class="s">From JHU blueprint</div></div><span class="add">+</span></div>
+      <div class="arow"><div class="am"><div class="t">Dosage-calc drill</div><div class="s cross">⇄ From Study</div></div><span class="add">+</span></div>
+      <div class="arow"><div class="am"><div class="t">Discharge teaching</div><div class="s">From JHU blueprint</div></div><span class="add">+</span></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tb on"><span class="g">⛟</span>Practice</div>
+    <div class="tb"><span class="g">▥</span>Library</div>
+    <div class="tb"><span class="g">⚲</span>Watch</div>
+    <div class="tb"><span class="g">◬</span>Atlas</div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">2 · Nursing</span><b>Denser week, same track.</b> More queued cards extend the right of the NOW bar; the muted done card carries the preceptor sign-off. "Arc" → "Rotation" in the ladder + header, logbook → preceptor's read. The adopt menu nudges the under-practiced capability (meds).</div>
+</div>
+
+<!-- ============ FRAME 3 · ENTREPRENEUR ============ -->
+<div class="col">
+<div class="phone" style="--accent:#15803D;--accent-bg:rgba(21,128,61,.07);--accent-line:rgba(21,128,61,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane">Home Business <span class="chev">▾</span></div>
+    <div class="icons"><span class="plus">+</span><span class="inbox">✉︎<span class="badge">3</span></span><span class="av">मी</span></div>
+  </div>
+  <div class="zoomdock">
+    <div class="ladder"><span class="z">All</span><span class="z">Season</span><span class="z on">Week</span><span class="z">Step</span></div>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="seasonhead">
+        <div class="shrow"><span class="ppill">🪔 दिवाली rush</span><span class="pdate">Season · 2 weeks left</span><span class="verbchip">SHIPPING</span></div>
+        <div class="shapeeyebrow">✻ This season · your books noticed</div>
+        <div class="shape">Haat sales are <b>strong</b> — but diya stock is running low for the rush.</div>
+        <div class="capbar"><span class="sg dn" style="flex:3"></span><span class="sg pl" style="flex:1"></span><span class="sg qu" style="flex:2"></span></div>
+        <div class="caplabels"><span><span class="cdot dn"></span>3 done</span><span><span class="cdot pl"></span>1 in play</span><span><span class="cdot qu"></span>2 queued</span></div>
+      </div>
+    </div>
+
+    <div class="htl">
+      <div class="htlhead"><span class="l">Timeline</span><span class="r">हो गया → अभी → आगे</span></div>
+      <div class="htlscroll">
+        <div class="hcard done">
+          <div class="conn"><span class="ln"></span><span class="node">✓</span><span class="ln"></span></div>
+          <span class="tg">Haat</span>
+          <div class="ht">Bero haat — Sunday stall</div>
+          <div class="hf"><span class="ck">✓ ₹2,400</span><span>रवि</span></div>
+        </div>
+        <div class="nowmark"><span class="np">अभी</span><span class="nv"></span></div>
+        <div class="hcard active">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln right"></span></div>
+          <span class="tg">Make</span>
+          <div class="ht">Diya stock — 200 pieces</div>
+          <div class="hf"><span>SHG · 120/200</span></div>
+          <div class="hbar"><i style="width:60%"></i></div>
+        </div>
+        <div class="hcard plan">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln"></span></div>
+          <span class="tg">Supply</span>
+          <div class="ht">Supplier run — Ranchi</div>
+          <div class="hf"><span class="qd">Queued · before Fri</span></div>
+        </div>
+        <div class="hcard plan">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln"></span></div>
+          <span class="tg">Price</span>
+          <div class="ht">Price the gift sets</div>
+          <div class="hf"><span class="qd">Queued</span></div>
+        </div>
+      </div>
+      <div class="nowtime">अभी · सोम 11:00</div>
+    </div>
+
+    <div class="adopt">
+      <div class="eb">✻ Add to this season · your books</div>
+      <div class="q">Stock is the bottleneck. Add a production day?</div>
+      <div class="arow"><div class="am"><div class="t">Festival pricing sheet</div><div class="s">From CRP मीना · SHG</div></div><span class="add">+</span></div>
+      <div class="arow"><div class="am"><div class="t">Stall display photos</div><div class="s cross">⇄ From Craft</div></div><span class="add">+</span></div>
+      <div class="arow"><div class="am"><div class="t">GST quick-file</div><div class="s">From CRP मीना · SHG</div></div><span class="add">+</span></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tb on"><span class="g">⛟</span>Practice</div>
+    <div class="tb"><span class="g">▥</span>Library</div>
+    <div class="tb"><span class="g">⚲</span>Watch</div>
+    <div class="tb"><span class="g">◬</span>Atlas</div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">3 · Entrepreneur</span><b>Native vocab on the track too.</b> The NOW bar reads <b>अभी</b>, the timeline header हो गया → अभी → आगे, ₹ + Hindi day labels (रवि/सोम) in the cards. Done = the haat that already sold; queued = supplier run + pricing. The menu adopts from the CRP/SHG blueprint.</div>
+</div>
+
+<!-- ============ FRAME 4 · GOLF ============ -->
+<div class="col">
+<div class="phone" style="--accent:#15663B;--accent-bg:rgba(21,102,59,.07);--accent-line:rgba(21,102,59,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:35</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane">Golf <span class="chev">▾</span></div>
+    <div class="icons"><span class="plus">+</span><span class="inbox">✉︎<span class="badge">2</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomdock">
+    <div class="ladder"><span class="z">All</span><span class="z">Season</span><span class="z on">Week</span><span class="z">Step</span></div>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="seasonhead">
+        <div class="shrow"><span class="ppill">🏌 Club Champs</span><span class="pdate">Season · qualifier in 9 days</span><span class="verbchip">PLAYING</span></div>
+        <div class="shapeeyebrow">✻ This season · coach's notebook</div>
+        <div class="shape">Scoring is <b>holding up</b> — but the short game is soft inside 50 yards.</div>
+        <div class="capbar"><span class="sg dn" style="flex:2"></span><span class="sg pl" style="flex:1"></span><span class="sg qu" style="flex:2"></span></div>
+        <div class="caplabels"><span><span class="cdot dn"></span>2 done</span><span><span class="cdot pl"></span>1 in play</span><span><span class="cdot qu"></span>2 queued</span></div>
+      </div>
+    </div>
+
+    <div class="htl">
+      <div class="htlhead"><span class="l">Timeline</span><span class="r">just done → now → next</span></div>
+      <div class="htlscroll">
+        <div class="hcard done">
+          <div class="conn"><span class="ln"></span><span class="node">✓</span><span class="ln"></span></div>
+          <span class="tg">Round</span>
+          <div class="ht">Saturday round — back nine</div>
+          <div class="hf"><span class="ck">✓ +3</span><span>foursome</span></div>
+        </div>
+        <div class="nowmark"><span class="np">NOW</span><span class="nv"></span></div>
+        <div class="hcard active">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln right"></span></div>
+          <span class="tg">Range</span>
+          <div class="ht">Range — driver tempo</div>
+          <div class="hf"><span>solo · 2/3</span></div>
+          <div class="hbar"><i style="width:66%"></i></div>
+        </div>
+        <div class="hcard plan">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln"></span></div>
+          <span class="tg">Lesson</span>
+          <div class="ht">Lesson — Coach Diaz</div>
+          <div class="hf"><span class="qd">Queued · Thu · signs off</span></div>
+        </div>
+        <div class="hcard plan">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln"></span></div>
+          <span class="tg">Putting</span>
+          <div class="ht">Putting — 6-footers</div>
+          <div class="hf"><span class="qd">Queued</span></div>
+        </div>
+      </div>
+      <div class="nowtime">NOW · Tue 16:20</div>
+    </div>
+
+    <div class="adopt">
+      <div class="eb">✻ Add to this season · coach's notebook</div>
+      <div class="q">Short game is the gap before the qualifier. Add a session?</div>
+      <div class="arow"><div class="am"><div class="t">Up-and-down ladder</div><div class="s">From Coach Diaz</div></div><span class="add">+</span></div>
+      <div class="arow"><div class="am"><div class="t">Tempo breathing</div><div class="s cross">⇄ From Fitness</div></div><span class="add">+</span></div>
+      <div class="arow"><div class="am"><div class="t">Course-management card</div><div class="s">From Coach Diaz</div></div><span class="add">+</span></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tb on"><span class="g">⛟</span>Practice</div>
+    <div class="tb"><span class="g">▥</span>Library</div>
+    <div class="tb"><span class="g">⚲</span>Watch</div>
+    <div class="tb"><span class="g">◬</span>Atlas</div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">4 · Golf</span><b>Sparse week, same track.</b> One done round (muted, +3), the range session under NOW, lesson + putting queued. The validator badge ("signs off") rides on the queued lesson — the role-typed WHO from mockup #34, carried back to L2.</div>
+</div>
+
+<!-- ============ FRAME 5 · ADOPT + DROP ON TRACK ============ -->
+<div class="col">
+<div class="phone" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.07);--accent-line:rgba(37,99,235,.26);">
+  <div class="notch"></div>
+  <div class="statusbar"><span>1:36</span><span class="r">●●● ▮▮ ▮</span></div>
+  <div class="nav">
+    <div class="lane">Sail Racing <span class="chev">▾</span></div>
+    <div class="icons"><span class="plus">+</span><span class="inbox">✉︎<span class="badge">9</span></span><span class="av">KD</span></div>
+  </div>
+  <div class="zoomdock">
+    <div class="ladder"><span class="z">All</span><span class="z">Arc</span><span class="z on">Week</span><span class="z">Step</span></div>
+  </div>
+  <div class="body">
+    <div class="pad">
+      <div class="seasonhead">
+        <div class="shrow"><span class="ppill">⛵ Winter Series</span><span class="pdate">Oct 31 – Mar 30</span><span class="verbchip">RACING</span></div>
+        <div class="shapeeyebrow">✻ Adopting · 1 step from blueprint</div>
+        <div class="shape">Drop <b>Rig-tune check-off</b> onto the track — by order, not a date.</div>
+        <div class="capbar"><span class="sg dn" style="flex:1"></span><span class="sg pl" style="flex:3"></span><span class="sg qu" style="flex:1"></span></div>
+        <div class="caplabels"><span><span class="cdot dn"></span>1 done</span><span><span class="cdot pl"></span>3 in play</span><span><span class="cdot qu"></span>+1 new</span></div>
+      </div>
+    </div>
+
+    <div class="htl">
+      <div class="htlhead"><span class="l">Timeline</span><span class="r">drag to set order</span></div>
+      <div class="htlscroll">
+        <div class="hcard done">
+          <div class="conn"><span class="ln"></span><span class="node">✓</span><span class="ln"></span></div>
+          <span class="tg">Race</span>
+          <div class="ht">Race 1 — Middle Island</div>
+          <div class="hf"><span class="ck">✓ Done</span></div>
+        </div>
+        <div class="nowmark"><span class="np">NOW</span><span class="nv"></span></div>
+        <div class="hcard active">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln right"></span></div>
+          <span class="tg">Race</span>
+          <div class="ht">Race 2 — Middle Island</div>
+          <div class="hf"><span>helm · 2/3</span></div>
+          <div class="hbar"><i style="width:66%"></i></div>
+        </div>
+        <div class="hcard lifted">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln"></span></div>
+          <span class="tg">Prep</span>
+          <div class="ht">Rig-tune check-off <span class="grab">⋮⋮</span></div>
+          <div class="hf"><span class="qd">From RHKYC blueprint</span></div>
+        </div>
+        <div class="hslot"><span class="ic">↧</span><span class="t">Drops here<br>before Race 3</span></div>
+        <div class="hcard plan">
+          <div class="conn"><span class="ln"></span><span class="node"></span><span class="ln"></span></div>
+          <span class="tg">Prep</span>
+          <div class="ht">Rig tune — measure rake</div>
+          <div class="hf"><span class="qd">Queued</span></div>
+        </div>
+      </div>
+      <div class="grabhint">Adopted steps land on the track to the right of NOW — you set the order by dragging, never a calendar. Improvement lives in the prep steps you slot <i>between</i> races.</div>
+    </div>
+
+    <div class="adopt">
+      <div class="eb">✻ Add to this arc · logbook</div>
+      <div class="q">Pick the next step to drop in:</div>
+      <div class="arow"><div class="am"><div class="t">Wind cheat sheet</div><div class="s cross">⇄ From Design</div></div><span class="add">+</span></div>
+      <div class="arow"><div class="am"><div class="t">Core circuit</div><div class="s cross">⇄ From Fitness</div></div><span class="add">+</span></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tb on"><span class="g">⛟</span>Practice</div>
+    <div class="tb"><span class="g">▥</span>Library</div>
+    <div class="tb"><span class="g">⚲</span>Watch</div>
+    <div class="tb"><span class="g">◬</span>Atlas</div>
+  </div>
+</div>
+<div class="col-cap"><span class="tag">5 · Adopt + drop</span><b>Plan-is-a-menu, on the horizontal track.</b> Tapping ＋ lifts a blueprint step; you drop it into a dashed slot between cards (here: before Race 3) — placement is <i>sort_order</i>, not a date. Selective, incremental, reorderable — never a bulk season import.</div>
+</div>
+
+</div><!-- /frames -->
+
+<div class="legend">
+  <h3>What changed at L2 — and why</h3>
+  <div class="sub">The horizontal step timeline + NOW bar stays. What surrounded it gets calmer: a docked ladder, one period header, one adopt menu — and done-vs-planned now reads at a glance.</div>
+  <div class="grid">
+    <div class="item"><span class="num">1</span><b>Horizontal timeline kept — done vs planned differentiated.</b> One continuous track runs left→right, split by the NOW bar. Done = muted card + filled-green node + ✓. Active = accent ring under NOW + sub-step bar. Planned = hollow dashed node + "queued". No more guessing which side of NOW a card is on.</div>
+    <div class="item"><span class="num">2</span><b>Docked zoom ladder, not a floating rail.</b> All / {Arc·Rotation·Season} / Week / Step is a segmented control in its own strip — it never overlaps the track again. The middle label is persona-native, so the ladder stops leaking the sailing word "arc".</div>
+    <div class="item"><span class="num">3</span><b>One period header replaces the season banner.</b> Persona pill + demoted dates + a single capacity bar (done / in-play / queued). The librarian's one-line read is the header's voice — not a separate card lower down.</div>
+    <div class="item"><span class="num">4</span><b>Two AI surfaces merge into one adopt menu.</b> "Librarian noticed" + "Suggestions shaping this plan" become a single <i>Add to this {period}</i> menu — blueprint + cross-interest rows, each with a ＋. The nudge is the menu's framing line, not a rival card.</div>
+    <div class="item"><span class="num">5</span><b>Adoption drops onto the track by order.</b> ＋ lifts one step; you drop it into a slot between cards (right of NOW) by sort_order, never onto a date. Honors "plan is a menu, not a calendar" — improvement lives in the prep slotted between anchored events.</div>
+    <div class="item"><span class="num">6</span><b>The validator badge carries into Review.</b> "preceptor / coach signs off" on a queued step is the same role-typed WHO from mockup #34 — L2 shows who will confirm the capability before the step even starts.</div>
+  </div>
+  <table class="vtab">
+    <thead><tr><th>Persona</th><th>Ladder middle</th><th>Period (pill)</th><th>NOW bar reads</th><th>Done-side card</th><th>Planned-side card</th></tr></thead>
+    <tbody>
+      <tr><td class="craft">Sail racer</td><td>Arc</td><td>⛵ Winter Series</td><td>NOW</td><td>Race 1 ✓</td><td>Rig tune · queued</td></tr>
+      <tr><td class="craft">Nursing student</td><td>Rotation</td><td>🩺 Med-Surg wk 3/6</td><td>NOW</td><td>Neuro checks ✓</td><td>Care-plan · IV lab · queued</td></tr>
+      <tr><td class="craft">Rural entrepreneur</td><td>Season</td><td>🪔 दिवाली rush</td><td>अभी</td><td>Bero haat ✓ ₹2,400</td><td>Supplier run · pricing · queued</td></tr>
+      <tr><td class="craft">Golfer</td><td>Season</td><td>🏌 Club Champs</td><td>NOW</td><td>Sat round ✓ +3</td><td>Lesson · putting · queued</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>

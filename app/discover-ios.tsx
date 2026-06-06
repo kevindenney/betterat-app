@@ -33,6 +33,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -1154,11 +1155,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     letterSpacing: -0.15,
     fontStyle: 'italic',
-    ...Platform.select({
-      ios: { fontFamily: 'Georgia' },
-      android: { fontFamily: 'serif' },
-      web: { fontFamily: 'Georgia, "Times New Roman", serif' } as any,
-    }),
+    fontFamily: fontFamily.serif,
     marginBottom: 12,
   },
 
@@ -1221,11 +1218,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     letterSpacing: -0.15,
     fontStyle: 'italic',
-    ...Platform.select({
-      ios: { fontFamily: 'Georgia' },
-      android: { fontFamily: 'serif' },
-      web: { fontFamily: 'Georgia, "Times New Roman", serif' } as any,
-    }),
+    fontFamily: fontFamily.serif,
     marginBottom: 6,
   },
   alsoSailorProv: {
@@ -1443,11 +1436,7 @@ const styles = StyleSheet.create({
   },
   italicEmphasis: {
     fontStyle: 'italic',
-    ...Platform.select({
-      ios: { fontFamily: 'Georgia' },
-      android: { fontFamily: 'serif' },
-      web: { fontFamily: 'Georgia, "Times New Roman", serif' } as any,
-    }),
+    fontFamily: fontFamily.serif,
   },
   semibold: {
     fontWeight: '600',

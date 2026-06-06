@@ -26,6 +26,7 @@ import { MapPin } from 'lucide-react-native';
 import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { fontFamily } from '@/lib/design-tokens-editorial';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface VenueLocation {
@@ -810,7 +811,10 @@ const styles = StyleSheet.create({
   },
   suggestionCoords: {
     fontSize: 12,
+    fontFamily: fontFamily.mono,
+    fontWeight: '500',
     color: '#64748B',
+    fontVariant: ['tabular-nums'],
   },
   metadataRow: {
     flexDirection: 'row',
@@ -827,8 +831,10 @@ const styles = StyleSheet.create({
   },
   coordinatesValue: {
     fontSize: 12,
+    fontFamily: fontFamily.mono,
     color: '#0F172A',
     fontWeight: '500',
+    fontVariant: ['tabular-nums'],
   },
   mapButton: {
     flexDirection: 'row',
@@ -873,9 +879,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 19,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
     color: '#0F172A',
+    letterSpacing: -0.3,
   },
   closeButton: {
     width: 32,

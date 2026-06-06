@@ -19,10 +19,18 @@ import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { getEventTabRoute } from '@/lib/navigation-config';
 
 export default function StepDetailScreen() {
-  const { id, readOnly, tab, origin } = useLocalSearchParams<{ id: string; readOnly?: string; tab?: string; origin?: string }>();
+  const { id, readOnly, tab, origin, domain } = useLocalSearchParams<{
+    id: string;
+    readOnly?: string;
+    tab?: string;
+    origin?: string;
+    domain?: string;
+  }>();
   const actualId = Array.isArray(id) ? id[0] : id;
   const isReadOnly = readOnly === 'true';
   const sourceOrigin = Array.isArray(origin) ? origin[0] : origin;
+  const sourceDomain = Array.isArray(domain) ? domain[0] : domain;
+  const hideZoomRail = sourceDomain === 'nursing';
   const initialTab = (Array.isArray(tab) ? tab[0] : tab) as
     | 'plan'
     | 'act'
@@ -110,16 +118,18 @@ export default function StepDetailScreen() {
           practice timeline at that zoom, keeping the current step selected
           so the user lands in context (not at the top of an arc they
           didn't open). L1-on-L1 is a no-op — we're already here. */}
-      <ZoomLevelPicker
-        level={1}
-        onChange={(next: ZoomLevel) => {
-          if (next === 1) return;
-          router.push({
-            pathname: '/(tabs)/races',
-            params: { level: String(next), selected: actualId },
-          } as never);
-        }}
-      />
+      {!hideZoomRail ? (
+        <ZoomLevelPicker
+          level={1}
+          onChange={(next: ZoomLevel) => {
+            if (next === 1) return;
+            router.push({
+              pathname: '/(tabs)/races',
+              params: { level: String(next), selected: actualId },
+            } as never);
+          }}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

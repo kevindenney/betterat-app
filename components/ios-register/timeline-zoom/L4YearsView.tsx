@@ -42,6 +42,7 @@ import {
 import { HeadlineMetric } from './HeadlineMetric';
 import { hasHeadlineMetric, resolveHeadlineMetric } from './interestHeadline';
 import { LifetimeVisionEditSheet } from './LifetimeVisionEditSheet';
+import { LifetimeReflectionSheet } from './LifetimeReflectionSheet';
 import { useUpdateLifetimeVision } from '@/hooks/useInterestVision';
 import type {
   LifetimeFinance,
@@ -248,7 +249,17 @@ export function L4YearsView({
   const lifetimeVisionStatement =
     dataset.lifetimeVisionStatement?.trim() || null;
   const [lifetimeVisionEditOpen, setLifetimeVisionEditOpen] = useState(false);
+  // "Start a reflection" lands here — a backward recap that culminates
+  // in writing the lifetime vision. "Not now" dismisses the librarian
+  // card for this mount (persisting the dismissal is a later step).
+  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [librarianDismissed, setLibrarianDismissed] = useState(false);
   const updateLifetimeVision = useUpdateLifetimeVision();
+
+  // Demo datasets carry no editable user_interests row, so vision and
+  // reflection writes no-op there (matches the vision banner gate).
+  const canEditVision =
+    dataset.interest.id !== 'live' && dataset.interest.id !== 'sample';
 
   // Resolve interest-native vocab — L4 is by definition the reflective
   // view, so we always use the late-tier verb and the persona's native
@@ -405,11 +416,7 @@ export function L4YearsView({
 
       <Pressable
         style={styles.lifetimeVisionBanner}
-        onPress={
-          dataset.interest.id !== 'live' && dataset.interest.id !== 'sample'
-            ? () => setLifetimeVisionEditOpen(true)
-            : undefined
-        }
+        onPress={canEditVision ? () => setLifetimeVisionEditOpen(true) : undefined}
         accessibilityRole="button"
         accessibilityLabel={
           lifetimeVisionStatement ? 'Edit lifetime vision' : 'Set lifetime vision'
@@ -490,6 +497,33 @@ export function L4YearsView({
         }}
       />
 
+      <LifetimeReflectionSheet
+        visible={reflectionOpen}
+        interestLabel={dataset.interest.label}
+        recap={{
+          totalSteps: dataset.totalSteps,
+          arcCount,
+          peopleCount,
+          throughLine: lifetimeDominant
+            ? { label: lifetimeDominant.label, color: lifetimeDominant.color }
+            : null,
+          duration: lifetimeDuration,
+          since: dataset.sinceDate,
+        }}
+        initialStatement={lifetimeVisionStatement}
+        placeholder={
+          interestVocab.visionPrompt ?? 'What are you building toward, long-term?'
+        }
+        onClose={() => setReflectionOpen(false)}
+        onSave={async (next) => {
+          if (!canEditVision) return;
+          await updateLifetimeVision.mutateAsync({
+            interestId: dataset.interest.id,
+            lifetime_vision_statement: next,
+          });
+        }}
+      />
+
       <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
         {/* Drift river — how the dominant capability shifted between
             arcs. Only at 2+ arcs (drift needs two points); one arc
@@ -534,7 +568,7 @@ export function L4YearsView({
           />
         ) : null}
 
-        {lifetime?.librarianPrompt ? (
+        {lifetime?.librarianPrompt && !librarianDismissed ? (
           <SeasonLibrarianPrompt
             prompt={{
               ...lifetime.librarianPrompt,
@@ -543,8 +577,13 @@ export function L4YearsView({
                 'Across your practice',
               ),
             }}
-            onPrimary={onLibrarianPrimary}
-            onSecondary={onLibrarianSecondary}
+            onPrimary={
+              onLibrarianPrimary ??
+              (canEditVision ? () => setReflectionOpen(true) : undefined)
+            }
+            onSecondary={
+              onLibrarianSecondary ?? (() => setLibrarianDismissed(true))
+            }
           />
         ) : null}
       </View>

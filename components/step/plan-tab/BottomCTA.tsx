@@ -26,9 +26,12 @@ export interface BottomCTAProps {
   disabled?: boolean;
   onPress: () => void;
   testID?: string;
+  /** Per-interest accent for the enabled fill. Falls back to iOS blue. */
+  accentColor?: string;
 }
 
-export function BottomCTA({ label, hint, disabled, onPress, testID }: BottomCTAProps) {
+export function BottomCTA({ label, hint, disabled, onPress, testID, accentColor }: BottomCTAProps) {
+  const accent = accentColor ?? IOS_BLUE;
   return (
     <View style={styles.wrap} testID={testID}>
       <Pressable
@@ -36,7 +39,11 @@ export function BottomCTA({ label, hint, disabled, onPress, testID }: BottomCTAP
         accessibilityRole="button"
         accessibilityState={{ disabled: !!disabled }}
         accessibilityLabel={label}
-        style={[styles.btn, disabled && styles.btnDisabled]}
+        style={[
+          styles.btn,
+          !disabled && { backgroundColor: accent, shadowColor: accent },
+          disabled && styles.btnDisabled,
+        ]}
       >
         <Text style={[styles.btnText, disabled && styles.btnTextDisabled]}>{label}</Text>
         <ArrowRight
