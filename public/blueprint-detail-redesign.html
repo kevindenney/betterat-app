@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Blueprint detail redesign · BetterAt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ───────────────────────────────────────────────────────────
+     Design mock — NOT wired in. The IN-APP blueprint detail at
+     /library/blueprints/[id]. The live page is a flat list of
+     "Add" cards with no shape: you can't tell it's a sequence,
+     steps don't open, and a subscriber sees the same thing the
+     author does. This gives the published plan a spine:
+
+       • a connected TIMELINE of steps (not a flat list)
+       • each step is CLICKABLE → expands to its interior
+         (the what / how / why / who), the same four facets the
+         step itself carries
+       • PLAN/DO/REVIEW/DISCUSS reframed: a per-step phase tag +
+         a legend that explains the loop every step runs — not a
+         meaningless blueprint-wide progress band
+       • a VIEW TOGGLE: what a SUBSCRIBER sees (their progress)
+         vs what the AUTHOR sees (edit + how subscribers are doing)
+
+     Tints from one --accent (the org/author brand colour).
+     ─────────────────────────────────────────────────────────── */
+  :root{
+    --accent:#0E7C66;        /* RHKYC sailing teal */
+    --accent-soft:#E2F2EE;
+    --accent-ink:#0A4E40;
+    --ink:#101828;
+    --ink-2:#344054;
+    --muted:#667085;
+    --line:#E7ECF3;
+    --line-soft:#EEF2F7;
+    --bg:#F4F6FA;
+    --card:#FFFFFF;
+    --gold:#B7791F;
+    --gold-soft:#FBF3E2;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.12);
+    --shadow-lg:0 1px 2px rgba(16,24,40,.05), 0 24px 48px -20px rgba(16,24,40,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{
+    font-family:'Figtree',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--ink);
+    line-height:1.5;letter-spacing:-.011em;
+    -webkit-font-smoothing:antialiased;padding-bottom:80px;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:0 18px}
+
+  /* ── top bar ── */
+  .topbar{position:sticky;top:0;z-index:40;background:rgba(244,246,250,.82);backdrop-filter:saturate(180%) blur(16px);border-bottom:1px solid var(--line)}
+  .topbar .row{display:flex;align-items:center;gap:12px;height:52px}
+  .back{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-weight:600;font-size:15px;text-decoration:none;cursor:pointer}
+  .back:hover{color:var(--ink)}
+  .back svg{width:17px;height:17px}
+  .topbar-spacer{flex:1}
+  /* view toggle: subscriber vs author */
+  .viewtog{display:flex;gap:3px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px}
+  .viewtog button{font-family:inherit;border:0;background:none;font-size:12.5px;font-weight:700;color:var(--muted);padding:6px 13px;border-radius:999px;cursor:pointer;letter-spacing:-.01em;display:inline-flex;align-items:center;gap:6px}
+  .viewtog button svg{width:14px;height:14px}
+  .viewtog button.on{background:var(--accent);color:#fff}
+
+  /* ── hero ── */
+  .hero{position:relative;margin-top:14px;border-radius:22px;overflow:hidden;padding:24px 24px 20px;
+    background:radial-gradient(120% 150% at 10% 0%, color-mix(in srgb, var(--accent) 92%, #fff) 0%, transparent 55%),
+      radial-gradient(130% 170% at 100% 100%, color-mix(in srgb, var(--accent) 60%, #000 18%) 0%, transparent 60%),
+      linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 52%, #0c2438));
+    color:#fff;box-shadow:var(--shadow-lg)}
+  .hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1px, transparent 1.4px);background-size:18px 18px;opacity:.45;mix-blend-mode:overlay;pointer-events:none}
+  .hero-in{position:relative;z-index:2}
+  .hero-eyebrow{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.86);background:rgba(255,255,255,.14);padding:5px 11px;border-radius:999px}
+  .hero-eyebrow svg{width:13px;height:13px}
+  .hero h1{font-size:27px;line-height:1.12;font-weight:800;letter-spacing:-.026em;margin:13px 0 9px}
+  .hero-by{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:rgba(255,255,255,.9)}
+  .hero-by .av{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:13px}
+  .hdot{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.5)}
+  .pill-sub{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:999px}
+
+  /* phase legend (reframed band) */
+  .legend{margin-top:18px;position:relative;z-index:2}
+  .legend-row{display:flex;gap:6px}
+  .ph{flex:1;text-align:center;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.74);background:rgba(255,255,255,.12);padding:9px 0 8px;border-radius:9px;border:1px solid rgba(255,255,255,.14);position:relative}
+  .ph small{display:block;font-size:9px;font-weight:700;letter-spacing:.02em;text-transform:none;color:rgba(255,255,255,.6);margin-top:2px}
+  .legend-note{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:11.5px;font-weight:500;color:rgba(255,255,255,.78);cursor:pointer}
+  .legend-note svg{width:13px;height:13px;flex:none}
+  .legend-note:hover{color:#fff}
+  .legend-explain{max-height:0;overflow:hidden;transition:max-height .28s ease;font-size:12.5px;line-height:1.55;color:rgba(255,255,255,.9);font-weight:500}
+  .legend-explain.open{max-height:120px;margin-top:7px}
+
+  /* overall progress (subscriber) */
+  .ovr{margin-top:16px;position:relative;z-index:2}
+  .ovr-top{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:rgba(255,255,255,.82)}
+  .ovr-bar{height:7px;border-radius:999px;background:rgba(255,255,255,.2);overflow:hidden;margin-top:7px}
+  .ovr-bar > i{display:block;height:100%;background:#fff;border-radius:999px;transition:width .4s ease}
+
+  /* ── filter strip ── */
+  .filters{display:flex;gap:7px;margin:18px 2px 4px;flex-wrap:wrap}
+  .filters button{font-family:inherit;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:700;color:var(--ink-2);padding:7px 13px;border-radius:999px;cursor:pointer;letter-spacing:-.01em}
+  .filters button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  /* ── section heading ── */
+  .seclead{display:flex;align-items:baseline;justify-content:space-between;margin:20px 2px 10px}
+  .seclead h2{font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .seclead .hint{font-size:12.5px;font-weight:600;color:var(--accent);cursor:pointer}
+
+  /* ── the step timeline ── */
+  .timeline{display:flex;flex-direction:column}
+  .tstep{display:flex;gap:14px;position:relative}
+  .rail{flex:none;width:34px;display:flex;flex-direction:column;align-items:center}
+  .node{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-family:'Manrope';background:#fff;border:2px solid var(--line);color:var(--muted);z-index:2;transition:all .2s ease}
+  .tstep.done .node{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tstep.active .node{background:#fff;border-color:var(--accent);color:var(--accent-ink);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 16%,transparent)}
+  .line{flex:1;width:2px;background:var(--line);margin:3px 0 -3px}
+  .tstep:last-child .line{display:none}
+  .tstep.done .line{background:color-mix(in srgb,var(--accent) 45%,var(--line))}
+
+  .card{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+  .cardhead{display:flex;align-items:flex-start;gap:12px;padding:14px 15px;cursor:pointer;transition:background .15s ease}
+  .cardhead:hover{background:var(--line-soft)}
+  .ch-main{flex:1;min-width:0}
+  .ch-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+  .phtag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);padding:2px 7px;border-radius:6px}
+  .phtag.plan{color:var(--accent-ink);background:var(--accent-soft)}
+  .phtag.do{color:#1D4ED8;background:#E6EDFD}
+  .phtag.review{color:var(--gold);background:var(--gold-soft)}
+  .phtag.discuss{color:#7A2D9E;background:#F3E8FB}
+  .ch-status{font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;display:inline-flex;align-items:center;gap:4px;margin-left:auto}
+  .ch-status svg{width:12px;height:12px}
+  .ch-status.done{color:var(--accent-ink)}
+  .ch-status.active{color:var(--gold)}
+  .ch-status.pending{color:var(--muted)}
+  .ch-title{font-size:16px;font-weight:800;letter-spacing:-.02em;line-height:1.3}
+  .ch-sub{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:1px}
+  .ch-desc{font-size:13.5px;color:var(--ink-2);font-weight:500;line-height:1.5;margin-top:7px}
+  .ch-caret{flex:none;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:transform .25s ease;margin-top:-2px}
+  .ch-caret svg{width:17px;height:17px}
+  .card.open .ch-caret{transform:rotate(180deg)}
+
+  /* collapsed footer hint row (caps + who, even when collapsed) */
+  .ch-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .cap{font-size:11.5px;font-weight:600;color:var(--ink-2);background:var(--line-soft);border:1px solid var(--line);padding:3px 9px;border-radius:7px}
+  .ch-author-stat{display:none;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--accent-ink);margin-top:10px}
+  .ch-author-stat svg{width:13px;height:13px}
+  body.authorview .ch-author-stat{display:inline-flex}
+
+  /* expanded interior */
+  .interior{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .card.open .interior{max-height:760px}
+  .interior-in{padding:2px 15px 16px;border-top:1px solid var(--line-soft)}
+  .facetgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .facetbox{background:var(--line-soft);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+  .facetbox .fk{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:5px}
+  .facetbox .fk svg{width:12px;height:12px}
+  .facetbox .fv{font-size:13px;font-weight:600;color:var(--ink);margin-top:5px;line-height:1.4}
+  .facetbox.full{grid-column:1 / -1}
+
+  /* sub-steps (the how) */
+  .subs{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .sub{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink-2);font-weight:550}
+  .sub .sb{width:17px;height:17px;border-radius:6px;border:2px solid var(--line);flex:none;position:relative}
+  .sub.sdone .sb{background:var(--accent);border-color:var(--accent)}
+  .sub.sdone .sb::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .sub.sdone{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+
+  /* people chips (the who) */
+  .who{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+  .person{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 4px;font-size:12.5px;font-weight:650}
+  .person .pa{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;font-family:'Manrope'}
+
+  /* race step → atlas course */
+  .course{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative;height:118px;
+    background:linear-gradient(180deg,#cfe6f2,#aacfe4);display:flex;align-items:center;justify-content:center}
+  .course .badge{position:absolute;top:9px;left:9px;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#0A4E40;background:rgba(255,255,255,.86);padding:3px 9px;border-radius:7px;display:inline-flex;align-items:center;gap:5px}
+  .course .badge svg{width:12px;height:12px}
+  .course .marks{font-size:12.5px;font-weight:700;color:#0A4E40}
+
+  /* interior footer action */
+  .interior-foot{display:flex;align-items:center;gap:10px;margin-top:16px}
+  .step-btn{font-family:inherit;flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:800;font-size:14px;border-radius:11px;padding:11px;cursor:pointer;border:1px solid transparent;letter-spacing:-.01em}
+  .step-btn svg{width:16px;height:16px}
+  .step-btn.primary{background:var(--accent);color:#fff;box-shadow:0 8px 16px -8px color-mix(in srgb,var(--accent) 60%,transparent)}
+  .step-btn.ghost{background:#fff;color:var(--ink-2);border-color:var(--line);flex:none;padding:11px 14px}
+  /* author-only edit affordance */
+  .edit-aff{display:none}
+  body.authorview .edit-aff{display:inline-flex}
+  body.authorview .sub-add{display:flex}
+  .sub-add{display:none;align-items:center;gap:10px;font-size:13px;color:var(--accent-ink);font-weight:700;cursor:pointer;margin-top:2px}
+  .sub-add .sb{width:17px;height:17px;border-radius:6px;border:2px dashed color-mix(in srgb,var(--accent) 45%,var(--line));flex:none;display:flex;align-items:center;justify-content:center;color:var(--accent)}
+
+  /* author summary banner */
+  .authbar{display:none;align-items:center;gap:12px;background:var(--gold-soft);border:1px solid color-mix(in srgb,var(--gold) 30%,var(--line));border-radius:14px;padding:12px 14px;margin-top:16px}
+  body.authorview .authbar{display:flex}
+  .authbar .ic{width:32px;height:32px;border-radius:9px;flex:none;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center}
+  .authbar .ic svg{width:17px;height:17px}
+  .authbar .t{font-size:13.5px;font-weight:700;color:#6b4a08;line-height:1.4}
+  .authbar .t b{font-weight:800}
+  /* subscriber-only "your plan" cta after hero hidden in author view */
+  body.authorview .ovr{display:none}
+
+  .note{font-size:12px;color:var(--muted);text-align:center;margin:30px auto 0;max-width:600px;line-height:1.55}
+  code{background:var(--line-soft);padding:1px 5px;border-radius:5px;font-size:11.5px}
+</style>
+</head>
+<body class="subview">
+
+<div class="topbar">
+  <div class="wrap row">
+    <a class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Blueprints</a>
+    <div class="topbar-spacer"></div>
+    <div class="viewtog" id="viewtog">
+      <button class="on" data-view="sub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Subscriber</button>
+      <button data-view="author"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg> Author</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-in">
+      <span class="hero-eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg> Blueprint · Sail racing</span>
+      <h1>Achieving Peak Performance at the Dragon Worlds</h1>
+      <div class="hero-by">
+        <span class="av">⛵</span> by Kevin Denney
+        <span class="hdot"></span> Royal Hong Kong Yacht Club
+        <span class="hdot"></span> 12 subscribers
+        <span class="pill-sub" id="subPill">Subscribed</span>
+      </div>
+
+      <!-- PHASE LEGEND (reframed band) -->
+      <div class="legend">
+        <div class="legend-row">
+          <div class="ph"><span>Plan</span><small>the what</small></div>
+          <div class="ph"><span>Do</span><small>work it</small></div>
+          <div class="ph"><span>Review</span><small>how it went</small></div>
+          <div class="ph"><span>Discuss</span><small>with crew</small></div>
+        </div>
+        <div class="legend-note" id="legendNote">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          What do these mean?
+        </div>
+        <div class="legend-explain" id="legendExplain">Every step you adopt runs this loop: you <b>plan</b> what it is, <b>do</b> it, <b>review</b> how it went, then <b>discuss</b> it with your crew or coach. The tag on each step below shows where it sits in that loop for you right now — the blueprint isn't in one phase, each step is.</div>
+      </div>
+
+      <!-- SUBSCRIBER PROGRESS -->
+      <div class="ovr">
+        <div class="ovr-top"><span>Your progress</span><span id="ovrCount">3 of 8 settled · 1 in motion</span></div>
+        <div class="ovr-bar"><i style="width:44%"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTHOR BANNER (author view only) -->
+  <div class="authbar">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></div>
+    <div class="t">You published this plan. <b>12 people subscribed.</b> Tap any step to edit its what / how / why / who — changes flow to everyone on the path. Drag the rail to reorder.</div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters" id="filters">
+    <button class="on" data-f="all">All 8</button>
+    <button data-f="active">In motion 1</button>
+    <button data-f="done">Settled 3</button>
+    <button data-f="plan">Plan</button>
+    <button data-f="do">Do</button>
+    <button data-f="review">Review</button>
+    <button data-f="discuss">Discuss</button>
+  </div>
+
+  <div class="seclead">
+    <h2>The path · 8 steps</h2>
+    <span class="hint" id="expandAll">Expand all</span>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="timeline" id="timeline"><!-- injected --></div>
+
+  <p class="note">Design mock for the in-app <code>/library/blueprints/[id]</code> — not wired in. Fixes the flat live page: a connected <b>step timeline</b>, each step <b>clickable into its interior</b> (what / how / why / who, race → Atlas course), <b>PLAN/DO/REVIEW/DISCUSS</b> reframed as a per-step tag + a legend that explains the loop, and a <b>Subscriber ↔ Author</b> toggle so you can see exactly what people who have your plan see. Tints from one accent.</p>
+</div>
+
+<script>
+  /* In the app these come from blueprint_steps joined to timeline_steps
+     (title, phase, status, sub_steps, capabilities, people, is_race),
+     plus step_user_progress for the viewer (subscriber) and aggregate
+     counts across subscribers (author). Inlined here. */
+  const STEPS = [
+    { ph:'plan', title:'Goal-setting · your Worlds outcome', sub:'Decide what a good Worlds looks like',
+      status:'done',
+      desc:'Pay your entry deposit, confirm your charter or owned boat, and finalise the three-person line-up that will sail the Worlds.',
+      caps:['Decision-making','Crew alignment'],
+      what:'A written target for the regatta — a result you can commit to and the boat + crew that will chase it.',
+      how:[['Pay the entry deposit',1],['Confirm charter or owned boat',1],['Lock the three-person line-up',1]],
+      who:[{i:'KD',bg:'#0E7C66',n:'You'},{i:'AL',bg:'#1D4ED8',n:'Andrew Lam · trim'}],
+      reached:12, race:false },
+
+    { ph:'plan', title:'Build your tuning matrix · settings you can trust', sub:'Rig & sail map for every condition',
+      status:'done',
+      desc:'Build a tuning matrix that maps rig and sail settings to every wind band and sea state, re-validated each testing day so it\'s trusted by race week.',
+      caps:['Boatspeed development','Tuning matrix'],
+      what:'A one-page matrix: for each wind band and sea state, the rig tension, mast rake and sail trim you trust.',
+      how:[['Draft the wind-band rows',1],['Fill settings from past racing',1],['Re-validate on 2 testing days',1]],
+      who:[{i:'KD',bg:'#0E7C66',n:'You'},{i:'JW',bg:'#7A2D9E',n:'Jo Wong · helm'}],
+      reached:10, race:false },
+
+    { ph:'do', title:'Base period · fitness & boathandling to automatic', sub:'Build the physical engine',
+      status:'done',
+      desc:'Use the base period to build a periodized physical engine and drill manoeuvres to a no-speed-loss standard, so handling is off the table by the build period.',
+      caps:['Endurance','Boat handling'],
+      what:'A body and a crew that can hold technique for a full day of racing without fading or fumbling manoeuvres.',
+      how:[['Set a periodized fitness block',1],['Drill tacks to no-speed-loss',1],['Drill sets & douses cold',0]],
+      who:[{i:'KD',bg:'#0E7C66',n:'You'},{i:'crew',bg:'#B7791F',n:'Full crew'}],
+      reached:7, race:false },
+
+    { ph:'do', title:'Two-boat testing protocol · the speed engine', sub:'One variable at a time',
+      status:'active',
+      desc:'Run a structured two-boat testing program where you change one variable at a time and measure the delta against a tuning partner.',
+      caps:['Two-boat testing','Boatspeed development'],
+      what:'A repeatable testing routine that turns "feels fast" into a measured delta you can trust.',
+      how:[['Find a tuning partner',1],['Agree the test protocol',1],['Log deltas in a shared sheet',0],['Lock the fast settings',0]],
+      who:[{i:'KD',bg:'#0E7C66',n:'You'},{i:'TP',bg:'#1D4ED8',n:'Tuning partner boat'}],
+      reached:4, race:false },
+
+    { ph:'do', title:'Race week · championship execution', sub:'Sail the regatta',
+      status:'pending',
+      desc:'Run your race-week routine: course knowledge, the start, and the first-beat plan that puts you in the top group off the line.',
+      caps:['Starting','Course knowledge'],
+      what:'A clean week of racing where your boatspeed and start put you in the leading pack on every first beat.',
+      how:[['Walk the course on Atlas',0],['Drill the start sequence',0],['Set the first-beat plan',0]],
+      who:[{i:'KD',bg:'#0E7C66',n:'You'},{i:'crew',bg:'#B7791F',n:'Full crew'}],
+      reached:2, race:true,
+      marks:'Victoria Harbour · windward–leeward · 4 marks' },
+
+    { ph:'review', title:'Debrief & video loop · turn every session into a gain', sub:'One concrete change per day',
+      status:'pending',
+      desc:'Run a structured debrief and video loop on every session so each day produces a concrete change you carry into the next.',
+      caps:['Debrief discipline','Self-assessment'],
+      what:'A short, honest debrief after every day that ends with exactly one thing to change tomorrow.',
+      how:[['Capture video each session',0],['Run the 15-min debrief',0],['Write the one change down',0]],
+      who:[{i:'KD',bg:'#0E7C66',n:'You'},{i:'crew',bg:'#B7791F',n:'Full crew'}],
+      reached:1, race:false },
+
+    { ph:'review', title:'Post-regatta debrief · what the result taught you', sub:'Evidence vs the plan',
+      status:'pending',
+      desc:'Review the regatta against the outcome you set in step one — where speed, starts and decisions actually stood.',
+      caps:['Race analysis','Reflective practice'],
+      what:'An honest read on the gap between the target you set and the result, broken down by speed / starts / decisions.',
+      how:[['Score the regatta vs the goal',0],['Tag the 3 biggest gaps',0]],
+      who:[{i:'KD',bg:'#0E7C66',n:'You'}],
+      reached:0, race:false },
+
+    { ph:'discuss', title:'Cohort review & next cycle · plan the next worlds', sub:'With your crew and coach',
+      status:'pending',
+      desc:'Bring the evidence to your crew and coach, agree what carries into the next cycle, and set the targets for the next campaign.',
+      caps:['Crew alignment','Goal-setting'],
+      what:'A shared decision with crew + coach on what to keep, drop, and target for the next campaign.',
+      how:[['Share the debrief with crew',0],['Agree next-cycle targets',0]],
+      who:[{i:'KD',bg:'#0E7C66',n:'You'},{i:'JW',bg:'#7A2D9E',n:'Jo Wong · helm'},{i:'co',bg:'#C2410C',n:'Coach'}],
+      reached:0, race:false },
+  ];
+
+  const STATUS = {
+    done:{cls:'done',label:'Settled',svg:'<path d="M20 6L9 17l-5-5"/>'},
+    active:{cls:'active',label:'In motion',svg:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'},
+    pending:{cls:'pending',label:'Not started',svg:'<circle cx="12" cy="12" r="9"/>'}
+  };
+  const ICON = {
+    what:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+    how:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>',
+    why:'<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>',
+    who:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>'
+  };
+
+  function stepHTML(s, idx){
+    const st = STATUS[s.status];
+    const cls = s.status==='done'?'done':(s.status==='active'?'active':'');
+    const node = s.status==='done'
+      ? "<svg viewBox='0 0 24 24' fill='none' stroke='#fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' style='width:16px;height:16px'><path d='M20 6L9 17l-5-5'/></svg>"
+      : (idx+1);
+    const caps = s.caps.map(c=>`<span class="cap">${c}</span>`).join('');
+    const how = s.how.map(([t,d])=>`<div class="sub ${d?'sdone':''}"><span class="sb"></span>${t}</div>`).join('')
+      + `<div class="sub-add"><span class="sb">+</span>Add a sub-step</div>`;
+    const who = s.who.map(p=>`<span class="person"><span class="pa" style="background:${p.bg}">${p.i}</span>${p.n}</span>`).join('');
+    const course = s.race ? `<div class="course"><span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg> Race step · course on Atlas</span><span class="marks">${s.marks}</span></div>` : '';
+    return `<div class="tstep ${cls}" data-ph="${s.ph}" data-status="${s.status}">
+      <div class="rail"><div class="node">${node}</div><div class="line"></div></div>
+      <div class="card" data-idx="${idx}">
+        <div class="cardhead">
+          <div class="ch-main">
+            <div class="ch-top">
+              <span class="phtag ${s.ph}">${s.ph}</span>
+              <span class="ch-status ${st.cls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${st.svg}</svg>${st.label}</span>
+            </div>
+            <div class="ch-title">${s.title}</div>
+            <div class="ch-sub">${s.sub}</div>
+            <div class="ch-desc">${s.desc}</div>
+            <div class="ch-meta">${caps}</div>
+            <div class="ch-author-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> ${s.reached} of 12 subscribers reached this step</div>
+          </div>
+          <div class="ch-caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+        </div>
+        <div class="interior">
+          <div class="interior-in">
+            <div class="facetgrid">
+              <div class="facetbox full"><div class="fk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICON.what}</svg> The what</div><div class="fv">${s.what}</div></div>
+            </div>
+            <div class="seclead" style="margin:16px 0 8px"><h2>How · sub-steps</h2></div>
+            <div class="subs">${how}</div>
+            ${course}
+            <div class="facetgrid">
+              <div class="facetbox"><div class="fk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICON.why}</svg> Why</div><div class="fv">${s.caps.join(' · ')}</div></div>
+              <div class="facetbox"><div class="fk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICON.who}</svg> Who</div><div class="fv" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"><div class="who">${who}</div></div></div>
+            </div>
+            <div class="interior-foot">
+              <button class="step-btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Open this step</button>
+              <button class="step-btn ghost edit-aff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg> Edit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = STEPS.map(stepHTML).join('');
+
+  // expand / collapse a step
+  tl.addEventListener('click', e=>{
+    const head = e.target.closest('.cardhead'); if(!head) return;
+    head.closest('.card').classList.toggle('open');
+  });
+
+  // expand all toggle
+  let allOpen = false;
+  document.getElementById('expandAll').addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.card').forEach(c=>c.classList.toggle('open', allOpen));
+    this.textContent = allOpen ? 'Collapse all' : 'Expand all';
+  });
+
+  // legend explainer
+  const ln = document.getElementById('legendNote');
+  const le = document.getElementById('legendExplain');
+  ln.addEventListener('click', ()=>{ le.classList.toggle('open'); });
+
+  // filters
+  document.getElementById('filters').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    const f = b.dataset.f;
+    document.querySelectorAll('.tstep').forEach(s=>{
+      const show = f==='all'
+        || (f==='active' && s.dataset.status==='active')
+        || (f==='done' && s.dataset.status==='done')
+        || (s.dataset.ph===f);
+      s.style.display = show ? '' : 'none';
+    });
+  });
+
+  // view toggle: subscriber vs author
+  document.getElementById('viewtog').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#viewtog button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    const author = b.dataset.view==='author';
+    document.body.classList.toggle('authorview', author);
+    document.body.classList.toggle('subview', !author);
+    document.getElementById('subPill').textContent = author ? 'Your blueprint' : 'Subscribed';
+  });
+</script>
+</body>
+</html>
