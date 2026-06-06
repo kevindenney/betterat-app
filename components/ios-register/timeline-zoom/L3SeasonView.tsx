@@ -35,7 +35,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
-import { SnakeStepTimeline, SnakeReorderList } from './SnakeTimeline';
+import { SnakeStepTimeline, SnakeReorderList, SnakeLegend } from './SnakeTimeline';
 import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
@@ -128,6 +128,9 @@ interface L3SeasonViewProps {
   onAddStep?: () => void;
   /** The parent chrome already owns scope selection; hide the inline counter row. */
   hideInlineCounter?: boolean;
+  /** Floating-tab-bar clearance — added to the scroll content's bottom
+   *  padding so the last snake row clears the hovering tab bar. */
+  bottomInset?: number;
 }
 
 export function L3SeasonView({
@@ -147,6 +150,7 @@ export function L3SeasonView({
   onEditArc,
   onAddStep,
   hideInlineCounter,
+  bottomInset = 0,
 }: L3SeasonViewProps) {
   const effectiveSeasonId = selectedSeasonId ?? dataset.currentSeasonId;
   const season = dataset.seasons.find((s) => s.id === effectiveSeasonId)
@@ -460,6 +464,7 @@ export function L3SeasonView({
       contentContainerStyle={[
         styles.scrollContent,
         selectEnabled && styles.scrollContentSelecting,
+        { paddingBottom: bottomInset + (selectEnabled ? 160 : 32) },
       ]}
       showsVerticalScrollIndicator={false}
       scrollEnabled={!reorderDragging}
@@ -824,6 +829,8 @@ export function L3SeasonView({
           onLongPressStep={canReorder && !filtering ? enterReorder : undefined}
         />
       ) : null}
+
+      {!isReordering && snakeSteps.length > 0 ? <SnakeLegend /> : null}
     </ScrollView>
 
       <PickerListSheet<TimelineSeason>

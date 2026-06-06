@@ -357,6 +357,46 @@ function PhaseDot({ state, done }: { state: PhaseState; done: boolean }) {
   return <View style={[styles.pdot, done ? styles.pdotDone : styles.pdotFull]} />;
 }
 
+/* ───────────────────────── legend ───────────────────────── */
+
+/** Decodes the snake's visual grammar: the azure/dashed thread, the red
+ *  NOW anchor, the rose race stripe, and the per-card Plan·Do·Review
+ *  triad. Render once beneath the river. */
+export function SnakeLegend() {
+  return (
+    <View style={styles.legend}>
+      <View style={styles.legendKey}>
+        <View style={[styles.legendLine, { backgroundColor: AZURE }]} />
+        <Text style={styles.legendText}>done</Text>
+      </View>
+      <View style={styles.legendKey}>
+        <View style={styles.legendLineDashed}>
+          <View style={styles.legendDash} />
+          <View style={styles.legendDash} />
+          <View style={styles.legendDash} />
+        </View>
+        <Text style={styles.legendText}>planned</Text>
+      </View>
+      <View style={styles.legendKey}>
+        <View style={[styles.legendDot, { backgroundColor: NOW }]} />
+        <Text style={styles.legendText}>now</Text>
+      </View>
+      <View style={styles.legendKey}>
+        <View style={[styles.legendSwatch, { backgroundColor: ROSE }]} />
+        <Text style={styles.legendText}>race</Text>
+      </View>
+      <View style={styles.legendKey}>
+        <View style={styles.legendTriad}>
+          <View style={[styles.pdot, styles.pdotFull]} />
+          <View style={[styles.pdot, styles.pdotHalf]} />
+          <View style={[styles.pdot, styles.pdotEmpty]} />
+        </View>
+        <Text style={styles.legendText}>Plan · Do · Review</Text>
+      </View>
+    </View>
+  );
+}
+
 /* ───────────────────────── nodes (all-time) ───────────────────────── */
 
 export interface SnakeNode {
@@ -646,6 +686,59 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: AZURE,
     zIndex: 20,
+  },
+
+  /* legend — decodes the river grammar */
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    rowGap: 8,
+    columnGap: 14,
+    marginTop: 14,
+    marginHorizontal: 16,
+  },
+  legendKey: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendText: {
+    fontSize: 11,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: 0.05,
+  },
+  legendLine: {
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+  },
+  legendLineDashed: {
+    width: 20,
+    height: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  legendDash: {
+    width: 4,
+    height: 3,
+    borderRadius: 1,
+    backgroundColor: 'rgba(60,60,67,0.4)',
+  },
+  legendDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 999,
+  },
+  legendSwatch: {
+    width: 9,
+    height: 9,
+    borderRadius: 2,
+  },
+  legendTriad: {
+    flexDirection: 'row',
+    gap: 3,
   },
 
   /* card lanes */

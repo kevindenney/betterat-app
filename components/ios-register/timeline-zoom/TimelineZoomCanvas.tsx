@@ -519,6 +519,7 @@ export function TimelineZoomCanvas({
                     onEditArc={onEditArc}
                     onAddStep={() => setAddOpen(true)}
                     hideInlineCounter={hideInterestHeader}
+                    bottomInset={tabBarClearance}
                   />
                 ) : null}
                 {level === 4 ? (
