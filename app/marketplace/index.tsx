@@ -112,6 +112,19 @@ export default function MarketplacePage() {
     return match?.interestName ?? interestScope;
   }, [interestScope, blueprints]);
 
+  // Distinct interests that have at least one listed blueprint — the chip row
+  // lets visitors browse the catalog by interest (e.g. "sailing", "drawing").
+  const interestOptions = React.useMemo(() => {
+    const map = new Map<string, { slug: string; name: string; count: number }>();
+    for (const bp of blueprints) {
+      if (!bp.interestSlug) continue;
+      const existing = map.get(bp.interestSlug);
+      if (existing) existing.count += 1;
+      else map.set(bp.interestSlug, { slug: bp.interestSlug, name: bp.interestName ?? bp.interestSlug, count: 1 });
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [blueprints]);
+
   const scopedAuthor = React.useMemo(
     () => (authorScope ? blueprints.find((b) => b.authorUserId === authorScope) ?? null : null),
     [authorScope, blueprints],
@@ -336,6 +349,38 @@ export default function MarketplacePage() {
             </View>
           </View>
         </View>
+      ) : null}
+
+      {!loading && !scopedAuthor && interestOptions.length > 1 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.interestRow}
+        >
+          <Pressable
+            style={[s.interestChip, !interestScope && s.interestChipOn]}
+            onPress={() => router.setParams({ interest: '' })}
+          >
+            <Text style={[s.interestChipText, !interestScope && s.interestChipTextOn]}>
+              All interests
+            </Text>
+          </Pressable>
+          {interestOptions.map((opt) => {
+            const on = interestScope === opt.slug;
+            return (
+              <Pressable
+                key={opt.slug}
+                style={[s.interestChip, on && s.interestChipOn]}
+                onPress={() => router.setParams({ interest: on ? '' : opt.slug })}
+              >
+                <Text style={[s.interestChipText, on && s.interestChipTextOn]}>
+                  {opt.name}
+                </Text>
+                <Text style={[s.interestChipCount, on && s.interestChipCountOn]}>{opt.count}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       ) : null}
 
       {!loading && blueprints.length > 0 ? (
@@ -731,6 +776,33 @@ const s = StyleSheet.create({
   filterChipText: { fontSize: 12.5, fontWeight: '500', color: 'rgba(60, 60, 67, 0.75)' },
   filterChipTextOn: { color: '#28406B', fontWeight: '600' },
   filterCount: { fontSize: 12, color: 'rgba(60, 60, 67, 0.6)', marginLeft: 'auto' as const },
+
+  interestRow: { flexDirection: 'row', gap: 8, paddingVertical: 2, paddingRight: 8 },
+  interestChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.08)',
+  },
+  interestChipOn: {
+    backgroundColor: '#28406B',
+    borderColor: '#28406B',
+  },
+  interestChipText: { fontSize: 13, fontWeight: '600', color: 'rgba(60, 60, 67, 0.8)' },
+  interestChipTextOn: { color: '#FFFFFF' },
+  interestChipCount: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(60, 60, 67, 0.45)',
+    minWidth: 14,
+    textAlign: 'center',
+  },
+  interestChipCountOn: { color: 'rgba(255,255,255,0.75)' },
 
   returnBanner: {
     flexDirection: 'row',
