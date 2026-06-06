@@ -454,7 +454,11 @@ export default function MarketplacePage() {
             const err = errorByBp[bp.id];
             const isPending = pendingId === bp.id;
             return (
-              <View key={bp.id} style={[s.card, isCompact && s.cardCompact]}>
+              <Pressable
+                key={bp.id}
+                style={[s.card, isCompact && s.cardCompact]}
+                onPress={() => router.push(blueprintDetailHref(bp) as any)}
+              >
                 <View style={s.cardCover}>
                   <View style={[s.cardCoverInk, { backgroundColor: aviTone(bp.authorTone) }]} />
                   <BlueprintCoverArt slug={bp.interestSlug} />
@@ -529,7 +533,10 @@ export default function MarketplacePage() {
                       <Pressable
                         style={[s.btnPrimary, isPending && { opacity: 0.6 }]}
                         disabled={isPending}
-                        onPress={() => handleSubscribe(bp)}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleSubscribe(bp);
+                        }}
                       >
                         <Ionicons name={cta.icon} size={13} color="#FFFFFF" />
                         <Text style={s.btnPrimaryText}>{cta.label}</Text>
@@ -537,7 +544,7 @@ export default function MarketplacePage() {
                     );
                   })()}
                 </View>
-              </View>
+              </Pressable>
             );
           })}
               </View>
