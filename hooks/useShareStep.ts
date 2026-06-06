@@ -146,7 +146,12 @@ export function useShareStep(): UseShareStepResult {
   const shareDirect = useCallback(
     async (recipientId: string) => {
       if (!user?.id || !step) return;
-      await shareStepDirect({ senderUserId: user.id, stepId: step.id, recipientUserId: recipientId });
+      try {
+        await shareStepDirect({ senderUserId: user.id, stepId: step.id, recipientUserId: recipientId });
+      } catch {
+        toast.show('Could not share step', 'error');
+        return;
+      }
       toast.show('Shared with recipient', 'success');
       close();
     },
@@ -156,12 +161,17 @@ export function useShareStep(): UseShareStepResult {
   const shareToGroup = useCallback(
     async (groupId: string) => {
       if (!user?.id || !step) return;
-      await shareStepToGroup({
-        senderUserId: user.id,
-        stepId: step.id,
-        groupId,
-        groupKind: 'fleet',
-      });
+      try {
+        await shareStepToGroup({
+          senderUserId: user.id,
+          stepId: step.id,
+          groupId,
+          groupKind: 'fleet',
+        });
+      } catch {
+        toast.show('Could not share to fleet', 'error');
+        return;
+      }
       toast.show('Shared to fleet', 'success');
       close();
     },
@@ -191,7 +201,13 @@ export function useShareStep(): UseShareStepResult {
 
   const copyLink = useCallback(async () => {
     if (!user?.id || !step) return '';
-    const { url } = await createShareLink({ senderUserId: user.id, stepId: step.id });
+    let url: string;
+    try {
+      ({ url } = await createShareLink({ senderUserId: user.id, stepId: step.id }));
+    } catch {
+      toast.show('Could not create link', 'error');
+      return '';
+    }
     if (Platform.OS === 'web') {
       try {
         await (navigator as any).clipboard?.writeText?.(url);
