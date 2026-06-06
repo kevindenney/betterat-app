@@ -41,6 +41,9 @@ const ORGS = [
     label: 'PRADAN — Ranchi Food Hub',
     orgId: 'a1b2c3d4-1111-4000-8000-000000000001',
     emailTag: 'food',
+    // Public showcase reads metadata.is_demo to stamp a "Demo data" badge and
+    // metadata.public_evidence_count to drive the "wins logged" stat.
+    evidenceCount: 19,
     women: [
       'Sunita Devi',
       'Lakshmi Mahto',
@@ -55,6 +58,7 @@ const ORGS = [
     label: 'PRADAN — Hazaribagh Textiles',
     orgId: 'a1b2c3d4-2222-4000-8000-000000000002',
     emailTag: 'textile',
+    evidenceCount: 14,
     women: [
       'Manju Devi',
       'Kavita Kumari',
@@ -87,6 +91,25 @@ async function existingUserIdByEmail(email) {
 async function run() {
   for (const org of ORGS) {
     console.log(`\n=== ${org.label} (${org.orgId}) ===`);
+
+    // Stamp the org as demo data so the public showcase labels it honestly.
+    const { data: orgRow } = await supabase
+      .from('organizations')
+      .select('metadata')
+      .eq('id', org.orgId)
+      .maybeSingle();
+    const nextMeta = {
+      ...(orgRow?.metadata ?? {}),
+      is_demo: true,
+      public_evidence_count: org.evidenceCount,
+    };
+    const { error: metaErr } = await supabase
+      .from('organizations')
+      .update({ metadata: nextMeta })
+      .eq('id', org.orgId);
+    if (metaErr) console.warn(`  ⚠️  metadata:`, metaErr.message);
+    else console.log(`  🏷️  is_demo=true, public_evidence_count=${org.evidenceCount}`);
+
     for (const fullName of org.women) {
       const email = emailFor(org.emailTag, fullName);
 

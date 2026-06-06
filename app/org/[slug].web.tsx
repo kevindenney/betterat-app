@@ -31,6 +31,9 @@ const C = {
   gray2: '#AEAEB2',
   gray1: '#8E8E93',
   white: '#FFFFFF',
+  demoInk: '#8A5A2B',
+  demoBg: '#FBEFE0',
+  demoBorder: '#E8C9A4',
 } as const;
 
 const FONT_SERIF = `${fontFamily.serif}, "Iowan Old Style", "Source Serif 4", Georgia, serif`;
@@ -707,6 +710,7 @@ export default function PublicOrgCatalogWeb() {
   })();
   const heroTaglineFromMeta = typeof meta.tagline === 'string' ? meta.tagline : null;
   const subtitleFromMeta = typeof meta.subtitle === 'string' ? meta.subtitle : null;
+  const isDemo = meta.is_demo === true;
 
   // Split the org name into "Parent University" super + "School of X" headline
   // when the org carries a school/college suffix (matches design).
@@ -907,20 +911,28 @@ export default function PublicOrgCatalogWeb() {
               <Text style={S.heroH1}>{headline || org.name}</Text>
               {subline ? <Text style={S.heroH2}>{subline}</Text> : null}
 
-              <View style={S.verifiedChip}>
-                <View style={S.verifiedDot}><Ionicons name="checkmark" size={10} color={C.white} /></View>
-                <Text style={S.verifiedText}>{copy.verifiedText}</Text>
-                {foundedYear ? (
-                  <>
-                    <Text style={S.verifiedSep}>{'·'}</Text>
-                    <Text style={S.verifiedText}>est. {foundedYear}</Text>
-                  </>
-                ) : null}
-                {isNursing ? (
-                  <>
-                    <Text style={S.verifiedSep}>{'·'}</Text>
-                    <Text style={S.verifiedText}>AACN-aligned</Text>
-                  </>
+              <View style={S.badgeRow}>
+                <View style={S.verifiedChip}>
+                  <View style={S.verifiedDot}><Ionicons name="checkmark" size={10} color={C.white} /></View>
+                  <Text style={S.verifiedText}>{copy.verifiedText}</Text>
+                  {foundedYear ? (
+                    <>
+                      <Text style={S.verifiedSep}>{'·'}</Text>
+                      <Text style={S.verifiedText}>est. {foundedYear}</Text>
+                    </>
+                  ) : null}
+                  {isNursing ? (
+                    <>
+                      <Text style={S.verifiedSep}>{'·'}</Text>
+                      <Text style={S.verifiedText}>AACN-aligned</Text>
+                    </>
+                  ) : null}
+                </View>
+                {isDemo ? (
+                  <View style={S.demoChip}>
+                    <Ionicons name="flask-outline" size={11} color={C.demoInk} />
+                    <Text style={S.demoChipText}>Demo data — illustrative, not a live record</Text>
+                  </View>
                 ) : null}
               </View>
 
@@ -979,8 +991,8 @@ export default function PublicOrgCatalogWeb() {
                 {copy.stat1Tail}
               </Text>
               <View style={S.statFoot}>
-                <Ionicons name="arrow-up" size={13} color={C.iosGreen} />
-                <Text style={S.statFootText}>updated live</Text>
+                <Ionicons name={isDemo ? 'flask-outline' : 'arrow-up'} size={13} color={isDemo ? C.demoInk : C.iosGreen} />
+                <Text style={S.statFootText}>{isDemo ? 'demo data' : 'updated live'}</Text>
               </View>
             </View>
             <View style={S.statDivider} />
@@ -994,8 +1006,8 @@ export default function PublicOrgCatalogWeb() {
                 {copy.stat2Tail}
               </Text>
               <View style={S.statFoot}>
-                <Ionicons name="time-outline" size={13} color={C.label4} />
-                <Text style={S.statFootText}>refreshed last 15 min</Text>
+                <Ionicons name={isDemo ? 'flask-outline' : 'time-outline'} size={13} color={isDemo ? C.demoInk : C.label4} />
+                <Text style={S.statFootText}>{isDemo ? 'demo data' : 'refreshed last 15 min'}</Text>
               </View>
             </View>
             <View style={S.statDivider} />
@@ -1530,13 +1542,21 @@ const S = StyleSheet.create({
     fontStyle: 'italic',
     letterSpacing: -0.012 * 28,
   },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 20 },
   verifiedChip: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
-    marginTop: 20, paddingVertical: 5, paddingHorizontal: 11,
+    paddingVertical: 5, paddingHorizontal: 11,
     paddingLeft: 8, borderRadius: 999,
     backgroundColor: C.tenantSoft, borderWidth: 0.5, borderColor: 'rgba(31,45,82,0.16)',
     alignSelf: 'flex-start',
   },
+  demoChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 5, paddingHorizontal: 11, borderRadius: 999,
+    backgroundColor: C.demoBg, borderWidth: 0.5, borderColor: C.demoBorder,
+    alignSelf: 'flex-start',
+  },
+  demoChipText: { fontSize: 12, color: C.demoInk, fontWeight: '600', letterSpacing: -0.05 },
   verifiedDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: C.tenantInk, alignItems: 'center', justifyContent: 'center' },
   verifiedText: { fontSize: 12, color: C.tenantInk, fontWeight: '500', letterSpacing: -0.05 },
   verifiedSep: { color: C.tenantInk3, fontSize: 12 },
