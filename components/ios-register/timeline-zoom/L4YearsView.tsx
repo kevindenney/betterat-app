@@ -323,11 +323,13 @@ export function L4YearsView({
     );
     const seasonByStep = new Map<string, string>();
     const nodes: SnakeNode[] = [];
+    const seasonKeys: { title: string; color: string }[] = [];
     let progressCount = 0;
     let runningIndex = 0;
     chrono.forEach((season, si) => {
       const color = SEASON_PALETTE[si % SEASON_PALETTE.length];
       const steps = season.weeks.flatMap((w) => w.steps);
+      if (steps.length > 0) seasonKeys.push({ title: season.title, color });
       steps.forEach((step, j) => {
         seasonByStep.set(step.id, step.seasonId ?? season.id);
         const isNow = step.id === dataset.focusStepId;
@@ -362,7 +364,7 @@ export function L4YearsView({
             if (st.status === 'done' || st.status === 'reflected') done += 1;
       progressCount = done;
     }
-    return { nodes, progressCount, seasonByStep };
+    return { nodes, progressCount, seasonByStep, seasonKeys };
   }, [dataset.seasons, dataset.focusStepId, interestVocab]);
 
   return (
@@ -562,6 +564,28 @@ export function L4YearsView({
                 if (seasonId) onOpenSeason?.(seasonId);
               }}
             />
+          </View>
+          <View style={styles.riverLegend}>
+            {allTimeRiver.seasonKeys.map((k) => (
+              <View key={k.title} style={styles.riverLegendKey}>
+                <View
+                  style={[styles.riverLegendSwatch, { backgroundColor: k.color }]}
+                />
+                <Text style={styles.riverLegendText} numberOfLines={1}>
+                  {k.title}
+                </Text>
+              </View>
+            ))}
+            <View style={styles.riverLegendKey}>
+              <Text style={styles.riverLegendStar}>★</Text>
+              <Text style={styles.riverLegendText}>milestone</Text>
+            </View>
+            <View style={styles.riverLegendKey}>
+              <View
+                style={[styles.riverLegendSwatch, { backgroundColor: '#FF6B5A' }]}
+              />
+              <Text style={styles.riverLegendText}>now</Text>
+            </View>
           </View>
         </View>
       ) : null}
@@ -987,7 +1011,7 @@ function ChapterCard({
               <View
                 key={`${b.color}-${i}`}
                 style={{
-                  width: `${(b.fraction * 100).toFixed(2)}%`,
+                  width: `${(b.fraction * 100).toFixed(2)}%` as `${number}%`,
                   backgroundColor: b.color,
                   height: '100%',
                 }}
@@ -1083,6 +1107,34 @@ const styles = StyleSheet.create({
   },
   riverPad: {
     paddingHorizontal: 12,
+  },
+  riverLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12,
+    rowGap: 6,
+    marginTop: 12,
+    marginHorizontal: 16,
+  },
+  riverLegendKey: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  riverLegendSwatch: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+  },
+  riverLegendStar: {
+    fontSize: 10,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  riverLegendText: {
+    fontSize: 11,
+    color: IOS_REGISTER.labelSecondary,
+    letterSpacing: 0.1,
   },
   sectionEyebrow: {
     fontSize: 10.5,
