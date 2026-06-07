@@ -11,8 +11,8 @@
  * (RacesScreen in app/(tabs)/races.tsx).
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -48,6 +48,7 @@ import { MoveToSeasonSheet, buildMoveTargets } from './MoveToSeasonSheet';
 import { TagBulkSheet } from './TagBulkSheet';
 import { ScheduleBulkSheet } from './ScheduleBulkSheet';
 import { useStarterStepSeed } from '@/hooks/useStarterStepSeed';
+import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 
 // Below this many steps a user hasn't built up enough of an arc for the L3
 // summary view to be meaningful, so we land them at L2 (week timeline).
@@ -557,8 +558,23 @@ export function TimelineZoomPracticeScreen() {
     stepsLoading,
   });
 
-  // Brief loading shim while the seeder runs OR while step query is in
-  // flight. The auto-seed replaces the old empty-state CTA entirely.
+  // Safety net: the auto-seed can silently no-op (a dropped session, a
+  // race, or an interest already stamped but missing its step). Without an
+  // escape hatch the Practice tab would spin on "Setting up…" forever. After
+  // a short grace period with still no content, surface a manual CTA so the
+  // user is never trapped. The happy path (fast seed) clears before the timer.
+  const plus = useUniversalPlus();
+  const [seedGraceElapsed, setSeedGraceElapsed] = useState(false);
+  useEffect(() => {
+    if (hasContent || stepsLoading) {
+      setSeedGraceElapsed(false);
+      return;
+    }
+    const t = setTimeout(() => setSeedGraceElapsed(true), 6000);
+    return () => clearTimeout(t);
+  }, [hasContent, stepsLoading, interestId]);
+
+  // Brief loading shim while the seeder runs OR while step query is in flight.
   if (!hasContent) {
     return (
       <SafeAreaView style={styles.surface} edges={['top']}>
@@ -571,6 +587,20 @@ export function TimelineZoomPracticeScreen() {
               <Text style={styles.signedInLine}>
                 Signed in as <Text style={styles.signedInEmail}>{signedInEmail}</Text>
               </Text>
+            ) : null}
+            {!stepsLoading && seedGraceElapsed ? (
+              <View style={styles.emptyFallback}>
+                <Text style={styles.emptyFallbackHint}>
+                  Taking longer than expected.
+                </Text>
+                <TouchableOpacity
+                  style={styles.emptyCta}
+                  onPress={() => plus.open()}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.emptyCtaText}>Add your first step</Text>
+                </TouchableOpacity>
+              </View>
             ) : null}
           </View>
         </View>
@@ -679,5 +709,26 @@ const styles = StyleSheet.create({
   signedInEmail: {
     fontWeight: '600',
     color: IOS_REGISTER.labelSecondary,
+  },
+  emptyFallback: {
+    marginTop: 16,
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyFallbackHint: {
+    fontSize: 13,
+    color: IOS_REGISTER.labelTertiary,
+    textAlign: 'center',
+  },
+  emptyCta: {
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyCtaText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
