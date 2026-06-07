@@ -652,13 +652,19 @@ export interface QuantReflectionWeek {
 /** Season-scope quantified analysis (L3 · elapsed window). */
 export interface SeasonQuant {
   kind: 'season';
-  /** Planned-vs-proven bars, ranked by total volume. */
+  /** Planned-vs-proven bars, ranked by total volume (capped for display). */
   capabilities: QuantCapabilityStat[];
+  /** Capabilities beyond the displayed cap, rolled into a "+N more" row. */
+  capabilitiesMore?: number;
+  /** True when no capability has any proven evidence yet (soft empty state). */
+  provenEmpty: boolean;
   /** Three headline tiles (evidence rate · steps/week · capabilities). */
   stats: QuantStatTile[];
   /** Per-week reflection cadence cells. */
   cadence: QuantReflectionWeek[];
   cadenceLabel: string;
+  /** True when no week has a logged reflection (soft empty state). */
+  cadenceEmpty: boolean;
   /** Crew presence rows. */
   crew: QuantCrewMember[];
   crewHeader: string;
@@ -669,8 +675,10 @@ export interface SeasonQuant {
 /** Lifetime-scope quantified analysis (L4 · whole practice). */
 export interface LifetimeQuant {
   kind: 'lifetime';
-  /** Capability distribution across the whole practice, with share %. */
+  /** Capability distribution across the whole practice, with share % (capped). */
   capabilities: QuantCapabilityStat[];
+  /** Capabilities beyond the displayed cap, rolled into a "+N more" row. */
+  capabilitiesMore?: number;
   capabilitiesHeader: string;
   /** Three headline tiles (proven lifetime · reflection rate · top cap). */
   stats: QuantStatTile[];

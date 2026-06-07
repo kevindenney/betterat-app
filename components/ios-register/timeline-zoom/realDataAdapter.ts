@@ -1105,11 +1105,6 @@ function computeSeasonAnalysis(
     .map((entry) => (entry.label === 'Practice' || entry.label === 'General' ? null : entry.label))
     .find(Boolean) ?? null;
   const period = interestVocab.periodNoun;
-  const promptBody = seasonName
-    ? `You're at week ${currentWeekNumber} of ${weeks.length} in ${seasonName}.${
-        dominantLabel ? ` ${dominantLabel} has been the dominant thread so far.` : ''
-      } What do you want this ${period} to add up to?`
-    : `You're at week ${currentWeekNumber} of ${weeks.length}. What do you want this ${period} to add up to?`;
 
   const phases = computeSeasonPhases(weeks, interestVocab);
 
@@ -1156,12 +1151,19 @@ function computeSeasonAnalysis(
     .reduce((n, w) => n + w.steps.filter((s) => !s.pinnedFromOtherInterest).length, 0);
   const evidenceRate = totalPlanned > 0 ? Math.round((totalProven / totalPlanned) * 100) : 0;
   const stepsPerWeek = elapsedWeeks > 0 ? elapsedStepCount / elapsedWeeks : 0;
+  const provenEmpty = totalProven === 0;
   const quantStats: QuantStatTile[] = [
-    {
-      value: `${evidenceRate}%`,
-      label: 'evidence rate',
-      note: `${totalProven} of ${totalPlanned} proven`,
-    },
+    provenEmpty
+      ? {
+          value: '—',
+          label: 'evidence rate',
+          note: totalPlanned > 0 ? `0 of ${totalPlanned} proven yet` : 'no evidence yet',
+        }
+      : {
+          value: `${evidenceRate}%`,
+          label: 'evidence rate',
+          note: `${totalProven} of ${totalPlanned} proven`,
+        },
     { value: stepsPerWeek.toFixed(1), label: 'steps / week' },
     { value: `${quantCapabilities.length}`, label: 'capabilities' },
   ];
@@ -1225,16 +1227,71 @@ function computeSeasonAnalysis(
       detail: `Only a touch so far — a couple more steps would round out your mix.`,
     });
   }
+  // Cap the displayed capability list; the long tail of single-touch
+  // capabilities rolls up into a "+N more" row. Stats/actions above are
+  // already computed over the full set, so capping is display-only.
+  const CAP_LIMIT = 6;
   const quant: SeasonQuant = {
     kind: 'season',
-    capabilities: quantCapabilities,
+    capabilities: quantCapabilities.slice(0, CAP_LIMIT),
+    capabilitiesMore: Math.max(0, quantCapabilities.length - CAP_LIMIT),
+    provenEmpty,
     stats: quantStats,
     cadence,
     cadenceLabel,
+    cadenceEmpty: reflectedWeeks === 0,
     crew: quantCrew,
     crewHeader: interestVocab.crewHeader,
     nextActions,
   };
+
+  // ── Story prose ────────────────────────────────────────────────────────
+  // Draw on the same signals the Numbers view surfaces so the qualitative
+  // voice is specific to this arc, not a fixed template: pace + breadth,
+  // the dominant thread (with its runner-up), the lead crew member, and an
+  // honest read on the doing-vs-proving gap.
+  const secondLabel =
+    quantCapabilities[1] && quantCapabilities[1]!.label !== dominantLabel
+      ? quantCapabilities[1]!.label
+      : null;
+  const leadCrew = quantCrew[0];
+  const stepNoun = elapsedStepCount === 1 ? 'step' : 'steps';
+
+  const bodyParts: string[] = [];
+  bodyParts.push(
+    seasonName
+      ? `You're ${currentWeekNumber} of ${weeks.length} weeks into ${seasonName}, ${elapsedStepCount} ${stepNoun} in.`
+      : `You're ${currentWeekNumber} of ${weeks.length} weeks in, ${elapsedStepCount} ${stepNoun} logged.`,
+  );
+  if (dominantLabel) {
+    bodyParts.push(
+      secondLabel
+        ? `${dominantLabel} is the thread you keep returning to, with ${secondLabel} close behind.`
+        : `${dominantLabel} is the thread you keep returning to.`,
+    );
+  }
+  const promptBody = bodyParts.join(' ');
+
+  let emphasisLine: string | undefined;
+  if (leadCrew && leadCrew.value > 0) {
+    const firstName = leadCrew.name.split(' ')[0];
+    emphasisLine = `${firstName} has been alongside ${leadCrew.value} of ${elapsedWeeks} ${
+      elapsedWeeks === 1 ? 'week' : 'weeks'
+    }.`;
+  } else if (quantCapabilities.length > 0) {
+    emphasisLine = `${quantCapabilities.length} capabilities touched, about ${stepsPerWeek.toFixed(
+      1,
+    )} a week.`;
+  }
+
+  let supportingLine: string;
+  if (provenEmpty && reflectedWeeks === 0) {
+    supportingLine = `Plenty done — but nothing proven or reflected on yet. That's the gap worth closing.`;
+  } else if (nextActions[0]) {
+    supportingLine = nextActions[0]!.detail;
+  } else {
+    supportingLine = `What do you want this ${period} to add up to?`;
+  }
 
   return {
     weeklyCapabilities,
@@ -1248,6 +1305,8 @@ function computeSeasonAnalysis(
     librarianPrompt: {
       eyebrow: interestVocab.librarianEyebrow,
       body: promptBody,
+      emphasisLine,
+      supportingLine,
       primaryCta: { label: `Review this ${period}`, intent: 'open-season-check-in' },
       secondaryCta: { label: 'Not now' },
     },
@@ -1490,9 +1549,13 @@ function computeLifetimeQuant(
     });
   }
 
+  // Cap the displayed distribution; the long tail rolls into "+N more".
+  // share/stats/actions above are computed over the full set.
+  const CAP_LIMIT = 6;
   return {
     kind: 'lifetime',
-    capabilities,
+    capabilities: capabilities.slice(0, CAP_LIMIT),
+    capabilitiesMore: Math.max(0, capabilities.length - CAP_LIMIT),
     capabilitiesHeader: interestVocab.capabilityHeader,
     stats,
     trajectoryNote,

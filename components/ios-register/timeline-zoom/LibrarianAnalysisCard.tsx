@@ -139,46 +139,62 @@ function SeasonNumbers({ quant }: { quant: SeasonQuant }) {
   const maxCadence = Math.max(1, ...quant.cadence.map((c) => c.count));
   return (
     <View>
-      <Metric first title="Capability mix · planned vs proven">
+      <Metric first title={`Capability mix · ${quant.provenEmpty ? 'planned' : 'planned vs proven'}`}>
         {quant.capabilities.map((c) => (
           <PlannedProvenBar key={c.id} cap={c} maxScale={maxScale} />
         ))}
-        <View style={styles.legend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendSwatch, { opacity: 0.26 }]} />
-            <Text style={styles.legendText}>Planned (goal)</Text>
+        {quant.capabilitiesMore ? <MoreRow count={quant.capabilitiesMore} /> : null}
+        {quant.provenEmpty ? (
+          <Text style={styles.nudge}>
+            Log evidence on a step to light up proven progress.
+          </Text>
+        ) : (
+          <View style={styles.legend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, { opacity: 0.26 }]} />
+              <Text style={styles.legendText}>Planned (goal)</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={styles.legendSwatch} />
+              <Text style={styles.legendText}>Proven (evidence)</Text>
+            </View>
           </View>
-          <View style={styles.legendItem}>
-            <View style={styles.legendSwatch} />
-            <Text style={styles.legendText}>Proven (evidence)</Text>
-          </View>
-        </View>
+        )}
       </Metric>
 
       <Metric>
         <StatRow stats={quant.stats} />
       </Metric>
 
-      <Metric title="Reflection cadence" valueLeft={quant.cadenceLabel}>
-        <View style={styles.weekRow}>
-          {quant.cadence.map((w) => (
-            <View key={w.weekNumber} style={styles.weekCell}>
-              <View style={[styles.weekBar, !w.filled && styles.weekBarEmpty]}>
-                {w.filled ? (
-                  <View
-                    style={[
-                      styles.weekFill,
-                      { height: `${Math.max(18, (w.count / maxCadence) * 100)}%` },
-                    ]}
-                  />
-                ) : null}
+      <Metric
+        title="Reflection cadence"
+        valueLeft={quant.cadenceEmpty ? undefined : quant.cadenceLabel}
+      >
+        {quant.cadenceEmpty ? (
+          <Text style={styles.nudge}>
+            No reflections logged yet — add one to track your cadence.
+          </Text>
+        ) : (
+          <View style={styles.weekRow}>
+            {quant.cadence.map((w) => (
+              <View key={w.weekNumber} style={styles.weekCell}>
+                <View style={[styles.weekBar, !w.filled && styles.weekBarEmpty]}>
+                  {w.filled ? (
+                    <View
+                      style={[
+                        styles.weekFill,
+                        { height: `${Math.max(18, (w.count / maxCadence) * 100)}%` },
+                      ]}
+                    />
+                  ) : null}
+                </View>
+                <Text style={[styles.weekLabel, w.isNow && styles.weekLabelNow]}>
+                  wk{w.weekNumber}
+                </Text>
               </View>
-              <Text style={[styles.weekLabel, w.isNow && styles.weekLabelNow]}>
-                wk{w.weekNumber}
-              </Text>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </Metric>
 
       {quant.crew.length > 0 ? (
@@ -202,6 +218,7 @@ function LifetimeNumbers({ quant }: { quant: LifetimeQuant }) {
         {quant.capabilities.map((c) => (
           <DistributionBar key={c.id} cap={c} maxScale={maxScale} />
         ))}
+        {quant.capabilitiesMore ? <MoreRow count={quant.capabilitiesMore} /> : null}
       </Metric>
 
       <Metric>
@@ -305,6 +322,14 @@ function DistributionBar({ cap, maxScale }: { cap: QuantCapabilityStat; maxScale
   );
 }
 
+function MoreRow({ count }: { count: number }) {
+  return (
+    <Text style={styles.moreRow}>
+      +{count} more {count === 1 ? 'capability' : 'capabilities'}
+    </Text>
+  );
+}
+
 function StatRow({ stats }: { stats: QuantStatTile[] }) {
   return (
     <View style={styles.statRow}>
@@ -379,7 +404,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: LILAC_BORDER,
     borderRadius: 13,
-    paddingHorizontal: 12,
+    paddingLeft: 12,
+    // Keep all card content (header toggle + right-aligned data) clear of the
+    // floating ALL/ARC/STEP zoom rail, which overlays the card's right edge at
+    // any scroll position. marginRight is 16, so subtract it from the reserve.
+    paddingRight: ZOOM_RAIL_RESERVED_WIDTH - 16,
     paddingTop: 9,
     paddingBottom: 10,
     shadowColor: '#7B3FB0',
@@ -394,10 +423,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
     gap: 8,
-    // Clear the floating ALL/ARC/STEP zoom rail (reserves the right edge).
-    // Card insets are 28 (marginHorizontal 16 + paddingHorizontal 12), so
-    // subtract them from the rail's reserved width.
-    paddingRight: ZOOM_RAIL_RESERVED_WIDTH - 28,
   },
   eyebrow: {
     flex: 1,
@@ -576,6 +601,20 @@ const styles = StyleSheet.create({
   capCountStrong: {
     fontWeight: '700',
     color: IOS_REGISTER.label,
+  },
+  moreRow: {
+    fontSize: 11,
+    color: IOS_REGISTER.labelTertiary,
+    marginTop: 4,
+    marginLeft: 15,
+    fontStyle: 'italic',
+  },
+  nudge: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: IOS_REGISTER.labelSecondary,
+    marginTop: 6,
+    fontStyle: 'italic',
   },
   legend: {
     flexDirection: 'row',
