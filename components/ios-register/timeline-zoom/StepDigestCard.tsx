@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
   titleNearby: {
     fontSize: 14.5,
     lineHeight: 19,
-    fontWeight: '650',
+    fontWeight: '600',
     paddingLeft: 10,
     marginBottom: 8,
   },

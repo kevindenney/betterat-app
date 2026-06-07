@@ -36,7 +36,7 @@ const TYPE_ICON: Record<LogEntryKind, keyof typeof Ionicons.glyphMap> = {
 };
 
 const BEAT_ICON: Record<LogEntryBeat, keyof typeof Ionicons.glyphMap> = {
-  pre_start: 'anchor',
+  pre_start: 'navigate-outline',
   start: 'flag-outline',
   beat: 'boat-outline',
   mark: 'flag-outline',

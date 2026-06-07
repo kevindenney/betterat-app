@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: IOS_SPACING.s,
+    paddingVertical: IOS_SPACING.sm,
     backgroundColor: IOS_COLORS.systemGray6,
   },
   summaryText: {
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   scrollContent: {
-    padding: IOS_SPACING.m,
+    padding: IOS_SPACING.md,
     paddingBottom: IOS_SPACING.xl,
   },
   blueprintTitle: {
@@ -277,18 +277,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: IOS_COLORS.secondaryLabel,
     lineHeight: 20,
-    marginBottom: IOS_SPACING.m,
+    marginBottom: IOS_SPACING.md,
   },
   stepCard: {
     backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
     borderRadius: 12,
-    marginBottom: IOS_SPACING.s,
+    marginBottom: IOS_SPACING.sm,
     overflow: 'hidden',
   },
   stepHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: IOS_SPACING.m,
+    padding: IOS_SPACING.md,
     gap: 10,
   },
   stepNumber: {
@@ -343,20 +343,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   stepExpanded: {
-    paddingHorizontal: IOS_SPACING.m,
-    paddingBottom: IOS_SPACING.m,
+    paddingHorizontal: IOS_SPACING.md,
+    paddingBottom: IOS_SPACING.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: IOS_COLORS.separator,
-    paddingTop: IOS_SPACING.s,
+    paddingTop: IOS_SPACING.sm,
   },
   stepDescription: {
     fontSize: 14,
     color: IOS_COLORS.secondaryLabel,
     lineHeight: 20,
-    marginBottom: IOS_SPACING.s,
+    marginBottom: IOS_SPACING.sm,
   },
   subStepsSection: {
-    marginBottom: IOS_SPACING.s,
+    marginBottom: IOS_SPACING.sm,
   },
   subStepsLabel: {
     fontSize: 10,
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   reasoningSection: {
-    marginBottom: IOS_SPACING.s,
+    marginBottom: IOS_SPACING.sm,
   },
   reasoningText: {
     fontSize: 13,
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footer: {
-    padding: IOS_SPACING.m,
+    padding: IOS_SPACING.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: IOS_COLORS.separator,
     backgroundColor: IOS_COLORS.systemBackground,

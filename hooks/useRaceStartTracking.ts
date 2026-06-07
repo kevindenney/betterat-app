@@ -97,7 +97,7 @@ export function useRaceStartTracking(
         source: 'water_preview',
         lat: step.location_lat ?? undefined,
         lng: step.location_lng ?? undefined,
-        focus_label: atlasData?.next_event?.label ?? step.location_name ?? step.title,
+        focus_label: atlasData?.next_event?.label ?? step.location_name ?? step.title ?? undefined,
       });
       updateMetadata.mutate({
         act: {

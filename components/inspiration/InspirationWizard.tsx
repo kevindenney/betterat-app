@@ -160,9 +160,9 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
           style={[
             styles.header,
             {
-              paddingTop: Math.max(insets.top, IOS_SPACING.s) + IOS_SPACING.s,
-              paddingLeft: IOS_SPACING.m + insets.left,
-              paddingRight: IOS_SPACING.m + insets.right,
+              paddingTop: Math.max(insets.top, IOS_SPACING.sm) + IOS_SPACING.sm,
+              paddingLeft: IOS_SPACING.md + insets.left,
+              paddingRight: IOS_SPACING.md + insets.right,
             },
           ]}
         >
@@ -233,9 +233,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: IOS_SPACING.m,
-    paddingTop: IOS_SPACING.m,
-    paddingBottom: IOS_SPACING.m,
+    paddingHorizontal: IOS_SPACING.md,
+    paddingTop: IOS_SPACING.md,
+    paddingBottom: IOS_SPACING.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: IOS_COLORS.separator,
   },

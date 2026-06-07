@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     ...IOS_TYPOGRAPHY.caption2,
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 10,
     lineHeight: 12,

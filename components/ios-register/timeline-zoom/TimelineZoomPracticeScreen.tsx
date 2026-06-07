@@ -33,7 +33,7 @@ import { useActivePlan } from '@/hooks/usePlan';
 import { useStepPeerReflections } from '@/hooks/useStepPeerReflections';
 import { useStepSuggestionsForRange } from '@/hooks/useStepSuggestionsForRange';
 import { SeasonEditSheet } from './SeasonEditSheet';
-import type { CreateSeasonInput, UpdateSeasonInput, Season } from '@/types/season';
+import type { CreateSeasonInput, UpdateSeasonInput, Season, SeasonListItem } from '@/types/season';
 
 import { TimelineZoomCanvas } from './TimelineZoomCanvas';
 import type { ZoomLevel } from './types';
@@ -105,6 +105,10 @@ export function TimelineZoomPracticeScreen() {
   }, [routeLevel, resolvedSelectedStepId, steps.length]);
   const { data: currentSeason = null } = useCurrentSeason();
   const { data: allSeasons = [] } = useUserSeasons();
+  const seasonRecords = useMemo(
+    () => allSeasons.map(projectSeasonListItem),
+    [allSeasons],
+  );
   const { data: subscribedBlueprints = [] } = useSubscribedBlueprints(interestId);
   const stepIdsForEvidence = useMemo(() => steps.map((s) => s.id), [steps]);
   const { data: stepEvidenceMap } = useStepCapabilityEvidence(stepIdsForEvidence);
@@ -236,7 +240,10 @@ export function TimelineZoomPracticeScreen() {
   const blueprintsById = useMemo(() => {
     const map = new Map<string, BlueprintLookup>();
     for (const bp of subscribedBlueprints) {
-      map.set(bp.id, { title: bp.title });
+      map.set(bp.blueprint_id, {
+        title: bp.blueprint_title,
+        author_name: bp.author_name ?? undefined,
+      });
     }
     if (focusedBlueprint) {
       map.set(focusedBlueprint.id, {
@@ -271,7 +278,7 @@ export function TimelineZoomPracticeScreen() {
           color: currentInterest?.accent_color || '#7BA0C4',
         },
         currentSeason,
-        allSeasons,
+        allSeasons: seasonRecords,
         steps,
         focusStepId: resolvedSelectedStepId,
         blueprintsById,
@@ -289,7 +296,7 @@ export function TimelineZoomPracticeScreen() {
       user?.id,
       userInitials,
       currentSeason,
-      allSeasons,
+      seasonRecords,
       steps,
       resolvedSelectedStepId,
       blueprintsById,
@@ -419,10 +426,10 @@ export function TimelineZoomPracticeScreen() {
   const handleAddArc = useCallback(() => setSeasonSheetState({ mode: 'add' }), []);
   const handleEditArc = useCallback(
     (arcId: string) => {
-      const found = allSeasons.find((s) => s.id === arcId);
-      if (found) setSeasonSheetState({ mode: 'edit', season: found });
+      const season = seasonRecords.find((s) => s.id === arcId);
+      if (season) setSeasonSheetState({ mode: 'edit', season });
     },
-    [allSeasons],
+    [seasonRecords],
   );
   const handleSeasonCreate = useCallback(
     async (input: CreateSeasonInput) => {
@@ -443,8 +450,8 @@ export function TimelineZoomPracticeScreen() {
     [archiveSeasonMutation],
   );
   const moveTargets = useMemo(
-    () => buildMoveTargets(currentSeason, allSeasons),
-    [currentSeason, allSeasons],
+    () => buildMoveTargets(currentSeason, seasonRecords),
+    [currentSeason, seasonRecords],
   );
   const handleBulkMove = useCallback((stepIds: string[]) => {
     if (stepIds.length > 0) setMoveTargetIds(stepIds);
@@ -624,6 +631,20 @@ export function TimelineZoomPracticeScreen() {
       />
     </SafeAreaView>
   );
+}
+
+function projectSeasonListItem(season: SeasonListItem): Season {
+  return {
+    id: season.id,
+    name: season.name,
+    short_name: season.short_name,
+    year: season.year,
+    start_date: season.start_date,
+    end_date: season.end_date,
+    status: season.status,
+    created_at: '',
+    updated_at: '',
+  };
 }
 
 const styles = StyleSheet.create({

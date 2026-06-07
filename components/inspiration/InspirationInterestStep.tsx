@@ -627,8 +627,8 @@ const styles = StyleSheet.create({
   // ── Footer ──
   footer: {
     paddingHorizontal: 24,
-    paddingTop: IOS_SPACING.m,
-    paddingBottom: IOS_SPACING.l,
+    paddingTop: IOS_SPACING.md,
+    paddingBottom: IOS_SPACING.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: IOS_COLORS.separator,
     backgroundColor: IOS_COLORS.systemBackground,

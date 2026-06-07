@@ -33,7 +33,7 @@ interface SelectActionBarProps {
 interface ActionSpec {
   id: 'move' | 'tag' | 'reschedule' | 'archive' | 'delete';
   label: string;
-  icon: keyof typeof import('@expo/vector-icons/Ionicons').glyphMap;
+  icon: keyof typeof Ionicons.glyphMap;
   destructive?: boolean;
 }
 
