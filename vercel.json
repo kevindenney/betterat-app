@@ -103,7 +103,7 @@
     },
     {
       "source": "/((?!api|assets|_expo|favicon.ico).*)",
-      "destination": "/"
+      "destination": "/app-shell.html"
     }
   ]
 }
