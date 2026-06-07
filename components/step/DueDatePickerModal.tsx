@@ -150,6 +150,8 @@ interface DueDatePickerModalProps {
   onSelect: (isoDatetime: string) => void;
   onClear: () => void;
   onClose: () => void;
+  /** Header copy — defaults to "Set Due Date"; pass "When" for the composer. */
+  title?: string;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -160,6 +162,7 @@ export function DueDatePickerModal({
   onSelect,
   onClear,
   onClose,
+  title = 'Set Due Date',
 }: DueDatePickerModalProps) {
   const quickOptions = useMemo(getQuickOptions, [visible]);
 
@@ -194,7 +197,6 @@ export function DueDatePickerModal({
     }
   }, [visible, existingParts.date, existingParts.time]);
 
-  const isDirty = draftDate !== existingParts.date || draftTime !== existingParts.time;
   const hasDate = /^\d{4}-\d{2}-\d{2}$/.test(draftDate);
 
   const handleQuickPick = useCallback((opt: QuickOption) => {
@@ -265,7 +267,7 @@ export function DueDatePickerModal({
             }}
           >
             <Text style={{ fontSize: 17, fontWeight: '600', color: '#111' }}>
-              Set Due Date
+              {title}
             </Text>
             <Pressable
               onPress={onClose}

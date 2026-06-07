@@ -35,6 +35,7 @@ import { useAISuggestions } from '@/hooks/useAISuggestions';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import { useUniversalPlus } from '@/components/capture';
 import { ComposerWhereField } from '@/components/capture/ComposerWhereField';
+import { ComposerWhenField } from '@/components/capture/ComposerWhenField';
 import { PlanStepRaceSelector } from '@/components/step/plan-tab/PlanStepRaceSelector';
 import type { BlueprintSuggestedNextStep } from '@/types/blueprint';
 import type { AISuggestion } from '@/services/ai/crossInterestSuggestions';
@@ -91,6 +92,7 @@ export function StepAddSheet({
   const [activeFields, setActiveFields] = useState<BlankFieldKey[]>([]);
   const [fieldValues, setFieldValues] = useState<Record<BlankFieldKey, string>>(emptyBlankValues());
   const [whereLocation, setWhereLocation] = useState<StepLocation | undefined>(undefined);
+  const [whenISO, setWhenISO] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const whatRef = useRef<TextInput | null>(null);
   const fieldRefs = useRef<Partial<Record<BlankFieldKey, TextInput | null>>>({});
@@ -102,6 +104,7 @@ export function StepAddSheet({
     setActiveFields([]);
     setFieldValues(emptyBlankValues());
     setWhereLocation(undefined);
+    setWhenISO(null);
     setSaving(false);
   }, []);
 
@@ -118,6 +121,7 @@ export function StepAddSheet({
     setActiveFields((prev) => prev.filter((k) => k !== key));
     setFieldValues((prev) => ({ ...prev, [key]: '' }));
     if (key === 'where') setWhereLocation(undefined);
+    if (key === 'when') setWhenISO(null);
   }, []);
 
   const handleWhereChange = useCallback((next: StepLocation | undefined) => {
@@ -231,7 +235,7 @@ export function StepAddSheet({
         content: trimmed,
         why: fieldValues.why.trim() || undefined,
         how: fieldValues.how.trim() || undefined,
-        when: fieldValues.when.trim() || undefined,
+        scheduledAt: whenISO ?? undefined,
         location: whereLocation,
         isRace: showRaceSelector ? isRace : undefined,
       });
@@ -416,6 +420,7 @@ export function StepAddSheet({
           {composing ? (
             <View style={styles.sheeth}>
               <Pressable
+                testID="step-add-cancel"
                 onPress={closeSheet}
                 hitSlop={8}
                 accessibilityRole="button"
@@ -426,6 +431,7 @@ export function StepAddSheet({
               </Pressable>
               <Text style={styles.sheethTitle}>{showRaceSelector && isRace ? 'New race' : 'New step'}</Text>
               <Pressable
+                testID="step-add-save"
                 onPress={handleSaveBlank}
                 disabled={!canSave}
                 hitSlop={8}
@@ -466,6 +472,7 @@ export function StepAddSheet({
 
               <Text style={styles.fieldEyebrow}>WHAT</Text>
               <TextInput
+                testID="step-add-description-input"
                 ref={whatRef}
                 style={styles.whatInput}
                 value={whatText}
@@ -544,6 +551,11 @@ export function StepAddSheet({
                               fieldRefs.current.where = node;
                             }}
                           />
+                        ) : key === 'when' ? (
+                          <ComposerWhenField
+                            value={whenISO}
+                            onChange={(next) => setWhenISO(next ?? null)}
+                          />
                         ) : (
                           <TextInput
                             ref={(node) => {
@@ -570,6 +582,7 @@ export function StepAddSheet({
           ) : (
           <ScrollView style={styles.sbody} contentContainerStyle={styles.sbodyContent}>
             <Pressable
+              testID="step-add-blank"
               style={[styles.blankrow, { backgroundColor: hexWithAlpha(accent, 0.08), borderColor: hexWithAlpha(accent, 0.24) }]}
               onPress={handleBlank}
               accessibilityRole="button"
