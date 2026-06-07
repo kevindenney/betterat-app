@@ -1420,10 +1420,36 @@ function computeLifetimeAnalysis(
       : firstLabel
         ? `${firstLabel} has been the steady thread across your practice.`
         : `Since ${sinceLabel} the texture of your practice has shifted.`;
-  const promptBody =
-    sessions.length > 1
-      ? `${drift} Worth a reflection on what you're becoming?`
-      : "You're early in your practice. Keep going — patterns will emerge over the next few sessions.";
+  // Capability tally across every brick in the whole practice. Drives a
+  // real conclusion even when the practice still lives in a single arc:
+  // keying the "early in your practice" fallback off arc-count alone
+  // mislabels a busy one-season practice (24 steps, one rotation) as
+  // empty. Gate the fallback on real brick volume instead, and surface
+  // the dominant thread (+ runner-up) as the conclusion.
+  const capTally = new Map<string, number>();
+  let totalBricks = 0;
+  for (const season of chronoSeasons) {
+    for (const brick of season.bricks) {
+      totalBricks += 1;
+      const label = brick.capabilityLabel?.trim();
+      if (!label || label === 'Practice' || label === 'General') continue;
+      capTally.set(label, (capTally.get(label) ?? 0) + 1);
+    }
+  }
+  const rankedCaps = Array.from(capTally.entries()).sort((a, b) => b[1] - a[1]);
+  const [topCap, secondCap] = rankedCaps;
+
+  let promptBody: string;
+  if (sessions.length > 1) {
+    promptBody = `${drift} Worth a reflection on what you're becoming?`;
+  } else if (topCap && totalBricks >= ANALYSIS_MIN_STEPS) {
+    promptBody = secondCap
+      ? `Across ${totalBricks} steps, ${topCap[0].toLowerCase()} leads (${topCap[1]}), with ${secondCap[0].toLowerCase()} close behind (${secondCap[1]}). Worth a reflection on what's emerging?`
+      : `${topCap[0]} runs through all ${totalBricks} steps so far — your clear through-line. Worth a reflection on widening the mix?`;
+  } else {
+    promptBody =
+      "You're early in your practice. Keep going — patterns will emerge over the next few sessions.";
+  }
 
   return {
     sessions,
