@@ -25,6 +25,7 @@
     --plan:#2d7ff9;
     --do:#c8763f;
     --review:#34c759;
+    --discuss:#8b5cf6;
 
     /* per-craft ACCENT — re-skinned by the switcher (the surface) */
     --accent:#2d7ff9;
@@ -148,6 +149,15 @@
   .goal .gicon{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);display:grid;place-items:center;font-size:15px;transition:.3s}
   .goal .gt{font-size:11px;color:var(--txt-3);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
   .goal .gv{font-size:14px;color:var(--txt);font-weight:700;letter-spacing:-.01em}
+
+  /* discuss / thread */
+  .mk-tab.discuss.on{background:rgba(139,92,246,.1);color:var(--discuss);border-color:rgba(139,92,246,.25)}
+  .mk-tab.discuss.on .b{background:var(--discuss)}
+  .thread-who{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--txt-2);font-weight:600;margin-bottom:9px}
+  .thread-who .cav{width:24px;height:24px;border-radius:50%;background:var(--discuss);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700}
+  .thread-who .au{color:var(--txt-3);font-weight:500}
+  .note-bubble.discuss{background:rgba(139,92,246,.1)}
+  .thread-hint{font-size:11.5px;color:var(--txt-3);line-height:1.5;margin-top:11px}
 
   .demo-cta{display:flex;gap:14px;align-items:center;justify-content:center;margin-top:26px;flex-wrap:wrap}
   .btn-fill{background:var(--accent);color:#fff;border:none;border-radius:980px;font-family:inherit;font-size:16px;font-weight:600;padding:12px 24px;cursor:pointer;transition:background .4s,transform .15s}
@@ -280,7 +290,7 @@
   <div class="wrap">
     <div class="eyebrow rv" id="eyebrow">One engine · every craft</div>
     <h1 class="rv">Get measurably better at <em id="hero-craft">anything</em> you practice.</h1>
-    <p class="lede rv" id="hero-lede">Real practitioners break their craft into steps you actually work. Subscribe and they drop into your timeline — one <b>Plan → Do → Review</b> at a time, in your field's own words.</p>
+    <p class="lede rv" id="hero-lede">Real practitioners break their craft into steps you actually work. Subscribe and they drop into your timeline — one <b>Plan → Do → Review → Discuss</b> at a time, in your field's own words.</p>
 
     <div class="switch-label rv">Pick your craft — watch the app speak your language</div>
     <div class="switcher rv" id="switcher" role="tablist">
@@ -298,6 +308,7 @@
           <span><span class="lg" style="background:var(--plan)"></span>Plan</span>
           <span><span class="lg" style="background:var(--do)"></span>Do</span>
           <span><span class="lg" style="background:var(--review)"></span>Review</span>
+          <span><span class="lg" style="background:var(--discuss)"></span>Discuss</span>
         </div>
       </div>
 
@@ -312,6 +323,7 @@
               <span class="mk-tab plan on"><span class="b">1</span>Plan</span>
               <span class="mk-tab do"><span class="b">2</span>Do</span>
               <span class="mk-tab review"><span class="b">3</span>Review</span>
+              <span class="mk-tab discuss"><span class="b">4</span>Discuss</span>
             </div>
             <div class="mk-card">
               <div class="mk-lbl">💡 <span id="d-whatlbl">What will you do?</span></div>
@@ -345,7 +357,7 @@
               <div class="who" id="d-notewho">Captured 13:42 · on the water</div>
             </div>
           </div>
-          <div class="side-card" style="margin-bottom:0">
+          <div class="side-card">
             <div class="side-head" style="color:var(--review)"><span class="cdot" style="background:var(--review)"></span>Review · what it added up to</div>
             <span class="rv-badge" id="d-rvbadge">✓ Settled</span>
             <div class="rv-line" id="d-rvline">Boatspeed evidence logged vs. the fleet. The librarian flagged a tuning pattern for light air.</div>
@@ -353,6 +365,13 @@
               <div class="gicon" id="d-goalicon">🏆</div>
               <div><div class="gt">Working toward</div><div class="gv" id="d-goal">Podium at the Worlds</div></div>
             </div>
+          </div>
+          <div class="side-card" style="margin-bottom:0">
+            <div class="side-head" style="color:var(--discuss)"><span class="cdot" style="background:var(--discuss)"></span>Discuss · talk it through with people</div>
+            <div class="thread-who"><span class="cav" id="d-dwhoav">KD</span><span id="d-dwho">Kevin Denney</span><span class="au">· author</span></div>
+            <div class="note-bubble discuss" id="d-dmsg">Base + 2 is my go-to for 12–15. If it goes soft before the start, drop back to base — you’ll point higher off the line.</div>
+            <div class="capture-field" style="margin-top:11px"><span>Add a comment…</span><span>↑</span></div>
+            <div class="thread-hint">Subscribe the blueprint and bring your crew — the thread is where a step turns into a conversation.</div>
           </div>
         </div>
       </div>
@@ -586,7 +605,7 @@
     <div class="moves-grid">
       <div class="move"><div class="n">01</div><div class="verb">you add</div><h4>Interests</h4><p>Whatever you're getting better at. Each opens its own world of orgs, blueprints and people — in its own vocabulary.</p></div>
       <div class="move"><div class="n">02</div><div class="verb">you join</div><h4>Organizations</h4><p>A yacht club, a nursing school, a livelihood NGO, a golf academy. Join and the structure experts use comes with it.</p></div>
-      <div class="move"><div class="n">03</div><div class="verb">you subscribe to</div><h4>Blueprints</h4><p>A practitioner's path, broken into steps. Subscribe and each one lands in your timeline — Plan → Do → Review.</p></div>
+      <div class="move"><div class="n">03</div><div class="verb">you subscribe to</div><h4>Blueprints</h4><p>A practitioner's path, broken into steps. Subscribe and each one lands in your timeline — Plan → Do → Review → Discuss.</p></div>
       <div class="move"><div class="n">04</div><div class="verb">you follow</div><h4>People</h4><p>Coaches, preceptors, mentors and peers whose steps you can adapt into your own plan in one tap.</p></div>
     </div>
   </div>
@@ -692,7 +711,8 @@
       capture:'Jot a quick note…', channelbtn:'💬 Telegram',
       note:'Base + 2 held steady through 14 kt. Forestay felt right off the line — touch loose in the top puffs.', notewho:'Captured 13:42 · on the water',
       rvbadge:'✓ Settled', rvline:'Boatspeed evidence logged vs. the fleet. The coach’s notebook flagged a tuning pattern for light air.',
-      goalicon:'🏆', goal:'Podium at the Worlds', cta:'Get the Dragon Worlds blueprint'
+      goalicon:'🏆', goal:'Podium at the Worlds', cta:'Get the Dragon Worlds blueprint',
+      dwhoav:'KD', dwho:'Kevin Denney', dmsg:'Base + 2 is my go-to for 12–15. If it goes soft before the start, drop back to base — you’ll point higher off the line.'
     },
     nursing:{
       label:'Nursing', car:'· Johns Hopkins School of Nursing',
@@ -706,7 +726,8 @@
       capture:'Note an event or skill…', channelbtn:'📷 Photo',
       note:'SBAR handoff went clean. Missed a PRN timing — flagged it for the debrief.', notewho:'Captured 07:18 · on the unit',
       rvbadge:'✓ Signed off', rvline:'Pharmacology 3/4 evidenced · Communication competency signed off by your preceptor.',
-      goalicon:'🎓', goal:'Clinical hours + NCLEX-ready', cta:'Start with your school’s blueprint'
+      goalicon:'🎓', goal:'Clinical hours + NCLEX-ready', cta:'Start with your school’s blueprint',
+      dwhoav:'AN', dwho:'Preceptor A. Ngo, RN', dmsg:'Cluster your q2 turns with assessments and you’ll claw back the 20 minutes you lost on that PRN timing. Chart it as you go, not at the end.'
     },
     golf:{
       label:'Golf', car:'· handicap 14.2 → 9',
@@ -720,7 +741,8 @@
       capture:'Log the session…', channelbtn:'🎙 Voice',
       note:'Dialed 75 to ±3 yd. 100 still scattering left — grip pressure?', notewho:'Captured 16:05 · at the range',
       rvbadge:'✓ Logged', rvline:'Putting is still the leak — 36 putts last round. Next step: a lag-distance drill.',
-      goalicon:'⛳', goal:'Break 80 · handicap to 9', cta:'Follow a coach’s blueprint'
+      goalicon:'⛳', goal:'Break 80 · handicap to 9', cta:'Follow a coach’s blueprint',
+      dwhoav:'PR', dwho:'Coach', dmsg:'If 100 scatters left under pressure, that’s grip pressure, not your swing. Take it to 4/10 and finish to the target — distance comes from tempo.'
     },
     craft:{
       label:'Her business', car:'· Ranchi, Jharkhand',
@@ -734,7 +756,8 @@
       capture:'बोलकर लिखें… (voice note)', channelbtn:'💬 Telegram',
       note:'“32 sets done, lac 2 kg short — Sunita finishing the rest.”', notewho:'Voice note 19:40 · in Hindi, via Telegram',
       rvbadge:'✓ Week tallied', rvline:'₹18,400 this week · 12 repeat customers · steady enough to bring on a helper.',
-      goalicon:'₹', goal:'Grow revenue · hire help', cta:'Start free on Telegram'
+      goalicon:'₹', goal:'Grow revenue · hire help', cta:'Start free on Telegram',
+      dwhoav:'सु', dwho:'Helper Sunita', dmsg:'लाख 2 किलो कम है — कल खुंटी वाले से मंगवा लेते हैं, बाकी 8 सेट शाम तक तैयार हो जाएँगे.'
     }
   };
 
@@ -770,6 +793,9 @@
     $('#d-rvline').textContent = p.rvline;
     $('#d-goalicon').textContent = p.goalicon;
     $('#d-goal').textContent = p.goal;
+    $('#d-dwhoav').textContent = p.dwhoav;
+    $('#d-dwho').textContent = p.dwho;
+    $('#d-dmsg').textContent = p.dmsg;
     $('#d-cta').textContent = p.cta;
 
     document.querySelectorAll('.pchip').forEach(c => c.classList.toggle('on', c.dataset.k === k));
