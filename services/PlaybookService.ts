@@ -1160,6 +1160,21 @@ function isMissingPhase6Table(err: unknown) {
   );
 }
 
+function isRecoverablePlaybookReadError(err: unknown) {
+  if (!err || typeof err !== 'object') return false;
+  const code = String((err as { code?: string }).code ?? '');
+  const message = String((err as { message?: string }).message ?? '').toLowerCase();
+  return (
+    code === '57014' ||
+    code === 'PGRST205' ||
+    code === '42P01' ||
+    message.includes('statement timeout') ||
+    message.includes('could not find the table') ||
+    message.includes('relation') ||
+    message.includes('schema cache')
+  );
+}
+
 function normalizeLifecycleState(
   concept: Partial<PlaybookConceptRecord>,
   linkedStepCount: number,
@@ -1510,6 +1525,10 @@ export async function getStepLinks(
     if (error) throw error;
     return (data ?? []) as StepPlaybookLinkRecord[];
   } catch (err) {
+    if (isRecoverablePlaybookReadError(err)) {
+      logger.warn('Step playbook links unavailable; continuing without linked playbook context', err);
+      return [];
+    }
     logger.error('Failed to fetch step links', err);
     return [];
   }

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Clipboard, Platform } from 'react-native';
+import { Platform } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -216,7 +217,7 @@ export function useShareStep(): UseShareStepResult {
       }
     } else {
       try {
-        (Clipboard as any).setString?.(url);
+        await Clipboard.setStringAsync(url);
       } catch {
         // ignore
       }

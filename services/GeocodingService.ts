@@ -11,6 +11,19 @@ interface GeocodedResult {
   lng: number;
 }
 
+export interface PlaceSearchResult {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+interface NominatimSearchResult {
+  display_name?: string;
+  name?: string;
+  lat?: string;
+  lon?: string;
+}
+
 interface NominatimAddress {
   bay?: string;
   harbour?: string;
@@ -104,6 +117,55 @@ export class GeocodingService {
     } catch (error) {
       logger.warn('[GeocodingService] Geocoding failed:', error);
       return null;
+    }
+  }
+
+  /**
+   * Forward-search a free-text place name to a list of named candidates.
+   * Powers the location picker typeahead so well-known places (yacht clubs,
+   * marinas, landmarks) resolve even when they aren't in our venues table.
+   */
+  static async searchPlaces(query: string, limit = 5): Promise<PlaceSearchResult[]> {
+    const q = query?.trim();
+    if (!q) return [];
+
+    try {
+      const params = new URLSearchParams({
+        q,
+        format: 'json',
+        limit: String(limit),
+        addressdetails: '1',
+      });
+      const response = await fetch(`${this.NOMINATIM_URL}?${params}`, {
+        headers: {
+          'User-Agent': REVERSE_USER_AGENT,
+          Accept: 'application/json',
+        },
+      });
+      if (!response.ok) {
+        logger.warn('[GeocodingService] Nominatim search failed:', response.status);
+        return [];
+      }
+
+      const results = (await response.json()) as NominatimSearchResult[];
+      if (!Array.isArray(results)) return [];
+
+      return results
+        .map((r) => {
+          const lat = parseFloat(r.lat ?? '');
+          const lng = parseFloat(r.lon ?? '');
+          if (isNaN(lat) || isNaN(lng)) return null;
+          const name =
+            r.name?.trim() ||
+            r.display_name?.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 2).join(', ') ||
+            '';
+          if (!name) return null;
+          return { name, lat, lng };
+        })
+        .filter((r): r is PlaceSearchResult => r !== null);
+    } catch (error) {
+      logger.warn('[GeocodingService] Place search failed:', error);
+      return [];
     }
   }
 

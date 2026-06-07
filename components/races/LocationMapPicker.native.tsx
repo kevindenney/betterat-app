@@ -180,7 +180,21 @@ export function LocationMapPicker({
           lng: v.coordinates_lng,
         }));
 
-      setSearchResults(dbResults.slice(0, 8));
+      // Our venues table only knows sailing spots we've seeded. Augment the
+      // typeahead with a Nominatim place search so common named places (yacht
+      // clubs, marinas, landmarks) resolve too. DB hits rank first; geocoded
+      // places fill the rest, deduped by name.
+      const placeResults = await GeocodingService.searchPlaces(query, 6);
+      const seen = new Set(dbResults.map((v) => v.name.toLowerCase()));
+      const merged = [...dbResults];
+      for (const p of placeResults) {
+        const key = p.name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(p);
+      }
+
+      setSearchResults(merged.slice(0, 8));
     } catch (e) {
       logger.warn('Venue search failed:', e);
       setSearchResults([]);

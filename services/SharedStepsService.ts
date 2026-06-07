@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
+import { buildShareUrl, createShareToken } from '@/services/ShareTokenService';
 import type {
   SharedInboxItem,
   SharedStepCommentRecord,
@@ -10,8 +11,9 @@ import type {
 
 const logger = createLogger('SharedStepsService');
 
-const TOKEN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const TOKEN_LENGTH = 12;
+const TOKEN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+const TOKEN_LENGTH = 32;
+const SHARE_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function generateToken(): string {
   let out = '';
@@ -19,6 +21,107 @@ function generateToken(): string {
     out += TOKEN_ALPHABET[Math.floor(Math.random() * TOKEN_ALPHABET.length)];
   }
   return out;
+}
+
+function isMissingTableError(error: unknown, tableName: string): boolean {
+  const candidate = error as { code?: string; message?: string } | null;
+  return (
+    candidate?.code === 'PGRST205' &&
+    typeof candidate.message === 'string' &&
+    candidate.message.includes(`'public.${tableName}'`)
+  );
+}
+
+function isMissingColumnError(error: unknown): boolean {
+  const candidate = error as { code?: string; message?: string } | null;
+  return (
+    candidate?.code === '42703' ||
+    candidate?.code === 'PGRST204' ||
+    candidate?.message?.toLowerCase().includes('column') === true
+  );
+}
+
+async function assertStepOwner(input: { senderUserId: string; stepId: string }): Promise<void> {
+  const { data, error } = await supabase
+    .from('timeline_steps')
+    .select('id')
+    .eq('id', input.stepId)
+    .eq('user_id', input.senderUserId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error('You can only create links for your own steps.');
+}
+
+async function insertShareTokenFallback(input: {
+  senderUserId: string;
+  stepId: string;
+  expiresAt: string;
+}): Promise<ShareTokenRecord> {
+  await assertStepOwner(input);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const token = generateToken();
+    const modernInsert = await supabase
+      .from('share_tokens')
+      .insert({
+        target_type: 'step',
+        target_id: input.stepId,
+        scope: 'step:read',
+        token,
+        created_by: input.senderUserId,
+        expires_at: input.expiresAt,
+      })
+      .select('id, token, target_id, created_by, created_at, expires_at')
+      .single();
+
+    if (!modernInsert.error && modernInsert.data) {
+      const row = modernInsert.data as {
+        id: string;
+        token: string;
+        target_id: string;
+        created_by: string;
+        created_at: string;
+        expires_at: string | null;
+      };
+      return {
+        id: row.id,
+        token: row.token,
+        step_id: row.target_id,
+        created_by_user_id: row.created_by,
+        created_at: row.created_at,
+        expires_at: row.expires_at ?? '',
+        used_count: 0,
+      };
+    }
+
+    if (modernInsert.error?.code === '23505') continue;
+    if (!isMissingColumnError(modernInsert.error)) {
+      logger.error('Failed to create share link fallback', modernInsert.error);
+      throw modernInsert.error;
+    }
+
+    const legacyInsert = await supabase
+      .from('share_tokens')
+      .insert({
+        token,
+        step_id: input.stepId,
+        created_by_user_id: input.senderUserId,
+        expires_at: input.expiresAt,
+      })
+      .select('*')
+      .single();
+
+    if (!legacyInsert.error && legacyInsert.data) {
+      return legacyInsert.data as ShareTokenRecord;
+    }
+    if (legacyInsert.error?.code === '23505') continue;
+
+    logger.error('Failed to create legacy share link fallback', legacyInsert.error);
+    throw legacyInsert.error;
+  }
+
+  throw new Error('Could not generate a unique share token.');
 }
 
 export async function shareStepDirect(input: {
@@ -36,6 +139,10 @@ export async function shareStepDirect(input: {
     .select('*')
     .single();
   if (error) {
+    if (isMissingTableError(error, 'shared_steps')) {
+      logger.warn('Direct step sharing is unavailable because shared_steps is not in the active schema');
+      throw new Error('Direct step sharing is not available in this environment.');
+    }
     logger.error('Failed to share step direct', error);
     throw error;
   }
@@ -59,6 +166,10 @@ export async function shareStepToGroup(input: {
     .select('*')
     .single();
   if (error) {
+    if (isMissingTableError(error, 'shared_steps')) {
+      logger.warn('Group step sharing is unavailable because shared_steps is not in the active schema');
+      throw new Error('Group step sharing is not available in this environment.');
+    }
     logger.error('Failed to share step to group', error);
     throw error;
   }
@@ -69,24 +180,34 @@ export async function createShareLink(input: {
   senderUserId: string;
   stepId: string;
 }): Promise<{ token: string; url: string; record: ShareTokenRecord }> {
-  const token = generateToken();
-  const { data, error } = await supabase
-    .from('share_tokens')
-    .insert({
-      token,
-      step_id: input.stepId,
-      created_by_user_id: input.senderUserId,
-    })
-    .select('*')
-    .single();
-  if (error) {
-    logger.error('Failed to create share link', error);
-    throw error;
+  const expiresAt = new Date(Date.now() + SHARE_LINK_TTL_MS);
+  let record: ShareTokenRecord | null = null;
+  let token: string;
+
+  try {
+    token = await createShareToken('step', input.stepId, expiresAt);
+  } catch (error) {
+    logger.warn('create_share_token RPC unavailable; falling back to direct share token insert', error);
+    record = await insertShareTokenFallback({
+      ...input,
+      expiresAt: expiresAt.toISOString(),
+    });
+    token = record.token;
   }
+
   return {
     token,
-    url: `https://better.at/s/${token}`,
-    record: data as ShareTokenRecord,
+    url: buildShareUrl(token),
+    record:
+      record ?? {
+        id: token,
+        token,
+        step_id: input.stepId,
+        created_by_user_id: input.senderUserId,
+        created_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString(),
+        used_count: 0,
+      },
   };
 }
 
@@ -98,6 +219,10 @@ export async function getSharedWithYouInbox(viewerUserId: string): Promise<Share
     .order('shared_at', { ascending: false })
     .limit(50);
   if (error) {
+    if (isMissingTableError(error, 'shared_steps')) {
+      logger.warn('Shared-with-you inbox is unavailable because shared_steps is not in the active schema');
+      return [];
+    }
     logger.error('Failed to load shared-with-you inbox', error);
     throw error;
   }
