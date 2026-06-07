@@ -14,9 +14,9 @@ export async function transcribeVoiceNote(
   audioBuffer: Buffer,
   mimeType: string = 'audio/ogg',
 ): Promise<string | null> {
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.EXPO_PUBLIC_GEMINI_API_KEY;
   if (!apiKey) {
-    console.error('GOOGLE_AI_API_KEY not configured — cannot transcribe voice notes');
+    console.error('No Gemini key (GOOGLE_AI_API_KEY / EXPO_PUBLIC_GEMINI_API_KEY) configured — cannot transcribe voice notes');
     return null;
   }
 
