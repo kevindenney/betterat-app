@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../providers/AuthProvider';
@@ -14,6 +14,7 @@ import { SAMPLE_INTERESTS, INTEREST_DOMAINS } from '@/lib/landing/sampleData';
 import { OnboardingStateService } from '@/services/onboarding/OnboardingStateService';
 import { FeatureTourService } from '@/services/onboarding/FeatureTourService';
 import { commitSignupContext } from '@/services/onboarding/commitSignupContext';
+import { ASYNC_STORAGE_KEY as PREFERRED_INTEREST_KEY } from '@/providers/InterestProvider';
 
 // Helper to get user-friendly error messages for signup
 const getSignupErrorMessage = (error: any): string => {
@@ -61,7 +62,33 @@ export default function SignUp() {
   const wantsCreateOrg = params.intent === 'create-org';
 
   const [selectedInterest, setSelectedInterest] = useState<string | undefined>(paramInterest);
-  const [step, setStep] = useState<SignupStep>(paramInterest ? 'persona' : 'interest');
+  // When no interest arrives via URL, we may still have one the visitor already
+  // chose pre-signup (welcome flow / landing picker), cached by InterestProvider.
+  // Start in 'loading' so we can read that cache and skip the duplicate picker
+  // without flashing it. See the preselect effect below.
+  const [step, setStep] = useState<SignupStep | 'loading'>(paramInterest ? 'persona' : 'loading');
+
+  useEffect(() => {
+    if (paramInterest) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const cachedSlug = await AsyncStorage.getItem(PREFERRED_INTEREST_KEY);
+        if (cancelled) return;
+        if (cachedSlug && cachedSlug.trim()) {
+          setSelectedInterest(cachedSlug);
+          setStep('persona');
+          return;
+        }
+      } catch {
+        // fall through to the picker
+      }
+      if (!cancelled) setStep('interest');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [paramInterest]);
 
   const interestCtx = getOnboardingContext(selectedInterest);
 
@@ -244,6 +271,15 @@ export default function SignUp() {
       setErrorMessage(friendlyMessage);
     }
   };
+
+  // ---- Resolving a pre-chosen interest from cache ----
+  if (step === 'loading') {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
 
   // ---- Interest Picker Step ----
   if (step === 'interest') {
@@ -544,6 +580,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollContent: {
     flexGrow: 1,
