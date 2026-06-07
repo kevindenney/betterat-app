@@ -330,6 +330,7 @@ export default function ManifestoOnboardingScreen() {
             style={styles.footer}
           >
             <TouchableOpacity
+              testID="manifesto-skip"
               style={styles.skipButton}
               onPress={handleSkip}
               activeOpacity={0.7}
@@ -339,6 +340,7 @@ export default function ManifestoOnboardingScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              testID="manifesto-continue"
               style={[
                 styles.continueButton,
                 { backgroundColor: accentColor, shadowColor: accentColor },

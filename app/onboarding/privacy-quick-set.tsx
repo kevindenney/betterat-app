@@ -224,11 +224,17 @@ export default function PrivacyQuickSetScreen() {
           entering={FadeIn.delay(600).duration(300)}
           style={styles.footer}
         >
-          <TouchableOpacity onPress={handleSkip} style={styles.skipButton} disabled={!interactable}>
+          <TouchableOpacity
+            testID="privacy-quick-set-skip"
+            onPress={handleSkip}
+            style={styles.skipButton}
+            disabled={!interactable}
+          >
             <Text style={styles.skipText}>Keep defaults</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
+            testID="privacy-quick-set-continue"
             style={[styles.continueButton, { backgroundColor: accentColor, shadowColor: accentColor }]}
             onPress={handleContinue}
             disabled={isSaving || !interactable}

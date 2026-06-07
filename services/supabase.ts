@@ -5,13 +5,6 @@ import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('supabase');
 
-// [DIAG] Bundle freshness marker — bump this string after each diagnostic
-// edit to confirm the browser is loading the new code rather than serving
-// a stale cached bundle. If you don't see this exact string in console at
-// page load, you're looking at an old bundle.
-// eslint-disable-next-line no-console
-console.info('[SUPABASE-DIAG] bundle marker: 2026-04-25-abort-instrumentation-v1');
-
 // Validate required environment variables at startup
 const expoExtra = (Constants.expoConfig?.extra ?? (Constants as any).manifest2?.extra ?? {}) as Record<string, string | undefined>;
 const envSupabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
@@ -105,9 +98,6 @@ const ExpoSecureStorage = createStorageAdapter();
 export type UserType = 'sailor' | 'coach' | 'club' | null;
 export type UsersRow = { id: string; email: string | null; user_type: UserType; };
 
-/** Default request timeout in milliseconds for all Supabase calls */
-const SUPABASE_REQUEST_TIMEOUT_MS = 30_000;
-
 export const supabase = createClient(
   supabaseUrl || '',
   supabaseAnonKey || '',
@@ -135,56 +125,19 @@ export const supabase = createClient(
         'x-client-info': 'regattaflow-app'
       },
       fetch: (url, options = {}) => {
-        const controller = new AbortController();
-        // [DIAG] Track which path triggered the abort so we can tell timeout
-        // from external (caller-supplied) signal abort in console output.
-        let abortReason: 'timeout' | 'external' | null = null;
-        const startedAt = Date.now();
-        const urlStr = typeof url === 'string' ? url : (url as URL | Request).toString();
-        const shortUrl = urlStr.replace(/^https?:\/\/[^/]+/, '').slice(0, 120);
-
-        const timeoutId = setTimeout(() => {
-          abortReason = 'timeout';
-          // eslint-disable-next-line no-console
-          console.warn('[SUPABASE-FETCH] TIMEOUT after', SUPABASE_REQUEST_TIMEOUT_MS, 'ms', shortUrl);
-          controller.abort();
-        }, SUPABASE_REQUEST_TIMEOUT_MS);
-
-        // Merge with any existing signal
-        const existingSignal = options.signal;
-        if (existingSignal) {
-          if (existingSignal.aborted) {
-            abortReason = 'external';
-            // eslint-disable-next-line no-console
-            console.warn('[SUPABASE-FETCH] PRE-ABORTED before request', shortUrl, 'reason:', (existingSignal as any).reason);
-            controller.abort();
-          } else {
-            existingSignal.addEventListener('abort', () => {
-              if (abortReason === null) {
-                abortReason = 'external';
-                const elapsed = Date.now() - startedAt;
-                // eslint-disable-next-line no-console
-                console.warn('[SUPABASE-FETCH] EXTERNAL ABORT after', elapsed, 'ms', shortUrl, 'reason:', (existingSignal as any).reason);
-              }
-              controller.abort();
-            });
-          }
-        }
-
-        return fetch(url, { ...options, signal: controller.signal })
-          .catch(err => {
-            const elapsed = Date.now() - startedAt;
-            // Surface the real abort path so future timeout regressions are
-            // immediately attributable (timeout vs caller-cancelled).
-            // eslint-disable-next-line no-console
-            console.warn(
-              `[SUPABASE-FETCH] threw name=${err?.name} elapsedMs=${elapsed} abortReason=${abortReason} url=${shortUrl}`
-            );
-            throw err;
-          })
-          .finally(() => {
-            clearTimeout(timeoutId);
-          });
+        // NOTE: do NOT set the fetch `cache` option here. React Native's
+        // whatwg-fetch implements `cache: 'no-store'`/`'no-cache'` by appending
+        // a cache-busting `&_=<timestamp>` param to GET URLs. PostgREST then
+        // parses that bare timestamp as a filter and 400s with PGRST100
+        // ("failed to parse filter (<timestamp>)"). The headers below express
+        // the same no-cache intent without mutating the URL.
+        const headers = new Headers(options.headers);
+        if (!headers.has('Cache-Control')) headers.set('Cache-Control', 'no-store');
+        if (!headers.has('Pragma')) headers.set('Pragma', 'no-cache');
+        return globalThis.fetch(url, {
+          ...options,
+          headers,
+        });
       },
     }
   }

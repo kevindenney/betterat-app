@@ -20,7 +20,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getOnboardingContext } from '@/lib/onboarding/interestContext';
 
 type ProFeature = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -63,7 +62,6 @@ const INTEREST_FEATURES: Record<string, ProFeature[]> = {
 export default function TrialActivationScreen() {
   const router = useRouter();
   const [interestSlug, setInterestSlug] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem('onboarding_interest_slug')
@@ -72,11 +70,9 @@ export default function TrialActivationScreen() {
       })
       .catch(() => {
         // Graceful fallback — show generic features
-      })
-      .finally(() => setReady(true));
+      });
   }, []);
 
-  const ctx = getOnboardingContext(interestSlug || undefined);
   const features = (interestSlug && INTEREST_FEATURES[interestSlug]) || GENERIC_FEATURES;
   const accentColor = '#2563EB';
 
@@ -153,6 +149,7 @@ export default function TrialActivationScreen() {
           </Text>
 
           <TouchableOpacity
+            testID="trial-activation-start"
             style={[styles.startButton, { backgroundColor: accentColor, shadowColor: accentColor }]}
             onPress={handleStart}
             activeOpacity={0.85}

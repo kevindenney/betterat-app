@@ -6,7 +6,7 @@
  * Completely skippable — a discovery moment, not a gate.
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,21 +24,97 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { getOnboardingContext } from '@/lib/onboarding/interestContext';
+import { supabase } from '@/services/supabase';
+import { commitOnboardingInterest } from '@/services/onboarding/commitSignupContext';
+
+const FALLBACK_ONBOARDING_INTERESTS: Interest[] = [
+  {
+    id: 'bec249c5-6412-4d16-bb84-bfcfb887ff67',
+    slug: 'nursing',
+    name: 'Nursing',
+    description: null,
+    parent_id: null,
+    type: 'official',
+    status: 'active',
+    visibility: 'public',
+    accent_color: '#0097A7',
+    icon_name: 'pulse',
+    organization_id: null,
+    hero_tagline: null,
+    pricing_text: null,
+    web_app_url: null,
+    created_at: '',
+  },
+  {
+    id: '5e6b64c3-ea92-42a1-baf5-9342c53eb7d9',
+    slug: 'sail-racing',
+    name: 'Sail Racing',
+    description: null,
+    parent_id: null,
+    type: 'official',
+    status: 'active',
+    visibility: 'public',
+    accent_color: '#003DA5',
+    icon_name: 'boat',
+    organization_id: null,
+    hero_tagline: null,
+    pricing_text: null,
+    web_app_url: null,
+    created_at: '',
+  },
+  {
+    id: 'b31dbc01-7892-4f63-9697-84b05546f595',
+    slug: 'drawing',
+    name: 'Drawing',
+    description: null,
+    parent_id: null,
+    type: 'official',
+    status: 'active',
+    visibility: 'public',
+    accent_color: '#F4511E',
+    icon_name: 'pencil',
+    organization_id: null,
+    hero_tagline: null,
+    pricing_text: null,
+    web_app_url: null,
+    created_at: '',
+  },
+  {
+    id: 'f138e519-7ac9-4497-a0ee-fba242482bce',
+    slug: 'fitness',
+    name: 'Fitness',
+    description: null,
+    parent_id: null,
+    type: 'official',
+    status: 'active',
+    visibility: 'public',
+    accent_color: '#43A047',
+    icon_name: 'barbell',
+    organization_id: null,
+    hero_tagline: null,
+    pricing_text: null,
+    web_app_url: null,
+    created_at: '',
+  },
+];
 
 export default function ExploreInterestsScreen() {
   const router = useRouter();
-  const { allInterests, userInterests, addInterest, switchInterest } = useInterest();
+  const { allInterests, addInterest, switchInterest } = useInterest();
 
   const [interestSlug, setInterestSlug] = useState<string | null>(null);
   const [addedSlugs, setAddedSlugs] = useState<Set<string>>(new Set());
+  const addedSlugsRef = useRef<Set<string>>(new Set());
+  const [fallbackInterests, setFallbackInterests] = useState<Interest[]>([]);
 
   // Initialize with only the primary onboarding interest as selected
   useEffect(() => {
     AsyncStorage.getItem('onboarding_interest_slug').then((slug) => {
-      console.log('[ExploreInterests] loaded onboarding_interest_slug from AsyncStorage:', JSON.stringify(slug));
       setInterestSlug(slug);
       if (slug) {
-        setAddedSlugs(new Set([slug]));
+        const next = new Set([slug]);
+        addedSlugsRef.current = next;
+        setAddedSlugs(next);
       }
     });
   }, []);
@@ -47,7 +123,7 @@ export default function ExploreInterestsScreen() {
   const accentColor = ctx.color !== '#1A1A1A' ? ctx.color : '#2563EB';
 
   // Show public, active interests — exclude the domain-level parents
-  const browsableInterests = useMemo(() => {
+  const providerBrowsableInterests = useMemo(() => {
     return allInterests.filter(
       (i) =>
         i.status === 'active' &&
@@ -55,6 +131,38 @@ export default function ExploreInterestsScreen() {
         i.type !== 'domain',
     );
   }, [allInterests]);
+
+  useEffect(() => {
+    if (providerBrowsableInterests.length > 0 || fallbackInterests.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('interests')
+        .select('id, slug, name, description, parent_id, type, status, visibility, accent_color, icon_name, organization_id, hero_tagline, pricing_text, web_app_url, created_at')
+        .eq('status', 'active')
+        .eq('visibility', 'public')
+        .order('name');
+
+      if (!cancelled && !error) {
+        setFallbackInterests((data ?? []) as Interest[]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [providerBrowsableInterests.length, fallbackInterests.length]);
+
+  const browsableInterests = useMemo(() => {
+    const fallbackBrowsable = fallbackInterests.filter(
+      (i) =>
+        i.status === 'active' &&
+        i.visibility === 'public' &&
+        i.type !== 'domain',
+    );
+    if (providerBrowsableInterests.length > 0) return providerBrowsableInterests;
+    if (fallbackBrowsable.length > 0) return fallbackBrowsable;
+    return FALLBACK_ONBOARDING_INTERESTS;
+  }, [fallbackInterests, providerBrowsableInterests]);
 
   const handleToggleInterest = useCallback(
     (interest: Interest) => {
@@ -70,6 +178,7 @@ export default function ExploreInterestsScreen() {
         } else {
           next.add(interest.slug);
         }
+        addedSlugsRef.current = next;
         return next;
       });
     },
@@ -77,39 +186,35 @@ export default function ExploreInterestsScreen() {
   );
 
   const handleContinue = useCallback(async () => {
-    console.log('[ExploreInterests] handleContinue called', {
-      interestSlug,
-      addedSlugs: Array.from(addedSlugs),
-      browsableCount: browsableInterests.length,
-    });
-
     // Set primary interest FIRST — before hiding others — so the InterestProvider's
     // auto-set effect doesn't pick the first alphabetical interest (e.g. Drawing) when
     // activeSlug is null for new users.
     if (interestSlug) {
-      console.log('[ExploreInterests] calling switchInterest with:', interestSlug);
       await switchInterest(interestSlug);
-      console.log('[ExploreInterests] switchInterest completed');
-    } else {
-      console.warn('[ExploreInterests] interestSlug is NULL — cannot set primary interest!');
     }
 
     // Add all selected interests to user_interests table
-    const visibleSlugs = browsableInterests.filter(i => addedSlugs.has(i.slug)).map(i => i.slug);
-    console.log('[ExploreInterests] adding interests:', visibleSlugs);
+    const selectedSlugs = new Set(addedSlugsRef.current);
+    if (interestSlug) selectedSlugs.add(interestSlug);
+    const visibleSlugs = Array.from(selectedSlugs);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUserId = sessionData.session?.user.id;
     for (const slug of visibleSlugs) {
-      await addInterest(slug);
+      if (sessionUserId) {
+        await commitOnboardingInterest(sessionUserId, slug);
+      } else {
+        await addInterest(slug);
+      }
     }
 
     // Store ordered interest slugs so manifesto screen can loop through them
     // Primary interest first
     const primaryFirst = [interestSlug, ...visibleSlugs.filter(s => s !== interestSlug)].filter(Boolean);
-    console.log('[ExploreInterests] writing onboarding_interest_order:', JSON.stringify(primaryFirst));
     await AsyncStorage.setItem('onboarding_interest_order', JSON.stringify(primaryFirst));
 
     // Continue to manifesto screen (skippable — handles its own nav to main app)
     router.replace('/onboarding/manifesto');
-  }, [router, browsableInterests, addedSlugs, addInterest, switchInterest, interestSlug]);
+  }, [router, addInterest, switchInterest, interestSlug]);
 
   return (
     <View style={styles.container}>
@@ -148,6 +253,7 @@ export default function ExploreInterestsScreen() {
                   entering={FadeIn.delay(350 + index * 40).duration(300)}
                 >
                   <TouchableOpacity
+                    testID={`explore-interest-${interest.slug}`}
                     style={[
                       styles.chip,
                       isAdded && { backgroundColor: chipColor + '15', borderColor: chipColor },
@@ -191,6 +297,7 @@ export default function ExploreInterestsScreen() {
           style={styles.footer}
         >
           <TouchableOpacity
+            testID="explore-interests-continue"
             style={[styles.continueButton, { backgroundColor: accentColor, shadowColor: accentColor }]}
             onPress={handleContinue}
             activeOpacity={0.85}

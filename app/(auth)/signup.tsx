@@ -68,6 +68,7 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [persona, setPersona] = useState<PersonaRole>(normalizePersonaParam(params.persona));
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -274,6 +275,7 @@ export default function SignUp() {
             <View style={styles.interestGrid}>
               {SAMPLE_INTERESTS.map((interest) => (
                 <TouchableOpacity
+                  testID={`signup-interest-${interest.slug}`}
                   key={interest.slug}
                   style={styles.interestCard}
                   onPress={() => handleSelectInterest(interest.slug)}
@@ -293,6 +295,7 @@ export default function SignUp() {
             </View>
 
             <TouchableOpacity
+              testID="signup-skip-interest"
               style={styles.skipButton}
               onPress={() => setStep('persona')}
             >
@@ -325,6 +328,7 @@ export default function SignUp() {
           <View style={styles.cardHeader}>
             {!paramInterest && (
               <TouchableOpacity
+                testID="signup-back-to-interests"
                 accessibilityRole="button"
                 accessibilityLabel="Back to interest picker"
                 onPress={() => { setStep('interest'); setSelectedInterest(undefined); }}
@@ -464,16 +468,30 @@ export default function SignUp() {
           />
 
           <Text style={styles.sectionLabel}>Password *</Text>
-          <TextInput
-            testID="signup-password-input"
-            style={styles.input}
-            placeholder="Minimum 6 characters"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            textContentType="newPassword"
-            editable={!isLoading}
-          />
+          <View style={styles.passwordContainer}>
+            <TextInput
+              testID="signup-password-input"
+              accessibilityLabel="Password"
+              style={styles.passwordInput}
+              placeholder="Minimum 6 characters"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              textContentType="password"
+              editable={!isLoading}
+              importantForAccessibility="yes"
+            />
+            <TouchableOpacity
+              testID="signup-password-toggle"
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+              style={styles.eyeButton}
+              onPress={() => setShowPassword((value) => !value)}
+              disabled={isLoading}
+            >
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#94A3B8" />
+            </TouchableOpacity>
+          </View>
 
           {/* Submit Button */}
           <TouchableOpacity
@@ -716,6 +734,24 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     fontSize: 16,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+  },
+  eyeButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
 
   // Buttons
