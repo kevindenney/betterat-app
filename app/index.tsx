@@ -74,12 +74,17 @@ export default function LandingPage() {
       return;
     }
 
-    // Signed-out cold-open: a fresh install sees the guest-first welcome flow
-    // instead of the "Welcome back" login wall. A returning guest already has
-    // an interest cached, so skip the intro and drop straight into the app
-    // (the races tab enters guest mode for signed-out visitors).
+    // Signed-out cold-open. A fresh install (no cached interest) sees the
+    // guest-first welcome flow instead of the "Welcome back" login wall.
+    //
+    // A returning user who has signed out still has an interest cached. We
+    // must NOT drop them onto a protected tab: AuthGate gates `(tabs)` behind
+    // auth and bounces any signed-out visitor back to `/`, which re-mounts
+    // this screen and spins an infinite redirect loop (index → /(tabs)/races
+    // → AuthGate → / → …). Send returning signed-out users to the login
+    // screen instead — the same destination sign-out.tsx and AuthProvider use.
     AsyncStorage.getItem(PREFERRED_INTEREST_KEY)
-      .then((cachedSlug) => router.replace(cachedSlug ? '/(tabs)/races' : '/welcome'))
+      .then((cachedSlug) => router.replace(cachedSlug ? '/(auth)/login' : '/welcome'))
       .catch(() => router.replace('/welcome'));
   }, [isNative, ready, loading, isRedirecting, signedIn, userProfile, user]);
 
