@@ -25,6 +25,7 @@ import { X } from 'lucide-react-native';
 
 export interface ActionSheetAction {
   label: string;
+  testID?: string;
   description?: string;
   icon?: React.ReactNode;
   onPress: () => void;
@@ -204,8 +205,10 @@ export function IOSActionSheet({
             return (
               <Pressable
                 key={action.label}
+                testID={action.testID}
                 onPress={() => handleActionPress(action)}
                 disabled={action.disabled}
+                accessibilityLabel={action.label}
               >
                 {({ pressed }) => (
                   <View
@@ -231,7 +234,7 @@ export function IOSActionSheet({
                           marginRight: 14,
                         }}
                       >
-                        {React.cloneElement(action.icon as React.ReactElement, {
+                        {React.cloneElement(action.icon as React.ReactElement<any>, {
                           size: 22,
                           color: iconColor,
                           strokeWidth: 1.5,

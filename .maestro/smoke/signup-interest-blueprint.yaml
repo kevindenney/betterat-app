@@ -1,0 +1,113 @@
+# Signs up from an interest + blueprint deep link and verifies the account reaches onboarding.
+#
+# One-off simulator fixture for this run:
+# - qa-blueprint-20260607072909@betterat.app / BetterAt-QA-2026!f7K2
+appId: com.betterat.app
+tags:
+  - smoke
+  - signup
+  - blueprint
+---
+
+- launchApp:
+    clearState: true
+
+- tapOn:
+    text: "OK"
+    optional: true
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- tapOn:
+    text: "Continue"
+    optional: true
+- tapOn:
+    text: "Close"
+    optional: true
+- tapOn:
+    id: "xmark"
+    optional: true
+- tapOn:
+    point: "91%,47%"
+    optional: true
+
+- openLink: "betterat://signup?blueprint=pre-clinical"
+- tapOn:
+    text: "Continue"
+    optional: true
+- tapOn:
+    text: "Close"
+    optional: true
+- tapOn:
+    point: "91%,47%"
+    optional: true
+- openLink: "betterat://signup?blueprint=pre-clinical"
+
+- extendedWaitUntil:
+    visible:
+      id: "signup-title"
+    timeout: 30000
+
+- tapOn:
+    id: "signup-back-to-interests"
+    optional: true
+
+- tapOn:
+    id: "signup-interest-nursing"
+- tapOn:
+    text: "Select Nursing"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "signup-name-input"
+    timeout: 30000
+
+- assertVisible: "Nursing"
+
+- tapOn:
+    id: "signup-name-input"
+- eraseText
+- inputText: "QA Blueprint Signup"
+- hideKeyboard
+
+- tapOn:
+    id: "signup-email-input"
+- eraseText
+- inputText: "qa-blueprint-20260607072909@betterat.app"
+- hideKeyboard
+
+- tapOn:
+    id: "signup-password-toggle"
+- tapOn:
+    id: "signup-password-input"
+- eraseText
+- inputText: "BetterAt-QA-2026!f7K2"
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: "signup-submit-button"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn:
+    id: "signup-submit-button"
+
+- extendedWaitUntil:
+    visible:
+      id: "trial-activation-start"
+    timeout: 60000

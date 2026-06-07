@@ -1,0 +1,73 @@
+# Suggests a persisted QA step to the first recent recipient.
+#
+# Preconditions:
+# - BetterAt dev build is installed.
+# - Metro is running.
+# - The simulator has a signed-in session that owns the QA step.
+# - The signed-in account has at least one recent recipient.
+appId: com.betterat.app
+tags:
+  - smoke
+  - share
+  - suggestions
+---
+
+- launchApp
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 20000
+
+- openLink: "betterat://step/8b7ce1df-2bed-47ca-b655-664647ede284"
+
+- extendedWaitUntil:
+    visible: "Mobile QA race step"
+    timeout: 30000
+
+- tapOn:
+    id: "step-detail-more-actions"
+
+- extendedWaitUntil:
+    visible:
+      id: "step-action-share"
+    timeout: 15000
+
+- tapOn:
+    id: "step-action-share"
+
+- extendedWaitUntil:
+    visible:
+      id: "share-step-sheet"
+    timeout: 15000
+
+- tapOn:
+    id: "share-step-suggest"
+
+- extendedWaitUntil:
+    visible:
+      id: "share-suggest-sheet"
+    timeout: 15000
+
+- tapOn:
+    point: "50%,62%"
+
+- extendedWaitUntil:
+    notVisible:
+      id: "share-suggest-sheet"
+    timeout: 15000

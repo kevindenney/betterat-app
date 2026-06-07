@@ -16,7 +16,8 @@ tags:
 
 # Wait for app to load
 - extendedWaitUntil:
-    visible: "Races"
+    visible:
+      id: "tab-races"
     timeout: 15000
 
 # Navigate to Account/Settings

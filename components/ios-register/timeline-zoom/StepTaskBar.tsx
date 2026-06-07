@@ -164,6 +164,7 @@ export function StepTaskBar({
           the › Step N leaf taps to the step list (menu DOWN). One pill, one place. */}
       <View style={styles.intpill}>
         <Pressable
+          testID="step-taskbar-interest-switcher"
           onPress={openInterestSwitcher}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
           style={styles.segInt}
@@ -209,6 +210,7 @@ export function StepTaskBar({
 
       <View style={styles.icons}>
         <Pressable
+          testID="step-taskbar-add-step"
           style={[styles.plusbtn, { backgroundColor: accentColor }]}
           onPress={() => setAddOpen(true)}
           accessibilityRole="button"

@@ -263,7 +263,7 @@ export function AddPersonSheet({
   return (
     <View style={s.scrim} pointerEvents="auto">
       <Pressable style={s.scrimPress} onPress={onClose} />
-      <View style={s.sheet}>
+      <View testID="admin-add-person-sheet" style={s.sheet}>
         <View style={s.head}>
           <View style={s.headText}>
             <Text style={s.title}>Add people to {orgName}</Text>
@@ -284,6 +284,7 @@ export function AddPersonSheet({
             ] as { key: InviteMethod; label: string }[]
           ).map((m) => (
             <Pressable
+              testID={`admin-add-person-method-${m.key}`}
               key={m.key}
               onPress={() => setMethod(m.key)}
               style={[s.methodBtn, method === m.key && s.methodBtnOn]}
@@ -327,6 +328,7 @@ export function AddPersonSheet({
                     </View>
                   ))}
                   <TextInput
+                    testID="admin-add-person-email-input"
                     value={emailDraft}
                     onChangeText={setEmailDraft}
                     onBlur={commitDraft}
@@ -445,6 +447,7 @@ export function AddPersonSheet({
             <>
               <Field label="Paste CSV or spreadsheet rows">
                 <TextInput
+                  testID="admin-add-person-csv-input"
                   value={csvDraft}
                   onChangeText={(t) => {
                     setCsvDraft(t);

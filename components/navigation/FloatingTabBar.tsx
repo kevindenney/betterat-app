@@ -101,6 +101,7 @@ function TabItem({
 
   return (
     <AnimatedPressable
+      testID={`tab-${tab.name.replace(/[^a-z0-9]+/gi, '-')}`}
       accessibilityRole="tab"
       accessibilityState={{ selected: isActive }}
       accessibilityLabel={tab.title}

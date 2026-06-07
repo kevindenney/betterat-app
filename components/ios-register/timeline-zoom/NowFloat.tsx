@@ -75,6 +75,7 @@ export function NowFloat({
     const canJump = Boolean(onJumpToIndex);
     dots.push(
       <Pressable
+        testID={`timeline-now-step-${i + 1}`}
         key={i}
         accessibilityRole="button"
         accessibilityLabel={`Go to step ${i + 1}`}
@@ -99,9 +100,14 @@ export function NowFloat({
   }
 
   return (
-    <View style={[styles.wrap, { bottom: bottomOffset }]} pointerEvents="box-none">
+    <View
+      testID="timeline-now-float"
+      style={[styles.wrap, { bottom: bottomOffset }]}
+      pointerEvents="box-none"
+    >
       <View style={styles.float}>
         <Pressable
+          testID="timeline-now-primary-action"
           accessibilityRole="button"
           accessibilityLabel={
             relation === 'done'

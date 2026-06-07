@@ -100,6 +100,7 @@ export function StepCard({
 }: StepCardProps) {
   const menuButton = onMenuPress ? (
     <Pressable
+      testID="step-detail-more-actions"
       onPress={onMenuPress}
       accessibilityRole="button"
       accessibilityLabel="More actions"

@@ -27,11 +27,13 @@ tags:
 
 # Wait for main app to load
 - extendedWaitUntil:
-    visible: "Races"
+    visible:
+      id: "tab-races"
     timeout: 10000
 
 # Verify guest mode - should see limited functionality or upgrade prompts
-- assertVisible: "Races"
+- assertVisible:
+    id: "tab-races"
 
 # Try creating a race in guest mode
 - tapOn:

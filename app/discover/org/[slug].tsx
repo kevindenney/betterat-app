@@ -244,7 +244,9 @@ function OrgDetailScreenInner() {
             .maybeSingle();
           if (cancelled || !my) return;
           const active = my.status === 'active' || my.membership_status === 'active';
+          const pending = my.status === 'pending' || my.membership_status === 'pending';
           setIsMember(active);
+          setJoinState(pending ? 'pending' : 'idle');
           if (active) {
             setUserRole((my as any).role || null);
           }
@@ -432,11 +434,11 @@ function OrgDetailScreenInner() {
         orgId: org.id,
         mode: (org.join_mode || 'invite_only') as OrganizationJoinMode,
       });
-      if (result.status === 'active' || result.status === 'existing') {
+      if (result.status === 'active' || (result.status === 'existing' && result.membershipStatus === 'active')) {
         setIsMember(true);
         setMemberSince(`Member since ${new Date().getFullYear()}`);
         setJoinState('idle');
-      } else if (result.status === 'pending') {
+      } else if (result.status === 'pending' || result.membershipStatus === 'pending') {
         setJoinState('pending');
       } else {
         setJoinState('idle');
@@ -566,11 +568,12 @@ function OrgDetailScreenInner() {
               />
             </>
           ) : joinState === 'pending' ? (
-            <RelationshipMinePill label="Pending approval" />
+            <RelationshipMinePill testID="org-detail-pending" label="Pending approval" />
           ) : (org.join_mode || 'invite_only') === 'request_to_join' && !hasApprover ? (
             <RelationshipMinePill label="Not on BetterAt yet" />
           ) : (
             <RelationshipButton
+              testID="org-detail-join"
               label={joinLabel}
               icon="add"
               loading={joinState === 'busy'}
@@ -578,6 +581,7 @@ function OrgDetailScreenInner() {
             />
           )}
           <RelationshipButton
+            testID="org-detail-open-map"
             label="Open map"
             icon="map-outline"
             secondary

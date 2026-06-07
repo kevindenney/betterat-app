@@ -1,0 +1,82 @@
+# Core mobile navigation smoke test.
+#
+# Preconditions:
+# - BetterAt dev build is installed.
+# - Metro is running.
+# - The simulator has a signed-in or guest session.
+appId: com.betterat.app
+tags:
+  - smoke
+  - navigation
+  - critical
+---
+
+- launchApp
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 20000
+
+- extendedWaitUntil:
+    visible:
+      id: "tab-races"
+    timeout: 30000
+
+- assertVisible:
+    id: "tab-races"
+- assertVisible:
+    id: "tab-library"
+- assertVisible:
+    id: "tab-watch"
+- assertVisible:
+    id: "tab-atlas"
+
+- assertVisible:
+    id: "timeline-zoom-rail"
+- assertVisible:
+    id: "timeline-zoom-level-1"
+- assertVisible:
+    id: "timeline-zoom-level-3"
+- assertVisible:
+    id: "timeline-zoom-level-4"
+
+- tapOn:
+    id: "tab-library"
+- extendedWaitUntil:
+    visible: "Library"
+    timeout: 15000
+
+- tapOn:
+    id: "tab-watch"
+- extendedWaitUntil:
+    visible: "Watch"
+    timeout: 15000
+
+- tapOn:
+    id: "tab-atlas"
+- extendedWaitUntil:
+    visible: "Atlas"
+    timeout: 20000
+
+- tapOn:
+    id: "tab-races"
+- extendedWaitUntil:
+    visible:
+      id: "timeline-zoom-rail"
+    timeout: 15000

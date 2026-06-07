@@ -549,6 +549,7 @@ export function StudioButton({
   label,
   onPress,
   small,
+  testID,
 }: {
   variant?: 'primary' | 'ghost' | 'danger' | 'muted';
   accent?: StudioAccent;
@@ -556,6 +557,7 @@ export function StudioButton({
   label: string;
   onPress?: () => void;
   small?: boolean;
+  testID?: string;
 }) {
   const bg =
     variant === 'primary'
@@ -573,6 +575,9 @@ export function StudioButton({
       : 'rgba(60, 60, 67, 0.85)';
   return (
     <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
       style={[
         b.btn,

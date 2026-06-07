@@ -1,0 +1,48 @@
+# Opens an org admin People surface and verifies the Add Person sheet controls.
+#
+# Preconditions:
+# - BetterAt dev build is installed.
+# - Metro is running.
+# - The simulator has a signed-in admin session for the org.
+appId: com.betterat.app
+tags:
+  - smoke
+  - admin
+  - organization
+---
+
+- launchApp
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 20000
+
+- openLink: "betterat://admin/a1000001-0000-0000-0000-000000000001/people"
+
+- extendedWaitUntil:
+    visible: "People"
+    timeout: 30000
+
+- tapOn:
+    id: "admin-people-add-person"
+
+- extendedWaitUntil:
+    visible:
+      id: "admin-add-person-sheet"
+    timeout: 15000

@@ -80,6 +80,7 @@ export function PlanStepRaceSelector({
     <View style={styles.wrap}>
       <View style={styles.row}>
         <Option
+          testID="step-type-step"
           glyph="📍"
           title="Step"
           desc="Anything you do — practice, boat work, a debrief."
@@ -88,6 +89,7 @@ export function PlanStepRaceSelector({
           onPress={readOnly ? undefined : () => onChange(false)}
         />
         <Option
+          testID="step-type-race"
           glyph="⛵"
           title="Race"
           desc="An event on a course. Gets Atlas course & marks."
@@ -152,6 +154,7 @@ function Option({
   selected,
   tone,
   onPress,
+  testID,
 }: {
   glyph: string;
   title: string;
@@ -159,15 +162,18 @@ function Option({
   selected: boolean;
   tone: string;
   onPress?: () => void;
+  testID?: string;
 }) {
   return (
     <Pressable
+      testID={testID}
       style={[
         styles.option,
         selected && { borderColor: tone, backgroundColor: hexToTint(tone) },
       ]}
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityLabel={title}
       accessibilityState={{ selected }}
     >
       {selected && (

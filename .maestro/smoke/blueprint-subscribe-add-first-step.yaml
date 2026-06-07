@@ -1,0 +1,62 @@
+# Subscribes to a public blueprint and adds its first step to the user's timeline.
+#
+# Preconditions:
+# - BetterAt dev build is installed.
+# - Metro is running.
+# - The simulator has a signed-in session that is not already subscribed.
+appId: com.betterat.app
+tags:
+  - smoke
+  - blueprint
+---
+
+- launchApp
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 20000
+
+- openLink: "betterat://blueprint/pre-clinical"
+
+- extendedWaitUntil:
+    visible: "Pre-Clinical"
+    timeout: 30000
+
+- scrollUntilVisible:
+    element:
+      id: "blueprint-subscribe"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn:
+    id: "blueprint-subscribe"
+
+- scrollUntilVisible:
+    element:
+      id: "blueprint-add-first-step"
+    direction: DOWN
+    timeout: 30000
+
+- tapOn:
+    id: "blueprint-add-first-step"
+
+- extendedWaitUntil:
+    visible:
+      id: "tab-races"
+    timeout: 30000

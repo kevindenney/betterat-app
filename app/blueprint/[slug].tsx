@@ -794,6 +794,7 @@ export default function BlueprintPage() {
               {!isOwner && !isSubscribed && !hasPurchased && (
                 blueprint.access_level === 'paid' && blueprint.price_cents && blueprint.price_cents > 0 ? (
                   <Pressable
+                    testID="blueprint-subscribe"
                     style={[styles.purchaseBtn, { backgroundColor: accent }]}
                     onPress={handlePurchase}
                     disabled={purchasing}
@@ -811,6 +812,7 @@ export default function BlueprintPage() {
                   </Pressable>
                 ) : (
                   <Pressable
+                    testID="blueprint-subscribe"
                     style={[styles.subscribeBtn, { backgroundColor: accent }]}
                     onPress={handleSubscribe}
                     disabled={subscribeMutation.isPending}
@@ -835,6 +837,7 @@ export default function BlueprintPage() {
                     <Text style={styles.successText}>Purchase complete! You now have access.</Text>
                   </View>
                   <Pressable
+                    testID="blueprint-subscribe"
                     style={[styles.adoptBtn, { backgroundColor: accent }]}
                     onPress={handleSubscribe}
                     disabled={subscribeMutation.isPending}
@@ -861,6 +864,7 @@ export default function BlueprintPage() {
                       </View>
 
                       <Pressable
+                        testID="blueprint-add-first-step"
                         style={[styles.adoptBtn, { backgroundColor: accent }]}
                         onPress={handleAddFirstStep}
                         disabled={adoptingFirstStep || !effectiveSubscriptionId}
@@ -1223,7 +1227,7 @@ function StepListItem({
   const whatWillYouDo: string = planData.what_will_you_do || '';
   const whyReasoning: string = planData.why_reasoning || '';
   const capabilityGoals: string[] = planData.capability_goals || [];
-  const collaborators: string = (planData.collaborators || '').trim();
+  const collaborators = formatPlanCollaborators(planData.collaborators);
   const isLast = index === total - 1;
   const isDone = step.status === 'completed';
 
@@ -1302,6 +1306,25 @@ function StepListItem({
       </View>
     </Pressable>
   );
+}
+
+function formatPlanCollaborators(value: unknown): string {
+  if (typeof value === 'string') return value.trim();
+  if (!Array.isArray(value)) return '';
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item.trim();
+      if (!item || typeof item !== 'object') return '';
+      const collaborator = item as {
+        display_name?: unknown;
+        name?: unknown;
+        email?: unknown;
+      };
+      const label = collaborator.display_name ?? collaborator.name ?? collaborator.email;
+      return typeof label === 'string' ? label.trim() : '';
+    })
+    .filter(Boolean)
+    .join(' · ');
 }
 
 const stepListStyles = StyleSheet.create({

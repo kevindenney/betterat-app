@@ -1,0 +1,73 @@
+# Creates a Race-type Practice step from the StepTaskBar add button.
+#
+# Preconditions:
+# - BetterAt dev build is installed.
+# - Metro is running.
+# - The simulator is on a sailing interest so the Step/Race selector renders.
+appId: com.betterat.app
+tags:
+  - smoke
+  - practice
+  - add-step
+  - race
+---
+
+- launchApp
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 20000
+
+- extendedWaitUntil:
+    visible:
+      id: "tab-races"
+    timeout: 30000
+
+- tapOn:
+    id: "tab-races"
+
+- extendedWaitUntil:
+    visible:
+      id: "step-taskbar-add-step"
+    timeout: 15000
+
+- tapOn:
+    id: "step-taskbar-add-step"
+
+- extendedWaitUntil:
+    visible:
+      id: "step-add-description-input"
+    timeout: 15000
+
+- tapOn:
+    id: "step-type-race"
+
+- tapOn:
+    id: "step-add-description-input"
+- inputText: "Mobile QA race step"
+- hideKeyboard
+
+- tapOn:
+    id: "step-add-save"
+
+- extendedWaitUntil:
+    visible: "Mobile QA race step"
+    timeout: 30000
+
+- assertVisible: "Mobile QA race step"

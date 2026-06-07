@@ -140,6 +140,7 @@ function RailSegment({
 
   return (
     <Pressable
+      testID={`timeline-zoom-level-${level}`}
       onPress={onPress}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
@@ -204,6 +205,7 @@ export function ZoomLevelPicker({
 
   return (
     <Animated.View
+      testID="timeline-zoom-rail"
       pointerEvents={hidden ? 'none' : 'box-none'}
       style={[styles.host, { right: rightOffset }, hostAnimStyle]}
       accessibilityRole="tablist"

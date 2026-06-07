@@ -1,0 +1,50 @@
+# Opens an organization discovery page and requests to join.
+#
+# Preconditions:
+# - BetterAt dev build is installed.
+# - Metro is running.
+# - The simulator has a signed-in session that is not already a member.
+appId: com.betterat.app
+tags:
+  - smoke
+  - organization
+  - join
+---
+
+- launchApp
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 20000
+
+- openLink: "betterat://discover/org/hong-kong-dragon-association-hkda-tg14"
+
+- extendedWaitUntil:
+    visible:
+      id: "org-detail-join"
+    timeout: 30000
+
+- tapOn:
+    id: "org-detail-join"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "org-detail-pending"
+    timeout: 20000

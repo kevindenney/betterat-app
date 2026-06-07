@@ -1,0 +1,153 @@
+# Signs up with one primary interest, adds a second interest in onboarding, then skips into the app.
+#
+# One-off simulator fixture for this run:
+# - qa-multi-20260607071948@betterat.app / BetterAt-QA-2026!f7K2
+appId: com.betterat.app
+tags:
+  - smoke
+  - signup
+  - interest
+---
+
+- launchApp:
+    clearState: true
+
+- tapOn:
+    text: "OK"
+    optional: true
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- tapOn:
+    text: "Continue"
+    optional: true
+- tapOn:
+    text: "Close"
+    optional: true
+- tapOn:
+    id: "xmark"
+    optional: true
+- tapOn:
+    point: "91%,47%"
+    optional: true
+
+- openLink: "betterat://signup"
+- tapOn:
+    text: "Continue"
+    optional: true
+- tapOn:
+    text: "Close"
+    optional: true
+- tapOn:
+    point: "91%,47%"
+    optional: true
+- openLink: "betterat://signup"
+
+- extendedWaitUntil:
+    visible:
+      id: "signup-title"
+    timeout: 30000
+
+- tapOn:
+    id: "signup-back-to-interests"
+    optional: true
+
+- tapOn:
+    id: "signup-interest-nursing"
+- tapOn:
+    text: "Select Nursing"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "signup-name-input"
+    timeout: 15000
+
+- tapOn:
+    id: "signup-name-input"
+- eraseText
+- inputText: "QA Multi Interest"
+- hideKeyboard
+
+- tapOn:
+    id: "signup-email-input"
+- eraseText
+- inputText: "qa-multi-20260607071948@betterat.app"
+- hideKeyboard
+
+- tapOn:
+    id: "signup-password-toggle"
+- tapOn:
+    id: "signup-password-input"
+- eraseText
+- inputText: "BetterAt-QA-2026!f7K2"
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: "signup-submit-button"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn:
+    id: "signup-submit-button"
+
+- extendedWaitUntil:
+    visible:
+      id: "trial-activation-start"
+    timeout: 60000
+
+- openLink: "betterat://onboarding/explore-interests"
+
+- extendedWaitUntil:
+    visible: "Interested in anything else?"
+    timeout: 30000
+
+- scrollUntilVisible:
+    element:
+      id: "explore-interest-sail-racing"
+    direction: DOWN
+    timeout: 20000
+
+- tapOn:
+    id: "explore-interest-sail-racing"
+
+- tapOn:
+    id: "explore-interests-continue"
+
+- tapOn:
+    id: "manifesto-skip"
+    optional: true
+- tapOn:
+    id: "manifesto-skip"
+    optional: true
+- tapOn:
+    id: "manifesto-skip"
+    optional: true
+- tapOn:
+    id: "privacy-quick-set-skip"
+    optional: true
+- tapOn:
+    id: "privacy-quick-set-continue"
+    optional: true
+
+- openLink: "betterat://races"
+
+- extendedWaitUntil:
+    visible:
+      id: "tab-races"
+    timeout: 60000

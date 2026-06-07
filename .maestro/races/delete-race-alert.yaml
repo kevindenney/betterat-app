@@ -13,9 +13,10 @@ tags:
 # Prerequisites: User should be signed in with at least one race
 - launchApp
 
-# Wait for races screen
+# Wait for Practice screen
 - extendedWaitUntil:
-    visible: "Races"
+    visible:
+      id: "tab-races"
     timeout: 15000
 
 # Find and tap on a race to view details
@@ -54,4 +55,5 @@ tags:
     optional: true
 
 # Verify we're back to the race view
-- assertVisible: "Races"
+- assertVisible:
+    id: "tab-races"

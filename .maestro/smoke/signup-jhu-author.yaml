@@ -1,0 +1,114 @@
+# Signs up a Nursing user who intends to publish plans with Johns Hopkins School of Nursing.
+#
+# One-off simulator fixture for this run:
+# - qa-jhu-author-20260607073340@betterat.app / BetterAt-QA-2026!f7K2
+appId: com.betterat.app
+tags:
+  - smoke
+  - signup
+  - organization
+  - blueprint
+---
+
+- launchApp:
+    clearState: true
+
+- tapOn:
+    text: "OK"
+    optional: true
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- tapOn:
+    text: "Continue"
+    optional: true
+- tapOn:
+    text: "Close"
+    optional: true
+- tapOn:
+    id: "xmark"
+    optional: true
+- tapOn:
+    point: "91%,47%"
+    optional: true
+
+- openLink: "betterat://signup"
+- tapOn:
+    text: "Continue"
+    optional: true
+- tapOn:
+    text: "Close"
+    optional: true
+- tapOn:
+    point: "91%,47%"
+    optional: true
+- openLink: "betterat://signup"
+
+- extendedWaitUntil:
+    visible:
+      id: "signup-title"
+    timeout: 30000
+
+- tapOn:
+    id: "signup-back-to-interests"
+    optional: true
+
+- tapOn:
+    id: "signup-interest-nursing"
+- tapOn:
+    text: "Select Nursing"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "signup-name-input"
+    timeout: 30000
+
+- assertVisible: "Nursing"
+
+- tapOn:
+    id: "signup-name-input"
+- eraseText
+- inputText: "QA JHU Author"
+- hideKeyboard
+
+- tapOn:
+    id: "signup-email-input"
+- eraseText
+- inputText: "qa-jhu-author-20260607073340@betterat.app"
+- hideKeyboard
+
+- tapOn:
+    id: "signup-password-toggle"
+- tapOn:
+    id: "signup-password-input"
+- eraseText
+- inputText: "BetterAt-QA-2026!f7K2"
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: "signup-submit-button"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn:
+    id: "signup-submit-button"
+
+- extendedWaitUntil:
+    visible:
+      id: "trial-activation-start"
+    timeout: 60000

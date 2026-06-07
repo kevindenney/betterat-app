@@ -231,6 +231,7 @@ export interface RelationshipButtonProps {
   loading?: boolean;
   secondary?: boolean;
   fullWidth?: boolean;
+  testID?: string;
 }
 
 export function RelationshipButton({
@@ -240,12 +241,14 @@ export function RelationshipButton({
   loading,
   secondary,
   fullWidth = true,
+  testID,
 }: RelationshipButtonProps) {
   // The blue fill is on a static-style View so it always renders. The
   // Pressable wraps it and only varies opacity on press. Earlier function-form
   // Pressable styles produced a washed-out fill on the iOS 26 simulator.
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       disabled={loading}
       accessibilityRole="button"
@@ -292,8 +295,10 @@ export function RelationshipButton({
 export function RelationshipMinePill({
   label,
   onPress,
+  testID,
 }: {
   label: string;
+  testID?: string;
   /**
    * Optional handler. Canonical position: the pill is "informational" — but
    * users expect tap-to-undo on Following / Subscribed pills (Instagram /
@@ -303,7 +308,7 @@ export function RelationshipMinePill({
   onPress?: () => void;
 }) {
   const body = (
-    <View style={relStyles.pill}>
+    <View testID={testID} style={relStyles.pill}>
       <Ionicons name="checkmark" size={14} color={CHECK_GREEN} />
       <Text style={relStyles.pillLabel}>{label}</Text>
     </View>

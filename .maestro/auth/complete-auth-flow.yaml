@@ -105,13 +105,15 @@ env:
 # PHASE 2: VERIFY LOGGED IN
 # ============================================================
 
-# Wait for main app (Race screen)
+# Wait for main app (Practice screen)
 - extendedWaitUntil:
-    visible: "Race"
+    visible:
+      id: "tab-races"
     timeout: 60000
 
-# Verify we see the Race screen
-- assertVisible: "Race"
+# Verify we see the Practice tab
+- assertVisible:
+    id: "tab-races"
 
 # ============================================================
 # PHASE 3: SIGN OUT

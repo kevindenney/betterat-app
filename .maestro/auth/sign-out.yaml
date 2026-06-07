@@ -13,9 +13,10 @@ tags:
 # Launch the app
 - launchApp
 
-# Wait for main app (Race screen) - assumes user is signed in
+# Wait for main app (Practice screen) - assumes user is signed in
 - extendedWaitUntil:
-    visible: "Race"
+    visible:
+      id: "tab-races"
     timeout: 30000
 
 # Navigate to account via deeplink

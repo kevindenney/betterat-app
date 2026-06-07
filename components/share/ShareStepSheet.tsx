@@ -78,7 +78,7 @@ export function ShareStepSheet({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable style={styles.scrim} onPress={onDismiss}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable testID="share-step-sheet" style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={styles.handle} />
           <Text style={styles.title}>Share this step</Text>
           <Text style={styles.sub}>They'll see your plan · they can fork their own copy.</Text>
@@ -90,6 +90,7 @@ export function ShareStepSheet({
           </View>
 
           <Pressable
+            testID="share-step-direct"
             style={[styles.modeRow, busyKind === 'direct' && styles.modeRowBusy]}
             disabled={busyKind !== null}
             onPress={() => {
@@ -110,6 +111,7 @@ export function ShareStepSheet({
 
           {canSuggest ? (
             <Pressable
+              testID="share-step-suggest"
               style={[styles.modeRow, busyKind === 'suggest' && styles.modeRowBusy]}
               disabled={busyKind !== null}
               onPress={() => setSuggestPickerOpen(true)}
@@ -129,6 +131,7 @@ export function ShareStepSheet({
 
           {defaultGroup ? (
             <Pressable
+              testID="share-step-group"
               style={[styles.modeRow, busyKind === 'group' && styles.modeRowBusy]}
               disabled={busyKind !== null}
               onPress={() => void wrap('group', () => onShareToGroup(defaultGroup.id))()}
@@ -145,6 +148,7 @@ export function ShareStepSheet({
           ) : null}
 
           <Pressable
+            testID="share-step-copy-link"
             style={[styles.modeRow, busyKind === 'link' && styles.modeRowBusy]}
             disabled={busyKind !== null}
             onPress={async () => {
@@ -207,7 +211,7 @@ export function ShareStepSheet({
         onRequestClose={() => setSuggestPickerOpen(false)}
       >
         <Pressable style={styles.scrim} onPress={() => setSuggestPickerOpen(false)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable testID="share-suggest-sheet" style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <View style={styles.handle} />
             <Text style={styles.title}>Suggest to…</Text>
             <Text style={styles.sub}>Pick a person — the step lands in their Inbox as a suggestion.</Text>
@@ -217,9 +221,10 @@ export function ShareStepSheet({
               </Text>
             ) : (
               <ScrollView style={styles.suggestList}>
-                {recentRecipients.map((person) => (
+                {recentRecipients.map((person, index) => (
                   <Pressable
                     key={person.id}
+                    testID={`share-suggest-recipient-${index + 1}`}
                     style={[styles.suggestRow, busyKind === 'suggest' && styles.modeRowBusy]}
                     disabled={busyKind !== null || !onSuggestDirect}
                     onPress={async () => {

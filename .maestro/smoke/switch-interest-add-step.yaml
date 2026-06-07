@@ -1,0 +1,90 @@
+# Switches active interest and creates a step in the selected interest.
+#
+# Preconditions:
+# - BetterAt dev build is installed.
+# - Metro is running.
+# - The simulator has a signed-in session with Sail Racing in its interests.
+appId: com.betterat.app
+tags:
+  - smoke
+  - interest
+  - add-step
+---
+
+- launchApp
+
+- tapOn:
+    text: "http://localhost:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8082"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "http://localhost:8081"
+    optional: true
+- tapOn:
+    text: "BetterAt, http://localhost:8082"
+    optional: true
+
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 20000
+
+- openLink: "betterat://races"
+
+- extendedWaitUntil:
+    visible:
+      id: "tab-races"
+    timeout: 30000
+
+- tapOn:
+    id: "tab-races"
+
+- extendedWaitUntil:
+    visible:
+      id: "step-taskbar-interest-switcher"
+    timeout: 20000
+
+- tapOn:
+    id: "step-taskbar-interest-switcher"
+
+- extendedWaitUntil:
+    visible:
+      id: "interest-switcher-sheet"
+    timeout: 15000
+
+- scrollUntilVisible:
+    element:
+      id: "interest-switcher-row-sail-racing"
+    direction: DOWN
+    timeout: 15000
+
+- tapOn:
+    id: "interest-switcher-row-sail-racing"
+
+- extendedWaitUntil:
+    visible: "Interest: Sail Racing. Tap to switch."
+    timeout: 20000
+
+- tapOn:
+    id: "step-taskbar-add-step"
+
+- extendedWaitUntil:
+    visible:
+      id: "step-add-description-input"
+    timeout: 15000
+
+- tapOn:
+    id: "step-add-description-input"
+- inputText: "Mobile QA sail interest step"
+- hideKeyboard
+
+- tapOn:
+    id: "step-add-save"
+
+- extendedWaitUntil:
+    visible: "Mobile QA sail interest step"
+    timeout: 30000

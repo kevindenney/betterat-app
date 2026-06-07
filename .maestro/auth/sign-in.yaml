@@ -61,12 +61,13 @@ env:
 # ============================================================
 # PRECONDITION: ensure a signed-out start state.
 # On a hot sim the user may already be signed in. Detect by
-# checking for the main app shell ("Race") and sign out first
+# checking for the main app shell (Practice tab) and sign out first
 # so the rest of the flow runs from a known state.
 # ============================================================
 - runFlow:
     when:
-      visible: "Race"
+      visible:
+        id: "tab-races"
     commands:
       - openLink: "betterat://account"
       - extendedWaitUntil:
@@ -146,7 +147,9 @@ env:
 
 # Wait for main app screen to appear after sign-in
 - extendedWaitUntil:
-    visible: "Race"
+    visible:
+      id: "tab-races"
     timeout: 60000
 
-- assertVisible: "Race"
+- assertVisible:
+    id: "tab-races"

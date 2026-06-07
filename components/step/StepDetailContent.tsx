@@ -1616,6 +1616,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     }
     menuActions.push({
       label: 'Share step',
+      testID: 'step-action-share',
       icon: <Ionicons name="share-outline" size={20} color={STEP_COLORS.label} />,
       onPress: () => {
         setMenuOpen(false);
@@ -1629,6 +1630,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     if (isOwner) {
       menuActions.push({
         label: 'Redo as new step',
+        testID: 'step-action-redo',
         disabled: redoStep.isPending,
         icon: <Ionicons name="copy-outline" size={20} color={STEP_COLORS.label} />,
         onPress: () => {
@@ -1638,6 +1640,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       });
       menuActions.push({
         label: step.starts_at ? 'Change timing' : step.is_race ? 'Set race time' : 'Set timing',
+        testID: 'step-action-timing',
         icon: <Ionicons name="calendar-outline" size={20} color={STEP_COLORS.label} />,
         onPress: () => {
           setMenuOpen(false);
@@ -1646,6 +1649,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       });
       menuActions.push({
         label: step.due_at ? 'Change due date' : 'Add due date',
+        testID: 'step-action-due-date',
         icon: <Ionicons name="time-outline" size={20} color={STEP_COLORS.label} />,
         onPress: () => {
           setMenuOpen(false);
@@ -1654,6 +1658,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       });
       menuActions.push({
         label: 'Pin to other interests',
+        testID: 'step-action-pin-interests',
         icon: <Ionicons name="pin-outline" size={20} color={STEP_COLORS.label} />,
         onPress: () => {
           setMenuOpen(false);
@@ -1682,6 +1687,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       }
       menuActions.push({
         label: 'Delete step',
+        testID: 'step-action-delete',
         destructive: true,
         disabled: deleteStep.isPending,
         icon: <Ionicons name="trash-outline" size={20} color="#FF3B30" />,

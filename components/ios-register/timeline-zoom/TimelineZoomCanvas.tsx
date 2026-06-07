@@ -252,7 +252,7 @@ export function TimelineZoomCanvas({
   const insets = useSafeAreaInsets();
   // Step level shows the global floating tab bar; reserve clearance so the
   // embedded capture composer + NowFloat sit above it instead of behind it.
-  const tabBarClearance = Math.max(insets.bottom, 8) + FLOATING_TAB_BAR_HEIGHT + 8;
+  const tabBarClearance = Math.max(insets.bottom, 8) + FLOATING_TAB_BAR_HEIGHT + 16;
   const { onScroll: onInnerScroll, chromeAnimStyle } = useScrollHideChrome();
 
   // Continuous scale value driven by pinch — used to gate level changes on
@@ -605,7 +605,7 @@ export function TimelineZoomCanvas({
             onJumpToIndex={jumpToFlatIndex}
             onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
             onNext={nextStep ? () => swipeToNeighbor('next') : undefined}
-            bottomOffset={tabBarClearance + 8}
+            bottomOffset={tabBarClearance + 20}
           />
         ) : null}
         <StepAddSheet

@@ -125,9 +125,20 @@ function AdminPeopleBody() {
           ]}
           actions={
             <>
-              <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
-              <StudioButton variant="ghost" icon="mail-outline" label="Bulk invite" />
               <StudioButton
+                testID="admin-people-export-csv"
+                variant="ghost"
+                icon="download-outline"
+                label="Export · CSV"
+              />
+              <StudioButton
+                testID="admin-people-bulk-invite"
+                variant="ghost"
+                icon="mail-outline"
+                label="Bulk invite"
+              />
+              <StudioButton
+                testID="admin-people-add-person"
                 variant="primary"
                 accent="blue"
                 icon="person-add-outline"

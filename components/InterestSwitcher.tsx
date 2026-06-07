@@ -108,8 +108,11 @@ export function InterestSwitcher({ headless = false }: { headless?: boolean } = 
     const isActive = interest.slug === currentInterest?.slug
     if (isUserSection) {
       return (
-        <View key={interest.id} style={[styles.row, isActive && styles.rowActive]}>
+        <View key={interest.id} accessible={false} style={[styles.row, isActive && styles.rowActive]}>
           <TouchableOpacity
+            testID={`interest-switcher-row-${interest.slug}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Switch to ${interest.name}`}
             style={styles.rowMain}
             onPress={() => handleSelect(interest)}
             activeOpacity={0.7}
@@ -193,8 +196,13 @@ export function InterestSwitcher({ headless = false }: { headless?: boolean } = 
         animationType={Platform.OS === 'web' ? 'fade' : 'slide'}
         onRequestClose={() => setOpen(false)}
       >
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable accessible={false} style={styles.backdrop} onPress={() => setOpen(false)}>
+          <Pressable
+            testID="interest-switcher-sheet"
+            accessible={false}
+            style={styles.sheet}
+            onPress={(e) => e.stopPropagation()}
+          >
             <ScrollView showsVerticalScrollIndicator={false}>
               {!signedIn ? (
                 <>
@@ -228,6 +236,9 @@ export function InterestSwitcher({ headless = false }: { headless?: boolean } = 
                         .filter((i) => i.slug !== currentInterest?.slug)
                         .map((interest) => (
                           <TouchableOpacity
+                            testID={`interest-switcher-row-${interest.slug}`}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Switch to ${interest.name}`}
                             key={interest.id}
                             style={styles.guestSwitchRow}
                             onPress={() => handleSelect(interest)}
