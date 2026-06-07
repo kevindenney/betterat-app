@@ -25,11 +25,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
-import {
-  getBlueprintById,
-  getBlueprintBySlug,
-  subscribe as subscribeToBlueprint,
-} from '@/services/BlueprintService';
 
 const logger = createLogger('commitSignupContext');
 
@@ -70,8 +65,17 @@ export interface SignupContextResult {
   interestSkipReason?: 'no-user-id' | 'no-slug' | 'unknown-slug' | 'db-error';
   /** True when blueprint subscription was created (or already existed). */
   blueprintCommitted?: boolean;
+  /** True when an org-member blueprint request is queued until membership activates. */
+  blueprintPending?: boolean;
   /** Why the blueprint subscribe was skipped or failed. Undefined on success. */
-  blueprintSkipReason?: 'no-user-id' | 'no-ref' | 'unknown-ref' | 'db-error';
+  blueprintSkipReason?:
+    | 'no-user-id'
+    | 'no-ref'
+    | 'unknown-ref'
+    | 'pending-org-membership'
+    | 'requires-purchase'
+    | 'access-denied'
+    | 'db-error';
 }
 
 function normalizeSlug(slug: string | null | undefined): string {
@@ -114,6 +118,7 @@ export async function commitSignupContext(
   // Best-effort blueprint subscribe. Failures here must not block signup
   // navigation — the user can resubscribe in-app.
   let blueprintCommitted: boolean | undefined;
+  let blueprintPending: boolean | undefined;
   let blueprintSkipReason: SignupContextResult['blueprintSkipReason'];
   if (blueprintRef) {
     if (!input.userId) {
@@ -122,6 +127,7 @@ export async function commitSignupContext(
     } else {
       const sub = await commitOnboardingBlueprint(input.userId, blueprintRef);
       blueprintCommitted = sub.blueprintCommitted;
+      blueprintPending = sub.blueprintPending;
       blueprintSkipReason = sub.blueprintSkipReason;
     }
   }
@@ -129,6 +135,7 @@ export async function commitSignupContext(
   return {
     ...interestResult,
     ...(blueprintCommitted !== undefined ? { blueprintCommitted } : {}),
+    ...(blueprintPending !== undefined ? { blueprintPending } : {}),
     ...(blueprintSkipReason ? { blueprintSkipReason } : {}),
   };
 }
@@ -195,29 +202,63 @@ export async function commitOnboardingInterest(
 export async function commitOnboardingBlueprint(
   userId: string,
   ref: string,
-): Promise<Pick<SignupContextResult, 'blueprintCommitted' | 'blueprintSkipReason'>> {
+): Promise<
+  Pick<SignupContextResult, 'blueprintCommitted' | 'blueprintPending' | 'blueprintSkipReason'>
+> {
   const trimmed = ref.trim();
   if (!trimmed) {
     return { blueprintCommitted: false, blueprintSkipReason: 'no-ref' };
   }
 
   try {
-    let blueprintId: string | null = null;
-    if (UUID_RE.test(trimmed)) {
-      const found = await getBlueprintById(trimmed);
-      blueprintId = found?.id ?? null;
-    } else {
-      const found = await getBlueprintBySlug(trimmed);
-      blueprintId = found?.id ?? null;
+    const { data, error } = await supabase.rpc(
+      'request_onboarding_blueprint_subscription' as never,
+      {
+        p_blueprint_ref: trimmed,
+        p_subscriber_id: userId,
+      } as never,
+    );
+
+    if (error) throw error;
+
+    const result = data as { status?: string } | null;
+    const status = result?.status;
+
+    if (status === 'subscribed') {
+      return { blueprintCommitted: true, blueprintPending: false };
     }
 
-    if (!blueprintId) {
+    if (status === 'pending-org-membership') {
+      logger.info('Queued org-member blueprint subscription until membership activates', {
+        userId,
+        ref: UUID_RE.test(trimmed) ? trimmed : trimmed.toLowerCase(),
+      });
+      return {
+        blueprintCommitted: false,
+        blueprintPending: true,
+        blueprintSkipReason: 'pending-org-membership',
+      };
+    }
+
+    if (status === 'not-found') {
       logger.warn('Blueprint ref not found in catalog', { ref: trimmed });
       return { blueprintCommitted: false, blueprintSkipReason: 'unknown-ref' };
     }
 
-    await subscribeToBlueprint(userId, blueprintId);
-    return { blueprintCommitted: true };
+    if (status === 'requires-purchase') {
+      return { blueprintCommitted: false, blueprintSkipReason: 'requires-purchase' };
+    }
+
+    if (status === 'no-ref') {
+      return { blueprintCommitted: false, blueprintSkipReason: 'no-ref' };
+    }
+
+    logger.warn('Blueprint subscription request was not allowed during onboarding', {
+      userId,
+      ref: UUID_RE.test(trimmed) ? trimmed : trimmed.toLowerCase(),
+      status,
+    });
+    return { blueprintCommitted: false, blueprintSkipReason: 'access-denied' };
   } catch (err) {
     logger.warn('Failed to subscribe to blueprint during onboarding', {
       userId,

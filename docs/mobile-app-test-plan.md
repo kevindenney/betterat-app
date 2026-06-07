@@ -98,4 +98,4 @@ Visual checks:
 1. Full `npm run typecheck` still fails on existing inspiration spacing-token issues, Ionicons typing, timeline season/subscribed-blueprint types, and a few unrelated component type errors.
 2. Expo dev-menu startup after Maestro `clearState` is flaky; smoke flows include defensive endpoint selection and menu-close steps.
 3. Admin Add Person modal opens on mobile, but deeper fields are not reliably accessible in the compact simulator layout.
-4. Org-member blueprint subscription during signup requires the student membership to exist first; otherwise the account and interest are created but the restricted blueprint subscription is skipped. For the JHU smoke, mark the student as an active JHU member before asserting subscription/adoption.
+4. Org-member blueprint signup now queues the subscription request until membership becomes active. For the JHU smoke, the post-signup helper still marks the student as an active JHU member and records first-step adoption for author-progress assertions.
