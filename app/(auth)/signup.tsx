@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePersonaParam, type PersonaRole } from '@/lib/auth/signupPersona';
 import { PENDING_CREATE_ORG_KEY } from '@/services/onboarding/commitSignupContext';
 import { getOnboardingContext } from '@/lib/onboarding/interestContext';
-import { SAMPLE_INTERESTS } from '@/lib/landing/sampleData';
+import { SAMPLE_INTERESTS, INTEREST_DOMAINS } from '@/lib/landing/sampleData';
 import { OnboardingStateService } from '@/services/onboarding/OnboardingStateService';
 import { FeatureTourService } from '@/services/onboarding/FeatureTourService';
 import { commitSignupContext } from '@/services/onboarding/commitSignupContext';
@@ -272,27 +272,40 @@ export default function SignUp() {
               Pick an interest to get started. You can add more later.
             </Text>
 
-            <View style={styles.interestGrid}>
-              {SAMPLE_INTERESTS.map((interest) => (
-                <TouchableOpacity
-                  testID={`signup-interest-${interest.slug}`}
-                  key={interest.slug}
-                  style={styles.interestCard}
-                  onPress={() => handleSelectInterest(interest.slug)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select ${interest.name}`}
-                >
-                  <View style={[styles.interestIcon, { backgroundColor: interest.color + '18' }]}>
-                    <Ionicons
-                      name={(interest.icon + '-outline') as any}
-                      size={24}
-                      color={interest.color}
-                    />
+            {INTEREST_DOMAINS.map((domain) => {
+              const domainInterests = domain.slugs
+                .map((slug) => SAMPLE_INTERESTS.find((i) => i.slug === slug))
+                .filter((i): i is (typeof SAMPLE_INTERESTS)[number] => !!i);
+              if (domainInterests.length === 0) return null;
+              return (
+                <View key={domain.name} style={styles.domainSection}>
+                  <Text style={[styles.domainHeader, { color: domain.color }]}>
+                    {domain.name}
+                  </Text>
+                  <View style={styles.interestGrid}>
+                    {domainInterests.map((interest) => (
+                      <TouchableOpacity
+                        testID={`signup-interest-${interest.slug}`}
+                        key={interest.slug}
+                        style={styles.interestCard}
+                        onPress={() => handleSelectInterest(interest.slug)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Select ${interest.name}`}
+                      >
+                        <View style={[styles.interestIcon, { backgroundColor: interest.color + '18' }]}>
+                          <Ionicons
+                            name={(interest.icon + '-outline') as any}
+                            size={24}
+                            color={interest.color}
+                          />
+                        </View>
+                        <Text style={styles.interestName}>{interest.name}</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                  <Text style={styles.interestName}>{interest.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                </View>
+              );
+            })}
 
             <TouchableOpacity
               testID="signup-skip-interest"
@@ -578,11 +591,20 @@ const styles = StyleSheet.create({
   },
 
   // Interest Picker
+  domainSection: {
+    marginBottom: 20,
+  },
+  domainHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
   interestGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 16,
   },
   interestCard: {
     width: '47%',

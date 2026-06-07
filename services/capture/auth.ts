@@ -14,6 +14,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { normalizeTier } from '../../lib/subscriptions/sailorTiers';
+import { LIVELIHOOD_INTEREST_SLUGS } from '../../lib/livelihoodInterests';
 import type { AuthContext } from '../mcp/server';
 import type { UserContext } from './types';
 
@@ -97,11 +98,24 @@ export async function resolveAuthContext(
     .eq('id', userId)
     .maybeSingle();
 
+  // Livelihood/micro-enterprise personas get the capture loop for free —
+  // entitlement is keyed off having an active interest in that domain, not the
+  // subscription tier. See lib/livelihoodInterests + executeTool tier gate.
+  const { data: livelihoodRow } = await supabase
+    .from('user_interests')
+    .select('interest_id, interests!inner(slug)')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .in('interests.slug', LIVELIHOOD_INTEREST_SLUGS as readonly string[])
+    .limit(1)
+    .maybeSingle();
+
   return {
     userId,
     email: userRow?.email ?? null,
     clubId,
     tier: normalizeTier(userRow?.subscription_tier),
+    captureEntitled: !!livelihoodRow,
   };
 }
 

@@ -2336,8 +2336,10 @@ export async function executeTool(
   const tool = TOOLS.find(t => t.name === name);
   if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
 
-  // Check write tier gating — Telegram write ops require Plus or higher
-  if (tool.requiresWrite && auth.tier === 'free') {
+  // Check write tier gating — Telegram write ops require Plus or higher, EXCEPT
+  // for livelihood/micro-enterprise personas (auth.captureEntitled), whose core
+  // capture loop is intentionally not paywalled. See lib/livelihoodInterests.
+  if (tool.requiresWrite && auth.tier === 'free' && !auth.captureEntitled) {
     return JSON.stringify({
       error: `You need a Plus subscription to create new steps. Your account is currently on the free plan.`,
       required_tier: 'plus',

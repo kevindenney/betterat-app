@@ -12,6 +12,7 @@ import {
   generateLinkCode,
   loadUserContext,
 } from '../../services/capture/auth';
+import { provisionUserFromInvite } from '../../services/capture/telegramInvite';
 import {
   buildSystemPrompt,
   buildPhotoSystemPrompt,
@@ -213,6 +214,77 @@ async function handleMessage(
   // --- Handle /start command ---
   if (hasText && text.startsWith('/start')) {
     const payload = text.split(' ')[1];
+    if (payload?.startsWith('invite_')) {
+      // Telegram-first onboarding: a facilitator-shared invite auto-provisions
+      // and links a brand-new BetterAt account — no app round-trip, no form.
+      const { data: alreadyLinked } = await supabase
+        .from('telegram_links')
+        .select('user_id, linked_at')
+        .eq('telegram_user_id', telegramUserId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (alreadyLinked?.user_id && alreadyLinked.linked_at) {
+        await sendMessage(chatId, "You're already connected to BetterAt. Send me a message or voice note to capture your day.");
+        return;
+      }
+
+      const result = await provisionUserFromInvite(supabase, payload.replace('invite_', ''), {
+        telegramUserId,
+        username,
+        firstName: message.from?.first_name ?? null,
+        lastName: message.from?.last_name ?? null,
+      });
+
+      if (!result.ok || !result.userId) {
+        const reasonCopy =
+          result.reason === 'expired'
+            ? 'That invite link has expired. Ask whoever shared it for a fresh one.'
+            : result.reason === 'used'
+              ? 'That invite link has already been used. Ask for a fresh one.'
+              : 'Sorry, I couldn\'t use that invite link. Ask whoever shared it for a fresh one.';
+        await sendMessage(chatId, reasonCopy);
+        return;
+      }
+
+      // Link this Telegram identity to the freshly-provisioned account.
+      // telegram_links has no unique constraint on telegram_user_id, so update
+      // an existing (e.g. stale pending) row if present, otherwise insert.
+      const linkRow = {
+        telegram_username: username,
+        telegram_chat_id: chatId,
+        user_id: result.userId,
+        linked_at: new Date().toISOString(),
+        link_code: null,
+        link_code_expires_at: null,
+        is_active: true,
+      };
+      const { data: existingLink } = await supabase
+        .from('telegram_links')
+        .select('id')
+        .eq('telegram_user_id', telegramUserId)
+        .maybeSingle();
+
+      const { error: linkErr } = existingLink?.id
+        ? await supabase.from('telegram_links').update(linkRow).eq('id', existingLink.id)
+        : await supabase
+            .from('telegram_links')
+            .insert({ ...linkRow, telegram_user_id: telegramUserId });
+
+      if (linkErr) {
+        console.error('Telegram invite link error:', linkErr.message);
+        await sendMessage(chatId, 'Almost there — something went wrong linking your account. Please try the link again.');
+        return;
+      }
+
+      const firstName = (result.fullName ?? '').split(' ')[0] || 'there';
+      await sendMessage(
+        chatId,
+        `✅ You're all set, ${firstName}! Your BetterAt is ready.\n\n` +
+          'Just send me a voice note or a message about what you did today — an order, a supplier run, a batch you finished — and it lands on your timeline.',
+      );
+      return;
+    }
     if (payload?.startsWith('link_')) {
       await sendMessage(
         chatId,

@@ -24,17 +24,14 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { useInterest } from '@/providers/InterestProvider';
+import { LIVELIHOOD_INTEREST_SLUGS } from '@/lib/livelihoodInterests';
 
 // Actual deployed bot handle — see memory reference_telegram_bot_handle.
 const TELEGRAM_BOT_URL = 'https://t.me/betterat_bot';
 const TELEGRAM_BLUE = '#229ED9';
 
 // Livelihood/entrepreneur interests get capture-first copy (they live in chat).
-const LIVELIHOOD_SLUGS = new Set([
-  'lac-craft-business',
-  'food-processing',
-  'textile-weaving',
-]);
+const LIVELIHOOD_SLUGS = new Set<string>(LIVELIHOOD_INTEREST_SLUGS);
 
 type Benefit = { icon: keyof typeof Ionicons.glyphMap; text: string };
 

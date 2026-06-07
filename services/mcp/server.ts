@@ -18,6 +18,11 @@ export type AuthContext = {
    * (Telegram/WhatsApp) set this so logged observations record voice vs typed.
    * Unset for MCP callers. */
   inputSource?: 'voice' | 'text';
+  /** True when the user may use capture write tools regardless of subscription
+   * tier — set by resolveAuthContext for livelihood/micro-enterprise personas
+   * (see lib/livelihoodInterests) whose core Telegram capture loop is not
+   * paywalled. Unset/false means normal tier gating applies. */
+  captureEntitled?: boolean;
 };
 
 export function createMcpServer(
