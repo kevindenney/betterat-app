@@ -33,6 +33,7 @@
     "mcp:dev": "tsx scripts/mcp-dev-server.mjs",
     "postinstall": "node scripts/fix-peer-deps.js",
     "seed:jhu": "node scripts/seed-jhu-nursing-demo.mjs",
+    "smoke:jhu-blueprint-postsignup": "node scripts/jhu-blueprint-smoke-postsignup.mjs",
     "seed:multi-audience-demo": "node scripts/seed-multi-audience-demo-personas.mjs",
     "seed:rhkyc": "node scripts/seed-rhkyc-demo.mjs",
     "seed:sailors": "node scripts/seed-sailors-tab-demo.mjs",
