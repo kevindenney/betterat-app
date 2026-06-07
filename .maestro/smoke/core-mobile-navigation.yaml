@@ -13,6 +13,17 @@ tags:
 
 - launchApp
 
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 15000
+
+- runFlow:
+    when:
+      visible: "DEVELOPMENT SERVERS"
+    commands:
+      - tapOn:
+          point: "50%,22%"
+
 - tapOn:
     text: "http://localhost:8082"
     optional: true
@@ -28,6 +39,8 @@ tags:
 - tapOn:
     text: "BetterAt, http://localhost:8082"
     optional: true
+
+- openLink: "betterat://races"
 
 - extendedWaitUntil:
     visible: ".*"
@@ -47,14 +60,12 @@ tags:
 - assertVisible:
     id: "tab-atlas"
 
+- extendedWaitUntil:
+    visible:
+      id: "step-taskbar-interest-switcher"
+    timeout: 15000
 - assertVisible:
-    id: "timeline-zoom-rail"
-- assertVisible:
-    id: "timeline-zoom-level-1"
-- assertVisible:
-    id: "timeline-zoom-level-3"
-- assertVisible:
-    id: "timeline-zoom-level-4"
+    id: "step-taskbar-add-step"
 
 - tapOn:
     id: "tab-library"
@@ -78,5 +89,5 @@ tags:
     id: "tab-races"
 - extendedWaitUntil:
     visible:
-      id: "timeline-zoom-rail"
+      id: "step-taskbar-interest-switcher"
     timeout: 15000
