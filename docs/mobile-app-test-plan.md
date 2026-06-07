@@ -76,22 +76,26 @@ Visual checks:
 
 1. Multi-interest signup in simulator:
    - Flow: `.maestro/smoke/signup-multi-interest.yaml`
-   - Fixture: `qa-multi-20260607071948@betterat.app`
+   - Latest verified fixture: `qa-multi-202606071430@betterat.app`
+   - Current next-run fixture in YAML: `qa-multi-202606071600@betterat.app`
    - Verified DB state: `user_interests` contains `nursing` and `sail-racing`.
 2. Interest + blueprint signup in simulator:
    - Flow: `.maestro/smoke/signup-interest-blueprint.yaml`
-   - Fixture: `qa-blueprint-20260607072909@betterat.app`
+   - Latest verified fixture: `qa-blueprint-202606071130@betterat.app`
+   - Current next-run fixture in YAML: `qa-blueprint-202606071600@betterat.app`
    - Verified DB state: Nursing interest and active `blueprint_subscriptions` row for `pre-clinical`.
 3. JHU Nursing author/admin/student/mentor scenario:
-   - Author fixture: `qa-jhu-author-20260607073340@betterat.app`
-   - Student fixture: `qa-jhu-student-20260607073340@betterat.app`
+   - Latest verified author fixture: `qa-jhu-author-202606071130@betterat.app`
+   - Latest verified student fixture: `qa-jhu-student-202606071430@betterat.app`
+   - Current next-run fixtures in YAML: `qa-jhu-author-202606071600@betterat.app`, `qa-jhu-student-202606071600@betterat.app`
    - JHU org: `johns-hopkins-school-of-nursing`
-   - Blueprint: `mobile-qa-jhu-nursing-plan-20260607073340`
-   - Verified DB state: author active JHU admin, student active JHU member, published org-member blueprint, active student subscription, adopted student step, and admin feedback in `step_comments`.
+   - Blueprint: `mobile-qa-jhu-nursing-plan-202606070913`
+   - Verified DB state: author active JHU admin, student active JHU member, published org-member blueprint, active student subscription, adopted student step, and author progress RPC returns the student adoption.
+   - Post-student-signup helper: `npm run smoke:jhu-blueprint-postsignup` marks the current student fixture as an active JHU member, subscribes them to the seeded JHU blueprint, and records first-step adoption.
 
 ## Current Gaps
 
 1. Full `npm run typecheck` still fails on existing inspiration spacing-token issues, Ionicons typing, timeline season/subscribed-blueprint types, and a few unrelated component type errors.
 2. Expo dev-menu startup after Maestro `clearState` is flaky; smoke flows include defensive endpoint selection and menu-close steps.
 3. Admin Add Person modal opens on mobile, but deeper fields are not reliably accessible in the compact simulator layout.
-4. Org-member blueprint subscription during signup requires the student membership to exist first; otherwise the account and interest are created but the restricted blueprint subscription is skipped.
+4. Org-member blueprint signup now queues the subscription request until membership becomes active. For the JHU smoke, the post-signup helper still marks the student as an active JHU member and records first-step adoption for author-progress assertions.
