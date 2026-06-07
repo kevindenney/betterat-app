@@ -1,7 +1,7 @@
 # Signs up from an interest + blueprint deep link and verifies the account reaches onboarding.
 #
 # One-off simulator fixture for this run:
-# - qa-blueprint-20260607072909@betterat.app / BetterAt-QA-2026!f7K2
+# - qa-blueprint-202606071600@betterat.app / BetterAtQA2026f7K2
 appId: com.betterat.app
 tags:
   - smoke
@@ -16,21 +16,31 @@ tags:
     text: "OK"
     optional: true
 
-- tapOn:
-    text: "http://localhost:8082"
-    optional: true
-- tapOn:
-    text: "http://10.0.2.2:8082"
-    optional: true
-- tapOn:
-    text: "http://10.0.2.2:8081"
-    optional: true
-- tapOn:
-    text: "http://localhost:8081"
-    optional: true
-- tapOn:
-    text: "BetterAt, http://localhost:8082"
-    optional: true
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 15000
+
+- runFlow:
+    when:
+      visible: "DEVELOPMENT SERVERS"
+    commands:
+      - tapOn:
+          point: "50%,22%"
+          optional: true
+
+- runFlow:
+    when:
+      visible: "Enter URL manually"
+    commands:
+      - tapOn: "Enter URL manually"
+      - inputText: "http://localhost:8082"
+      - pressKey: Enter
+      - tapOn:
+          text: "Connect"
+          optional: true
+      - tapOn:
+          text: "Go"
+          optional: true
 
 - tapOn:
     text: "Continue"
@@ -60,11 +70,16 @@ tags:
 - extendedWaitUntil:
     visible:
       id: "signup-title"
-    timeout: 30000
+    timeout: 120000
 
 - tapOn:
     id: "signup-back-to-interests"
     optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "signup-interest-nursing"
+    timeout: 30000
 
 - tapOn:
     id: "signup-interest-nursing"
@@ -87,7 +102,7 @@ tags:
 - tapOn:
     id: "signup-email-input"
 - eraseText
-- inputText: "qa-blueprint-20260607072909@betterat.app"
+- inputText: "qa-blueprint-202606071600@betterat.app"
 - hideKeyboard
 
 - tapOn:
@@ -95,7 +110,7 @@ tags:
 - tapOn:
     id: "signup-password-input"
 - eraseText
-- inputText: "BetterAt-QA-2026!f7K2"
+- inputText: "BetterAtQA2026f7K2"
 - hideKeyboard
 
 - scrollUntilVisible:

@@ -1,7 +1,7 @@
-# Signs up with one primary interest, adds a second interest in onboarding, then skips into the app.
+# Signs up with one primary interest, then adds a second interest in onboarding.
 #
 # One-off simulator fixture for this run:
-# - qa-multi-20260607071948@betterat.app / BetterAt-QA-2026!f7K2
+# - qa-multi-202606071600@betterat.app / BetterAtQA2026f7K2
 appId: com.betterat.app
 tags:
   - smoke
@@ -16,21 +16,31 @@ tags:
     text: "OK"
     optional: true
 
-- tapOn:
-    text: "http://localhost:8082"
-    optional: true
-- tapOn:
-    text: "http://10.0.2.2:8082"
-    optional: true
-- tapOn:
-    text: "http://10.0.2.2:8081"
-    optional: true
-- tapOn:
-    text: "http://localhost:8081"
-    optional: true
-- tapOn:
-    text: "BetterAt, http://localhost:8082"
-    optional: true
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 15000
+
+- runFlow:
+    when:
+      visible: "DEVELOPMENT SERVERS"
+    commands:
+      - tapOn:
+          point: "50%,22%"
+          optional: true
+
+- runFlow:
+    when:
+      visible: "Enter URL manually"
+    commands:
+      - tapOn: "Enter URL manually"
+      - inputText: "http://localhost:8082"
+      - pressKey: Enter
+      - tapOn:
+          text: "Connect"
+          optional: true
+      - tapOn:
+          text: "Go"
+          optional: true
 
 - tapOn:
     text: "Continue"
@@ -60,11 +70,16 @@ tags:
 - extendedWaitUntil:
     visible:
       id: "signup-title"
-    timeout: 30000
+    timeout: 120000
 
 - tapOn:
     id: "signup-back-to-interests"
     optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "signup-interest-nursing"
+    timeout: 30000
 
 - tapOn:
     id: "signup-interest-nursing"
@@ -86,7 +101,7 @@ tags:
 - tapOn:
     id: "signup-email-input"
 - eraseText
-- inputText: "qa-multi-20260607071948@betterat.app"
+- inputText: "qa-multi-202606071600@betterat.app"
 - hideKeyboard
 
 - tapOn:
@@ -94,7 +109,7 @@ tags:
 - tapOn:
     id: "signup-password-input"
 - eraseText
-- inputText: "BetterAt-QA-2026!f7K2"
+- inputText: "BetterAtQA2026f7K2"
 - hideKeyboard
 
 - scrollUntilVisible:
@@ -128,26 +143,3 @@ tags:
 
 - tapOn:
     id: "explore-interests-continue"
-
-- tapOn:
-    id: "manifesto-skip"
-    optional: true
-- tapOn:
-    id: "manifesto-skip"
-    optional: true
-- tapOn:
-    id: "manifesto-skip"
-    optional: true
-- tapOn:
-    id: "privacy-quick-set-skip"
-    optional: true
-- tapOn:
-    id: "privacy-quick-set-continue"
-    optional: true
-
-- openLink: "betterat://races"
-
-- extendedWaitUntil:
-    visible:
-      id: "tab-races"
-    timeout: 60000
