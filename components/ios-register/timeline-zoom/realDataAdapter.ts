@@ -1214,6 +1214,39 @@ function buildWeekPlanningHint(
 }
 
 /**
+ * Rank the season's capabilities by volume across the weeks elapsed so
+ * far — the same canonicalized capability-goal vocabulary and elapsed-week
+ * window the L3 chip row uses (see L3SeasonView.capabilityFamilies). Lets
+ * the L4 "through-line" speak "Boat handling / Tactics" instead of the
+ * coarse category fallback ("Training / Preparation") that otherwise lets
+ * pending blueprint categories dominate. Tiebreak alphabetically so L3 and
+ * L4 pick the same lead among ties.
+ */
+function rankSeasonCapabilities(
+  analysis: SeasonAnalysis | undefined,
+  elapsedWeeks: number,
+): { label: string; color: string; volume: number }[] {
+  if (!analysis) return [];
+  const tally = new Map<string, { label: string; color: string; volume: number }>();
+  for (const wk of analysis.weeklyCapabilities) {
+    if (wk.weekNumber > elapsedWeeks) continue;
+    for (const band of wk.bands) {
+      const label = band.capabilityLabel?.trim();
+      if (!label || label === 'Practice' || label === 'General') continue;
+      const vol = band.volume ?? (band.plannedVolume ?? 0) + (band.provenVolume ?? 0);
+      if (vol <= 0) continue;
+      const key = band.capabilityId ?? label;
+      const entry = tally.get(key);
+      if (entry) entry.volume += vol;
+      else tally.set(key, { label, color: band.capabilityColor, volume: vol });
+    }
+  }
+  return Array.from(tally.values()).sort((a, b) =>
+    b.volume !== a.volume ? b.volume - a.volume : a.label.localeCompare(b.label),
+  );
+}
+
+/**
  * Compute the L4 lifetime analysis (capability river spanning every
  * session + lifetime peer chart + librarian "worth a reflection?"
  * prompt) from the full season list.
@@ -1231,6 +1264,7 @@ function buildWeekPlanningHint(
  */
 function computeLifetimeAnalysis(
   seasons: TimelineSeason[],
+  capabilityRanking: { label: string; color: string; volume: number }[] = [],
 ): LifetimeAnalysis | undefined {
   if (seasons.length === 0) return undefined;
 
@@ -1420,32 +1454,25 @@ function computeLifetimeAnalysis(
       : firstLabel
         ? `${firstLabel} has been the steady thread across your practice.`
         : `Since ${sinceLabel} the texture of your practice has shifted.`;
-  // Capability tally across every brick in the whole practice. Drives a
-  // real conclusion even when the practice still lives in a single arc:
+  // Real conclusion even when the practice still lives in a single arc:
   // keying the "early in your practice" fallback off arc-count alone
-  // mislabels a busy one-season practice (24 steps, one rotation) as
-  // empty. Gate the fallback on real brick volume instead, and surface
-  // the dominant thread (+ runner-up) as the conclusion.
-  const capTally = new Map<string, number>();
-  let totalBricks = 0;
-  for (const season of chronoSeasons) {
-    for (const brick of season.bricks) {
-      totalBricks += 1;
-      const label = brick.capabilityLabel?.trim();
-      if (!label || label === 'Practice' || label === 'General') continue;
-      capTally.set(label, (capTally.get(label) ?? 0) + 1);
-    }
-  }
-  const rankedCaps = Array.from(capTally.entries()).sort((a, b) => b[1] - a[1]);
-  const [topCap, secondCap] = rankedCaps;
+  // mislabels a busy one-season practice (24 steps, one rotation) as empty.
+  // Drive the conclusion off the canonicalized capability ranking (same
+  // vocabulary + elapsed window as the L3 chips) so L3 and L4 agree, and
+  // gate the early-practice fallback on real step volume.
+  const totalBricks = chronoSeasons.reduce((n, s) => n + s.bricks.length, 0);
+  const [topCap, secondCap] = capabilityRanking;
+  const throughLine = topCap
+    ? { label: topCap.label, color: topCap.color, secondLabel: secondCap?.label ?? null }
+    : undefined;
 
   let promptBody: string;
   if (sessions.length > 1) {
     promptBody = `${drift} Worth a reflection on what you're becoming?`;
   } else if (topCap && totalBricks >= ANALYSIS_MIN_STEPS) {
     promptBody = secondCap
-      ? `Across ${totalBricks} steps, ${topCap[0].toLowerCase()} leads (${topCap[1]}), with ${secondCap[0].toLowerCase()} close behind (${secondCap[1]}). Worth a reflection on what's emerging?`
-      : `${topCap[0]} runs through all ${totalBricks} steps so far — your clear through-line. Worth a reflection on widening the mix?`;
+      ? `Across ${totalBricks} steps, ${topCap.label.toLowerCase()} and ${secondCap.label.toLowerCase()} are the through-line so far. Worth a reflection on what's emerging?`
+      : `Across ${totalBricks} steps, ${topCap.label.toLowerCase()} is your clear through-line so far. Worth a reflection on widening the mix?`;
   } else {
     promptBody =
       "You're early in your practice. Keep going — patterns will emerge over the next few sessions.";
@@ -1456,6 +1483,7 @@ function computeLifetimeAnalysis(
     peers,
     reflections: reflections.slice(-3),
     trophies,
+    throughLine,
     librarianPrompt: {
       eyebrow: 'Across your practice · the librarian noticed',
       body: promptBody,
@@ -1996,7 +2024,14 @@ export function mapToTimelineDataset({
     });
   }
 
-  const lifetime = computeLifetimeAnalysis([currentSeasonNode, ...archivedSeasons]);
+  const lifetimeCapabilityRanking = rankSeasonCapabilities(
+    currentSeasonAnalysis,
+    currentWeekIdx + 1,
+  );
+  const lifetime = computeLifetimeAnalysis(
+    [currentSeasonNode, ...archivedSeasons],
+    lifetimeCapabilityRanking,
+  );
   // First-run: suppress the lifetime "worth a reflection?" / "you're early in
   // your practice" prompt until there's enough history to mean something.
   if (!showAnalysis && lifetime) {

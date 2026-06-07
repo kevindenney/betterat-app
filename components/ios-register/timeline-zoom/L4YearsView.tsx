@@ -278,11 +278,22 @@ export function L4YearsView({
   );
 
   // Whole-practice dominant capability + latest-arc dominant — powers
-  // the poster through-line sentence and the drift caption.
-  const lifetimeDominant = useMemo(
-    () => resolveLifetimeDominant(dataset.seasons),
-    [dataset.seasons],
-  );
+  // the poster through-line sentence and the drift caption. Single-arc
+  // practices prefer the capability-goal through-line (lifetime.throughLine)
+  // so L4 names the same lead as the L3 chips ("Boat handling") instead of
+  // the coarse category brick dominant ("Training"); multi-arc keeps the
+  // cross-season brick aggregation, which spans archived arcs the per-season
+  // ranking can't see.
+  const lifetimeDominant = useMemo(() => {
+    if (dataset.seasons.length <= 1 && lifetime?.throughLine) {
+      return {
+        label: lifetime.throughLine.label,
+        color: lifetime.throughLine.color,
+        latestLabel: null,
+      };
+    }
+    return resolveLifetimeDominant(dataset.seasons);
+  }, [lifetime, dataset.seasons]);
 
   // Poster scale figures. arcCount drives the adaptive one-arc vs
   // many-arc copy; the metric trio reads steps · arcs · people.

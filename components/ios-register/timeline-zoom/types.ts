@@ -507,6 +507,14 @@ export interface LifetimeAnalysis {
   trophies: LifetimeTrophy[];
   /** Bottom lilac card — usually intent='start-reflection' for L4. */
   librarianPrompt?: SeasonLibrarianPrompt;
+  /**
+   * Whole-practice "through-line" capability, derived from the same
+   * canonicalized capability-goal vocabulary the L3 river uses (not the
+   * coarse category fallback). Drives the single-arc poster headline so
+   * L4 and L3 tell the same story. Undefined when no tagged capabilities
+   * exist yet.
+   */
+  throughLine?: { label: string; color: string; secondLabel: string | null };
 }
 
 export interface LifetimeSession {
