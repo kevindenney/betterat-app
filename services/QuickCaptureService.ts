@@ -38,6 +38,8 @@ export interface QuickCapturePayload {
   how?: string;
   /** Optional WHEN — free text, stored as the step description. */
   when?: string;
+  /** Optional scheduled datetime from structured composer controls. */
+  scheduledAt?: string;
   /**
    * Sailing only — flags the new step a Race, which gives it the ⛵ Atlas pin
    * inside its race-area polygon plus the course/marks/conditions cockpit.
@@ -72,6 +74,7 @@ export interface QuickCaptureStepFields {
   locationName: string | null;
   locationLat: number | null;
   locationLng: number | null;
+  startsAt: string | null;
   plan: StepPlanData | null;
 }
 
@@ -125,6 +128,7 @@ export function buildQuickCaptureStepFields(
         : null,
     locationLat: hasLocationName ? location?.lat ?? null : raceCenter?.lat ?? null,
     locationLng: hasLocationName ? location?.lng ?? null : raceCenter?.lng ?? null,
+    startsAt: payload.scheduledAt ?? null,
     plan: Object.keys(plan).length > 0 ? plan : null,
   };
 }
@@ -275,7 +279,7 @@ export async function createDraftStep({
     title: fields.title,
     description: fields.description,
     status: 'pending',
-    starts_at: placement.startsAt,
+    starts_at: fields.startsAt ?? placement.startsAt,
     sort_order: placement.sortOrder,
     visibility: 'private',
     is_race: payload.isRace ?? false,

@@ -46,6 +46,7 @@ import type { QuickCapturePayload } from '@/services/QuickCaptureService';
 import type { RacePlan, StepLocation } from '@/types/step-detail';
 import { VoiceComposerV3Sheet } from './VoiceComposerV3Sheet';
 import { ComposerWhereField } from './ComposerWhereField';
+import { ComposerWhenField } from './ComposerWhenField';
 import { PlanStepRaceSelector } from '@/components/step/plan-tab/PlanStepRaceSelector';
 import { RaceCoursePicker } from './RaceCoursePicker';
 
@@ -66,7 +67,7 @@ interface PlusComposerV3SheetProps {
   /** Pre-filled session/season label for the lane chip, e.g. "Spring Series '26". */
   sessionLabel?: string | null;
   /** Suggested field chips. v1 = hand-authored. v2 = AI-suggested from context. */
-  suggestedFields?: string[];
+  suggestedFields?: ComposerFieldKey[];
   /**
    * Sailing only — renders the Step ⟷ Race selector at the top of the composer
    * (mockup 27). Choosing Race flags the new step `is_race`, giving it the ⛵
@@ -138,6 +139,7 @@ export function PlusComposerV3Sheet({
   const [activeFields, setActiveFields] = useState<ComposerFieldKey[]>([]);
   const [fieldValues, setFieldValues] = useState<Record<ComposerFieldKey, string>>(emptyFieldValues);
   const [whereLocation, setWhereLocation] = useState<StepLocation | undefined>(undefined);
+  const [whenISO, setWhenISO] = useState<string | null>(null);
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [voiceVisible, setVoiceVisible] = useState(false);
   const voiceEnabled = FEATURE_FLAGS.VOICE_COMPOSER_V3;
@@ -151,6 +153,7 @@ export function PlusComposerV3Sheet({
     setActiveFields([]);
     setFieldValues(emptyFieldValues());
     setWhereLocation(undefined);
+    setWhenISO(null);
     setPhotoUri(undefined);
   }, []);
 
@@ -176,13 +179,13 @@ export function PlusComposerV3Sheet({
       location: whereLocation,
       why: fieldValues.why.trim() || undefined,
       how: fieldValues.how.trim() || undefined,
-      when: fieldValues.when.trim() || undefined,
+      scheduledAt: whenISO ?? undefined,
       isRace: showRaceSelector ? isRace : undefined,
       racePlan: showRaceSelector && isRace ? racePlan : undefined,
       imageUri: photoUri,
     });
     resetComposer();
-  }, [whatText, raceTitleFallback, fieldValues, whereLocation, photoUri, showRaceSelector, isRace, racePlan, onSave, onDismiss, resetComposer]);
+  }, [whatText, raceTitleFallback, fieldValues, whereLocation, whenISO, photoUri, showRaceSelector, isRace, racePlan, onSave, onDismiss, resetComposer]);
 
   const handlePickPhoto = useCallback(async () => {
     if (Platform.OS === 'web') {
@@ -220,6 +223,7 @@ export function PlusComposerV3Sheet({
     setActiveFields((prev) => prev.filter((key) => key !== fieldKey));
     setFieldValues((prev) => ({ ...prev, [fieldKey]: '' }));
     if (fieldKey === 'where') setWhereLocation(undefined);
+    if (fieldKey === 'when') setWhenISO(null);
     requestAnimationFrame(() => {
       whatInputRef.current?.focus();
     });
@@ -364,6 +368,11 @@ export function PlusComposerV3Sheet({
                           inputRef={(node) => {
                             optionalFieldRefs.current.where = node;
                           }}
+                        />
+                      ) : fieldKey === 'when' ? (
+                        <ComposerWhenField
+                          value={whenISO}
+                          onChange={(next) => setWhenISO(next ?? null)}
                         />
                       ) : (
                         <TextInput

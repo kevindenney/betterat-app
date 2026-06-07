@@ -146,7 +146,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         description: fields.description,
         category: 'general',
         status: 'pending',
-        starts_at: null,
+        starts_at: fields.startsAt,
         ends_at: null,
         location_name: fields.locationName,
         location_lat: fields.locationLat,
