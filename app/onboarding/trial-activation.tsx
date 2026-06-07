@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLocalizedPricing } from '@/lib/pricing';
 
 type ProFeature = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -75,6 +76,7 @@ export default function TrialActivationScreen() {
 
   const features = (interestSlug && INTEREST_FEATURES[interestSlug]) || GENERIC_FEATURES;
   const accentColor = '#2563EB';
+  const pricing = getLocalizedPricing();
 
   const handleStart = useCallback(() => {
     router.replace('/onboarding/privacy-quick-set');
@@ -145,7 +147,7 @@ export default function TrialActivationScreen() {
           {/* Pricing transparency */}
           <Text style={styles.pricingNote}>
             After 14 days, keep the Free plan forever.{'\n'}
-            Pro is $10/mo if you want everything.
+            Pro is {pricing.pro}/mo if you want everything.
           </Text>
 
           <TouchableOpacity

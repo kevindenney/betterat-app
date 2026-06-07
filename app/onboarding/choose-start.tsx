@@ -89,7 +89,8 @@ export default function ChooseStartScreen() {
     if (returnTo) {
       router.replace(returnTo as any);
     } else {
-      router.replace('/(tabs)/races');
+      // Final onboarding beat: offer Telegram capture before entering the app.
+      router.replace('/onboarding/connect-telegram');
     }
   }, [router, selectedSlug, switchInterest, isNavigating]);
 

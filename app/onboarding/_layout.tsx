@@ -40,6 +40,9 @@ export default function OnboardingLayout() {
             {/* Phase 3g: Choose Starting Timeline */}
             <Stack.Screen name="choose-start" />
 
+            {/* Phase 3h: Connect Telegram (capture from chat — skippable) */}
+            <Stack.Screen name="connect-telegram" />
+
             {/* Phase 4: Personalization */}
             <Stack.Screen name="personalize" />
 

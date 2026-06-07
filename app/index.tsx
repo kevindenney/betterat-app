@@ -8,7 +8,9 @@ import { NetflixLandingPage } from '@/components/landing/NetflixLandingPage';
 import { DashboardSkeleton } from '@/components/ui/loading';
 import { getLastTabRoute } from '@/lib/utils/userTypeRouting';
 import { useAuth } from '@/providers/AuthProvider';
+import { ASYNC_STORAGE_KEY as PREFERRED_INTEREST_KEY } from '@/providers/InterestProvider';
 import { hasPersistedSessionHint, hasPersistedSessionHintAsync } from '@/services/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
@@ -61,7 +63,7 @@ export default function LandingPage() {
   const skeletonLockedOff = useRef(false);
   const isNative = Platform.OS !== 'web';
 
-  // Native: always redirect (to dashboard or login)
+  // Native: always redirect (to dashboard, app, or welcome)
   useEffect(() => {
     if (!(isNative && ready && !loading && !isRedirecting)) return;
 
@@ -69,9 +71,16 @@ export default function LandingPage() {
     if (signedIn) {
       if (demoPersonaRedirect(user?.user_metadata as Record<string, unknown> | null)) return;
       router.replace(getLastTabRoute(userProfile?.user_type ?? null));
-    } else {
-      router.replace('/(auth)/login');
+      return;
     }
+
+    // Signed-out cold-open: a fresh install sees the guest-first welcome flow
+    // instead of the "Welcome back" login wall. A returning guest already has
+    // an interest cached, so skip the intro and drop straight into the app
+    // (the races tab enters guest mode for signed-out visitors).
+    AsyncStorage.getItem(PREFERRED_INTEREST_KEY)
+      .then((cachedSlug) => router.replace(cachedSlug ? '/(tabs)/races' : '/welcome'))
+      .catch(() => router.replace('/welcome'));
   }, [isNative, ready, loading, isRedirecting, signedIn, userProfile, user]);
 
   // Web: check for persisted session hint (one-shot)

@@ -107,7 +107,7 @@ interface InterestContextValue {
 // Constants
 // ---------------------------------------------------------------------------
 
-const ASYNC_STORAGE_KEY = 'betterat_preferred_interest'
+export const ASYNC_STORAGE_KEY = 'betterat_preferred_interest'
 const INTERESTS_QUERY_KEY = ['interests', 'all']
 const USER_INTERESTS_QUERY_KEY = ['user_interests']
 const EXISTING_PROFILE_AGE_THRESHOLD_MS = 5 * 60 * 1000

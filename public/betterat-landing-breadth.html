@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Get measurably better at anything you practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#ffffff;
+    --band:#f1f6fd;
+    --band-warm:#fdf8f1;
+    --card:#ffffff;
+    --line:#e2e5ec;
+    --line-soft:#edeff4;
+    --txt:#1b1d23;
+    --txt-2:#5c616b;
+    --txt-3:#8b909a;
+    --blue:#2d7ff9;
+    --blue-d:#1c6df0;
+
+    /* universal PHASE semantics — these NEVER change per craft (the engine) */
+    --plan:#2d7ff9;
+    --do:#c8763f;
+    --review:#34c759;
+
+    /* per-craft ACCENT — re-skinned by the switcher (the surface) */
+    --accent:#2d7ff9;
+    --accent-soft:rgba(45,127,249,.12);
+    --accent-ink:#1c6df0;
+
+    --radius:18px;
+    --radius-lg:30px;
+    --maxw:1180px;
+    --shadow:0 8px 30px rgba(28,40,64,.06);
+    --shadow-lg:0 22px 60px rgba(28,40,64,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;overflow-x:hidden}
+  body{
+    color:var(--txt);
+    background:
+      radial-gradient(1100px 520px at 50% -120px, var(--accent-soft), transparent 70%),
+      var(--bg);
+    background-repeat:no-repeat;
+    transition:background .6s ease;
+    font-family:'Figtree',-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    line-height:1.5;letter-spacing:-.011em;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  a{color:inherit;text-decoration:none}
+  .serif{font-family:'Fraunces',Georgia,serif;font-optical-sizing:auto}
+
+  /* ---------- NAV ---------- */
+  nav{position:sticky;top:0;z-index:60;height:52px;
+    background:rgba(255,255,255,.78);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.07)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:100%;max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  .brand{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:700;letter-spacing:-.03em;color:var(--txt)}
+  .brand .dot{width:22px;height:22px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800;transition:background .5s ease}
+  .nav-links{display:flex;gap:28px;font-size:13.5px;color:var(--txt);font-weight:500}
+  .nav-links a{opacity:.7;transition:opacity .2s}
+  .nav-links a:hover{opacity:1}
+  .nav-cta{display:flex;align-items:center;gap:14px}
+  .nav-cta .signin{font-size:13.5px;color:var(--txt);opacity:.7;cursor:pointer;font-weight:500}
+  .pill-btn{font-family:inherit;font-size:13.5px;font-weight:600;border:none;cursor:pointer;
+    background:var(--accent);color:#fff;border-radius:980px;padding:7px 16px;transition:background .4s,transform .15s}
+  .pill-btn:hover{transform:translateY(-1px)}
+  @media(max-width:860px){.nav-links{display:none}}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:70px 0 18px;text-align:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--accent-ink);
+    background:var(--accent-soft);border-radius:980px;padding:6px 14px;margin-bottom:20px;transition:.4s}
+  .hero h1{font-size:clamp(40px,5.6vw,68px);font-weight:600;letter-spacing:-.032em;line-height:1.04;max-width:15ch;margin:0 auto}
+  .hero h1 em{font-style:normal;color:var(--accent);transition:color .4s}
+  .hero .lede{font-size:clamp(18px,2.1vw,23px);color:var(--txt-2);max-width:46ch;margin:22px auto 0;font-weight:400;line-height:1.42}
+
+  /* ---------- PERSONA SWITCHER ---------- */
+  .switch-label{font-size:13px;color:var(--txt-3);font-weight:600;letter-spacing:.02em;text-transform:uppercase;margin:34px 0 14px}
+  .switcher{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .pchip{display:inline-flex;align-items:center;gap:9px;border:1.5px solid var(--line);background:#fff;
+    border-radius:980px;padding:9px 17px 9px 13px;font-size:14.5px;font-weight:600;color:var(--txt-2);
+    cursor:pointer;transition:.2s;box-shadow:0 2px 10px rgba(28,40,64,.04)}
+  .pchip .pe{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:14px;background:#f4f6fa}
+  .pchip:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+  .pchip.on{border-color:var(--accent);color:var(--txt);background:var(--accent-soft)}
+  .pchip.on .pe{background:#fff}
+
+  /* ---------- LIVE DEMO STAGE ---------- */
+  .stage{max-width:920px;margin:30px auto 0;text-align:left}
+  .stage-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+  .craft-chip{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--txt)}
+  .craft-chip .sw{width:11px;height:11px;border-radius:3px;background:var(--accent);transition:.4s}
+  .craft-chip .car{color:var(--txt-3);font-weight:500}
+  .legend{display:flex;gap:16px;font-size:12.5px;color:var(--txt-3);font-weight:500}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .lg{width:9px;height:9px;border-radius:50%}
+
+  .demo-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}
+  @media(max-width:780px){.demo-grid{grid-template-columns:1fr}}
+  .frame{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lg);overflow:hidden}
+  .frame-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line-soft);background:#fbfcfe}
+  .frame-bar .tl{display:flex;gap:5px}
+  .frame-bar .tl i{width:9px;height:9px;border-radius:50%;background:#e0e3ea;display:block}
+  .frame-url{font-size:11.5px;color:var(--txt-3);margin-left:6px;font-family:"SF Mono",ui-monospace,Menlo,monospace}
+  .frame-body{padding:16px 16px 18px}
+
+  .mk-title{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;transition:.3s}
+  .mk-phaseline{font-size:12.5px;color:var(--txt-3);font-weight:500;margin-bottom:12px}
+  .mk-tabs{display:flex;gap:6px;margin-bottom:14px}
+  .mk-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;color:var(--txt-3);
+    background:#f4f6fa;border-radius:9px;padding:7px 4px;border:1px solid transparent}
+  .mk-tab .b{width:16px;height:16px;border-radius:50%;background:#dfe3ea;color:#fff;display:grid;place-items:center;font-size:10px}
+  .mk-tab.plan.on{background:rgba(45,127,249,.1);color:var(--plan);border-color:rgba(45,127,249,.25)}
+  .mk-tab.plan.on .b{background:var(--plan)}
+  .mk-tab .b.chk{background:var(--review)}
+
+  .mk-card{border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:9px;background:#fff}
+  .mk-lbl{font-size:11.5px;font-weight:600;color:var(--accent-ink);margin-bottom:5px;display:flex;align-items:center;gap:6px;transition:.3s}
+  .mk-val{font-size:14.5px;font-weight:600;color:var(--txt);letter-spacing:-.01em}
+  .mk-ai{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--accent);font-weight:600;margin-top:8px}
+  .mk-sub{display:flex;gap:8px;font-size:13px;color:var(--txt-2);padding:4px 0;align-items:flex-start}
+  .mk-sub .n{color:var(--txt-3);font-weight:600;font-size:12px;min-width:14px}
+  .mk-sub.ph{color:var(--txt-3)}
+  .mk-sub.ph .f{text-decoration:none;opacity:.7}
+  .mk-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .mk-pill{font-size:11.5px;font-weight:600;color:var(--txt-2);background:#f4f6fa;border-radius:980px;padding:4px 10px}
+  .mk-pill.cap{background:var(--accent-soft);color:var(--accent-ink)}
+  .crew{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--txt-2);font-weight:500}
+  .crew .cav{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700}
+
+  /* right column — Do + Review preview */
+  .side-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 15px 16px;margin-bottom:14px}
+  .side-head{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:10px}
+  .side-head .cdot{width:9px;height:9px;border-radius:50%}
+  .capture-field{border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:13px;color:var(--txt-3);display:flex;justify-content:space-between;align-items:center}
+  .capture-row{display:flex;gap:8px;margin-top:9px}
+  .cbtn{flex:1;font-size:11.5px;font-weight:600;color:var(--txt-2);background:#f4f6fa;border-radius:9px;padding:7px;text-align:center}
+  .note-bubble{background:var(--accent-soft);border-radius:12px;padding:11px 12px;font-size:13.5px;color:var(--txt);line-height:1.45;margin-top:11px;transition:.3s}
+  .note-bubble .who{font-size:11px;color:var(--txt-3);margin-top:6px;font-weight:500}
+  .rv-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--review);background:rgba(52,199,89,.12);border-radius:980px;padding:5px 12px;margin-bottom:9px}
+  .rv-line{font-size:13.5px;color:var(--txt-2);line-height:1.5}
+  .goal{display:flex;align-items:center;gap:9px;margin-top:13px;padding-top:13px;border-top:1px dashed var(--line)}
+  .goal .gicon{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);display:grid;place-items:center;font-size:15px;transition:.3s}
+  .goal .gt{font-size:11px;color:var(--txt-3);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  .goal .gv{font-size:14px;color:var(--txt);font-weight:700;letter-spacing:-.01em}
+
+  .demo-cta{display:flex;gap:14px;align-items:center;justify-content:center;margin-top:26px;flex-wrap:wrap}
+  .btn-fill{background:var(--accent);color:#fff;border:none;border-radius:980px;font-family:inherit;font-size:16px;font-weight:600;padding:12px 24px;cursor:pointer;transition:background .4s,transform .15s}
+  .btn-fill:hover{transform:translateY(-1px)}
+  .btn-ghost{color:var(--accent-ink);font-size:16px;font-weight:600;cursor:pointer;background:none;border:none;font-family:inherit}
+  .btn-ghost:hover{text-decoration:underline}
+
+  /* ---------- SECTION SHELL ---------- */
+  .sec{padding:74px 0}
+  .sec.band{background:linear-gradient(180deg,#fafbfe,#fff)}
+  .intro{text-align:center;max-width:680px;margin:0 auto}
+  .kicker{font-size:13px;font-weight:700;color:var(--accent-ink);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;transition:.3s}
+  .intro h2{font-size:clamp(30px,4.2vw,46px);font-weight:600;letter-spacing:-.03em;line-height:1.07}
+  .intro .sub{font-size:clamp(16px,1.9vw,20px);color:var(--txt-2);margin-top:14px;font-weight:400;line-height:1.45}
+
+  /* ---------- PERSONA SHOWCASES ---------- */
+  .craftblock{padding:72px 0;position:relative;overflow:hidden}
+  .craftblock + .craftblock{border-top:1px solid var(--line-soft)}
+  .craftblock .glow{position:absolute;width:760px;height:560px;border-radius:50%;filter:blur(80px);opacity:.5;z-index:0;pointer-events:none}
+  .cb-inner{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;gap:54px;align-items:center;max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  .craftblock.flip .cb-copy{order:2}
+  @media(max-width:880px){.cb-inner{grid-template-columns:1fr;gap:30px}.craftblock.flip .cb-copy{order:0}}
+  .cb-tag{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:700;letter-spacing:.02em;padding:7px 14px;border-radius:980px;margin-bottom:18px}
+  .cb-copy h2{font-size:clamp(30px,3.6vw,44px);font-weight:500;letter-spacing:-.025em;line-height:1.05;margin-bottom:16px}
+  .cb-copy h2 em{font-style:italic;font-weight:500}
+  .cb-copy .desc{font-size:17px;color:var(--txt-2);line-height:1.55;max-width:46ch}
+  .cb-skeleton{margin:22px 0;padding:14px 16px;border-radius:14px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow)}
+  .cb-skeleton .sk-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--txt-3);margin-bottom:9px}
+  .sk-track{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .sk-node{font-size:12px;font-weight:600;padding:5px 11px;border-radius:980px;white-space:nowrap}
+  .sk-arrow{color:var(--txt-3);font-size:12px}
+  .cb-goals{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 24px}
+  .cb-goal{font-size:13.5px;font-weight:600;color:var(--txt);background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 13px;display:flex;align-items:center;gap:8px}
+  .cb-cta{display:inline-flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:#fff;border-radius:980px;padding:12px 22px;transition:transform .15s}
+  .cb-cta:hover{transform:translateY(-1px)}
+
+  /* persona phone mock */
+  .cb-art{position:relative;display:flex;justify-content:center}
+  .phone{width:288px;background:#fff;border-radius:34px;border:1px solid var(--line);box-shadow:var(--shadow-lg);padding:14px 14px 18px;position:relative}
+  .phone .notch{width:96px;height:6px;border-radius:980px;background:#e7eaf0;margin:2px auto 14px}
+  .ph-craft{font-size:12px;font-weight:700;letter-spacing:.02em;margin-bottom:3px}
+  .ph-phase{font-size:11.5px;color:var(--txt-3);font-weight:500;margin-bottom:13px}
+  .ph-step{border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin-bottom:9px;position:relative}
+  .ph-step .pp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:980px;display:inline-block;margin-bottom:6px}
+  .pp.plan{background:rgba(45,127,249,.12);color:var(--plan)}
+  .pp.do{background:rgba(200,118,63,.14);color:var(--do)}
+  .pp.review{background:rgba(52,199,89,.14);color:var(--review)}
+  .ph-step .st{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+  .ph-step .ss{font-size:11.5px;color:var(--txt-3);margin-top:3px}
+  .ph-cap{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+  .ph-cap span{font-size:10px;font-weight:600;padding:2px 7px;border-radius:980px;background:#f4f6fa;color:var(--txt-2)}
+  .ph-channel{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;margin-top:11px;padding:8px 10px;border-radius:10px}
+
+  /* ---------- FOUR MOVES ---------- */
+  .moves-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px}
+  @media(max-width:880px){.moves-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.moves-grid{grid-template-columns:1fr}}
+  .move{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px;transition:.2s}
+  .move:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+  .move .n{font-size:12px;font-weight:700;color:var(--txt-3)}
+  .move .verb{font-size:12.5px;color:var(--accent-ink);font-weight:600;margin:8px 0 2px;transition:.3s}
+  .move h4{font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+  .move p{font-size:13.5px;color:var(--txt-2);line-height:1.5}
+
+  /* ---------- GET GOING ---------- */
+  .steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+  @media(max-width:780px){.steps3{grid-template-columns:1fr}}
+  .gstep{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:22px 20px;position:relative}
+  .gstep .gn{width:34px;height:34px;border-radius:11px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px;margin-bottom:14px;transition:background .4s}
+  .gstep h4{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .gstep p{font-size:14px;color:var(--txt-2);line-height:1.5}
+  .gstep .tg{display:inline-flex;align-items:center;gap:6px;margin-top:11px;font-size:12.5px;font-weight:600;color:#229ED9;background:rgba(34,158,217,.1);border-radius:980px;padding:5px 11px}
+
+  /* ---------- PRICING ---------- */
+  .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:38px;max-width:880px;margin-left:auto;margin-right:auto}
+  @media(max-width:740px){.price-grid{grid-template-columns:1fr}}
+  .price-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);padding:26px 24px;position:relative}
+  .price-card.feature{border-color:var(--accent);box-shadow:0 14px 44px var(--accent-soft)}
+  .price-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;background:var(--accent-soft);margin-bottom:14px;transition:.3s}
+  .price-card h3{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+  .price-tiers{font-size:15px;color:var(--txt-2);margin-bottom:6px}
+  .price-tiers b{color:var(--txt)}
+  .price-local{font-size:13px;color:var(--accent-ink);font-weight:600;background:var(--accent-soft);border-radius:8px;padding:3px 9px;display:inline-block;margin-bottom:14px;transition:.3s}
+  .price-feat{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .price-feat li{display:flex;gap:9px;font-size:14px;color:var(--txt-2);line-height:1.4}
+  .check{color:var(--review);font-weight:800;flex:none}
+  .price-note{font-size:12.5px;color:var(--txt-3);margin-top:16px;line-height:1.45}
+
+  /* ---------- FINAL CTA ---------- */
+  .final{padding:90px 0;text-align:center;background:
+     radial-gradient(700px 360px at 50% 0,var(--accent-soft),transparent 70%);transition:background .5s}
+  .final h2{font-size:clamp(32px,4.6vw,52px);font-weight:600;letter-spacing:-.03em;line-height:1.05;max-width:18ch;margin:0 auto}
+  .final .sub{font-size:19px;color:var(--txt-2);margin:18px auto 30px;max-width:42ch}
+
+  footer{border-top:1px solid var(--line);padding:34px 0;font-size:13px;color:var(--txt-3)}
+  .foot-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
+
+  /* reveal */
+  .rv{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.28,.11,.32,1),transform .7s cubic-bezier(.28,.11,.32,1)}
+  .rv.in{opacity:1;transform:none}
+
+  /* mockup banner */
+  .mockbar{background:#1b1d23;color:#fff;font-size:12px;text-align:center;padding:7px 14px;font-weight:500;letter-spacing:.01em}
+  .mockbar b{color:var(--accent);font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="mockbar">MOCKUP · <b>BetterAt breadth landing</b> — pick a craft in the hero to watch the same engine re-skin to its vocabulary. Not a live page.</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="brand" href="#"><span class="dot" id="navdot">B</span>BetterAt</a>
+    <div class="nav-links">
+      <a href="#crafts">Crafts</a>
+      <a href="#moves">How it works</a>
+      <a href="#going">Get going</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-cta">
+      <span class="signin">Sign in</span>
+      <button class="pill-btn">Get started</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow rv" id="eyebrow">One engine · every craft</div>
+    <h1 class="rv">Get measurably better at <em id="hero-craft">anything</em> you practice.</h1>
+    <p class="lede rv" id="hero-lede">Real practitioners break their craft into steps you actually work. Subscribe and they drop into your timeline — one <b>Plan → Do → Review</b> at a time, in your field's own words.</p>
+
+    <div class="switch-label rv">Pick your craft — watch the app speak your language</div>
+    <div class="switcher rv" id="switcher" role="tablist">
+      <button class="pchip on" data-k="sailing" role="tab"><span class="pe">⛵</span>Sail Racing</button>
+      <button class="pchip" data-k="nursing" role="tab"><span class="pe">✚</span>Nursing degree</button>
+      <button class="pchip" data-k="golf" role="tab"><span class="pe">⛳</span>Golf</button>
+      <button class="pchip" data-k="craft" role="tab"><span class="pe">🪔</span>Her business · Ranchi</button>
+    </div>
+
+    <!-- LIVE DEMO -->
+    <div class="stage rv">
+      <div class="stage-head">
+        <div class="craft-chip"><span class="sw"></span><span id="craft-name">Sail Racing</span><span class="car" id="craft-car">· Dragon World Championship</span></div>
+        <div class="legend">
+          <span><span class="lg" style="background:var(--plan)"></span>Plan</span>
+          <span><span class="lg" style="background:var(--do)"></span>Do</span>
+          <span><span class="lg" style="background:var(--review)"></span>Review</span>
+        </div>
+      </div>
+
+      <div class="demo-grid">
+        <!-- PLAN frame -->
+        <div class="frame">
+          <div class="frame-bar"><span class="tl"><i></i><i></i><i></i></span><span class="frame-url">betterat.app/practice</span></div>
+          <div class="frame-body">
+            <div class="mk-title" id="d-title">Tune the rig for race-day breeze</div>
+            <div class="mk-phaseline" id="d-phase">Dragon Worlds · race-week · Tue</div>
+            <div class="mk-tabs">
+              <span class="mk-tab plan on"><span class="b">1</span>Plan</span>
+              <span class="mk-tab do"><span class="b">2</span>Do</span>
+              <span class="mk-tab review"><span class="b">3</span>Review</span>
+            </div>
+            <div class="mk-card">
+              <div class="mk-lbl">💡 <span id="d-whatlbl">What will you do?</span></div>
+              <div class="mk-val" id="d-what">Set base + 2 for the 12–15 kt forecast</div>
+              <span class="mk-ai">✦ <span id="d-ai">Open AI Coach</span></span>
+            </div>
+            <div class="mk-card">
+              <div class="mk-lbl">☰ How will you do it?</div>
+              <div id="d-subs"></div>
+            </div>
+            <div class="mk-card">
+              <div class="mk-lbl">🎯 Why — capability</div>
+              <div class="mk-chips" id="d-caps"></div>
+            </div>
+            <div class="mk-card" style="margin-bottom:0">
+              <div class="mk-lbl">👥 With whom?</div>
+              <div class="crew"><span class="cav" id="d-crewav">KD</span><span id="d-crew">Helm · bow · trim</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DO + REVIEW side -->
+        <div>
+          <div class="side-card">
+            <div class="side-head" style="color:var(--do)"><span class="cdot" style="background:var(--do)"></span>Do · capture in the moment</div>
+            <div class="capture-field"><span id="d-capture">Jot a quick note…</span><span>↑</span></div>
+            <div class="capture-row">
+              <span class="cbtn">🎙 Voice</span><span class="cbtn">📷 Photo</span><span class="cbtn" id="d-channelbtn">💬 Telegram</span>
+            </div>
+            <div class="note-bubble" id="d-note">Base + 2 held steady through 14 kt. Forestay felt right off the line — touch loose in the top puffs.
+              <div class="who" id="d-notewho">Captured 13:42 · on the water</div>
+            </div>
+          </div>
+          <div class="side-card" style="margin-bottom:0">
+            <div class="side-head" style="color:var(--review)"><span class="cdot" style="background:var(--review)"></span>Review · what it added up to</div>
+            <span class="rv-badge" id="d-rvbadge">✓ Settled</span>
+            <div class="rv-line" id="d-rvline">Boatspeed evidence logged vs. the fleet. The librarian flagged a tuning pattern for light air.</div>
+            <div class="goal">
+              <div class="gicon" id="d-goalicon">🏆</div>
+              <div><div class="gt">Working toward</div><div class="gv" id="d-goal">Podium at the Worlds</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-cta">
+        <button class="btn-fill" id="d-cta">Get the Dragon Worlds blueprint</button>
+        <button class="btn-ghost">or start your own path ›</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- PERSONA SHOWCASES -->
+<section id="crafts">
+
+  <!-- NURSING -->
+  <div class="craftblock" style="--accent:#0ea5a4;--accent-soft:rgba(14,165,164,.12);--accent-ink:#0b8a89">
+    <div class="glow" style="background:rgba(14,165,164,.16);right:-200px;top:-120px"></div>
+    <div class="cb-inner">
+      <div class="cb-copy">
+        <span class="cb-tag" style="background:var(--accent-soft);color:var(--accent-ink)">✚ Nursing degree</span>
+        <h2 class="serif">Get your degree, <em>one shift</em> at a time.</h2>
+        <p class="desc">Your program already has the structure — rotations, competencies, NCLEX. BetterAt turns it into a timeline you actually work: pre-shift prep, clinical events, SBAR handoffs, preceptor debriefs. Evidence builds toward your sign-offs as you go.</p>
+        <div class="cb-skeleton">
+          <div class="sk-lbl">Your block schedule, the natural arc</div>
+          <div class="sk-track">
+            <span class="sk-node" style="background:var(--accent-soft);color:var(--accent-ink)">Fundamentals</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:var(--accent-soft);color:var(--accent-ink)">Adult Health</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:#1b1d23;color:#fff">Med-Surg · now</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:#f4f6fa;color:var(--txt-3)">ICU</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:#f4f6fa;color:var(--txt-3)">Capstone</span>
+          </div>
+        </div>
+        <div class="cb-goals">
+          <span class="cb-goal">🕐 Clinical hours logged</span>
+          <span class="cb-goal">✅ Competency sign-offs</span>
+          <span class="cb-goal">🎓 NCLEX-ready</span>
+        </div>
+        <a class="cb-cta" style="background:var(--accent)">Start with your school's blueprint ›</a>
+      </div>
+      <div class="cb-art">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="ph-craft" style="color:var(--accent-ink)">✚ Nursing · Johns Hopkins SON</div>
+          <div class="ph-phase">Adult Health I · Med-Surg · Week 6 of 14</div>
+          <div class="ph-step">
+            <span class="pp plan">Plan</span>
+            <div class="st">Pre-shift prep — 4-patient assignment</div>
+            <div class="ss">Charts + overnight handoff · pull meds, check the five rights · map q2 turns</div>
+            <div class="ph-cap"><span>Assessment</span><span>Pharm</span><span>Time mgmt</span></div>
+          </div>
+          <div class="ph-step">
+            <span class="pp do">Do</span>
+            <div class="st">SBAR handoff to day charge</div>
+            <div class="ss">“Clean handoff. Missed a PRN timing — flagged it for the debrief.”</div>
+          </div>
+          <div class="ph-step" style="margin-bottom:0">
+            <span class="pp review">Review</span>
+            <div class="st">Preceptor debrief w/ A. Ngo, RN</div>
+            <div class="ss">Pharmacology 3/4 evidenced · Communication signed off</div>
+          </div>
+          <div class="ph-channel" style="background:var(--accent-soft);color:var(--accent-ink)">📷 Capture charting photos &amp; voice debriefs on the unit</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOLF -->
+  <div class="craftblock flip" style="--accent:#3f9d5a;--accent-soft:rgba(63,157,90,.13);--accent-ink:#2f8048">
+    <div class="glow" style="background:rgba(63,157,90,.16);left:-200px;top:-100px"></div>
+    <div class="cb-inner">
+      <div class="cb-copy">
+        <span class="cb-tag" style="background:var(--accent-soft);color:var(--accent-ink)">⛳ Golf</span>
+        <h2 class="serif">Get your handicap down, <em>round by round.</em></h2>
+        <p class="desc">Stop hitting balls with no plan. Each range session and round becomes a step with a purpose — a wedge ladder, a start-line putting drill, a post-round leak report. Your capabilities show where the strokes actually are.</p>
+        <div class="cb-skeleton">
+          <div class="sk-lbl">Your season, the natural arc</div>
+          <div class="sk-track">
+            <span class="sk-node" style="background:#f4f6fa;color:var(--txt-3)">Winter range</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:#1b1d23;color:#fff">Spring league · now</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:var(--accent-soft);color:var(--accent-ink)">Member-guest</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:var(--accent-soft);color:var(--accent-ink)">Club championship</span>
+          </div>
+        </div>
+        <div class="cb-goals">
+          <span class="cb-goal">📉 Handicap 14.2 → 9</span>
+          <span class="cb-goal">⛳ Break 80</span>
+          <span class="cb-goal">🏅 Qualify for club champ</span>
+        </div>
+        <a class="cb-cta" style="background:var(--accent)">Follow a coach's blueprint ›</a>
+      </div>
+      <div class="cb-art">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="ph-craft" style="color:var(--accent-ink)">⛳ Golf · handicap 14.2</div>
+          <div class="ph-phase">Spring league · Range day · goal break 80</div>
+          <div class="ph-step">
+            <span class="pp plan">Plan</span>
+            <div class="st">Range session — wedge distance ladder</div>
+            <div class="ss">50 / 75 / 100 yd gap wedge, 10 balls each · note carry · two swing thoughts max</div>
+            <div class="ph-cap"><span>Short game</span><span>Distance control</span></div>
+          </div>
+          <div class="ph-step">
+            <span class="pp do">Do</span>
+            <div class="st">Logged carries on the bay</div>
+            <div class="ss">“Dialed 75 to ±3 yd. 100 still leaking left.”</div>
+          </div>
+          <div class="ph-step" style="margin-bottom:0">
+            <span class="pp review">Review</span>
+            <div class="st">Post-round leak report</div>
+            <div class="ss">Putting is the leak — 36 putts last round. Next: lag drill.</div>
+          </div>
+          <div class="ph-channel" style="background:var(--accent-soft);color:var(--accent-ink)">🎙 Voice-note your round walking off the 18th</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAIL RACING -->
+  <div class="craftblock" style="--accent:#2d7ff9;--accent-soft:rgba(45,127,249,.12);--accent-ink:#1c6df0">
+    <div class="glow" style="background:rgba(45,127,249,.15);right:-200px;top:-120px"></div>
+    <div class="cb-inner">
+      <div class="cb-copy">
+        <span class="cb-tag" style="background:var(--accent-soft);color:var(--accent-ink)">⛵ Sail Racing</span>
+        <h2 class="serif">Get on the podium, <em>race by race.</em></h2>
+        <p class="desc">The flagship blueprint: a Dragon World Championship race-week prep, authored by someone who's done it. Rig tuning, start-line routines, between-race debriefs — every step lands in your timeline with the conditions and crew that matter.</p>
+        <div class="cb-skeleton">
+          <div class="sk-lbl">Your regatta calendar, the natural arc</div>
+          <div class="sk-track">
+            <span class="sk-node" style="background:var(--accent-soft);color:var(--accent-ink)">Pre-season tune</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:var(--accent-soft);color:var(--accent-ink)">Spring series</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:#1b1d23;color:#fff">Worlds race-week · now</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:#f4f6fa;color:var(--txt-3)">Champs</span>
+          </div>
+        </div>
+        <div class="cb-goals">
+          <span class="cb-goal">🏆 Podium at the Worlds</span>
+          <span class="cb-goal">📈 Boatspeed vs. fleet</span>
+          <span class="cb-goal">🎯 Clean starts</span>
+        </div>
+        <a class="cb-cta" style="background:var(--accent)">Get the Dragon Worlds blueprint ›</a>
+      </div>
+      <div class="cb-art">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="ph-craft" style="color:var(--accent-ink)">⛵ Sail Racing · Dragon Worlds</div>
+          <div class="ph-phase">Race-week · 12–15 kt forecast · Tuesday</div>
+          <div class="ph-step">
+            <span class="pp plan">Plan</span>
+            <div class="st">Tune the rig for race-day breeze</div>
+            <div class="ss">Shroud tension base + 2 · mark spreader deflection · log the numbers</div>
+            <div class="ph-cap"><span>Boatspeed</span><span>Tuning</span></div>
+          </div>
+          <div class="ph-step">
+            <span class="pp do">Do</span>
+            <div class="st">Captured on the water</div>
+            <div class="ss">“Base + 2 held through 14 kt. Forestay touch loose up top.”</div>
+          </div>
+          <div class="ph-step" style="margin-bottom:0">
+            <span class="pp review">Review</span>
+            <div class="st">Debrief race 1 · speed vs. fleet</div>
+            <div class="ss">Settled · tuning pattern flagged for light air</div>
+          </div>
+          <div class="ph-channel" style="background:var(--accent-soft);color:var(--accent-ink)">🗺 Race steps get an Atlas course, marks &amp; conditions</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RANCHI WOMEN'S BUSINESS -->
+  <div class="craftblock flip" style="--accent:#e0741a;--accent-soft:rgba(224,116,26,.13);--accent-ink:#b65a10">
+    <div class="glow" style="background:rgba(224,116,26,.18);left:-200px;top:-100px"></div>
+    <div class="cb-inner">
+      <div class="cb-copy">
+        <span class="cb-tag" style="background:var(--accent-soft);color:var(--accent-ink)">🪔 Her business · Ranchi, Jharkhand</span>
+        <h2 class="serif">Get her business growing, <em>order by order.</em></h2>
+        <p class="desc">Priya makes lac bangles from home. Her calendar isn't weeks — it's festivals. BetterAt meets her where she already works: she captures orders, samples and supplier runs by <b>voice note on Telegram, in Hindi</b>. The app keeps the bigger picture — revenue, repeat customers, when to hire help.</p>
+        <div class="cb-skeleton">
+          <div class="sk-lbl">Her festival calendar, the natural arc</div>
+          <div class="sk-track">
+            <span class="sk-node" style="background:#f4f6fa;color:var(--txt-3)">Lean months</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:#1b1d23;color:#fff">Diwali rush · now</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:var(--accent-soft);color:var(--accent-ink)">Wedding season</span><span class="sk-arrow">→</span>
+            <span class="sk-node" style="background:var(--accent-soft);color:var(--accent-ink)">New collection</span>
+          </div>
+        </div>
+        <div class="cb-goals">
+          <span class="cb-goal">₹ Monthly revenue up</span>
+          <span class="cb-goal">🔁 Repeat customers</span>
+          <span class="cb-goal">👭 Hire her first helper</span>
+        </div>
+        <a class="cb-cta" style="background:var(--accent)">Start free on Telegram ›</a>
+      </div>
+      <div class="cb-art">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="ph-craft" style="color:var(--accent-ink)">🪔 Lac craft business · Ranchi</div>
+          <div class="ph-phase">Diwali rush · 3 weeks out · आज का काम</div>
+          <div class="ph-step">
+            <span class="pp plan">Plan</span>
+            <div class="st">Diwali batch — 40 lac bangle sets</div>
+            <div class="ss">Source lac &amp; zari from Khunti supplier · mould &amp; set 40 pairs · shoot 5 reels</div>
+            <div class="ph-cap"><span>Production</span><span>Sourcing</span><span>Content</span></div>
+          </div>
+          <div class="ph-step">
+            <span class="pp do">Do</span>
+            <div class="st">Voice note · captured in Hindi</div>
+            <div class="ss">“32 sets done, lac 2 kg short — Sunita finishing the rest.”</div>
+          </div>
+          <div class="ph-step" style="margin-bottom:0">
+            <span class="pp review">Review</span>
+            <div class="st">This week's tally</div>
+            <div class="ss">₹18,400 · 12 repeat customers · time to bring on a helper</div>
+          </div>
+          <div class="ph-channel" style="background:rgba(34,158,217,.12);color:#1c84b3">💬 Runs entirely from the Telegram assistant — no app needed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- FOUR MOVES -->
+<section class="sec band" id="moves">
+  <div class="wrap">
+    <div class="intro">
+      <div class="kicker" style="color:var(--txt-3)">One engine, every domain</div>
+      <h2>Four moves. Every craft, the same shape.</h2>
+      <p class="sub">Whether it's a rig, a rotation, a round, or a Diwali order — the structure is identical. Only the words change.</p>
+    </div>
+    <div class="moves-grid">
+      <div class="move"><div class="n">01</div><div class="verb">you add</div><h4>Interests</h4><p>Whatever you're getting better at. Each opens its own world of orgs, blueprints and people — in its own vocabulary.</p></div>
+      <div class="move"><div class="n">02</div><div class="verb">you join</div><h4>Organizations</h4><p>A yacht club, a nursing school, a livelihood NGO, a golf academy. Join and the structure experts use comes with it.</p></div>
+      <div class="move"><div class="n">03</div><div class="verb">you subscribe to</div><h4>Blueprints</h4><p>A practitioner's path, broken into steps. Subscribe and each one lands in your timeline — Plan → Do → Review.</p></div>
+      <div class="move"><div class="n">04</div><div class="verb">you follow</div><h4>People</h4><p>Coaches, preceptors, mentors and peers whose steps you can adapt into your own plan in one tap.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- GET GOING -->
+<section class="sec" id="going">
+  <div class="wrap">
+    <div class="intro">
+      <div class="kicker">Get going</div>
+      <h2>Three steps to your first win</h2>
+      <p class="sub">However you practice, the on-ramp is the same — and the lightest one runs from a chat you already check.</p>
+    </div>
+    <div class="steps3">
+      <div class="gstep">
+        <div class="gn">1</div>
+        <h4>Pick your craft</h4>
+        <p>Nursing, golf, sail racing, your home business — choose what you're getting better at and the whole app speaks its language.</p>
+      </div>
+      <div class="gstep">
+        <div class="gn">2</div>
+        <h4>Get a blueprint or start fresh</h4>
+        <p>Subscribe to a practitioner's path and steps drop into your timeline, or add your own first step. No blank page.</p>
+      </div>
+      <div class="gstep">
+        <div class="gn">3</div>
+        <h4>Capture as you go</h4>
+        <p>Log a shift, a round, a batch — by photo, voice, or a quick note. Reflection turns it into evidence and your next step.</p>
+        <span class="tg">💬 Or just message the Telegram assistant</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="sec band" id="pricing">
+  <div class="wrap">
+    <div class="intro">
+      <div class="kicker" style="color:var(--txt-3)">Pricing</div>
+      <h2>Two things you can pay for — kept separate</h2>
+      <p class="sub">The platform plan powers your tools. A blueprint pays its author. They never get confused — and pricing meets you in your currency.</p>
+    </div>
+    <div class="price-grid">
+      <div class="price-card feature" style="--accent:#2d7ff9;--accent-soft:rgba(45,127,249,.12);--accent-ink:#1c6df0">
+        <div class="price-icon">⚡</div>
+        <h3>Your BetterAt plan</h3>
+        <div class="price-tiers"><b>Free</b> · Plus <b>$9/mo</b> · Pro <b>$29/mo</b></div>
+        <div class="price-local">🇮🇳 In India: Plus ₹299 · Pro ₹799 / mo</div>
+        <ul class="price-feat">
+          <li><span class="check">✓</span>Unlimited interests &amp; steps</li>
+          <li><span class="check">✓</span>AI capture, insights &amp; the Telegram assistant</li>
+          <li><span class="check">✓</span>Atlas map, analytics &amp; offline</li>
+        </ul>
+        <div class="price-note">Billed by BetterAt. Powers the app, not the content. Local pricing shown automatically.</div>
+      </div>
+      <div class="price-card" style="--accent:#34c759;--accent-soft:rgba(52,199,89,.12);--accent-ink:#27a544">
+        <div class="price-icon">📦</div>
+        <h3>A blueprint</h3>
+        <div class="price-tiers">Set by its author · <b>free</b> options exist</div>
+        <div class="price-local">85% to the author · 15% platform</div>
+        <ul class="price-feat">
+          <li><span class="check">✓</span>Dragon Worlds is free with a participant code</li>
+          <li><span class="check">✓</span>Schools &amp; NGOs can issue blueprints free to members</li>
+          <li><span class="check">✓</span>Authors keep <b style="color:var(--txt)">85%</b> via Stripe Connect</li>
+        </ul>
+        <div class="price-note">1% of all BetterAt revenue funds subsidized access for people who'd grow most with a coach but can't pay for one.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final" id="final">
+  <div class="wrap">
+    <h2 class="serif">Whatever you're getting better at — start today.</h2>
+    <p class="sub">One real step is all it takes. Pick your craft and watch the path appear.</p>
+    <div class="demo-cta">
+      <button class="btn-fill">Get started free</button>
+      <button class="btn-ghost">Browse the crafts ›</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span>© BetterAt — get measurably better at anything you practice.</span>
+    <span>Sailing today · nursing, golf &amp; livelihoods next.</span>
+  </div>
+</footer>
+
+<script>
+  /* ---- persona data: same engine, different words ---- */
+  const P = {
+    sailing:{
+      label:'Sail Racing', car:'· Dragon World Championship',
+      accent:'#2d7ff9', soft:'rgba(45,127,249,.12)', ink:'#1c6df0', navletter:'B',
+      heroWord:'racing', eyebrow:'Sailing · live today',
+      lede:'A Dragon World Championship race-week prep, authored by someone who has done it — every step drops into your timeline with the breeze, the boat and the crew that matter.',
+      title:'Tune the rig for race-day breeze', phase:'Dragon Worlds · race-week · Tue',
+      whatlbl:'What will you do?', what:'Set base + 2 for the 12–15 kt forecast', ai:'Open AI Coach',
+      subs:[['1','Set shroud tension to base + 2',0],['2','Mark spreader deflection at the dock',0],['3','Log the numbers in the tuning guide',1]],
+      caps:['Boatspeed','Tuning','Heavy air'], crewav:'KD', crew:'Helm · bow · trim',
+      capture:'Jot a quick note…', channelbtn:'💬 Telegram',
+      note:'Base + 2 held steady through 14 kt. Forestay felt right off the line — touch loose in the top puffs.', notewho:'Captured 13:42 · on the water',
+      rvbadge:'✓ Settled', rvline:'Boatspeed evidence logged vs. the fleet. The coach’s notebook flagged a tuning pattern for light air.',
+      goalicon:'🏆', goal:'Podium at the Worlds', cta:'Get the Dragon Worlds blueprint'
+    },
+    nursing:{
+      label:'Nursing', car:'· Johns Hopkins School of Nursing',
+      accent:'#0ea5a4', soft:'rgba(14,165,164,.12)', ink:'#0b8a89', navletter:'B',
+      heroWord:'your degree', eyebrow:'Nursing · on the roadmap',
+      lede:'Your program already has the structure — rotations, competencies, NCLEX. BetterAt turns it into a timeline you work shift by shift, building evidence toward your sign-offs.',
+      title:'Pre-shift prep — 4-patient assignment', phase:'Adult Health I · Med-Surg · Week 6 of 14',
+      whatlbl:'What’s the plan for the shift?', what:'Safe care for a 4-patient med-surg load', ai:'Ask the AI Coach',
+      subs:[['1','Review charts + overnight handoff',0],['2','Pull meds, check the five rights',0],['3','Map the shift — meds, assessments, q2 turns',1]],
+      caps:['Assessment','Pharmacology','Time mgmt'], crewav:'AN', crew:'Preceptor A. Ngo, RN',
+      capture:'Note an event or skill…', channelbtn:'📷 Photo',
+      note:'SBAR handoff went clean. Missed a PRN timing — flagged it for the debrief.', notewho:'Captured 07:18 · on the unit',
+      rvbadge:'✓ Signed off', rvline:'Pharmacology 3/4 evidenced · Communication competency signed off by your preceptor.',
+      goalicon:'🎓', goal:'Clinical hours + NCLEX-ready', cta:'Start with your school’s blueprint'
+    },
+    golf:{
+      label:'Golf', car:'· handicap 14.2 → 9',
+      accent:'#3f9d5a', soft:'rgba(63,157,90,.13)', ink:'#2f8048', navletter:'B',
+      heroWord:'golf', eyebrow:'Golf · on the roadmap',
+      lede:'Stop hitting balls with no plan. Every range session and round becomes a step with a purpose — and your capabilities show exactly where the strokes are hiding.',
+      title:'Range session — wedge distance ladder', phase:'Spring league · range day · goal break 80',
+      whatlbl:'What will you work on?', what:'Tighten 50–100 yd wedge distances', ai:'Ask the AI Coach',
+      subs:[['1','50 / 75 / 100 yd gap wedge — 10 balls each',0],['2','Note the carry distances',0],['3','Two swing thoughts, max',1]],
+      caps:['Short game','Distance control'], crewav:'PR', crew:'Playing partner · pro',
+      capture:'Log the session…', channelbtn:'🎙 Voice',
+      note:'Dialed 75 to ±3 yd. 100 still scattering left — grip pressure?', notewho:'Captured 16:05 · at the range',
+      rvbadge:'✓ Logged', rvline:'Putting is still the leak — 36 putts last round. Next step: a lag-distance drill.',
+      goalicon:'⛳', goal:'Break 80 · handicap to 9', cta:'Follow a coach’s blueprint'
+    },
+    craft:{
+      label:'Her business', car:'· Ranchi, Jharkhand',
+      accent:'#e0741a', soft:'rgba(224,116,26,.13)', ink:'#b65a10', navletter:'B',
+      heroWord:'her business', eyebrow:'Livelihoods · on the roadmap',
+      lede:'Priya makes lac bangles from home. Her calendar is festivals, not weeks. BetterAt meets her in Telegram — she captures orders and supplier runs by voice note in Hindi, and the app holds the bigger picture.',
+      title:'Diwali batch — 40 lac bangle sets', phase:'Diwali rush · 3 weeks out · आज का काम',
+      whatlbl:'What’s today’s work?', what:'Get 40 sets ready for the Diwali rush', ai:'AI Coach (हिन्दी)',
+      subs:[['1','Source lac & zari from the Khunti supplier',0],['2','Mould & set 40 pairs',0],['3','Shoot 5 reels for Instagram',1]],
+      caps:['Production','Sourcing','Content'], crewav:'सु', crew:'Helper Sunita · daughter Anjali',
+      capture:'बोलकर लिखें… (voice note)', channelbtn:'💬 Telegram',
+      note:'“32 sets done, lac 2 kg short — Sunita finishing the rest.”', notewho:'Voice note 19:40 · in Hindi, via Telegram',
+      rvbadge:'✓ Week tallied', rvline:'₹18,400 this week · 12 repeat customers · steady enough to bring on a helper.',
+      goalicon:'₹', goal:'Grow revenue · hire help', cta:'Start free on Telegram'
+    }
+  };
+
+  const $ = s => document.querySelector(s);
+  const root = document.documentElement;
+
+  function paint(k){
+    const p = P[k];
+    root.style.setProperty('--accent', p.accent);
+    root.style.setProperty('--accent-soft', p.soft);
+    root.style.setProperty('--accent-ink', p.ink);
+
+    $('#hero-craft').textContent = p.heroWord;
+    $('#eyebrow').textContent = p.eyebrow;
+    $('#hero-lede').innerHTML = p.lede;
+    $('#craft-name').textContent = p.label;
+    $('#craft-car').textContent = p.car;
+    $('#d-title').textContent = p.title;
+    $('#d-phase').textContent = p.phase;
+    $('#d-whatlbl').textContent = p.whatlbl;
+    $('#d-what').textContent = p.what;
+    $('#d-ai').textContent = p.ai;
+    $('#d-subs').innerHTML = p.subs.map(s =>
+      `<div class="mk-sub${s[2]?' ph':''}"><span class="n">${s[0]}.</span><span class="f">${s[1]}</span></div>`).join('');
+    $('#d-caps').innerHTML = p.caps.map((c,i)=>`<span class="mk-pill${i===0?' cap':''}">${c}</span>`).join('');
+    $('#d-crewav').textContent = p.crewav;
+    $('#d-crew').textContent = p.crew;
+    $('#d-capture').textContent = p.capture;
+    $('#d-channelbtn').textContent = p.channelbtn;
+    $('#d-note').childNodes[0].nodeValue = p.note + ' ';
+    $('#d-notewho').textContent = p.notewho;
+    $('#d-rvbadge').textContent = p.rvbadge;
+    $('#d-rvline').textContent = p.rvline;
+    $('#d-goalicon').textContent = p.goalicon;
+    $('#d-goal').textContent = p.goal;
+    $('#d-cta').textContent = p.cta;
+
+    document.querySelectorAll('.pchip').forEach(c => c.classList.toggle('on', c.dataset.k === k));
+  }
+
+  document.querySelectorAll('.pchip').forEach(c => c.addEventListener('click', () => paint(c.dataset.k)));
+
+  /* reveal on scroll */
+  const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} }), {threshold:.12});
+  document.querySelectorAll('.rv').forEach((el,i)=>{ el.style.transitionDelay = Math.min(i*60,360)+'ms'; io.observe(el); });
+  document.querySelectorAll('.craftblock,.move,.gstep,.price-card,.intro').forEach(el=>{ el.classList.add('rv'); io.observe(el); });
+
+  paint('sailing');
+</script>
+</body>
+</html>
