@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Timeline analysis · Story / Numbers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FAF8F4; --paper-2:#F3F0EA; --card:#FFFFFF;
+    --ink:#1A1C22; --ink-2:#565B66; --ink-3:#8A8F99;
+    --hair:#E9E5DD; --line:#D8D2C8;
+    --azure:#2E62F0; --azure-deep:#1B3FA8;
+    --amber:#E08A2B; --green:#1E9E6A; --rose:#D9476B; --teal:#14A1B8; --slate:#9AA0AB;
+    --lilac:#7C5CBF; --lilac-soft:#ECE6F8; --lilac-line:#D9CEF0;
+    --shadow:0 1px 2px rgba(26,28,34,.04), 0 8px 24px rgba(26,28,34,.06);
+    --shadow-lg:0 2px 6px rgba(26,28,34,.05), 0 18px 50px rgba(26,28,34,.10);
+    --r:18px; --r-sm:13px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-font-smoothing:antialiased;}
+  body{
+    font-family:'Figtree',system-ui,sans-serif;
+    background:
+      radial-gradient(1100px 560px at 88% -8%, #EFE9FB 0%, rgba(239,233,251,0) 55%),
+      radial-gradient(900px 500px at -6% 4%, #FBF2E4 0%, rgba(251,242,228,0) 50%),
+      #EEEAE2;
+    color:var(--ink); min-height:100vh; line-height:1.45; padding:40px 0 80px;
+  }
+  .pagehead{max-width:1180px;margin:0 auto 8px;padding:0 30px;}
+  .pagehead h1{font-family:'Newsreader',serif;font-weight:500;font-size:27px;letter-spacing:-.01em;}
+  .pagehead p{color:var(--ink-2);font-size:13.5px;max-width:78ch;margin-top:6px;}
+  .pagehead b{color:var(--ink);}
+  .pagehead .lilac{color:var(--lilac);font-weight:700;}
+
+  .rack{display:flex;gap:38px;flex-wrap:wrap;justify-content:center;align-items:flex-start;max-width:1180px;margin:26px auto 0;padding:0 24px;}
+  .col{display:flex;flex-direction:column;align-items:center;gap:13px;}
+  .caplabel{font-family:'Manrope';font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);}
+  .caplabel b{color:var(--lilac);}
+
+  .phone{width:392px;background:#000;border-radius:46px;padding:11px;box-shadow:var(--shadow-lg);}
+  .screen{background:var(--paper);border-radius:36px;overflow:hidden;position:relative;}
+  .statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px 0 30px;font-family:'Manrope';font-weight:700;font-size:14px;}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:116px;height:29px;background:#000;border-radius:18px;}
+
+  .apphead{display:flex;align-items:center;justify-content:space-between;padding:2px 16px 8px;}
+  .swt{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--hair);padding:6px 12px 6px 7px;border-radius:999px;box-shadow:var(--shadow);}
+  .swt .dot{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#3E70F4,#1B3FA8);display:grid;place-items:center;color:#fff;font-size:12px;}
+  .swt .lbl{font-weight:700;font-size:14px;letter-spacing:-.01em;}
+  .swt .car{color:var(--ink-3);font-size:11px;}
+  .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#E08A2B,#C8631A);color:#fff;display:grid;place-items:center;font-weight:700;font-size:11px;}
+
+  .body{padding:4px 16px 18px;}
+  .lvltag{font-family:'Manrope';font-weight:800;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:6px 2px 2px;}
+  .h1{font-family:'Newsreader',serif;font-weight:500;font-size:25px;letter-spacing:-.01em;line-height:1.1;}
+  .h1 .dim{color:var(--ink-3);}
+  .sub{color:var(--ink-2);font-size:12px;margin:5px 2px 0;}
+
+  /* analysis card shell */
+  .acard{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);box-shadow:var(--shadow);margin-top:14px;overflow:hidden;}
+  .acard.lilac{background:var(--lilac-soft);border-color:var(--lilac-line);}
+  .acard-h{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;}
+  .acard-eyebrow{font-family:'Manrope';font-weight:800;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--lilac);display:flex;align-items:center;gap:6px;}
+  .acard-eyebrow .sp{color:var(--ink-3);}
+
+  /* segmented toggle */
+  .seg{display:flex;background:rgba(124,92,191,.10);border:1px solid var(--lilac-line);border-radius:999px;padding:2px;gap:2px;}
+  .seg button{appearance:none;border:0;background:transparent;cursor:pointer;font-family:'Figtree';font-weight:700;font-size:11px;color:var(--lilac);padding:5px 11px;border-radius:999px;letter-spacing:.01em;}
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow);}
+
+  .acard-body{padding:0 15px 15px;}
+
+  /* STORY view */
+  .story p{font-family:'Newsreader',serif;font-size:16.5px;line-height:1.4;color:var(--ink);}
+  .story p .em{color:var(--lilac);font-weight:600;font-style:italic;}
+  .story .cta{display:flex;gap:8px;margin-top:13px;}
+  .story .cta .btn{flex:0 0 auto;font-weight:700;font-size:12.5px;padding:8px 14px;border-radius:999px;border:0;cursor:pointer;}
+  .story .cta .ghost{background:transparent;border:1px solid var(--lilac-line);color:var(--lilac);}
+  .story .cta .fill{background:var(--lilac);color:#fff;}
+
+  /* NUMBERS view */
+  .nums{display:none;}
+  .nums.on{display:block;}
+  .story.off{display:none;}
+
+  .metric{padding:11px 0;border-top:1px solid rgba(124,92,191,.16);}
+  .metric:first-child{border-top:0;padding-top:4px;}
+  .m-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;}
+  .m-title{font-family:'Manrope';font-weight:800;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);}
+  .m-val{font-family:'Newsreader',serif;font-size:15px;color:var(--ink);}
+  .m-val b{font-weight:600;}
+  .m-val .mut{color:var(--ink-3);font-size:12px;}
+
+  /* capability planned/proven bars */
+  .cap{display:grid;grid-template-columns:118px 1fr 56px;align-items:center;gap:9px;margin:6px 0;}
+  .cap .cn{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--ink);}
+  .cap .cn .cd{width:9px;height:9px;border-radius:3px;flex:0 0 auto;}
+  .cap .track{height:14px;background:var(--paper-2);border-radius:7px;position:relative;overflow:hidden;}
+  .cap .planned{position:absolute;inset:0;border-radius:7px;opacity:.26;}
+  .cap .proven{position:absolute;left:0;top:0;bottom:0;border-radius:7px;}
+  .cap .cc{font-size:11px;color:var(--ink-2);text-align:right;font-variant-numeric:tabular-nums;}
+  .cap .cc b{color:var(--ink);font-weight:700;}
+  .legend{display:flex;gap:14px;margin:9px 2px 2px;font-size:10px;color:var(--ink-3);}
+  .legend i{display:inline-block;width:16px;height:9px;border-radius:3px;vertical-align:middle;margin-right:5px;background:var(--lilac);}
+  .legend i.gho{opacity:.26;}
+
+  /* ring stat row */
+  .statrow{display:flex;gap:9px;}
+  .stat{flex:1;background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-sm);padding:10px 11px;}
+  .stat .big{font-family:'Newsreader',serif;font-size:23px;line-height:1;color:var(--ink);}
+  .stat .big .pct{font-size:13px;color:var(--ink-3);}
+  .stat .cap2{font-family:'Manrope';font-weight:700;font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:6px;}
+  .stat .note{font-size:11px;color:var(--ink-2);margin-top:3px;line-height:1.3;}
+
+  /* week cadence dots */
+  .weekdots{display:flex;gap:6px;margin-top:3px;}
+  .weekdots .wd{flex:1;text-align:center;}
+  .weekdots .wd .bar{height:26px;border-radius:5px;background:var(--paper-2);position:relative;overflow:hidden;}
+  .weekdots .wd .fill{position:absolute;left:0;right:0;bottom:0;border-radius:5px;background:var(--lilac);}
+  .weekdots .wd.empty .bar{border:1px dashed var(--lilac-line);}
+  .weekdots .wd .wl{font-size:9px;color:var(--ink-3);margin-top:4px;}
+  .weekdots .wd.now .wl{color:var(--azure);font-weight:800;}
+
+  /* peer rows */
+  .peer{display:flex;align-items:center;gap:9px;margin:7px 0;}
+  .peer .pa{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:10px;flex:0 0 auto;}
+  .peer .pn{font-size:12.5px;font-weight:600;color:var(--ink);}
+  .peer .pr{font-size:10.5px;color:var(--ink-3);}
+  .peer .pbar{flex:1;height:8px;background:var(--paper-2);border-radius:5px;overflow:hidden;}
+  .peer .pbar .pf{height:100%;border-radius:5px;}
+  .peer .pc{font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums;flex:0 0 auto;}
+
+  /* next-actions */
+  .next{margin-top:12px;background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-sm);padding:11px 12px;}
+  .next h4{font-family:'Manrope';font-weight:800;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--lilac);margin-bottom:8px;}
+  .nx{display:flex;gap:9px;align-items:flex-start;margin:8px 0;}
+  .nx .dot{width:7px;height:7px;border-radius:3px;margin-top:5px;flex:0 0 auto;}
+  .nx .t{font-size:12.5px;color:var(--ink);line-height:1.34;}
+  .nx .t b{font-weight:700;}
+  .nx .t .why{color:var(--ink-3);}
+
+  .foot{max-width:1180px;margin:34px auto 0;padding:0 30px;color:var(--ink-3);font-size:12px;}
+  .foot b{color:var(--ink-2);}
+</style>
+</head>
+<body>
+  <div class="pagehead">
+    <h1>Timeline analysis — Story / Numbers toggle</h1>
+    <p>The librarian today gives one qualitative sentence. This mock adds a <b>Numbers</b> mode on the
+       L3 (arc) and L4 (all-time) analysis cards that surfaces the quantities the adapter already computes —
+       <b>planned vs proven</b> per capability, evidence rate, reflection cadence, pace, crew presence —
+       and ends with a data-driven <span class="lilac">What to do next</span>. Tap the toggle on either phone.</p>
+  </div>
+
+  <div class="rack">
+
+    <!-- ============ L3 ARC ============ -->
+    <div class="col">
+      <div class="caplabel">L3 · <b>ARC</b> — one season</div>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="statusbar"><span>5:55</span><span>&#x1F4F6; &#x1F50B;</span></div>
+        <div class="apphead">
+          <div class="swt"><span class="dot">&#9684;</span><span class="lbl">Sail Racing</span><span class="car">&#9662;</span></div>
+          <div class="av">AD</div>
+        </div>
+        <div class="body">
+          <div class="lvltag">Reflecting on now</div>
+          <div class="h1">Spring</div>
+          <div class="sub">Week 4 of 8 &middot; 24 steps &middot; Oct 31 — Mar 30</div>
+
+          <div class="acard lilac">
+            <div class="acard-h">
+              <div class="acard-eyebrow">The librarian <span class="sp">&middot;</span> this arc</div>
+              <div class="seg" data-seg="l3">
+                <button class="on" data-view="story">Story</button>
+                <button data-view="nums">Numbers</button>
+              </div>
+            </div>
+            <div class="acard-body">
+
+              <!-- STORY -->
+              <div class="story" data-pane="l3-story">
+                <p><span class="em">Boat handling</span> has anchored this arc — it leads 2 of your last
+                   4 weeks, with crew work close behind. Worth a reflection on what's clicking?</p>
+                <div class="cta">
+                  <button class="btn ghost">Not now</button>
+                  <button class="btn fill">Start a reflection</button>
+                </div>
+              </div>
+
+              <!-- NUMBERS -->
+              <div class="nums" data-pane="l3-nums">
+
+                <div class="metric">
+                  <div class="m-head">
+                    <span class="m-title">Capability mix &middot; planned vs proven</span>
+                  </div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--amber)"></span>Boat handling</div><div class="track"><span class="planned" style="width:100%;background:var(--amber)"></span><span class="proven" style="width:33%;background:var(--amber)"></span></div><div class="cc"><b>1</b>/3 proven</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--azure)"></span>Crew</div><div class="track"><span class="planned" style="width:100%;background:var(--azure)"></span><span class="proven" style="width:66%;background:var(--azure)"></span></div><div class="cc"><b>2</b>/3 proven</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--rose)"></span>Tactics</div><div class="track"><span class="planned" style="width:100%;background:var(--rose)"></span><span class="proven" style="width:0%;background:var(--rose)"></span></div><div class="cc"><b>0</b>/3 proven</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--green)"></span>Boatspeed</div><div class="track"><span class="planned" style="width:67%;background:var(--green)"></span><span class="proven" style="width:33%;background:var(--green)"></span></div><div class="cc"><b>1</b>/2 proven</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--teal)"></span>Conditions</div><div class="track"><span class="planned" style="width:33%;background:var(--teal)"></span><span class="proven" style="width:0%;background:var(--teal)"></span></div><div class="cc"><b>0</b>/1 proven</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--slate)"></span>Heavy air</div><div class="track"><span class="planned" style="width:33%;background:var(--slate)"></span><span class="proven" style="width:0%;background:var(--slate)"></span></div><div class="cc"><b>0</b>/1 proven</div></div>
+                  <div class="legend"><span><i class="gho"></i>Planned (goal)</span><span><i></i>Proven (evidence logged)</span></div>
+                </div>
+
+                <div class="metric">
+                  <div class="statrow">
+                    <div class="stat"><div class="big">31<span class="pct">%</span></div><div class="cap2">Evidence rate</div><div class="note">4 of 13 steps carry proof</div></div>
+                    <div class="stat"><div class="big">3.3</div><div class="cap2">Steps / week</div><div class="note">On pace to finish the arc</div></div>
+                    <div class="stat"><div class="big">6</div><div class="cap2">Capabilities</div><div class="note">touched this arc</div></div>
+                  </div>
+                </div>
+
+                <div class="metric">
+                  <div class="m-head"><span class="m-title">Reflection cadence</span><span class="m-val"><b>3</b><span class="mut"> of 4 weeks</span></span></div>
+                  <div class="weekdots">
+                    <div class="wd"><div class="bar"><span class="fill" style="height:70%"></span></div><div class="wl">wk1</div></div>
+                    <div class="wd empty"><div class="bar"></div><div class="wl">wk2</div></div>
+                    <div class="wd"><div class="bar"><span class="fill" style="height:45%"></span></div><div class="wl">wk3</div></div>
+                    <div class="wd now"><div class="bar"><span class="fill" style="height:90%"></span></div><div class="wl">wk4</div></div>
+                  </div>
+                </div>
+
+                <div class="metric">
+                  <div class="m-head"><span class="m-title">Crew presence</span></div>
+                  <div class="peer"><span class="pa" style="background:#7C5CBF">RY</span><div style="flex:1"><div class="pn">Rita Yau <span class="pr">&middot; helm</span></div></div><div class="pbar"><span class="pf" style="width:50%;background:#7C5CBF"></span></div><div class="pc">2/4 wks</div></div>
+                  <div class="peer"><span class="pa" style="background:#1E9E6A">GC</span><div style="flex:1"><div class="pn">Glenn Cocker <span class="pr">&middot; bow</span></div></div><div class="pbar"><span class="pf" style="width:25%;background:#1E9E6A"></span></div><div class="pc">1/4 wks</div></div>
+                  <div class="peer"><span class="pa" style="background:#2E62F0">BO</span><div style="flex:1"><div class="pn">Bram van O. <span class="pr">&middot; trim</span></div></div><div class="pbar"><span class="pf" style="width:25%;background:#2E62F0"></span></div><div class="pc">1/4 wks</div></div>
+                </div>
+
+                <div class="next">
+                  <h4>What to do next</h4>
+                  <div class="nx"><span class="dot" style="background:var(--rose)"></span><div class="t"><b>Tactics: 3 planned, 0 proven.</b> <span class="why">Your biggest open loop — log evidence on one tactics step to close it.</span></div></div>
+                  <div class="nx"><span class="dot" style="background:var(--lilac)"></span><div class="t"><b>Week 2 has no reflection.</b> <span class="why">Add a one-line note while it's fresh.</span></div></div>
+                  <div class="nx"><span class="dot" style="background:var(--slate)"></span><div class="t"><b>Conditions &amp; heavy air touched once each.</b> <span class="why">Thin coverage — plan a follow-up to build depth.</span></div></div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============ L4 ALL ============ -->
+    <div class="col">
+      <div class="caplabel">L4 · <b>ALL</b> — all time</div>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="statusbar"><span>6:00</span><span>&#x1F4F6; &#x1F50B;</span></div>
+        <div class="apphead">
+          <div class="swt"><span class="dot">&#9684;</span><span class="lbl">Sail Racing</span><span class="car">&#9662;</span></div>
+          <div class="av">AD</div>
+        </div>
+        <div class="body">
+          <div class="lvltag">Reflecting on a practice</div>
+          <div class="h1">All time</div>
+          <div class="sub">1 arc &middot; 24 steps &middot; 7 months</div>
+
+          <div class="acard lilac">
+            <div class="acard-h">
+              <div class="acard-eyebrow">Across your practice</div>
+              <div class="seg" data-seg="l4">
+                <button class="on" data-view="story">Story</button>
+                <button data-view="nums">Numbers</button>
+              </div>
+            </div>
+            <div class="acard-body">
+
+              <!-- STORY -->
+              <div class="story" data-pane="l4-story">
+                <p>You're 24 steps into Sail Racing — <span class="em">boat handling</span> and crew are the
+                   through-line so far. Worth a reflection on what's emerging?</p>
+                <div class="cta">
+                  <button class="btn ghost">Not now</button>
+                  <button class="btn fill">Start a reflection</button>
+                </div>
+              </div>
+
+              <!-- NUMBERS -->
+              <div class="nums" data-pane="l4-nums">
+
+                <div class="metric">
+                  <div class="m-head"><span class="m-title">Where your 24 steps went</span></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--amber)"></span>Boat handling</div><div class="track"><span class="planned" style="width:100%;background:var(--amber)"></span><span class="proven" style="width:100%;background:var(--amber)"></span></div><div class="cc"><b>6</b> &middot; 25%</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--azure)"></span>Crew</div><div class="track"><span class="planned" style="width:83%;background:var(--azure)"></span><span class="proven" style="width:83%;background:var(--azure)"></span></div><div class="cc"><b>5</b> &middot; 21%</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--rose)"></span>Tactics</div><div class="track"><span class="planned" style="width:67%;background:var(--rose)"></span><span class="proven" style="width:67%;background:var(--rose)"></span></div><div class="cc"><b>4</b> &middot; 17%</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--green)"></span>Boatspeed</div><div class="track"><span class="planned" style="width:50%;background:var(--green)"></span><span class="proven" style="width:50%;background:var(--green)"></span></div><div class="cc"><b>3</b> &middot; 13%</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--teal)"></span>Conditions</div><div class="track"><span class="planned" style="width:50%;background:var(--teal)"></span><span class="proven" style="width:50%;background:var(--teal)"></span></div><div class="cc"><b>3</b> &middot; 13%</div></div>
+                  <div class="cap"><div class="cn"><span class="cd" style="background:var(--slate)"></span>Heavy air</div><div class="track"><span class="planned" style="width:50%;background:var(--slate)"></span><span class="proven" style="width:50%;background:var(--slate)"></span></div><div class="cc"><b>3</b> &middot; 13%</div></div>
+                </div>
+
+                <div class="metric">
+                  <div class="statrow">
+                    <div class="stat"><div class="big">29<span class="pct">%</span></div><div class="cap2">Proven lifetime</div><div class="note">7 of 24 steps evidenced</div></div>
+                    <div class="stat"><div class="big">38<span class="pct">%</span></div><div class="cap2">Reflection rate</div><div class="note">9 of 24 steps</div></div>
+                    <div class="stat"><div class="big">25<span class="pct">%</span></div><div class="cap2">Top capability</div><div class="note">Fairly even spread</div></div>
+                  </div>
+                </div>
+
+                <div class="metric">
+                  <div class="m-head"><span class="m-title">Trajectory</span></div>
+                  <div class="m-val" style="font-size:14px;line-height:1.4">First full arc logged — this becomes your baseline. A second arc unlocks
+                    the <b>started-here → now-here</b> trajectory arrow.</div>
+                </div>
+
+                <div class="metric">
+                  <div class="m-head"><span class="m-title">Who shows up across arcs</span></div>
+                  <div class="peer"><span class="pa" style="background:#7C5CBF">RY</span><div style="flex:1"><div class="pn">Rita Yau <span class="pr">&middot; helm</span></div></div><div class="pbar"><span class="pf" style="width:100%;background:#7C5CBF"></span></div><div class="pc">8 steps</div></div>
+                  <div class="peer"><span class="pa" style="background:#1E9E6A">GC</span><div style="flex:1"><div class="pn">Glenn Cocker <span class="pr">&middot; bow</span></div></div><div class="pbar"><span class="pf" style="width:55%;background:#1E9E6A"></span></div><div class="pc">4 steps</div></div>
+                </div>
+
+                <div class="next">
+                  <h4>What to do next</h4>
+                  <div class="nx"><span class="dot" style="background:var(--amber)"></span><div class="t"><b>Prove the through-line.</b> <span class="why">Boat handling is your top capability but only 29% of steps carry evidence — log proof to make the story defensible.</span></div></div>
+                  <div class="nx"><span class="dot" style="background:var(--slate)"></span><div class="t"><b>Breadth is thin at the edges.</b> <span class="why">Three capabilities sit at 3 steps — pick one to deepen next arc.</span></div></div>
+                  <div class="nx"><span class="dot" style="background:var(--lilac)"></span><div class="t"><b>Log a second arc.</b> <span class="why">One arc can't show change over time — the trajectory view needs two.</span></div></div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <p>All numbers above already exist in the data model (<b>types.ts</b>): <b>plannedVolume</b>/<b>provenVolume</b> per
+       capability band, <b>reflectionDensity</b> per week, peer <b>weeklyAppearances</b>, <b>visionEvidenceTrend</b>,
+       <b>trophies</b>. The Numbers view is a re-projection of what the librarian already reads — no new schema required.</p>
+  </div>
+
+<script>
+  document.querySelectorAll('.seg').forEach(function(seg){
+    var key = seg.getAttribute('data-seg');
+    seg.querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        seg.querySelectorAll('button').forEach(function(b){ b.classList.remove('on'); });
+        btn.classList.add('on');
+        var view = btn.getAttribute('data-view');
+        var story = document.querySelector('[data-pane="'+key+'-story"]');
+        var nums  = document.querySelector('[data-pane="'+key+'-nums"]');
+        if(view==='nums'){ story.classList.add('off'); nums.classList.add('on'); }
+        else { story.classList.remove('off'); nums.classList.remove('on'); }
+      });
+    });
+  });
+</script>
+</body>
+</html>

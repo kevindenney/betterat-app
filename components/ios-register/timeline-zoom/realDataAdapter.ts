@@ -39,14 +39,21 @@ import type {
   DayKey,
   LifetimeAnalysis,
   LifetimePeer,
+  LifetimeQuant,
   LifetimeReflection,
   LifetimeSession,
   LifetimeTrophy,
+  QuantCapabilityStat,
+  QuantCrewMember,
+  QuantNextAction,
+  QuantReflectionWeek,
+  QuantStatTile,
   SeasonAnalysis,
   SeasonLibrarianPrompt,
   SeasonMarker,
   SeasonPeer,
   SeasonPhase,
+  SeasonQuant,
   StepHowItem,
   StepStatus,
   TimelineDataset,
@@ -674,6 +681,55 @@ export interface SuggestionInputRow {
   sourceStepId?: string | null;
 }
 
+/**
+ * Re-project a week list's capability bands into ranked planned-vs-proven
+ * stats for the Numbers view. Sums plannedVolume + provenVolume per
+ * capability across weeks 1..maxWeek, computes each capability's share of
+ * total volume, and sorts by total descending. Pure re-projection of data
+ * the river already carries — no new schema.
+ */
+function aggregateCapabilityStats(
+  weeklyCapabilities: WeeklyCapabilityMix[],
+  maxWeek: number,
+): QuantCapabilityStat[] {
+  const byCap = new Map<
+    string,
+    { label: string; color: string; planned: number; proven: number }
+  >();
+  for (const week of weeklyCapabilities) {
+    if (week.weekNumber > maxWeek) continue;
+    for (const band of week.bands) {
+      const id = band.capabilityId ?? band.capabilityLabel ?? band.capabilityColor;
+      const planned = band.plannedVolume ?? 0;
+      const proven = band.provenVolume ?? 0;
+      const existing = byCap.get(id);
+      if (existing) {
+        existing.planned += planned;
+        existing.proven += proven;
+      } else {
+        byCap.set(id, {
+          label: band.capabilityLabel ?? 'Capability',
+          color: band.capabilityColor,
+          planned,
+          proven,
+        });
+      }
+    }
+  }
+  const rows = Array.from(byCap.entries()).map(([id, info]) => ({
+    id,
+    label: info.label,
+    color: info.color,
+    planned: info.planned,
+    proven: info.proven,
+    total: Math.max(info.planned, info.proven),
+  }));
+  const grandTotal = rows.reduce((n, r) => n + r.total, 0);
+  return rows
+    .map((r) => ({ ...r, share: grandTotal > 0 ? r.total / grandTotal : 0 }))
+    .sort((a, b) => b.total - a.total);
+}
+
 function computeSeasonAnalysis(
   weeks: TimelineWeek[],
   seasonName: string | null,
@@ -1088,6 +1144,98 @@ function computeSeasonAnalysis(
     };
   }
 
+  // ── D-Numbers: quantified re-projection of the elapsed window ──────────
+  // Everything below re-uses data already computed above (capability
+  // bands, reflectionDensity, peers) — no new queries.
+  const elapsedWeeks = Math.max(1, Math.min(currentWeekNumber, weeks.length));
+  const quantCapabilities = aggregateCapabilityStats(weeklyCapabilities, elapsedWeeks);
+  const totalPlanned = quantCapabilities.reduce((n, c) => n + c.planned, 0);
+  const totalProven = quantCapabilities.reduce((n, c) => n + c.proven, 0);
+  const elapsedStepCount = weeks
+    .slice(0, elapsedWeeks)
+    .reduce((n, w) => n + w.steps.filter((s) => !s.pinnedFromOtherInterest).length, 0);
+  const evidenceRate = totalPlanned > 0 ? Math.round((totalProven / totalPlanned) * 100) : 0;
+  const stepsPerWeek = elapsedWeeks > 0 ? elapsedStepCount / elapsedWeeks : 0;
+  const quantStats: QuantStatTile[] = [
+    {
+      value: `${evidenceRate}%`,
+      label: 'evidence rate',
+      note: `${totalProven} of ${totalPlanned} proven`,
+    },
+    { value: stepsPerWeek.toFixed(1), label: 'steps / week' },
+    { value: `${quantCapabilities.length}`, label: 'capabilities' },
+  ];
+  const cadence: QuantReflectionWeek[] = reflectionDensity
+    .filter((d) => d.weekNumber <= elapsedWeeks)
+    .map((d) => ({
+      weekNumber: d.weekNumber,
+      count: d.count,
+      isNow: d.weekNumber === elapsedWeeks,
+      filled: d.count > 0,
+    }));
+  const reflectedWeeks = cadence.filter((c) => c.filled).length;
+  const cadenceLabel = `${reflectedWeeks} of ${cadence.length} weeks logged`;
+  const quantCrew: QuantCrewMember[] = peers
+    .map((p) => {
+      const weeksPresent = p.weeklyAppearances.filter(
+        (w) => w.weekNumber <= elapsedWeeks && w.count > 0,
+      ).length;
+      return {
+        id: p.id,
+        initials: p.initials,
+        name: p.name ?? p.initials,
+        role: p.role,
+        color: p.capabilityColor ?? p.color,
+        value: weeksPresent,
+        ratio: elapsedWeeks > 0 ? weeksPresent / elapsedWeeks : 0,
+        valueLabel: `${weeksPresent}/${elapsedWeeks} wks`,
+      };
+    })
+    .filter((c) => c.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 4);
+  const nextActions: QuantNextAction[] = [];
+  const openLoop = quantCapabilities
+    .filter((c) => c.planned > 0 && c.proven === 0)
+    .sort((a, b) => b.planned - a.planned)[0];
+  if (openLoop) {
+    nextActions.push({
+      id: `open:${openLoop.id}`,
+      color: openLoop.color,
+      title: `${openLoop.label} is an open loop`,
+      detail: `${openLoop.planned} planned, none proven yet — log evidence to close it.`,
+    });
+  }
+  const emptyWeek = cadence.find((c) => !c.filled && !c.isNow) ?? cadence.find((c) => !c.filled);
+  if (emptyWeek) {
+    nextActions.push({
+      id: `refl:${emptyWeek.weekNumber}`,
+      color: '#AF52DE',
+      title: `Week ${emptyWeek.weekNumber} has no reflection`,
+      detail: `Add a note so the ${period} shows what you learned, not just what you did.`,
+    });
+  }
+  const thin = quantCapabilities.filter((c) => c.total > 0 && c.total <= 1);
+  if (thin.length > 0 && nextActions.length < 3) {
+    const names = thin.slice(0, 2).map((c) => c.label);
+    nextActions.push({
+      id: 'thin',
+      color: thin[0]!.color,
+      title: `${names.join(' & ')} ${names.length > 1 ? 'are' : 'is'} thin`,
+      detail: `Only a touch so far — a couple more steps would round out your mix.`,
+    });
+  }
+  const quant: SeasonQuant = {
+    kind: 'season',
+    capabilities: quantCapabilities,
+    stats: quantStats,
+    cadence,
+    cadenceLabel,
+    crew: quantCrew,
+    crewHeader: interestVocab.crewHeader,
+    nextActions,
+  };
+
   return {
     weeklyCapabilities,
     phases,
@@ -1096,6 +1244,7 @@ function computeSeasonAnalysis(
     reflectionDensity,
     markers: markers.length > 0 ? markers : undefined,
     cohortHeadline,
+    quant,
     librarianPrompt: {
       eyebrow: interestVocab.librarianEyebrow,
       body: promptBody,
@@ -1244,6 +1393,113 @@ function rankSeasonCapabilities(
   return Array.from(tally.values()).sort((a, b) =>
     b.volume !== a.volume ? b.volume - a.volume : a.label.localeCompare(b.label),
   );
+}
+
+/**
+ * Re-project the lifetime layer into quantified stats for the Numbers
+ * view (L4). Distribution comes from the same canonicalized capability
+ * ranking the through-line uses (so Story and Numbers agree); peers and
+ * trajectory re-use the sessions/peers already on `lifetime`. No new
+ * queries — pure re-projection.
+ */
+function computeLifetimeQuant(
+  lifetime: LifetimeAnalysis,
+  capabilityRanking: { label: string; color: string; volume: number }[],
+  totalSteps: number,
+  interestVocab: InterestVocab,
+): LifetimeQuant {
+  const totalVolume = capabilityRanking.reduce((n, c) => n + c.volume, 0);
+  const capabilities: QuantCapabilityStat[] = capabilityRanking.map((c) => ({
+    id: c.label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    label: c.label,
+    color: c.color,
+    planned: 0,
+    proven: 0,
+    total: c.volume,
+    share: totalVolume > 0 ? c.volume / totalVolume : 0,
+  }));
+  const topCap = capabilities[0];
+  const topShare = topCap ? Math.round(topCap.share * 100) : 0;
+  const arcCount = lifetime.sessions.length;
+  const period = interestVocab.periodNoun;
+  const stats: QuantStatTile[] = [
+    { value: `${totalSteps}`, label: 'steps logged' },
+    { value: `${arcCount}`, label: arcCount === 1 ? period : `${period}s` },
+    topCap
+      ? { value: `${topShare}%`, label: 'top capability', note: topCap.label }
+      : { value: `${capabilities.length}`, label: 'capabilities' },
+  ];
+
+  // Trajectory — drift from the first session's dominant capability to the
+  // latest when they differ; otherwise the steady through-line.
+  const first = lifetime.sessions[0];
+  const last = lifetime.sessions[lifetime.sessions.length - 1];
+  let trajectoryNote: string | undefined;
+  if (first && last && first.dominantCapabilityLabel && last.dominantCapabilityLabel && first.dominantCapabilityLabel !== last.dominantCapabilityLabel) {
+    trajectoryNote = `${first.dominantCapabilityLabel} → ${last.dominantCapabilityLabel}`;
+  } else if (lifetime.throughLine) {
+    trajectoryNote = `${lifetime.throughLine.label} is the through-line`;
+  }
+
+  // Peer constancy — total appearances across all sessions.
+  const crew: QuantCrewMember[] = lifetime.peers
+    .map((p) => {
+      const value = p.sessionAppearances.reduce((n, s) => n + s.count, 0);
+      return {
+        id: p.id,
+        initials: p.initials,
+        name: p.name ?? p.initials,
+        role: p.role,
+        color: p.color,
+        value,
+        ratio: 0,
+        valueLabel: `${value} step${value === 1 ? '' : 's'}`,
+      };
+    })
+    .filter((c) => c.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 4);
+  const maxCrew = crew.reduce((m, c) => Math.max(m, c.value), 0);
+  for (const c of crew) c.ratio = maxCrew > 0 ? c.value / maxCrew : 0;
+
+  const nextActions: QuantNextAction[] = [];
+  if (topCap) {
+    nextActions.push({
+      id: `through:${topCap.id}`,
+      color: topCap.color,
+      title: `Lean into ${topCap.label}`,
+      detail: `It's ${topShare}% of your practice — your clearest through-line. Keep proving it with evidence.`,
+    });
+  }
+  if (arcCount === 1) {
+    nextActions.push({
+      id: 'second-arc',
+      color: '#AF52DE',
+      title: `Log a second ${period}`,
+      detail: `One ${period} so far — a second gives the trajectory something to compare against.`,
+    });
+  }
+  const thin = capabilities.filter((c) => c.share > 0 && c.share < 0.12);
+  if (thin.length > 0 && nextActions.length < 3) {
+    const names = thin.slice(0, 2).map((c) => c.label);
+    nextActions.push({
+      id: 'breadth',
+      color: thin[0]!.color,
+      title: `${names.join(' & ')} ${names.length > 1 ? 'are' : 'is'} underweight`,
+      detail: 'A few focused steps would broaden your base.',
+    });
+  }
+
+  return {
+    kind: 'lifetime',
+    capabilities,
+    capabilitiesHeader: interestVocab.capabilityHeader,
+    stats,
+    trajectoryNote,
+    crew,
+    crewHeader: interestVocab.crewHeader,
+    nextActions,
+  };
 }
 
 /**
@@ -1740,6 +1996,7 @@ export function mapToTimelineDataset({
   // about patterns that don't exist yet.
   if (!showAnalysis && currentSeasonAnalysis) {
     currentSeasonAnalysis.librarianPrompt = undefined;
+    currentSeasonAnalysis.quant = undefined;
   }
 
   // L2 context strip — "{Season} has been {capability}-heavy." Drives
@@ -2032,10 +2289,20 @@ export function mapToTimelineDataset({
     [currentSeasonNode, ...archivedSeasons],
     lifetimeCapabilityRanking,
   );
+  const totalSteps =
+    sorted.length + archivedSeasons.reduce((n, s) => n + s.bricks.length, 0);
   // First-run: suppress the lifetime "worth a reflection?" / "you're early in
   // your practice" prompt until there's enough history to mean something.
   if (!showAnalysis && lifetime) {
     lifetime.librarianPrompt = undefined;
+    lifetime.quant = undefined;
+  } else if (lifetime) {
+    lifetime.quant = computeLifetimeQuant(
+      lifetime,
+      lifetimeCapabilityRanking,
+      totalSteps,
+      interestVocab,
+    );
   }
 
   return {
@@ -2054,8 +2321,7 @@ export function mapToTimelineDataset({
         ? { current: currentWeekIdx + 1, total: weeks.length }
         : undefined,
     totalSeasons: 1 + archivedSeasons.length,
-    totalSteps:
-      sorted.length + archivedSeasons.reduce((n, s) => n + s.bricks.length, 0),
+    totalSteps,
     sinceDate: allSeasons[allSeasons.length - 1]?.start_date
       ? new Date(allSeasons[allSeasons.length - 1].start_date).toLocaleDateString('en-US', {
           month: 'short',

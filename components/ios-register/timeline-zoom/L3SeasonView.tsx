@@ -47,6 +47,7 @@ import { useUpdateInterestVision } from '@/hooks/useInterestVision';
 import { useUpdatePlan, useCreatePlan } from '@/hooks/usePlan';
 import { useUserOrgCompetencies } from '@/hooks/useUserOrgCompetencies';
 import { useViewerFleetCohort } from '@/hooks/useViewerFleetCohort';
+import { LibrarianAnalysisCard } from './LibrarianAnalysisCard';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
@@ -733,15 +734,27 @@ export function L3SeasonView({
           ) : null}
 
           {analysis.librarianPrompt ? (
-            <SeasonLibrarianPrompt
-              prompt={{
-                ...analysis.librarianPrompt,
-                eyebrow: interestVocab.librarianEyebrow,
-              }}
-              onPrimary={onLibrarianPrimary}
-              onSecondary={onLibrarianSecondary}
-              variant={currentWeek <= 2 ? 'compact' : 'full'}
-            />
+            currentWeek <= 2 ? (
+              <SeasonLibrarianPrompt
+                prompt={{
+                  ...analysis.librarianPrompt,
+                  eyebrow: interestVocab.librarianEyebrow,
+                }}
+                onPrimary={onLibrarianPrimary}
+                onSecondary={onLibrarianSecondary}
+                variant="compact"
+              />
+            ) : (
+              <LibrarianAnalysisCard
+                prompt={{
+                  ...analysis.librarianPrompt,
+                  eyebrow: interestVocab.librarianEyebrow,
+                }}
+                quant={analysis.quant}
+                onPrimary={onLibrarianPrimary}
+                onSecondary={onLibrarianSecondary}
+              />
+            )
           ) : null}
         </View>
       ) : null}

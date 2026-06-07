@@ -25,7 +25,7 @@ import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { CapabilityMix } from './CapabilityMix';
 import { SnakeNodeRiver, type SnakeNode } from './SnakeTimeline';
-import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
+import { LibrarianAnalysisCard } from './LibrarianAnalysisCard';
 import {
   detectMilestoneTitles,
   detectPhaseLabelFromTitles,
@@ -580,7 +580,7 @@ export function L4YearsView({
         ) : null}
 
         {lifetime?.librarianPrompt && !librarianDismissed ? (
-          <SeasonLibrarianPrompt
+          <LibrarianAnalysisCard
             prompt={{
               ...lifetime.librarianPrompt,
               eyebrow: interestVocab.librarianEyebrow.replace(
@@ -588,6 +588,7 @@ export function L4YearsView({
                 'Across your practice',
               ),
             }}
+            quant={lifetime.quant}
             onPrimary={
               onLibrarianPrimary ??
               (canEditVision ? () => setReflectionOpen(true) : undefined)

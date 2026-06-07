@@ -314,6 +314,13 @@ export interface SeasonAnalysis {
   };
   /** Mid-season lilac prompt at the bottom of L3. */
   librarianPrompt?: SeasonLibrarianPrompt;
+  /**
+   * D-Numbers: quantified re-projection of this season's elapsed window,
+   * surfaced behind the librarian card's "Numbers" toggle. Derived
+   * entirely from the qualitative fields above (capability bands,
+   * reflectionDensity, peers) — no new schema. Cleared alongside
+   * librarianPrompt when the season is below the analysis threshold. */
+  quant?: SeasonQuant;
 }
 
 /**
@@ -515,6 +522,12 @@ export interface LifetimeAnalysis {
    * exist yet.
    */
   throughLine?: { label: string; color: string; secondLabel: string | null };
+  /**
+   * D-Numbers: quantified re-projection across the whole practice,
+   * surfaced behind the librarian card's "Numbers" toggle. Derived from
+   * sessions + peers + the elapsed season's evidence/reflection maps — no
+   * new schema. Cleared alongside librarianPrompt below threshold. */
+  quant?: LifetimeQuant;
 }
 
 export interface LifetimeSession {
@@ -570,4 +583,102 @@ export interface LifetimeTrophy {
   label: string;
   /** Capability color the win is attributed to (tints the glyph stroke). */
   capabilityColor?: string;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * D-Numbers — quantified analysis surfaced behind the librarian card's
+ * "Numbers" toggle on L3 (season) and L4 (lifetime). Every field here is
+ * a re-projection of data the adapter already computes for the qualitative
+ * "Story" view; nothing requires new schema.
+ * ──────────────────────────────────────────────────────────────────── */
+
+/** One capability's planned-vs-proven tally for the Numbers bar chart. */
+export interface QuantCapabilityStat {
+  id: string;
+  label: string;
+  color: string;
+  /** Capability goals carried from the Plan tab (ghost-outline target). */
+  planned: number;
+  /** Evidence rows logged from the Reflect tab (solid-fill actual). */
+  proven: number;
+  /** max(planned, proven) — the bar's full extent. */
+  total: number;
+  /** This capability's share of all capability volume (0–1). Used by the
+   *  lifetime distribution readout ("Boat handling · 25%"). */
+  share: number;
+}
+
+/** A single headline number tile ("31%", "3.3", "6"). */
+export interface QuantStatTile {
+  value: string;
+  label: string;
+  /** Optional sub-line under the label. */
+  note?: string;
+}
+
+/** A derived "what to do next" suggestion in the Numbers view. */
+export interface QuantNextAction {
+  id: string;
+  /** Capability/accent color for the leading dot. */
+  color: string;
+  title: string;
+  detail: string;
+}
+
+/** A crew/peer presence row in the Numbers view. */
+export interface QuantCrewMember {
+  id: string;
+  initials: string;
+  name: string;
+  role?: string;
+  color: string;
+  /** Presence count (weeks present for season, steps for lifetime). */
+  value: number;
+  /** value normalized to the window (0–1) — drives the bar width. */
+  ratio: number;
+  /** Pre-formatted readout ("2/4 wks", "8 steps") — the scope knows the
+   *  denominator, the card just renders it. */
+  valueLabel: string;
+}
+
+/** A reflection-cadence week cell for the season Numbers view. */
+export interface QuantReflectionWeek {
+  weekNumber: number;
+  count: number;
+  isNow: boolean;
+  filled: boolean;
+}
+
+/** Season-scope quantified analysis (L3 · elapsed window). */
+export interface SeasonQuant {
+  kind: 'season';
+  /** Planned-vs-proven bars, ranked by total volume. */
+  capabilities: QuantCapabilityStat[];
+  /** Three headline tiles (evidence rate · steps/week · capabilities). */
+  stats: QuantStatTile[];
+  /** Per-week reflection cadence cells. */
+  cadence: QuantReflectionWeek[];
+  cadenceLabel: string;
+  /** Crew presence rows. */
+  crew: QuantCrewMember[];
+  crewHeader: string;
+  /** Derived "what to do next" list. */
+  nextActions: QuantNextAction[];
+}
+
+/** Lifetime-scope quantified analysis (L4 · whole practice). */
+export interface LifetimeQuant {
+  kind: 'lifetime';
+  /** Capability distribution across the whole practice, with share %. */
+  capabilities: QuantCapabilityStat[];
+  capabilitiesHeader: string;
+  /** Three headline tiles (proven lifetime · reflection rate · top cap). */
+  stats: QuantStatTile[];
+  /** One-line trajectory note ("Tactics → Race execution"). */
+  trajectoryNote?: string;
+  /** Peer constancy rows. */
+  crew: QuantCrewMember[];
+  crewHeader: string;
+  /** Derived "what to do next" list. */
+  nextActions: QuantNextAction[];
 }
