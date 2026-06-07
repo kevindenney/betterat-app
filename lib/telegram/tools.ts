@@ -1764,9 +1764,9 @@ const TOOLS: TelegramToolDef[] = [
       const updatedNotes = existingNotes ? `${existingNotes}\n\n${newNote}` : newNote;
 
       // 2. Append to act.observations (structured array) — read by the
-      // During-tab unified CaptureTimeline. Source defaults to 'voice' since
-      // most bot captures are dictated; precise voice-vs-text detection
-      // requires modality plumbing through Anthropic message blocks.
+      // During-tab unified CaptureTimeline. Source reflects the inbound
+      // modality the webhook detected (voice note vs typed message); falls
+      // back to 'voice' when a caller doesn't plumb it through.
       const existingObservations = Array.isArray(act.observations)
         ? (act.observations as Record<string, unknown>[])
         : [];
@@ -1774,7 +1774,7 @@ const TOOLS: TelegramToolDef[] = [
         id: `obs_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         text: observationText,
         timestamp: nowIso,
-        source: 'voice' as const,
+        source: auth.inputSource ?? 'voice',
       };
       const updatedObservations = [...existingObservations, newObservation];
 

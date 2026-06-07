@@ -345,6 +345,10 @@ async function handleMessage(
     historyPrefix = '[Voice note]: ';
   }
 
+  // Record the inbound modality so logged observations distinguish spoken
+  // voice notes from typed messages.
+  auth.inputSource = hasVoice && message.voice ? 'voice' : 'text';
+
   // --- Build Claude messages ---
   let { data: conversation } = await supabase
     .from('telegram_conversations')

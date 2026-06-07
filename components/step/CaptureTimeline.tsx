@@ -38,7 +38,7 @@ type TimelineEntry =
       id: string;
       timestamp: string;
       text: string;
-      source: 'voice' | 'note';
+      source: 'voice' | 'note' | 'text';
     }
   | {
       kind: 'media';
@@ -102,7 +102,9 @@ export function CaptureTimeline({
         const isLast = idx === entries.length - 1;
         const typeLabel =
           entry.kind === 'observation'
-            ? entry.source
+            ? entry.source === 'voice'
+              ? 'voice'
+              : 'note'
             : entry.mediaType === 'video'
               ? 'video'
               : 'photo';

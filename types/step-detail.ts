@@ -303,7 +303,7 @@ export interface Observation {
   id: string;
   text: string;
   timestamp: string;
-  source?: 'voice' | 'note'; // voice = captured via bot (Telegram/WhatsApp/Coach), note = typed in-app. Optional for backwards compat with rows created before this field existed.
+  source?: 'voice' | 'note' | 'text'; // voice = spoken via bot, text = typed via bot, note = typed in-app (Telegram/WhatsApp/Coach are bot channels). Optional for backwards compat with rows created before this field existed.
   sub_step_id?: string; // when captured against a specific How sub-step (plan.how_sub_steps[].id)
 }
 

@@ -14,6 +14,10 @@ export type AuthContext = {
   email: string | null;
   clubId: string | null;
   tier: SailorTier;
+  /** Modality of the inbound message that triggered this turn. Bot channels
+   * (Telegram/WhatsApp) set this so logged observations record voice vs typed.
+   * Unset for MCP callers. */
+  inputSource?: 'voice' | 'text';
 };
 
 export function createMcpServer(
