@@ -509,7 +509,7 @@ function AuthGate() {
     // also need to round-trip through login so the post detail opens after
     // sign-in. The community screen redirects signed-out visitors to
     // `/(auth)/login?returnTo=...` itself.
-    const publicSegments = ['index', '(auth)', 'privacy', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share', 'auth-welcome-ios', 'redeem', 'r', 'officiating', 'sports-photography', 'org', 'schools', 'marketplace', 'demo'];
+    const publicSegments = ['index', '(auth)', 'privacy', 'support', 'terms', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share', 'auth-welcome-ios', 'redeem', 'r', 'officiating', 'sports-photography', 'org', 'schools', 'marketplace', 'demo'];
     // Interest landing pages are public marketing surfaces (InterestBrowserPage):
     // the dedicated per-interest folders plus the `[interest]` catch-all all
     // render pre-login content (orgs, plans from the marketplace catalog) for
