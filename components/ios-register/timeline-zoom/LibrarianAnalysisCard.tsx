@@ -141,7 +141,7 @@ function SeasonNumbers({ quant }: { quant: SeasonQuant }) {
     <View>
       <Metric first title={`Capability mix · ${quant.provenEmpty ? 'planned' : 'planned vs proven'}`}>
         {quant.capabilities.map((c) => (
-          <PlannedProvenBar key={c.id} cap={c} maxScale={maxScale} />
+          <PlannedProvenBar key={c.id} cap={c} maxScale={maxScale} provenEmpty={quant.provenEmpty} />
         ))}
         {quant.capabilitiesMore ? <MoreRow count={quant.capabilitiesMore} /> : null}
         {quant.provenEmpty ? (
@@ -268,7 +268,15 @@ function Metric({
   );
 }
 
-function PlannedProvenBar({ cap, maxScale }: { cap: QuantCapabilityStat; maxScale: number }) {
+function PlannedProvenBar({
+  cap,
+  maxScale,
+  provenEmpty,
+}: {
+  cap: QuantCapabilityStat;
+  maxScale: number;
+  provenEmpty?: boolean;
+}) {
   return (
     <View style={styles.capRow}>
       <View style={styles.capName}>
@@ -292,7 +300,13 @@ function PlannedProvenBar({ cap, maxScale }: { cap: QuantCapabilityStat; maxScal
         />
       </View>
       <Text style={styles.capCount}>
-        <Text style={styles.capCountStrong}>{cap.proven}</Text>/{cap.total}
+        {provenEmpty ? (
+          <Text style={styles.capCountStrong}>{cap.total}</Text>
+        ) : (
+          <>
+            <Text style={styles.capCountStrong}>{cap.proven}</Text>/{cap.total}
+          </>
+        )}
       </Text>
     </View>
   );
