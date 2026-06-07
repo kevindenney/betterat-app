@@ -22,7 +22,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.betterat.app',
-      buildNumber: '3',
+      buildNumber: '10',
       usesAppleSignIn: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
