@@ -496,6 +496,50 @@ const KNITTING_VOCAB: InterestVocab = {
   ],
 };
 
+const RUNNING_VOCAB: InterestVocab = {
+  id: 'running',
+  verb: {
+    early: 'BASE BUILDING',
+    mid: 'SHARPENING',
+    late: 'RACING',
+  },
+  periodNoun: 'block',
+  visionPrompt: 'What race or distance are you training toward?',
+  librarianEyebrow: 'This block · the log noticed',
+  capabilityHeader: 'TRAINING MIX',
+  crewHeader: 'SQUAD',
+  inputSubtitle: 'who shaped this block',
+  // Deliberate running palette — distinct hues per training quality so the
+  // TRAINING MIX river reads as colour, not the neutral fallback. Order
+  // matters (first match wins): "Power endurance" hits Strength before the
+  // generic "endurance" in Aerobic base; "Threshold pace" hits Threshold
+  // before the generic "pace" in Racing & goals.
+  palette: [
+    { pattern: /interval|vo2|\b400|\b800|reps?\b|track\s+session/i, canonicalLabel: 'Speed', color: '#C4474A' },
+    { pattern: /threshold|tempo|lactate/i, canonicalLabel: 'Threshold', color: '#E2792E' },
+    { pattern: /hill|strength|power|plyo|drill|form|cadence|technique/i, canonicalLabel: 'Strength & form', color: '#C99632' },
+    { pattern: /aerobic|\bbase\b|enduranc|easy|mileage|long\s+run|steady/i, canonicalLabel: 'Aerobic base', color: '#5BA46F' },
+    { pattern: /taper|recover|\brest\b|sleep|mobility|stretch/i, canonicalLabel: 'Recovery', color: '#7BA0C4' },
+    { pattern: /race|goal|commit|register|entry|pacing|pace\b|\bpb\b|\bpr\b/i, canonicalLabel: 'Racing & goals', color: '#7E6FC8' },
+    { pattern: /nutrition|fuel|hydrat|diet/i, canonicalLabel: 'Fuel', color: '#5BA4A6' },
+    { pattern: /injur|rehab|prehab|gait|niggle/i, canonicalLabel: 'Health', color: '#8A8A8A' },
+  ],
+  phasePatterns: [
+    { pattern: /taper/i, label: 'Taper' },
+    { pattern: /race\s+week|race\s+day/i, label: 'Race week' },
+    { pattern: /\bbase\b|base.?build/i, label: 'Base' },
+    { pattern: /\bpeak|sharpen/i, label: 'Peak' },
+    { pattern: /long\s+run/i, label: 'Long run' },
+  ],
+  milestonePatterns: [
+    /\b(first|new)\s+(pb|pr|personal\s+best)\b/i,
+    /\bregister(ed)?\s+for\b/i,
+    /\bfirst\s+(5k|10k|half|marathon)\b/i,
+    /\bbroke\s+\d/i,
+    /\bsub.?\d/i,
+  ],
+};
+
 /**
  * Substring → vocab. Order matters: more-specific patterns first so
  * "sail racing" hits sailing before any future "racing" generic.
@@ -507,6 +551,7 @@ const VOCAB_PATTERNS: { pattern: RegExp; vocab: InterestVocab }[] = [
   { pattern: /golf/i, vocab: GOLF_VOCAB },
   { pattern: /draw|sketch|paint|illustrat/i, vocab: DRAWING_VOCAB },
   { pattern: /knit|crochet|fiber.?art/i, vocab: KNITTING_VOCAB },
+  { pattern: /\brun(ning)?\b|marathon|\bjog/i, vocab: RUNNING_VOCAB },
 ];
 
 /**
