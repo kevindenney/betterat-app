@@ -43,9 +43,9 @@ const PERSONAS_TO_SEED: PersonaSeed[] = [
     role: 'admin',
   },
   {
-    key: 'pradan-field',
-    email: 'pradan.field@betterat.app',
-    fullName: 'PRADAN Field Officer',
+    key: 'suman',
+    email: 'demo-suman@betterat.app',
+    fullName: 'Suman Tirkey',
     orgSlug: 'pradan-khunti',
     role: 'manager',
   },

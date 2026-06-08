@@ -38,8 +38,8 @@ const PERSONAS: Record<string, Persona> = {
     email: 'nursing-peer-1@demo.regattaflow.io',
     landingRoute: '/practice',
   },
-  'pradan-field': {
-    email: 'pradan.field@betterat.app',
+  suman: {
+    email: 'demo-suman@betterat.app',
     landingRoute: '/admin/pradan-khunti/overview',
     orgSlug: 'pradan-khunti',
   },

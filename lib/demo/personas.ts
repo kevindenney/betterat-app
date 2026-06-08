@@ -137,12 +137,12 @@ export const DEMO_PERSONAS: DemoPersona[] = [
 
   // ─── India SHG entrepreneurs ──────────────────────────────────
   {
-    key: 'pradan-field',
-    displayName: 'PRADAN Field Officer',
-    role: 'Field Officer',
-    blurb: 'Mentors the Khunti unit. Visits Savitri’s SHG monthly.',
+    key: 'suman',
+    displayName: 'Suman Tirkey',
+    role: 'SHG Coach',
+    blurb: 'Coaches the Khunti unit. Mentors Savitri’s steps; sees the funder rollup.',
     vertical: 'india-shg',
-    initial: 'F',
+    initial: 'S',
     avatarColor: '#A05A2C',
     // See note on the Dean persona: admin route param is an org UUID.
     landingRoute: '/admin/87195fe7-b9d7-4308-968f-532300a8d813/overview',
