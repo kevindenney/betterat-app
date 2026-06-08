@@ -60,11 +60,15 @@ Per product:
 
 RC needs Play API access to validate purchases & receive renewal notifications.
 
-- [ ] Reuse `eas-submit@regattaflowwebsite.iam.gserviceaccount.com` **or** make a
-      new SA, and in Play Console → **Users & permissions** grant it: **View
-      financial data**, **Manage orders and subscriptions**, **View app
-      information**. The current eas-submit SA likely only has upload rights —
-      verify/extend it.
+- [x] **VERIFIED 2026-06-08** — reuse
+      `eas-submit@regattaflowwebsite.iam.gserviceaccount.com`. SA key is valid and
+      mints an `androidpublisher`-scoped token (API enabled on project
+      `regattaflowwebsite`). In Play Console → Users & permissions the SA already
+      holds, at the **Account** level: **View financial data, orders, and
+      cancellation survey responses** (incl. Purchases API) **and Manage orders
+      and subscriptions** — both billing roles RC requires. No grant changes
+      needed. (The probe in Phase 4 returned 404 only because the app doesn't
+      exist yet, not a permission gap.)
 - [ ] (Recommended) Enable **Real-time developer notifications**: create a
       Pub/Sub topic and paste its name into the app's Monetization setup so
       renewals/cancels reach RC without polling.
