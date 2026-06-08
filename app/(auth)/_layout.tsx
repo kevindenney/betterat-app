@@ -12,11 +12,9 @@ const ONBOARDING_ROUTES = new Set([
   'step-2-details',
   'step-3-contact',
   'step-4-launch',
-  // Club onboarding chat + payment
+  // Club onboarding chat
   'club-onboarding-chat',
   'club-onboarding-enhanced',
-  'club-onboarding-payment',
-  'club-onboarding-payment-confirmation',
   'club-onboarding-website-verification',
   // Coach onboarding
   'coach-onboarding-welcome',
@@ -37,7 +35,7 @@ const ONBOARDING_ROUTES = new Set([
 const AUTH_ENTRY_ROUTES = new Set(['login', 'signup', 'callback']);
 
 export default function AuthLayout() {
-  const { state, userType, isGuest } = useAuth();
+  const { state, userType } = useAuth();
   const segments = useSegments();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const currentRoute = segments[segments.length - 1];
@@ -72,9 +70,6 @@ export default function AuthLayout() {
 
   // Check if we're in the (auth) group at all
   const isInAuthGroup = (segments as string[]).includes('(auth)');
-
-  // Guest mode: Allow access to races tab without authentication
-  const isGuestMode = state === 'guest' || isGuest;
 
   // Detect if auth is taking too long (potential config issue)
   useEffect(() => {
@@ -205,8 +200,6 @@ export default function AuthLayout() {
       <Stack.Screen name="callback" />
       <Stack.Screen name="club-onboarding-chat" />
       <Stack.Screen name="club-onboarding-enhanced" />
-      <Stack.Screen name="club-onboarding-payment" />
-      <Stack.Screen name="club-onboarding-payment-confirmation" />
       <Stack.Screen name="club-onboarding-website-verification" />
       <Stack.Screen name="coach-onboarding-welcome" />
       <Stack.Screen name="coach-onboarding-expertise" />

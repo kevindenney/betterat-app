@@ -122,8 +122,8 @@ const ClubOnboardingWebsiteVerification = () => {
       return;
     }
 
-    // Navigate to payment screen
-    router.push('/(auth)/club-onboarding-payment');
+    // Free club claim — paid upgrades happen later via org billing (Stripe Checkout)
+    router.push('/club-dashboard');
   };
 
   return (
@@ -414,7 +414,7 @@ const ClubOnboardingWebsiteVerification = () => {
           disabled={!isVerified || !consentGiven}
         >
           <Text className={`font-bold text-lg ${isVerified && consentGiven ? 'text-white' : 'text-gray-500'}`}>
-            Continue to Fleet Verification
+            Finish Club Setup
           </Text>
         </TouchableOpacity>
         

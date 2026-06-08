@@ -346,7 +346,7 @@ export default function RaceSeriesVerificationScreen() {
           </TouchableOpacity>
           <TouchableOpacity 
             className="flex-1 bg-blue-600 py-4 rounded-xl items-center"
-            onPress={() => router.push('/(auth)/club-onboarding-payment')}
+            onPress={() => router.push('/club-dashboard')}
           >
             <Text className="text-white font-bold">Continue</Text>
           </TouchableOpacity>
