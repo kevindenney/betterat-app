@@ -7,8 +7,20 @@ RevenueCat products reference Play products that have to be live first.
 State as of writing: web (Stripe) and iOS (RevenueCat IAP) billing are live.
 Android client code is already wired (`react-native-purchases`,
 `lib/subscriptions/subscriptionService.ts` selects the Android RC key + product
-IDs via `Platform.select`). The only gaps are the Play Console products, the
-RevenueCat Play app, and the `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` env var.
+IDs via `Platform.select`).
+
+**Progress 2026-06-08 (driven via `androidpublisher` v3 + RC v2 API):**
+- ✅ Play app `com.betterat.app` created; signed AAB (versionCode 6, 1.0.0)
+  uploaded to **Internal testing** and published live to testers.
+- ✅ All 4 subscription products created **and activated** via API with
+  US ($)/GB (£)/EUR + rest-of-world pricing (EU/UK Dragon cohort covered).
+- ✅ RC Play app `app0fcc31b05f` created; 4 products attached to the
+  `pro`/`individual` entitlements + existing offering packages.
+- ⏳ **Remaining gaps:** (1) upload the Play service-account JSON into the RC
+  dashboard (manual), (2) copy the resulting `goog_` key into `.env` as
+  `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`, (3) a new Android build with that
+  key baked in, (4) console-only app-content gates (Data safety, content
+  rating, target audience, privacy URL) + bank/payments verification.
 
 ## Phase 0 — App + first build (gates everything)
 
