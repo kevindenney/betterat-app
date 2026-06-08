@@ -81,10 +81,10 @@ const ENTITLEMENT_INDIVIDUAL = 'individual';
  * Native uses App Store / Play Store product IDs (see SUBSCRIPTION_PRODUCTS).
  */
 const STRIPE_PRICE_IDS = {
-  individual_monthly: process.env.EXPO_PUBLIC_STRIPE_INDIVIDUAL_MONTHLY_PRICE_ID || 'price_individual_monthly_10',
-  individual_yearly: process.env.EXPO_PUBLIC_STRIPE_INDIVIDUAL_YEARLY_PRICE_ID || 'price_individual_yearly_100',
-  pro_monthly: process.env.EXPO_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly_100',
-  pro_yearly: process.env.EXPO_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID || 'price_pro_yearly_800',
+  individual_monthly: process.env.EXPO_PUBLIC_STRIPE_INDIVIDUAL_MONTHLY_PRICE_ID || 'price_individual_monthly_9',
+  individual_yearly: process.env.EXPO_PUBLIC_STRIPE_INDIVIDUAL_YEARLY_PRICE_ID || 'price_individual_yearly_90',
+  pro_monthly: process.env.EXPO_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly_29',
+  pro_yearly: process.env.EXPO_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID || 'price_pro_yearly_290',
 };
 
 export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
@@ -96,8 +96,8 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
     }) as string,
     title: 'Individual',
     description: 'AI-powered race preparation',
-    price: '$10/month',
-    priceAmountMicros: 10000000,
+    price: '$9/month',
+    priceAmountMicros: 9000000,
     priceCurrencyCode: 'USD',
     billingPeriod: 'monthly',
     isPopular: true,
@@ -120,11 +120,11 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
     }) as string,
     title: 'Individual',
     description: 'AI-powered race preparation',
-    price: '$100/year',
-    priceAmountMicros: 100000000,
+    price: '$90/year',
+    priceAmountMicros: 90000000,
     priceCurrencyCode: 'USD',
     billingPeriod: 'yearly',
-    effectiveMonthly: '$8.33/mo',
+    effectiveMonthly: '$7.50/mo',
     isPopular: true,
     features: [
       'Unlimited races',
@@ -145,8 +145,8 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
     }) as string,
     title: 'Pro',
     description: 'Maximum AI power for serious racers',
-    price: '$100/month',
-    priceAmountMicros: 100000000,
+    price: '$29/month',
+    priceAmountMicros: 29000000,
     priceCurrencyCode: 'USD',
     billingPeriod: 'monthly',
     features: [
@@ -166,11 +166,11 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
     }) as string,
     title: 'Pro',
     description: 'Maximum AI power for serious racers',
-    price: '$800/year',
-    priceAmountMicros: 800000000,
+    price: '$290/year',
+    priceAmountMicros: 290000000,
     priceCurrencyCode: 'USD',
     billingPeriod: 'yearly',
-    effectiveMonthly: '$66.67/mo',
+    effectiveMonthly: '$24.17/mo',
     features: [
       'Everything in Individual',
       '500,000 AI tokens per month',
