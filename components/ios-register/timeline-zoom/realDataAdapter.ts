@@ -451,6 +451,25 @@ function getReviewDigest(metadata: Record<string, unknown> | null | undefined): 
   };
 }
 
+/**
+ * True when the viewer has written their OWN reflection on this step —
+ * any review section with content, a distilled takeaway, a legacy learning
+ * field, or a recorded compose timestamp. Distinct from peer_reflections
+ * (others reflecting on you); this is what makes "reflect on your own step"
+ * count toward your reflection cadence.
+ */
+export function stepHasOwnerReflection(step: TimelineStep): boolean {
+  const review = step.review;
+  if (!review) return false;
+  const sections = Array.isArray(review.sections) ? review.sections : [];
+  if (sections.some((s) => (s.content ?? '').trim().length > 0)) return true;
+  if ((review.key_takeaway ?? '').trim().length > 0) return true;
+  if ((review.what_learned ?? '').trim().length > 0) return true;
+  if ((review.teaching_reflection ?? '').trim().length > 0) return true;
+  if (review.composed_at) return true;
+  return false;
+}
+
 function initialsFromName(name: string): string {
   const parts = name.replace(/[^\w\s]/g, '').split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '··';
@@ -1036,6 +1055,21 @@ function computeSeasonAnalysis(
       }
     }
   }
+  // Owner reflections — the viewer's own review notes count toward their
+  // reflection cadence, not just peers reflecting on them. Without this,
+  // reflecting on your own step never lit a cadence cell (the cadence saw
+  // only peer_reflections above).
+  weeks.forEach((w, i) => {
+    let owned = 0;
+    for (const s of w.steps) {
+      if (s.pinnedFromOtherInterest) continue;
+      if (stepHasOwnerReflection(s)) owned += 1;
+    }
+    if (owned > 0) {
+      const wk = i + 1;
+      reflectionsPerWeek.set(wk, (reflectionsPerWeek.get(wk) ?? 0) + owned);
+    }
+  });
   const reflectionDensity = weeks.map((_w, i) => ({
     weekNumber: i + 1,
     count: reflectionsPerWeek.get(i + 1) ?? 0,
@@ -1206,6 +1240,7 @@ function computeSeasonAnalysis(
       color: openLoop.color,
       title: `${openLoop.label} is an open loop`,
       detail: `${openLoop.planned} planned, none proven yet — log evidence to close it.`,
+      capture: true,
     });
   }
   const emptyWeek = cadence.find((c) => !c.filled && !c.isNow) ?? cadence.find((c) => !c.filled);
@@ -1215,6 +1250,7 @@ function computeSeasonAnalysis(
       color: '#AF52DE',
       title: `Week ${emptyWeek.weekNumber} has no reflection`,
       detail: `Add a note so the ${period} shows what you learned, not just what you did.`,
+      capture: true,
     });
   }
   const thin = quantCapabilities.filter((c) => c.total > 0 && c.total <= 1);

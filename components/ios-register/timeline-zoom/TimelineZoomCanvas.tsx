@@ -84,6 +84,12 @@ interface TimelineZoomCanvasProps {
    */
   onOpenStepDetail?: (stepId: string) => void;
   /**
+   * Open a step's Reflect tab so evidence + a reflection get captured.
+   * Drives the L3 librarian card's capture CTAs (and the reflect
+   * step-picker). Routed to `/step/[id]?tab=review` by the parent.
+   */
+  onReflectOnStep?: (stepId: string) => void;
+  /**
    * Suppress the canvas's internal InterestHeader. Set true on the
    * canonical Practice tab cutover where the app chrome above already
    * shows the interest pill + avatar — rendering both creates a
@@ -180,6 +186,7 @@ export function TimelineZoomCanvas({
   initialLevel = 1,
   routeFocusStepId,
   onOpenStepDetail,
+  onReflectOnStep,
   hideInterestHeader = false,
   embedFullDetailAtL1 = false,
   onReorderStep,
@@ -510,6 +517,7 @@ export function TimelineZoomCanvas({
                     selectedSeasonId={selectedSeasonId}
                     onSelectSeason={setSelectedSeasonId}
                     onOpenStep={handleOpenStep}
+                    onReflectOnStep={onReflectOnStep}
                     onReorderStep={select.enabled ? undefined : onReorderStep}
                     onEnterSelectMode={select.enter}
                     selectEnabled={select.enabled}

@@ -43,6 +43,9 @@ interface LibrarianAnalysisCardProps {
   quant?: SeasonQuant | LifetimeQuant;
   onPrimary?: () => void;
   onSecondary?: () => void;
+  /** Tap target for the Numbers-view empty-state nudges ("Log evidence…",
+   *  "No reflections logged yet…"). Opens the reflect-capture path. */
+  onCapture?: () => void;
 }
 
 export function LibrarianAnalysisCard({
@@ -50,6 +53,7 @@ export function LibrarianAnalysisCard({
   quant,
   onPrimary,
   onSecondary,
+  onCapture,
 }: LibrarianAnalysisCardProps) {
   const [view, setView] = useState<'story' | 'numbers'>('story');
   const hasNumbers = !!quant && quant.capabilities.length > 0;
@@ -71,7 +75,7 @@ export function LibrarianAnalysisCard({
 
       {showNumbers && quant ? (
         quant.kind === 'season' ? (
-          <SeasonNumbers quant={quant} />
+          <SeasonNumbers quant={quant} onCapture={onCapture} />
         ) : (
           <LifetimeNumbers quant={quant} />
         )
@@ -134,7 +138,7 @@ function StoryBody({
 
 /* ──────────────────────────── NUMBERS ───────────────────────────── */
 
-function SeasonNumbers({ quant }: { quant: SeasonQuant }) {
+function SeasonNumbers({ quant, onCapture }: { quant: SeasonQuant; onCapture?: () => void }) {
   const maxScale = Math.max(1, ...quant.capabilities.map((c) => c.total));
   const maxCadence = Math.max(1, ...quant.cadence.map((c) => c.count));
   return (
@@ -145,9 +149,7 @@ function SeasonNumbers({ quant }: { quant: SeasonQuant }) {
         ))}
         {quant.capabilitiesMore ? <MoreRow count={quant.capabilitiesMore} /> : null}
         {quant.provenEmpty ? (
-          <Text style={styles.nudge}>
-            Log evidence on a step to light up proven progress.
-          </Text>
+          <Nudge onPress={onCapture}>Log evidence on a step to light up proven progress.</Nudge>
         ) : (
           <View style={styles.legend}>
             <View style={styles.legendItem}>
@@ -171,9 +173,7 @@ function SeasonNumbers({ quant }: { quant: SeasonQuant }) {
         valueLeft={quant.cadenceEmpty ? undefined : quant.cadenceLabel}
       >
         {quant.cadenceEmpty ? (
-          <Text style={styles.nudge}>
-            No reflections logged yet — add one to track your cadence.
-          </Text>
+          <Nudge onPress={onCapture}>No reflections logged yet — add one to track your cadence.</Nudge>
         ) : (
           <View style={styles.weekRow}>
             {quant.cadence.map((w) => (
@@ -205,7 +205,7 @@ function SeasonNumbers({ quant }: { quant: SeasonQuant }) {
         </Metric>
       ) : null}
 
-      <NextActions actions={quant.nextActions} />
+      <NextActions actions={quant.nextActions} onCapture={onCapture} />
     </View>
   );
 }
@@ -336,6 +336,19 @@ function DistributionBar({ cap, maxScale }: { cap: QuantCapabilityStat; maxScale
   );
 }
 
+function Nudge({ children, onPress }: { children: string; onPress?: () => void }) {
+  if (!onPress) {
+    return <Text style={styles.nudge}>{children}</Text>;
+  }
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [pressed && styles.nudgePressed]}>
+      <Text style={styles.nudge}>
+        {children} <Text style={styles.nudgeAction}>Reflect now →</Text>
+      </Text>
+    </Pressable>
+  );
+}
+
 function MoreRow({ count }: { count: number }) {
   return (
     <Text style={styles.moreRow}>
@@ -391,20 +404,46 @@ function CrewRow({ member }: { member: QuantCrewMember }) {
   );
 }
 
-function NextActions({ actions }: { actions: QuantNextAction[] }) {
+function NextActions({
+  actions,
+  onCapture,
+}: {
+  actions: QuantNextAction[];
+  onCapture?: () => void;
+}) {
   if (actions.length === 0) return null;
   return (
     <View style={styles.next}>
       <Text style={styles.nextHead}>WHAT TO DO NEXT</Text>
-      {actions.map((a) => (
-        <View key={a.id} style={styles.nextRow}>
-          <View style={[styles.nextDot, { backgroundColor: a.color }]} />
-          <Text style={styles.nextText}>
-            <Text style={styles.nextTitle}>{a.title}. </Text>
-            <Text style={styles.nextDetail}>{a.detail}</Text>
-          </Text>
-        </View>
-      ))}
+      {actions.map((a) => {
+        const tappable = a.capture && !!onCapture;
+        const body = (
+          <>
+            <View style={[styles.nextDot, { backgroundColor: a.color }]} />
+            <Text style={styles.nextText}>
+              <Text style={styles.nextTitle}>{a.title}. </Text>
+              <Text style={styles.nextDetail}>{a.detail}</Text>
+              {tappable ? <Text style={styles.nudgeAction}>{'  Reflect now →'}</Text> : null}
+            </Text>
+          </>
+        );
+        if (tappable) {
+          return (
+            <Pressable
+              key={a.id}
+              onPress={onCapture}
+              style={({ pressed }) => [styles.nextRow, pressed && styles.nudgePressed]}
+            >
+              {body}
+            </Pressable>
+          );
+        }
+        return (
+          <View key={a.id} style={styles.nextRow}>
+            {body}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -629,6 +668,14 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     marginTop: 6,
     fontStyle: 'italic',
+  },
+  nudgeAction: {
+    fontStyle: 'normal',
+    fontWeight: '700',
+    color: LILAC,
+  },
+  nudgePressed: {
+    opacity: 0.55,
   },
   legend: {
     flexDirection: 'row',

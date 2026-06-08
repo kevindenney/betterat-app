@@ -315,6 +315,13 @@ export function TimelineZoomPracticeScreen() {
     router.push(`/step/${stepId}` as never);
   }, []);
 
+  // Librarian capture CTA — deep-link straight to the step's Reflect tab
+  // so evidence + a reflection get written (the loop that lights up the
+  // L3 card's proven/cadence signals).
+  const handleReflectOnStep = useCallback((stepId: string) => {
+    router.push(`/step/${stepId}?tab=review` as never);
+  }, []);
+
   // Section D drag-reorder — the view resolves the post-drop neighbor
   // step ids (beforeStepId = the lower-sort_order neighbour, afterStepId =
   // the higher one) and hands them here. Neighbor-id (not index) lets both
@@ -615,6 +622,7 @@ export function TimelineZoomPracticeScreen() {
         initialLevel={initialLevelFromRoute}
         routeFocusStepId={resolvedSelectedStepId}
         onOpenStepDetail={handleOpenStepDetail}
+        onReflectOnStep={handleReflectOnStep}
         embedFullDetailAtL1
         onReorderStep={handleReorderStep}
         onBulkArchive={handleBulkArchive}

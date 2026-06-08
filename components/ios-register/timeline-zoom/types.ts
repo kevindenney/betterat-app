@@ -623,6 +623,10 @@ export interface QuantNextAction {
   color: string;
   title: string;
   detail: string;
+  /** When set, the row is tappable and routes to the reflect capture
+   *  picker (both reflect + evidence are captured on a step's Reflect tab).
+   *  Plain advisory rows (e.g. "thin capability") omit this. */
+  capture?: boolean;
 }
 
 /** A crew/peer presence row in the Numbers view. */

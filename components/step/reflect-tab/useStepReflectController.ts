@@ -411,9 +411,21 @@ export function useStepReflectController({
       const nextReview = FLAT_REVIEW_FIELDS.has(id)
         ? buildReviewWithFlatField(current, id as 'key_takeaway' | 'teaching', value)
         : buildReviewWithSection(current, id, value);
-      updateMetadata.mutate({ review: nextReview });
+      updateMetadata.mutate(
+        { review: nextReview },
+        {
+          // The L3/L4 librarian card's reflection-cadence signal reads
+          // review off the timeline-steps list. The shared metadata
+          // mutation only patches the detail cache (it warns metadata
+          // isn't in the list), so refresh the list here on a reflect
+          // write — debounced, so this is per-pause, not per-keystroke.
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+          },
+        },
+      );
     },
-    [readOnly, updateMetadata],
+    [readOnly, updateMetadata, queryClient],
   );
 
   const onChangeField = useCallback(
@@ -650,6 +662,10 @@ export function useStepReflectController({
       await settleStepAndPlaceBeforeNow(stepId);
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
       queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
+      // The proven/evidence signal on the L3 librarian card reads
+      // step_capability_evidence via useStepCapabilityEvidence; refresh it
+      // so freshly auto-tagged rows light the card without a relaunch.
+      queryClient.invalidateQueries({ queryKey: ['step-capability-evidence'] });
 
       if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER && step.user_id && step.interest_id) {
         try {

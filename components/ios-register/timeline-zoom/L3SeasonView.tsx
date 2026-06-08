@@ -39,7 +39,7 @@ import { SnakeStepTimeline, SnakeReorderList, SnakeLegend } from './SnakeTimelin
 import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
-import { ANALYSIS_MIN_STEPS } from './realDataAdapter';
+import { ANALYSIS_MIN_STEPS, stepHasOwnerReflection } from './realDataAdapter';
 import { ReflectionSparkline } from './ReflectionSparkline';
 import { VisionBlock } from './VisionBlock';
 import { VisionEditSheet } from './VisionEditSheet';
@@ -103,6 +103,9 @@ interface L3SeasonViewProps {
   selectedSeasonId?: string;
   onSelectSeason?: (seasonId: string) => void;
   onOpenStep: (stepId: string) => void;
+  /** Open a step's Reflect tab to capture evidence + a reflection. Drives
+   *  the librarian card's capture CTAs. */
+  onReflectOnStep?: (stepId: string) => void;
   onEnterSelectMode?: () => void;
   /**
    * Reorder commit. The L3 view resolves the neighbor step IDs from
@@ -140,6 +143,7 @@ export function L3SeasonView({
   selectedSeasonId,
   onSelectSeason,
   onOpenStep,
+  onReflectOnStep,
   onEnterSelectMode,
   onReorderStep,
   selectEnabled = false,
@@ -159,7 +163,7 @@ export function L3SeasonView({
 
   const [chartWidth, setChartWidth] = useState(0);
   const [openPicker, setOpenPicker] = useState<
-    'season' | 'step' | null
+    'season' | 'step' | 'reflect' | null
   >(null);
   // Active capability thread — set when the user taps a band on the
   // CapabilityMix chart or a chip below it. Drives chart isolation AND
@@ -228,6 +232,25 @@ export function L3SeasonView({
     if (!season) return [];
     return season.weeks.flatMap((w) => w.steps);
   }, [season]);
+
+  // Reflect-picker target — the step the card's CTA pre-selects (option A
+  // default inside the option-B picker). Prefer the most-recent elapsed
+  // step (non-'plan') that still lacks an owner reflection, so the nudge
+  // lands on the freshest gap. Fall back to the focused step, then the
+  // last step in the season.
+  const reflectTargetId: string | undefined = useMemo(() => {
+    if (flatSteps.length === 0) return undefined;
+    for (let i = flatSteps.length - 1; i >= 0; i -= 1) {
+      const s = flatSteps[i];
+      if (s.pinnedFromOtherInterest) continue;
+      if (s.status === 'plan') continue;
+      if (!stepHasOwnerReflection(s)) return s.id;
+    }
+    if (focusStepId && flatSteps.some((s) => s.id === focusStepId)) {
+      return focusStepId;
+    }
+    return flatSteps[flatSteps.length - 1]?.id;
+  }, [flatSteps, focusStepId]);
 
   // BROWSE WEEKS, filtered to the active capability thread. A step
   // belongs to the thread when any of its capabilities shares the
@@ -618,7 +641,13 @@ export function L3SeasonView({
           ) : null}
 
           {analysis.reflectionDensity && analysis.reflectionDensity.length > 0 ? (
-            <View style={styles.reflectionSection}>
+            <Pressable
+              onPress={onReflectOnStep ? () => setOpenPicker('reflect') : undefined}
+              style={({ pressed }) => [
+                styles.reflectionSection,
+                pressed && onReflectOnStep ? styles.reflectionSectionPressed : null,
+              ]}
+            >
               <View style={styles.sparklineWrap}>
                 <ReflectionSparkline
                   density={analysis.reflectionDensity}
@@ -635,8 +664,11 @@ export function L3SeasonView({
                       .map((w) => `wk ${w}`)
                       .join(' · ')}`
                   : ` — no reflection pauses yet this ${interestVocab.periodNoun}`}
+                {onReflectOnStep ? (
+                  <Text style={styles.reflectionCaptionAction}>{'  Reflect now →'}</Text>
+                ) : null}
               </Text>
-            </View>
+            </Pressable>
           ) : null}
 
           {analysis.peers.length > 0 ? (
@@ -740,7 +772,7 @@ export function L3SeasonView({
                   ...analysis.librarianPrompt,
                   eyebrow: interestVocab.librarianEyebrow,
                 }}
-                onPrimary={onLibrarianPrimary}
+                onPrimary={onReflectOnStep ? () => setOpenPicker('reflect') : onLibrarianPrimary}
                 onSecondary={onLibrarianSecondary}
                 variant="compact"
               />
@@ -751,8 +783,9 @@ export function L3SeasonView({
                   eyebrow: interestVocab.librarianEyebrow,
                 }}
                 quant={analysis.quant}
-                onPrimary={onLibrarianPrimary}
+                onPrimary={onReflectOnStep ? () => setOpenPicker('reflect') : onLibrarianPrimary}
                 onSecondary={onLibrarianSecondary}
+                onCapture={onReflectOnStep ? () => setOpenPicker('reflect') : undefined}
               />
             )
           ) : null}
@@ -913,6 +946,34 @@ export function L3SeasonView({
                   {s.preTitle}
                 </Text>
               ) : null}
+            </>
+          );
+        }}
+      />
+
+      <PickerListSheet<TimelineStep>
+        visible={openPicker === 'reflect'}
+        title="Reflect on a step"
+        items={flatSteps}
+        keyExtractor={(s) => s.id}
+        isSelected={(s) => s.id === reflectTargetId}
+        scrollToSelected
+        onSelect={(s) => {
+          setOpenPicker(null);
+          onReflectOnStep?.(s.id);
+        }}
+        onClose={() => setOpenPicker(null)}
+        renderRow={(s) => {
+          const ordinal = flatSteps.findIndex((x) => x.id === s.id) + 1;
+          const reflected = stepHasOwnerReflection(s);
+          return (
+            <>
+              <Text style={styles.pickerPrimary} numberOfLines={1}>
+                {ordinal}. {s.title}
+              </Text>
+              <Text style={styles.pickerSecondary} numberOfLines={1}>
+                {reflected ? 'Reflected' : 'Not reflected yet'}
+              </Text>
             </>
           );
         }}
@@ -1353,6 +1414,13 @@ const styles = StyleSheet.create({
   reflectionCaptionAccent: {
     color: '#9D70C9',
     fontWeight: '600',
+  },
+  reflectionCaptionAction: {
+    color: '#9D70C9',
+    fontWeight: '700',
+  },
+  reflectionSectionPressed: {
+    opacity: 0.55,
   },
   riverEmpty: {
     marginHorizontal: 16,
