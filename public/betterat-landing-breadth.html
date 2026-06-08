@@ -245,6 +245,18 @@
   .price-feat li{display:flex;gap:9px;font-size:14px;color:var(--txt-2);line-height:1.4}
   .check{color:var(--review);font-weight:800;flex:none}
   .price-note{font-size:12.5px;color:var(--txt-3);margin-top:16px;line-height:1.45}
+  .aud-toggle{display:flex;justify-content:center;gap:8px;margin-top:30px;flex-wrap:wrap}
+  .aud-pill{font-family:inherit;font-size:14px;font-weight:600;color:var(--txt-3);background:#fff;border:1.5px solid var(--line);border-radius:980px;padding:9px 20px;cursor:pointer;transition:.2s}
+  .aud-pill:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+  .aud-pill.on{border-color:var(--accent);color:var(--txt);background:var(--accent-soft)}
+  .price-pane{display:none}
+  .price-pane.on{display:block}
+  .price-grid.three{grid-template-columns:1fr 1fr 1fr;max-width:1040px}
+  @media(max-width:740px){.price-grid.three{grid-template-columns:1fr}}
+  .pane-foot{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px}
+  .pane-foot .btn-fill{text-decoration:none;display:inline-block}
+  .pane-foot .btn-ghost{text-decoration:none}
+  .pane-note{font-size:12.5px;color:var(--txt-3);max-width:420px;line-height:1.45}
 
   /* ---------- FINAL CTA ---------- */
   .final{padding:90px 0;text-align:center;background:
@@ -640,32 +652,118 @@
   <div class="wrap">
     <div class="intro">
       <div class="kicker" style="color:var(--txt-3)">Pricing</div>
-      <h2>Two things you can pay for — kept separate</h2>
-      <p class="sub">The platform plan powers your tools. A blueprint pays its author. They never get confused.</p>
+      <h2>Pricing that fits how you practice</h2>
+      <p class="sub">Pick a plan for yourself, your club, or your institution. The platform plan powers your tools — a blueprint pays its author. They never get confused.</p>
     </div>
-    <div class="price-grid">
-      <div class="price-card feature" style="--accent:#2d7ff9;--accent-soft:rgba(45,127,249,.12);--accent-ink:#1c6df0">
-        <div class="price-icon">⚡</div>
-        <h3>Your BetterAt plan</h3>
-        <div class="price-tiers"><b>Free</b> · Plus <b>$9/mo</b> · Pro <b>$29/mo</b></div>
-        <ul class="price-feat">
-          <li><span class="check">✓</span>Unlimited interests &amp; steps</li>
-          <li><span class="check">✓</span>AI capture, insights &amp; the Telegram assistant</li>
-          <li><span class="check">✓</span>Atlas map, analytics &amp; offline</li>
-        </ul>
-        <div class="price-note">Billed by BetterAt. Powers the app, not the content.</div>
+
+    <div class="aud-toggle">
+      <button class="aud-pill on" data-aud="individual">Individual</button>
+      <button class="aud-pill" data-aud="clubs">Clubs &amp; teams</button>
+      <button class="aud-pill" data-aud="institutions">Institutions</button>
+    </div>
+
+    <!-- INDIVIDUAL -->
+    <div class="price-pane on" data-pane="individual">
+      <div class="price-grid">
+        <div class="price-card feature" style="--accent:#2d7ff9;--accent-soft:rgba(45,127,249,.12);--accent-ink:#1c6df0">
+          <div class="price-icon">⚡</div>
+          <h3>Your BetterAt plan</h3>
+          <div class="price-tiers"><b>Free</b> · Plus <b>$9/mo</b> · Pro <b>$29/mo</b></div>
+          <ul class="price-feat">
+            <li><span class="check">✓</span>Unlimited interests &amp; steps</li>
+            <li><span class="check">✓</span>AI capture, insights &amp; the Telegram assistant</li>
+            <li><span class="check">✓</span>Atlas map, analytics &amp; offline</li>
+          </ul>
+          <div class="price-note">Billed by BetterAt. Powers the app, not the content. $90/yr or $290/yr annually.</div>
+        </div>
+        <div class="price-card" style="--accent:#34c759;--accent-soft:rgba(52,199,89,.12);--accent-ink:#27a544">
+          <div class="price-icon">📦</div>
+          <h3>A blueprint</h3>
+          <div class="price-tiers">Set by its author · <b>free</b> options exist</div>
+          <div class="price-local">85% to the author · 15% platform</div>
+          <ul class="price-feat">
+            <li><span class="check">✓</span>Dragon Worlds is free with a participant code</li>
+            <li><span class="check">✓</span>Schools &amp; NGOs can issue blueprints free to members</li>
+            <li><span class="check">✓</span>Authors keep <b style="color:var(--txt)">85%</b> via Stripe Connect</li>
+          </ul>
+          <div class="price-note">1% of all BetterAt revenue funds subsidized access for people who'd grow most with a coach but can't pay for one.</div>
+        </div>
       </div>
-      <div class="price-card" style="--accent:#34c759;--accent-soft:rgba(52,199,89,.12);--accent-ink:#27a544">
-        <div class="price-icon">📦</div>
-        <h3>A blueprint</h3>
-        <div class="price-tiers">Set by its author · <b>free</b> options exist</div>
-        <div class="price-local">85% to the author · 15% platform</div>
-        <ul class="price-feat">
-          <li><span class="check">✓</span>Dragon Worlds is free with a participant code</li>
-          <li><span class="check">✓</span>Schools &amp; NGOs can issue blueprints free to members</li>
-          <li><span class="check">✓</span>Authors keep <b style="color:var(--txt)">85%</b> via Stripe Connect</li>
-        </ul>
-        <div class="price-note">1% of all BetterAt revenue funds subsidized access for people who'd grow most with a coach but can't pay for one.</div>
+    </div>
+
+    <!-- CLUBS & TEAMS -->
+    <div class="price-pane" data-pane="clubs">
+      <div class="price-grid three">
+        <div class="price-card" style="--accent:#2d7ff9;--accent-soft:rgba(45,127,249,.12);--accent-ink:#1c6df0">
+          <div class="price-icon">⛵</div>
+          <h3>Club Starter</h3>
+          <div class="price-tiers"><b>$249/mo</b> · $2,499/yr</div>
+          <ul class="price-feat">
+            <li><span class="check">✓</span>Claim &amp; verify your organization</li>
+            <li><span class="check">✓</span>Publish blueprints &amp; run cohorts</li>
+            <li><span class="check">✓</span>Member roster &amp; basic analytics</li>
+          </ul>
+          <div class="price-note">For yacht clubs, teams &amp; small programs.</div>
+        </div>
+        <div class="price-card feature" style="--accent:#2d7ff9;--accent-soft:rgba(45,127,249,.12);--accent-ink:#1c6df0">
+          <div class="price-icon">🏆</div>
+          <h3>Club Pro</h3>
+          <div class="price-tiers"><b>$499/mo</b> · $4,999/yr</div>
+          <ul class="price-feat">
+            <li><span class="check">✓</span>Everything in Starter</li>
+            <li><span class="check">✓</span>Multiple fleets &amp; venues</li>
+            <li><span class="check">✓</span>Advanced analytics &amp; priority support</li>
+          </ul>
+          <div class="price-note">Most popular for active clubs with a junior program.</div>
+        </div>
+        <div class="price-card" style="--accent:#2d7ff9;--accent-soft:rgba(45,127,249,.12);--accent-ink:#1c6df0">
+          <div class="price-icon">🌐</div>
+          <h3>Enterprise</h3>
+          <div class="price-tiers"><b>$899/mo</b> · $8,999/yr</div>
+          <ul class="price-feat">
+            <li><span class="check">✓</span>Unlimited members &amp; multi-venue</li>
+            <li><span class="check">✓</span>API access &amp; custom integrations</li>
+            <li><span class="check">✓</span>Dedicated support</li>
+          </ul>
+          <div class="price-note">For large clubs &amp; multi-site organizations.</div>
+        </div>
+      </div>
+      <div class="pane-foot">
+        <a class="btn-fill" href="mailto:hello@betterat.app?subject=Claim%20my%20club">Claim your organization</a>
+        <span class="pane-note">Smaller clubs can claim their org <b>free</b> and upgrade when ready · annual billing saves ~15%.</span>
+      </div>
+    </div>
+
+    <!-- INSTITUTIONS -->
+    <div class="price-pane" data-pane="institutions">
+      <div class="price-grid">
+        <div class="price-card feature" style="--accent:#6b5bbf;--accent-soft:rgba(107,91,191,.12);--accent-ink:#574aa0">
+          <div class="price-icon">🎓</div>
+          <h3>Institutional plan</h3>
+          <div class="price-tiers"><b>Per seat</b> · billed annually · 25-seat minimum</div>
+          <div class="price-local">≈ $9.50 / student + $19 / author per month · volume discounts at 250+ seats</div>
+          <ul class="price-feat">
+            <li><span class="check">✓</span>SSO (SAML &amp; OIDC), unlimited cohorts</li>
+            <li><span class="check">✓</span>Program analytics &amp; capability arcs</li>
+            <li><span class="check">✓</span>BAA &amp; SOC 2 · pay by PO, ACH, wire or card</li>
+          </ul>
+          <div class="price-note">40% off for K-12 districts &amp; 501(c)(3) nonprofits.</div>
+        </div>
+        <div class="price-card" style="--accent:#34c759;--accent-soft:rgba(52,199,89,.12);--accent-ink:#27a544">
+          <div class="price-icon">🌱</div>
+          <h3>High schools &amp; NGOs</h3>
+          <div class="price-tiers">Apply for <b>subsidized access</b></div>
+          <ul class="price-feat">
+            <li><span class="check">✓</span>Funded by 1% of all BetterAt revenue</li>
+            <li><span class="check">✓</span>For programs that couldn't otherwise afford it</li>
+            <li><span class="check">✓</span>Reviewed by hand — no automated funnel</li>
+          </ul>
+          <div class="price-note">High-school sailing teams can also claim a club at the free tier.</div>
+        </div>
+      </div>
+      <div class="pane-foot">
+        <a class="btn-fill" href="/schools/pricing">See institutional pricing →</a>
+        <a class="btn-ghost" href="mailto:hello@betterat.app?subject=Subsidized%20access%20application">Apply for subsidized access</a>
       </div>
     </div>
   </div>
@@ -796,6 +894,19 @@
   }
 
   document.querySelectorAll('.pchip').forEach(c => c.addEventListener('click', () => paint(c.dataset.k)));
+
+  /* pricing audience toggle */
+  document.querySelectorAll('.aud-pill').forEach(pill => pill.addEventListener('click', () => {
+    const aud = pill.dataset.aud;
+    document.querySelectorAll('.aud-pill').forEach(p => p.classList.toggle('on', p === pill));
+    document.querySelectorAll('.price-pane').forEach(p => {
+      const on = p.dataset.pane === aud;
+      p.classList.toggle('on', on);
+      // Cards carry the reveal-on-scroll .rv class (opacity:0); hidden panes
+      // never intersect the observer, so force them visible when shown.
+      if (on) p.querySelectorAll('.rv').forEach(el => el.classList.add('in'));
+    });
+  }));
 
   /* reveal on scroll */
   const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} }), {threshold:.12});

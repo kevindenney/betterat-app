@@ -19,7 +19,7 @@ const PER_SEAT_AUTHOR = 19;         // $/mo
 const VOLUME_DISCOUNT_THRESHOLD = 250;
 const VOLUME_DISCOUNT_PER_SEAT = 0.61;  // ≈ $2,200 / 300 seats / yr — heuristic
 
-const STUDENT_STEPS = [10, 100, 250, 500, 1000, 2500];
+const STUDENT_STEPS = [25, 100, 250, 500, 1000, 2500];
 const AUTHOR_STEPS = [1, 4, 8, 12, 24, 48, 75];
 const ADMIN_STEPS = [1, 2, 4, 8, 12, 20];
 
@@ -59,7 +59,8 @@ export default function SchoolsPricingPage() {
           <Text style={s.title}>Per seat · billed annually · everything included</Text>
           <Text style={s.titleSub}>
             One price for every student, faculty member, and admin. No add-ons for
-            SSO, mentoring, or analytics. Volume tiers kick in automatically.
+            SSO, mentoring, or analytics. Volume tiers kick in automatically. A
+            25-seat minimum applies.
           </Text>
         </View>
 
