@@ -28,8 +28,8 @@ providers/processors acting on your behalf are NOT "sharing."
 | Purchase history | Yes | No | Optional | App functionality | RevenueCat / Google Play billing² |
 | Approximate location | Yes | No | Optional | App functionality | `ACCESS_COARSE_LOCATION` (Atlas/Nearby) |
 | Precise location | Yes | No | Optional | App functionality | `ACCESS_FINE_LOCATION`, expo-location, step locations |
-| Photos | Yes | ⚠️ See ¹ | Optional | App functionality | expo-camera / image-picker → Supabase storage |
-| Other user-generated content (steps, notes, reflections) | Yes | ⚠️ See ¹ | Optional | App functionality, Personalization | core app data |
+| Photos | Yes | No¹ | Optional | App functionality | expo-camera / image-picker → Supabase storage |
+| Other user-generated content (steps, notes, reflections) | Yes | No¹ | Optional | App functionality, Personalization | core app data |
 | Crash logs | Yes | No | — | Analytics | Sentry (processor) |
 | Diagnostics | Yes | No | — | Analytics | Sentry performance |
 | Device or other IDs | Yes | No | — | Analytics, App functionality | Sentry, RevenueCat |
@@ -52,13 +52,15 @@ app → Supabase backend → AI provider (not direct from the device).
 - **Google Gemini** — code uses the **Gemini Developer API**
   (`generativelanguage.googleapis.com/v1beta`, model `gemini-2.5-flash`), NOT
   Vertex AI. Whether this counts as "shared" depends on the API key's tier:
-  - **⚠️ MUST VERIFY:** is the `GEMINI_API_KEY`'s Google project **billing-enabled
-    (paid tier)?**
-    - **Paid tier** → Google does not use the data → **processor, not shared.**
-      Keep "Shared = No" across the board.
-    - **Free tier** → Google may use prompts/responses to improve products →
-      declare **Photos + Other user-generated content as Shared with Google**,
-      OR enable billing / move to Vertex AI to avoid the heavier disclosure.
+  - **✅ VERIFIED 2026-06-08:** the in-use `GOOGLE_AI_API_KEY` (suffix `…HRK2ic`)
+    lives in Google Cloud project **`regattaflowwebsite`**, which has a billing
+    account linked ("My Billing Account") → **paid tier**. On the paid tier
+    Google does not use prompts/responses to improve products → Gemini is a
+    **processor, not shared.** Keep **"Shared = No" across the board** (Photos +
+    Other user-generated content included).
+  - If billing is ever unlinked from that project (dropping it to free tier),
+    revisit: free tier may use the data, which would require declaring **Photos
+    + Other user-generated content as Shared with Google**.
 
 ## ² Payments
 
