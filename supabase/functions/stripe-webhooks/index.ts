@@ -861,26 +861,17 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     'unpaid': 'past_due',
   };
 
-  // Get the price/product to determine tier
-  // Price IDs: Plus $89/yr, Pro $249/yr (updated 2026-03-30)
+  // Get the price/product to determine tier.
+  // Consumer subscription prices mirror Apple: Individual $9/$90, Pro $29/$290.
   const priceId = subscription.items.data[0]?.price.id;
   const tierMap: Record<string, string> = {
-    // Current price IDs (2026-03-30)
-    'price_1TGTJ7BbfEeOhHXbebVzyXwm': 'plus',   // $89/year Plus
-    'price_1TGTJ8BbfEeOhHXbSNhpoRC4': 'pro',    // $249/year Pro
-    // Use env vars if set
-    [Deno.env.get('STRIPE_PLUS_YEARLY_PRICE_ID') || 'price_plus_yearly']: 'plus',
-    [Deno.env.get('STRIPE_PRO_YEARLY_PRICE_ID') || 'price_pro_yearly']: 'pro',
-    // Legacy price IDs (map old prices to plus)
-    'price_1SvDDBBbfEeOhHXbyxF7XSKY': 'plus',   // old $120/year Individual -> plus
-    'price_1SvDDCBbfEeOhHXbRi18kcG1': 'pro',    // old $480/year Team -> pro
-    'price_1Splo2BbfEeOhHXbHi1ENal0': 'plus',   // old basic $120/year -> plus
-    'price_1SplplBbfEeOhHXbRunl0IIa': 'pro',    // old pro $360/year -> pro
-    'price_1Sl0i8BbfEeOhHXbmUQ5OBkV': 'plus',   // old $300/year Pro -> plus
-    'price_1Sl0ljBbfEeOhHXbKmEU06Ha': 'pro',    // old $480/year Championship -> pro
+    'price_1Tft79BbfEeOhHXbC6kMnpSI': 'individual', // $9/mo
+    'price_1Tft7ABbfEeOhHXbeIzYLCce': 'individual', // $90/yr
+    'price_1Tft7BBbfEeOhHXbdaVhs9Js': 'pro',        // $29/mo
+    'price_1Tft7CBbfEeOhHXb0tr4xNnO': 'pro',        // $290/yr
   };
 
-  const tier = tierMap[priceId] || 'plus';
+  const tier = tierMap[priceId] || 'individual';
   const isTeamPlan = tier === 'pro';
   const isNewOrReactivated = subscription.status === 'active';
 

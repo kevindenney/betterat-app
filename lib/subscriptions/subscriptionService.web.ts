@@ -3,7 +3,7 @@
  * Uses Stripe for web subscriptions
  *
  * Updated: 2026-03-15
- * Pricing: Individual $10/mo ($100/yr) / Pro $100/mo ($800/yr)
+ * Pricing: Individual $9/mo ($90/yr) / Pro $29/mo ($290/yr)
  */
 
 import { supabase } from '@/services/supabase';

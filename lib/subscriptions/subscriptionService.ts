@@ -11,7 +11,7 @@
  *
  * Web uses Stripe — see subscriptionService.web.ts.
  *
- * Pricing: Individual $10/mo ($100/yr), Pro $100/mo ($800/yr)
+ * Pricing: Individual $9/mo ($90/yr), Pro $29/mo ($290/yr)
  */
 
 import { Platform } from 'react-native';

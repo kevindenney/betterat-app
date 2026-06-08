@@ -14,10 +14,14 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Plan to Stripe Price ID mapping (individual user subscriptions)
-const PLAN_PRICES: Record<string, string> = {
-  plus: Deno.env.get('STRIPE_PLUS_YEARLY_PRICE_ID') || '',
-  pro: Deno.env.get('STRIPE_PRO_YEARLY_PRICE_ID') || '',
+// Allowed consumer subscription price IDs -> tier. The client sends a concrete
+// Stripe price ID (see subscriptionService.web.ts); we allowlist it so a caller
+// can't check out an arbitrary price, and tag the subscription with its tier.
+const PRICE_TIERS: Record<string, 'individual' | 'pro'> = {
+  'price_1Tft79BbfEeOhHXbC6kMnpSI': 'individual', // $9/mo
+  'price_1Tft7ABbfEeOhHXbeIzYLCce': 'individual', // $90/yr
+  'price_1Tft7BBbfEeOhHXbdaVhs9Js': 'pro',        // $29/mo
+  'price_1Tft7CBbfEeOhHXb0tr4xNnO': 'pro',        // $290/yr
 };
 
 const corsHeaders = {
@@ -26,7 +30,7 @@ const corsHeaders = {
 };
 
 interface CheckoutRequest {
-  planId: 'plus' | 'pro';
+  priceId: string;
   userId: string;
   successUrl: string;
   cancelUrl: string;
@@ -38,19 +42,19 @@ serve(async (req) => {
   }
 
   try {
-    const { planId, userId, successUrl, cancelUrl }: CheckoutRequest = await req.json();
+    const { priceId, userId, successUrl, cancelUrl }: CheckoutRequest = await req.json();
 
-    if (!planId || !userId) {
+    if (!priceId || !userId) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const priceId = PLAN_PRICES[planId];
-    if (!priceId) {
+    const tier = PRICE_TIERS[priceId];
+    if (!tier) {
       return new Response(
-        JSON.stringify({ error: `Invalid plan: ${planId}. No Stripe price ID configured.` }),
+        JSON.stringify({ error: `Invalid price: ${priceId}. Not an allowed subscription price.` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -97,9 +101,9 @@ serve(async (req) => {
       success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
       subscription_data: {
-        metadata: { user_id: userId, plan_id: planId },
+        metadata: { user_id: userId, tier },
       },
-      metadata: { user_id: userId, plan_id: planId },
+      metadata: { user_id: userId, tier },
       allow_promotion_codes: true,
       billing_address_collection: 'required',
     });
