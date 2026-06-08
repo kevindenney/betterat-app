@@ -22,69 +22,13 @@ const SERIF = fontFamily.serif;
 
 interface CompetencyReportRow {
   label: string;
-  rows: number;
   studentsCovered: number;
-  totalStudents: number;
   sitesCovered: number;
-  totalSites: number;
+  total: number;
   cells: number[];
-  badge?: string;
-  badgeTone?: 'ok' | 'warn';
-  narrative: string;
+  topSite: string | null;
+  belowFloor: boolean;
 }
-
-const REPORT: CompetencyReportRow[] = [
-  {
-    label: 'Medication administration',
-    rows: 214,
-    studentsCovered: 30,
-    totalStudents: 30,
-    sitesCovered: 5,
-    totalSites: 5,
-    cells: [82, 48, 31, 28, 25],
-    narrative:
-      'All 30 students evidenced Medication Administration at one or more sites, with Johns Hopkins Hospital — East Baltimore being the dominant site (82 rows, 38% of total). No student fell below 3 rows.',
-  },
-  {
-    label: 'Sepsis bundle recognition',
-    rows: 132,
-    studentsCovered: 28,
-    totalStudents: 30,
-    sitesCovered: 5,
-    totalSites: 5,
-    cells: [52, 31, 19, 16, 14],
-    badge: 'new in v0.4',
-    badgeTone: 'ok',
-    narrative:
-      '28 of 30 students evidenced Sepsis bundle recognition; two students from the late-onboarding subgroup are still mid-rotation. The competency was added April 5 alongside Dr. Murphy\'s new blueprint and reached 100% site coverage within six weeks.',
-  },
-  {
-    label: 'ISBAR handoff communication',
-    rows: 186,
-    studentsCovered: 30,
-    totalStudents: 30,
-    sitesCovered: 5,
-    totalSites: 5,
-    cells: [48, 38, 36, 32, 32],
-    narrative:
-      'ISBAR coverage is the most evenly distributed competency in the cohort — between 32 and 48 rows at every site. Mentor settle-rate of 91% suggests it\'s also the most consistently signed off.',
-  },
-  {
-    label: 'Foley catheter placement',
-    rows: 38,
-    studentsCovered: 22,
-    totalStudents: 30,
-    sitesCovered: 4,
-    totalSites: 5,
-    cells: [18, 10, 6, 4, 0],
-    badge: 'below floor at 1 site',
-    badgeTone: 'warn',
-    narrative:
-      '8 students have not yet evidenced Foley placement; Howard County General reported zero opportunities during the rotation window. Action: rotate remaining students through East Baltimore or Bayview in the final 4 weeks, or convene a simulation block.',
-  },
-];
-
-const SITE_LABELS = ['JHH\nEast Balt.', 'Bayview', 'Suburban', 'Sibley', 'Howard Co.'];
 
 function cellTint(value: number, max: number): string {
   if (value === 0) return 'rgba(201, 150, 50, 0.18)';
@@ -97,15 +41,52 @@ export default function AccreditationReportPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const evidence = useAdminCompetencyEvidence(orgId as string);
+  const ev = useAdminCompetencyEvidence(orgId as string);
+
+  // Live per-competency rows derived from the evidence hook. Each cell is the
+  // count of distinct cohort members with confirmed evidence at that site.
+  const report: CompetencyReportRow[] = useMemo(() => {
+    return ev.competencies.map((c) => {
+      const cells = ev.sites.map((site) => ev.evidence.get(`${c.id}::${site.id}`)?.count ?? 0);
+      let topIdx = -1;
+      let topVal = 0;
+      cells.forEach((v, i) => {
+        if (v > topVal) {
+          topVal = v;
+          topIdx = i;
+        }
+      });
+      const studentsCovered = ev.rowTotals.get(c.id)?.count ?? 0;
+      return {
+        label: c.label,
+        studentsCovered,
+        sitesCovered: cells.filter((v) => v > 0).length,
+        total: cells.reduce((a, b) => a + b, 0),
+        cells,
+        topSite: topIdx >= 0 ? ev.sites[topIdx]?.short ?? null : null,
+        belowFloor: studentsCovered < ev.cohortSize,
+      };
+    });
+  }, [ev.competencies, ev.sites, ev.evidence, ev.rowTotals, ev.cohortSize]);
 
   const maxCell = useMemo(() => {
     let m = 0;
-    for (const r of REPORT) {
-      for (const c of r.cells) if (c > m) m = c;
-    }
-    return m;
-  }, []);
+    for (const r of report) for (const c of r.cells) if (c > m) m = c;
+    return m || 1;
+  }, [report]);
+
+  const totalEntries = useMemo(() => report.reduce((a, r) => a + r.total, 0), [report]);
+
+  const coveragePct = useMemo(() => {
+    if (ev.competencies.length === 0 || ev.cohortSize === 0) return 0;
+    const sumPct = ev.competencies.reduce((a, c) => a + (ev.rowTotals.get(c.id)?.pct ?? 0), 0);
+    return Math.round((sumPct / ev.competencies.length) * 100);
+  }, [ev.competencies, ev.rowTotals, ev.cohortSize]);
+
+  const generatedOn = useMemo(
+    () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+    [],
+  );
 
   return (
     <View style={s.page}>
@@ -161,9 +142,9 @@ export default function AccreditationReportPage() {
               <Text style={s.docHeadH2}>Johns Hopkins School of Nursing</Text>
             </View>
             <View>
-              <Text style={s.docHeadRightBold}>BSN Class of 2027 — Cohort A</Text>
-              <Text style={s.docHeadRight}>Period: Apr 5 – Aug 14, 2026</Text>
-              <Text style={s.docHeadRight}>Generated: May 23, 2026</Text>
+              <Text style={s.docHeadRightBold}>{ev.cohortName}</Text>
+              <Text style={s.docHeadRight}>{ev.cohortSize} students enrolled</Text>
+              <Text style={s.docHeadRight}>Generated: {generatedOn}</Text>
               <Text style={s.docHeadRight}>Document v1.0</Text>
             </View>
           </View>
@@ -172,21 +153,22 @@ export default function AccreditationReportPage() {
           <View>
             <Text style={s.docH3}>Executive summary</Text>
             <Text style={s.lede}>
-              Across <Text style={s.ledeEm}>30 students</Text> in the BSN Class of 2027 — Cohort
-              A, BetterAt recorded <Text style={s.ledeEm}>1,184 evidence rows</Text> against{' '}
-              <Text style={s.ledeEm}>9 competencies</Text> over{' '}
-              <Text style={s.ledeEm}>5 partner hospital sites</Text> during the spring–summer
-              rotation. Coverage breadth is <Text style={s.ledeEm}>96%</Text> — only Foley
-              placement falls short of the 1-per-student floor; the remaining eight competencies
-              clear the threshold at every site.
+              Across <Text style={s.ledeEm}>{ev.cohortSize} students</Text> in {ev.cohortName},
+              BetterAt recorded <Text style={s.ledeEm}>{totalEntries} confirmed evidence entries</Text>{' '}
+              against <Text style={s.ledeEm}>{ev.competencies.length} competencies</Text> over{' '}
+              <Text style={s.ledeEm}>
+                {ev.sites.length} partner site{ev.sites.length === 1 ? '' : 's'}
+              </Text>
+              . Average competency coverage across the cohort is{' '}
+              <Text style={s.ledeEm}>{coveragePct}%</Text>.
             </Text>
           </View>
 
           <View style={s.summaryGrid}>
-            <SummaryCell n="30" l="Students in cohort" />
-            <SummaryCell n="9" l="Competencies tracked" />
-            <SummaryCell n="1,184" l="Evidence rows recorded" />
-            <SummaryCell n="96" suffix="%" l="Coverage achieved" />
+            <SummaryCell n={String(ev.cohortSize)} l="Students in cohort" />
+            <SummaryCell n={String(ev.competencies.length)} l="Competencies tracked" />
+            <SummaryCell n={String(totalEntries)} l="Evidence entries recorded" />
+            <SummaryCell n={String(coveragePct)} suffix="%" l="Avg cohort coverage" />
           </View>
 
           {/* Per-competency */}
@@ -195,60 +177,65 @@ export default function AccreditationReportPage() {
 
             <View style={s.siteHeader}>
               <View style={{ width: 200 }} />
-              {SITE_LABELS.map((label) => (
-                <View key={label} style={s.siteHeaderCell}>
-                  <Text style={s.siteHeaderText}>{label}</Text>
+              {ev.sites.map((site) => (
+                <View key={site.id} style={s.siteHeaderCell}>
+                  <Text style={s.siteHeaderText}>{site.short}</Text>
                 </View>
               ))}
             </View>
 
-            {REPORT.map((row, idx) => (
-              <View key={row.label} style={[s.competencyRow, idx > 0 && s.competencyRowBorder]}>
-                <View style={s.titleLine}>
-                  <Text style={s.titleH4}>{row.label}</Text>
-                  <Text style={s.statTag}>
-                    {row.rows} rows · {row.studentsCovered} / {row.totalStudents} students ·{' '}
-                    {row.sitesCovered} / {row.totalSites} sites
-                    {row.badge ? (
-                      <Text
-                        style={{
-                          color: row.badgeTone === 'warn' ? '#C99632' : '#1E8F47',
-                          fontStyle: 'italic',
-                        }}
+            {ev.loading ? (
+              <Text style={s.narrative}>Loading evidence…</Text>
+            ) : report.length === 0 ? (
+              <Text style={s.narrative}>
+                No competency framework is configured for this organization yet.
+              </Text>
+            ) : (
+              report.map((row, idx) => (
+                <View key={row.label} style={[s.competencyRow, idx > 0 && s.competencyRowBorder]}>
+                  <View style={s.titleLine}>
+                    <Text style={s.titleH4}>{row.label}</Text>
+                    <Text style={s.statTag}>
+                      {row.studentsCovered} / {ev.cohortSize} students · {row.sitesCovered} /{' '}
+                      {ev.sites.length} sites
+                      {row.belowFloor ? (
+                        <Text style={{ color: '#C99632', fontStyle: 'italic' }}>
+                          {' · '}below floor
+                        </Text>
+                      ) : null}
+                    </Text>
+                  </View>
+                  <View style={s.siteRow}>
+                    <View style={s.siteRowLabel}>
+                      <Text style={s.siteRowLabelText}>Students evidenced</Text>
+                    </View>
+                    {row.cells.map((value, ci) => (
+                      <View
+                        key={ci}
+                        style={[s.cell, { backgroundColor: cellTint(value, maxCell) }]}
                       >
-                        {' · '}
-                        {row.badge}
-                      </Text>
-                    ) : null}
+                        <Text
+                          style={[
+                            s.cellText,
+                            value === 0 && { color: '#C99632' },
+                            value / maxCell > 0.36 && { color: '#FFFFFF' },
+                          ]}
+                        >
+                          {value}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={s.narrative}>
+                    {row.studentsCovered} of {ev.cohortSize} students evidenced {row.label}
+                    {row.topSite ? `, strongest at ${row.topSite}` : ''}
+                    {row.belowFloor
+                      ? ` — ${ev.cohortSize - row.studentsCovered} still to reach the 1-per-student floor.`
+                      : '.'}
                   </Text>
                 </View>
-                <View style={s.siteRow}>
-                  <View style={s.siteRowLabel}>
-                    <Text style={s.siteRowLabelText}>Evidence rows</Text>
-                  </View>
-                  {row.cells.map((value, ci) => (
-                    <View
-                      key={ci}
-                      style={[
-                        s.cell,
-                        { backgroundColor: cellTint(value, maxCell) },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          s.cellText,
-                          value === 0 && { color: '#C99632' },
-                          value / maxCell > 0.36 && { color: '#FFFFFF' },
-                        ]}
-                      >
-                        {value}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-                <Text style={s.narrative}>{row.narrative}</Text>
-              </View>
-            ))}
+              ))
+            )}
           </View>
 
           {/* Signatures */}
@@ -263,11 +250,11 @@ export default function AccreditationReportPage() {
             </View>
           </View>
 
-          {/* Pull a live data note for context (not in design — shows the data is real) */}
-          {evidence.competencies.length > 0 ? (
+          {/* Live-data provenance footer */}
+          {ev.competencies.length > 0 ? (
             <Text style={s.dataNote}>
-              Generated against live {evidence.competencies.length}-competency framework ·{' '}
-              {evidence.sites.length} clinical sites · cohort: {evidence.cohortName}.
+              Generated against live {ev.competencies.length}-competency framework ·{' '}
+              {ev.sites.length} clinical sites · cohort: {ev.cohortName}.
             </Text>
           ) : null}
         </View>

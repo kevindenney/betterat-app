@@ -22,6 +22,11 @@ import { StatRow } from '@/components/studio/StatRow';
 import { useAdminCohorts } from '@/hooks/useAdminCohorts';
 import { useAdminPeople } from '@/hooks/useAdminPeople';
 import { useAdminCompetencyEvidence } from '@/hooks/useAdminCompetencyEvidence';
+import {
+  useAdminCohortOutcomes,
+  CohortOutcomeMember,
+  LOAN_TIER_MONTHLY_MAJOR,
+} from '@/hooks/useAdminCohortOutcomes';
 import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
 import {
   useAdminOrgRecentPractice,
@@ -35,6 +40,7 @@ export default function AdminOverviewPage() {
   const cohorts = useAdminCohorts(orgId as string);
   const people = useAdminPeople(orgId as string);
   const evidence = useAdminCompetencyEvidence(orgId as string);
+  const outcomes = useAdminCohortOutcomes(orgId as string);
   const recent = useAdminOrgRecentPractice(orgId as string, 8);
 
   const coverageHi = useMemo(() => {
@@ -163,6 +169,15 @@ export default function AdminOverviewPage() {
             tone="green"
           />
         </StatRow>
+
+        {/* Cohort earnings — funder rollup (entrepreneur orgs only) */}
+        {outcomes.hasOutcomes ? (
+          <CohortEarningsCard
+            data={outcomes}
+            memberWord={av.members}
+            onOpenMember={(userId) => router.push(`/admin/${orgId}/person/${userId}`)}
+          />
+        ) : null}
 
         {/* Spotlight row */}
         <StatRow compactColumns={1}>
@@ -309,6 +324,81 @@ function SpotlightCard({
         <Text style={s.spotActionText}>{actionLabel}</Text>
         <Ionicons name="arrow-forward" size={12} color="#28406B" />
       </Pressable>
+    </View>
+  );
+}
+
+function formatMoney(major: number, currency: string): string {
+  const symbol = currency === 'INR' ? '₹' : '';
+  const locale = currency === 'INR' ? 'en-IN' : undefined;
+  const formatted = Math.round(major).toLocaleString(locale);
+  return symbol ? `${symbol}${formatted}` : `${formatted} ${currency}`;
+}
+
+function CohortEarningsCard({
+  data,
+  memberWord,
+  onOpenMember,
+}: {
+  data: {
+    loading: boolean;
+    currency: string;
+    earningMemberCount: number;
+    totalMajor: number;
+    lastMonthMajor: number;
+    loanTierCount: number;
+    members: CohortOutcomeMember[];
+  };
+  memberWord: string;
+  onOpenMember: (userId: string) => void;
+}) {
+  const maxLastMonth = Math.max(1, ...data.members.map((m) => m.lastMonthMajor));
+  return (
+    <View style={s.earnCard}>
+      <View style={s.earnHead}>
+        <Text style={s.earnEyebrow}>Cohort earnings</Text>
+        <Ionicons name="cash-outline" size={16} color="#1E8F47" />
+      </View>
+      <Text style={s.earnHeadline}>
+        {formatMoney(data.lastMonthMajor, data.currency)}
+        <Text style={s.earnHeadlineSub}> earned this month</Text>
+      </Text>
+      <Text style={s.earnLede}>
+        across {data.earningMemberCount} {memberWord} ·{' '}
+        {formatMoney(data.totalMajor, data.currency)} since they started ·{' '}
+        {data.loanTierCount} reached loan-tier ({formatMoney(LOAN_TIER_MONTHLY_MAJOR, data.currency)}
+        /mo)
+      </Text>
+
+      <View style={s.earnList}>
+        {data.members.map((m) => (
+          <Pressable key={m.userId} style={s.earnRow} onPress={() => onOpenMember(m.userId)}>
+            <View style={s.earnRowTop}>
+              <Text style={s.earnName} numberOfLines={1}>
+                {m.name}
+              </Text>
+              {m.loanTier ? (
+                <View style={s.loanChip}>
+                  <Ionicons name="ribbon-outline" size={10} color="#1E8F47" />
+                  <Text style={s.loanChipText}>loan-tier</Text>
+                </View>
+              ) : null}
+              <Text style={s.earnAmount}>{formatMoney(m.lastMonthMajor, m.currency)}/mo</Text>
+            </View>
+            <View style={s.earnBarTrack}>
+              <View
+                style={[
+                  s.earnBarFill,
+                  {
+                    width: `${Math.round((m.lastMonthMajor / maxLastMonth) * 100)}%`,
+                    backgroundColor: m.loanTier ? '#1E8F47' : '#C99632',
+                  },
+                ]}
+              />
+            </View>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
@@ -506,4 +596,55 @@ const s = StyleSheet.create({
     borderRadius: 4,
   },
   compChipText: { fontSize: 10.5, fontWeight: '700', color: '#28406B', letterSpacing: 0.3 },
+
+  earnCard: {
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(30, 143, 71, 0.22)',
+  },
+  earnHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  earnEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#1E8F47',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  earnHeadline: {
+    marginTop: 6,
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    letterSpacing: -0.5,
+    fontVariant: ['tabular-nums'],
+  },
+  earnHeadlineSub: { fontSize: 15, fontWeight: '600', color: 'rgba(60, 60, 67, 0.6)', letterSpacing: 0 },
+  earnLede: { marginTop: 4, fontSize: 12, color: 'rgba(60, 60, 67, 0.7)', lineHeight: 17 },
+
+  earnList: { marginTop: 14, gap: 10 },
+  earnRow: { gap: 5 },
+  earnRowTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  earnName: { flex: 1, minWidth: 0, fontSize: 13, fontWeight: '600', color: '#1C1C1E' },
+  earnAmount: { fontSize: 12.5, fontWeight: '700', color: '#1C1C1E', fontVariant: ['tabular-nums'] },
+  loanChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingTop: 2,
+    paddingBottom: 3,
+    backgroundColor: 'rgba(30, 143, 71, 0.10)',
+    borderRadius: 4,
+  },
+  loanChipText: { fontSize: 10, fontWeight: '700', color: '#1E8F47', letterSpacing: 0.3 },
+  earnBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(60, 60, 67, 0.08)',
+    overflow: 'hidden',
+  },
+  earnBarFill: { height: 6, borderRadius: 3 },
 });

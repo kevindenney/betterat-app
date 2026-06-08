@@ -84,13 +84,13 @@ export function CapabilitiesPracticed({
         suggestState === 'loading' ? (
           <View style={styles.suggestRow}>
             <Sparkles size={13} color={IOS_PURPLE_DEEP} />
-            <Text style={styles.hint}>Reading your {capturesLabel}…</Text>
+            <Text style={styles.hint}>Finding suggestions…</Text>
           </View>
         ) : suggestState === 'done' ? (
           <Text style={styles.hint}>
             {hasAiRows
-              ? 'AI suggested from your captures · tap ✓ to confirm or ✗ to remove'
-              : 'No new capabilities found in your captures.'}
+              ? 'Suggested for you · tap ✓ to confirm or ✗ to remove'
+              : 'No new capabilities to suggest.'}
           </Text>
         ) : (
           <Pressable
@@ -132,7 +132,7 @@ function CapabilityRow({
         <Text style={styles.name}>{row.capabilityName}</Text>
         <View style={styles.metaRow}>
           <Pips level={row.pipLevel} />
-          {row.source === 'ai' ? <Text style={styles.aiChip}>AI</Text> : null}
+          {row.source === 'ai' ? <Text style={styles.aiChip}>New</Text> : null}
           <Text style={styles.meta}>{row.evidenceCount} captures evidence this</Text>
         </View>
       </View>
