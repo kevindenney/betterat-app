@@ -1,36 +1,29 @@
-// @ts-nocheck
-
 /**
- * Subscription Service
- * Handles native in-app purchases and subscription lifecycle
+ * Subscription Service (native)
+ * Handles native in-app purchases and subscription lifecycle via RevenueCat.
  *
- * Updated: 2026-03-15
+ * RevenueCat owns the StoreKit/Play Billing purchase flow, receipt validation,
+ * and renewal lifecycle. A RevenueCat webhook keeps the `users` table in sync
+ * (subscription_status / subscription_tier / subscription_expires_at /
+ * subscription_platform), which is the entitlement source every consumer reads.
+ * Purchase/restore also update local status optimistically from CustomerInfo so
+ * the UI unlocks before the webhook round-trips.
+ *
+ * Web uses Stripe — see subscriptionService.web.ts.
+ *
  * Pricing: Individual $10/mo ($100/yr), Pro $100/mo ($800/yr)
- *
- * NOTE: expo-in-app-purchases was deprecated in SDK 50.
- * Using mock implementation until expo-iap is configured.
  */
 
 import { Platform } from 'react-native';
-import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
+import Purchases, {
+  LOG_LEVEL,
+  type CustomerInfo,
+  type PurchasesOffering,
+  type PurchasesPackage,
+} from 'react-native-purchases';
+import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
-
-// Mock InAppPurchases until expo-iap is properly configured
-const InAppPurchases = {
-  IAPResponseCode: {
-    OK: 0,
-    USER_CANCELED: 1,
-    ERROR: 2,
-  },
-  connectAsync: async () => {},
-  disconnectAsync: async () => {},
-  getProductsAsync: async (_ids: string[]) => ({ results: [], responseCode: 0 }),
-  purchaseItemAsync: async (_id: string) => ({ responseCode: 1, results: [], errorCode: null }),
-  getPurchaseHistoryAsync: async () => ({ responseCode: 0, results: [] }),
-  finishTransactionAsync: async (_purchase: any, _consume: boolean) => {},
-  setPurchaseListener: (_callback: any) => {},
-};
 
 export interface SubscriptionProduct {
   id: string;
@@ -67,8 +60,25 @@ export interface PurchaseResult {
 const logger = createLogger('subscriptionService');
 
 /**
- * Stripe Price IDs for web fallback
- * Note: Native uses App Store/Play Store product IDs
+ * RevenueCat public SDK keys (safe to ship in the client).
+ * Set per-platform in .env — these are NOT secrets.
+ */
+const REVENUECAT_API_KEY = Platform.select({
+  ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY || '',
+  android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY || '',
+  default: '',
+}) as string;
+
+/**
+ * RevenueCat entitlement identifiers (configured in the RevenueCat dashboard).
+ * An active "pro" entitlement outranks "individual".
+ */
+const ENTITLEMENT_PRO = 'pro';
+const ENTITLEMENT_INDIVIDUAL = 'individual';
+
+/**
+ * Stripe Price IDs for web fallback.
+ * Native uses App Store / Play Store product IDs (see SUBSCRIPTION_PRODUCTS).
  */
 const STRIPE_PRICE_IDS = {
   individual_monthly: process.env.EXPO_PUBLIC_STRIPE_INDIVIDUAL_MONTHLY_PRICE_ID || 'price_individual_monthly_10',
@@ -80,10 +90,10 @@ const STRIPE_PRICE_IDS = {
 export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
   individual_monthly: {
     id: Platform.select({
-      ios: 'regattaflow_individual_monthly',
-      android: 'regattaflow_individual_monthly',
+      ios: 'betterat_individual_monthly',
+      android: 'betterat_individual_monthly',
       default: STRIPE_PRICE_IDS.individual_monthly,
-    }),
+    }) as string,
     title: 'Individual',
     description: 'AI-powered race preparation',
     price: '$10/month',
@@ -104,10 +114,10 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
   },
   individual_yearly: {
     id: Platform.select({
-      ios: 'regattaflow_individual_yearly',
-      android: 'regattaflow_individual_yearly',
+      ios: 'betterat_individual_yearly',
+      android: 'betterat_individual_yearly',
       default: STRIPE_PRICE_IDS.individual_yearly,
-    }),
+    }) as string,
     title: 'Individual',
     description: 'AI-powered race preparation',
     price: '$100/year',
@@ -129,10 +139,10 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
   },
   pro_monthly: {
     id: Platform.select({
-      ios: 'regattaflow_pro_monthly',
-      android: 'regattaflow_pro_monthly',
+      ios: 'betterat_pro_monthly',
+      android: 'betterat_pro_monthly',
       default: STRIPE_PRICE_IDS.pro_monthly,
-    }),
+    }) as string,
     title: 'Pro',
     description: 'Maximum AI power for serious racers',
     price: '$100/month',
@@ -150,10 +160,10 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
   },
   pro_yearly: {
     id: Platform.select({
-      ios: 'regattaflow_pro_yearly',
-      android: 'regattaflow_pro_yearly',
+      ios: 'betterat_pro_yearly',
+      android: 'betterat_pro_yearly',
       default: STRIPE_PRICE_IDS.pro_yearly,
-    }),
+    }) as string,
     title: 'Pro',
     description: 'Maximum AI power for serious racers',
     price: '$800/year',
@@ -172,15 +182,22 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
   },
 };
 
+/** Map a RevenueCat product identifier to the SUBSCRIPTION_PRODUCTS config entry. */
+function configProductForId(productId: string): SubscriptionProduct | undefined {
+  return Object.values(SUBSCRIPTION_PRODUCTS).find((p) => p.id === productId);
+}
+
 /**
  * Subscription Service Class
- * Handles all subscription operations for the sailing platform
+ * Handles all subscription operations on native platforms.
  */
 export class SubscriptionService {
   private static instance: SubscriptionService;
-  private isInitialized = false;
+  private isConfigured = false;
   private availableProducts: SubscriptionProduct[] = [];
   private currentStatus: SubscriptionStatus | null = null;
+  /** product identifier -> RevenueCat package, built from the current offering. */
+  private packagesByProductId: Map<string, PurchasesPackage> = new Map();
 
   static getInstance(): SubscriptionService {
     if (!SubscriptionService.instance) {
@@ -190,223 +207,172 @@ export class SubscriptionService {
   }
 
   /**
-   * Initialize subscription service
-   * Sets up in-app purchases and loads available products
+   * Configure RevenueCat and load offerings. Idempotent: safe to call on every
+   * auth change — re-runs only logIn + product refresh after the first configure.
    */
   async initialize(): Promise<void> {
     try {
-      if (this.isInitialized) return;
+      if (!REVENUECAT_API_KEY) {
+        logger.warn('RevenueCat API key missing; falling back to config-only products');
+        this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
+        return;
+      }
 
-      // Connect to app store
-      await InAppPurchases.connectAsync();
+      const { data: { user } } = await supabase.auth.getUser();
 
-      // Load available products
+      if (!this.isConfigured) {
+        if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.WARN);
+        Purchases.configure({ apiKey: REVENUECAT_API_KEY, appUserID: user?.id ?? null });
+        Purchases.addCustomerInfoUpdateListener((info) => {
+          this.currentStatus = this.statusFromCustomerInfo(info);
+        });
+        this.isConfigured = true;
+      } else if (user?.id) {
+        await Purchases.logIn(user.id);
+      }
+
       await this.loadProducts();
-
-      // Set up purchase listener
-      this.setupPurchaseListener();
-
-      this.isInitialized = true;
-
     } catch (error) {
-
-      throw new Error('Failed to initialize subscription service');
+      logger.error('Failed to initialize subscription service', error);
+      // Don't throw — the paywall should still render config prices.
+      if (this.availableProducts.length === 0) {
+        this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
+      }
     }
   }
 
   /**
-   * Load available subscription products from app stores
+   * Load offerings from RevenueCat and merge live store prices over config.
    */
   private async loadProducts(): Promise<void> {
     try {
-      const productIds = Object.values(SUBSCRIPTION_PRODUCTS).map(p => p.id);
-      const { results, responseCode } = await InAppPurchases.getProductsAsync(productIds);
+      const offerings = await Purchases.getOfferings();
+      const offering: PurchasesOffering | null = offerings.current ?? null;
 
-      if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-        this.availableProducts = results.map(product => {
-          const configProduct = Object.values(SUBSCRIPTION_PRODUCTS).find(
-            p => p.id === product.productId
-          );
+      this.packagesByProductId.clear();
 
-          return {
-            ...configProduct!,
-            price: product.price,
-            priceAmountMicros: product.priceAmountMicros,
-            priceCurrencyCode: product.priceCurrencyCode,
-          };
+      if (!offering || offering.availablePackages.length === 0) {
+        logger.warn('No RevenueCat offering available; using config products');
+        this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
+        return;
+      }
+
+      const merged: SubscriptionProduct[] = [];
+      for (const pkg of offering.availablePackages) {
+        const productId = pkg.product.identifier;
+        this.packagesByProductId.set(productId, pkg);
+
+        const config = configProductForId(productId);
+        if (!config) continue;
+
+        merged.push({
+          ...config,
+          price: pkg.product.priceString,
+          priceAmountMicros: Math.round(pkg.product.price * 1_000_000),
+          priceCurrencyCode: pkg.product.currencyCode ?? config.priceCurrencyCode,
         });
-
-      } else {
-        throw new Error(`Failed to load products: ${responseCode}`);
       }
-    } catch (error) {
 
-      throw error;
+      this.availableProducts = merged.length > 0 ? merged : Object.values(SUBSCRIPTION_PRODUCTS);
+    } catch (error) {
+      logger.error('Failed to load products', error);
+      this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
     }
   }
 
   /**
-   * Set up purchase event listener
+   * Map RevenueCat CustomerInfo entitlements to our SubscriptionStatus.
    */
-  private setupPurchaseListener(): void {
-    InAppPurchases.setPurchaseListener(({ responseCode, results }) => {
-      if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-        results?.forEach(purchase => {
-          this.handlePurchaseComplete(purchase);
-        });
-      } else {
+  private statusFromCustomerInfo(info: CustomerInfo): SubscriptionStatus {
+    const active = info.entitlements.active;
+    const pro = active[ENTITLEMENT_PRO];
+    const individual = active[ENTITLEMENT_INDIVIDUAL];
+    const ent = pro ?? individual;
 
-      }
-    });
-  }
-
-  /**
-   * Handle completed purchase
-   */
-  private async handlePurchaseComplete(purchase: any): Promise<void> {
-    try {
-
-      // Verify purchase with backend
-      await this.verifyPurchase(purchase);
-
-      // Update local subscription status
-      await this.refreshSubscriptionStatus();
-
-      // Finish the transaction
-      await InAppPurchases.finishTransactionAsync(purchase, true);
-
-      showAlert(
-        'Subscription Active',
-        'Welcome to RegattaFlow! Your subscription is now active and all features are unlocked.'
-      );
-    } catch (error) {
-
-      showAlert(
-        'Purchase Error',
-        'There was an issue processing your purchase. Please contact support if the problem persists.'
-      );
+    if (!ent) {
+      return this.getDefaultStatus();
     }
+
+    return {
+      isActive: true,
+      productId: ent.productIdentifier,
+      tier: pro ? 'pro' : 'individual',
+      expiresAt: ent.expirationDate ? new Date(ent.expirationDate) : null,
+      willRenew: ent.willRenew,
+      isTrialing: ent.periodType === 'TRIAL',
+      trialEndsAt:
+        ent.periodType === 'TRIAL' && ent.expirationDate ? new Date(ent.expirationDate) : null,
+      platform: (Platform.OS as 'ios' | 'android'),
+    };
   }
 
   /**
-   * Verify purchase with backend
-   */
-  private async verifyPurchase(purchase: any): Promise<void> {
-    try {
-      const { error } = await supabase.functions.invoke('verify-purchase', {
-        body: {
-          platform: Platform.OS,
-          transactionId: purchase.transactionId,
-          productId: purchase.productId,
-          purchaseToken: purchase.purchaseToken,
-          receipt: purchase.transactionReceipt,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-    } catch (error) {
-
-      throw error;
-    }
-  }
-
-  /**
-   * Get available subscription products
+   * Get available subscription products.
    */
   async getAvailableProducts(): Promise<SubscriptionProduct[]> {
-    if (!this.isInitialized) {
+    if (this.availableProducts.length === 0) {
       await this.initialize();
     }
     return this.availableProducts;
   }
 
   /**
-   * Purchase a subscription product
+   * Purchase a subscription product by its store product identifier.
    */
   async purchaseProduct(productId: string): Promise<PurchaseResult> {
     try {
-      if (!this.isInitialized) {
+      if (!this.isConfigured) {
         await this.initialize();
       }
 
-      const { responseCode, results, errorCode } = await InAppPurchases.purchaseItemAsync(productId);
-
-      if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-        const purchase = results?.[0];
-        return {
-          success: true,
-          productId: purchase?.productId,
-          transactionId: purchase?.transactionId,
-        };
-      } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
-        return {
-          success: false,
-          error: 'Purchase cancelled by user',
-        };
-      } else {
-        return {
-          success: false,
-          error: `Purchase failed: ${errorCode || responseCode}`,
-        };
+      const pkg = this.packagesByProductId.get(productId);
+      if (!pkg) {
+        return { success: false, error: 'This plan is not available right now.' };
       }
-    } catch (error) {
+
+      const { customerInfo, productIdentifier } = await Purchases.purchasePackage(pkg);
+      this.currentStatus = this.statusFromCustomerInfo(customerInfo);
 
       return {
-        success: false,
-        error: 'Purchase failed due to technical error',
+        success: this.currentStatus.isActive,
+        productId: productIdentifier,
+        transactionId: customerInfo.originalAppUserId,
+        error: this.currentStatus.isActive ? undefined : 'Purchase did not activate an entitlement.',
       };
+    } catch (error) {
+      const e = error as { userCancelled?: boolean; message?: string };
+      if (e?.userCancelled) {
+        return { success: false, error: 'Purchase cancelled by user' };
+      }
+      logger.error('Purchase failed', error);
+      return { success: false, error: e?.message || 'Purchase failed due to technical error' };
     }
   }
 
   /**
-   * Restore previous purchases
+   * Restore previous purchases.
    */
   async restorePurchases(): Promise<PurchaseResult> {
     try {
-      if (!this.isInitialized) {
+      if (!this.isConfigured) {
         await this.initialize();
       }
 
-      const { responseCode, results } = await InAppPurchases.getPurchaseHistoryAsync();
+      const info = await Purchases.restorePurchases();
+      this.currentStatus = this.statusFromCustomerInfo(info);
 
-      if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-        if (results && results.length > 0) {
-          // Process restored purchases
-          for (const purchase of results) {
-            await this.verifyPurchase(purchase);
-          }
-
-          await this.refreshSubscriptionStatus();
-
-          return {
-            success: true,
-          };
-        } else {
-          return {
-            success: false,
-            error: 'No previous purchases found',
-          };
-        }
-      } else {
-        return {
-          success: false,
-          error: 'Failed to restore purchases',
-        };
+      if (this.currentStatus.isActive) {
+        return { success: true, productId: this.currentStatus.productId ?? undefined };
       }
+      return { success: false, error: 'No previous purchases found' };
     } catch (error) {
-
-      return {
-        success: false,
-        error: 'Failed to restore purchases',
-      };
+      logger.error('Failed to restore purchases', error);
+      return { success: false, error: 'Failed to restore purchases' };
     }
   }
 
   /**
-   * Get current subscription status
+   * Get current subscription status.
    */
   async getSubscriptionStatus(): Promise<SubscriptionStatus> {
     try {
@@ -415,13 +381,15 @@ export class SubscriptionService {
       }
       return this.currentStatus!;
     } catch (error) {
-
+      logger.error('Failed to get subscription status', error);
       return this.getDefaultStatus();
     }
   }
 
   /**
-   * Refresh subscription status from backend
+   * Refresh subscription status. Reads the `users` table (kept current by the
+   * RevenueCat webhook) as the source of truth, falling back to live
+   * CustomerInfo when the SDK is configured.
    */
   async refreshSubscriptionStatus(): Promise<void> {
     try {
@@ -433,7 +401,7 @@ export class SubscriptionService {
 
       const { data, error } = await supabase
         .from('users')
-        .select('subscription_status, subscription_tier')
+        .select('subscription_status, subscription_tier, subscription_expires_at, subscription_platform')
         .eq('id', user.id)
         .single();
 
@@ -456,17 +424,26 @@ export class SubscriptionService {
         tier,
         expiresAt: data.subscription_expires_at ? new Date(data.subscription_expires_at) : null,
         willRenew: data.subscription_status === 'active',
-        platform: data.subscription_platform || Platform.OS,
+        platform: data.subscription_platform || (Platform.OS as 'ios' | 'android'),
       };
-
     } catch (error) {
-
+      logger.error('Failed to refresh subscription status', error);
+      // Last-resort: ask RevenueCat directly if it's configured.
+      if (this.isConfigured) {
+        try {
+          const info = await Purchases.getCustomerInfo();
+          this.currentStatus = this.statusFromCustomerInfo(info);
+          return;
+        } catch {
+          // fall through to default
+        }
+      }
       this.currentStatus = this.getDefaultStatus();
     }
   }
 
   /**
-   * Get default subscription status for free users
+   * Get default subscription status for free users.
    */
   private getDefaultStatus(): SubscriptionStatus {
     return {
@@ -480,11 +457,10 @@ export class SubscriptionService {
   }
 
   /**
-   * Cancel subscription
+   * Cancel subscription. On native, cancellation happens in the OS store UI.
    */
   async cancelSubscription(): Promise<boolean> {
     try {
-      // For mobile platforms, users need to cancel through App Store/Play Store
       const message = Platform.select({
         ios: 'To cancel your subscription, go to Settings > Apple ID > Subscriptions on your device.',
         android: 'To cancel your subscription, open the Google Play Store app and go to Subscriptions.',
@@ -495,30 +471,23 @@ export class SubscriptionService {
         'Cancel Subscription',
         message,
         () => {
-          // Open device settings (implementation depends on platform)
-          logger.debug('Opening device subscription settings...');
+          logger.debug('Directing user to device subscription settings');
         },
         { confirmText: 'Open Settings' }
       );
 
       return true;
     } catch (error) {
-
+      logger.error('cancelSubscription failed', error);
       return false;
     }
   }
 
   /**
-   * Disconnect from app store
+   * No-op on RevenueCat (no persistent store connection to tear down).
    */
   async disconnect(): Promise<void> {
-    try {
-      await InAppPurchases.disconnectAsync();
-      this.isInitialized = false;
-
-    } catch (error) {
-
-    }
+    // RevenueCat manages its own connection lifecycle.
   }
 }
 
