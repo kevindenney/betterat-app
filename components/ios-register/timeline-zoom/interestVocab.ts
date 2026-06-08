@@ -348,6 +348,27 @@ const ENTREPRENEUR_VOCAB: InterestVocab = {
   capabilityHeader: 'BUSINESS MIX',
   crewHeader: 'TEAM',
   inputSubtitle: 'who shaped this season',
+  // Deliberate rural-entrepreneur palette — vivid, perceptually distinct
+  // families so the BUSINESS MIX river reads as colour, not the 3-tone
+  // neutral fallback. Order matters (first match wins): craft families and
+  // specific finance patterns lead so e.g. "reeling" beats a generic word.
+  // Sister capabilities collapse into one canonical stream + colour
+  // ("Costing a batch" + "Pricing for profit" → "Costing & pricing").
+  palette: [
+    { pattern: /silk|cocoon|sericultur|tasar|reel/i, canonicalLabel: 'Silk', color: '#5BA4A6' },
+    { pattern: /weav|loom|warp|weft|gamcha|natural\s+dye|handloom|weaver/i, canonicalLabel: 'Weaving', color: '#A04CC4' },
+    { pattern: /tailor|stitch|garment|sewing|blouse|petticoat|measurement/i, canonicalLabel: 'Tailoring', color: '#7BA0C4' },
+    { pattern: /murmura|recipe|food\s+safety|hygiene|shelf.?life|fssai|food\s+licens/i, canonicalLabel: 'Food craft', color: '#5BA46F' },
+    { pattern: /crop|kitchen\s+garden|irrigation|harvest|planting|garden/i, canonicalLabel: 'Kitchen garden', color: '#C46E49' },
+    { pattern: /scheme|subsid|grant|welfare|yojana|nrlm/i, canonicalLabel: 'Schemes', color: '#7E6FC8' },
+    { pattern: /shg|bank\s+linkage|credit|revolving|community\s+investment/i, canonicalLabel: 'SHG finance', color: '#2F8FB0' },
+    { pattern: /loan|mudra/i, canonicalLabel: 'Loans', color: '#C4474A' },
+    { pattern: /document|record|complianc|licens|registration|paperwork/i, canonicalLabel: 'Licensing & records', color: '#8A8A8A' },
+    { pattern: /cost|pric|business\s+plan|persisten|follow.?up/i, canonicalLabel: 'Costing & pricing', color: '#C99632' },
+    { pattern: /sell|buyer|customer|outreach/i, canonicalLabel: 'Selling', color: '#E2792E' },
+    { pattern: /packag|brand|differen/i, canonicalLabel: 'Branding', color: '#B86EAA' },
+    { pattern: /sourc|batch\s+production|quality|finished\s+product|goal\s+setting/i, canonicalLabel: 'Production', color: '#2E6CA8' },
+  ],
   phasePatterns: [
     { pattern: /diwali/i, label: 'Diwali rush' },
     { pattern: /wedding\s+season|wedding\s+orders?/i, label: 'Wedding season' },
