@@ -5,7 +5,7 @@
 
 import { supabase } from './supabase';
 import { createLogger } from '@/lib/utils/logger';
-import { ORG_PLANS, ORG_PLAN_LIST, type OrgPlanId, type OrgPlanDefinition } from '@/lib/subscriptions/orgTiers';
+import { ORG_PLANS, ORG_PLAN_LIST, type OrgPlanId, type OrgPlanDefinition, type OrgBillingPeriod } from '@/lib/subscriptions/orgTiers';
 import type { SailorTier } from '@/lib/subscriptions/sailorTiers';
 
 const logger = createLogger('OrgSubscriptionService');
@@ -62,12 +62,13 @@ export class OrgSubscriptionService {
   }
 
   /**
-   * Create a checkout session for an org subscription via edge function
+   * Create a checkout session for an org subscription via edge function.
+   * Flat Club tiers, web-only Stripe Checkout — returns a hosted checkout URL.
    */
   static async createSubscription(
     orgId: string,
     planId: OrgPlanId,
-    seatCount: number
+    billingPeriod: OrgBillingPeriod = 'annual'
   ): Promise<OrgSubscriptionResult> {
     try {
       const plan = ORG_PLANS[planId];
@@ -75,17 +76,14 @@ export class OrgSubscriptionService {
         return { success: false, error: 'Invalid plan' };
       }
 
-      if (planId === 'enterprise') {
-        return { success: false, error: 'Enterprise plans require custom setup. Contact sales.' };
-      }
-
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const { data, error } = await supabase.functions.invoke('create-org-checkout-session', {
         body: {
           organizationId: orgId,
           planId,
-          seatCount,
-          successUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/organization/billing?success=true`,
-          cancelUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/institutions/pricing`,
+          billingPeriod,
+          successUrl: `${origin}/organization/billing?success=true`,
+          cancelUrl: `${origin}/organization/billing`,
         },
       });
 

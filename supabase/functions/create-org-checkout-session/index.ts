@@ -1,10 +1,14 @@
 /**
  * Create Org Checkout Session Edge Function
- * Creates a Stripe checkout session for organization/institutional subscriptions
+ * Creates a Stripe Checkout session for organization (club) subscriptions.
  *
- * Supports:
- * - Starter: $500/yr flat (≤25 seats)
- * - Department: $15/seat/yr (26-500 seats), quantity-based
+ * Flat Club tiers (web-only; Apple/Google IAP rejects B2B/org billing):
+ * - starter:      $249/mo · $2,499/yr  (members get Pro)
+ * - professional: $499/mo · $4,999/yr  (members get Pro)
+ * - enterprise:   $899/mo · $8,999/yr  (members get Pro)
+ *
+ * Price IDs are allowlisted here (mirror lib/subscriptions/orgTiers.ts) so a
+ * caller can't check out an arbitrary price.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -18,19 +22,27 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Org plan Stripe Price IDs
-const ORG_PLAN_PRICES: Record<string, { priceId: string; isPerSeat: boolean; memberTier: string }> = {
+type OrgPlanId = 'starter' | 'professional' | 'enterprise';
+type BillingPeriod = 'monthly' | 'annual';
+
+// Flat Club tier price IDs -> { monthly, annual }. Members of any paid tier
+// get the Pro member tier (set in subscription metadata, applied by webhook).
+const ORG_PLAN_PRICES: Record<OrgPlanId, { monthly: string; annual: string }> = {
   starter: {
-    priceId: Deno.env.get('STRIPE_ORG_STARTER_PRICE_ID') || 'price_org_starter',
-    isPerSeat: false,
-    memberTier: 'individual',
+    monthly: 'price_1Sl0oHBbfEeOhHXbWRBa81j7', // $249/mo
+    annual: 'price_1Sl0oTBbfEeOhHXbAfA0x5gK', // $2,499/yr
   },
-  department: {
-    priceId: Deno.env.get('STRIPE_ORG_DEPARTMENT_PRICE_ID') || 'price_org_department',
-    isPerSeat: true,
-    memberTier: 'pro',
+  professional: {
+    monthly: 'price_1Sl0pABbfEeOhHXbEaubR9jr', // $499/mo
+    annual: 'price_1Sl0pMBbfEeOhHXb9reoud5b', // $4,999/yr
+  },
+  enterprise: {
+    monthly: 'price_1Sl0q2BbfEeOhHXb89WAlrJC', // $899/mo
+    annual: 'price_1Sl0qRBbfEeOhHXbkVYk7YsW', // $8,999/yr
   },
 };
+
+const MEMBER_TIER = 'pro';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,8 +51,8 @@ const corsHeaders = {
 
 interface OrgCheckoutRequest {
   organizationId: string;
-  planId: 'starter' | 'department';
-  seatCount: number;
+  planId: OrgPlanId;
+  billingPeriod: BillingPeriod;
   successUrl: string;
   cancelUrl: string;
 }
@@ -51,23 +63,25 @@ serve(async (req) => {
   }
 
   try {
-    const { organizationId, planId, seatCount, successUrl, cancelUrl }: OrgCheckoutRequest =
+    const { organizationId, planId, billingPeriod, successUrl, cancelUrl }: OrgCheckoutRequest =
       await req.json();
 
-    if (!organizationId || !planId || !seatCount) {
+    if (!organizationId || !planId || !billingPeriod) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: organizationId, planId, seatCount' }),
+        JSON.stringify({ error: 'Missing required fields: organizationId, planId, billingPeriod' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const planConfig = ORG_PLAN_PRICES[planId];
-    if (!planConfig) {
+    const planPrices = ORG_PLAN_PRICES[planId];
+    if (!planPrices) {
       return new Response(
-        JSON.stringify({ error: 'Invalid plan. Enterprise plans require custom setup.' }),
+        JSON.stringify({ error: `Invalid plan: ${planId}. Not an allowed org plan.` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const priceId = billingPeriod === 'annual' ? planPrices.annual : planPrices.monthly;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -85,7 +99,7 @@ serve(async (req) => {
       );
     }
 
-    // Get admin user email for Stripe customer
+    // Get admin user email for the Stripe customer
     const { data: adminMembership } = await supabase
       .from('organization_memberships')
       .select('user_id')
@@ -105,7 +119,7 @@ serve(async (req) => {
       adminEmail = adminUser?.email || '';
     }
 
-    // Get or create Stripe customer for the org
+    // Get or create the Stripe customer for the org
     let customerId = org.stripe_customer_id;
 
     if (!customerId) {
@@ -114,7 +128,7 @@ serve(async (req) => {
         name: org.name,
         metadata: {
           organization_id: organizationId,
-          type: 'institution',
+          type: 'organization',
         },
       });
       customerId = customer.id;
@@ -125,32 +139,25 @@ serve(async (req) => {
         .eq('id', organizationId);
     }
 
-    // Build line items
-    const quantity = planConfig.isPerSeat ? seatCount : 1;
-
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
-      line_items: [
-        {
-          price: planConfig.priceId,
-          quantity,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${successUrl}${successUrl.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
       subscription_data: {
         metadata: {
           organization_id: organizationId,
           plan_id: planId,
-          seat_count: String(seatCount),
-          member_tier: planConfig.memberTier,
+          member_tier: MEMBER_TIER,
+          billing_period: billingPeriod,
         },
       },
       metadata: {
         organization_id: organizationId,
         plan_id: planId,
-        seat_count: String(seatCount),
+        member_tier: MEMBER_TIER,
+        billing_period: billingPeriod,
         type: 'org_subscription',
       },
       allow_promotion_codes: true,
@@ -161,16 +168,17 @@ serve(async (req) => {
       },
     });
 
-    // Create pending subscription record
+    // Create/refresh a pending subscription record. Activated by the webhook
+    // on checkout.session.completed.
     await supabase.from('organization_subscriptions').upsert(
       {
         organization_id: organizationId,
         stripe_customer_id: customerId,
+        stripe_price_id: priceId,
         plan_id: planId,
-        status: 'trialing', // Will be updated to 'active' by webhook
-        seat_count: seatCount,
-        member_tier: planConfig.memberTier,
-        billing_period: 'annual',
+        status: 'trialing',
+        member_tier: MEMBER_TIER,
+        billing_period: billingPeriod,
         currency: 'usd',
       },
       { onConflict: 'organization_id' }

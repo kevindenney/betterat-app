@@ -20,9 +20,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
 import { OrgSubscriptionService, type OrgSubscription } from '@/services/OrgSubscriptionService';
-import { ORG_PLANS } from '@/lib/subscriptions/orgTiers';
+import { ORG_PLANS, ORG_PLAN_LIST, type OrgPlanId, type OrgBillingPeriod } from '@/lib/subscriptions/orgTiers';
 import { isOrgAdminRole } from '@/lib/organizations/adminGate';
 import { OrgAdminHeader } from '@/components/organizations/OrgAdminHeader';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 
 export default function OrganizationBillingScreen() {
   const { width } = useWindowDimensions();
@@ -31,6 +32,9 @@ export default function OrganizationBillingScreen() {
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<OrgSubscription | null>(null);
   const [seats, setSeats] = useState<{ total: number; used: number; available: number } | null>(null);
+  const [billingPeriod, setBillingPeriod] = useState<OrgBillingPeriod>('annual');
+  const [processingPlan, setProcessingPlan] = useState<OrgPlanId | null>(null);
+  const [showPlans, setShowPlans] = useState(false);
 
   const isDesktop = width >= 768;
   const profile = userProfile as any;
@@ -58,6 +62,28 @@ export default function OrganizationBillingScreen() {
 
     loadData();
   }, [orgId]);
+
+  const handleCheckout = async (planId: OrgPlanId) => {
+    if (!orgId) {
+      showAlert('Error', 'No active organization found.');
+      return;
+    }
+    setProcessingPlan(planId);
+    try {
+      const result = await OrgSubscriptionService.createSubscription(orgId, planId, billingPeriod);
+      if (result.success && result.checkoutUrl) {
+        if (typeof window !== 'undefined') {
+          window.location.href = result.checkoutUrl;
+        }
+      } else {
+        showAlert('Checkout Error', result.error || 'Unable to start checkout. Please try again.');
+      }
+    } catch {
+      showAlert('Checkout Error', 'Unable to start checkout. Please try again.');
+    } finally {
+      setProcessingPlan(null);
+    }
+  };
 
   if (!isOrgAdminRole(userRole)) {
     return (
@@ -103,6 +129,84 @@ export default function OrganizationBillingScreen() {
     }
   };
 
+  const planPicker = (
+    <View style={styles.planPicker}>
+      {/* Billing period toggle */}
+      <View style={styles.billingToggle}>
+        <TouchableOpacity
+          style={[styles.billingToggleBtn, billingPeriod === 'annual' && styles.billingToggleBtnActive]}
+          onPress={() => setBillingPeriod('annual')}
+        >
+          <Text style={[styles.billingToggleText, billingPeriod === 'annual' && styles.billingToggleTextActive]}>
+            Annual
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.billingToggleBtn, billingPeriod === 'monthly' && styles.billingToggleBtnActive]}
+          onPress={() => setBillingPeriod('monthly')}
+        >
+          <Text style={[styles.billingToggleText, billingPeriod === 'monthly' && styles.billingToggleTextActive]}>
+            Monthly
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.planGrid, isDesktop && styles.planGridDesktop]}>
+        {ORG_PLAN_LIST.map((p) => {
+          const isCurrent = subscription?.plan_id === p.id && subscription?.status === 'active';
+          const priceText = billingPeriod === 'annual' ? p.annualPriceFormatted : p.monthlyPriceFormatted;
+          const priceUnit = billingPeriod === 'annual' ? '/year' : '/month';
+          return (
+            <View
+              key={p.id}
+              style={[styles.planCard, p.isPopular && styles.planCardPopular]}
+            >
+              {p.isPopular && (
+                <View style={styles.popularBadge}>
+                  <Text style={styles.popularBadgeText}>Most Popular</Text>
+                </View>
+              )}
+              <Text style={[styles.planCardName, { color: p.accentColor }]}>{p.name}</Text>
+              <Text style={styles.planCardDesc}>{p.description}</Text>
+              <View style={styles.planCardPriceRow}>
+                <Text style={styles.planCardPrice}>{priceText}</Text>
+                <Text style={styles.planCardPriceUnit}>{priceUnit}</Text>
+              </View>
+              {billingPeriod === 'annual' && (
+                <Text style={styles.planCardSavings}>{p.annualSavings}</Text>
+              )}
+              <View style={styles.planFeatures}>
+                {p.features.map((f) => (
+                  <View key={f} style={styles.planFeature}>
+                    <Ionicons name="checkmark-circle" size={16} color={p.accentColor} />
+                    <Text style={styles.planFeatureText}>{f}</Text>
+                  </View>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.subscribeBtn,
+                  { backgroundColor: p.accentColor },
+                  (isCurrent || processingPlan !== null) && styles.subscribeBtnDisabled,
+                ]}
+                disabled={isCurrent || processingPlan !== null}
+                onPress={() => handleCheckout(p.id)}
+              >
+                {processingPlan === p.id ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.subscribeBtnText}>
+                    {isCurrent ? 'Current Plan' : p.cta}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <OrgAdminHeader
@@ -120,20 +224,18 @@ export default function OrganizationBillingScreen() {
       >
         <View style={[styles.section, isDesktop && styles.sectionDesktop]}>
           {!subscription ? (
-            /* No subscription */
-            <View style={styles.emptyCard}>
-              <Ionicons name="card-outline" size={48} color="#9CA3AF" />
-              <Text style={styles.emptyTitle}>No Active Subscription</Text>
-              <Text style={styles.emptyText}>
-                Choose an institutional plan to provide premium access to your members.
-              </Text>
-              <TouchableOpacity
-                style={styles.primaryBtn}
-                onPress={() => router.push('/institutions/pricing')}
-              >
-                <Text style={styles.primaryBtnText}>View Plans</Text>
-              </TouchableOpacity>
-            </View>
+            /* No subscription — choose a plan */
+            <>
+              <View style={styles.emptyCard}>
+                <Ionicons name="card-outline" size={48} color="#9CA3AF" />
+                <Text style={styles.emptyTitle}>Choose a Plan</Text>
+                <Text style={styles.emptyText}>
+                  Subscribe to provide premium access to your members. Billing is handled
+                  securely through Stripe.
+                </Text>
+              </View>
+              {planPicker}
+            </>
           ) : (
             <>
               {/* Current Plan Card */}
@@ -240,13 +342,19 @@ export default function OrganizationBillingScreen() {
 
                 <TouchableOpacity
                   style={styles.actionRow}
-                  onPress={() => router.push('/institutions/pricing')}
+                  onPress={() => setShowPlans((v) => !v)}
                 >
                   <Ionicons name="swap-horizontal" size={20} color="#2563EB" />
                   <Text style={styles.actionText}>Change Plan</Text>
-                  <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                  <Ionicons
+                    name={showPlans ? 'chevron-up' : 'chevron-forward'}
+                    size={18}
+                    color="#9CA3AF"
+                  />
                 </TouchableOpacity>
               </View>
+
+              {showPlans && planPicker}
             </>
           )}
         </View>
@@ -461,5 +569,132 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#6B7280',
+  },
+  planPicker: {
+    gap: 16,
+  },
+  billingToggle: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    padding: 4,
+  },
+  billingToggleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
+  },
+  billingToggleBtnActive: {
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      web: { boxShadow: '0 1px 2px rgba(0,0,0,0.08)' } as any,
+    }),
+  },
+  billingToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  billingToggleTextActive: {
+    color: '#1F2937',
+  },
+  planGrid: {
+    gap: 16,
+  },
+  planGridDesktop: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  planCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    ...Platform.select({
+      web: { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } as any,
+    }),
+  },
+  planCardPopular: {
+    borderColor: '#7C3AED',
+    borderWidth: 2,
+  },
+  popularBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#7C3AED15',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  popularBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7C3AED',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  planCardName: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  planCardDesc: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  planCardPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  planCardPrice: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  planCardPriceUnit: {
+    fontSize: 15,
+    color: '#9CA3AF',
+  },
+  planCardSavings: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#059669',
+    marginTop: 4,
+  },
+  planFeatures: {
+    gap: 8,
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  planFeature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planFeatureText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+  },
+  subscribeBtn: {
+    marginTop: 'auto',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
+  },
+  subscribeBtnDisabled: {
+    opacity: 0.5,
+  },
+  subscribeBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

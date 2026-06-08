@@ -477,6 +477,12 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   const metadata = session.metadata || {};
 
+  // Handle organization (club) subscription checkout
+  if (metadata.type === 'org_subscription' && metadata.organization_id) {
+    await handleOrgSubscriptionCheckout(session);
+    return;
+  }
+
   // Handle course purchase checkout
   if (metadata.type === 'course_purchase' && metadata.course_id && metadata.user_id) {
     // Create enrollment - checkout.session.completed is the primary event for course purchases
@@ -536,6 +542,89 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         .eq('blueprint_id', metadata.blueprint_id);
     }
   }
+}
+
+/**
+ * Map a Stripe subscription status to the organization_subscriptions
+ * status CHECK values (note the British "cancelled" spelling on this table).
+ */
+function mapOrgStatus(stripeStatus: string): string {
+  const map: Record<string, string> = {
+    active: 'active',
+    trialing: 'trialing',
+    past_due: 'past_due',
+    unpaid: 'past_due',
+    canceled: 'cancelled',
+    incomplete: 'trialing',
+    incomplete_expired: 'expired',
+  };
+  return map[stripeStatus] || 'active';
+}
+
+/**
+ * Activate an organization (club) subscription after a successful
+ * Stripe Checkout. Stamps the Stripe subscription id, period, and amount;
+ * the trg_sync_org_member_tiers trigger then grants members the member tier.
+ */
+async function handleOrgSubscriptionCheckout(session: Stripe.Checkout.Session) {
+  const metadata = session.metadata || {};
+  const organizationId = metadata.organization_id;
+  if (!organizationId) return;
+
+  let stripeSubscriptionId: string | null = (session.subscription as string) ?? null;
+  let stripePriceId: string | null = null;
+  let amount: number | null = null;
+  let currentPeriodStart: string | null = null;
+  let currentPeriodEnd: string | null = null;
+  let status = 'active';
+
+  if (stripeSubscriptionId) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+      status = mapOrgStatus(sub.status);
+      stripePriceId = sub.items.data[0]?.price?.id ?? null;
+      amount = sub.items.data[0]?.price?.unit_amount ?? null;
+      if (sub.current_period_start) {
+        currentPeriodStart = new Date(sub.current_period_start * 1000).toISOString();
+      }
+      if (sub.current_period_end) {
+        currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+      }
+    } catch (err) {
+      console.warn('[org.checkout] failed to retrieve subscription', err);
+    }
+  }
+
+  const { error } = await supabase
+    .from('organization_subscriptions')
+    .upsert(
+      {
+        organization_id: organizationId,
+        stripe_subscription_id: stripeSubscriptionId,
+        stripe_customer_id: (session.customer as string) ?? null,
+        stripe_price_id: stripePriceId,
+        plan_id: metadata.plan_id || 'starter',
+        status,
+        member_tier: metadata.member_tier || 'pro',
+        billing_period: metadata.billing_period || 'annual',
+        amount,
+        currency: session.currency ?? 'usd',
+        current_period_start: currentPeriodStart,
+        current_period_end: currentPeriodEnd,
+        cancelled_at: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'organization_id' }
+    );
+
+  if (error) {
+    console.error('[org.checkout] Failed to activate org subscription:', error);
+    return;
+  }
+
+  console.log(
+    `[org.checkout] Org ${organizationId} subscription ${stripeSubscriptionId} → ${status} (plan=${metadata.plan_id})`
+  );
 }
 
 /**
@@ -818,6 +907,46 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     }
   }
 
+  // ── Organization (club) subscription update ──
+  // Sync status + period so billing surfaces and member-tier grants
+  // (trg_sync_org_member_tiers) reflect Stripe's source of truth.
+  {
+    const { data: orgSub } = await supabase
+      .from('organization_subscriptions')
+      .select('id')
+      .eq('stripe_subscription_id', subscription.id)
+      .maybeSingle();
+    if (orgSub) {
+      const update: Record<string, unknown> = {
+        status: mapOrgStatus(subscription.status),
+        stripe_price_id: subscription.items.data[0]?.price?.id ?? null,
+        amount: subscription.items.data[0]?.price?.unit_amount ?? null,
+        updated_at: new Date().toISOString(),
+      };
+      if (subscription.current_period_start) {
+        update.current_period_start = new Date(
+          subscription.current_period_start * 1000
+        ).toISOString();
+      }
+      if (subscription.current_period_end) {
+        update.current_period_end = new Date(
+          subscription.current_period_end * 1000
+        ).toISOString();
+      }
+      if (subscription.canceled_at) {
+        update.cancelled_at = new Date(subscription.canceled_at * 1000).toISOString();
+      }
+      await supabase
+        .from('organization_subscriptions')
+        .update(update)
+        .eq('id', orgSub.id);
+      console.log(
+        `[handleSubscriptionUpdate] Org sub ${subscription.id} → ${mapOrgStatus(subscription.status)}`
+      );
+      return;
+    }
+  }
+
   // ── Blueprint subscription update ──
   if (metadata.type === 'blueprint_purchase' && metadata.blueprint_id) {
     const statusMap: Record<string, string> = {
@@ -1028,6 +1157,27 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         });
       }
       console.log(`[handleSubscriptionDeleted] Marketplace subscription ${subscription.id} canceled`);
+      return;
+    }
+  }
+
+  // ── Organization (club) subscription canceled ──
+  {
+    const { data: orgSub } = await supabase
+      .from('organization_subscriptions')
+      .select('id')
+      .eq('stripe_subscription_id', subscription.id)
+      .maybeSingle();
+    if (orgSub) {
+      await supabase
+        .from('organization_subscriptions')
+        .update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orgSub.id);
+      console.log(`[handleSubscriptionDeleted] Org subscription ${subscription.id} canceled`);
       return;
     }
   }
