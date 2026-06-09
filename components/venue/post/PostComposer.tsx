@@ -24,8 +24,12 @@ import { TufteTokens } from '@/constants/designSystem';
 import { POST_TYPE_CONFIG } from '@/types/community-feed';
 import { useCreatePost, useUpdatePost } from '@/hooks/useCommunityFeed';
 import { useTopicTags } from '@/hooks/useCommunityFeed';
+import { useVenueRacingAreas } from '@/hooks/useVenueRacingAreas';
+import { useKnowledgeAudiences } from '@/hooks/useKnowledgeAudiences';
+import { useInterest } from '@/providers/InterestProvider';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 import { CatalogRaceService } from '@/services/CatalogRaceService';
-import type { PostType } from '@/types/community-feed';
+import type { PostType, KnowledgeScopeType } from '@/types/community-feed';
 import type { CatalogRace } from '@/types/catalog-race';
 
 interface PostComposerProps {
@@ -67,6 +71,16 @@ export function PostComposer({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [conditionLabel, setConditionLabel] = useState('');
 
+  // Area + audience scoping
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(racingAreaId || null);
+  const [scopeType, setScopeType] = useState<KnowledgeScopeType>('public');
+  const [scopeId, setScopeId] = useState<string | null>(null);
+
+  const { currentInterest } = useInterest();
+  const visibilityLabels = getVisibilityLabels(currentInterest?.slug);
+  const { areas: racingAreas } = useVenueRacingAreas(venueId);
+  const { data: audiences } = useKnowledgeAudiences();
+
   // Race tagging
   const [selectedRaceId, setSelectedRaceId] = useState<string | null>(initialCatalogRaceId || null);
   const [selectedRaceName, setSelectedRaceName] = useState<string | null>(initialCatalogRaceName || null);
@@ -93,10 +107,18 @@ export function PostComposer({
     setPostType('discussion');
     setSelectedTagIds([]);
     setConditionLabel('');
+    setSelectedAreaId(null);
+    setScopeType('public');
+    setScopeId(null);
     setSelectedRaceId(null);
     setSelectedRaceName(null);
     setRaceSearchQuery('');
     setRaceSearchResults([]);
+  }, []);
+
+  const handleSelectScope = useCallback((type: KnowledgeScopeType, id: string | null) => {
+    setScopeType(type);
+    setScopeId(id);
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -146,7 +168,9 @@ export function PostComposer({
           title: title.trim(),
           body: body.trim() || undefined,
           post_type: postType,
-          racing_area_id: racingAreaId || undefined,
+          racing_area_id: selectedAreaId || undefined,
+          scope_type: scopeType,
+          scope_id: scopeId || undefined,
           topic_tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
           condition_tags: conditionTags,
           catalog_race_id: selectedRaceId || undefined,
@@ -161,7 +185,7 @@ export function PostComposer({
       const errorMessage = error?.message || `Failed to ${isEditing ? 'update' : 'create'} post. Please try again.`;
       showAlert(isEditing ? 'Cannot Update Post' : 'Cannot Create Post', errorMessage);
     }
-  }, [title, body, postType, venueId, communityId, racingAreaId, selectedTagIds, conditionLabel, selectedRaceId, createPost, updatePost, isEditing, editingPost, resetForm, onSuccess, onDismiss]);
+  }, [title, body, postType, venueId, communityId, selectedAreaId, scopeType, scopeId, selectedTagIds, conditionLabel, selectedRaceId, createPost, updatePost, isEditing, editingPost, resetForm, onSuccess, onDismiss]);
 
   const handleDismiss = useCallback(() => {
     if (title.trim() || body.trim()) {
@@ -343,6 +367,103 @@ export function PostComposer({
                   );
                 })}
               </View>
+            </View>
+          )}
+
+          {/* Racing Area */}
+          {!isEditing && venueId && racingAreas.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Area</Text>
+              <View style={styles.tagGrid}>
+                <Pressable
+                  style={[styles.scopeChip, !selectedAreaId && styles.scopeChipSelected]}
+                  onPress={() => setSelectedAreaId(null)}
+                >
+                  <Ionicons
+                    name="map-outline"
+                    size={12}
+                    color={!selectedAreaId ? '#2563EB' : '#9CA3AF'}
+                  />
+                  <Text style={[styles.scopeChipText, !selectedAreaId && styles.scopeChipTextSelected]}>
+                    Whole venue
+                  </Text>
+                </Pressable>
+                {racingAreas.map(area => {
+                  const isSelected = selectedAreaId === area.id;
+                  return (
+                    <Pressable
+                      key={area.id}
+                      style={[styles.scopeChip, isSelected && styles.scopeChipSelected]}
+                      onPress={() => setSelectedAreaId(area.id)}
+                    >
+                      <Ionicons
+                        name="location-outline"
+                        size={12}
+                        color={isSelected ? '#2563EB' : '#9CA3AF'}
+                      />
+                      <Text style={[styles.scopeChipText, isSelected && styles.scopeChipTextSelected]}>
+                        {area.areaName}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Audience */}
+          {!isEditing && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Audience</Text>
+              <View style={styles.tagGrid}>
+                <Pressable
+                  style={[styles.scopeChip, scopeType === 'public' && styles.scopeChipSelected]}
+                  onPress={() => handleSelectScope('public', null)}
+                >
+                  <Ionicons
+                    name="globe-outline"
+                    size={12}
+                    color={scopeType === 'public' ? '#2563EB' : '#9CA3AF'}
+                  />
+                  <Text style={[styles.scopeChipText, scopeType === 'public' && styles.scopeChipTextSelected]}>
+                    Public
+                  </Text>
+                </Pressable>
+                {(audiences || []).map(audience => {
+                  const isSelected = scopeType === audience.scopeType && scopeId === audience.scopeId;
+                  const prefix = audience.scopeType === 'fleet'
+                    ? visibilityLabels.fleet
+                    : audience.scopeType === 'org'
+                      ? 'Org'
+                      : 'Subscribers';
+                  const icon = audience.scopeType === 'fleet'
+                    ? 'people-outline'
+                    : audience.scopeType === 'org'
+                      ? 'business-outline'
+                      : 'ribbon-outline';
+                  return (
+                    <Pressable
+                      key={`${audience.scopeType}-${audience.scopeId}`}
+                      style={[styles.scopeChip, isSelected && styles.scopeChipSelected]}
+                      onPress={() => handleSelectScope(audience.scopeType, audience.scopeId)}
+                    >
+                      <Ionicons
+                        name={icon as any}
+                        size={12}
+                        color={isSelected ? '#2563EB' : '#9CA3AF'}
+                      />
+                      <Text style={[styles.scopeChipText, isSelected && styles.scopeChipTextSelected]} numberOfLines={1}>
+                        {prefix} · {audience.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {scopeType !== 'public' && (
+                <Text style={styles.conditionHint}>
+                  Only members of this group will see this post
+                </Text>
+              )}
             </View>
           )}
 
@@ -564,6 +685,31 @@ const styles = StyleSheet.create({
   tagOptionText: {
     ...TufteTokens.typography.tertiary,
     color: '#9CA3AF',
+  },
+  // Area + audience scope chips
+  scopeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: TufteTokens.spacing.standard,
+    paddingVertical: TufteTokens.spacing.compact,
+    backgroundColor: TufteTokens.backgrounds.subtle,
+    borderRadius: TufteTokens.borderRadius.subtle,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  scopeChipSelected: {
+    backgroundColor: '#2563EB12',
+    borderColor: '#2563EB40',
+  },
+  scopeChipText: {
+    ...TufteTokens.typography.tertiary,
+    color: '#9CA3AF',
+    maxWidth: 220,
+  },
+  scopeChipTextSelected: {
+    color: '#2563EB',
+    fontWeight: '600',
   },
   // Race picker
   raceChipRow: {
