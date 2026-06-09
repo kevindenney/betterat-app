@@ -20,6 +20,7 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { RacingAreaGeometry } from '@/hooks/useVenueRacingAreas';
 import { useMyRacingAreas } from '@/hooks/useMyRacingAreas';
+import { useVenueRaceCourses } from '@/hooks/useVenueRaceCourses';
 import type { RacePlan } from '@/types/step-detail';
 
 const RACE = '#2563EB';
@@ -83,6 +84,16 @@ export function RaceCoursePicker({ venueId, value, onChange }: RaceCoursePickerP
   const router = useRouter();
   const { racingAreas, isLoading } = useMyRacingAreas(venueId ?? undefined);
 
+  // Saved courses for the chosen area. When the picked course type matches a
+  // saved course, we stamp its id into race_plan.course_id so every race that
+  // picks the same area+type points at one shared course row (one course,
+  // many races) — and the Atlas NEXT marker locks to that exact course.
+  const { courses: savedCourses } = useVenueRaceCourses({
+    racingAreaId: value.area_id ?? null,
+    venueId: venueId ?? null,
+    enabled: Boolean(value.area_id),
+  });
+
   const selectedArea = useMemo(
     () => racingAreas.find((a) => a.id === value.area_id),
     [racingAreas, value.area_id],
@@ -129,15 +140,22 @@ export function RaceCoursePicker({ venueId, value, onChange }: RaceCoursePickerP
       area_id: area.id,
       area_name: area.areaName,
       center,
+      // The previously linked course belonged to the old area; drop it so a
+      // stale id can't survive an area switch.
+      course_id: undefined,
     });
   };
 
   const selectCourse = (key: string) => {
+    const savedCourse = savedCourses.find((c) => c.courseType === key);
     onChange({
       ...value,
       course_type: key,
       course_label: courseLabelFor(key),
       laps: courseHasLaps(key) ? (value.laps ?? 2) : undefined,
+      // Link the shared saved course when one exists for this area+type;
+      // undefined leaves the canvas on its nearest-by-proximity fallback.
+      course_id: savedCourse?.id,
     });
   };
 
