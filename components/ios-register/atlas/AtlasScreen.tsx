@@ -2145,7 +2145,33 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showRaceAreas, setShowRaceAreas] = useState(true);
   const [showCourse, setShowCourse] = useState(true);
   const [basemap, setBasemap] = useState<AtlasBasemap>('map');
-  const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(null);
+  // Default the relationship lens to "people I race with" — your own steps
+  // plus crew + fleet — so the race frame answers "what's my fleet doing near
+  // my race?" without the user having to opt in. Following stays off by
+  // default (people you watch are discovery, not your immediate race circle).
+  const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(
+    () => new Set(['you', 'crew', 'fleet']),
+  );
+  // Cluster peers by on-screen pixel proximity, not a fixed km radius. We
+  // derive the merge threshold from the live zoom so it stays pixel-stable:
+  // peers whose pins would visually collide (~44px apart) merge into one "+N"
+  // badge; everyone else breaks out. At overview zoom the whole RHKYC pile
+  // reads as a single density badge; as you zoom into the course, separated
+  // peers split into individual tappable pins while truly-coincident peers
+  // (same berth/start area) stay merged.
+  const peerClusterLat = homeVenue?.lat ?? 22.295;
+  const [peerClusterThresholdKm, setPeerClusterThresholdKm] = useState(2);
+  const handleZoomChange = useCallback(
+    (z: number) => {
+      const metersPerPixel =
+        (156543.03392 * Math.cos((peerClusterLat * Math.PI) / 180)) / Math.pow(2, z);
+      const km = (44 * metersPerPixel) / 1000;
+      // Snap to a coarse step so the pins memo only recomputes on a meaningful
+      // zoom change, not on every zoom tick.
+      setPeerClusterThresholdKm((prev) => (Math.abs(prev - km) < 0.05 ? prev : km));
+    },
+    [peerClusterLat],
+  );
   // Institution POIs + peer step pins for the "near me" bbox. Center on the
   // user's home venue and query their active interest; fall back to the
   // Causeway Bay demo centroid (22.295, 114.18 = F1 camera preset, see
@@ -2160,6 +2186,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     showSailServices,
     restrictPeersToUserIds,
     peerRelationshipFilter,
+    peerClusterThresholdKm,
   });
   const demoClubPin = useMemo<AtlasPinSpec | null>(() => {
     if (!isYachtClubDemoSlug(handlers.focusOrgSlug)) return null;
@@ -2578,7 +2605,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // collapse into ONE relationship-first lens strip. The hero jobs are mapping
   // your own steps (My steps, on by default) and seeing the steps of people you
   // follow & know (Crew/Fleet/Following), with Races as a trailing filter.
-  const [activeFilterIds, setActiveFilterIds] = useState<string[]>(['you']);
+  const [activeFilterIds, setActiveFilterIds] = useState<string[]>(['you', 'crew', 'fleet']);
   // false = all steps; true = show only race pins (steps that carry
   // course/marks/conditions). Driven by the same merged strip now.
   const [raceOnly, setRaceOnly] = useState(false);
@@ -3112,6 +3139,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             }
             racingAreaPreviewPolygon={areaSheetPolygon}
             onMapCenterChange={setMapCenter}
+            onZoomChange={handleZoomChange}
             onPinPress={handlePinPress}
             onRacingAreaPress={handleRacingAreaPress}
             showRaceAreas={showRaceAreas}
@@ -3585,7 +3613,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <BottomSheet
             key="peer-steps"
             eyebrow="PEER STEPS"
-            title={`${selectedPin.clusterCount} nearby peer steps`}
+            title={`${selectedPin.peerMembers?.length ?? selectedPin.clusterCount} nearby peer steps`}
             body={
               [
                 selectedPin.subtitle,

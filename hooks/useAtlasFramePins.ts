@@ -14,6 +14,8 @@ import { useAtlasPeerSteps, type AtlasPeerStep } from './useAtlasPeerSteps';
 import { useAtlasOrgSteps, type AtlasOrgStep } from './useAtlasOrgSteps';
 import { useUserAtlasSteps, type PickerStep, type UserAtlasStep } from './useUserAtlasSteps';
 import { useSailingPoisNear, type SailingPoiRow } from './useSailingPoisNear';
+import { useVocabulary } from './useVocabulary';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 import type { AtlasPinSpec, AtlasPeerMember } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
 
 interface UseAtlasFramePinsArgs {
@@ -50,6 +52,17 @@ interface UseAtlasFramePinsArgs {
    * would make Crew/Following hide the whole badge. `null` = show all.
    */
   peerRelationshipFilter?: Set<string> | null;
+  /**
+   * Distance (km) under which two peer steps merge into one "+N" badge.
+   * Driven by live map zoom so it tracks visual overlap: derive it from the
+   * map's meters-per-pixel so the threshold is roughly "one pin-width" on
+   * screen. At overview zoom this is large (peers across the harbour collapse
+   * into a single density badge); as the viewer zooms into a race course it
+   * shrinks so spatially separated peers break out into individual pins while
+   * truly coincident steps (same jittered coord) stay merged instead of
+   * stacking invisibly. Defaults to 2km (the original fixed behaviour).
+   */
+  peerClusterThresholdKm?: number;
 }
 
 function mapSailingPoiToPinKind(poi: SailingPoiRow): AtlasPinSpec['kind'] | null {
@@ -148,6 +161,12 @@ export function clusterPeerPins(
   peerPins: AtlasPinSpec[],
   thresholdKm = 2,
   minClusterSize = 5,
+  /**
+   * Interest-aware relationship words + activity noun used to label a
+   * relationship-homogeneous "+N" badge ("+5 fleet sessions"). Omit to fall
+   * back to the renderer's generic interest noun.
+   */
+  clusterLabels?: { crew: string; fleet: string; noun: string },
 ): AtlasPinSpec[] {
   const visited = new Set<number>();
   const out: AtlasPinSpec[] = [];
@@ -168,13 +187,29 @@ export function clusterPeerPins(
         visited.add(idx);
         if (peerPins[idx].peer) members.push(peerPins[idx].peer!);
       }
+      // Relationship-homogeneous clusters get a tier-specific pill noun
+      // ("+5 fleet sessions") so the badge reads as "my fleet near my race"
+      // rather than a generic count. Self ('you') steps don't define the
+      // tier; a mix of tiers falls back to the renderer's generic noun.
+      const nonSelfRels = new Set(
+        members
+          .map((m) => m.relationship)
+          .filter((r): r is string => Boolean(r) && r !== 'self'),
+      );
+      let clusterUnit: string | undefined;
+      if (clusterLabels && nonSelfRels.size === 1) {
+        const only = [...nonSelfRels][0];
+        if (only === 'fleet') clusterUnit = `${clusterLabels.fleet.toLowerCase()} ${clusterLabels.noun}`;
+        else if (only === 'crew') clusterUnit = `${clusterLabels.crew.toLowerCase()} ${clusterLabels.noun}`;
+      }
       out.push({
         id: `peer-cluster:${peerPins[i].id}-${group.length}`,
         lat: lat / group.length,
         lng: lng / group.length,
         kind: 'fleet',
-        clusterCount: group.length,
-        label: `${group.length} nearby peer steps`,
+        clusterCount: members.length,
+        clusterUnit,
+        label: `${members.length} nearby peer steps`,
         subtitle:
           'Privacy-safe cluster of crew, fleet, following, and cohort steps near this area.',
         provenance:
@@ -270,6 +305,7 @@ export function useAtlasFramePins({
   showSailServices = false,
   restrictPeersToUserIds = null,
   peerRelationshipFilter = null,
+  peerClusterThresholdKm = 2,
 }: UseAtlasFramePinsArgs): {
   pins: AtlasPinSpec[];
   pickerSteps: PickerStep[];
@@ -298,6 +334,14 @@ export function useAtlasFramePins({
     interestSlug,
     restrictUserIds,
   });
+  // Interest-aware words for a relationship-homogeneous "+N" cluster pill
+  // ("+5 fleet sessions"): tier labels from the visibility vocab, activity
+  // noun from the step vocab (session / shift / log).
+  const { vocab } = useVocabulary();
+  const clusterLabels = useMemo(() => {
+    const { crew, fleet } = getVisibilityLabels(interestSlug);
+    return { crew, fleet, noun: vocab('Step') };
+  }, [interestSlug, vocab]);
   // Org-published located steps ("what's my org doing here") — rendered as
   // exact, never-jittered calendar pins so attendable activity is something
   // a Nearby-list tap can fly to and land on, not empty water.
@@ -474,7 +518,13 @@ export function useAtlasFramePins({
             : true,
         )
       : peerPins;
-    out.push(...clusterPeerPins(lensedPeerPins));
+    // At course/close-up zoom, emit each peer as its own pin so they render
+    // where people actually are instead of piling into one centroid badge
+    // (which lands on the venue anchor and hides everyone). At overview zoom
+    // the "+N" merge stays the right density signal.
+    out.push(
+      ...clusterPeerPins(lensedPeerPins, peerClusterThresholdKm, 5, clusterLabels),
+    );
 
     // Org-event pins — located steps an organization published nearby. Exact
     // coords (you need the spot to show up), carrying org + blueprint
@@ -541,7 +591,7 @@ export function useAtlasFramePins({
     }
 
     return out;
-  }, [pois, peers, orgSteps, userSteps, sailingPois, interestSlug, peerRelationshipFilter]);
+  }, [pois, peers, orgSteps, userSteps, sailingPois, interestSlug, peerRelationshipFilter, peerClusterThresholdKm, clusterLabels]);
 
   return {
     pins,

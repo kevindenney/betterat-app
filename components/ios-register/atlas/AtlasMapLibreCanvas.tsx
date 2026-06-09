@@ -448,6 +448,13 @@ export interface AtlasPinSpec {
    */
   clusterCount?: number;
   /**
+   * Optional per-pin override for the cluster pill noun ("fleet session",
+   * "crew session", …). Set by clusterPeerPins when a "+N" badge is
+   * relationship-homogeneous, so the pill reads "+N fleet sessions" instead
+   * of the generic interest noun. Singular; the renderer pluralizes.
+   */
+  clusterUnit?: string;
+  /**
    * Competency-evidence glow cluster — when set on an institution POI
    * (hospital/club), the renderer paints a soft aura behind the pin in
    * the cluster's color (cardiac/respiratory/medication/general). Set
@@ -629,6 +636,12 @@ interface AtlasMapLibreCanvasProps {
    * at, refetching marine conditions for the new center.
    */
   onMapCenterChange?: (coords: { lng: number; lat: number }) => void;
+  /**
+   * Fires whenever the live map zoom changes. The parent buckets this into a
+   * "expand peer clusters" boolean so close-up zoom breaks the "+N" peer badge
+   * into individual pins instead of piling them on the venue centroid.
+   */
+  onZoomChange?: (zoom: number) => void;
   /** Base map style used by web and native MapLibre surfaces. */
   basemap?: AtlasBasemap;
   /**
@@ -699,6 +712,7 @@ export function AtlasMapLibreCanvas({
   onMapLongPress,
   racingAreaPreviewPolygon = null,
   onMapCenterChange,
+  onZoomChange,
   basemap = 'map',
   hideArrowChips = false,
 }: AtlasMapLibreCanvasProps) {
@@ -722,11 +736,18 @@ export function AtlasMapLibreCanvas({
   // boxes on top of each other; instead the NEXT tag is the overview-only
   // "here's your next race" signpost and the marks own the close-up view.
   const [zoom, setZoom] = useState(baseCamera.zoom);
+  const onZoomChangeRef = useRef(onZoomChange);
+  useEffect(() => {
+    onZoomChangeRef.current = onZoomChange;
+  }, [onZoomChange]);
   const pollZoom = useCallback(() => {
     const m = mapRef.current;
     if (!m) return;
     void m.getZoom().then((z: number) => {
-      if (typeof z === 'number' && Number.isFinite(z)) setZoom(z);
+      if (typeof z === 'number' && Number.isFinite(z)) {
+        setZoom(z);
+        onZoomChangeRef.current?.(z);
+      }
     });
   }, []);
   // Native map-ready gate. The camera's `flyTo`/`setStop` no-op if issued
@@ -947,6 +968,7 @@ export function AtlasMapLibreCanvas({
         showCourse={showCourse}
         onNextEventPress={onNextEventPress}
         onMapCenterChange={onMapCenterChange}
+        onZoomChange={onZoomChange}
         basemap={basemap}
         baseCamera={baseCamera}
         walkLineCollection={walkLineCollection}
@@ -1279,7 +1301,7 @@ export function AtlasMapLibreCanvas({
               label={pin.label}
               isRace={pin.isRace}
               clusterCount={pin.clusterCount}
-              clusterUnit={clusterUnit}
+              clusterUnit={pin.clusterUnit ?? clusterUnit}
               glowCluster={pin.glowCluster}
               showLabel={shouldShowLabel(pin, pins)}
               hideArrowChips={hideArrowChips}
@@ -1388,6 +1410,7 @@ function WebAtlasMapLibreCanvas({
   showCourse = false,
   onNextEventPress,
   onMapCenterChange,
+  onZoomChange,
   basemap = 'map',
   baseCamera,
   walkLineCollection,
@@ -1413,6 +1436,7 @@ function WebAtlasMapLibreCanvas({
   const onMapPressRef = useRef(onMapPress);
   const onRacingAreaPressRef = useRef(onRacingAreaPress);
   const onMapCenterChangeRef = useRef(onMapCenterChange);
+  const onZoomChangeRef = useRef(onZoomChange);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [bearing, setBearing] = useState(0);
@@ -1443,6 +1467,10 @@ function WebAtlasMapLibreCanvas({
   useEffect(() => {
     onMapCenterChangeRef.current = onMapCenterChange;
   }, [onMapCenterChange]);
+
+  useEffect(() => {
+    onZoomChangeRef.current = onZoomChange;
+  }, [onZoomChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1502,14 +1530,18 @@ function WebAtlasMapLibreCanvas({
         });
 
         map.on('zoom', () => {
-          setZoom(map.getZoom());
+          const z = map.getZoom();
+          setZoom(z);
+          onZoomChangeRef.current?.(z);
         });
 
         map.on('load', () => {
           if (cancelled) return;
           setMapError(null);
           setIsLoaded(true);
-          setZoom(map.getZoom());
+          const z = map.getZoom();
+          setZoom(z);
+          onZoomChangeRef.current?.(z);
         });
 
         map.on('error', (event: any) => {
