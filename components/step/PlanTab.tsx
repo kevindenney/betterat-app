@@ -16,8 +16,7 @@ import type { PlaybookPickerSelection } from '@/components/playbook/PlaybookPick
 import { AddToStepPlanSheet, type AddToStepPlanSelection } from './AddToStepPlanSheet';
 import { ResourceTypeIcon } from '@/components/library-resources/ResourceTypeIcon';
 import { getResourcesByIds } from '@/services/LibraryService';
-import { addStepLink, removeStepLink, getStepConceptLinks, getStepLinks, linkConceptToStep, unlinkConceptFromStep } from '@/services/PlaybookService';
-import { supabase } from '@/services/supabase';
+import { addStepLink, removeStepLink, linkConceptToStep, unlinkConceptFromStep } from '@/services/PlaybookService';
 import { CrossInterestSuggestions } from './CrossInterestSuggestions';
 import { FromOtherPlaybooks } from './FromOtherPlaybooks';
 import { DateEnrichmentCard } from './DateEnrichmentCard';
@@ -39,6 +38,7 @@ import { PlanWithCard } from './plan-tab/PlanWithCard';
 import { PlanWhereCard } from './plan-tab/PlanWhereCard';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import { useStepLinkedConcepts } from '@/hooks/useStepLinkedConcepts';
 import { useStepBeatsBinding } from '@/hooks/useStepBeats';
 import { BeatsList } from '@/components/step/do-tab/BeatsList';
 import { CompetencyPickerModal } from '@/components/competency/CompetencyPickerModal';
@@ -208,7 +208,7 @@ export function PlanTab({
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showCompetencyPicker, setShowCompetencyPicker] = useState(false);
   const [linkedResources, setLinkedResources] = useState<LibraryResourceRecord[]>([]);
-  const [linkedConcepts, setLinkedConcepts] = useState<{ id: string; title: string; slug?: string }[]>([]);
+  const { concepts: linkedConcepts, reload: reloadConcepts } = useStepLinkedConcepts(stepId);
   const { data: availableCompetencies } = useCompetenciesForInterest(interestId);
   const [competencySearch, setCompetencySearch] = useState('');
 
@@ -222,42 +222,6 @@ export function PlanTab({
     getResourcesByIds(linkedIds).then(setLinkedResources).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedIds.join(',')]);
-
-  // Load linked concepts from step_concept_links (Phase 6), falling back to the
-  // older generic typed links when the dedicated table is not available yet.
-  useEffect(() => {
-    if (!stepId) return;
-    let cancelled = false;
-    async function loadConcepts() {
-      try {
-        let conceptIds: string[] = [];
-        try {
-          const links = await getStepConceptLinks(stepId!);
-          conceptIds = links.map((l) => l.concept_id);
-        } catch {
-          const links = await getStepLinks(stepId!);
-          conceptIds = links.filter((l) => l.item_type === 'concept').map((l) => l.item_id);
-        }
-        if (conceptIds.length === 0) {
-          if (!cancelled) setLinkedConcepts([]);
-          return;
-        }
-        const { data } = await supabase
-          .from('playbook_concepts')
-          .select('id, title, slug')
-          .in('id', conceptIds);
-        if (!cancelled) {
-          setLinkedConcepts(
-            (data || []).map((c: any) => ({ id: c.id, title: c.title, slug: c.slug }))
-          );
-        }
-      } catch {
-        if (!cancelled) setLinkedConcepts([]);
-      }
-    }
-    loadConcepts();
-    return () => { cancelled = true; };
-  }, [stepId]);
 
   const handleSelectPlaybookItems = useCallback(async (selections: PlaybookPickerSelection[]) => {
     // Dual-write: maintain linked_resource_ids for resource-type selections (one-release migration safety)
@@ -284,18 +248,10 @@ export function PlanTab({
         )
       );
     }
-    // Optimistically add concept selections to the UI
-    const conceptSelections = selections.filter((s) => s.item_type === 'concept');
-    if (conceptSelections.length > 0) {
-      setLinkedConcepts((prev) => {
-        const existingIds = new Set(prev.map((c) => c.id));
-        const newConcepts = conceptSelections
-          .filter((s) => !existingIds.has(s.item_id))
-          .map((s) => ({ id: s.item_id, title: s.label }));
-        return [...prev, ...newConcepts];
-      });
+    if (selections.some((s) => s.item_type === 'concept')) {
+      reloadConcepts();
     }
-  }, [planData.linked_resource_ids, onUpdate, stepId]);
+  }, [planData.linked_resource_ids, onUpdate, stepId, reloadConcepts]);
 
   const handleRemoveResource = useCallback((resourceId: string) => {
     const updated = (planData.linked_resource_ids ?? []).filter((id) => id !== resourceId);
@@ -303,11 +259,11 @@ export function PlanTab({
   }, [planData.linked_resource_ids, onUpdate]);
 
   const handleRemoveConcept = useCallback(async (conceptId: string) => {
-    setLinkedConcepts((prev) => prev.filter((c) => c.id !== conceptId));
     if (stepId) {
       await unlinkConceptFromStep(stepId, conceptId).catch(() => removeStepLink(stepId, 'concept', conceptId).catch(() => {}));
+      reloadConcepts();
     }
-  }, [stepId]);
+  }, [stepId, reloadConcepts]);
 
   const handleSubStepsChange = useCallback((subSteps: SubStep[]) => {
     onUpdate({ how_sub_steps: subSteps });

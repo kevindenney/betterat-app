@@ -1113,6 +1113,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 15,
+    paddingHorizontal: 16,
     borderRadius: 14,
   },
   bigbtnGo: {
@@ -1128,6 +1129,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+    flexShrink: 1,
   },
   primaryHint: {
     textAlign: 'center',

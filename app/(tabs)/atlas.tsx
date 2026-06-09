@@ -1121,6 +1121,7 @@ export default function AtlasTab() {
           initialFocusStepId={initialFocusStepId}
           initialPeerFocus={initialPeerFocus}
           onNearbyPress={frame === 'f4' ? () => setNearbyOpen(true) : undefined}
+          nearbyOverlayOpen={nearbyOpen}
           bottomSheetOffset={tabBarSpace}
         />
 

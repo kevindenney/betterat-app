@@ -31,11 +31,11 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, LayoutChangeEvent, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, LayoutChangeEvent, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -318,6 +318,13 @@ export interface AtlasFrameHandlers {
    * wrapper-level floating pill and don't pass it.
    */
   onNearbyPress?: () => void;
+  /**
+   * True while the wrapper's full-bleed Nearby list overlay covers the map.
+   * F1 watches this to drop any in-progress reposition/retrace mode — the
+   * editing banner has no map to tap and no reachable Cancel once the list
+   * is on top, so it would otherwise leak onto a surface it can't act on.
+   */
+  nearbyOverlayOpen?: boolean;
   avatarInitial?: string;
   useMapLibre?: boolean;
   bottomSheetOffset?: number;
@@ -378,6 +385,7 @@ export function AtlasScreen({
   initialFocusStepId,
   initialPeerFocus,
   onNearbyPress,
+  nearbyOverlayOpen,
   useMapLibre = false,
   initialCommitMode = false,
   initialCreateRacingArea = false,
@@ -404,6 +412,7 @@ export function AtlasScreen({
     initialFocusStepId,
     initialPeerFocus,
     onNearbyPress,
+    nearbyOverlayOpen,
     useMapLibre,
     initialCommitMode,
     initialCreateRacingArea,
@@ -1794,6 +1803,26 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     | null
   >(null);
   const updateRacingAreaMutation = useUpdateRacingArea();
+  // Map-editing modes (reposition / retrace) are map-only. If the user leaves
+  // Atlas — or opens a non-map overlay — without finishing, the banner would
+  // otherwise leak onto surfaces with no map to tap and no cancel in reach.
+  // Reset both modes whenever Atlas loses focus.
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setRepositionTarget(null);
+        setRetraceTarget(null);
+      };
+    }, []),
+  );
+  // Same guard for the in-tab Nearby list overlay (no focus change fires when
+  // it slides over the map), so the editing banner can't strand on top of it.
+  useEffect(() => {
+    if (handlers.nearbyOverlayOpen) {
+      setRepositionTarget(null);
+      setRetraceTarget(null);
+    }
+  }, [handlers.nearbyOverlayOpen]);
   const handleRetraceOnMap = useCallback((target: EditingRacingArea) => {
     setEditingArea(null);
     setRetraceTarget({ ...target, vertices: [] });
@@ -6908,6 +6937,10 @@ function BottomSheet({
   const cycle = useCallback(() => {
     setState((v) => (v === 'expanded' ? 'mid' : v === 'mid' ? 'handle' : 'expanded'));
   }, []);
+  const { height: windowHeight } = useWindowDimensions();
+  // Cap the expanded body so a tall detail (race strategy, stats, peer header)
+  // scrolls instead of overflowing off-screen past the fixed CTA row.
+  const expandedScrollMaxHeight = Math.round(windowHeight * 0.46);
   const showFull = state === 'expanded';
   const showMid = state !== 'handle';
   if (state === 'handle' && handleBehavior === 'edgeTab') {
@@ -6993,14 +7026,6 @@ function BottomSheet({
           </Pressable>
         </View>
       ) : null}
-      {showFull && peerHeader ? (
-        <View>
-          <Text style={shellStyles.peerName}>
-            {peerHeader.name} <Text style={shellStyles.peerQuote}>· {peerHeader.quote}</Text>
-          </Text>
-          <Text style={shellStyles.peerEyebrow}>{peerHeader.eyebrow}</Text>
-        </View>
-      ) : null}
       {showMid && source ? (
         onSourcePress ? (
           <Pressable onPress={onSourcePress} hitSlop={6}>
@@ -7010,14 +7035,31 @@ function BottomSheet({
           <Text style={shellStyles.sheetSource}>{source}</Text>
         )
       ) : null}
-      {showFull && body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
-      {showFull && expandedContent}
-      {showFull && statsRow ? (
-        <View style={shellStyles.statsRow}>
-          {statsRow.map((stat) => (
-            <Stat key={stat.label} {...stat} />
-          ))}
-        </View>
+      {showFull ? (
+        <ScrollView
+          style={{ maxHeight: expandedScrollMaxHeight }}
+          contentContainerStyle={shellStyles.sheetScrollContent}
+          showsVerticalScrollIndicator
+          keyboardShouldPersistTaps="handled"
+        >
+          {peerHeader ? (
+            <View>
+              <Text style={shellStyles.peerName}>
+                {peerHeader.name} <Text style={shellStyles.peerQuote}>· {peerHeader.quote}</Text>
+              </Text>
+              <Text style={shellStyles.peerEyebrow}>{peerHeader.eyebrow}</Text>
+            </View>
+          ) : null}
+          {body ? <Text style={shellStyles.sheetBody}>{body}</Text> : null}
+          {expandedContent}
+          {statsRow ? (
+            <View style={shellStyles.statsRow}>
+              {statsRow.map((stat) => (
+                <Stat key={stat.label} {...stat} />
+              ))}
+            </View>
+          ) : null}
+        </ScrollView>
       ) : null}
       {showMid && (primary || secondary) && (
         <View style={shellStyles.btnRow}>
@@ -10501,6 +10543,10 @@ const shellStyles = StyleSheet.create({
     letterSpacing: 0.6,
     color: IOS_REGISTER.label,
     textTransform: 'uppercase',
+  },
+  sheetScrollContent: {
+    gap: 8,
+    paddingBottom: 4,
   },
   sheetHandleHit: {
     alignItems: 'center',

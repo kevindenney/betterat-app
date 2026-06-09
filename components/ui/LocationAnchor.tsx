@@ -58,7 +58,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.82)',
+    // Opaque fill: a semi-transparent white over the translucent toolbar
+    // composited a faint vertical seam ("white line") down the pill.
+    backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60, 60, 67, 0.10)',
     shadowColor: '#000',

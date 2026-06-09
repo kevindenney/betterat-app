@@ -700,6 +700,12 @@ export function AtlasMapLibreCanvas({
   // of the event payload, because the legacy/Fabric bridge field shape
   // for `event.nativeEvent.bearing` is brittle between RN architectures.
   const [bearing, setBearing] = useState(0);
+  // Native map-ready gate. The camera's `flyTo`/`setStop` no-op if issued
+  // before the style finishes loading, which left a race-area focus
+  // (e.g. Port Shelter) stranded on the default frame preset. We flip
+  // this on `onDidFinishLoadingMap` and re-run the focus effect so the
+  // first focus lands once the camera can actually move.
+  const [mapReady, setMapReady] = useState(false);
   const pollBearing = useCallback(() => {
     const m = mapRef.current;
     if (!m) return;
@@ -839,6 +845,10 @@ export function AtlasMapLibreCanvas({
   );
   useEffect(() => {
     if (!focusLocation) return;
+    // Wait for the style to load — `flyTo`/`setStop` silently no-op
+    // against an unready camera, which previously stranded the first
+    // race-area focus on the default frame preset.
+    if (!mapReady) return;
     // If a bounding box is provided (geocoded place result), fit the
     // camera to it so a city lands at city zoom, a neighborhood at
     // neighborhood zoom, and an address at address zoom. Falls back to
@@ -858,7 +868,7 @@ export function AtlasMapLibreCanvas({
       duration: 500,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, focusPadding, focusZoomLevel]);
+  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, focusPadding, focusZoomLevel, mapReady]);
   const walkLineCollection = useMemo<GeoJSON.FeatureCollection>(() => {
     const features: GeoJSON.Feature[] = pins
       .filter((pin) => pin.kind === 'walk-annotation' && pin.walkLine)
@@ -910,6 +920,7 @@ export function AtlasMapLibreCanvas({
         style={styles.fill}
         onPress={onMapPress ? handlePress : undefined}
         onLongPress={onMapLongPress ? handleLongPress : undefined}
+        onDidFinishLoadingMap={() => setMapReady(true)}
         // Always wire — handleRegionChange also tracks bearing for the
         // compass affordance, so we want it firing even when no consumer
         // is subscribed to map-center updates.

@@ -24,6 +24,8 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useStepActCaptureController } from '@/hooks/useStepActCaptureController';
+import { useStepLinkedConcepts } from '@/hooks/useStepLinkedConcepts';
+import { WorkingWithConcepts } from '@/components/step/plan-tab/WorkingWithConcepts';
 import { DoTabInterior } from './DoTabInterior';
 import { DoQuickNoteModal } from './DoQuickNoteModal';
 import { MarkAsEvidenceSheet } from './MarkAsEvidenceSheet';
@@ -73,6 +75,10 @@ export function DoTabIOSRegisterShell({
     interestSlug,
     onMoveToReflect: effectiveMoveToReflect,
   });
+  // Concepts linked to this step (refetched on focus) surface on Do as a
+  // display-only "Working with" strip, matching Plan. Linking happens on Plan
+  // or from the concept detail; here it's reference while capturing.
+  const { concepts } = useStepLinkedConcepts(stepId);
 
   return (
     <View
@@ -81,6 +87,17 @@ export function DoTabIOSRegisterShell({
         rightInset ? { paddingRight: rightInset } : null,
       ]}
     >
+      {concepts.length > 0 ? (
+        <View style={styles.conceptStrip}>
+          <WorkingWithConcepts
+            concepts={concepts.map((c) => ({ id: c.id, title: c.title }))}
+            onPressConcept={(conceptId) =>
+              router.push(`/(tabs)/library/concept/${conceptId}` as any)
+            }
+          />
+        </View>
+      ) : null}
+
       <DoTabInterior {...controller.doTabInteriorProps} footer={footer} embedded={embedded} />
 
       <MarkAsEvidenceSheet
@@ -112,5 +129,9 @@ const styles = StyleSheet.create({
   },
   containerEmbedded: {
     // intrinsic — parent ScrollView owns scroll
+  },
+  conceptStrip: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
 });

@@ -250,6 +250,7 @@ export function DoTabInterior({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
       >
         {liveBody}
       </ScrollView>
@@ -293,6 +294,7 @@ export function DoTabInterior({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
       >
         {postBody}
       </ScrollView>
@@ -329,6 +331,7 @@ export function DoTabInterior({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
     >
       {state === 'pre_activity' && (
         <>

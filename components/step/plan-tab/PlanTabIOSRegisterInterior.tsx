@@ -467,6 +467,7 @@ export function PlanTabIOSRegisterInterior({
       ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
       testID={testID}
     >
       {body}

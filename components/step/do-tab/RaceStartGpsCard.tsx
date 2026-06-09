@@ -24,6 +24,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { RaceTimerService } from '@/services/RaceTimerService';
 import { getAtlasStepData } from '@/lib/atlasRaceStep';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { useToast } from '@/components/ui/AppToast';
 
 const ACCENT = IOS_BLUE;
 
@@ -59,6 +60,7 @@ export function RaceStartGpsCard({
   const { data: step } = useStepDetail(stepId);
   const { user } = useAuth();
   const updateMetadata = useUpdateStepMetadata(stepId);
+  const toast = useToast();
 
   const resolvedInterestId = interestId ?? step?.interest_id ?? null;
   const vocab = useMemo(
@@ -124,14 +126,14 @@ export function RaceStartGpsCard({
           },
         },
       });
-      showAlert('Live tracking started', 'GPS track capture is now attached to this step.');
+      toast.show('Live tracking started', 'success');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not start live tracking.';
       showAlert('Tracking failed', message);
     } finally {
       setTrackingBusy(false);
     }
-  }, [atlasData, liveTracking, trackingBusy, updateMetadata, user?.id]);
+  }, [atlasData, liveTracking, trackingBusy, updateMetadata, user?.id, toast]);
 
   const handleStopTracking = useCallback(async () => {
     if (trackingBusy) return;
@@ -150,14 +152,14 @@ export function RaceStartGpsCard({
           },
         },
       });
-      showAlert('Tracking saved', 'This GPS session is now attached to the step for replay and debrief.');
+      toast.show('Tracking saved · attached for replay', 'success');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not stop live tracking cleanly.';
       showAlert('Tracking stop failed', message);
     } finally {
       setTrackingBusy(false);
     }
-  }, [atlasData, liveTracking, trackingBusy, updateMetadata]);
+  }, [atlasData, liveTracking, trackingBusy, updateMetadata, toast]);
 
   // Keep a stable ref to the latest start-tracking handler so the countdown
   // interval (which captures a closure at start time) fires the current one.

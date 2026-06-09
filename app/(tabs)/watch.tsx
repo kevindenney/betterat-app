@@ -377,7 +377,11 @@ export default function WatchScreen() {
       <TabScreenToolbar
         subtitleContent={
           homeVenue && isSailingInterest(currentInterest?.slug) ? (
-            <LocationAnchor region={homeVenue.region} venue={homeVenue.venue} />
+            <LocationAnchor
+              region={homeVenue.region}
+              venue={homeVenue.venue}
+              onPress={() => setGrouping('location')}
+            />
           ) : undefined
         }
         topInset={insets.top}

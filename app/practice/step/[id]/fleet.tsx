@@ -62,7 +62,14 @@ export default function FleetViewRoute() {
     <View style={styles.screen}>
       <Stack.Screen
         options={{
+          // Opt into the native nav bar so the surface gets the standard
+          // back affordance + top safe-area inset. Without this the route
+          // inherits the root Stack's headerShown:false and FleetView's
+          // hero collides with the status bar / dynamic island. Title is
+          // blank because FleetView renders its own hero title.
+          headerShown: true,
           title: 'Fleet view',
+          headerTitle: '',
           headerLeft: () => (
             <Pressable onPress={() => router.back()} hitSlop={8} style={styles.back}>
               <ChevronLeft size={20} color={IOS_BLUE} />
