@@ -19,12 +19,14 @@ import {
   View,
   TouchableOpacity,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
 import { useFleetOverview, useFleetPlans, useUserFleets } from '@/hooks/useFleetData';
 import { useFleetPosts } from '@/hooks/useFleetSocial';
 import { fleetService, type FleetMembership } from '@/services/fleetService';
 import { TUFTE_BACKGROUND } from '@/components/cards/constants';
+import { InterestSwitcher } from '@/components/InterestSwitcher';
 
 // Tufte color palette
 const COLORS = {
@@ -39,12 +41,10 @@ const COLORS = {
   successGreen: '#16A34A',
 };
 
-const pluralize = (count: number, noun: string): string =>
-  `${count} ${noun}${count === 1 ? '' : 's'}`;
-
 export default function FleetOverviewScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [selectedFleetIndex, setSelectedFleetIndex] = useState(0);
   const [leavingFleetId, setLeavingFleetId] = useState<string | null>(null);
 
@@ -121,15 +121,22 @@ export default function FleetOverviewScreen() {
   // Empty state - no fleets
   if (!fleetsLoading && fleets.length === 0) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <TouchableOpacity
-          style={styles.backRow}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/library'))}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-        >
-          <Text style={styles.backText}>‹ Back</Text>
-        </TouchableOpacity>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        stickyHeaderIndices={[0]}
+      >
+        <View style={[styles.navbar, { paddingTop: insets.top + 6 }]}>
+          <TouchableOpacity
+            style={styles.backRow}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/library'))}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <Text style={styles.backText}>‹ Back</Text>
+          </TouchableOpacity>
+          <InterestSwitcher />
+        </View>
         <Text style={styles.sectionLabel}>FLEETS</Text>
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>No fleets yet</Text>
@@ -163,15 +170,24 @@ export default function FleetOverviewScreen() {
   const summaryFleet = overview?.fleet ?? activeFleet;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <TouchableOpacity
-        style={styles.backRow}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/library'))}
-        accessibilityRole="button"
-        accessibilityLabel="Back"
-      >
-        <Text style={styles.backText}>‹ Back</Text>
-      </TouchableOpacity>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      stickyHeaderIndices={[0]}
+    >
+      <View style={[styles.navbar, { paddingTop: insets.top + 6 }]}>
+        <TouchableOpacity
+          style={styles.backRow}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/library'))}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
+          <Text style={styles.backText}>‹ Back</Text>
+        </TouchableOpacity>
+        <View style={styles.navbarSwitcher}>
+          <InterestSwitcher />
+        </View>
+      </View>
       {/* Fleet Selector — only meaningful when you belong to more than one
           fleet. With a single fleet the list just repeats the header below, so
           we lead straight into the fleet itself and keep Join/New as a compact
@@ -218,34 +234,38 @@ export default function FleetOverviewScreen() {
                 ].filter(Boolean).join(' · ')}
               </Text>
             </View>
-            {/* Owners can't leave (it would orphan the fleet); they manage
-                it via the roster instead. Members/captains/coaches may leave. */}
-            {activeRole !== 'owner' && (
-              <TouchableOpacity
-                onPress={() => handleLeaveFleet(summaryFleet.id, summaryFleet.name)}
-                disabled={leavingFleetId === summaryFleet.id}
-              >
-                {leavingFleetId === summaryFleet.id ? (
-                  <ActivityIndicator size="small" color={COLORS.leaveRed} />
-                ) : (
-                  <Text style={styles.leaveText}>Leave</Text>
-                )}
-              </TouchableOpacity>
-            )}
+            <View style={styles.roleChip}>
+              <Text style={styles.roleChipText}>{formatRole(activeRole)}</Text>
+            </View>
           </View>
 
-          {/* Stats Line */}
-          <Text style={styles.statsLine}>
-            {[
-              pluralize(overview?.metrics?.members ?? 0, 'member'),
-              (overview?.metrics?.invited ?? 0) > 0
-                ? `${overview?.metrics?.invited} invited`
-                : null,
-              pluralize(overview?.metrics?.documents ?? 0, 'resource'),
-              summaryFleet.visibility ?? 'private',
-              summaryFleet.whatsappLink ? 'WhatsApp linked' : null,
-            ].filter(Boolean).join(' · ')}
-          </Text>
+          {/* Stat tiles */}
+          <View style={styles.statTiles}>
+            <View style={styles.statTile}>
+              <Text style={styles.statTileNumber}>{overview?.metrics?.members ?? 0}</Text>
+              <Text style={styles.statTileLabel}>Members</Text>
+            </View>
+            <View style={styles.statTile}>
+              <Text style={styles.statTileNumber}>{overview?.metrics?.invited ?? 0}</Text>
+              <Text style={styles.statTileLabel}>Invited</Text>
+            </View>
+            <View style={styles.statTile}>
+              <Text style={styles.statTileNumber}>{overview?.metrics?.documents ?? 0}</Text>
+              <Text style={styles.statTileLabel}>Resources</Text>
+            </View>
+          </View>
+
+          {/* Visibility badge */}
+          <View style={styles.visBadge}>
+            <Text style={styles.visBadgeIcon}>
+              {summaryFleet.visibility === 'public' ? '🔓' : '🔒'}
+            </Text>
+            <Text style={styles.visBadgeText}>
+              {summaryFleet.visibility === 'public'
+                ? 'Public fleet · anyone can find it'
+                : 'Private fleet · invite only'}
+            </Text>
+          </View>
 
           {/* Manage / view members */}
           <TouchableOpacity
@@ -285,6 +305,21 @@ export default function FleetOverviewScreen() {
                 <Text style={styles.linkText}>+ New fleet</Text>
               </TouchableOpacity>
             </Link>
+            {/* Owners can't leave (it would orphan the fleet); they manage it
+                via the roster. Members/captains/coaches may leave. */}
+            {activeRole !== 'owner' && (
+              <TouchableOpacity
+                style={styles.joinRow}
+                onPress={() => handleLeaveFleet(summaryFleet.id, summaryFleet.name)}
+                disabled={leavingFleetId === summaryFleet.id}
+              >
+                {leavingFleetId === summaryFleet.id ? (
+                  <ActivityIndicator size="small" color={COLORS.leaveRed} />
+                ) : (
+                  <Text style={styles.leaveText}>Leave</Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </>
       )}
@@ -417,16 +452,86 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  navbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 10,
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.hairline,
+  },
+  navbarSwitcher: {
+    alignItems: 'flex-end',
+  },
   backRow: {
-    alignSelf: 'flex-start',
     paddingVertical: 4,
     paddingRight: 12,
-    marginBottom: 4,
   },
   backText: {
     fontSize: 16,
     color: COLORS.activeBlue,
     fontWeight: '500',
+  },
+
+  // Role chip
+  roleChip: {
+    backgroundColor: '#FFF4E1',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginTop: 4,
+  },
+  roleChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B26B00',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+
+  // Stat tiles
+  statTiles: {
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 16,
+  },
+  statTile: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+  },
+  statTileNumber: {
+    fontSize: 19,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  statTileLabel: {
+    fontSize: 11,
+    color: COLORS.tertiaryText,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+
+  // Visibility badge
+  visBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 13,
+    marginBottom: 4,
+  },
+  visBadgeIcon: {
+    fontSize: 12,
+  },
+  visBadgeText: {
+    fontSize: 12,
+    color: COLORS.secondaryText,
   },
 
   // Section labels (Tufte style)
