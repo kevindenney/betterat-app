@@ -172,6 +172,14 @@ async function authRecover(email, redirectTo) {
   return { status: res.status, body: await jsonOrText(res) };
 }
 
+async function authMagicLink(email, redirectTo) {
+  const res = await fetchWithTimeout(
+    `${SUPABASE_URL}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`,
+    { method: 'POST', headers: anonHeaders(), body: JSON.stringify({ email, create_user: false }) },
+  );
+  return { status: res.status, body: await jsonOrText(res) };
+}
+
 async function passwordGrant(email) {
   const res = await fetchWithTimeout(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -209,30 +217,67 @@ async function testPasswordRecovery(created) {
   const inbox = await createInbox();
   created.inboxes.push(inbox);
   pass('recovery: disposable inbox created', inbox);
+  try {
+    const user = await adminCreateUser(inbox);
+    if (user?.id) created.userIds.push(user.id);
+    check('recovery: confirmed test user created', !!user?.id, user?.id || JSON.stringify(user));
 
-  const user = await adminCreateUser(inbox);
-  if (user?.id) created.userIds.push(user.id);
-  check('recovery: confirmed test user created', !!user?.id, user?.id || JSON.stringify(user));
+    const redirect = `${SITE_BASE}/(auth)/reset-password`;
+    const { status } = await authRecover(inbox, redirect);
+    if (status === 429) {
+      skip('recovery: email send rate-limited (HTTP 429)', 'built-in SMTP hourly cap — rerun later or configure custom SMTP');
+      return;
+    }
+    check('recovery: POST /auth/v1/recover accepted', status >= 200 && status < 300, `HTTP ${status}`);
+    if (status < 200 || status >= 300) return;
 
-  const redirect = `${SITE_BASE}/(auth)/reset-password`;
-  const { status } = await authRecover(inbox, redirect);
-  if (status === 429) {
-    skip('recovery: email send rate-limited (HTTP 429)', 'built-in SMTP hourly cap — rerun later or configure custom SMTP');
-    return;
+    const msg = await waitForMessage(inbox);
+    if (!msg) {
+      fail('recovery: email received', `none within ${EMAIL_TIMEOUT_MS / 1000}s`);
+      return;
+    }
+    pass('recovery: email received', msg.subject || '(no subject)');
+
+    const link = extractAuthLink(msg);
+    check('recovery: link present in email', !!link);
+    if (link) assertLinkShape('recovery', link, redirect, 'recovery');
+  } finally {
+    await deleteInbox(inbox);
   }
-  check('recovery: POST /auth/v1/recover accepted', status >= 200 && status < 300, `HTTP ${status}`);
-  if (status < 200 || status >= 300) return;
+}
 
-  const msg = await waitForMessage(inbox);
-  if (!msg) {
-    fail('recovery: email received', `none within ${EMAIL_TIMEOUT_MS / 1000}s`);
-    return;
+async function testMagicLink(created) {
+  console.log('\n── Magic-link login email round-trip ──');
+  const inbox = await createInbox();
+  created.inboxes.push(inbox);
+  pass('magic-link: disposable inbox created', inbox);
+  try {
+    const user = await adminCreateUser(inbox);
+    if (user?.id) created.userIds.push(user.id);
+    check('magic-link: confirmed test user created', !!user?.id, user?.id || JSON.stringify(user));
+
+    const redirect = `${SITE_BASE}/callback`;
+    const { status } = await authMagicLink(inbox, redirect);
+    if (status === 429) {
+      skip('magic-link: email send rate-limited (HTTP 429)', 'SMTP hourly cap — rerun later');
+      return;
+    }
+    check('magic-link: POST /auth/v1/otp accepted', status >= 200 && status < 300, `HTTP ${status}`);
+    if (status < 200 || status >= 300) return;
+
+    const msg = await waitForMessage(inbox);
+    if (!msg) {
+      fail('magic-link: email received', `none within ${EMAIL_TIMEOUT_MS / 1000}s`);
+      return;
+    }
+    pass('magic-link: email received', msg.subject || '(no subject)');
+
+    const link = extractAuthLink(msg);
+    check('magic-link: link present in email', !!link);
+    if (link) assertLinkShape('magic-link', link, redirect, 'magiclink');
+  } finally {
+    await deleteInbox(inbox);
   }
-  pass('recovery: email received', msg.subject || '(no subject)');
-
-  const link = extractAuthLink(msg);
-  check('recovery: link present in email', !!link);
-  if (link) assertLinkShape('recovery', link, redirect, 'recovery');
 }
 
 async function testSignupConfirmation(created) {
@@ -240,36 +285,39 @@ async function testSignupConfirmation(created) {
   const inbox = await createInbox();
   created.inboxes.push(inbox);
   pass('signup: disposable inbox created', inbox);
+  try {
+    const redirect = `${SITE_BASE}/callback`;
+    const res = await authSignup(inbox, redirect);
 
-  const redirect = `${SITE_BASE}/callback`;
-  const res = await authSignup(inbox, redirect);
+    if (res?.access_token) {
+      if (res?.user?.id) created.userIds.push(res.user.id);
+      skip('signup: confirmation flow', 'project auto-confirms (email confirmation disabled) — no email sent');
+      return;
+    }
+    const userId = res?.id || res?.user?.id;
+    if (userId) created.userIds.push(userId);
+    check('signup: user created pending confirmation', !!userId, userId || JSON.stringify(res));
 
-  if (res?.access_token) {
-    if (res?.user?.id) created.userIds.push(res.user.id);
-    skip('signup: confirmation flow', 'project auto-confirms (email confirmation disabled) — no email sent');
-    return;
+    const msg = await waitForMessage(inbox);
+    if (!msg) {
+      fail('signup: confirmation email received', `none within ${EMAIL_TIMEOUT_MS / 1000}s`);
+      return;
+    }
+    pass('signup: confirmation email received', msg.subject || '(no subject)');
+
+    const link = extractAuthLink(msg);
+    check('signup: confirmation link present', !!link);
+    if (!link) return;
+    assertLinkShape('signup', link, redirect, 'signup');
+
+    const verifyRes = await fetchWithTimeout(link, { redirect: 'manual' }, 15_000).catch(() => null);
+    check('signup: verify link returns redirect (3xx)', !!verifyRes && verifyRes.status >= 300 && verifyRes.status < 400, verifyRes ? `HTTP ${verifyRes.status}` : 'no response');
+
+    const grant = await passwordGrant(inbox);
+    check('signup: sign-in succeeds after confirm', grant.status === 200 && !!grant.body?.access_token, `HTTP ${grant.status}`);
+  } finally {
+    await deleteInbox(inbox);
   }
-  const userId = res?.id || res?.user?.id;
-  if (userId) created.userIds.push(userId);
-  check('signup: user created pending confirmation', !!userId, userId || JSON.stringify(res));
-
-  const msg = await waitForMessage(inbox);
-  if (!msg) {
-    fail('signup: confirmation email received', `none within ${EMAIL_TIMEOUT_MS / 1000}s`);
-    return;
-  }
-  pass('signup: confirmation email received', msg.subject || '(no subject)');
-
-  const link = extractAuthLink(msg);
-  check('signup: confirmation link present', !!link);
-  if (!link) return;
-  assertLinkShape('signup', link, redirect, 'signup');
-
-  const verifyRes = await fetchWithTimeout(link, { redirect: 'manual' }, 15_000).catch(() => null);
-  check('signup: verify link returns redirect (3xx)', !!verifyRes && verifyRes.status >= 300 && verifyRes.status < 400, verifyRes ? `HTTP ${verifyRes.status}` : 'no response');
-
-  const grant = await passwordGrant(inbox);
-  check('signup: sign-in succeeds after confirm', grant.status === 200 && !!grant.body?.access_token, `HTTP ${grant.status}`);
 }
 
 async function cleanup(created) {
@@ -297,6 +345,7 @@ async function main() {
   const created = { inboxes: [], userIds: [] };
   try {
     await testPasswordRecovery(created);
+    await testMagicLink(created);
     await testSignupConfirmation(created);
   } catch (err) {
     fail('harness crashed', err?.message || String(err));
