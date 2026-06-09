@@ -59,6 +59,8 @@ import {
   type AtlasRacingAreaPressTarget,
 } from './AtlasMapLibreCanvas';
 import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
+import { AreaKnowledgeSection } from './AreaKnowledgeSection';
+import type { CurrentConditions } from '@/types/community-feed';
 import { CreateRaceCourseSheet } from './CreateRaceCourseSheet';
 import { CourseStrategyCard, strategyHeadline } from './CourseStrategyCard';
 import { deriveCourseStrategy, type CourseStrategy } from '@/lib/courseStrategy';
@@ -1819,6 +1821,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [layersOpen, setLayersOpen] = useState(false);
   const [manageAreasOpen, setManageAreasOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<EditingRacingArea | null>(null);
+  // Racing-area knowledge callout: tapping an area label opens a sheet with
+  // the area's local-knowledge posts (RLS-scoped to the viewer).
+  const [knowledgeArea, setKnowledgeArea] = useState<AtlasRacingAreaPressTarget | null>(null);
   const handleEditArea = useCallback((target: ManageAreasEditTarget) => {
     setManageAreasOpen(false);
     setEditingArea(target);
@@ -2356,6 +2361,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     // Auto-close the Layers sheet when a pin is tapped so the detail
     // sheet doesn't render inside / behind the Layers panel.
     setLayersOpen(false);
+    setKnowledgeArea(null);
     setSelectedPin(pin);
   }, []);
   // A peer broken out of a privacy cluster on demand (tapped in the cluster
@@ -2401,6 +2407,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const aBottomSheetOpen =
     !!stepPreview ||
     !!candidate ||
+    !!knowledgeArea ||
     (!!selectedPin && !(cockpitOwnsNext && selectedPin.kind === 'my-step-next'));
   const cockpitCollapsed = cockpitManuallyCollapsed || aBottomSheetOpen;
   const toggleCockpitCollapsed = useCallback(() => {
@@ -2681,7 +2688,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const { data: marineSnapshot } = useMarineSnapshot({
     lat: mapCenter.lat,
     lng: mapCenter.lng,
-    enabled: showWind || showTide || showWaves || selectedRaceStepOpen,
+    enabled: showWind || showTide || showWaves || selectedRaceStepOpen || knowledgeArea !== null,
     targetTime: selectedRaceStepOpen ? selectedRaceStartAt : null,
   });
   const { data: raceTrendWindow } = useMarineTrendWindow({
@@ -2691,21 +2698,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     enabled: selectedRaceStepOpen && !!selectedRaceStartAt,
   });
   const { user: authUser } = useAuth();
-  const handleRacingAreaPress = useCallback(
-    (area: AtlasRacingAreaPressTarget) => {
-      if (area.createdBy !== authUser?.id) return;
-      setEditingArea({
-        id: area.id,
-        name: area.name,
-        centerLat: area.centerLat,
-        centerLng: area.centerLng,
-        radiusMeters: null,
-        classesUsed: area.classesUsed,
-        polygon: area.polygon,
-      });
-    },
-    [authUser?.id],
-  );
+  const handleRacingAreaPress = useCallback((area: AtlasRacingAreaPressTarget) => {
+    // Everyone gets the local-knowledge callout; owners reach the edit
+    // sheet via the "Edit area" link inside the panel.
+    setLayersOpen(false);
+    setSelectedPin(null);
+    setKnowledgeArea(area);
+  }, []);
   // HKO observations override Open-Meteo wind when a station is within
   // ~5km of map center. Real anemometer beats a 5km model grid for the
   // local read, but only inside the HK bbox — outside we don't bother
@@ -2720,6 +2719,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     // when the dataset (or center) changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapCenter.lat, mapCenter.lng, hko.data, showWind, selectedRaceStepOpen, selectedRaceStartAt]);
+  // Live conditions handed to the area-knowledge callout so it can count
+  // posts whose condition tags match right now. HKO station beats the
+  // Open-Meteo grid when available, same precedence as the wind overlay.
+  const areaLiveConditions = useMemo<CurrentConditions | null>(() => {
+    const windDirection = hkoWind?.degrees ?? marineSnapshot?.wind?.degrees ?? null;
+    const windSpeed = hkoWind?.knots ?? marineSnapshot?.wind?.knots ?? null;
+    if (windDirection == null && windSpeed == null) return null;
+    return {
+      windDirection,
+      windSpeed,
+      currentSpeed: marineSnapshot?.current?.knots ?? null,
+    };
+  }, [hkoWind, marineSnapshot]);
   const windConditionsLine = useMemo(
     () =>
       hkoWind
@@ -3543,6 +3555,53 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           }}
           secondary={{ label: 'Cancel', onPress: exitCommit }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+        />
+      ) : knowledgeArea ? (
+        <BottomSheet
+          key={`area-knowledge:${knowledgeArea.id}`}
+          eyebrow="RACING AREA"
+          title={knowledgeArea.name}
+          expandedContent={
+            <AreaKnowledgeSection
+              racingAreaId={knowledgeArea.id}
+              conditions={areaLiveConditions}
+              onEditArea={
+                knowledgeArea.createdBy === authUser?.id
+                  ? () => {
+                      const a = knowledgeArea;
+                      setKnowledgeArea(null);
+                      setEditingArea({
+                        id: a.id,
+                        name: a.name,
+                        centerLat: a.centerLat,
+                        centerLng: a.centerLng,
+                        radiusMeters: null,
+                        classesUsed: a.classesUsed,
+                        polygon: a.polygon,
+                      });
+                    }
+                  : undefined
+              }
+            />
+          }
+          primary={{
+            label: 'Add local knowledge',
+            icon: 'add',
+            onPress: () => {
+              const a = knowledgeArea;
+              setKnowledgeArea(null);
+              router.push({
+                pathname: '/venue/post/create',
+                params: {
+                  ...(a.venueId ? { venueId: a.venueId } : {}),
+                  racingAreaId: a.id,
+                },
+              } as never);
+            },
+          }}
+          secondary={{ label: 'Close', onPress: () => setKnowledgeArea(null) }}
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="expanded"
         />
       ) : selectedPin && !(cockpitOwnsNext && selectedPin.kind === 'my-step-next') ? (
         // Race-marks are organizer-set artifacts of an upcoming race — the

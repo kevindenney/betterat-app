@@ -1019,7 +1019,8 @@ class CommunityFeedServiceClass {
           racing_area:venue_racing_areas!racing_area_id (
             id,
             area_name
-          )
+          ),
+          condition_tags:venue_post_condition_tags (*)
         `)
         .eq('racing_area_id', racingAreaId)
         .order('pinned', { ascending: false })

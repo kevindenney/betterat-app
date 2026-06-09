@@ -30,6 +30,7 @@ export type RacingAreaSource = 'official' | 'community' | 'imported';
 export interface RacingAreaProperties {
   id: string;
   name: string;
+  venueId: string | null;
   source: RacingAreaSource;
   verificationStatus: 'pending' | 'verified' | 'disputed';
   classesUsed: string[];
@@ -55,6 +56,7 @@ interface UseAtlasRacingAreasArgs {
 interface RawArea {
   id: string;
   area_name: string;
+  venue_id: string | null;
   geometry: unknown;
   center_lat: number | null;
   center_lng: number | null;
@@ -140,6 +142,7 @@ function toFeature(
     properties: {
       id: row.id,
       name: row.area_name,
+      venueId: row.venue_id,
       source: row.source ?? 'official',
       verificationStatus: row.verification_status ?? 'verified',
       classesUsed,
@@ -172,7 +175,7 @@ export function useAtlasRacingAreas({
       const { data, error } = await supabase
         .from('venue_racing_areas')
         .select(
-          'id, area_name, geometry, center_lat, center_lng, radius_meters, source, verification_status, classes_used, created_by, is_active',
+          'id, area_name, venue_id, geometry, center_lat, center_lng, radius_meters, source, verification_status, classes_used, created_by, is_active',
         )
         .eq('is_active', true)
         .not('created_by', 'is', null);

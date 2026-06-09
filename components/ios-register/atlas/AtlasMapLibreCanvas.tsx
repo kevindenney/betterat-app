@@ -527,6 +527,7 @@ export interface AtlasPinSpec {
 export interface AtlasRacingAreaPressTarget {
   id: string;
   name: string;
+  venueId: string | null;
   centerLat: number;
   centerLng: number;
   classesUsed: string[];
@@ -2013,6 +2014,7 @@ function getRacingAreaLabels(
     const props = feature.properties as {
       id?: string;
       name?: string;
+      venueId?: string | null;
       classesUsed?: string[];
       createdBy?: string | null;
     } | null;
@@ -2029,6 +2031,7 @@ function getRacingAreaLabels(
       area: {
         id,
         name,
+        venueId: props?.venueId ?? null,
         centerLat: lat,
         centerLng: lng,
         classesUsed: props?.classesUsed ?? [],
