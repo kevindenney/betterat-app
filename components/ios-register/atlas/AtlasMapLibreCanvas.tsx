@@ -767,6 +767,20 @@ export function AtlasMapLibreCanvas({
     enabled: showCourse,
     env: courseEnv,
   });
+  // Committee/start-boat coord of the course that belongs to the NEXT race
+  // (the committee mark nearest the event centroid). When the course marks
+  // are drawn we ride a compact "NEXT" chip on the start boat instead of the
+  // big amber tag — both anchored on the venue centroid, the tag would stack
+  // on the course/area labels.
+  const nextEventCommittee = useMemo(
+    () => findNextEventCommittee(nextEvent, courseCollection),
+    [nextEvent, courseCollection],
+  );
+  // The course marks are actually on screen (toggle on + a course exists at
+  // this venue). Only then do we hand the NEXT identity to the start-boat
+  // chip; otherwise the big amber tag stays put at every zoom (nothing to
+  // stack against).
+  const nextCourseDrawn = showCourse && nextEventCommittee != null;
   // Cluster pill noun varies by interest — sailors read "session", nurses
   // "shift", generic users "log". Default ("step") is platform jargon.
   const { vocab } = useVocabulary();
@@ -1280,7 +1294,7 @@ export function AtlasMapLibreCanvas({
           );
         })}
 
-        {nextEvent && zoom < COURSE_MIN_ZOOM ? (
+        {nextEvent && !(zoom >= COURSE_MIN_ZOOM && nextCourseDrawn) ? (
           <MLMarker
             id="atlas-next-event"
             lngLat={[nextEvent.lng, nextEvent.lat]}
@@ -1302,6 +1316,24 @@ export function AtlasMapLibreCanvas({
                   label={nextEvent.label}
                   when={nextEvent.when}
                 />
+              </View>
+            )}
+          </MLMarker>
+        ) : null}
+
+        {nextEvent && nextEventCommittee && zoom >= COURSE_MIN_ZOOM && nextCourseDrawn ? (
+          <MLMarker
+            id="atlas-next-event-chip"
+            lngLat={[nextEventCommittee.lng, nextEventCommittee.lat]}
+            anchor="bottom"
+          >
+            {onNextEventPress ? (
+              <Pressable onPress={onNextEventPress} hitSlop={6}>
+                <NextEventChip />
+              </Pressable>
+            ) : (
+              <View pointerEvents="none">
+                <NextEventChip />
               </View>
             )}
           </MLMarker>
@@ -1372,6 +1404,7 @@ function WebAtlasMapLibreCanvas({
   const pinMarkersRef = useRef<any[]>([]);
   const areaLabelMarkersRef = useRef<any[]>([]);
   const nextMarkerRef = useRef<any | null>(null);
+  const nextChipMarkerRef = useRef<any | null>(null);
   const candidateMarkerRef = useRef<any | null>(null);
   const onMapPressRef = useRef(onMapPress);
   const onRacingAreaPressRef = useRef(onRacingAreaPress);
@@ -1382,6 +1415,14 @@ function WebAtlasMapLibreCanvas({
   // Live zoom — hides the amber NEXT marker once the course marks become
   // visible (≥ COURSE_MIN_ZOOM) so the two don't stack on the venue centroid.
   const [zoom, setZoom] = useState(baseCamera.zoom);
+  // Start-boat coord of the NEXT race's course + whether its marks are drawn,
+  // so the zoomed-in NEXT identity rides a compact chip on the committee mark
+  // (see the native path for the full rationale).
+  const nextEventCommittee = useMemo(
+    () => findNextEventCommittee(nextEvent, courseCollection),
+    [nextEvent, courseCollection],
+  );
+  const nextCourseDrawn = showCourse && nextEventCommittee != null;
   const resetBearing = useCallback(() => {
     mapRef.current?.easeTo({ bearing: 0, duration: 300 });
     setBearing(0);
@@ -1679,15 +1720,34 @@ function WebAtlasMapLibreCanvas({
 
     nextMarkerRef.current?.remove();
     nextMarkerRef.current = null;
-    // Hide the NEXT tag once the course marks are visible — both sit on the
-    // venue centroid, so co-rendering them stacks two boxes.
-    if (!nextEvent || zoom >= COURSE_MIN_ZOOM) return;
+    // Hide the big NEXT tag once the course marks are drawn and we're zoomed
+    // in — both sit on the venue centroid, so co-rendering stacks two boxes.
+    // The chip on the start boat (below) carries the identity at that zoom.
+    if (!nextEvent || (zoom >= COURSE_MIN_ZOOM && nextCourseDrawn)) return;
 
     const element = createWebNextEventElement(nextEvent, onNextEventPress);
     nextMarkerRef.current = new Marker({ element, anchor: 'bottom' })
       .setLngLat([nextEvent.lng, nextEvent.lat])
       .addTo(map);
-  }, [isLoaded, nextEvent, onNextEventPress, zoom]);
+  }, [isLoaded, nextEvent, onNextEventPress, zoom, nextCourseDrawn]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const Marker = maplibreRef.current?.Marker;
+    if (!map || !Marker || !isLoaded) return;
+
+    nextChipMarkerRef.current?.remove();
+    nextChipMarkerRef.current = null;
+    // Zoomed-in counterpart: a compact NEXT chip on the start boat.
+    if (!nextEvent || !nextEventCommittee || zoom < COURSE_MIN_ZOOM || !nextCourseDrawn) {
+      return;
+    }
+
+    const element = createWebNextEventChipElement(onNextEventPress);
+    nextChipMarkerRef.current = new Marker({ element, anchor: 'bottom' })
+      .setLngLat([nextEventCommittee.lng, nextEventCommittee.lat])
+      .addTo(map);
+  }, [isLoaded, nextEvent, nextEventCommittee, onNextEventPress, zoom, nextCourseDrawn]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -2180,6 +2240,29 @@ function createWebNextEventElement(
   root.style.color = '#3A2500';
   root.style.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   root.style.boxShadow = '0 4px 12px rgba(0,0,0,0.18)';
+  root.style.cursor = onPress ? 'pointer' : 'default';
+  if (onPress) {
+    root.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onPress();
+    });
+  }
+  return root;
+}
+
+// Compact "NEXT" chip for the start boat — the zoomed-in counterpart to the
+// big web NEXT tag, so the next race stays identified without stacking.
+function createWebNextEventChipElement(onPress?: () => void) {
+  const root = document.createElement(onPress ? 'button' : 'div');
+  root.textContent = 'NEXT';
+  root.style.border = '1px solid #F0A93A';
+  root.style.padding = '2px 6px';
+  root.style.borderRadius = '999px';
+  root.style.background = '#FFE6B0';
+  root.style.color = '#8A4B00';
+  root.style.font = '800 9px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  root.style.letterSpacing = '0.8px';
+  root.style.boxShadow = '0 0 3px rgba(240, 169, 58, 0.45)';
   root.style.cursor = onPress ? 'pointer' : 'default';
   if (onPress) {
     root.addEventListener('click', (event) => {
@@ -3061,6 +3144,42 @@ function NextEventMarker({
   );
 }
 
+// Compact "NEXT" chip that rides on the start boat once the course marks are
+// drawn — the zoomed-in counterpart to the big amber NEXT tag, so the next
+// race stays identified on the map without stacking on the course/area labels.
+function NextEventChip() {
+  return (
+    <View style={styles.nextChip}>
+      <Text style={styles.nextChipText}>NEXT</Text>
+    </View>
+  );
+}
+
+// Find the committee/start-boat coord of the course nearest the NEXT event
+// centroid (the hook fetches every active course globally, so we match the
+// one at this venue by proximity). Null when there's no event or no course
+// committee mark to anchor to.
+function findNextEventCommittee(
+  nextEvent: (AtlasNextEvent & { lng: number; lat: number }) | null | undefined,
+  courseCollection: GeoJSON.FeatureCollection | null | undefined,
+): { lng: number; lat: number } | null {
+  if (!nextEvent || !courseCollection) return null;
+  let best: { lng: number; lat: number } | null = null;
+  let bestDist = Infinity;
+  for (const feature of courseCollection.features) {
+    if (feature.geometry?.type !== 'Point') continue;
+    const props = feature.properties ?? {};
+    if (props.type !== 'course-mark' || props.markType !== 'committee') continue;
+    const [lng, lat] = feature.geometry.coordinates as [number, number];
+    const dist = (lng - nextEvent.lng) ** 2 + (lat - nextEvent.lat) ** 2;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = { lng, lat };
+    }
+  }
+  return best;
+}
+
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
@@ -3600,6 +3719,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#8A4B00',
     letterSpacing: 0.7,
+  },
+  nextChip: {
+    backgroundColor: '#FFE6B0',
+    borderColor: '#F0A93A',
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+    shadowColor: '#F0A93A',
+    shadowOpacity: 0.45,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  nextChipText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#8A4B00',
+    letterSpacing: 0.8,
   },
   areaLabelPill: {
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
