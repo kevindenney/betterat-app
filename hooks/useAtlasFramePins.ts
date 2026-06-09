@@ -41,6 +41,15 @@ interface UseAtlasFramePinsArgs {
    * filter since they're not "peer" data.
    */
   restrictPeersToUserIds?: Set<string> | null;
+  /**
+   * Relationship-chip allow-list (You / Crew / Fleet / Following). When
+   * set, peer pins are filtered to these kinds BEFORE clustering, so the
+   * "+N" density badge counts only the active relationship lens. Applied
+   * here rather than on the finished pin list because clustering collapses
+   * every cluster to a single `kind:'fleet'` — filtering after the merge
+   * would make Crew/Following hide the whole badge. `null` = show all.
+   */
+  peerRelationshipFilter?: Set<string> | null;
 }
 
 function mapSailingPoiToPinKind(poi: SailingPoiRow): AtlasPinSpec['kind'] | null {
@@ -260,6 +269,7 @@ export function useAtlasFramePins({
   showMarinas = false,
   showSailServices = false,
   restrictPeersToUserIds = null,
+  peerRelationshipFilter = null,
 }: UseAtlasFramePinsArgs): {
   pins: AtlasPinSpec[];
   pickerSteps: PickerStep[];
@@ -452,7 +462,19 @@ export function useAtlasFramePins({
         lng: step.lng,
       },
     }));
-    out.push(...clusterPeerPins(peerPins));
+    // Apply the relationship-chip lens BEFORE clustering. Each cluster is
+    // hardcoded to `kind:'fleet'` regardless of its members' real
+    // relationships, so filtering the finished pin list would make
+    // Crew/Following hide the whole badge in dense areas. Filtering the raw
+    // peer pins first lets each lens re-cluster its own honest subset.
+    const lensedPeerPins = peerRelationshipFilter
+      ? peerPins.filter((p) =>
+          ['you', 'crew', 'fleet', 'following'].includes(p.kind)
+            ? peerRelationshipFilter.has(p.kind)
+            : true,
+        )
+      : peerPins;
+    out.push(...clusterPeerPins(lensedPeerPins));
 
     // Org-event pins — located steps an organization published nearby. Exact
     // coords (you need the spot to show up), carrying org + blueprint
@@ -519,7 +541,7 @@ export function useAtlasFramePins({
     }
 
     return out;
-  }, [pois, peers, orgSteps, userSteps, sailingPois, interestSlug]);
+  }, [pois, peers, orgSteps, userSteps, sailingPois, interestSlug, peerRelationshipFilter]);
 
   return {
     pins,

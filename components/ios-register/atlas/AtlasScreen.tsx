@@ -2159,6 +2159,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     showMarinas,
     showSailServices,
     restrictPeersToUserIds,
+    peerRelationshipFilter,
   });
   const demoClubPin = useMemo<AtlasPinSpec | null>(() => {
     if (!isYachtClubDemoSlug(handlers.focusOrgSlug)) return null;
@@ -2839,19 +2840,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     () => [...selectedRaceFieldPins, ...windPins, ...tidePins, ...wavePins],
     [selectedRaceFieldPins, windPins, tidePins, wavePins],
   );
-  // Apply chip-driven peer-pin filtering: when "All" is off and one
-  // or more relationship chips are active, hide peer pins whose kind
-  // isn't in the allow-list. POIs / race-marks / wind / tide always
-  // show — they're not "peer" data.
+  // Chip-driven peer-pin filtering (You / Crew / Fleet / Following) is applied
+  // upstream in useAtlasFramePins, BEFORE clustering — filtering here would
+  // re-hide the `kind:'fleet'` density badge when Crew/Following is active. So
+  // this memo only carries the race-only lens for my-step pins.
   const filteredFramePins = useMemo(() => {
     let out = visibleFramePins;
-    if (peerRelationshipFilter) {
-      out = out.filter((p) => {
-        const isPeerKind = ['you', 'crew', 'fleet', 'following'].includes(p.kind);
-        if (!isPeerKind) return true;
-        return peerRelationshipFilter.has(p.kind);
-      });
-    }
     // Race-only filter applies only to my-step pins (they carry isRace);
     // POIs / peers / wind / tide are not steps and always pass through.
     // The next-step pin is exempt: it backs the persistent cockpit HUD, so
@@ -2865,7 +2859,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       });
     }
     return out;
-  }, [visibleFramePins, peerRelationshipFilter, raceOnly]);
+  }, [visibleFramePins, raceOnly]);
   // Overview keeps the geography + race-mark vocabulary only. The older
   // wind/tide arrow field was too noisy and conflicted with the course
   // frame, which owns the richer conditions treatment.
