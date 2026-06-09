@@ -32,6 +32,7 @@ import {
   type QuickCapturePayload,
 } from '@/services/QuickCaptureService';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
+import { useCurrentSeason } from '@/hooks/useSeason';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import { UniversalPlusSheet } from './UniversalPlusSheet';
 import { PlusComposerV3Sheet } from './PlusComposerV3Sheet';
@@ -99,6 +100,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
   const { currentInterest } = useInterest();
   const queryClient = useQueryClient();
   const homeVenue = useUserHomeVenue();
+  const { data: currentSeason } = useCurrentSeason();
   const isSailRacing = (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing';
 
   const open = useCallback(() => {
@@ -204,6 +206,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           userId: user.id,
           interestId,
           payload,
+          seasonId: currentSeason?.id ?? null,
         });
         queryClient.setQueriesData<TimelineStepRecord[]>(
           { predicate: matchesMineQuery },
@@ -249,7 +252,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         toast.show('Could not save draft. Try again.', 'error');
       }
     },
-    [user?.id, currentInterest?.id, queryClient, toast, close],
+    [user?.id, currentInterest?.id, currentSeason?.id, queryClient, toast, close],
   );
 
   const handleDropConcept = useCallback(

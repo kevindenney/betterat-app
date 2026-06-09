@@ -93,6 +93,12 @@ export type CreateTimelineStepInput = {
   is_timed?: boolean;
   /** Phase N.4 — mark this step a race. Drives the ⛵ Atlas pin + race cockpit. */
   is_race?: boolean;
+  /**
+   * Series link (Option A, ATLAS_RACE_SOURCE_OF_TRUTH_SPEC §6.1). References
+   * seasons(id). Stamped on race steps from the active season so siblings
+   * sharing (course_id | area_id, season_id) read as "N races in {Season}".
+   */
+  season_id?: string | null;
 };
 
 export type UpdateTimelineStepInput = Partial<

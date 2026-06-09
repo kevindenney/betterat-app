@@ -198,6 +198,7 @@ describe('useAtlasNextEvent.utils', () => {
         id: 's1',
         title: 'Race 4',
         starts_at: '2026-05-23T10:00:00Z',
+        season_id: 'season-xyz',
         metadata: {
           race_plan: {
             course_id: 'course-abc',
@@ -211,6 +212,7 @@ describe('useAtlasNextEvent.utils', () => {
       expect(event!.event_kind).toBe('race_step');
       expect(event!.event_id).toBe('s1');
       expect(event!.course_id).toBe('course-abc');
+      expect(event!.season_id).toBe('season-xyz');
       expect(event!.where).toBe('Victoria Harbour');
       expect(event!.lat).toBe(22.28);
       expect(event!.lng).toBe(114.18);
@@ -241,6 +243,7 @@ describe('useAtlasNextEvent.utils', () => {
       });
       expect(event!.label).toBe('Next race');
       expect(event!.course_id).toBeUndefined();
+      expect(event!.season_id).toBeUndefined();
       expect(event!.lat).toBeUndefined();
       expect(event!.lng).toBeUndefined();
     });

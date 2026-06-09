@@ -165,6 +165,12 @@ export interface CreateDraftStepArgs {
   userId: string;
   interestId: string;
   payload: QuickCapturePayload;
+  /**
+   * Active season id, stamped onto race steps for the series link (Option A,
+   * ATLAS_RACE_SOURCE_OF_TRUTH_SPEC). Only applied when payload.isRace — a
+   * non-race capture carries no series. Null/undefined → unlinked.
+   */
+  seasonId?: string | null;
 }
 
 /**
@@ -248,6 +254,7 @@ export async function createDraftStep({
   userId,
   interestId,
   payload,
+  seasonId,
 }: CreateDraftStepArgs): Promise<TimelineStepRecord> {
   const fields = buildQuickCaptureStepFields(payload);
   if (!fields.title) {
@@ -283,6 +290,8 @@ export async function createDraftStep({
     sort_order: placement.sortOrder,
     visibility: 'private',
     is_race: payload.isRace ?? false,
+    // Series link only for races — a non-race capture carries no season.
+    season_id: payload.isRace ? seasonId ?? null : null,
     // Denormalized columns power Atlas pins + map feeds; the RPC reads
     // these straight off p_input.
     location_name: fields.locationName,

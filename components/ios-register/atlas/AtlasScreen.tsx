@@ -216,6 +216,12 @@ export interface AtlasNextEvent {
    * than guessing the nearest course by proximity.
    */
   course_id?: string;
+  /**
+   * seasons.id of the series this race belongs to (sourced from the race
+   * step's season_id). Lets the map group sibling races sharing a course +
+   * season into a "N races in {Season}" badge (Series-on-map, Commit 3).
+   */
+  season_id?: string;
   /** Venue coords from the source row when available. */
   lat?: number;
   lng?: number;

@@ -124,7 +124,7 @@ export function useAtlasNextEvent(interestSlugOverride?: string | null): AtlasNe
       if (isSailing && fromSteps) {
         const { data: raceStep, error: raceStepErr } = await supabase
           .from('timeline_steps')
-          .select('id, title, starts_at, location_lat, location_lng, location_name, metadata')
+          .select('id, title, starts_at, season_id, location_lat, location_lng, location_name, metadata')
           .eq('user_id', user!.id)
           .eq('is_race', true)
           .gte('starts_at', nowIso)

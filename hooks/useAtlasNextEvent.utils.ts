@@ -32,6 +32,7 @@ export interface TimelineRaceStepRow {
   id: string;
   title?: string | null;
   starts_at?: string | null;
+  season_id?: string | null;
   location_lat?: number | null;
   location_lng?: number | null;
   location_name?: string | null;
@@ -77,6 +78,7 @@ export function mapRaceStepToNextEvent(row: TimelineRaceStepRow): AtlasNextEvent
     event_kind: 'race_step',
     event_id: row.id,
     course_id: courseId,
+    season_id: row.season_id ?? undefined,
     lat: lat ?? undefined,
     lng: lng ?? undefined,
   };
