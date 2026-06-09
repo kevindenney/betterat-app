@@ -14,6 +14,9 @@ export type FeedSortType = 'hot' | 'new' | 'rising' | 'top' | 'conditions_match'
 
 export type VenueRole = 'moderator' | 'race_officer' | 'coach' | 'contributor';
 
+/** Audience a knowledge post is addressed to. Gates fail closed (RLS). */
+export type KnowledgeScopeType = 'public' | 'private' | 'fleet' | 'org' | 'blueprint';
+
 export type TidePhase = 'rising' | 'falling' | 'high' | 'low' | 'ebb' | 'flood';
 
 export type TopPeriod = 'today' | 'week' | 'month' | 'all';
@@ -44,8 +47,10 @@ export interface FeedPost {
   body: string | null;
   post_type: PostType;
   category: string | null;
+  /** Legacy — trigger-synced to (scope_type === 'public'). Prefer scope_type. */
   is_public: boolean;
-  fleet_id: string | null;
+  scope_type: KnowledgeScopeType;
+  scope_id: string | null;
   racing_area_id: string | null;
   location_lat: number | null;
   location_lng: number | null;
@@ -178,8 +183,8 @@ export interface CreatePostParams {
   body?: string;
   post_type: PostType;
   category?: string;
-  is_public?: boolean;
-  fleet_id?: string;
+  scope_type?: KnowledgeScopeType;
+  scope_id?: string;
   racing_area_id?: string;
   location_lat?: number;
   location_lng?: number;
@@ -207,8 +212,17 @@ export interface FeedQueryParams {
   topPeriod?: TopPeriod;
   currentConditions?: CurrentConditions;
   catalogRaceId?: string;
+  scopeType?: KnowledgeScopeType;
+  scopeId?: string;
   page?: number;
   limit?: number;
+}
+
+export interface AreaKnowledgeSummary {
+  posts: FeedPost[];
+  /** Visible-post counts per audience scope (RLS already applied). */
+  countsByScope: Partial<Record<KnowledgeScopeType, number>>;
+  totalVisible: number;
 }
 
 export interface MapBounds {

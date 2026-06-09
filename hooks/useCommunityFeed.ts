@@ -55,6 +55,9 @@ export const communityFeedKeys = {
     topPeriod?: TopPeriod;
   }) => [...communityFeedKeys.feeds(), 'joined-communities', communityIds, filters] as const,
   raceFeed: (catalogRaceId: string) => [...communityFeedKeys.feeds(), 'race', catalogRaceId] as const,
+  // Lives under feeds() so post/comment/vote mutations invalidate it too.
+  areaKnowledge: (racingAreaId: string) =>
+    [...communityFeedKeys.feeds(), 'area-knowledge', racingAreaId] as const,
   aggregatedFeed: (venueIds: string[], filters?: {
     sort?: FeedSortType;
     postType?: PostType;
@@ -205,6 +208,20 @@ export function useRaceFeed(catalogRaceId: string | undefined) {
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: !!catalogRaceId,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+/**
+ * Local-knowledge summary for one racing area: top visible posts +
+ * per-scope counts (public / fleet / org / blueprint). RLS already
+ * limits rows to scopes the viewer belongs to.
+ */
+export function useAreaKnowledge(racingAreaId: string | undefined, limit = 5) {
+  return useQuery({
+    queryKey: communityFeedKeys.areaKnowledge(racingAreaId || ''),
+    queryFn: () => CommunityFeedService.getAreaKnowledge(racingAreaId!, limit),
+    enabled: !!racingAreaId,
     staleTime: 1000 * 60 * 2,
   });
 }

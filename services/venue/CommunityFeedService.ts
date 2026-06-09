@@ -23,6 +23,8 @@ import type {
   PostType,
   TopPeriod,
   VenueRole,
+  AreaKnowledgeSummary,
+  KnowledgeScopeType,
 } from '@/types/community-feed';
 
 const logger = createLogger('CommunityFeedService');
@@ -44,6 +46,8 @@ class CommunityFeedServiceClass {
       racingAreaId,
       topPeriod = 'all',
       catalogRaceId,
+      scopeType,
+      scopeId,
       page = 0,
       limit = 20,
     } = params;
@@ -64,8 +68,16 @@ class CommunityFeedServiceClass {
           area_name
         )
       `, { count: 'exact' })
-      .eq('venue_id', venueId)
-      .eq('is_public', true);
+      .eq('venue_id', venueId);
+
+    // Audience visibility is enforced by RLS (scope_type/scope_id);
+    // optionally narrow to a single scope (e.g. a fleet page section).
+    if (scopeType) {
+      query = query.eq('scope_type', scopeType);
+    }
+    if (scopeId) {
+      query = query.eq('scope_id', scopeId);
+    }
 
     // Filter by post type
     if (postType) {
@@ -224,8 +236,7 @@ class CommunityFeedServiceClass {
           area_name
         )
       `, { count: 'exact' })
-      .in('venue_id', venueIds)
-      .eq('is_public', true);
+      .in('venue_id', venueIds);
 
     if (postType) {
       query = query.eq('post_type', postType);
@@ -527,8 +538,8 @@ class CommunityFeedServiceClass {
         body: postData.body || null,
         post_type: postData.post_type,
         category: postData.category || 'general',
-        is_public: postData.is_public ?? true,
-        fleet_id: postData.fleet_id || null,
+        scope_type: postData.scope_type || 'public',
+        scope_id: postData.scope_id || null,
         racing_area_id: postData.racing_area_id || null,
         location_lat: postData.location_lat || null,
         location_lng: postData.location_lng || null,
@@ -963,7 +974,6 @@ class CommunityFeedServiceClass {
         author:users!author_id (id, full_name)
       `)
       .eq('venue_id', venueId)
-      .eq('is_public', true)
       .not('location_lat', 'is', null)
       .not('location_lng', 'is', null);
 
@@ -985,6 +995,62 @@ class CommunityFeedServiceClass {
     }
 
     return (data || []) as unknown as FeedPost[];
+  }
+
+  // ============================================================================
+  // AREA LOCAL KNOWLEDGE
+  // ============================================================================
+
+  /**
+   * Knowledge summary for one racing area: top visible posts plus
+   * per-scope counts. Visibility is whatever RLS grants the caller.
+   */
+  async getAreaKnowledge(racingAreaId: string, limit = 5): Promise<AreaKnowledgeSummary> {
+    const [postsRes, countsRes] = await Promise.all([
+      supabase
+        .from('venue_discussions')
+        .select(`
+          *,
+          author:users!author_id (
+            id,
+            full_name,
+            avatar_url
+          ),
+          racing_area:venue_racing_areas!racing_area_id (
+            id,
+            area_name
+          )
+        `)
+        .eq('racing_area_id', racingAreaId)
+        .order('pinned', { ascending: false })
+        .order('last_activity_at', { ascending: false })
+        .limit(limit),
+      supabase
+        .from('venue_discussions')
+        .select('scope_type')
+        .eq('racing_area_id', racingAreaId),
+    ]);
+
+    if (postsRes.error) {
+      logger.error('[CommunityFeedService] Error fetching area knowledge:', postsRes.error);
+      throw postsRes.error;
+    }
+    if (countsRes.error) {
+      logger.error('[CommunityFeedService] Error counting area knowledge:', countsRes.error);
+      throw countsRes.error;
+    }
+
+    const countsByScope: AreaKnowledgeSummary['countsByScope'] = {};
+    for (const row of countsRes.data || []) {
+      const scope = row.scope_type as KnowledgeScopeType;
+      countsByScope[scope] = (countsByScope[scope] || 0) + 1;
+    }
+
+    return {
+      posts: (postsRes.data || []) as unknown as FeedPost[],
+      countsByScope,
+      totalVisible: (countsRes.data || []).length,
+    };
   }
 
   // ============================================================================
@@ -1027,8 +1093,7 @@ class CommunityFeedServiceClass {
           avatar_url
         )
       `, { count: 'exact' })
-      .eq('community_id', communityId)
-      .eq('is_public', true);
+      .eq('community_id', communityId);
 
     if (postType) {
       query = query.eq('post_type', postType);
@@ -1167,8 +1232,7 @@ class CommunityFeedServiceClass {
           avatar_url
         )
       `, { count: 'exact' })
-      .in('community_id', communityIds)
-      .eq('is_public', true);
+      .in('community_id', communityIds);
 
     if (postType) {
       query = query.eq('post_type', postType);
@@ -1311,7 +1375,6 @@ class CommunityFeedServiceClass {
         )
       `, { count: 'exact' })
       .eq('catalog_race_id', catalogRaceId)
-      .eq('is_public', true)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
