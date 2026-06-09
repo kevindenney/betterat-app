@@ -3063,7 +3063,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               areaSheetCenter ?? searchFocus ?? (focusedClubPin ? { lat: focusedClubPin.lat, lng: focusedClubPin.lng } : null)
             }
             nextEvent={
-              next && !myNextStepPin
+              // Suppress the amber NEXT callout while a racing area is being
+              // placed/edited — the area's preview polygon and label sit on
+              // the same venue centroid, so leaving the tag up stacks two
+              // boxes over each other on the edit canvas.
+              next && !myNextStepPin && !areaSheetCenter && !editingArea
                 ? {
                     ...next,
                     lat: next.lat ?? 22.2978,
