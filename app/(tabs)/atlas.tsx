@@ -1152,6 +1152,7 @@ export default function AtlasTab() {
               homeVenueLabel={nearbyLabel}
               interestSlug={atlasInterestSlug}
               toolbarOffset={insets.top + 44}
+              bottomInset={tabBarSpace}
               onStepFocus={(lat, lng, peer) => {
                 // Fly the map to the tapped sailor's step, then drop back
                 // to the chart. AtlasScreen re-derives its camera focus

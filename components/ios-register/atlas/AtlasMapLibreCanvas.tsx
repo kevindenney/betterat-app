@@ -2241,13 +2241,24 @@ function createWebNextEventElement(
   onPress?: () => void,
 ) {
   const root = document.createElement(onPress ? 'button' : 'div');
-  root.textContent = `${nextEvent.label}${nextEvent.when ? ` · ${nextEvent.when}` : ''}`;
-  root.style.border = '0';
-  root.style.padding = '5px 8px';
-  root.style.borderRadius = '999px';
-  root.style.background = 'rgba(255, 184, 77, 0.96)';
-  root.style.color = '#3A2500';
-  root.style.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  const eyebrow = document.createElement('div');
+  eyebrow.textContent = 'NEXT';
+  eyebrow.style.font = '800 8px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  eyebrow.style.letterSpacing = '1px';
+  eyebrow.style.color = '#B26B00';
+  const name = document.createElement('div');
+  name.textContent = `${nextEvent.label}${nextEvent.when ? ` · ${nextEvent.when}` : ''}`;
+  name.style.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  name.style.color = '#8A4B00';
+  name.style.marginTop = '1px';
+  root.appendChild(eyebrow);
+  root.appendChild(name);
+  root.style.textAlign = 'left';
+  root.style.maxWidth = '150px';
+  root.style.border = '1px solid #F0A93A';
+  root.style.padding = '4px 8px';
+  root.style.borderRadius = '6px';
+  root.style.background = '#FFE6B0';
   root.style.boxShadow = '0 4px 12px rgba(0,0,0,0.18)';
   root.style.cursor = onPress ? 'pointer' : 'default';
   if (onPress) {
@@ -3143,11 +3154,12 @@ function NextEventMarker({
   label: string;
   when?: string;
 }) {
-  const eyebrow = `NEXT · ${label.toUpperCase()}${when ? ` · ${when.toUpperCase()}` : ''}`;
   return (
     <View style={styles.nextTag}>
-      <Text style={styles.nextTagEyebrow} numberOfLines={1}>
-        {eyebrow}
+      <Text style={styles.nextTagEyebrow}>NEXT</Text>
+      <Text style={styles.nextTagLabel} numberOfLines={2}>
+        {label}
+        {when ? <Text style={styles.nextTagWhen}>{` · ${when}`}</Text> : null}
       </Text>
     </View>
   );
@@ -3717,17 +3729,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
+    maxWidth: 150,
     shadowColor: '#F0A93A',
     shadowOpacity: 0.45,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 0 },
   },
   nextTagEyebrow: {
-    fontSize: 9,
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#B26B00',
+    letterSpacing: 1,
+  },
+  nextTagLabel: {
+    fontSize: 11,
     fontWeight: '700',
     color: '#8A4B00',
-    letterSpacing: 0.7,
+    letterSpacing: -0.1,
+    marginTop: 1,
+  },
+  nextTagWhen: {
+    fontWeight: '500',
+    color: '#A66A1E',
   },
   nextChip: {
     backgroundColor: '#FFE6B0',

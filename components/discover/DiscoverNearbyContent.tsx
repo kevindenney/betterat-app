@@ -30,6 +30,12 @@ interface DiscoverNearbyContentProps {
   homeVenueLabel: string | null;
   toolbarOffset?: number;
   /**
+   * Extra bottom padding so the last rows clear floating chrome (the Atlas
+   * tab bar + peer-step sheet) that overlaps this full-bleed list. Discover
+   * has no overlay, so it defaults to 0.
+   */
+  bottomInset?: number;
+  /**
    * Scopes the nearby peer-step list to a single interest. Without it the
    * sheet returns all-interest activity, which leaks sailing people into
    * the nursing frame (and vice versa). Null = all interests (Discover tab).
@@ -58,6 +64,7 @@ export function DiscoverNearbyContent({
   homeVenueLng,
   homeVenueLabel,
   toolbarOffset = 0,
+  bottomInset = 0,
   interestSlug = null,
   onStepFocus,
 }: DiscoverNearbyContentProps) {
@@ -153,7 +160,10 @@ export function DiscoverNearbyContent({
   return (
     <ScrollView
       style={styles.scrollView}
-      contentContainerStyle={[styles.scrollContent, { paddingTop: toolbarOffset + IOS_SPACING.sm }]}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingTop: toolbarOffset + IOS_SPACING.sm, paddingBottom: IOS_SPACING.lg + bottomInset },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.sectionHeader}>
