@@ -3344,7 +3344,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           }}
         />
 
-        {cockpitShowsChecklist && myNextStepPin && !selectedPin ? (
+        {handlers.nearbyOverlayOpen ? null : cockpitShowsChecklist &&
+          myNextStepPin &&
+          !selectedPin ? (
           <StepCockpit
             title={
               cockpitStep?.title ??
