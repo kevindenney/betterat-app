@@ -42,7 +42,7 @@ module.exports = {
     },
     android: {
       package: 'com.betterat.app',
-      versionCode: 7,
+      versionCode: 8,
       adaptiveIcon: {
         backgroundColor: '#0a1832',
         foregroundImage: './assets/images/android-icon-foreground.png',

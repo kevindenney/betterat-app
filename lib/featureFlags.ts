@@ -5,11 +5,17 @@
  * These can be toggled without code changes via environment variables.
  */
 
-function readBooleanEnv(name: string, fallback: boolean): boolean {
-  const raw = String(process.env[name] ?? '').trim().toLowerCase();
-  if (!raw) return fallback;
-  if (raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on') return true;
-  if (raw === '0' || raw === 'false' || raw === 'no' || raw === 'off') return false;
+// IMPORTANT: pass the env var via a STATIC `process.env.EXPO_PUBLIC_*` member
+// access at the call site, never a dynamic `process.env[name]` lookup. Only
+// static accesses are inlined by babel-preset-expo at build time; a dynamic
+// lookup resolves to `undefined` in a production export (there is no runtime
+// `process.env` on native), so every flag would silently collapse to its
+// fallback. Dev hides this because Metro populates a runtime `process.env`.
+function readBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
+  const value = String(raw ?? '').trim().toLowerCase();
+  if (!value) return fallback;
+  if (value === '1' || value === 'true' || value === 'yes' || value === 'on') return true;
+  if (value === '0' || value === 'false' || value === 'no' || value === 'off') return false;
   return fallback;
 }
 
@@ -189,25 +195,25 @@ export const FEATURE_FLAGS = {
    * Gate programs/program_sessions/program_participants backed paths.
    * Disable to revert UI to pre-program-model compatibility behavior.
    */
-  PROGRAM_DATA_MODEL_V1: readBooleanEnv('EXPO_PUBLIC_FF_PROGRAM_DATA_MODEL_V1', true),
+  PROGRAM_DATA_MODEL_V1: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PROGRAM_DATA_MODEL_V1, true),
 
   /**
    * Gate coach-home shell features (counts, trends, retention loop).
    * Disable to fall back to legacy clients shell experience.
    */
-  COACH_SHELL_V1: readBooleanEnv('EXPO_PUBLIC_FF_COACH_SHELL_V1', true),
+  COACH_SHELL_V1: readBooleanEnv(process.env.EXPO_PUBLIC_FF_COACH_SHELL_V1, true),
 
   /**
    * Gate strict domain checks on sailing-only AI endpoints.
    * Disable only for emergency rollback.
    */
-  DOMAIN_GATE_AI_STRICT_V1: readBooleanEnv('EXPO_PUBLIC_FF_DOMAIN_GATE_AI_STRICT_V1', true),
+  DOMAIN_GATE_AI_STRICT_V1: readBooleanEnv(process.env.EXPO_PUBLIC_FF_DOMAIN_GATE_AI_STRICT_V1, true),
 
   /**
    * Gate secondary domain packs (drawing/fitness) on shared skeleton routes.
    * Keep false until secondary pack validation is complete.
    */
-  SECONDARY_PACKS_V1: readBooleanEnv('EXPO_PUBLIC_FF_SECONDARY_PACKS_V1', false),
+  SECONDARY_PACKS_V1: readBooleanEnv(process.env.EXPO_PUBLIC_FF_SECONDARY_PACKS_V1, false),
 
   /**
    * Cut Playbook home over to the iOS register layout (Apple Books library
@@ -218,7 +224,7 @@ export const FEATURE_FLAGS = {
    * via EXPO_PUBLIC_FF_PLAYBOOK_IOS_REGISTER=false to revert in one
    * toggle if anything breaks.
    */
-  PLAYBOOK_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PLAYBOOK_IOS_REGISTER', true),
+  PLAYBOOK_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PLAYBOOK_IOS_REGISTER, true),
 
   /**
    * Cut the Race tab's cards-grid render path over to the iOS register
@@ -231,7 +237,7 @@ export const FEATURE_FLAGS = {
    * true via EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER=true while the card detail
    * pattern is reworked.
    */
-  RACE_PREP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER', false),
+  RACE_PREP_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_RACE_PREP_IOS_REGISTER, false),
 
   /**
    * Gate the canonical Practice Add Step floating action button. When true,
@@ -240,7 +246,7 @@ export const FEATURE_FLAGS = {
    * once the Add Step Flow canonical (FAB + action sheet + AI Coach
    * conversation) was ready to be the default Add Step path.
    */
-  PRACTICE_ADD_STEP_FAB: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_ADD_STEP_FAB', true),
+  PRACTICE_ADD_STEP_FAB: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PRACTICE_ADD_STEP_FAB, true),
 
   /**
    * Gate the canonical Plan tab interior: AI Coach as the primary empty-state
@@ -250,7 +256,7 @@ export const FEATURE_FLAGS = {
    * lands users on this Plan tab and expects ConversationalCapture as the
    * empty state).
    */
-  PRACTICE_PLAN_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_PLAN_TAB_IOS_REGISTER', true),
+  PRACTICE_PLAN_TAB_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PRACTICE_PLAN_TAB_IOS_REGISTER, true),
 
   /**
    * Gate the canonical Do tab interior: pre-activity capture affordances, a
@@ -259,7 +265,7 @@ export const FEATURE_FLAGS = {
    * main capture workflow, live-state signaling, capture ordering, and the
    * Do-to-Reflect handoff. See docs/redesign/specs/PHASE_B7_DO_TAB_INTERIOR_SPEC.md.
    */
-  PRACTICE_DO_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_DO_TAB_IOS_REGISTER', false),
+  PRACTICE_DO_TAB_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PRACTICE_DO_TAB_IOS_REGISTER, true),
 
   /**
    * Gate the per-step timing model for the Do tab. When ON: the auto-stamp of
@@ -274,7 +280,7 @@ export const FEATURE_FLAGS = {
    * opened. deriveDoInteriorState additionally ignores stale started_at on
    * untimed steps so already-affected rows un-stick on next render.
    */
-  PRACTICE_DO_TAB_PER_STEP_TIMING: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_DO_TAB_PER_STEP_TIMING', true),
+  PRACTICE_DO_TAB_PER_STEP_TIMING: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PRACTICE_DO_TAB_PER_STEP_TIMING, true),
 
   /**
    * Gate the canonical Reflect tab interior: AI-drafted summary, What worked
@@ -286,7 +292,7 @@ export const FEATURE_FLAGS = {
    * ratings sync, competency-attempt logging) through a fresh controller.
    * See docs/redesign/specs/PHASE_B10_REFLECT_TAB_INTERIOR_SPEC.md.
    */
-  PRACTICE_REFLECT_TAB_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_REFLECT_TAB_IOS_REGISTER', false),
+  PRACTICE_REFLECT_TAB_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PRACTICE_REFLECT_TAB_IOS_REGISTER, false),
 
   /**
    * Stage the Race Log iOS register surface (chronological multi-season
@@ -297,7 +303,7 @@ export const FEATURE_FLAGS = {
    * /race-log-ios. Defaults true; flip to false via
    * EXPO_PUBLIC_FF_RACE_LOG_IOS_REGISTER=false to revert in one toggle.
    */
-  RACE_LOG_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_RACE_LOG_IOS_REGISTER', true),
+  RACE_LOG_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_RACE_LOG_IOS_REGISTER, true),
 
   /**
    * Stage the Get Inspired iOS register **running state** — the canonical
@@ -309,7 +315,7 @@ export const FEATURE_FLAGS = {
    * Defaults true; flip to false via
    * EXPO_PUBLIC_FF_GET_INSPIRED_IOS_REGISTER=false to revert.
    */
-  GET_INSPIRED_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_GET_INSPIRED_IOS_REGISTER', true),
+  GET_INSPIRED_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_GET_INSPIRED_IOS_REGISTER, true),
 
   /**
    * Stage the Trophy of Becoming iOS register surface with all four state
@@ -326,7 +332,7 @@ export const FEATURE_FLAGS = {
    * #3 — the surface carries zero actions, so neither irreversibility
    * (a) nor primary-purpose-is-the-decision (b) condition is met.
    */
-  TROPHY_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_TROPHY_IOS_REGISTER', true),
+  TROPHY_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_TROPHY_IOS_REGISTER, true),
 
   /**
    * Stage the Concept detail iOS register surface with three state
@@ -344,7 +350,7 @@ export const FEATURE_FLAGS = {
    * Defaults true; flip to false via
    * EXPO_PUBLIC_FF_CONCEPT_IOS_REGISTER=false to revert.
    */
-  CONCEPT_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_CONCEPT_IOS_REGISTER', true),
+  CONCEPT_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_CONCEPT_IOS_REGISTER, true),
 
   /**
    * Stage the Profile iOS register surface — third sub-tab under Reflect
@@ -359,7 +365,7 @@ export const FEATURE_FLAGS = {
    * preview route at /profile-ios. Defaults true; flip to false via
    * EXPO_PUBLIC_FF_PROFILE_IOS_REGISTER=false to revert.
    */
-  PROFILE_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PROFILE_IOS_REGISTER', true),
+  PROFILE_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PROFILE_IOS_REGISTER, true),
 
   /**
    * Stage the JHU-style Org Admin onboarding card at the top of the
@@ -370,7 +376,7 @@ export const FEATURE_FLAGS = {
    * org. Defaults false — this is a new visual surface with persistence
    * and does not qualify for the mechanical-only exception.
    */
-  JHU_ADMIN_DASHBOARD_IOS: readBooleanEnv('EXPO_PUBLIC_FF_JHU_ADMIN_DASHBOARD_IOS', false),
+  JHU_ADMIN_DASHBOARD_IOS: readBooleanEnv(process.env.EXPO_PUBLIC_FF_JHU_ADMIN_DASHBOARD_IOS, false),
 
   /**
    * Stage the canonical Series feature treatment over the existing Season
@@ -380,7 +386,7 @@ export const FEATURE_FLAGS = {
    * `series-feature-canonical.html`. Defaults false — this is a substantive
    * visual and control-flow change.
    */
-  PRACTICE_SERIES_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_SERIES_IOS_REGISTER', false),
+  PRACTICE_SERIES_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PRACTICE_SERIES_IOS_REGISTER, true),
 
   /**
    * Phase P HKDW /redeem flow. When true, /redeem renders the Dragon Worlds
@@ -402,7 +408,7 @@ export const FEATURE_FLAGS = {
    * Off by default — when off, zero visual change anywhere. Per
    * docs/redesign/ios-register/phase-0-shared-chrome.md.
    */
-  PRACTICE_STEP_LOOP_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_PRACTICE_STEP_LOOP_IOS_REGISTER', false),
+  PRACTICE_STEP_LOOP_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PRACTICE_STEP_LOOP_IOS_REGISTER, true),
 
   /**
    * Timeline Zoom — practice tab as a single zoomable canvas with four
@@ -418,7 +424,7 @@ export const FEATURE_FLAGS = {
    * snap behavior is validated end-to-end. Defaults true; flip to false via
    * EXPO_PUBLIC_FF_TIMELINE_ZOOM_IOS_REGISTER=false to revert.
    */
-  TIMELINE_ZOOM_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_TIMELINE_ZOOM_IOS_REGISTER', true),
+  TIMELINE_ZOOM_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_TIMELINE_ZOOM_IOS_REGISTER, true),
 
   /**
    * Timeline Zoom — canonical Practice tab cutover. When on, the Practice
@@ -432,7 +438,7 @@ export const FEATURE_FLAGS = {
    * way (gated separately by TIMELINE_ZOOM_IOS_REGISTER).
    */
   TIMELINE_ZOOM_PRACTICE_CUTOVER: readBooleanEnv(
-    'EXPO_PUBLIC_FF_TIMELINE_ZOOM_PRACTICE_CUTOVER',
+    process.env.EXPO_PUBLIC_FF_TIMELINE_ZOOM_PRACTICE_CUTOVER,
     true,
   ),
 
@@ -450,7 +456,7 @@ export const FEATURE_FLAGS = {
    * Defaults true; flip to false via
    * EXPO_PUBLIC_FF_ATLAS_IOS_REGISTER=false to revert in one toggle.
    */
-  ATLAS_IOS_REGISTER: readBooleanEnv('EXPO_PUBLIC_FF_ATLAS_IOS_REGISTER', true),
+  ATLAS_IOS_REGISTER: readBooleanEnv(process.env.EXPO_PUBLIC_FF_ATLAS_IOS_REGISTER, true),
 
   /**
    * Phase 11 follow-up — render a real MapLibre tile canvas on the live
@@ -461,7 +467,7 @@ export const FEATURE_FLAGS = {
    * the SVG too — useful if the native MapLibre canvas crashes or the
    * tile endpoint is unreachable. Defaults true.
    */
-  ATLAS_MAPLIBRE_CANVAS: readBooleanEnv('EXPO_PUBLIC_FF_ATLAS_MAPLIBRE_CANVAS', true),
+  ATLAS_MAPLIBRE_CANVAS: readBooleanEnv(process.env.EXPO_PUBLIC_FF_ATLAS_MAPLIBRE_CANVAS, true),
 
   /**
    * Phase 10 — HKDW (Hong Kong Dragon Worlds) → BetterAt onboarding flow.
@@ -481,7 +487,7 @@ export const FEATURE_FLAGS = {
   // mock-fast-path light up without anyone setting an env var. Production
   // builds (__DEV__ === false) keep it gated behind the env var until the
   // partnership ships.
-  HKDW_REDEEM_FLOW: readBooleanEnv('EXPO_PUBLIC_FF_HKDW_REDEEM_FLOW', __DEV__),
+  HKDW_REDEEM_FLOW: readBooleanEnv(process.env.EXPO_PUBLIC_FF_HKDW_REDEEM_FLOW, true),
 
   /**
    * Phase 10 PR-1 — Blueprint Index & Worlds Fleet on real data.
@@ -498,7 +504,7 @@ export const FEATURE_FLAGS = {
    * canonical §B-A (Blueprint Index) and §B-B (Fleet Plans).
    */
   BLUEPRINT_INDEX_FLEET_V2: readBooleanEnv(
-    'EXPO_PUBLIC_FF_BLUEPRINT_INDEX_FLEET_V2',
+    process.env.EXPO_PUBLIC_FF_BLUEPRINT_INDEX_FLEET_V2,
     false,
   ),
 
@@ -515,7 +521,7 @@ export const FEATURE_FLAGS = {
    * Off by default in production. Per dragon-worlds canonical §A-phase-5.
    */
   SUBSCRIBED_STEP_CHROME_V1: readBooleanEnv(
-    'EXPO_PUBLIC_FF_SUBSCRIBED_STEP_CHROME_V1',
+    process.env.EXPO_PUBLIC_FF_SUBSCRIBED_STEP_CHROME_V1,
     false,
   ),
 
@@ -529,7 +535,7 @@ export const FEATURE_FLAGS = {
    * Off by default in production. Per dragon-worlds canonical Surface C.
    */
   STEP_DISCUSSION_V1: readBooleanEnv(
-    'EXPO_PUBLIC_FF_STEP_DISCUSSION_V1',
+    process.env.EXPO_PUBLIC_FF_STEP_DISCUSSION_V1,
     false,
   ),
 
@@ -561,7 +567,7 @@ export const FEATURE_FLAGS = {
    * Per docs/redesign/v3 · The reflecting & suggesting system, screens
    * 05, 14, 15, 17.
    */
-  WHATSAPP_CONNECT_V3: readBooleanEnv('EXPO_PUBLIC_FF_WHATSAPP_CONNECT_V3', false),
+  WHATSAPP_CONNECT_V3: readBooleanEnv(process.env.EXPO_PUBLIC_FF_WHATSAPP_CONNECT_V3, false),
 
   /**
    * v3 screen-designs Screens 11–13 · the universal `+` composer.
@@ -586,7 +592,7 @@ export const FEATURE_FLAGS = {
    *
    * Off by default. Flip via EXPO_PUBLIC_FF_PLUS_COMPOSER_V3=true.
    */
-  PLUS_COMPOSER_V3: readBooleanEnv('EXPO_PUBLIC_FF_PLUS_COMPOSER_V3', false),
+  PLUS_COMPOSER_V3: readBooleanEnv(process.env.EXPO_PUBLIC_FF_PLUS_COMPOSER_V3, false),
 
   /**
    * v3 screen-designs Screen 13 · full-screen voice-first composer.
@@ -608,7 +614,7 @@ export const FEATURE_FLAGS = {
    *
    * Off by default. Flip via EXPO_PUBLIC_FF_VOICE_COMPOSER_V3=true.
    */
-  VOICE_COMPOSER_V3: readBooleanEnv('EXPO_PUBLIC_FF_VOICE_COMPOSER_V3', false),
+  VOICE_COMPOSER_V3: readBooleanEnv(process.env.EXPO_PUBLIC_FF_VOICE_COMPOSER_V3, false),
 
   /**
    * v3 screen-designs Phase C — third-person timeline + Suggest verb.
@@ -626,7 +632,7 @@ export const FEATURE_FLAGS = {
    * Off by default. Flip via EXPO_PUBLIC_FF_SUGGEST_VERB_V3=true.
    * Per docs/redesign/v3 · The reflecting & suggesting system, screens 02–03.
    */
-  SUGGEST_VERB_V3: readBooleanEnv('EXPO_PUBLIC_FF_SUGGEST_VERB_V3', false),
+  SUGGEST_VERB_V3: readBooleanEnv(process.env.EXPO_PUBLIC_FF_SUGGEST_VERB_V3, false),
 
   /**
    * v3 screen-designs Phase B — step cover identity deck.
@@ -649,7 +655,7 @@ export const FEATURE_FLAGS = {
    * headerInner + belowTitleRow chrome.
    * Per docs/redesign/v3 · The reflecting & suggesting system, screen 01.
    */
-  STEP_IDENTITY_DECK_V3: readBooleanEnv('EXPO_PUBLIC_FF_STEP_IDENTITY_DECK_V3', true),
+  STEP_IDENTITY_DECK_V3: readBooleanEnv(process.env.EXPO_PUBLIC_FF_STEP_IDENTITY_DECK_V3, true),
 
   /**
    * v3 screen-designs Phase A — Inbox as the 5th bottom tab.
@@ -667,7 +673,7 @@ export const FEATURE_FLAGS = {
    * EXPO_PUBLIC_FF_INBOX_TAB_V3=false to revert to the legacy bar.
    * Per docs/redesign/v3 · The reflecting & suggesting system, screen 04.
    */
-  INBOX_TAB_V3: readBooleanEnv('EXPO_PUBLIC_FF_INBOX_TAB_V3', true),
+  INBOX_TAB_V3: readBooleanEnv(process.env.EXPO_PUBLIC_FF_INBOX_TAB_V3, true),
 
   /**
    * Phone parity for admin/studio management surfaces.
@@ -683,7 +689,7 @@ export const FEATURE_FLAGS = {
    * On by default. Flip EXPO_PUBLIC_FF_ADMIN_PHONE_PARITY=false to fall
    * back to the un-reflowed desktop layout (cramped on phone).
    */
-  ADMIN_PHONE_PARITY: readBooleanEnv('EXPO_PUBLIC_FF_ADMIN_PHONE_PARITY', true),
+  ADMIN_PHONE_PARITY: readBooleanEnv(process.env.EXPO_PUBLIC_FF_ADMIN_PHONE_PARITY, true),
 } as const;
 
 // =============================================================================
