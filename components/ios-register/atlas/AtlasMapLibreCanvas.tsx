@@ -593,6 +593,13 @@ interface AtlasMapLibreCanvasProps {
    */
   onNextEventPress?: () => void;
   /**
+   * Fires when the "N races · {Series}" caption under the course committee
+   * boat is tapped. Opens the series sheet listing the season's races. The
+   * caption itself is a SymbolLayer (not tappable), so the canvas overlays a
+   * transparent hit-area marker on the committee mark when this is provided.
+   */
+  onNextSeriesPress?: () => void;
+  /**
    * F1/F6 "Race areas" toggle — renders soft polygons over the canonical
    * HK racing zones (Victoria Harbour, Port Shelter, Middle Island
    * Channel) so the sailor sees where racing happens at country zoom.
@@ -720,6 +727,7 @@ export function AtlasMapLibreCanvas({
   courseCurrentDirectionDeg,
   courseCurrentSpeedKn,
   onNextEventPress,
+  onNextSeriesPress,
   onMapLongPress,
   racingAreaPreviewPolygon = null,
   onMapCenterChange,
@@ -820,12 +828,17 @@ export function AtlasMapLibreCanvas({
   // which reliably dropped the second text line (the bitmap captured only
   // "NEXT"). Map-engine text has no such snapshot — it draws every glyph and
   // updates reactively when the series resolves. Sits just below the pill.
-  const nextSeriesLabelCollection = useMemo<GeoJSON.FeatureCollection | null>(() => {
+  const nextSeriesCommittee = useMemo<{ lng: number; lat: number; caption: string } | null>(() => {
     if (!showCourse || !nextRaceSeries) return null;
     const { courseId, count, label } = nextRaceSeries;
     if (!(count > 1 && label)) return null;
     const committee = findCommitteeByCourseId(courseId, courseCollection);
     if (!committee) return null;
+    return { lng: committee.lng, lat: committee.lat, caption: `${count} races · ${label}` };
+  }, [showCourse, nextRaceSeries, courseCollection]);
+
+  const nextSeriesLabelCollection = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!nextSeriesCommittee) return null;
     return {
       type: 'FeatureCollection',
       features: [
@@ -833,13 +846,13 @@ export function AtlasMapLibreCanvas({
           type: 'Feature',
           geometry: {
             type: 'Point',
-            coordinates: [committee.lng, committee.lat],
+            coordinates: [nextSeriesCommittee.lng, nextSeriesCommittee.lat],
           },
-          properties: { label: `${count} races · ${label}` },
+          properties: { label: nextSeriesCommittee.caption },
         },
       ],
     };
-  }, [showCourse, nextRaceSeries, courseCollection]);
+  }, [nextSeriesCommittee]);
 
   // Cluster pill noun varies by interest — sailors read "session", nurses
   // "shift", generic users "log". Default ("step") is platform jargon.
@@ -1430,6 +1443,27 @@ export function AtlasMapLibreCanvas({
                 <NextEventChip />
               </View>
             )}
+          </MLMarker>
+        ) : null}
+
+        {/* Transparent tap target over the "N races · {Series}" caption. The
+            caption itself is an engine SymbolLayer (untappable), so this
+            invisible marker sits on the same committee mark and forwards a
+            tap to the series sheet. Sized to roughly cover the two-line
+            caption below the pill. */}
+        {nextSeriesCommittee && onNextSeriesPress && zoom >= COURSE_MIN_ZOOM ? (
+          <MLMarker
+            id="atlas-next-series-hit"
+            lngLat={[nextSeriesCommittee.lng, nextSeriesCommittee.lat]}
+            anchor="top"
+          >
+            <Pressable
+              onPress={onNextSeriesPress}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={nextSeriesCommittee.caption}
+              style={styles.nextSeriesHit}
+            />
           </MLMarker>
         ) : null}
 
@@ -3925,6 +3959,13 @@ const styles = StyleSheet.create({
     color: '#8A4B00',
     letterSpacing: 0.8,
     textAlign: 'center',
+  },
+  // Invisible tap target sized to cover the caption that the SymbolLayer
+  // draws just below the NEXT pill (textOffset [0, 1.3] at textSize 10).
+  nextSeriesHit: {
+    width: 120,
+    height: 26,
+    backgroundColor: 'transparent',
   },
   areaLabelPill: {
     backgroundColor: 'rgba(255, 255, 255, 0.92)',

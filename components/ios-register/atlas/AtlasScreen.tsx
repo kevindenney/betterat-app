@@ -73,7 +73,6 @@ import { RepositionAreaBanner } from './RepositionAreaBanner';
 import { RetraceAreaBanner } from './RetraceAreaBanner';
 import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
 import { useUpdateStepLocation } from '@/hooks/useUpdateStepLocation';
-import { useAtlasRacingAreas } from '@/hooks/useAtlasRacingAreas';
 import { useMyRacingAreas } from '@/hooks/useMyRacingAreas';
 import { useSavedVenues } from '@/hooks/useSavedVenues';
 import {
@@ -83,7 +82,6 @@ import {
   type PeerRelationship,
   type AnchorRect,
 } from './SavedJumpSheet';
-import { findRacingAreaAtPoint } from '@/lib/atlas-racing-area-hit-test';
 import { shapeToPolygon } from '@/lib/atlas-racing-area-shape';
 import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
@@ -94,6 +92,7 @@ import { useUniversalPlus } from '@/components/capture';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
 import { useAffinityGroupMembers } from '@/hooks/useAffinityGroupMembers';
 import { useAtlasFramePins } from '@/hooks/useAtlasFramePins';
+import { useAtlasSeriesRaces } from '@/hooks/useAtlasSeriesRaces';
 import { useAtlasCockpitStep, type AtlasCockpitStep, type CockpitBeat, type CockpitSubStep } from '@/hooks/useAtlasCockpitStep';
 import {
   parseLivelihoodSaleText,
@@ -1770,6 +1769,21 @@ function formatConditionsValue(line: string | null | undefined): string | null {
 function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   const next = handlers.nextEvent;
   const hasNext = Boolean(next?.label);
+  // Series sheet — opened by tapping the "N races · {Series}" caption on the
+  // drawn course's committee boat. Lists the season's races for this course.
+  const [seriesSheetOpen, setSeriesSheetOpen] = useState(false);
+  const seriesRaces = useAtlasSeriesRaces(
+    seriesSheetOpen ? next?.season_id ?? null : null,
+    seriesSheetOpen ? next?.course_id ?? null : null,
+  );
+  const closeSeriesSheet = useCallback(() => setSeriesSheetOpen(false), []);
+  const handlePickSeriesRace = useCallback(
+    (stepId: string) => {
+      setSeriesSheetOpen(false);
+      handlers.onStepPress?.(stepId);
+    },
+    [handlers],
+  );
   const insets = useSafeAreaInsets();
   const homeVenue = useUserHomeVenue();
   const { getCurrentLocation } = useCurrentLocation();
@@ -2677,12 +2691,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     enabled: selectedRaceStepOpen && !!selectedRaceStartAt,
   });
   const { user: authUser } = useAuth();
-  // Racing-area feature collection — same query key as the canvas, so
-  // free cached read. Used by handleMapPress for polygon hit-testing.
-  const { featureCollection: raceAreasForHitTest } = useAtlasRacingAreas({
-    centerLat: mapCenter.lat,
-    centerLng: mapCenter.lng,
-  });
   const handleRacingAreaPress = useCallback(
     (area: AtlasRacingAreaPressTarget) => {
       if (area.createdBy !== authUser?.id) return;
@@ -2940,45 +2948,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, [commitMode, exitCommit]);
   const handleMapPress = useCallback(
     (coords: { lng: number; lat: number }) => {
-      // Polygon hit-test for racing areas first — runs before all
-      // other tap modes so tapping a polygon you authored jumps to
-      // the edit form. Skip while any tap-consuming mode is already
-      // active (commit / anchor / reposition / editing / area-create).
-      const inActiveTapMode =
-        commitMode ||
-        anchorStepTarget ||
-        repositionTarget ||
-        editingArea ||
-        areaSheetCenter;
-      if (!inActiveTapMode && authUser?.id) {
-        const hit = findRacingAreaAtPoint(raceAreasForHitTest, coords.lng, coords.lat);
-        if (hit && hit.properties.createdBy === authUser.id) {
-          // Compute the polygon's centroid so Move on Map can use it as
-          // the anchor for translation deltas. Using the tap coords as
-          // the center (the old behavior) made move-delta math wrong —
-          // every tap registered as a large displacement from where the
-          // user happened to tap, not the polygon's actual center.
-          const ring = hit.geometry.coordinates[0] ?? [];
-          let sumLat = 0;
-          let sumLng = 0;
-          for (const v of ring) {
-            sumLng += v[0];
-            sumLat += v[1];
-          }
-          const cLat = ring.length > 0 ? sumLat / ring.length : coords.lat;
-          const cLng = ring.length > 0 ? sumLng / ring.length : coords.lng;
-          handleRacingAreaPress({
-            id: hit.properties.id,
-            name: hit.properties.name,
-            centerLat: cLat,
-            centerLng: cLng,
-            classesUsed: hit.properties.classesUsed ?? [],
-            createdBy: hit.properties.createdBy,
-            polygon: hit.geometry,
-          });
-          return;
-        }
-      }
+      // Racing-area editing is opened by tapping the area's label pill
+      // (onRacingAreaPress), NOT by tapping anywhere inside the polygon.
+      // At course zoom the polygon fills the viewport, so a whole-area
+      // hit-test turned every map tap into an edit-sheet open; the label
+      // is the discrete affordance instead.
       if (retraceTarget) {
         setRetraceTarget((prev) =>
           prev
@@ -3039,11 +3013,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         setCandidate(coords);
       }
     },
-    // authUser.id + raceAreasForHitTest are real reactive deps (auth
-    // context + react-query result) — the exhaustive-deps rule
-    // misclassifies them as outer-scope. Leave them in so a fresh
-    // sign-in or area refetch rebuilds the closure.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       commitMode,
       repositionTarget,
@@ -3052,9 +3021,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       areaSheetCenter,
       anchorStepTarget,
       updateStepLocationMutation,
-      handleRacingAreaPress,
-      authUser?.id,
-      raceAreasForHitTest,
     ],
   );
   const chromePaddingTop = embedded ? Math.max(insets.top + 8, 48) : 50;
@@ -3169,6 +3135,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             onZoomChange={handleZoomChange}
             onPinPress={handlePinPress}
             onRacingAreaPress={handleRacingAreaPress}
+            // Tapping the "N races · {Series}" caption opens the series sheet.
+            // Wired only when the caption actually renders (multi-race series
+            // on the drawn course), matching nextRaceSeries above.
+            onNextSeriesPress={
+              next?.course_id &&
+              (next?.series_count ?? 0) > 1 &&
+              next?.series_label &&
+              !areaSheetCenter &&
+              !editingArea
+                ? () => setSeriesSheetOpen(true)
+                : undefined
+            }
             showRaceAreas={showRaceAreas}
             showCourse={showCourse && !selectedTriangleRaceOpen}
             coursePreviewCollection={effectiveCoursePreview}
@@ -3908,6 +3886,55 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           initialState="mid"
         />
       )}
+
+      {/* Series sheet — opened by tapping the "N races · {Series}" caption.
+          Renders last so it stacks above the mapArea-sibling sheets above. */}
+      {seriesSheetOpen ? (
+        <BottomSheet
+          key="next-series"
+          eyebrow={`${next?.series_count ?? seriesRaces.length} RACES`}
+          title={next?.series_label ?? 'Series'}
+          source={next?.where ? `At ${next.where}` : undefined}
+          expandedContent={
+            <View style={shellStyles.seriesList}>
+              {seriesRaces.length === 0 ? (
+                <Text style={shellStyles.seriesEmpty}>No races found for this series.</Text>
+              ) : (
+                seriesRaces.map((race, idx) => {
+                  const when = formatRaceStartLabel(race.startsAt);
+                  const isNext = race.id === next?.event_id;
+                  return (
+                    <Pressable
+                      key={race.id}
+                      onPress={() => handlePickSeriesRace(race.id)}
+                      style={({ pressed }) => [
+                        shellStyles.seriesRow,
+                        idx > 0 && shellStyles.seriesRowDivider,
+                        pressed && shellStyles.seriesRowPressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${race.title}`}
+                    >
+                      <View style={shellStyles.seriesRowText}>
+                        <Text style={shellStyles.seriesRowTitle} numberOfLines={1}>
+                          {race.title}
+                        </Text>
+                        {when ? <Text style={shellStyles.seriesRowWhen}>{when}</Text> : null}
+                      </View>
+                      {isNext ? <Text style={shellStyles.seriesRowNext}>NEXT</Text> : null}
+                      <Ionicons name="chevron-forward" size={16} color="rgba(60, 60, 67, 0.5)" />
+                    </Pressable>
+                  );
+                })
+              )}
+            </View>
+          }
+          secondary={{ label: 'Close', icon: 'close', onPress: closeSeriesSheet }}
+          showSecondaryInMid
+          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+          initialState="expanded"
+        />
+      ) : null}
 
       {/* Racing-area sheet sits OUTSIDE mapArea so zIndex actually wins —
           the next-step/empty-state BottomSheets are siblings of mapArea,
@@ -8301,6 +8328,51 @@ const shellStyles = StyleSheet.create({
   frame: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  seriesList: {
+    marginTop: 4,
+  },
+  seriesEmpty: {
+    fontSize: 13,
+    color: 'rgba(60, 60, 67, 0.6)',
+    paddingVertical: 12,
+  },
+  seriesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+  },
+  seriesRowDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(60, 60, 67, 0.15)',
+  },
+  seriesRowPressed: {
+    opacity: 0.55,
+  },
+  seriesRowText: {
+    flex: 1,
+  },
+  seriesRowTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  seriesRowWhen: {
+    fontSize: 13,
+    color: 'rgba(60, 60, 67, 0.6)',
+    marginTop: 1,
+  },
+  seriesRowNext: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    color: '#8A4B00',
+    backgroundColor: 'rgba(255, 196, 0, 0.18)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   windTideScrubber: {
     position: 'absolute',
