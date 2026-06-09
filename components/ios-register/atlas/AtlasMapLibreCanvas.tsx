@@ -198,6 +198,16 @@ const FRAME_CAMERA: Record<AtlasFrameId, CameraPreset> = {
 const COURSE_MIN_ZOOM = 13;
 
 /**
+ * Third/side text labels (BOTTOM/MIDDLE/UPPER, LEFT/RIGHT) need more room than
+ * the geometry: at COURSE_MIN_ZOOM the diamond is small enough that the three
+ * stacked band labels and the two side labels collide into an unreadable pile
+ * over the windward mark. Gate them a couple zoom steps higher (and let
+ * collision detection drop any that still overlap) so they only appear once the
+ * beat is large enough to place them legibly.
+ */
+const COURSE_LABEL_MIN_ZOOM = 15;
+
+/**
  * Web (maplibre-gl) race-course layer specs — the imperative twin of the
  * native MLLayer tree. Each is added off the shared `atlas-web-course`
  * source with `minzoom: COURSE_MIN_ZOOM` + a `properties.type` filter.
@@ -208,6 +218,8 @@ const COURSE_WEB_LAYERS: {
   filter: unknown[];
   paint: Record<string, unknown>;
   layout?: Record<string, unknown>;
+  /** Optional per-layer zoom floor; falls back to COURSE_MIN_ZOOM. */
+  minzoom?: number;
 }[] = [
   {
     // Favored-side shading sits at the bottom of the course stack. The
@@ -238,13 +250,15 @@ const COURSE_WEB_LAYERS: {
   {
     id: 'atlas-web-course-third-labels',
     type: 'symbol',
+    minzoom: COURSE_LABEL_MIN_ZOOM,
     filter: ['==', ['get', 'type'], 'course-third-label'],
     layout: {
       'text-field': ['get', 'label'],
       'text-font': ['Noto Sans Regular'],
       'text-size': 9,
       'text-letter-spacing': 0.08,
-      'text-allow-overlap': true,
+      'text-allow-overlap': false,
+      'text-optional': true,
     },
     paint: {
       'text-color': 'rgba(20, 33, 61, 0.55)',
@@ -255,13 +269,15 @@ const COURSE_WEB_LAYERS: {
   {
     id: 'atlas-web-course-side-labels',
     type: 'symbol',
+    minzoom: COURSE_LABEL_MIN_ZOOM,
     filter: ['==', ['get', 'type'], 'course-side-label'],
     layout: {
       'text-field': ['get', 'label'],
       'text-font': ['Noto Sans Regular'],
       'text-size': 10,
       'text-letter-spacing': 0.1,
-      'text-allow-overlap': true,
+      'text-allow-overlap': false,
+      'text-optional': true,
     },
     paint: {
       'text-color': [
@@ -1035,14 +1051,15 @@ export function AtlasMapLibreCanvas({
             <MLLayer
               id="atlas-course-third-labels"
               type="symbol"
-              minzoom={COURSE_MIN_ZOOM}
+              minzoom={COURSE_LABEL_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'course-third-label']}
               style={{
                 textField: ['get', 'label'],
                 textFont: ['Noto Sans Regular'],
                 textSize: 9,
                 textLetterSpacing: 0.08,
-                textAllowOverlap: true,
+                textAllowOverlap: false,
+                textOptional: true,
                 textColor: 'rgba(20, 33, 61, 0.55)',
                 textHaloColor: 'rgba(241, 233, 216, 0.9)',
                 textHaloWidth: 1.2,
@@ -1051,14 +1068,15 @@ export function AtlasMapLibreCanvas({
             <MLLayer
               id="atlas-course-side-labels"
               type="symbol"
-              minzoom={COURSE_MIN_ZOOM}
+              minzoom={COURSE_LABEL_MIN_ZOOM}
               filter={['==', ['get', 'type'], 'course-side-label']}
               style={{
                 textField: ['get', 'label'],
                 textFont: ['Noto Sans Regular'],
                 textSize: 10,
                 textLetterSpacing: 0.1,
-                textAllowOverlap: true,
+                textAllowOverlap: false,
+                textOptional: true,
                 textColor: [
                   'case',
                   ['get', 'favored'],
@@ -1553,7 +1571,11 @@ function WebAtlasMapLibreCanvas({
     } else {
       map.addSource('atlas-web-course', { type: 'geojson', data: courseCollection });
       for (const layer of COURSE_WEB_LAYERS) {
-        map.addLayer({ ...layer, source: 'atlas-web-course', minzoom: COURSE_MIN_ZOOM });
+        map.addLayer({
+          ...layer,
+          source: 'atlas-web-course',
+          minzoom: layer.minzoom ?? COURSE_MIN_ZOOM,
+        });
       }
     }
   }, [isLoaded, courseCollection, showCourse]);
@@ -1587,8 +1609,9 @@ function WebAtlasMapLibreCanvas({
         data: coursePreviewCollection,
       });
       for (const layer of COURSE_WEB_LAYERS) {
+        const { minzoom: _omitMinzoom, ...rest } = layer;
         map.addLayer({
-          ...layer,
+          ...rest,
           id: `${layer.id}-preview`,
           source: 'atlas-web-course-preview',
         });

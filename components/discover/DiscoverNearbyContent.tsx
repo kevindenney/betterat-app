@@ -152,6 +152,7 @@ export function DiscoverNearbyContent({
 
   return (
     <ScrollView
+      style={styles.scrollView}
       contentContainerStyle={[styles.scrollContent, { paddingTop: toolbarOffset + IOS_SPACING.sm }]}
       showsVerticalScrollIndicator={false}
     >
@@ -313,6 +314,9 @@ export function DiscoverNearbyContent({
 }
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     paddingTop: IOS_SPACING.sm,
     paddingBottom: IOS_SPACING.lg,
