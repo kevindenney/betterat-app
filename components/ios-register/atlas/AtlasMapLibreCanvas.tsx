@@ -556,6 +556,16 @@ interface AtlasMapLibreCanvasProps {
   /** When provided, an amber NEXT marker drops at the venue centroid. */
   nextEvent?: (AtlasNextEvent & { lng: number; lat: number }) | null;
   /**
+   * Series caption for the drawn course's committee boat — "N races ·
+   * {Series}". Threaded separately from `nextEvent` (which the consumer
+   * suppresses when the user's next-step pin already owns the spot) because
+   * the caption is additive geometry on the course, not a duplicate amber
+   * pill: it rides the committee mark matched by `courseId` whenever a
+   * course is drawn, regardless of the chip-suppression state. Null when the
+   * next race isn't part of a multi-race series.
+   */
+  nextRaceSeries?: { courseId: string; count: number; label: string } | null;
+  /**
    * When provided, single-tap on the map fires this callback with the
    * tapped lng/lat. Atlas frames opt into this when commit-mode is on —
    * see FrameF1's commitMode state.
@@ -698,6 +708,7 @@ export function AtlasMapLibreCanvas({
   focusPadding,
   focusZoomLevel = 14,
   nextEvent,
+  nextRaceSeries = null,
   onMapPress,
   candidate,
   onPinPress,
@@ -802,6 +813,34 @@ export function AtlasMapLibreCanvas({
   // chip; otherwise the big amber tag stays put at every zoom (nothing to
   // stack against).
   const nextCourseDrawn = showCourse && nextEventCommittee != null;
+
+  // The "N races · {Series}" line is rendered as a native SymbolLayer, not as
+  // part of the RN "NEXT" pill: on iOS the pill is an MLNPointAnnotation that
+  // snapshots its child View to a bitmap on first layout and never re-snapshots,
+  // which reliably dropped the second text line (the bitmap captured only
+  // "NEXT"). Map-engine text has no such snapshot — it draws every glyph and
+  // updates reactively when the series resolves. Sits just below the pill.
+  const nextSeriesLabelCollection = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!showCourse || !nextRaceSeries) return null;
+    const { courseId, count, label } = nextRaceSeries;
+    if (!(count > 1 && label)) return null;
+    const committee = findCommitteeByCourseId(courseId, courseCollection);
+    if (!committee) return null;
+    return {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [committee.lng, committee.lat],
+          },
+          properties: { label: `${count} races · ${label}` },
+        },
+      ],
+    };
+  }, [showCourse, nextRaceSeries, courseCollection]);
+
   // Cluster pill noun varies by interest — sailors read "session", nurses
   // "shift", generic users "log". Default ("step") is platform jargon.
   const { vocab } = useVocabulary();
@@ -1207,6 +1246,32 @@ export function AtlasMapLibreCanvas({
           </MLGeoJSONSource>
         ) : null}
 
+        {/* "N races · {Series}" line under the NEXT pill — native map text so
+            it can't be lost to the iOS MLNPointAnnotation bitmap snapshot the
+            way an RN-view second line was. Amber ink + light halo to read as
+            the pill's caption against the course/water. */}
+        {nextSeriesLabelCollection ? (
+          <MLGeoJSONSource id="atlas-next-series-label" data={nextSeriesLabelCollection}>
+            <MLLayer
+              id="atlas-next-series-label-text"
+              type="symbol"
+              minzoom={COURSE_MIN_ZOOM}
+              style={{
+                textField: ['get', 'label'],
+                textFont: ['Noto Sans Regular'],
+                textSize: 10,
+                textLetterSpacing: 0.02,
+                textAnchor: 'top',
+                textOffset: [0, 1.3],
+                textAllowOverlap: true,
+                textColor: '#8A4B00',
+                textHaloColor: 'rgba(255, 246, 230, 0.95)',
+                textHaloWidth: 1.6,
+              }}
+            />
+          </MLGeoJSONSource>
+        ) : null}
+
         {/* In-progress course preview — same styling as the saved overlay
             but UNGATED (no minZoomLevel) so the author sees their course at
             any zoom while the create sheet is open. */}
@@ -1349,6 +1414,9 @@ export function AtlasMapLibreCanvas({
 
         {nextEvent && nextEventCommittee && zoom >= COURSE_MIN_ZOOM && nextCourseDrawn ? (
           <MLMarker
+            // The pill carries only "NEXT" — a single short word the iOS
+            // annotation bitmap snapshots reliably. The series caption rides
+            // below it as a native SymbolLayer (atlas-next-series-label).
             id="atlas-next-event-chip"
             lngLat={[nextEventCommittee.lng, nextEventCommittee.lat]}
             anchor="bottom"
@@ -1784,7 +1852,11 @@ function WebAtlasMapLibreCanvas({
       return;
     }
 
-    const element = createWebNextEventChipElement(onNextEventPress);
+    const element = createWebNextEventChipElement(
+      onNextEventPress,
+      nextEvent.series_label,
+      nextEvent.series_count,
+    );
     nextChipMarkerRef.current = new Marker({ element, anchor: 'bottom' })
       .setLngLat([nextEventCommittee.lng, nextEventCommittee.lat])
       .addTo(map);
@@ -2304,18 +2376,39 @@ function createWebNextEventElement(
 
 // Compact "NEXT" chip for the start boat — the zoomed-in counterpart to the
 // big web NEXT tag, so the next race stays identified without stacking.
-function createWebNextEventChipElement(onPress?: () => void) {
+function createWebNextEventChipElement(
+  onPress?: () => void,
+  seriesLabel?: string,
+  seriesCount?: number,
+) {
   const root = document.createElement(onPress ? 'button' : 'div');
-  root.textContent = 'NEXT';
+  root.style.display = 'flex';
+  root.style.flexDirection = 'column';
+  root.style.alignItems = 'center';
   root.style.border = '1px solid #F0A93A';
   root.style.padding = '2px 6px';
   root.style.borderRadius = '999px';
   root.style.background = '#FFE6B0';
   root.style.color = '#8A4B00';
-  root.style.font = '800 9px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  root.style.letterSpacing = '0.8px';
   root.style.boxShadow = '0 0 3px rgba(240, 169, 58, 0.45)';
   root.style.cursor = onPress ? 'pointer' : 'default';
+
+  const eyebrow = document.createElement('span');
+  eyebrow.textContent = 'NEXT';
+  eyebrow.style.font = '800 9px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  eyebrow.style.letterSpacing = '0.8px';
+  root.appendChild(eyebrow);
+
+  if (seriesCount && seriesCount > 1 && seriesLabel) {
+    const series = document.createElement('span');
+    series.textContent = `${seriesCount} races · ${seriesLabel}`;
+    series.style.font = '600 8.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    series.style.letterSpacing = '0.2px';
+    series.style.marginTop = '1px';
+    series.style.whiteSpace = 'nowrap';
+    root.appendChild(series);
+  }
+
   if (onPress) {
     root.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -3241,6 +3334,27 @@ function findNextEventCommittee(
   return best;
 }
 
+// Committee/start-boat coord of the course with this exact id. Used by the
+// series caption, which rides the drawn course's committee mark even when
+// the amber NEXT chip is suppressed — so there's no `nextEvent` to lean on,
+// only the course id from the next race's race_plan. Null when that course
+// isn't in view / has no committee mark.
+function findCommitteeByCourseId(
+  courseId: string | null | undefined,
+  courseCollection: GeoJSON.FeatureCollection | null | undefined,
+): { lng: number; lat: number } | null {
+  if (!courseId || !courseCollection) return null;
+  for (const feature of courseCollection.features) {
+    if (feature.geometry?.type !== 'Point') continue;
+    const props = feature.properties ?? {};
+    if (props.type !== 'course-mark' || props.markType !== 'committee') continue;
+    if (props.courseId !== courseId) continue;
+    const [lng, lat] = feature.geometry.coordinates as [number, number];
+    return { lng, lat };
+  }
+  return null;
+}
+
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
@@ -3810,6 +3924,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#8A4B00',
     letterSpacing: 0.8,
+    textAlign: 'center',
   },
   areaLabelPill: {
     backgroundColor: 'rgba(255, 255, 255, 0.92)',

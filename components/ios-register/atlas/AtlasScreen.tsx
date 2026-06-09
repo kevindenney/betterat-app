@@ -222,6 +222,14 @@ export interface AtlasNextEvent {
    * season into a "N races in {Season}" badge (Series-on-map, Commit 3).
    */
   season_id?: string;
+  /**
+   * Series-on-map (Commit 3): count of race steps sharing this race's
+   * (course_id, season_id) and the series' display label. Set only when the
+   * count is > 1, so the NEXT chip can show "N races · {Season}". The course
+   * geometry is drawn once; the siblings live in the L2 timeline / Jump-to.
+   */
+  series_count?: number;
+  series_label?: string;
   /** Venue coords from the source row when available. */
   lat?: number;
   lng?: number;
@@ -3106,6 +3114,25 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                     ...next,
                     lat: next.lat ?? 22.2978,
                     lng: next.lng ?? 114.185,
+                  }
+                : null
+            }
+            nextRaceSeries={
+              // Additive "N races · {Series}" caption on the drawn course's
+              // committee boat. Unlike the amber chip above it is NOT
+              // suppressed by myNextStepPin — the caption rides the course
+              // geometry, not a duplicate pill — so the series context shows
+              // even when the next-step pin owns the spot. Hidden while
+              // authoring/editing an area (transient canvas state).
+              next?.course_id &&
+              (next?.series_count ?? 0) > 1 &&
+              next?.series_label &&
+              !areaSheetCenter &&
+              !editingArea
+                ? {
+                    courseId: next.course_id,
+                    count: next.series_count!,
+                    label: next.series_label,
                   }
                 : null
             }

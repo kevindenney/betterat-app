@@ -34,6 +34,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import { useVocabulary } from '@/hooks/useVocabulary';
 import { supabase } from '@/services/supabase';
 import type { AtlasNextEvent } from '@/components/ios-register/atlas/AtlasScreen';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -97,9 +98,64 @@ function mapNursingRotationToNextEvent(row: NursingRotationRow): AtlasNextEvent 
   };
 }
 
+/**
+ * Series-on-map (Commit 3): count the race steps that share this race's
+ * (course_id, season_id) and stamp series_count/series_label on the event so
+ * the Atlas NEXT chip can render "N races · {Season}". Mutates the event in
+ * place; only sets the fields when the series has more than one race (a lone
+ * race isn't a series, so the badge stays hidden). Counting whole-season
+ * (no starts_at filter) so the badge reflects the full series, not just the
+ * remaining races. Best-effort — a failed count/label fetch leaves the event
+ * unbadged rather than erroring the whole resolver.
+ */
+async function attachSeriesInfo(
+  event: AtlasNextEvent,
+  userId: string,
+  periodLabel: string,
+): Promise<void> {
+  if (!event.course_id || !event.season_id) return;
+  try {
+    // Fetch the season's race steps and match course_id client-side. A
+    // PostgREST nested-jsonb filter (metadata->race_plan->>course_id) is
+    // brittle, so we scope by season (cheap — a season holds a handful of
+    // races) and count the course matches in JS.
+    const [{ data: siblings }, { data: season }] = await Promise.all([
+      supabase
+        .from('timeline_steps')
+        .select('metadata')
+        .eq('user_id', userId)
+        .eq('is_race', true)
+        .eq('season_id', event.season_id),
+      supabase
+        .from('seasons')
+        .select('name, short_name')
+        .eq('id', event.season_id)
+        .maybeSingle(),
+    ]);
+    const count = (siblings ?? []).filter((row) => {
+      const meta = (row as { metadata?: Record<string, unknown> | null }).metadata;
+      const plan = meta && typeof meta === 'object' ? (meta as { race_plan?: { course_id?: unknown } }).race_plan : null;
+      return plan?.course_id === event.course_id;
+    }).length;
+    if (count > 1) {
+      event.series_count = count;
+      const s = season as { name?: string | null; short_name?: string | null } | null;
+      event.series_label = s?.short_name?.trim() || s?.name?.trim() || periodLabel;
+    }
+  } catch {
+    // Leave the event unbadged — the series line is additive, not load-bearing.
+  }
+}
+
 export function useAtlasNextEvent(interestSlugOverride?: string | null): AtlasNextEvent | null {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
+  const { vocab } = useVocabulary();
+  // Generic series noun for this interest ("Series" for sailing, "Season"
+  // elsewhere) — the fallback when a season row has no name. Captured here
+  // (vocab is a hook) and threaded into the query so it can be used inside
+  // the async queryFn.
+  const periodLabel = vocab('Period');
 
   const interestSlug = (interestSlugOverride ?? currentInterest?.slug ?? '').toLowerCase();
   const isSailing =
@@ -111,7 +167,7 @@ export function useAtlasNextEvent(interestSlugOverride?: string | null): AtlasNe
   const fromSteps = FEATURE_FLAGS.ATLAS_NEXT_FROM_STEPS;
 
   const query = useQuery({
-    queryKey: [NEXT_EVENT_KEY, user?.id, interestSlug, fromSteps],
+    queryKey: [NEXT_EVENT_KEY, user?.id, interestSlug, fromSteps, periodLabel],
     enabled: Boolean(user?.id) && (isSailing || isNursing),
     queryFn: async (): Promise<AtlasNextEvent | null> => {
       const nowIso = new Date().toISOString();
@@ -133,7 +189,10 @@ export function useAtlasNextEvent(interestSlugOverride?: string | null): AtlasNe
           .maybeSingle();
         if (!raceStepErr && raceStep) {
           const event = mapRaceStepToNextEvent(raceStep as TimelineRaceStepRow);
-          if (event) return event;
+          if (event) {
+            await attachSeriesInfo(event, user!.id, periodLabel);
+            return event;
+          }
         }
       }
 
