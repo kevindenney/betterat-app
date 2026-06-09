@@ -28,6 +28,60 @@ export interface RaceEventRow {
   longitude?: number | null;
 }
 
+export interface TimelineRaceStepRow {
+  id: string;
+  title?: string | null;
+  starts_at?: string | null;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  location_name?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+interface RacePlanShape {
+  course_id?: unknown;
+  area_name?: unknown;
+  center?: { lat?: unknown; lng?: unknown } | null;
+}
+
+function readRacePlan(metadata: Record<string, unknown> | null | undefined): RacePlanShape | null {
+  if (!metadata || typeof metadata !== 'object') return null;
+  const plan = (metadata as { race_plan?: unknown }).race_plan;
+  return plan && typeof plan === 'object' ? (plan as RacePlanShape) : null;
+}
+
+/**
+ * Map an upcoming race `timeline_step` (is_race=true) to the Atlas NEXT
+ * event. This is the canonical-spine path (EXPO_PUBLIC_FF_ATLAS_NEXT_FROM_STEPS):
+ * the step carries race_plan.course_id, so the amber marker can lock to the
+ * exact course committee boat instead of guessing by proximity. Coords come
+ * from race_plan.center first, then the step's own location_lat/lng.
+ */
+export function mapRaceStepToNextEvent(row: TimelineRaceStepRow): AtlasNextEvent | null {
+  const label = row.title?.trim() || 'Next race';
+  const when = formatWhen(row.starts_at);
+  const plan = readRacePlan(row.metadata);
+  const courseId = typeof plan?.course_id === 'string' ? plan.course_id : undefined;
+  const areaName = typeof plan?.area_name === 'string' ? plan.area_name.trim() : undefined;
+  const where = areaName || row.location_name?.trim() || undefined;
+
+  const centerLat = typeof plan?.center?.lat === 'number' ? plan.center!.lat : undefined;
+  const centerLng = typeof plan?.center?.lng === 'number' ? plan.center!.lng : undefined;
+  const lat = centerLat ?? row.location_lat ?? undefined;
+  const lng = centerLng ?? row.location_lng ?? undefined;
+
+  return {
+    label,
+    when,
+    where,
+    event_kind: 'race_step',
+    event_id: row.id,
+    course_id: courseId,
+    lat: lat ?? undefined,
+    lng: lng ?? undefined,
+  };
+}
+
 export function mapRegattaToNextEvent(row: RegattaRow): AtlasNextEvent | null {
   const label = row.name?.trim() || 'Next race';
   const when = formatWhen(row.start_date);

@@ -690,6 +690,21 @@ export const FEATURE_FLAGS = {
    * back to the un-reflowed desktop layout (cramped on phone).
    */
   ADMIN_PHONE_PARITY: readBooleanEnv(process.env.EXPO_PUBLIC_FF_ADMIN_PHONE_PARITY, true),
+
+  /**
+   * Atlas NEXT event sourced from the canonical race-step spine.
+   *
+   * When on: useAtlasNextEvent resolves the sailing NEXT event from upcoming
+   * `timeline_steps` where is_race=true (ordered by starts_at), so the step's
+   * race_plan.course_id flows to AtlasNextEvent.course_id and the amber NEXT
+   * marker locks to that exact course's committee boat instead of guessing by
+   * proximity. When off (or when the user has no upcoming race step), the
+   * legacy regattas/race_events resolver path is the fallback.
+   *
+   * Defaults false — Commit 1 of ATLAS_RACE_SOURCE_OF_TRUTH_SPEC. Flip
+   * EXPO_PUBLIC_FF_ATLAS_NEXT_FROM_STEPS=true to source from steps.
+   */
+  ATLAS_NEXT_FROM_STEPS: readBooleanEnv(process.env.EXPO_PUBLIC_FF_ATLAS_NEXT_FROM_STEPS, false),
 } as const;
 
 // =============================================================================

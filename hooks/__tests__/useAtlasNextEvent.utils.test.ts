@@ -8,6 +8,7 @@ import {
   buildConditions,
   formatWhen,
   mapRaceEventToNextEvent,
+  mapRaceStepToNextEvent,
   mapRegattaToNextEvent,
   pickEarliest,
   readMetadataString,
@@ -188,6 +189,60 @@ describe('useAtlasNextEvent.utils', () => {
       expect(event!.label).toBe('Wednesday night');
       expect(event!.where).toBe('Causeway Bay');
       expect(event!.conditions).toBeUndefined();
+    });
+  });
+
+  describe('mapRaceStepToNextEvent', () => {
+    it('carries race_plan.course_id and area_name from a race step', () => {
+      const event = mapRaceStepToNextEvent({
+        id: 's1',
+        title: 'Race 4',
+        starts_at: '2026-05-23T10:00:00Z',
+        metadata: {
+          race_plan: {
+            course_id: 'course-abc',
+            area_name: 'Victoria Harbour',
+            center: { lat: 22.28, lng: 114.18 },
+          },
+        },
+      });
+      expect(event).not.toBeNull();
+      expect(event!.label).toBe('Race 4');
+      expect(event!.event_kind).toBe('race_step');
+      expect(event!.event_id).toBe('s1');
+      expect(event!.course_id).toBe('course-abc');
+      expect(event!.where).toBe('Victoria Harbour');
+      expect(event!.lat).toBe(22.28);
+      expect(event!.lng).toBe(114.18);
+    });
+
+    it('prefers race_plan.center then falls back to step location coords', () => {
+      const event = mapRaceStepToNextEvent({
+        id: 's2',
+        title: 'Race 5',
+        starts_at: '2026-05-24T10:00:00Z',
+        location_lat: 1.1,
+        location_lng: 2.2,
+        location_name: 'Mid-harbour',
+        metadata: { race_plan: { course_id: 'c2' } },
+      });
+      expect(event!.lat).toBe(1.1);
+      expect(event!.lng).toBe(2.2);
+      expect(event!.where).toBe('Mid-harbour');
+      expect(event!.course_id).toBe('c2');
+    });
+
+    it('omits course_id when the race step has no race_plan link, falls back to "Next race"', () => {
+      const event = mapRaceStepToNextEvent({
+        id: 's3',
+        title: null,
+        starts_at: '2026-05-25T10:00:00Z',
+        metadata: null,
+      });
+      expect(event!.label).toBe('Next race');
+      expect(event!.course_id).toBeUndefined();
+      expect(event!.lat).toBeUndefined();
+      expect(event!.lng).toBeUndefined();
     });
   });
 

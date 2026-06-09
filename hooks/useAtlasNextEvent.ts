@@ -3,10 +3,15 @@
  * the Atlas tab's amber next-event tag + pre-staged composition CTAs.
  *
  * v1 sourcing:
- *   • Sailing: pulls the soonest upcoming row from the `regattas` table
- *     where created_by = user.id, plus regattas the user is registered
- *     for via race_participants, plus race_events created by the user.
- *     Earliest future start across all three wins.
+ *   • Sailing (EXPO_PUBLIC_FF_ATLAS_NEXT_FROM_STEPS on): the soonest upcoming
+ *     `timeline_steps` row with is_race=true — the canonical race-step spine.
+ *     It carries race_plan.course_id, so the NEXT marker locks to the exact
+ *     course. Falls through to the legacy path below when the flag is off or
+ *     the user has no upcoming race step.
+ *   • Sailing (legacy / fallback): pulls the soonest upcoming row from the
+ *     `regattas` table where created_by = user.id, plus regattas the user is
+ *     registered for via race_participants, plus race_events created by the
+ *     user. Earliest future start across all three wins.
  *   • Nursing: reads the student's soonest upcoming clinical rotation from
  *     the purpose-built `nursing_affiliation_assignments → _rotations →
  *     nursing_affiliations` schema (mirrors the sailing path). Returns null
@@ -31,12 +36,15 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { supabase } from '@/services/supabase';
 import type { AtlasNextEvent } from '@/components/ios-register/atlas/AtlasScreen';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import {
   mapRaceEventToNextEvent,
+  mapRaceStepToNextEvent,
   mapRegattaToNextEvent,
   pickEarliest,
   type RaceEventRow,
   type RegattaRow,
+  type TimelineRaceStepRow,
 } from '@/hooks/useAtlasNextEvent.utils';
 
 const NEXT_EVENT_KEY = 'atlas-next-event';
@@ -100,11 +108,34 @@ export function useAtlasNextEvent(interestSlugOverride?: string | null): AtlasNe
     interestSlug === 'sail';
   const isNursing = interestSlug === 'nursing';
 
+  const fromSteps = FEATURE_FLAGS.ATLAS_NEXT_FROM_STEPS;
+
   const query = useQuery({
-    queryKey: [NEXT_EVENT_KEY, user?.id, interestSlug],
+    queryKey: [NEXT_EVENT_KEY, user?.id, interestSlug, fromSteps],
     enabled: Boolean(user?.id) && (isSailing || isNursing),
     queryFn: async (): Promise<AtlasNextEvent | null> => {
       const nowIso = new Date().toISOString();
+
+      // Canonical race-step spine (EXPO_PUBLIC_FF_ATLAS_NEXT_FROM_STEPS). For
+      // sailing, the soonest upcoming `timeline_steps` row with is_race=true
+      // wins — it carries race_plan.course_id, so the NEXT marker can lock to
+      // the exact course. Falls through to the legacy regatta/race_event path
+      // when the flag is off or the user has no upcoming race step.
+      if (isSailing && fromSteps) {
+        const { data: raceStep, error: raceStepErr } = await supabase
+          .from('timeline_steps')
+          .select('id, title, starts_at, location_lat, location_lng, location_name, metadata')
+          .eq('user_id', user!.id)
+          .eq('is_race', true)
+          .gte('starts_at', nowIso)
+          .order('starts_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (!raceStepErr && raceStep) {
+          const event = mapRaceStepToNextEvent(raceStep as TimelineRaceStepRow);
+          if (event) return event;
+        }
+      }
 
       // Nursing: the student's soonest upcoming clinical rotation. A rotation
       // lives on `nursing_affiliation_rotations` (dated, cohort-level); the

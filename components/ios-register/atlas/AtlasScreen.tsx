@@ -207,7 +207,7 @@ export interface AtlasNextEvent {
    * Atlas amber NEXT tag also uses the source row's venue coords for
    * geographic anchoring.
    */
-  event_kind?: 'regatta' | 'race_event' | 'tournament' | 'competition' | 'market_day' | 'pitch';
+  event_kind?: 'regatta' | 'race_event' | 'race_step' | 'tournament' | 'competition' | 'market_day' | 'pitch';
   event_id?: string;
   /**
    * venue_race_courses.id of the course this race uses, when the source row
