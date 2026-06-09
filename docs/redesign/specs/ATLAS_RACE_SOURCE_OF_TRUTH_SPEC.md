@@ -81,10 +81,15 @@ without forking Phase I, and Option B can subsume it later (a `series` table can
   flag is off or no race step exists. **This is the commit that makes the `course_id` link live.**
 - Verify: a race step with a seeded `course_id` → NEXT marker locks to that course (not nearest). See §7.
 
-### Commit 2 — `season_id` on the race step (Option A)
+### Commit 2 — `season_id` on the race step (Option A) + single-funnel dual-writer
 - Migration: `ALTER TABLE timeline_steps ADD COLUMN season_id UUID REFERENCES seasons(id) ON DELETE SET NULL;`
   (RLS unaffected — same row owner). Index `(season_id)`.
+- Migration: `ALTER TABLE race_events ADD COLUMN timeline_step_id UUID REFERENCES timeline_steps(id) ON DELETE SET NULL;`
+  — the hard link that pairs a scoring row to its canonical step (decision §6.3).
 - Authoring: the race composer sets `season_id` from the active season (reuse `useCurrentSeason`).
+- Funnel both writers through one entry point (extend `RaceEventService.create`): the race-step composer
+  (`RaceCoursePicker` → `QuickCaptureService`) and the `add-race` flow both create the race step **and** the
+  linked `race_events` row, stamping `timeline_step_id`. Neither table is written independently anymore.
 - Carry `season_id` onto `AtlasNextEvent` (and the cockpit) so the map knows the race's series.
 
 ### Commit 3 — Series-on-map render
@@ -93,20 +98,34 @@ without forking Phase I, and Option B can subsume it later (a `series` table can
   (they're the same geometry) and live in the L2 horizontal timeline / `Jump to` sheet (Phase I surface).
 - Vocabulary-aware label via the Phase I `vocab('Period')` helper (Season/Term/Workshop/…).
 
-### Commit 4 — Backfill + cutover (separate, deliberate)
-- One-off: for existing `regattas`/`race_events` that should be races, create/align `timeline_steps`
-  (`is_race=true`) and link `season_id`. Then flip the flag default on. Keep the legacy path one release for
-  safety, then remove. **Do not** drop `regattas`/`regatta_races` — they remain the scoring subsystem.
+### Commit 4 — Cutover (forward-only — no historical backfill)
+- Forward-only (decision §6.2): historical `regattas`/`race_events` are **not** migrated to steps. By the
+  time this lands, every *new* race already has a step (Commit 2's dual-writer), so the step spine is
+  populated going forward.
+- Flip `EXPO_PUBLIC_FF_ATLAS_NEXT_FROM_STEPS` default on. Keep the legacy regatta/race_event read path one
+  release for safety, then remove. **Do not** drop `regattas`/`regatta_races` — they remain the scoring
+  subsystem. (Old races created before the dual-writer simply won't appear as step-sourced NEXT events; the
+  legacy path covered them and they're past anyway.)
 
-## 6. Open decisions for Kevin (resolve before Commit 2)
+## 6. Decisions (resolved 2026-06-09)
 
-1. **Series model: Option A (`season_id` on step) or B (generalize to `series`)?** Spec recommends A.
-2. **Backfill scope:** migrate all historical regattas to race steps, or only forward-looking (new races are
-   steps, old regattas stay in the results subsystem)? Forward-only is far cheaper and probably enough for
-   the demo verticals.
-3. **`race_events` fate:** is the `add-race` flow that writes `race_events` retired in favor of the
-   race-step composer, or kept as a thin writer that also creates the step? (Relates to the duplicate-writer
-   risk noted in `project_wrong_table_binding_bugs`.)
+1. **Series model → Option A.** Add `timeline_steps.season_id UUID REFERENCES seasons(id)` and reuse the
+   existing `seasons` table + Phase I infra. No generalized `series` schema (Option B stays deferred — Phase I
+   forbids it; a `series` table can subsume `seasons` rows later).
+2. **Backfill scope → forward-only.** New races are race steps; historical `regattas`/`race_events` stay in
+   the results subsystem and are *not* migrated to steps. Far cheaper and sufficient for the demo verticals.
+   This narrows Commit 4 to a flag-flip + one-release legacy fallback — no historical data migration.
+3. **`race_events` fate → keep as a dual-writer, funneled through one entry point.** `race_events` is
+   load-bearing (~28 files read it: race detail, documents, checklists, results, marks, crew, coach strategy,
+   fleet/season services), so it is *not* retired. The `add-race` flow keeps writing `race_events` **and**
+   also creates the linked race `timeline_step` (`is_race=true` + `race_plan` + `season_id`). The step row is
+   what the Atlas read path consumes; the `race_events` row stays the scoring/detail spine its 28 consumers
+   depend on. To prevent the duplicate-writer drift flagged in `project_wrong_table_binding_bugs`:
+   - **Hard link:** stamp `race_events.timeline_step_id` (new FK) onto the row so the pair is explicitly
+     joinable, not heuristically matched.
+   - **Single funnel:** route both the race-step composer (`RaceCoursePicker` → `QuickCaptureService`) and the
+     `add-race` flow through one writer (extend `RaceEventService.create`) so neither table is written
+     independently.
 
 ## 7. Verification (how we'll prove it)
 - **Commit 1:** with the flag on, seed one `venue_race_courses` row for an RHKYC racing area and a race
