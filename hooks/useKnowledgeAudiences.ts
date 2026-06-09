@@ -42,11 +42,11 @@ export function useKnowledgeAudiences() {
           .eq('user_id', userId),
         supabase
           .from('blueprint_subscriptions')
-          .select('blueprint_id, timeline_blueprints(id, name)')
+          .select('blueprint_id, timeline_blueprints(id, title)')
           .eq('subscriber_id', userId),
         supabase
           .from('timeline_blueprints')
-          .select('id, name')
+          .select('id, title')
           .eq('user_id', userId)
           .eq('is_published', true),
       ]);
@@ -84,14 +84,14 @@ export function useKnowledgeAudiences() {
         const bp = Array.isArray((row as any).timeline_blueprints)
           ? (row as any).timeline_blueprints[0]
           : (row as any).timeline_blueprints;
-        if (bp?.id && bp?.name) {
-          push({ scopeType: 'blueprint', scopeId: bp.id, name: bp.name });
+        if (bp?.id && bp?.title) {
+          push({ scopeType: 'blueprint', scopeId: bp.id, name: bp.title });
         }
       }
 
       for (const bp of ownedRes.data || []) {
-        if ((bp as any).id && (bp as any).name) {
-          push({ scopeType: 'blueprint', scopeId: (bp as any).id, name: (bp as any).name });
+        if ((bp as any).id && (bp as any).title) {
+          push({ scopeType: 'blueprint', scopeId: (bp as any).id, name: (bp as any).title });
         }
       }
 
