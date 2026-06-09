@@ -41,8 +41,12 @@ export function NavigationHeader({
   const { vocabulary } = useVocabulary();
   const [drawerVisible, setDrawerVisible] = useState(false);
 
-  // Get current section name for header (vocabulary-aware)
+  // Get current section name for header (vocabulary-aware). For routes with no
+  // matching nav item (e.g. the fleet detail page) the helper falls back to the
+  // literal app name — printing a stray "BetterAt" wordmark beside the interest
+  // switcher. Suppress that fallback so unmatched routes show only the switcher.
   const sectionName = getCurrentSectionName(pathname, userType, vocabulary);
+  const showSectionName = Boolean(sectionName) && sectionName !== 'BetterAt';
 
   // Allow pages to hide the global header and render their own
   if (hidden) return null;
@@ -82,7 +86,7 @@ export function NavigationHeader({
           {showDrawer && (user || isGuest) && !isOnboardingPage ? (
             <View style={styles.centerGroup}>
               <InterestSwitcher />
-              <Text style={styles.sectionTitle}>{sectionName}</Text>
+              {showSectionName && <Text style={styles.sectionTitle}>{sectionName}</Text>}
             </View>
           ) : (
             <View style={styles.spacer} />
