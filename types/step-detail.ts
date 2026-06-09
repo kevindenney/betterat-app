@@ -229,6 +229,14 @@ export interface RacePlan {
   /** venue_racing_areas.id of the chosen racing area, when picked. */
   area_id?: string;
   area_name?: string;
+  /**
+   * venue_race_courses.id of the specific saved course this race uses, when
+   * one is chosen. This is the explicit race→course link: many races (a whole
+   * series) can point at one shared course row instead of each implying its
+   * own geometry. When set, the Atlas NEXT marker locks to this exact course;
+   * when absent, the canvas falls back to the nearest course by proximity.
+   */
+  course_id?: string;
   /** Centroid of the racing-area geometry — drives the ⛵ Atlas pin placement. */
   center?: { lat: number; lng: number };
   /** Course-type key, e.g. 'windward_leeward'. */

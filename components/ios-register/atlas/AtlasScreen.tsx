@@ -209,6 +209,13 @@ export interface AtlasNextEvent {
    */
   event_kind?: 'regatta' | 'race_event' | 'tournament' | 'competition' | 'market_day' | 'pitch';
   event_id?: string;
+  /**
+   * venue_race_courses.id of the course this race uses, when the source row
+   * names one (sourced from the race step's race_plan.course_id). When set,
+   * the Atlas NEXT marker locks to that exact course's committee boat rather
+   * than guessing the nearest course by proximity.
+   */
+  course_id?: string;
   /** Venue coords from the source row when available. */
   lat?: number;
   lng?: number;

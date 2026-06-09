@@ -3185,6 +3185,11 @@ function findNextEventCommittee(
   courseCollection: GeoJSON.FeatureCollection | null | undefined,
 ): { lng: number; lat: number } | null {
   if (!nextEvent || !courseCollection) return null;
+  // Prefer the exact course this race names (race_plan.course_id →
+  // nextEvent.course_id). Many races in a series share one course row, so a
+  // direct id match is more reliable than guessing by proximity — another
+  // course's committee boat can sit physically closer to the centroid.
+  const targetCourseId = nextEvent.course_id;
   let best: { lng: number; lat: number } | null = null;
   let bestDist = Infinity;
   for (const feature of courseCollection.features) {
@@ -3192,6 +3197,9 @@ function findNextEventCommittee(
     const props = feature.properties ?? {};
     if (props.type !== 'course-mark' || props.markType !== 'committee') continue;
     const [lng, lat] = feature.geometry.coordinates as [number, number];
+    if (targetCourseId && props.courseId === targetCourseId) {
+      return { lng, lat };
+    }
     const dist = (lng - nextEvent.lng) ** 2 + (lat - nextEvent.lat) ** 2;
     if (dist < bestDist) {
       bestDist = dist;
