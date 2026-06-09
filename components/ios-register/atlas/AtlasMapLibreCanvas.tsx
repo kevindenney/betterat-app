@@ -716,6 +716,19 @@ export function AtlasMapLibreCanvas({
   // of the event payload, because the legacy/Fabric bridge field shape
   // for `event.nativeEvent.bearing` is brittle between RN architectures.
   const [bearing, setBearing] = useState(0);
+  // Track the live zoom so the amber NEXT marker can hide once the course
+  // marks become visible (≥ COURSE_MIN_ZOOM). The NEXT tag and the race
+  // pin/marks both sit on the venue centroid, so showing both stacks two
+  // boxes on top of each other; instead the NEXT tag is the overview-only
+  // "here's your next race" signpost and the marks own the close-up view.
+  const [zoom, setZoom] = useState(baseCamera.zoom);
+  const pollZoom = useCallback(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    void m.getZoom().then((z: number) => {
+      if (typeof z === 'number' && Number.isFinite(z)) setZoom(z);
+    });
+  }, []);
   // Native map-ready gate. The camera's `flyTo`/`setStop` no-op if issued
   // before the style finishes loading, which left a race-area focus
   // (e.g. Port Shelter) stranded on the default frame preset. We flip
@@ -819,6 +832,7 @@ export function AtlasMapLibreCanvas({
       // was unreliable across legacy/Fabric bridges; the async ref read
       // is the source of truth.
       pollBearing();
+      pollZoom();
       if (!onMapCenterChange) return;
       const [lng, lat] = event.nativeEvent.center;
       pendingCenterRef.current = { lng, lat };
@@ -830,7 +844,7 @@ export function AtlasMapLibreCanvas({
         onMapCenterChange(next);
       }, 300);
     },
-    [onMapCenterChange, pollBearing],
+    [onMapCenterChange, pollBearing, pollZoom],
   );
   useEffect(() => {
     // Clean up any pending debounce on unmount so a late timer doesn't
@@ -936,7 +950,10 @@ export function AtlasMapLibreCanvas({
         style={styles.fill}
         onPress={onMapPress ? handlePress : undefined}
         onLongPress={onMapLongPress ? handleLongPress : undefined}
-        onDidFinishLoadingMap={() => setMapReady(true)}
+        onDidFinishLoadingMap={() => {
+          setMapReady(true);
+          pollZoom();
+        }}
         // Always wire — handleRegionChange also tracks bearing for the
         // compass affordance, so we want it firing even when no consumer
         // is subscribed to map-center updates.
@@ -1263,7 +1280,7 @@ export function AtlasMapLibreCanvas({
           );
         })}
 
-        {nextEvent ? (
+        {nextEvent && zoom < COURSE_MIN_ZOOM ? (
           <MLMarker
             id="atlas-next-event"
             lngLat={[nextEvent.lng, nextEvent.lat]}
@@ -1362,6 +1379,9 @@ function WebAtlasMapLibreCanvas({
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [bearing, setBearing] = useState(0);
+  // Live zoom — hides the amber NEXT marker once the course marks become
+  // visible (≥ COURSE_MIN_ZOOM) so the two don't stack on the venue centroid.
+  const [zoom, setZoom] = useState(baseCamera.zoom);
   const resetBearing = useCallback(() => {
     mapRef.current?.easeTo({ bearing: 0, duration: 300 });
     setBearing(0);
@@ -1436,10 +1456,15 @@ function WebAtlasMapLibreCanvas({
           onMapCenterChangeRef.current?.({ lng: c.lng, lat: c.lat });
         });
 
+        map.on('zoom', () => {
+          setZoom(map.getZoom());
+        });
+
         map.on('load', () => {
           if (cancelled) return;
           setMapError(null);
           setIsLoaded(true);
+          setZoom(map.getZoom());
         });
 
         map.on('error', (event: any) => {
@@ -1654,13 +1679,15 @@ function WebAtlasMapLibreCanvas({
 
     nextMarkerRef.current?.remove();
     nextMarkerRef.current = null;
-    if (!nextEvent) return;
+    // Hide the NEXT tag once the course marks are visible — both sit on the
+    // venue centroid, so co-rendering them stacks two boxes.
+    if (!nextEvent || zoom >= COURSE_MIN_ZOOM) return;
 
     const element = createWebNextEventElement(nextEvent, onNextEventPress);
     nextMarkerRef.current = new Marker({ element, anchor: 'bottom' })
       .setLngLat([nextEvent.lng, nextEvent.lat])
       .addTo(map);
-  }, [isLoaded, nextEvent, onNextEventPress]);
+  }, [isLoaded, nextEvent, onNextEventPress, zoom]);
 
   useEffect(() => {
     const map = mapRef.current;
