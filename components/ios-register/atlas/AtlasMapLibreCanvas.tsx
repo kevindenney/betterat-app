@@ -1021,7 +1021,11 @@ export function AtlasMapLibreCanvas({
           </MLGeoJSONSource>
         ) : null}
 
-        {showRaceAreas
+        {/* Area labels are the zoomed-out wayfinding layer; once the course
+            marks appear (≥ COURSE_MIN_ZOOM) the course owns the view, so we
+            drop the area label rather than let it collide with the marks and
+            the NEXT chip on the start boat. */}
+        {showRaceAreas && zoom < COURSE_MIN_ZOOM
           ? racingAreaLabels.map((label) => (
               <MLMarker
                 key={`area-label:${label.id}`}
@@ -1603,6 +1607,11 @@ function WebAtlasMapLibreCanvas({
 
     const Marker = maplibreRef.current?.Marker;
     if (!Marker) return;
+    // Keep the faint area fill at every zoom, but drop the area-name labels
+    // once the course marks appear (≥ COURSE_MIN_ZOOM) — at that zoom the
+    // course owns the view and the label only collides with the marks and
+    // the NEXT chip. Mirrors the native gate.
+    if (zoom >= COURSE_MIN_ZOOM) return;
     areaLabelMarkersRef.current = getRacingAreaLabels(raceAreasCollection).map((label) =>
       new Marker({
         element: createWebAreaLabelElement(label.name, () => {
@@ -1612,7 +1621,7 @@ function WebAtlasMapLibreCanvas({
         .setLngLat([label.lng, label.lat])
         .addTo(map),
     );
-  }, [isLoaded, raceAreasCollection, showRaceAreas]);
+  }, [isLoaded, raceAreasCollection, showRaceAreas, zoom]);
 
   // Race-course overlay (web) — mirrors the native layer set: one source,
   // five layers filtered by properties.type, each gated at zoom ≥
