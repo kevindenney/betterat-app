@@ -50,6 +50,7 @@
     "validate:pre-ship:bundle": "node scripts/run-pre-ship-validation-bundle.mjs",
     "test:e2e": "maestro test .maestro/",
     "test:e2e:auth": "maestro test .maestro/auth/",
+    "test:email-auth-e2e": "node scripts/test-email-auth-e2e.mjs",
     "test:e2e:auth-complete": "maestro test .maestro/auth/complete-auth-flow.yaml",
     "test:e2e:critical": "maestro test .maestro/ --include-tags=critical",
     "test:e2e:alerts": "maestro test .maestro/ --include-tags=alert",
