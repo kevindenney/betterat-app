@@ -172,47 +172,42 @@ export default function FleetOverviewScreen() {
       >
         <Text style={styles.backText}>‹ Back</Text>
       </TouchableOpacity>
-      {/* Fleet Selector */}
-      <Text style={styles.sectionLabel}>YOUR FLEETS</Text>
-      <View style={styles.fleetList}>
-        {fleets.map((membership, index) => (
-          <TouchableOpacity
-            key={membership.fleet.id}
-            style={styles.fleetRow}
-            onPress={() => setSelectedFleetIndex(index)}
-          >
-            <View style={styles.fleetRowLeft}>
-              {index === selectedFleetIndex && <View style={styles.activeDot} />}
-              <Text style={[
-                styles.fleetName,
-                index === selectedFleetIndex && styles.fleetNameActive
-              ]}>
-                {membership.fleet.name}
-              </Text>
-            </View>
-            <Text style={styles.fleetMeta}>
-              {formatRole(membership.role)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        <View style={styles.fleetListActions}>
-          <Link href="/(tabs)/fleet/select" asChild>
-            <TouchableOpacity style={styles.joinRow}>
-              <Text style={styles.linkText}>+ Join fleet</Text>
-            </TouchableOpacity>
-          </Link>
-          <Link href="/(tabs)/fleet/create" asChild>
-            <TouchableOpacity style={styles.joinRow}>
-              <Text style={styles.linkText}>+ New fleet</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </View>
+      {/* Fleet Selector — only meaningful when you belong to more than one
+          fleet. With a single fleet the list just repeats the header below, so
+          we lead straight into the fleet itself and keep Join/New as a compact
+          action row under the header. */}
+      {fleets.length > 1 && (
+        <>
+          <Text style={styles.sectionLabel}>YOUR FLEETS</Text>
+          <View style={styles.fleetList}>
+            {fleets.map((membership, index) => (
+              <TouchableOpacity
+                key={membership.fleet.id}
+                style={styles.fleetRow}
+                onPress={() => setSelectedFleetIndex(index)}
+              >
+                <View style={styles.fleetRowLeft}>
+                  {index === selectedFleetIndex && <View style={styles.activeDot} />}
+                  <Text style={[
+                    styles.fleetName,
+                    index === selectedFleetIndex && styles.fleetNameActive
+                  ]}>
+                    {membership.fleet.name}
+                  </Text>
+                </View>
+                <Text style={styles.fleetMeta}>
+                  {formatRole(membership.role)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
 
       {/* Active Fleet Header */}
       {summaryFleet && (
         <>
-          <View style={styles.divider} />
+          {fleets.length > 1 && <View style={styles.divider} />}
           <View style={styles.fleetHeader}>
             <View style={styles.fleetHeaderLeft}>
               <Text style={styles.fleetTitle}>{summaryFleet.name}</Text>
@@ -220,7 +215,6 @@ export default function FleetOverviewScreen() {
                 {[
                   summaryFleet.region,
                   summaryFleet.boat_classes?.name,
-                  pluralize(overview?.metrics?.members ?? 0, 'member'),
                 ].filter(Boolean).join(' · ')}
               </Text>
             </View>
@@ -277,6 +271,21 @@ export default function FleetOverviewScreen() {
               <Text style={styles.linkText}>Open WhatsApp chat →</Text>
             </TouchableOpacity>
           )}
+
+          {/* Join / create more fleets — kept visible since the selector list
+              above only renders when you belong to more than one fleet. */}
+          <View style={styles.fleetListActions}>
+            <Link href="/(tabs)/fleet/select" asChild>
+              <TouchableOpacity style={styles.joinRow}>
+                <Text style={styles.linkText}>+ Join fleet</Text>
+              </TouchableOpacity>
+            </Link>
+            <Link href="/(tabs)/fleet/create" asChild>
+              <TouchableOpacity style={styles.joinRow}>
+                <Text style={styles.linkText}>+ New fleet</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </>
       )}
 
@@ -474,10 +483,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 20,
+    marginTop: 4,
   },
   joinRow: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   primaryButton: {
     backgroundColor: COLORS.activeBlue,

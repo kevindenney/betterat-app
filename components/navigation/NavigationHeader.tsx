@@ -67,30 +67,31 @@ export function NavigationHeader({
         borderBottom && styles.withBorder
       ]}>
         <View style={styles.navigationContent}>
-          {/* Left: Hamburger Menu (web only — mobile uses bottom tab bar) */}
-          {showDrawer && (user || isGuest) && !isOnboardingPage && Platform.OS === 'web' ? (
-            <TouchableOpacity
-              style={styles.hamburgerButton}
-              onPress={toggleDrawer}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel={isDrawerOpen ? 'Close sidebar' : 'Open sidebar'}
-            >
-              <Ionicons name={isDrawerOpen ? 'close' : 'menu'} size={24} color="#374151" />
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.spacer} />
-          )}
+          {/* Left: hamburger (web only — mobile uses the bottom tab bar) +
+              interest switcher + section name. Kept together on the left so the
+              switcher anchors the chrome the way it does on the TabScreenToolbar
+              surfaces, instead of floating to the right when the action slot is
+              empty for signed-in users. */}
+          <View style={styles.leftGroup}>
+            {showDrawer && (user || isGuest) && !isOnboardingPage && Platform.OS === 'web' && (
+              <TouchableOpacity
+                style={styles.hamburgerButton}
+                onPress={toggleDrawer}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={isDrawerOpen ? 'Close sidebar' : 'Open sidebar'}
+              >
+                <Ionicons name={isDrawerOpen ? 'close' : 'menu'} size={24} color="#374151" />
+              </TouchableOpacity>
+            )}
 
-          {/* Center: Interest Switcher + Section Name (Tufte mode) */}
-          {showDrawer && (user || isGuest) && !isOnboardingPage ? (
-            <View style={styles.centerGroup}>
-              <InterestSwitcher />
-              {showSectionName && <Text style={styles.sectionTitle}>{sectionName}</Text>}
-            </View>
-          ) : (
-            <View style={styles.spacer} />
-          )}
+            {showDrawer && (user || isGuest) && !isOnboardingPage && (
+              <View style={styles.centerGroup}>
+                <InterestSwitcher />
+                {showSectionName && <Text style={styles.sectionTitle}>{sectionName}</Text>}
+              </View>
+            )}
+          </View>
 
           {/* Right: Navigation Actions (only for unauthenticated non-guest users) */}
           <View style={styles.navigationActions}>
@@ -149,8 +150,11 @@ const styles = StyleSheet.create({
     maxWidth: 1200,
     alignSelf: 'center',
   },
-  spacer: {
-    flex: 1,
+  leftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexShrink: 1,
   },
   centerGroup: {
     flexDirection: 'row',
