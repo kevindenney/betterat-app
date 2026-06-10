@@ -52,6 +52,8 @@ export interface FeedPost {
   scope_type: KnowledgeScopeType;
   scope_id: string | null;
   racing_area_id: string | null;
+  /** Generic place anchor (atlas_pois) — hospital, haat, market, course… */
+  poi_id?: string | null;
   location_lat: number | null;
   location_lng: number | null;
   location_label: string | null;
@@ -75,6 +77,11 @@ export interface FeedPost {
     id: string;
     area_name: string;
   };
+  poi?: {
+    id: string;
+    name: string;
+    kind: string;
+  } | null;
   venue?: {
     id: string;
     name: string;
@@ -186,6 +193,7 @@ export interface CreatePostParams {
   scope_type?: KnowledgeScopeType;
   scope_id?: string;
   racing_area_id?: string;
+  poi_id?: string;
   location_lat?: number;
   location_lng?: number;
   location_label?: string;
@@ -218,6 +226,15 @@ export interface FeedQueryParams {
   limit?: number;
 }
 
+/**
+ * The one place a knowledge post anchors to: a sailing racing area
+ * (venue_racing_areas) or any Atlas POI (atlas_pois — hospital, haat,
+ * market, course…). DB CHECK enforces at most one.
+ */
+export type KnowledgeAnchor =
+  | { racingAreaId: string; poiId?: undefined }
+  | { poiId: string; racingAreaId?: undefined };
+
 export interface AreaKnowledgeSummary {
   posts: FeedPost[];
   /** Visible-post counts per audience scope (RLS already applied). */
@@ -225,11 +242,14 @@ export interface AreaKnowledgeSummary {
   totalVisible: number;
 }
 
-/** One racing-area bucket of a group's (fleet/org/blueprint) knowledge posts. */
-export interface GroupKnowledgeArea {
-  /** Null when the posts aren't bound to a racing area (venue-wide notes). */
+/** One place bucket of a group's (fleet/org/blueprint) knowledge posts. */
+export interface GroupKnowledgePlace {
+  /** Exactly one of these is set; both null for venue-wide notes. */
   racingAreaId: string | null;
-  areaName: string | null;
+  poiId: string | null;
+  placeName: string | null;
+  /** atlas_pois.kind for POI buckets, 'racing_area' for areas, null venue-wide. */
+  placeKind: string | null;
   posts: FeedPost[];
 }
 

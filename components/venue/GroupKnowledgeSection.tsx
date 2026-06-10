@@ -31,15 +31,18 @@ export function GroupKnowledgeSection({
     <View style={[styles.wrap, style]}>
       <Text style={styles.heading}>LOCAL KNOWLEDGE</Text>
       {groups.map((group) => (
-        <View key={group.racingAreaId ?? 'venue-wide'} style={styles.areaBlock}>
+        <View
+          key={group.racingAreaId ?? group.poiId ?? 'venue-wide'}
+          style={styles.areaBlock}
+        >
           <View style={styles.areaHeader}>
             <Ionicons
-              name={group.racingAreaId ? 'map-outline' : 'water-outline'}
+              name={group.racingAreaId || group.poiId ? 'map-outline' : 'water-outline'}
               size={13}
               color={IOS_REGISTER.labelSecondary}
             />
             <Text style={styles.areaName}>
-              {group.areaName ?? 'Venue-wide'}
+              {group.placeName ?? 'Venue-wide'}
               <Text style={styles.areaCount}>  {group.posts.length}</Text>
             </Text>
           </View>

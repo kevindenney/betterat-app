@@ -24,7 +24,8 @@ import type {
   TopPeriod,
   VenueRole,
   AreaKnowledgeSummary,
-  GroupKnowledgeArea,
+  GroupKnowledgePlace,
+  KnowledgeAnchor,
   KnowledgeScopeType,
 } from '@/types/community-feed';
 
@@ -521,9 +522,10 @@ class CommunityFeedServiceClass {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Must be logged in to create a post');
 
-    // Validate that at least one of venue_id or community_id is provided
-    if (!params.venue_id && !params.community_id) {
-      throw new Error('Post must be associated with either a venue or a community');
+    // A post must hang off something findable: a sailing venue, a
+    // community, or a generic Atlas place (poi).
+    if (!params.venue_id && !params.community_id && !params.poi_id) {
+      throw new Error('Post must be associated with a venue, a community, or a place');
     }
 
     const { topic_tag_ids, condition_tags, catalog_race_id, ...postData } = params;
@@ -542,6 +544,7 @@ class CommunityFeedServiceClass {
         scope_type: postData.scope_type || 'public',
         scope_id: postData.scope_id || null,
         racing_area_id: postData.racing_area_id || null,
+        poi_id: postData.poi_id || null,
         location_lat: postData.location_lat || null,
         location_lng: postData.location_lng || null,
         location_label: postData.location_label || null,
@@ -999,14 +1002,17 @@ class CommunityFeedServiceClass {
   }
 
   // ============================================================================
-  // AREA LOCAL KNOWLEDGE
+  // PLACE LOCAL KNOWLEDGE
   // ============================================================================
 
   /**
-   * Knowledge summary for one racing area: top visible posts plus
+   * Knowledge summary for one place — a sailing racing area or any Atlas
+   * POI (hospital, haat, market, course…): top visible posts plus
    * per-scope counts. Visibility is whatever RLS grants the caller.
    */
-  async getAreaKnowledge(racingAreaId: string, limit = 5): Promise<AreaKnowledgeSummary> {
+  async getPlaceKnowledge(anchor: KnowledgeAnchor, limit = 5): Promise<AreaKnowledgeSummary> {
+    const anchorColumn = anchor.racingAreaId ? 'racing_area_id' : 'poi_id';
+    const anchorId = anchor.racingAreaId ?? anchor.poiId;
     const [postsRes, countsRes] = await Promise.all([
       supabase
         .from('venue_discussions')
@@ -1021,16 +1027,21 @@ class CommunityFeedServiceClass {
             id,
             area_name
           ),
+          poi:atlas_pois!poi_id (
+            id,
+            name,
+            kind
+          ),
           condition_tags:venue_post_condition_tags (*)
         `)
-        .eq('racing_area_id', racingAreaId)
+        .eq(anchorColumn, anchorId)
         .order('pinned', { ascending: false })
         .order('last_activity_at', { ascending: false })
         .limit(limit),
       supabase
         .from('venue_discussions')
         .select('scope_type')
-        .eq('racing_area_id', racingAreaId),
+        .eq(anchorColumn, anchorId),
     ]);
 
     if (postsRes.error) {
@@ -1056,14 +1067,15 @@ class CommunityFeedServiceClass {
   }
 
   /**
-   * A group's (fleet/org/blueprint) knowledge posts, bucketed by racing
-   * area. RLS hides the rows entirely from non-members, so callers can
-   * render unconditionally and let an empty result collapse the section.
+   * A group's (fleet/org/blueprint) knowledge posts, bucketed by place
+   * (racing area or Atlas POI). RLS hides the rows entirely from
+   * non-members, so callers can render unconditionally and let an empty
+   * result collapse the section.
    */
   async getGroupKnowledge(
     scopeType: Extract<KnowledgeScopeType, 'fleet' | 'org' | 'blueprint'>,
     scopeId: string,
-  ): Promise<GroupKnowledgeArea[]> {
+  ): Promise<GroupKnowledgePlace[]> {
     const { data, error } = await supabase
       .from('venue_discussions')
       .select(`
@@ -1076,6 +1088,11 @@ class CommunityFeedServiceClass {
         racing_area:venue_racing_areas!racing_area_id (
           id,
           area_name
+        ),
+        poi:atlas_pois!poi_id (
+          id,
+          name,
+          kind
         )
       `)
       .eq('scope_type', scopeType)
@@ -1093,14 +1110,16 @@ class CommunityFeedServiceClass {
       hot_score: this.computeHotScore(p),
     }));
 
-    const buckets = new Map<string | null, GroupKnowledgeArea>();
+    const buckets = new Map<string | null, GroupKnowledgePlace>();
     for (const post of posts) {
-      const key = post.racing_area_id ?? null;
+      const key = post.racing_area_id ?? post.poi_id ?? null;
       let bucket = buckets.get(key);
       if (!bucket) {
         bucket = {
-          racingAreaId: key,
-          areaName: post.racing_area?.area_name ?? null,
+          racingAreaId: post.racing_area_id ?? null,
+          poiId: post.poi_id ?? null,
+          placeName: post.racing_area?.area_name ?? post.poi?.name ?? null,
+          placeKind: post.racing_area_id ? 'racing_area' : (post.poi?.kind ?? null),
           posts: [],
         };
         buckets.set(key, bucket);
@@ -1110,9 +1129,11 @@ class CommunityFeedServiceClass {
     for (const bucket of buckets.values()) {
       bucket.posts.sort((a, b) => (b.hot_score || 0) - (a.hot_score || 0));
     }
-    // Named areas first, busiest first; venue-wide (no area) bucket last.
+    // Named places first, busiest first; venue-wide (no place) bucket last.
     return [...buckets.values()].sort((a, b) => {
-      if (!a.racingAreaId !== !b.racingAreaId) return a.racingAreaId ? -1 : 1;
+      const aPlaced = a.racingAreaId || a.poiId;
+      const bPlaced = b.racingAreaId || b.poiId;
+      if (!aPlaced !== !bPlaced) return aPlaced ? -1 : 1;
       return b.posts.length - a.posts.length;
     });
   }

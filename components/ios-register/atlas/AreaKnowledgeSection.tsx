@@ -4,7 +4,7 @@
  * by audience, the top posts, and how many posts' condition tags match the
  * live conditions the map is already displaying.
  *
- * Presentational + self-fetching via useAreaKnowledge; the parent sheet owns
+ * Presentational + self-fetching via usePlaceKnowledge; the parent sheet owns
  * scroll, chrome, and the "Add local knowledge" CTA.
  */
 import React, { useMemo } from 'react';
@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
-import { useAreaKnowledge } from '@/hooks/useCommunityFeed';
+import { usePlaceKnowledge } from '@/hooks/useCommunityFeed';
 import { ConditionMatchingService } from '@/services/venue/ConditionMatchingService';
 import { POST_TYPE_CONFIG } from '@/types/community-feed';
 import type { CurrentConditions, FeedPost } from '@/types/community-feed';
@@ -52,7 +52,7 @@ export function AreaKnowledgeSection({
   /** Section heading — race-step detail uses "ABOUT THIS AREA". */
   heading?: string;
 }) {
-  const { data, isLoading } = useAreaKnowledge(racingAreaId, 10);
+  const { data, isLoading } = usePlaceKnowledge({ racingAreaId }, 10);
 
   const matchedCount = useMemo(() => {
     if (!data || !conditions || conditions.windSpeed == null) return null;

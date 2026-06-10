@@ -23,6 +23,7 @@ import type {
   CreatePostParams,
   UpdatePostParams,
   MapBounds,
+  KnowledgeAnchor,
 } from '@/types/community-feed';
 
 // ============================================================================
@@ -56,8 +57,8 @@ export const communityFeedKeys = {
   }) => [...communityFeedKeys.feeds(), 'joined-communities', communityIds, filters] as const,
   raceFeed: (catalogRaceId: string) => [...communityFeedKeys.feeds(), 'race', catalogRaceId] as const,
   // Lives under feeds() so post/comment/vote mutations invalidate it too.
-  areaKnowledge: (racingAreaId: string) =>
-    [...communityFeedKeys.feeds(), 'area-knowledge', racingAreaId] as const,
+  placeKnowledge: (anchorKind: 'area' | 'poi', anchorId: string) =>
+    [...communityFeedKeys.feeds(), 'place-knowledge', anchorKind, anchorId] as const,
   groupKnowledge: (scopeType: string, scopeId: string) =>
     [...communityFeedKeys.feeds(), 'group-knowledge', scopeType, scopeId] as const,
   aggregatedFeed: (venueIds: string[], filters?: {
@@ -215,23 +216,27 @@ export function useRaceFeed(catalogRaceId: string | undefined) {
 }
 
 /**
- * Local-knowledge summary for one racing area: top visible posts +
+ * Local-knowledge summary for one place — a sailing racing area or any
+ * Atlas POI (hospital, haat, market, course…): top visible posts +
  * per-scope counts (public / fleet / org / blueprint). RLS already
  * limits rows to scopes the viewer belongs to.
  */
-export function useAreaKnowledge(racingAreaId: string | undefined, limit = 5) {
+export function usePlaceKnowledge(anchor: KnowledgeAnchor | undefined, limit = 5) {
   return useQuery({
-    queryKey: communityFeedKeys.areaKnowledge(racingAreaId || ''),
-    queryFn: () => CommunityFeedService.getAreaKnowledge(racingAreaId!, limit),
-    enabled: !!racingAreaId,
+    queryKey: communityFeedKeys.placeKnowledge(
+      anchor?.racingAreaId ? 'area' : 'poi',
+      anchor?.racingAreaId ?? anchor?.poiId ?? '',
+    ),
+    queryFn: () => CommunityFeedService.getPlaceKnowledge(anchor!, limit),
+    enabled: !!anchor,
     staleTime: 1000 * 60 * 2,
   });
 }
 
 /**
- * A group's (fleet/org/blueprint) knowledge posts bucketed by racing
- * area. RLS returns zero rows to non-members, so the section simply
- * collapses for viewers outside the group.
+ * A group's (fleet/org/blueprint) knowledge posts bucketed by place
+ * (racing area or Atlas POI). RLS returns zero rows to non-members, so
+ * the section simply collapses for viewers outside the group.
  */
 export function useGroupKnowledge(
   scopeType: 'fleet' | 'org' | 'blueprint',
