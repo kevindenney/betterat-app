@@ -1992,6 +1992,60 @@ export function mapToTimelineDataset({
 
   // Group steps into rotation-relative buckets of 3, ordered by sort_order.
   const seasonIdForSteps = currentSeason?.id ?? 'current';
+
+  // ---- Arc membership ------------------------------------------------
+  // A step belongs to ONE arc; creating or switching arcs must not absorb
+  // existing steps into the new current lane. Resolution order:
+  //   1. metadata.season_id — explicit Move-to-arc intent (Section E).
+  //   2. season_id column — stamped by the race composer at creation.
+  //   3. Date window — the newest-starting arc whose [start, end] contains
+  //      starts_at (created_at for unscheduled steps). Steps outside every
+  //      window go to the NEAREST arc in time — an arc is a calendar
+  //      block, so a May step belongs with the arc that starts in June,
+  //      never with a brand-new Sep–Dec arc that happens to be current.
+  //   4. The current arc — only when no dated arcs exist at all.
+  // Explicit ids pointing at a season we can't render (deleted) fall
+  // through to the date window.
+  const knownSeasonIds = new Set<string>(allSeasons.map((s) => s.id));
+  if (currentSeason) knownSeasonIds.add(currentSeason.id);
+  const explicitSeasonIdOf = (rec: TimelineStepRecord): string | null => {
+    const meta = rec.metadata as { season_id?: unknown } | null | undefined;
+    if (typeof meta?.season_id === 'string' && knownSeasonIds.has(meta.season_id)) {
+      return meta.season_id;
+    }
+    return rec.season_id && knownSeasonIds.has(rec.season_id) ? rec.season_id : null;
+  };
+  const DAY_MS = 24 * 3600 * 1000;
+  const windowSeasons = allSeasons
+    .filter((s) => s.start_date && s.end_date)
+    .sort((a, b) => Date.parse(b.start_date!) - Date.parse(a.start_date!));
+  const windowSeasonIdOf = (rec: TimelineStepRecord): string | null => {
+    const iso = rec.starts_at ?? rec.created_at;
+    const t = iso ? Date.parse(iso) : NaN;
+    if (Number.isNaN(t) || windowSeasons.length === 0) return null;
+    let best: { id: string; dist: number } | null = null;
+    for (const s of windowSeasons) {
+      const start = Date.parse(s.start_date!);
+      // end_date is a bare date (midnight) — make it inclusive.
+      const end = Date.parse(s.end_date!) + DAY_MS;
+      // Containment wins immediately; windowSeasons is newest-first so
+      // overlapping arcs resolve to the newest one.
+      if (t >= start && t < end) return s.id;
+      const dist = t < start ? start - t : t - end;
+      if (!best || dist < best.dist) best = { id: s.id, dist };
+    }
+    return best!.id;
+  };
+  const recordsByArc = new Map<string, TimelineStepRecord[]>();
+  for (const rec of sorted) {
+    const arcId =
+      explicitSeasonIdOf(rec) ?? windowSeasonIdOf(rec) ?? seasonIdForSteps;
+    const bucket = recordsByArc.get(arcId);
+    if (bucket) bucket.push(rec);
+    else recordsByArc.set(arcId, [rec]);
+  }
+  const currentStepRecords = recordsByArc.get(seasonIdForSteps) ?? [];
+
   // The NOW anchor tracks the *viewer's own* progression. A step shared by
   // a collaborator (a peer's in_progress step surfaced via
   // collaborator_user_ids) must never reset the viewer's rotation clock —
@@ -2004,13 +2058,14 @@ export function mapToTimelineDataset({
     s.status === 'in_progress' || s.status === 'pending';
   const actualFocusId =
     focusStepId ??
-    sorted.find((s) => isViewerStep(s) && isActive(s))?.id ??
-    sorted.find(isActive)?.id ??
+    currentStepRecords.find((s) => isViewerStep(s) && isActive(s))?.id ??
+    currentStepRecords.find(isActive)?.id ??
+    currentStepRecords[0]?.id ??
     sorted[0]?.id ??
     '';
 
   const bucketGroups: TimelineStepRecord[][] = [];
-  sorted.forEach((rec, i) => {
+  currentStepRecords.forEach((rec, i) => {
     const bucketIdx = Math.floor(i / 3);
     if (!bucketGroups[bucketIdx]) bucketGroups[bucketIdx] = [];
     bucketGroups[bucketIdx].push(rec);
@@ -2041,25 +2096,10 @@ export function mapToTimelineDataset({
     };
   });
 
-  // Steps moved to an archived season via Section E's MoveToSeasonSheet
-  // get `metadata.season_id` set to the target season's id. We use that
-  // to bucket bricks here so the L4 lanes reflect the move immediately —
-  // until/unless timeline_steps gains a real season_id column, this
-  // metadata field is the source of truth for cross-rotation grouping.
-  const seasonIdOf = (rec: TimelineStepRecord): string | null => {
-    const meta = rec.metadata as { season_id?: unknown } | null | undefined;
-    return typeof meta?.season_id === 'string' ? meta.season_id : null;
-  };
-
-  // Current-season bricks (one brick per step, capability-hashed). Only
-  // steps that are NOT pinned to an archived season land in the current
-  // rotation lane. Carrying the step id lets L4's brick tap navigate to
-  // the right step at L1, and lets Section D's drag-reorder identify
-  // the lifted brick.
-  const currentStepRecords = sorted.filter(
-    (rec) => !seasonIdOf(rec) || seasonIdOf(rec) === seasonIdForSteps,
-  );
-  const currentBricks = currentStepRecords.map((rec) => {
+  // One brick per step, capability-hashed. Carrying the step id lets L4's
+  // brick tap navigate to the right step at L1, and lets Section D's
+  // drag-reorder identify the lifted brick.
+  const brickOf = (rec: TimelineStepRecord) => {
     const fallbackLabel = categoryToLabel(rec.category);
     const visuals = fallbackLabel
       ? resolveCapabilityVisuals(fallbackLabel, interestVocab)
@@ -2072,7 +2112,8 @@ export function mapToTimelineDataset({
       status: STATUS_MAP[rec.status],
       withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
     };
-  });
+  };
+  const currentBricks = currentStepRecords.map(brickOf);
 
   const currentWeekIdx = Math.max(
     0,
@@ -2153,7 +2194,7 @@ export function mapToTimelineDataset({
   const visionEvidenceTrend: number[] = new Array(totalWeekBuckets).fill(0);
   if (stepEvidenceMap && stepEvidenceMap.size > 0 && totalWeekBuckets > 0) {
     const stepWeekIndex = new Map<string, number>();
-    sorted.forEach((rec, i) => {
+    currentStepRecords.forEach((rec, i) => {
       stepWeekIndex.set(rec.id, Math.floor(i / 3));
     });
     for (const rec of currentStepRecords) {
@@ -2324,20 +2365,11 @@ export function mapToTimelineDataset({
     headline: seasonHeadline,
   };
 
-  // Index moved-via-Section-E step records by their target season id so
-  // archived lanes can show real bricks instead of placeholders.
-  const movedByArchiveId = new Map<string, TimelineStepRecord[]>();
-  for (const rec of sorted) {
-    const sid = seasonIdOf(rec);
-    if (!sid || sid === seasonIdForSteps) continue;
-    const bucket = movedByArchiveId.get(sid) ?? [];
-    bucket.push(rec);
-    movedByArchiveId.set(sid, bucket);
-  }
-
-  // Archived season lanes — dedupe by (name + start_date) so users with
+  // Non-current season lanes — dedupe by (name + start_date) so users with
   // duplicate-row data don't see the same rotation listed dozens of times.
-  // Bricks-only (no week data needed for L4 visuals).
+  // Each lane gets REAL weeks + bricks from the steps that resolved to it,
+  // so switching the picker to a past arc shows its steps instead of an
+  // empty lane.
   const seenArchiveKeys = new Set<string>();
   const archivedSeasons: TimelineSeason[] = [];
   for (const s of allSeasons) {
@@ -2346,7 +2378,31 @@ export function mapToTimelineDataset({
     const key = `${name}::${s.start_date ?? ''}::${s.end_date ?? ''}`;
     if (seenArchiveKeys.has(key)) continue;
     seenArchiveKeys.add(key);
-    const moved = movedByArchiveId.get(s.id) ?? [];
+    const laneRecords = recordsByArc.get(s.id) ?? [];
+    const laneGroups: TimelineStepRecord[][] = [];
+    laneRecords.forEach((rec, i) => {
+      const bucketIdx = Math.floor(i / 3);
+      if (!laneGroups[bucketIdx]) laneGroups[bucketIdx] = [];
+      laneGroups[bucketIdx].push(rec);
+    });
+    const laneWeeks: TimelineWeek[] = laneGroups.map((bucketRecs, bucketIdx) => {
+      const id = weekKeyOf(bucketIdx * 3);
+      const { number, range } = weekRangeLabel(
+        bucketRecs.map((r) => ({ starts_at: r.starts_at })),
+        bucketIdx,
+      );
+      return {
+        id,
+        number,
+        dateRange: range,
+        // Past arcs have no live NOW; anchor it on the closing bucket so
+        // the lane reads as fully elapsed.
+        isCurrent: bucketIdx === laneGroups.length - 1,
+        steps: bucketRecs.map((r) =>
+          recordToStep(r, s.id, id, blueprintsById, user.id),
+        ),
+      };
+    });
     archivedSeasons.push({
       id: s.id,
       title: name,
@@ -2358,25 +2414,13 @@ export function mapToTimelineDataset({
       // another active arc (e.g. one created a moment ago), and labeling
       // it "archived" reads as data loss to the user.
       archived: s.status === 'archived',
-      weeks: [],
-      // Real bricks for steps the user has moved here; placeholders only
-      // when no moved steps exist (until the archive RPC ships).
+      weeks: laneWeeks,
+      // Placeholder bricks only when the lane has no resolvable steps
+      // (legacy arcs that predate step tracking, until the archive RPC
+      // ships).
       bricks:
-        moved.length > 0
-          ? moved.map((rec) => {
-              const fallbackLabel = categoryToLabel(rec.category);
-              const visuals = fallbackLabel
-                ? resolveCapabilityVisuals(fallbackLabel, interestVocab)
-                : null;
-              return {
-                capabilityColor: visuals?.color ?? hashCategoryToColor(rec.category),
-                capabilityLabel: visuals?.canonicalLabel ?? fallbackLabel,
-                title: rec.title ?? null,
-                stepId: rec.id,
-                status: STATUS_MAP[rec.status],
-                withOthers: (rec.collaborator_user_ids?.length ?? 0) > 0,
-              };
-            })
+        laneRecords.length > 0
+          ? laneRecords.map(brickOf)
           : Array.from({ length: 8 }, () => ({
               capabilityColor: CAPABILITY_PALETTE.procedural.color,
             })),
@@ -2391,8 +2435,14 @@ export function mapToTimelineDataset({
     [currentSeasonNode, ...archivedSeasons],
     lifetimeCapabilityRanking,
   );
+  // All real steps (every lane) + placeholder estimates for legacy lanes
+  // with no resolvable steps.
   const totalSteps =
-    sorted.length + archivedSeasons.reduce((n, s) => n + s.bricks.length, 0);
+    sorted.length +
+    archivedSeasons.reduce(
+      (n, s) => n + (s.weeks.length === 0 && s.bricks.length > 0 ? s.bricks.length : 0),
+      0,
+    );
   // First-run: suppress the lifetime "worth a reflection?" / "you're early in
   // your practice" prompt until there's enough history to mean something.
   if (!showAnalysis && lifetime) {

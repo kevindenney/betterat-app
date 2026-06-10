@@ -50,6 +50,9 @@ export type TimelineStepRecord = {
   /** Phase N.4 — true when this step is a race (gets Atlas course/marks/
    *  conditions). The only first-class step distinction; set in the composer. */
   is_race?: boolean;
+  /** Arc/series link (20260609120000) — stamped by the race composer at
+   *  creation; nullable on older and non-race rows. */
+  season_id?: string | null;
   sort_order: number;
   metadata: Record<string, unknown>;
   collaborator_user_ids: string[];
