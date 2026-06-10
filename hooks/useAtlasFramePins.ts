@@ -49,7 +49,10 @@ interface UseAtlasFramePinsArgs {
    * "+N" density badge counts only the active relationship lens. Applied
    * here rather than on the finished pin list because clustering collapses
    * every cluster to a single `kind:'fleet'` — filtering after the merge
-   * would make Crew/Following hide the whole badge. `null` = show all.
+   * would make Crew/Following hide the whole badge. 'you' also governs the
+   * viewer's own my-step-* status dots (except my-step-next, which backs the
+   * cockpit HUD and always renders). `null` = show all; empty Set = hide all
+   * relationship pins.
    */
   peerRelationshipFilter?: Set<string> | null;
   /**
@@ -564,8 +567,14 @@ export function useAtlasFramePins({
       'done-recent': 'Recently done',
       'done-old': 'Done',
     };
+    // The "My steps" chip ('you') governs these too — users read the chip as
+    // "my dots on the map", not just the peer-RPC self pins. The NEXT pin is
+    // exempt: it backs the persistent cockpit HUD, so hiding it while the
+    // cockpit still shows that step would make map and cockpit disagree.
+    const showOwnSteps = !peerRelationshipFilter || peerRelationshipFilter.has('you');
     for (const step of userSteps) {
       const kind = mapUserStepStatusToPinKind(step);
+      if (!showOwnSteps && kind !== 'my-step-next') continue;
       // Drafts (Atlas long-press) start with title=null until the user types
       // one on /step/[id]. Fall back to "Untitled step" so the pin doesn't
       // render as a bare badge ("NEXT" with no caption) or the literal

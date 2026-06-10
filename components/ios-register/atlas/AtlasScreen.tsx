@@ -2663,13 +2663,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setRaceOnly(races);
     // Race marks ride with the Races lens (course geometry draws when Races is on).
     setShowRaceMarks(races || activeIds.includes('race-marks'));
-    // Peer filter is the active relationship chips as an allow-list. Empty
-    // selection falls back to show-everyone rather than an empty map; a single
-    // chip (My steps) maps only your steps.
+    // Peer filter is the active relationship chips as an allow-list. An empty
+    // selection means "all dots off" — users read unchecked chips as hidden,
+    // so an empty Set (hide every relationship pin) honors that, not null
+    // (show everyone). The NEXT pin stays: it backs the persistent cockpit HUD.
     const peerChips = activeIds.filter((id) =>
       ['you', 'crew', 'fleet', 'following'].includes(id),
     );
-    setPeerRelationshipFilter(peerChips.length === 0 ? null : new Set(peerChips));
+    setPeerRelationshipFilter(new Set(peerChips));
   }, []);
   // Mirror layers/chips into the controlled keys the LayersSheet reads.
   const controlledLayerKeys = useMemo(() => {
