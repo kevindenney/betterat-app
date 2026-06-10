@@ -232,6 +232,9 @@ class SeasonServiceClass {
       .eq('user_id', userId)
       .eq('status', 'active')
       .order('start_date', { ascending: false })
+      // Tie-break same-day arcs by recency so a just-created arc becomes
+      // current (the timeline auto-switches to it on create).
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 

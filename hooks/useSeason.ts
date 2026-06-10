@@ -8,9 +8,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SeasonService } from '@/services/SeasonService';
 import { useAuth } from '@/providers/AuthProvider';
 import type {
-  Season,
-  SeasonWithSummary,
-  SeasonListItem,
   CreateSeasonInput,
   UpdateSeasonInput,
   SeasonStatus,
@@ -174,6 +171,11 @@ export function useCreateSeason() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: seasonKeys.lists() });
+      // "Current" is the newest-start-date active season, so a freshly
+      // created arc usually IS the new current one. Without this the
+      // timeline keeps the old arc selected and renders the new arc as a
+      // dataless past lane ("archived · 0 weeks").
+      queryClient.invalidateQueries({ queryKey: seasonKeys.current(user?.id || '') });
     },
   });
 }

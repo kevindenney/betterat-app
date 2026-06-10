@@ -902,7 +902,14 @@ export function L3SeasonView({
           },
         } : undefined}
         renderRow={(s) => {
-          const wkCount = s.weekOfTotal?.total ?? s.weeks.length;
+          // Non-current lanes carry no week data (weeks: []), so fall back
+          // to the date range — "0 weeks" reads as a broken arc.
+          let wkCount = s.weekOfTotal?.total ?? s.weeks.length;
+          if (wkCount === 0 && s.startDateISO && s.endDateISO) {
+            const ms =
+              new Date(s.endDateISO).getTime() - new Date(s.startDateISO).getTime();
+            wkCount = Math.max(1, Math.round(ms / (7 * 24 * 3600 * 1000)));
+          }
           return (
             <>
               <View style={styles.pickerTitleRow}>
@@ -916,7 +923,12 @@ export function L3SeasonView({
                 ) : null}
               </View>
               <Text style={styles.pickerSecondary} numberOfLines={1}>
-                {s.dateRange} · {wkCount} {wkCount === 1 ? 'week' : 'weeks'}
+                {[
+                  s.dateRange,
+                  wkCount > 0 ? `${wkCount} ${wkCount === 1 ? 'week' : 'weeks'}` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </Text>
             </>
           );

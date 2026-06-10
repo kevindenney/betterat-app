@@ -290,7 +290,7 @@ export function buildMoveTargets(
       name: s.name ?? s.short_name ?? 'Past rotation',
       dateRange: range(s),
       isCurrent: false,
-      archived: s.id !== current?.id,
+      archived: s.status === 'archived',
     });
   }
   return out;

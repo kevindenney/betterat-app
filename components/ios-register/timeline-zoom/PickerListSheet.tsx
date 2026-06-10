@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 interface Props<T> {
@@ -49,6 +50,7 @@ export function PickerListSheet<T>({
   onRowEdit,
   footerAction,
 }: Props<T>) {
+  const insets = useSafeAreaInsets();
   const scrollRef = React.useRef<ScrollView>(null);
 
   React.useEffect(() => {
@@ -73,7 +75,7 @@ export function PickerListSheet<T>({
       onRequestClose={onClose}
     >
       <Pressable style={styles.scrim} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { paddingBottom: Math.max(20, insets.bottom + 6) }]}>
         <View style={styles.handleBar} />
         <View style={styles.header}>
           <Text style={styles.title}>{title}</Text>
@@ -81,9 +83,9 @@ export function PickerListSheet<T>({
             onPress={onClose}
             hitSlop={12}
             accessibilityLabel="Close"
-            style={({ pressed }) => [pressed && styles.pressed]}
+            style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
           >
-            <Ionicons name="close" size={22} color={IOS_REGISTER.labelSecondary} />
+            <Ionicons name="close" size={18} color={IOS_REGISTER.labelSecondary} />
           </Pressable>
         </View>
         <ScrollView
@@ -92,64 +94,66 @@ export function PickerListSheet<T>({
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
-          {items.map((item, idx) => {
-            const selected = isSelected(item);
-            return (
-              <View key={keyExtractor(item, idx)} style={styles.rowOuter}>
-                <Pressable
-                  onPress={() => onSelect(item)}
-                  style={[styles.row, selected && styles.rowSelected]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
+          <View style={styles.group}>
+            {items.map((item, idx) => {
+              const selected = isSelected(item);
+              return (
+                <View
+                  key={keyExtractor(item, idx)}
+                  style={[styles.rowOuter, idx > 0 && styles.rowDivider]}
                 >
-                  <View style={styles.rowBody}>{renderRow(item, selected)}</View>
-                  {selected ? (
-                    <Ionicons
-                      name="checkmark"
-                      size={20}
-                      color={IOS_REGISTER.accentUserAction}
-                    />
-                  ) : (
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
-                      color={IOS_REGISTER.labelTertiary}
-                    />
-                  )}
-                </Pressable>
-                {onRowEdit ? (
                   <Pressable
-                    onPress={() => onRowEdit(item)}
-                    hitSlop={10}
+                    onPress={() => onSelect(item)}
+                    style={[styles.row, selected && styles.rowSelected]}
                     accessibilityRole="button"
-                    accessibilityLabel="Edit"
-                    style={({ pressed }) => [
-                      styles.rowEditBtn,
-                      pressed && styles.pressed,
-                    ]}
+                    accessibilityState={{ selected }}
                   >
-                    <Ionicons
-                      name="pencil-outline"
-                      size={16}
-                      color={IOS_REGISTER.labelSecondary}
-                    />
+                    <View style={styles.rowBody}>{renderRow(item, selected)}</View>
+                    {selected ? (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={22}
+                        color={IOS_REGISTER.accentUserAction}
+                      />
+                    ) : (
+                      <Ionicons
+                        name="ellipse-outline"
+                        size={22}
+                        color={IOS_REGISTER.labelTertiary}
+                      />
+                    )}
                   </Pressable>
-                ) : null}
-              </View>
-            );
-          })}
+                  {onRowEdit ? (
+                    <Pressable
+                      onPress={() => onRowEdit(item)}
+                      hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit"
+                      style={[
+                        styles.rowEditBtn,
+                        selected && styles.rowSelected,
+                      ]}
+                    >
+                      <Ionicons
+                        name="pencil"
+                        size={15}
+                        color={IOS_REGISTER.labelSecondary}
+                      />
+                    </Pressable>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
           {footerAction ? (
             <Pressable
               onPress={footerAction.onPress}
-              style={({ pressed }) => [
-                styles.footerRow,
-                pressed && styles.pressed,
-              ]}
+              style={styles.footerRow}
               accessibilityRole="button"
               accessibilityLabel={footerAction.label}
             >
               <Ionicons
-                name="add-circle-outline"
+                name="add"
                 size={20}
                 color={IOS_REGISTER.accentUserAction}
               />
@@ -172,11 +176,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: IOS_REGISTER.cardBg,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    backgroundColor: IOS_REGISTER.groundBg,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
     maxHeight: '80%',
-    paddingBottom: 28,
+  },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: IOS_REGISTER.fillPill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   handleBar: {
     width: 36,
@@ -205,11 +216,19 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   listContent: {
+    paddingHorizontal: 16,
     paddingBottom: 8,
+  },
+  group: {
+    borderRadius: 14,
+    backgroundColor: IOS_REGISTER.cardBg,
+    overflow: 'hidden',
   },
   rowOuter: {
     flexDirection: 'row',
     alignItems: 'stretch',
+  },
+  rowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: IOS_REGISTER.separator,
   },
@@ -218,21 +237,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
   },
   rowEditBtn: {
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    justifyContent: 'center',
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: IOS_REGISTER.separator,
   },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: IOS_REGISTER.separator,
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: IOS_REGISTER.cardBg,
   },
   footerRowText: {
     fontSize: 15,

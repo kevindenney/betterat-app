@@ -2354,7 +2354,10 @@ export function mapToTimelineDataset({
         s.start_date && s.end_date ? formatDateRange(s.start_date, s.end_date) : '',
       startDateISO: s.start_date ?? undefined,
       endDateISO: s.end_date ?? undefined,
-      archived: true,
+      // Badge from the REAL status — a non-current lane is often just
+      // another active arc (e.g. one created a moment ago), and labeling
+      // it "archived" reads as data loss to the user.
+      archived: s.status === 'archived',
       weeks: [],
       // Real bricks for steps the user has moved here; placeholders only
       // when no moved steps exist (until the archive RPC ships).
