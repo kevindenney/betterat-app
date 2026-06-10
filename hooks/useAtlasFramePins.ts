@@ -489,23 +489,29 @@ export function useAtlasFramePins({
     // roster server-side via restrict_user_ids[]. Per design rule §5
     // (CLUSTER BEHAVIOR): 5+ peer pins in 2km merge to "+N"; POIs are
     // geography (never merge).
-    const peerPins: AtlasPinSpec[] = peers.map((step) => ({
-      id: `peer:${step.step_id}`,
-      lat: step.lat,
-      lng: step.lng,
-      kind: mapPeerToPinKind(step),
-      // Phase N.3 — carry the privacy-safe identity so an individual peer pin
-      // opens an honest callout (who · relationship · when) instead of a
-      // generic "plan a step here" sheet.
-      peer: {
-        stepId: step.step_id,
-        relationship: step.relationship,
-        name: step.preview_name ?? step.set_by_name ?? null,
-        setAt: step.set_at ?? null,
+    // Org-published events also reach the peer RPC when viewer + author
+    // share the org (relationship=fleet) — drop them here so each event
+    // surfaces once, as its org-event pin with provenance, not twice.
+    const orgStepIds = new Set(orgSteps.map((ev) => ev.step_id));
+    const peerPins: AtlasPinSpec[] = peers
+      .filter((step) => !orgStepIds.has(step.step_id))
+      .map((step) => ({
+        id: `peer:${step.step_id}`,
         lat: step.lat,
         lng: step.lng,
-      },
-    }));
+        kind: mapPeerToPinKind(step),
+        // Phase N.3 — carry the privacy-safe identity so an individual peer pin
+        // opens an honest callout (who · relationship · when) instead of a
+        // generic "plan a step here" sheet.
+        peer: {
+          stepId: step.step_id,
+          relationship: step.relationship,
+          name: step.preview_name ?? step.set_by_name ?? null,
+          setAt: step.set_at ?? null,
+          lat: step.lat,
+          lng: step.lng,
+        },
+      }));
     // Apply the relationship-chip lens BEFORE clustering. Each cluster is
     // hardcoded to `kind:'fleet'` regardless of its members' real
     // relationships, so filtering the finished pin list would make

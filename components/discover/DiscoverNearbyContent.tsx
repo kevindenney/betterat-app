@@ -99,11 +99,16 @@ export function DiscoverNearbyContent({
   // One row per sailor: a person working several steps nearby returned a
   // row each, so the list showed the same person two or three times. Keep
   // the first (nearest/most-recent per the RPC's order) step per sailor.
+  // Org-published events also reach the peer RPC (viewer + author share
+  // the org → relationship=fleet); skip those so each event appears once,
+  // in the org-sessions section above.
   const visiblePeerSteps = (() => {
+    const orgStepIds = new Set(orgSteps.map((ev) => ev.step_id));
     const seen = new Set<string>();
     const out: typeof peerSteps = [];
     for (const s of peerSteps) {
       if (s.relationship === 'self') continue;
+      if (orgStepIds.has(s.step_id)) continue;
       if (seen.has(s.set_by)) continue;
       seen.add(s.set_by);
       out.push(s);
