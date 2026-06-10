@@ -570,6 +570,14 @@ export default function BlueprintPage() {
 
   const completedCount = steps?.filter((s) => s.status === 'completed').length ?? 0;
   const totalCount = steps?.length ?? 0;
+  // RLS hides non-public steps from non-subscribers, so a zero count on a
+  // restricted blueprint means "locked", not "the author published nothing".
+  const stepsLocked =
+    totalCount === 0 &&
+    !isOwner &&
+    !isSubscribed &&
+    !hasPurchased &&
+    blueprint.access_level !== 'public';
 
   // Plan → Do → Review → Discuss phase band: every step moves through these four
   // working phases. The band lights up the phases the blueprint has reached so
@@ -604,7 +612,7 @@ export default function BlueprintPage() {
     : null;
   const orgInitial = (blueprint.organization_name?.trim()?.[0] || '•').toUpperCase();
   const authorRole = blueprint.author_bio?.trim()
-    || `${totalCount} step${totalCount !== 1 ? 's' : ''}`;
+    || (stepsLocked ? 'Blueprint author' : `${totalCount} step${totalCount !== 1 ? 's' : ''}`);
   const isPaid = blueprint.access_level === 'paid' && !!blueprint.price_cents && blueprint.price_cents > 0;
   const bigPrice = isPaid ? priceLabel : 'Free';
   const accessLine = isPaid
@@ -695,10 +703,12 @@ export default function BlueprintPage() {
             </Pressable>
           ) : null}
           <View style={v2.heroMeta}>
-            <View style={v2.heroMetaItem}>
-              <Ionicons name="layers-outline" size={14} color="rgba(255,255,255,0.9)" />
-              <Text style={v2.heroMetaText}>{totalCount} step{totalCount !== 1 ? 's' : ''}</Text>
-            </View>
+            {!stepsLocked && (
+              <View style={v2.heroMetaItem}>
+                <Ionicons name="layers-outline" size={14} color="rgba(255,255,255,0.9)" />
+                <Text style={v2.heroMetaText}>{totalCount} step{totalCount !== 1 ? 's' : ''}</Text>
+              </View>
+            )}
             {blueprint.duration_weeks ? (
               <View style={v2.heroMetaItem}>
                 <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.9)" />
@@ -1009,10 +1019,12 @@ export default function BlueprintPage() {
               <View style={v2.glanceCard}>
                 <Text style={v2.glanceTitle}>At a glance</Text>
                 <View style={v2.glanceGrid}>
-                  <View style={v2.glanceItem}>
-                    <Text style={[v2.glanceNum, { color: accent }]}>{totalCount}</Text>
-                    <Text style={v2.glanceLabel}>{totalCount === 1 ? 'step' : 'steps'}</Text>
-                  </View>
+                  {!stepsLocked && (
+                    <View style={v2.glanceItem}>
+                      <Text style={[v2.glanceNum, { color: accent }]}>{totalCount}</Text>
+                      <Text style={v2.glanceLabel}>{totalCount === 1 ? 'step' : 'steps'}</Text>
+                    </View>
+                  )}
                   {blueprint.duration_weeks ? (
                     <View style={v2.glanceItem}>
                       <Text style={[v2.glanceNum, { color: accent }]}>{blueprint.duration_weeks}</Text>
@@ -1063,7 +1075,11 @@ export default function BlueprintPage() {
               {stepsLoading ? (
                 <ActivityIndicator size="small" color={accent} style={{ marginTop: 20 }} />
               ) : totalCount === 0 ? (
-                <Text style={styles.emptyStepsText}>No steps published yet.</Text>
+                <Text style={styles.emptyStepsText}>
+                  {stepsLocked
+                    ? 'The full step list unlocks when you subscribe.'
+                    : 'No steps published yet.'}
+                </Text>
               ) : (
                 <View style={{ gap: 0 }}>
                   {steps?.map((step, index) => (
