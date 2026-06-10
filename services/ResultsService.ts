@@ -318,7 +318,7 @@ export class ResultsService {
   /**
    * Export to PDF format
    */
-  private static async exportToPDF(standings: SeriesStanding[]): Promise<Blob> {
+  private static async exportToPDF(_standings: SeriesStanding[]): Promise<Blob> {
     // This would generate a PDF using a library like jsPDF
     // For now, return a placeholder
     throw new Error('PDF export not yet implemented');
@@ -435,14 +435,16 @@ export class ResultsService {
 
       if (notifyResult.error) {
         // Fallback schema for social notifications in newer builds.
+        // RLS requires actor_id = auth.uid(), so attribute to the publisher.
+        const { data: auth } = await supabase.auth.getUser();
+        const publisherId = auth?.user?.id ?? null;
         const fallbackPayload = participantIds.map((userId) => ({
           user_id: userId,
-          type: 'general',
-          actor_id: null,
+          type: 'race_result_posted',
+          actor_id: publisherId,
           regatta_id: regattaId,
           title: 'Results Published',
           body: message,
-          read_at: null,
         }));
 
         const fallback = await supabase
