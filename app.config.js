@@ -41,7 +41,7 @@ module.exports = {
       },
     },
     android: {
-      package: 'com.betterat.app',
+      package: 'at.better.app',
       versionCode: 8,
       adaptiveIcon: {
         backgroundColor: '#0a1832',

@@ -108,7 +108,7 @@ android {
 
     namespace 'com.betterat.app'
     defaultConfig {
-        applicationId 'com.betterat.app'
+        applicationId 'at.better.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 8

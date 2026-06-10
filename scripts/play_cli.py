@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Google Play Console CLI for com.betterat.app (androidpublisher v3).
+"""Google Play Console CLI for BetterAt (androidpublisher v3).
+
+Default package: at.better.app (fresh app on the Oceanflow Limited Play
+account). The original com.betterat.app lives on the old personal account
+(never published) — reach it with --package com.betterat.app.
 
 Auth: google-play-service-account.json in the repo root (gitignored).
 
@@ -38,7 +42,7 @@ from googleapiclient.http import MediaFileUpload
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SA = os.path.join(REPO_ROOT, "google-play-service-account.json")
-PKG = "com.betterat.app"
+PKG = "at.better.app"
 SCOPES = ["https://www.googleapis.com/auth/androidpublisher"]
 DEFAULT_LANG = "en-US"
 
