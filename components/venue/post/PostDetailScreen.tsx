@@ -24,6 +24,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { POST_TYPE_CONFIG } from '@/types/community-feed';
 import {
   usePostDetail,
+  usePostVisibility,
   usePostComments,
   useVotePost,
   useAuthorVenueStats,
@@ -60,6 +61,7 @@ export function PostDetailScreen({ postId, onBack }: PostDetailScreenProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { data: post, isLoading: postLoading } = usePostDetail(postId);
+  const { data: visibility } = usePostVisibility(postId, !postLoading && !post);
   const { data: comments, isLoading: commentsLoading } = usePostComments(postId);
   const voteMutation = useVotePost();
   const updateCommentMutation = useUpdateComment();
@@ -148,10 +150,29 @@ export function PostDetailScreen({ postId, onBack }: PostDetailScreenProps) {
   }
 
   if (!post) {
+    const membersOnly = visibility === 'members_only';
     return (
       <View style={styles.loadingContainer}>
-        <Ionicons name="alert-circle-outline" size={32} color="#D1D5DB" />
-        <Text style={styles.errorText}>Post not found</Text>
+        <Ionicons
+          name={membersOnly ? 'lock-closed-outline' : 'alert-circle-outline'}
+          size={32}
+          color="#D1D5DB"
+        />
+        <Text style={styles.errorText}>
+          {membersOnly ? 'Shared with a group' : 'Post not found'}
+        </Text>
+        {membersOnly ? (
+          <Text style={styles.errorDetailText}>
+            This note is shared with a group you're not part of. Join the
+            group to see what they know.
+          </Text>
+        ) : null}
+        {onBack ? (
+          <Pressable style={styles.backButton} onPress={onBack} accessibilityRole="button">
+            <Ionicons name="chevron-back" size={20} color="#374151" />
+            <Text style={styles.backLabel}>Back</Text>
+          </Pressable>
+        ) : null}
       </View>
     );
   }
@@ -436,6 +457,12 @@ const styles = StyleSheet.create({
   errorText: {
     ...TufteTokens.typography.secondary,
     color: '#9CA3AF',
+  },
+  errorDetailText: {
+    ...TufteTokens.typography.secondary,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
   // Header
   header: {

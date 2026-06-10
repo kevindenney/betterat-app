@@ -349,6 +349,20 @@ export function usePostDetail(postId: string, enabled = true) {
   });
 }
 
+/**
+ * Distinguish "post doesn't exist" from "post is scoped to a group you're
+ * not in". Only enable once the detail fetch has come back empty — the
+ * happy path never needs the extra RPC.
+ */
+export function usePostVisibility(postId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...communityFeedKeys.post(postId), 'visibility'] as const,
+    queryFn: () => CommunityFeedService.getPostVisibility(postId),
+    enabled: enabled && !!postId,
+    staleTime: 1000 * 60,
+  });
+}
+
 // ============================================================================
 // MUTATIONS
 // ============================================================================

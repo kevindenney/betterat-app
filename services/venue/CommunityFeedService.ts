@@ -511,6 +511,22 @@ class CommunityFeedServiceClass {
     return post;
   }
 
+  /**
+   * RLS hides scoped posts entirely, so a non-member deep link is
+   * indistinguishable from a deleted post client-side. The RPC reveals
+   * existence only (visible / members_only / not_found), never content.
+   */
+  async getPostVisibility(postId: string): Promise<'visible' | 'members_only' | 'not_found'> {
+    const { data, error } = await supabase.rpc('venue_post_visibility', {
+      p_post_id: postId,
+    });
+    if (error) {
+      logger.error('[CommunityFeedService] Error checking post visibility:', error);
+      return 'not_found';
+    }
+    return (data as 'visible' | 'members_only' | 'not_found') ?? 'not_found';
+  }
+
   // ============================================================================
   // CREATE / UPDATE / DELETE
   // ============================================================================
