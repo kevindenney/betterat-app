@@ -40,12 +40,16 @@ export default function PostCreateRoute() {
     venueId: paramVenueId,
     communityId: paramCommunityId,
     racingAreaId,
+    poiId,
+    poiName,
     catalogRaceId,
     catalogRaceName,
   } = useLocalSearchParams<{
     venueId?: string;
     communityId?: string;
     racingAreaId?: string;
+    poiId?: string;
+    poiName?: string;
     catalogRaceId?: string;
     catalogRaceName?: string;
   }>();
@@ -143,6 +147,22 @@ export default function PostCreateRoute() {
   const handleCreateCommunity = useCallback(() => {
     router.push('/community/create');
   }, [router]);
+
+  // POI-anchored knowledge posts skip the community picker entirely —
+  // the place IS the destination (createPost accepts poi_id alone).
+  if (poiId) {
+    return (
+      <View style={styles.container}>
+        <PostComposer
+          visible={true}
+          poiId={poiId}
+          poiName={poiName}
+          onDismiss={handleDismiss}
+          onSuccess={handleSuccess}
+        />
+      </View>
+    );
+  }
 
   // If we have a community selected, show the composer
   // Allow posting if we have either a venueId OR a communityId

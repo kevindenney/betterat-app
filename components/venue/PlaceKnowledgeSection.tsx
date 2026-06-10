@@ -48,6 +48,7 @@ export function PlaceKnowledgeSection({
   onEditArea,
   heading,
   interestSlug,
+  onAddKnowledge,
 }: {
   anchor: KnowledgeAnchor;
   conditions: CurrentConditions | null;
@@ -57,6 +58,8 @@ export function PlaceKnowledgeSection({
   heading?: string;
   /** Resolves persona copy (sailing/nursing/golf/lac-craft). */
   interestSlug?: string | null;
+  /** Renders the vocab add-CTA row (e.g. "Add site knowledge"). */
+  onAddKnowledge?: () => void;
 }) {
   const labels = getPlaceKnowledgeLabels(interestSlug);
   const { data, isLoading } = usePlaceKnowledge(anchor, 10);
@@ -141,6 +144,19 @@ export function PlaceKnowledgeSection({
           })}
         </>
       )}
+      {onAddKnowledge ? (
+        <Pressable
+          style={({ pressed }) => (pressed ? styles.postRowPressed : null)}
+          onPress={onAddKnowledge}
+          accessibilityRole="button"
+          accessibilityLabel={labels.addCta}
+        >
+          <View style={styles.linkRow}>
+            <Ionicons name="add-circle-outline" size={14} color={IOS_REGISTER.accentUserAction} />
+            <Text style={styles.linkText}>{labels.addCta}</Text>
+          </View>
+        </Pressable>
+      ) : null}
       {onEditArea ? (
         <Pressable
           style={({ pressed }) => (pressed ? styles.postRowPressed : null)}

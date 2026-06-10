@@ -1541,6 +1541,25 @@ function eyebrowForPin(pin: AtlasPinSpec): string {
 }
 
 /**
+ * Resolve a pin to an atlas_pois id it can anchor local knowledge on.
+ * Knowledge attaches to PLACES — person-kind POIs (preceptor, mentee,
+ * home workshop) never anchor venue_discussions. Racing-area mirrors are
+ * excluded too: their knowledge anchors on venue_racing_areas, and a
+ * second poi-keyed thread would split the same water in two.
+ */
+const KNOWLEDGE_POI_EXCLUDED_KINDS = new Set<AtlasPinSpec['kind']>([
+  'poi-preceptor',
+  'poi-mentee',
+  'poi-home-anchor',
+  'poi-racing-area',
+]);
+
+function knowledgePoiIdForPin(pin: AtlasPinSpec): string | null {
+  if (KNOWLEDGE_POI_EXCLUDED_KINDS.has(pin.kind)) return null;
+  return pin.id.startsWith('poi:') ? pin.id.slice('poi:'.length) : null;
+}
+
+/**
  * Fallback body for pin detail sheets when the pin has no explicit
  * subtitle — a terse coord readout keeps the sheet non-empty so the
  * primary CTA reads as related-to-something.
@@ -3875,6 +3894,25 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             eyebrow={eyebrowForPin(selectedPin)}
             title={selectedPin.label ?? 'Pin'}
             body={detailBodyForPin(selectedPin)}
+            expandedContent={(() => {
+              const poiId = knowledgePoiIdForPin(selectedPin);
+              if (!poiId) return undefined;
+              return (
+                <PlaceKnowledgeSection
+                  anchor={{ poiId }}
+                  conditions={null}
+                  interestSlug="sail-racing"
+                  onAddKnowledge={() => {
+                    const label = selectedPin.label;
+                    clearSelectedPin();
+                    router.push({
+                      pathname: '/venue/post/create',
+                      params: { poiId, ...(label ? { poiName: label } : {}) },
+                    } as never);
+                  }}
+                />
+              );
+            })()}
             primary={{
               label: 'Plan a step here',
               icon: 'add',
@@ -5199,6 +5237,25 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 .filter(Boolean)
                 .join('\n') || bodyForPin(selectedPin)
             }
+            expandedContent={(() => {
+              const poiId = knowledgePoiIdForPin(selectedPin);
+              if (!poiId) return undefined;
+              return (
+                <PlaceKnowledgeSection
+                  anchor={{ poiId }}
+                  conditions={null}
+                  interestSlug="nursing"
+                  onAddKnowledge={() => {
+                    const label = selectedPin.label;
+                    clearF4SelectedPin();
+                    router.push({
+                      pathname: '/venue/post/create',
+                      params: { poiId, ...(label ? { poiName: label } : {}) },
+                    } as never);
+                  }}
+                />
+              );
+            })()}
             primary={{
               label:
                 selectedPin.kind === 'poi-sim-anchor'
@@ -6013,6 +6070,25 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           eyebrow={eyebrowForPin(selectedPin)}
           title={(selectedPin.label ?? 'Pin').split('|')[0]}
           body={detailBodyForPin(selectedPin, [atlasPinContextNote(selectedPin)])}
+          expandedContent={(() => {
+            const poiId = knowledgePoiIdForPin(selectedPin);
+            if (!poiId) return undefined;
+            return (
+              <PlaceKnowledgeSection
+                anchor={{ poiId }}
+                conditions={null}
+                interestSlug="lac-craft-business"
+                onAddKnowledge={() => {
+                  const label = selectedPin.label;
+                  clearF7SelectedPin();
+                  router.push({
+                    pathname: '/venue/post/create',
+                    params: { poiId, ...(label ? { poiName: label.split('|')[0] } : {}) },
+                  } as never);
+                }}
+              />
+            );
+          })()}
           primary={
             selectedPin.kind === 'poi-supplier'
               ? {

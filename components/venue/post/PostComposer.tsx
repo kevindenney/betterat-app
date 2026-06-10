@@ -36,8 +36,11 @@ interface PostComposerProps {
   visible: boolean;
   venueId?: string;       // Optional - for venue-linked posts
   communityId?: string;   // Optional - for community posts
-  // Note: At least one of venueId or communityId should be provided
+  // Note: At least one of venueId, communityId, or poiId should be provided
   racingAreaId?: string | null;
+  /** Atlas POI anchor (hospital, haat, golf course…) — pre-bound, replaces the venue/area pickers. */
+  poiId?: string | null;
+  poiName?: string | null;
   catalogRaceId?: string | null;
   catalogRaceName?: string | null;
   /** Pass an existing post to enter edit mode */
@@ -58,6 +61,8 @@ export function PostComposer({
   venueId,
   communityId,
   racingAreaId,
+  poiId,
+  poiName,
   catalogRaceId: initialCatalogRaceId,
   catalogRaceName: initialCatalogRaceName,
   editingPost,
@@ -139,9 +144,9 @@ export function PostComposer({
           },
         });
       } else {
-        // Validate that we have either a venue or community to post to
-        if (!venueId && !communityId) {
-          showAlert('Error', 'Post must be associated with a venue or community.');
+        // Validate that we have a venue, community, or place to post to
+        if (!venueId && !communityId && !poiId) {
+          showAlert('Error', 'Post must be associated with a venue, community, or place.');
           return;
         }
 
@@ -168,7 +173,10 @@ export function PostComposer({
           title: title.trim(),
           body: body.trim() || undefined,
           post_type: postType,
-          racing_area_id: selectedAreaId || undefined,
+          poi_id: poiId || undefined,
+          // Single-anchor CHECK on venue_discussions: a post anchors a
+          // racing area OR a POI, never both.
+          racing_area_id: poiId ? undefined : selectedAreaId || undefined,
           scope_type: scopeType,
           scope_id: scopeId || undefined,
           topic_tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
@@ -185,7 +193,7 @@ export function PostComposer({
       const errorMessage = error?.message || `Failed to ${isEditing ? 'update' : 'create'} post. Please try again.`;
       showAlert(isEditing ? 'Cannot Update Post' : 'Cannot Create Post', errorMessage);
     }
-  }, [title, body, postType, venueId, communityId, selectedAreaId, scopeType, scopeId, selectedTagIds, conditionLabel, selectedRaceId, createPost, updatePost, isEditing, editingPost, resetForm, onSuccess, onDismiss]);
+  }, [title, body, postType, venueId, communityId, poiId, selectedAreaId, scopeType, scopeId, selectedTagIds, conditionLabel, selectedRaceId, createPost, updatePost, isEditing, editingPost, resetForm, onSuccess, onDismiss]);
 
   const handleDismiss = useCallback(() => {
     if (title.trim() || body.trim()) {
@@ -370,6 +378,21 @@ export function PostComposer({
             </View>
           )}
 
+          {/* Pre-bound place anchor (Atlas POI) — shown, not pickable */}
+          {!isEditing && poiId && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Place</Text>
+              <View style={styles.tagGrid}>
+                <View style={[styles.scopeChip, styles.scopeChipSelected]}>
+                  <Ionicons name="location" size={12} color="#2563EB" />
+                  <Text style={[styles.scopeChipText, styles.scopeChipTextSelected]}>
+                    {poiName || 'This place'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Racing Area */}
           {!isEditing && venueId && racingAreas.length > 0 && (
             <View style={styles.section}>
@@ -467,7 +490,8 @@ export function PostComposer({
             </View>
           )}
 
-          {/* Tag a Race */}
+          {/* Tag a Race — sailing-only; hidden for POI-anchored knowledge */}
+          {!poiId && (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Race (optional)</Text>
             {selectedRaceId && selectedRaceName ? (
@@ -535,8 +559,10 @@ export function PostComposer({
               </Pressable>
             )}
           </View>
+          )}
 
-          {/* Condition Label (simplified) */}
+          {/* Condition Label (simplified) — sailing-only; hidden for POI-anchored knowledge */}
+          {!poiId && (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Conditions (optional)</Text>
             <TextInput
@@ -550,6 +576,7 @@ export function PostComposer({
               Describe the conditions when this tip applies
             </Text>
           </View>
+          )}
 
           {/* Tips */}
           <View style={styles.tipsSection}>
