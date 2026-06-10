@@ -11,12 +11,22 @@ Commands:
   images <imageType> <files...>       replace images for an image type
                                       (phoneScreenshots, sevenInchScreenshots,
                                        tenInchScreenshots, icon, featureGraphic)
+  push-listing <exportDir> [--images-dir d]
+                                      apply an exported listing.json (details +
+                                      listing text + images matched by sha256)
+                                      to the target app — use with --package to
+                                      copy the store to another app
+
+Global: --package <pkg> targets a different app (default com.betterat.app).
 
 Uploads are SINGLE-SHOT (resumable=False) on a long-timeout Http: the
 chunked/resumable path hits an httplib2 308 RedirectMissingLocation bug.
 """
 
 import argparse
+import glob
+import hashlib
+import json
 import os
 import sys
 
@@ -138,8 +148,63 @@ def cmd_images(args):
     print("done")
 
 
+def cmd_push_listing(args):
+    with open(os.path.join(args.export_dir, "listing.json")) as f:
+        exp = json.load(f)
+    edits = service().edits()
+    eid = edits.insert(packageName=PKG, body={}).execute()["id"]
+    print(f"edit {eid}: pushing listing to {PKG}...")
+
+    edits.details().update(packageName=PKG, editId=eid, body=exp["details"]).execute()
+    print(f"  details: {exp['details']}")
+
+    for l in exp["listings"].get("listings", []):
+        body = {
+            k: l[k]
+            for k in ("language", "title", "shortDescription", "fullDescription", "video")
+            if l.get(k)
+        }
+        edits.listings().update(
+            packageName=PKG, editId=eid, language=l["language"], body=body
+        ).execute()
+        print(f"  listing [{l['language']}]: {l.get('title')}")
+
+    if args.images_dir:
+        by_sha = {}
+        for path in glob.glob(os.path.join(args.images_dir, "*")):
+            with open(path, "rb") as f:
+                by_sha[hashlib.sha256(f.read()).hexdigest()] = path
+        for itype, imgs in exp.get("images", {}).items():
+            if not isinstance(imgs, list):
+                continue
+            paths = []
+            for im in imgs:
+                path = by_sha.get(im.get("sha256"))
+                if not path:
+                    sys.exit(f"no local file in {args.images_dir} matches {itype} sha {im.get('sha256')[:12]}…")
+                paths.append(path)
+            edits.images().deleteall(
+                packageName=PKG, editId=eid, language=DEFAULT_LANG, imageType=itype
+            ).execute()
+            for path in paths:
+                media = MediaFileUpload(path, mimetype="image/png", resumable=False)
+                edits.images().upload(
+                    packageName=PKG,
+                    editId=eid,
+                    language=DEFAULT_LANG,
+                    imageType=itype,
+                    media_body=media,
+                ).execute()
+                print(f"  {itype}: {os.path.basename(path)}")
+
+    edits.commit(packageName=PKG, editId=eid).execute()
+    print("done")
+
+
 def main():
+    global PKG
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--package", default=PKG)
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("status").set_defaults(fn=cmd_status)
@@ -164,7 +229,13 @@ def main():
     im.add_argument("files", nargs="+")
     im.set_defaults(fn=cmd_images)
 
+    pl = sub.add_parser("push-listing")
+    pl.add_argument("export_dir")
+    pl.add_argument("--images-dir", default=None)
+    pl.set_defaults(fn=cmd_push_listing)
+
     args = p.parse_args()
+    PKG = args.package
     args.fn(args)
 
 

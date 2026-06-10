@@ -1,0 +1,63 @@
+{
+  "details": {
+    "defaultLanguage": "en-US",
+    "contactWebsite": "https://better.at",
+    "contactEmail": "kevin@better.at",
+    "contactPhone": "+85268420537"
+  },
+  "listings": {
+    "kind": "androidpublisher#listingsListResponse",
+    "listings": [
+      {
+        "language": "en-US",
+        "title": "BetterAt",
+        "fullDescription": "BetterAt helps you make real progress on the things you care about \u2014 whether that's sail racing, training for a marathon, mastering a clinical skill, or building a business.\n\nInstead of another tracker, BetterAt is built around how people actually improve:\n\n\u2022 Interests \u2014 Add what you're working on and get a clear plan of next steps.\n\u2022 Organizations \u2014 Join the clubs, schools, and programs that guide you, and follow their blueprints.\n\u2022 Programs \u2014 Subscribe to curricula and training plans built by people who've done it before.\n\u2022 People \u2014 Follow coaches, mentors, and peers moving in the same direction.\n\nEvery step captures the what, the how, the why, and the who \u2014 so your effort turns into visible progress and real evidence of what you can do. Plan your next steps, do the work, then review what you learned, with AI and your mentors helping you along the way.\n\nStart with your first interest today and see what you can get better at.",
+        "shortDescription": "Learn by doing. Progress on your goals with programs, mentors, and peers."
+      }
+    ]
+  },
+  "images": {
+    "icon": [
+      {
+        "id": "14151602128033395168",
+        "url": "https://lh3.googleusercontent.com/zleupdXN1TVOVZmLZ3VtvWnCLOKjZxPFttbQ6eQGK_awmKJxFmbY3trAiAXtJ4j3320HeZL-dIenzIdZFsh9ddg",
+        "sha1": "7c843e5e820621db6f419e485a0140cd0eac4581",
+        "sha256": "af8698090ac1fd4a73595eb210688e10f0cb3ae23b78be930cd8e360692ed3f5"
+      }
+    ],
+    "featureGraphic": [
+      {
+        "id": "14705910509188334833",
+        "url": "https://lh3.googleusercontent.com/jlZX7c29zqlVS6HEOJNom9uibmNWIL3B6cMicLMr__EGeuVQfrFqB4lTu-o_K_PPZ-ylKutjqlmLvzbK8Ffq7Q",
+        "sha1": "41a0fdf5f01de9e648d5caa02fe28f4f3376d0dc",
+        "sha256": "9731842c85cfefe8ccb9e1a5198bcc1df702b36f37878ec61073454684ef2a73"
+      }
+    ],
+    "phoneScreenshots": [
+      {
+        "id": "15980103881574502653",
+        "url": "https://lh3.googleusercontent.com/3hAGbDUGH56mp1rmol9m3OVZPaXzPXNEu4GBSAxOCEW1npoPrjSbV6ee9-f1wqEcsXt3kIj_zYbFZzdovXF_pg",
+        "sha1": "9ef539e7b1fcee5f598b094f8ffca4f89e17e7e8",
+        "sha256": "8ffa0ae64007fe3f54b863b5040ca8ee24bdccad76fb6c86732e0efebb688547"
+      },
+      {
+        "id": "18387333116066189646",
+        "url": "https://lh3.googleusercontent.com/h0f3qHesDFXW7VC0s7MnvlE2o5_ne7JTM5WWBxpvbgKYGD10KrtM3KW5_2zLSBzfdNANymCiOHj2CQgEbZmW7A",
+        "sha1": "3bf2f51e8bbd8c75f4c2b2dadd4d170603c65a60",
+        "sha256": "a05e1dd24f5900e02ac110c3d6bcfb8c2e9c7d5318c9dac9636c9014b56c1532"
+      },
+      {
+        "id": "7336989870619794109",
+        "url": "https://lh3.googleusercontent.com/NhfBVrepJmMWLt82PU-9lmzRRc7s6L7OW6TSavrUPeUHpEU8ibUACEsNEbZtMLow8YTIGaK78_rwkB0rYuIauQ",
+        "sha1": "315c1c7674d8687f6dceeb8acfb90ac6f2002216",
+        "sha256": "fa1db57d6c200c60e3dae698e5bf1051c6309f14b4722729ef95f02dfacc62d3"
+      },
+      {
+        "id": "1581888345902470796",
+        "url": "https://lh3.googleusercontent.com/5Yaa0Emgi3Ju0qahMMo7XJy0V343vPoT0qxFLygwJs5BxTACOowYqJpbyhsahKu4-5mY6R83T2PJwc_bI5QS",
+        "sha1": "832de9d6c55509eb3797b4b59602519867d19a17",
+        "sha256": "d8f018e828e3154bb43283a53109a02d7b6356dd74451fe2c63b9f7f43e3a6b5"
+      }
+    ]
+  }
+}
