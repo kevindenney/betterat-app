@@ -41,6 +41,8 @@ interface PostComposerProps {
   /** Atlas POI anchor (hospital, haat, golf course…) — pre-bound, replaces the venue/area pickers. */
   poiId?: string | null;
   poiName?: string | null;
+  /** Scopes topic chips to the composing interest's vocab (defaults to sail-racing). */
+  interestSlug?: string | null;
   catalogRaceId?: string | null;
   catalogRaceName?: string | null;
   /** Pass an existing post to enter edit mode */
@@ -63,6 +65,7 @@ export function PostComposer({
   racingAreaId,
   poiId,
   poiName,
+  interestSlug,
   catalogRaceId: initialCatalogRaceId,
   catalogRaceName: initialCatalogRaceName,
   editingPost,
@@ -93,7 +96,7 @@ export function PostComposer({
   const [raceSearchQuery, setRaceSearchQuery] = useState('');
   const [raceSearchResults, setRaceSearchResults] = useState<CatalogRace[]>([]);
 
-  const { data: topicTags } = useTopicTags();
+  const { data: topicTags } = useTopicTags(interestSlug);
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
 

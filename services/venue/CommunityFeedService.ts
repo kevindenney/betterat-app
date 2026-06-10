@@ -849,10 +849,12 @@ class CommunityFeedServiceClass {
   /**
    * Get all topic tags
    */
-  async getTopicTags(): Promise<TopicTag[]> {
+  // Defaults to sail-racing so legacy venue surfaces keep their full chip set.
+  async getTopicTags(interestSlug: string = 'sail-racing'): Promise<TopicTag[]> {
     const { data, error } = await supabase
       .from('venue_topic_tags')
       .select('*')
+      .or(`interest_slug.is.null,interest_slug.eq.${interestSlug}`)
       .order('sort_order', { ascending: true });
 
     if (error) {

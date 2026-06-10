@@ -1,7 +1,7 @@
 # Place Local Knowledge — generalizing the area-knowledge anchor
 
 > Status: SHIPPED 2026-06-10 as Phase P (`62cadb35` → P.5; see atlas-roadmap.md).
-> Loose threads: golf surface (P.6), per-interest topic categories (P.7).
+> Loose threads: golf surface (P.6). Per-interest topic categories (P.7) shipped 2026-06-10.
 > Originally a follow-up to `AREA_LOCAL_KNOWLEDGE_SPEC.md` (shipped as
 > Phase O, commits `458dbf37` → `2b1e1be3`). That work made `venue_discussions` audience-
 > scoped (`scope_type`/`scope_id`: public / private / fleet / org / blueprint) but left the

@@ -42,6 +42,7 @@ export default function PostCreateRoute() {
     racingAreaId,
     poiId,
     poiName,
+    interestSlug,
     catalogRaceId,
     catalogRaceName,
   } = useLocalSearchParams<{
@@ -50,6 +51,7 @@ export default function PostCreateRoute() {
     racingAreaId?: string;
     poiId?: string;
     poiName?: string;
+    interestSlug?: string;
     catalogRaceId?: string;
     catalogRaceName?: string;
   }>();
@@ -157,6 +159,7 @@ export default function PostCreateRoute() {
           visible={true}
           poiId={poiId}
           poiName={poiName}
+          interestSlug={interestSlug}
           onDismiss={handleDismiss}
           onSuccess={handleSuccess}
         />

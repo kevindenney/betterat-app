@@ -70,7 +70,7 @@ export const communityFeedKeys = {
   posts: () => [...communityFeedKeys.all, 'post'] as const,
   post: (postId: string) => [...communityFeedKeys.posts(), postId] as const,
   comments: (postId: string) => [...communityFeedKeys.all, 'comments', postId] as const,
-  topicTags: () => [...communityFeedKeys.all, 'topic-tags'] as const,
+  topicTags: (interestSlug: string) => [...communityFeedKeys.all, 'topic-tags', interestSlug] as const,
   membership: (venueId: string) => [...communityFeedKeys.all, 'membership', venueId] as const,
   mapPins: (venueId: string) => [...communityFeedKeys.all, 'map-pins', venueId] as const,
   authorStats: (authorId: string, venueId: string) =>
@@ -546,12 +546,13 @@ export function useVenueMembership(venueId: string) {
 // ============================================================================
 
 /**
- * Get all topic tags (cached globally)
+ * Get topic tags for an interest (universal tags + interest-scoped; cached globally)
  */
-export function useTopicTags() {
+export function useTopicTags(interestSlug?: string | null) {
+  const slug = interestSlug ?? 'sail-racing';
   return useQuery({
-    queryKey: communityFeedKeys.topicTags(),
-    queryFn: () => CommunityFeedService.getTopicTags(),
+    queryKey: communityFeedKeys.topicTags(slug),
+    queryFn: () => CommunityFeedService.getTopicTags(slug),
     staleTime: Infinity,
   });
 }

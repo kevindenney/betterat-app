@@ -5250,7 +5250,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                     clearF4SelectedPin();
                     router.push({
                       pathname: '/venue/post/create',
-                      params: { poiId, ...(label ? { poiName: label } : {}) },
+                      params: { poiId, interestSlug: 'nursing', ...(label ? { poiName: label } : {}) },
                     } as never);
                   }}
                 />
@@ -6083,7 +6083,7 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   clearF7SelectedPin();
                   router.push({
                     pathname: '/venue/post/create',
-                    params: { poiId, ...(label ? { poiName: label.split('|')[0] } : {}) },
+                    params: { poiId, interestSlug: 'lac-craft-business', ...(label ? { poiName: label.split('|')[0] } : {}) },
                   } as never);
                 }}
               />

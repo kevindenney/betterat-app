@@ -134,6 +134,7 @@ export interface TopicTag {
   icon: string | null;
   color: string | null;
   sort_order: number;
+  interest_slug?: string | null;
 }
 
 export interface ThreadedComment {

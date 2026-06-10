@@ -162,7 +162,7 @@ export function NursingSiteDetailSurface({
               onAddKnowledge={() =>
                 router.push({
                   pathname: '/venue/post/create',
-                  params: { poiId: site.id, poiName: site.name },
+                  params: { poiId: site.id, poiName: site.name, interestSlug: 'nursing' },
                 } as never)
               }
             />
