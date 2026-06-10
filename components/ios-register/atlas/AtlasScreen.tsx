@@ -1319,12 +1319,23 @@ function LayersSheet({
   const activeKeys = useMemo(() => {
     if (!controlledActiveKeys) return internalKeys;
     const out = new Set(internalKeys);
-    // Only the sailing condition overlays are parent-controlled from the
-    // chip rail. Clear those first, then reapply the parent's current on-set.
-    // Uncontrolled layers like "Peer steps" and "My steps" keep their own
-    // internal state instead of being dimmed just because they're absent
-    // from controlledActiveKeys.
-    for (const key of ['sailing.race_marks', 'sailing.wind', 'sailing.tide'] as const) {
+    // The parent mirrors every sailing overlay into controlledActiveKeys, so
+    // clear ALL of them before reapplying the parent's on-set — otherwise a
+    // defaultOn key (race areas, course) re-reads as ON from internal state
+    // every time the sheet remounts, the toggle lies, and the next tap flips
+    // the parent the wrong way. Uncontrolled layers like "Peer steps" and
+    // "My steps" keep their own internal state instead of being dimmed just
+    // because they're absent from controlledActiveKeys.
+    for (const key of [
+      'sailing.race_marks',
+      'sailing.marinas',
+      'sailing.sail_services',
+      'sailing.wind',
+      'sailing.tide',
+      'sailing.waves',
+      'sailing.race_areas',
+      'sailing.course',
+    ] as const) {
       out.delete(key);
     }
     for (const key of controlledActiveKeys) {
@@ -10993,6 +11004,7 @@ const shellStyles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: -0.1,
+    flexShrink: 1,
   },
   btnSecondary: {
     backgroundColor: IOS_REGISTER.fillPill,
@@ -11002,6 +11014,7 @@ const shellStyles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     letterSpacing: -0.1,
+    flexShrink: 1,
   },
   // --- Tab bar mock -------------------------------------------------------
   tabBar: {
