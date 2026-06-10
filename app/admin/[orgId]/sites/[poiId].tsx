@@ -9,11 +9,16 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import {
+  StudioHeader,
+  StudioButton,
+  STUDIO_COMPACT_BREAKPOINT,
+} from '@/components/studio/StudioShell';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { StatRow } from '@/components/studio/StatRow';
 import {
   useAdminSiteActivity,
@@ -88,6 +93,8 @@ function statusVerb(status: string): string {
 export default function AdminSiteDetailPage() {
   const { orgId, poiId } = useLocalSearchParams<{ orgId: string; poiId: string }>();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const compact = FEATURE_FLAGS.ADMIN_PHONE_PARITY && width < STUDIO_COMPACT_BREAKPOINT;
   const { loading, poi, activity, activityError } = useAdminSiteActivity(
     orgId as string,
     poiId as string,
@@ -143,8 +150,8 @@ export default function AdminSiteDetailPage() {
         ) : (
           <>
             {/* Hero */}
-            <View style={s.hero}>
-              <View style={s.heroMain}>
+            <View style={[s.hero, compact && s.heroCompact]}>
+              <View style={[s.heroMain, compact && s.cellCompact]}>
                 <View style={s.heroRow1}>
                   <View style={s.heroShield}>
                     <Ionicons name={kindIcon(kind)} size={22} color="#28406B" />
@@ -188,7 +195,7 @@ export default function AdminSiteDetailPage() {
                   ) : null}
                 </View>
               </View>
-              <View style={s.heroMap}>
+              <View style={[s.heroMap, compact && s.heroMapCompact]}>
                 <View style={[s.ring, { width: 140, height: 140 }]} />
                 <View style={[s.ring, { width: 90, height: 90 }]} />
                 <View style={[s.ring, { width: 50, height: 50 }]} />
@@ -234,8 +241,8 @@ export default function AdminSiteDetailPage() {
                 </StatRow>
 
                 {/* Two-col row · top competencies + roster */}
-                <View style={s.twoCol}>
-                  <View style={s.card}>
+                <View style={[s.twoCol, compact && s.twoColCompact]}>
+                  <View style={[s.card, compact && s.cellCompact]}>
                     <View style={s.cardHead}>
                       <View>
                         <Text style={s.cardEyebrow}>Most evidenced</Text>
@@ -268,7 +275,7 @@ export default function AdminSiteDetailPage() {
                     </View>
                   </View>
 
-                  <View style={s.card}>
+                  <View style={[s.card, compact && s.cellCompact]}>
                     <View style={s.cardHead}>
                       <View>
                         <Text style={s.cardEyebrow}>People</Text>
@@ -418,7 +425,11 @@ const s = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
     overflow: 'hidden',
   },
+  heroCompact: { flexDirection: 'column' },
   heroMain: { flex: 1, padding: 22, gap: 10 },
+  // flex:1 children collapse to 0 height inside a column container — see
+  // feedback_flex1_collapses_in_column_cell. flex:0 restores intrinsic size.
+  cellCompact: { flex: 0 },
   heroRow1: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   heroShield: {
     width: 44,
@@ -433,6 +444,7 @@ const s = StyleSheet.create({
   heroCoords: { fontVariant: ['tabular-nums'] },
   heroBadges: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 6 },
 
+  heroMapCompact: { width: '100%', height: 120 },
   heroMap: {
     width: 200,
     backgroundColor: '#EDEBE2',
@@ -497,6 +509,7 @@ const s = StyleSheet.create({
 
   // Two-col row
   twoCol: { flexDirection: 'row', gap: 18 },
+  twoColCompact: { flexDirection: 'column' },
 
   // Card
   card: {
