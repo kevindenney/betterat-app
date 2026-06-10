@@ -234,12 +234,12 @@ export function usePlaceKnowledge(anchor: KnowledgeAnchor | undefined, limit = 5
 }
 
 /**
- * A group's (fleet/org/blueprint) knowledge posts bucketed by place
+ * A group's (fleet/org/blueprint/cohort) knowledge posts bucketed by place
  * (racing area or Atlas POI). RLS returns zero rows to non-members, so
  * the section simply collapses for viewers outside the group.
  */
 export function useGroupKnowledge(
-  scopeType: 'fleet' | 'org' | 'blueprint',
+  scopeType: 'fleet' | 'org' | 'blueprint' | 'cohort',
   scopeId: string | undefined,
 ) {
   return useQuery({

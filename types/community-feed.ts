@@ -15,7 +15,7 @@ export type FeedSortType = 'hot' | 'new' | 'rising' | 'top' | 'conditions_match'
 export type VenueRole = 'moderator' | 'race_officer' | 'coach' | 'contributor';
 
 /** Audience a knowledge post is addressed to. Gates fail closed (RLS). */
-export type KnowledgeScopeType = 'public' | 'private' | 'fleet' | 'org' | 'blueprint';
+export type KnowledgeScopeType = 'public' | 'private' | 'fleet' | 'org' | 'blueprint' | 'cohort';
 
 export type TidePhase = 'rising' | 'falling' | 'high' | 'low' | 'ebb' | 'flood';
 

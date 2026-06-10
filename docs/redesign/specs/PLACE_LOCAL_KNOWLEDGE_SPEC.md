@@ -138,12 +138,14 @@ blast radius is one file plus `hooks/useCommunityFeed.ts`.
 
 ## Open questions (non-blocking)
 
-1. **Cohort audience.** Nursing's natural group is the cohort, not a fleet. `scope_type`
-   stays public/private/fleet/org/blueprint for v1; adding `cohort` is a follow-up
-   (`can_access_venue_scope` + composer picker), consistent with the one-group-primitive
-   model (`project_group_three_axis_model`).
+1. ~~**Cohort audience.**~~ SHIPPED 2026-06-10 (migration `20260610220000`): `scope_type`
+   gains `cohort` over `betterat_org_cohort_members` (row presence = membership),
+   composer offers the user's cohorts, scope badge reads "Cohort". One-group-primitive
+   model holds (`project_group_three_axis_model`).
 2. **Folding `venue_racing_areas` into `atlas_pois`.** Four racing_area POI mirror rows
    already exist; consolidating would let `racing_area_id` retire. Out of scope —
    touches the Atlas authoring flow.
 3. **Golf course data source** — manual seed vs. import. Start manual (demo scale).
-4. **Members-only state for `/venue/post/[id]`** — carried over from Phase O, still open.
+4. ~~**Members-only state for `/venue/post/[id]`**~~ SHIPPED 2026-06-10 (migration
+   `20260610210000`): `venue_post_visibility` RPC distinguishes deleted vs. scoped
+   (existence-only leak); detail screen shows a lock + "Shared with a group" state.

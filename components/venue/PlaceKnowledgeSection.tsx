@@ -29,6 +29,7 @@ function scopeLabel(post: FeedPost): string | null {
     case 'fleet': return 'Fleet';
     case 'org': return 'Org';
     case 'blueprint': return 'Subscribers';
+    case 'cohort': return 'Cohort';
     case 'private': return 'Only you';
     default: return null;
   }

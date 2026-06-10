@@ -37,7 +37,7 @@ export function GroupKnowledgeSection({
   interestSlug,
   style,
 }: {
-  scopeType: 'fleet' | 'org' | 'blueprint';
+  scopeType: 'fleet' | 'org' | 'blueprint' | 'cohort';
   scopeId: string | undefined;
   /** Resolves persona copy (sailing/nursing/golf/lac-craft). */
   interestSlug?: string | null;

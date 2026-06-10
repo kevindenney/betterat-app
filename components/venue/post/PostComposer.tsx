@@ -461,12 +461,16 @@ export function PostComposer({
                     ? visibilityLabels.fleet
                     : audience.scopeType === 'org'
                       ? 'Org'
-                      : 'Subscribers';
+                      : audience.scopeType === 'cohort'
+                        ? 'Cohort'
+                        : 'Subscribers';
                   const icon = audience.scopeType === 'fleet'
                     ? 'people-outline'
                     : audience.scopeType === 'org'
                       ? 'business-outline'
-                      : 'ribbon-outline';
+                      : audience.scopeType === 'cohort'
+                        ? 'school-outline'
+                        : 'ribbon-outline';
                   return (
                     <Pressable
                       key={`${audience.scopeType}-${audience.scopeId}`}

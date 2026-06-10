@@ -1091,7 +1091,7 @@ class CommunityFeedServiceClass {
    * result collapse the section.
    */
   async getGroupKnowledge(
-    scopeType: Extract<KnowledgeScopeType, 'fleet' | 'org' | 'blueprint'>,
+    scopeType: Extract<KnowledgeScopeType, 'fleet' | 'org' | 'blueprint' | 'cohort'>,
     scopeId: string,
   ): Promise<GroupKnowledgePlace[]> {
     const { data, error } = await supabase

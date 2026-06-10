@@ -1,8 +1,9 @@
 /**
  * useKnowledgeAudiences — the audiences the signed-in user can address a
  * venue-knowledge post to: their active fleets (fleet_members), active org
- * memberships, and blueprints they subscribe to or own. Public is implicit
- * and always available; this hook returns only the membership-gated options.
+ * memberships, blueprints they subscribe to or own, and cohorts they belong
+ * to. Public is implicit and always available; this hook returns only the
+ * membership-gated options.
  *
  * Mirrors the RLS author gate (can_access_venue_scope) so the composer never
  * offers a scope the insert policy would reject.
@@ -14,7 +15,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import type { KnowledgeScopeType } from '@/types/community-feed';
 
 export interface KnowledgeAudience {
-  scopeType: Extract<KnowledgeScopeType, 'fleet' | 'org' | 'blueprint'>;
+  scopeType: Extract<KnowledgeScopeType, 'fleet' | 'org' | 'blueprint' | 'cohort'>;
   scopeId: string;
   name: string;
 }
@@ -30,7 +31,7 @@ export function useKnowledgeAudiences() {
     queryFn: async () => {
       if (!userId) return [];
 
-      const [fleetRes, orgRes, subRes, ownedRes] = await Promise.all([
+      const [fleetRes, orgRes, subRes, ownedRes, cohortRes] = await Promise.all([
         supabase
           .from('fleet_members')
           .select('fleet_id, fleets(id, name)')
@@ -49,6 +50,10 @@ export function useKnowledgeAudiences() {
           .select('id, title')
           .eq('user_id', userId)
           .eq('is_published', true),
+        supabase
+          .from('betterat_org_cohort_members')
+          .select('cohort_id, betterat_org_cohorts(id, name)')
+          .eq('user_id', userId),
       ]);
 
       const audiences: KnowledgeAudience[] = [];
@@ -92,6 +97,15 @@ export function useKnowledgeAudiences() {
       for (const bp of ownedRes.data || []) {
         if ((bp as any).id && (bp as any).title) {
           push({ scopeType: 'blueprint', scopeId: (bp as any).id, name: (bp as any).title });
+        }
+      }
+
+      for (const row of cohortRes.data || []) {
+        const cohort = Array.isArray((row as any).betterat_org_cohorts)
+          ? (row as any).betterat_org_cohorts[0]
+          : (row as any).betterat_org_cohorts;
+        if (cohort?.id && cohort?.name) {
+          push({ scopeType: 'cohort', scopeId: cohort.id, name: cohort.name });
         }
       }
 
