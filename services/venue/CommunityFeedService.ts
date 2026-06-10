@@ -24,6 +24,7 @@ import type {
   TopPeriod,
   VenueRole,
   AreaKnowledgeSummary,
+  GroupKnowledgeArea,
   KnowledgeScopeType,
 } from '@/types/community-feed';
 
@@ -1052,6 +1053,68 @@ class CommunityFeedServiceClass {
       countsByScope,
       totalVisible: (countsRes.data || []).length,
     };
+  }
+
+  /**
+   * A group's (fleet/org/blueprint) knowledge posts, bucketed by racing
+   * area. RLS hides the rows entirely from non-members, so callers can
+   * render unconditionally and let an empty result collapse the section.
+   */
+  async getGroupKnowledge(
+    scopeType: Extract<KnowledgeScopeType, 'fleet' | 'org' | 'blueprint'>,
+    scopeId: string,
+  ): Promise<GroupKnowledgeArea[]> {
+    const { data, error } = await supabase
+      .from('venue_discussions')
+      .select(`
+        *,
+        author:users!author_id (
+          id,
+          full_name,
+          avatar_url
+        ),
+        racing_area:venue_racing_areas!racing_area_id (
+          id,
+          area_name
+        )
+      `)
+      .eq('scope_type', scopeType)
+      .eq('scope_id', scopeId)
+      .order('last_activity_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      logger.error('[CommunityFeedService] Error fetching group knowledge:', error);
+      throw error;
+    }
+
+    const posts = ((data || []) as unknown as FeedPost[]).map((p) => ({
+      ...p,
+      hot_score: this.computeHotScore(p),
+    }));
+
+    const buckets = new Map<string | null, GroupKnowledgeArea>();
+    for (const post of posts) {
+      const key = post.racing_area_id ?? null;
+      let bucket = buckets.get(key);
+      if (!bucket) {
+        bucket = {
+          racingAreaId: key,
+          areaName: post.racing_area?.area_name ?? null,
+          posts: [],
+        };
+        buckets.set(key, bucket);
+      }
+      bucket.posts.push(post);
+    }
+    for (const bucket of buckets.values()) {
+      bucket.posts.sort((a, b) => (b.hot_score || 0) - (a.hot_score || 0));
+    }
+    // Named areas first, busiest first; venue-wide (no area) bucket last.
+    return [...buckets.values()].sort((a, b) => {
+      if (!a.racingAreaId !== !b.racingAreaId) return a.racingAreaId ? -1 : 1;
+      return b.posts.length - a.posts.length;
+    });
   }
 
   // ============================================================================

@@ -58,6 +58,8 @@ export const communityFeedKeys = {
   // Lives under feeds() so post/comment/vote mutations invalidate it too.
   areaKnowledge: (racingAreaId: string) =>
     [...communityFeedKeys.feeds(), 'area-knowledge', racingAreaId] as const,
+  groupKnowledge: (scopeType: string, scopeId: string) =>
+    [...communityFeedKeys.feeds(), 'group-knowledge', scopeType, scopeId] as const,
   aggregatedFeed: (venueIds: string[], filters?: {
     sort?: FeedSortType;
     postType?: PostType;
@@ -222,6 +224,23 @@ export function useAreaKnowledge(racingAreaId: string | undefined, limit = 5) {
     queryKey: communityFeedKeys.areaKnowledge(racingAreaId || ''),
     queryFn: () => CommunityFeedService.getAreaKnowledge(racingAreaId!, limit),
     enabled: !!racingAreaId,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+/**
+ * A group's (fleet/org/blueprint) knowledge posts bucketed by racing
+ * area. RLS returns zero rows to non-members, so the section simply
+ * collapses for viewers outside the group.
+ */
+export function useGroupKnowledge(
+  scopeType: 'fleet' | 'org' | 'blueprint',
+  scopeId: string | undefined,
+) {
+  return useQuery({
+    queryKey: communityFeedKeys.groupKnowledge(scopeType, scopeId || ''),
+    queryFn: () => CommunityFeedService.getGroupKnowledge(scopeType, scopeId!),
+    enabled: !!scopeId,
     staleTime: 1000 * 60 * 2,
   });
 }

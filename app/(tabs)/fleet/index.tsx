@@ -26,6 +26,7 @@ import { useFleetOverview, useFleetPlans, useUserFleets } from '@/hooks/useFleet
 import { useFleetPosts } from '@/hooks/useFleetSocial';
 import { fleetService, type FleetMembership } from '@/services/fleetService';
 import { TUFTE_BACKGROUND } from '@/components/cards/constants';
+import { GroupKnowledgeSection } from '@/components/venue/GroupKnowledgeSection';
 import { InterestSwitcher } from '@/components/InterestSwitcher';
 
 // Tufte color palette
@@ -394,6 +395,17 @@ export default function FleetOverviewScreen() {
         </>
       )}
 
+      {/* Local knowledge — fleet-scoped notes bucketed by racing area.
+          Collapses to null when the fleet has none (or viewer isn't a
+          member, since RLS hides the rows). */}
+      {summaryFleet && (
+        <GroupKnowledgeSection
+          scopeType="fleet"
+          scopeId={summaryFleet.id}
+          style={styles.knowledgeSection}
+        />
+      )}
+
       {/* Activity Feed */}
       <View style={styles.divider} />
       <Text style={styles.sectionLabel}>RECENT ACTIVITY</Text>
@@ -610,6 +622,12 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: COLORS.hairline,
     marginVertical: 20,
+  },
+  knowledgeSection: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.hairline,
+    marginTop: 20,
+    paddingTop: 20,
   },
 
   // Fleet header

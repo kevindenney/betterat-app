@@ -43,11 +43,14 @@ export function AreaKnowledgeSection({
   racingAreaId,
   conditions,
   onEditArea,
+  heading = 'LOCAL KNOWLEDGE',
 }: {
   racingAreaId: string;
   conditions: CurrentConditions | null;
   /** Owner-only: opens the existing racing-area edit sheet. */
   onEditArea?: () => void;
+  /** Section heading — race-step detail uses "ABOUT THIS AREA". */
+  heading?: string;
 }) {
   const { data, isLoading } = useAreaKnowledge(racingAreaId, 10);
 
@@ -80,7 +83,7 @@ export function AreaKnowledgeSection({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.heading}>LOCAL KNOWLEDGE</Text>
+      <Text style={styles.heading}>{heading}</Text>
       {posts.length === 0 ? (
         <Text style={styles.emptyText}>
           No local knowledge for this area yet — be the first to share what you know about this water.
@@ -106,24 +109,28 @@ export function AreaKnowledgeSection({
             return (
               <Pressable
                 key={post.id}
-                style={({ pressed }) => [styles.postRow, pressed && styles.postRowPressed]}
+                // Function-form Pressable styles silently drop row layout —
+                // keep flexDirection on the inner View.
+                style={({ pressed }) => (pressed ? styles.postRowPressed : null)}
                 onPress={() => router.push(`/venue/post/${post.id}`)}
                 accessibilityRole="button"
                 accessibilityLabel={`Open post: ${post.title}`}
               >
-                <Ionicons
-                  name={(typeConfig?.icon ?? 'chatbubbles-outline') as never}
-                  size={14}
-                  color={typeConfig?.color ?? IOS_REGISTER.labelSecondary}
-                  style={styles.postIcon}
-                />
-                <View style={styles.postBody}>
-                  <Text style={styles.postTitle} numberOfLines={1}>{post.title}</Text>
-                  <Text style={styles.postMeta} numberOfLines={1}>
-                    {[post.author?.full_name, scope].filter(Boolean).join(' · ')}
-                  </Text>
+                <View style={styles.postRow}>
+                  <Ionicons
+                    name={(typeConfig?.icon ?? 'chatbubbles-outline') as never}
+                    size={14}
+                    color={typeConfig?.color ?? IOS_REGISTER.labelSecondary}
+                    style={styles.postIcon}
+                  />
+                  <View style={styles.postBody}>
+                    <Text style={styles.postTitle} numberOfLines={1}>{post.title}</Text>
+                    <Text style={styles.postMeta} numberOfLines={1}>
+                      {[post.author?.full_name, scope].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={IOS_REGISTER.labelTertiary} />
                 </View>
-                <Ionicons name="chevron-forward" size={14} color={IOS_REGISTER.labelTertiary} />
               </Pressable>
             );
           })}
@@ -131,13 +138,15 @@ export function AreaKnowledgeSection({
       )}
       {onEditArea ? (
         <Pressable
-          style={({ pressed }) => [styles.linkRow, pressed && styles.postRowPressed]}
+          style={({ pressed }) => (pressed ? styles.postRowPressed : null)}
           onPress={onEditArea}
           accessibilityRole="button"
           accessibilityLabel="Edit this racing area"
         >
-          <Ionicons name="create-outline" size={14} color={IOS_REGISTER.accentUserAction} />
-          <Text style={styles.linkText}>Edit area</Text>
+          <View style={styles.linkRow}>
+            <Ionicons name="create-outline" size={14} color={IOS_REGISTER.accentUserAction} />
+            <Text style={styles.linkText}>Edit area</Text>
+          </View>
         </Pressable>
       ) : null}
     </View>

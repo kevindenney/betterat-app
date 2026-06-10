@@ -11,6 +11,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useToast } from '@/components/ui/AppToast';
 import { showConfirm, showAlert } from '@/lib/utils/crossPlatformAlert';
 import { OrgLocationsMap, type OrgLocation } from '@/components/organizations/OrgLocationsMap';
+import { GroupKnowledgeSection } from '@/components/venue/GroupKnowledgeSection';
 import { useOrgViewerMembership } from '@/hooks/useOrgViewerMembership';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { OrgJoinService } from '@/services/OrgJoinService';
@@ -599,6 +600,10 @@ export default function OrganizationPlaceholderPage() {
               </View>
             ) : null}
 
+            {/* Org-scoped local knowledge by racing area. RLS hides the
+                rows from non-members, so the card collapses for them. */}
+            <GroupKnowledgeSection scopeType="org" scopeId={org.id} style={styles.card} />
+
             {org.source_summary ? (
               <View style={styles.card}>
                 <Text style={styles.sectionTitle}>About</Text>
@@ -864,6 +869,10 @@ export default function OrganizationPlaceholderPage() {
                 </View>
               </View>
             ) : null}
+
+            {/* Org-scoped local knowledge by racing area. RLS hides the
+                rows from non-members, so the card collapses for them. */}
+            <GroupKnowledgeSection scopeType="org" scopeId={org.id} style={styles.card} />
 
             {isDemo ? (
               <>

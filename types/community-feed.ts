@@ -225,6 +225,14 @@ export interface AreaKnowledgeSummary {
   totalVisible: number;
 }
 
+/** One racing-area bucket of a group's (fleet/org/blueprint) knowledge posts. */
+export interface GroupKnowledgeArea {
+  /** Null when the posts aren't bound to a racing area (venue-wide notes). */
+  racingAreaId: string | null;
+  areaName: string | null;
+  posts: FeedPost[];
+}
+
 export interface MapBounds {
   north: number;
   south: number;
