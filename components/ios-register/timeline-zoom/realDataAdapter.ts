@@ -1856,6 +1856,30 @@ function shortenSeasonLabel(title: string): string {
   return tokens.slice(0, 2).join(' ');
 }
 
+/**
+ * Arcs are date-bound, so every arc list orders chronologically: earlier
+ * start_date first. Overlapping windows (university terms, cross-institution
+ * arcs) tie-break on end_date, then created_at, then name; undated arcs sink
+ * to the end. Shared by the dataset lanes, the Switch-arc picker, and the
+ * Move-to-arc sheet so the order reads the same everywhere.
+ */
+export function compareSeasonsByStartDate(
+  a: Pick<Season, 'name'> & Partial<Pick<Season, 'start_date' | 'end_date' | 'created_at'>>,
+  b: Pick<Season, 'name'> & Partial<Pick<Season, 'start_date' | 'end_date' | 'created_at'>>,
+): number {
+  const t = (iso?: string | null) => {
+    const v = iso ? Date.parse(iso) : NaN;
+    return Number.isNaN(v) ? Number.POSITIVE_INFINITY : v;
+  };
+  // NaN from Infinity-Infinity is falsy, so ties fall through each `||`.
+  return (
+    t(a.start_date) - t(b.start_date) ||
+    t(a.end_date) - t(b.end_date) ||
+    t(a.created_at) - t(b.created_at) ||
+    (a.name ?? '').localeCompare(b.name ?? '')
+  );
+}
+
 interface AdapterInput {
   interestId?: string | null;
   interestLabel: string;
@@ -1993,36 +2017,50 @@ export function mapToTimelineDataset({
   // Group steps into rotation-relative buckets of 3, ordered by sort_order.
   const seasonIdForSteps = currentSeason?.id ?? 'current';
 
+  // Canonical arc order — chronological by start_date (see
+  // compareSeasonsByStartDate). dataset.seasons, the arc picker, and the
+  // L4 chapter stack all read in this order.
+  const orderedSeasons = [...allSeasons].sort(compareSeasonsByStartDate);
+  const seasonRank = new Map(orderedSeasons.map((s, i) => [s.id, i]));
+
   // ---- Arc membership ------------------------------------------------
   // A step belongs to ONE arc; creating or switching arcs must not absorb
   // existing steps into the new current lane. Resolution order:
   //   1. metadata.season_id — explicit Move-to-arc intent (Section E).
-  //   2. season_id column — stamped by the race composer at creation.
-  //   3. Date window — the newest-starting arc whose [start, end] contains
-  //      starts_at (created_at for unscheduled steps). Steps outside every
-  //      window go to the NEAREST arc in time — an arc is a calendar
-  //      block, so a May step belongs with the arc that starts in June,
-  //      never with a brand-new Sep–Dec arc that happens to be current.
-  //   4. The current arc — only when no dated arcs exist at all.
+  //   2. Date containment — the newest-starting arc whose [start, end]
+  //      contains starts_at (created_at for unscheduled steps). The date
+  //      is ground truth: a race dated June 13 belongs in the June arc
+  //      even if it was composed while an earlier arc was active.
+  //   3. season_id column — the race composer's creation-time default
+  //      (active season at compose time). Only decides undated steps.
+  //   4. NEAREST arc in time — an arc is a calendar block, so a May step
+  //      belongs with the arc that starts in June, never with a
+  //      brand-new Sep–Dec arc that happens to be current.
+  //   5. The current arc — only when no dated arcs exist at all.
   // Explicit ids pointing at a season we can't render (deleted) fall
-  // through to the date window.
+  // through to the date tiers.
   const knownSeasonIds = new Set<string>(allSeasons.map((s) => s.id));
   if (currentSeason) knownSeasonIds.add(currentSeason.id);
-  const explicitSeasonIdOf = (rec: TimelineStepRecord): string | null => {
+  const movedSeasonIdOf = (rec: TimelineStepRecord): string | null => {
     const meta = rec.metadata as { season_id?: unknown } | null | undefined;
-    if (typeof meta?.season_id === 'string' && knownSeasonIds.has(meta.season_id)) {
-      return meta.season_id;
-    }
-    return rec.season_id && knownSeasonIds.has(rec.season_id) ? rec.season_id : null;
+    return typeof meta?.season_id === 'string' && knownSeasonIds.has(meta.season_id)
+      ? meta.season_id
+      : null;
   };
+  const stampedSeasonIdOf = (rec: TimelineStepRecord): string | null =>
+    rec.season_id && knownSeasonIds.has(rec.season_id) ? rec.season_id : null;
   const DAY_MS = 24 * 3600 * 1000;
   const windowSeasons = allSeasons
     .filter((s) => s.start_date && s.end_date)
     .sort((a, b) => Date.parse(b.start_date!) - Date.parse(a.start_date!));
-  const windowSeasonIdOf = (rec: TimelineStepRecord): string | null => {
+  const dateSeasonIdsOf = (
+    rec: TimelineStepRecord,
+  ): { contained: string | null; nearest: string | null } => {
     const iso = rec.starts_at ?? rec.created_at;
     const t = iso ? Date.parse(iso) : NaN;
-    if (Number.isNaN(t) || windowSeasons.length === 0) return null;
+    if (Number.isNaN(t) || windowSeasons.length === 0) {
+      return { contained: null, nearest: null };
+    }
     let best: { id: string; dist: number } | null = null;
     for (const s of windowSeasons) {
       const start = Date.parse(s.start_date!);
@@ -2030,16 +2068,21 @@ export function mapToTimelineDataset({
       const end = Date.parse(s.end_date!) + DAY_MS;
       // Containment wins immediately; windowSeasons is newest-first so
       // overlapping arcs resolve to the newest one.
-      if (t >= start && t < end) return s.id;
+      if (t >= start && t < end) return { contained: s.id, nearest: s.id };
       const dist = t < start ? start - t : t - end;
       if (!best || dist < best.dist) best = { id: s.id, dist };
     }
-    return best!.id;
+    return { contained: null, nearest: best!.id };
   };
   const recordsByArc = new Map<string, TimelineStepRecord[]>();
   for (const rec of sorted) {
+    const byDate = dateSeasonIdsOf(rec);
     const arcId =
-      explicitSeasonIdOf(rec) ?? windowSeasonIdOf(rec) ?? seasonIdForSteps;
+      movedSeasonIdOf(rec) ??
+      byDate.contained ??
+      stampedSeasonIdOf(rec) ??
+      byDate.nearest ??
+      seasonIdForSteps;
     const bucket = recordsByArc.get(arcId);
     if (bucket) bucket.push(rec);
     else recordsByArc.set(arcId, [rec]);
@@ -2372,7 +2415,7 @@ export function mapToTimelineDataset({
   // empty lane.
   const seenArchiveKeys = new Set<string>();
   const archivedSeasons: TimelineSeason[] = [];
-  for (const s of allSeasons) {
+  for (const s of orderedSeasons) {
     if (s.id === currentSeason?.id) continue;
     const name = s.name ?? s.short_name ?? 'Past arc';
     const key = `${name}::${s.start_date ?? ''}::${s.end_date ?? ''}`;
@@ -2427,6 +2470,12 @@ export function mapToTimelineDataset({
     });
   }
 
+  // dataset.seasons reads chronologically — current arc sits at its date
+  // position, not pinned first. Consumers look it up by currentSeasonId.
+  const orderedLanes = [currentSeasonNode, ...archivedSeasons].sort(
+    (a, b) => (seasonRank.get(a.id) ?? -1) - (seasonRank.get(b.id) ?? -1),
+  );
+
   const lifetimeCapabilityRanking = rankSeasonCapabilities(
     currentSeasonAnalysis,
     currentWeekIdx + 1,
@@ -2474,16 +2523,16 @@ export function mapToTimelineDataset({
         : undefined,
     totalSeasons: 1 + archivedSeasons.length,
     totalSteps,
-    sinceDate: allSeasons[allSeasons.length - 1]?.start_date
-      ? new Date(allSeasons[allSeasons.length - 1].start_date).toLocaleDateString('en-US', {
+    sinceDate: orderedSeasons[0]?.start_date
+      ? new Date(orderedSeasons[0].start_date).toLocaleDateString('en-US', {
           month: 'short',
           year: '2-digit',
         })
       : '',
-    sinceTimestamp: allSeasons[allSeasons.length - 1]?.start_date ?? undefined,
+    sinceTimestamp: orderedSeasons[0]?.start_date ?? undefined,
     lifetimeVisionStatement: interestVision?.lifetimeStatement ?? null,
     lifetimeHeadline,
-    seasons: [currentSeasonNode, ...archivedSeasons],
+    seasons: orderedLanes,
     capabilityFilters: [{ id: 'all', label: 'All' }],
     lifetime,
   };

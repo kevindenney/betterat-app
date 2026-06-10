@@ -36,6 +36,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import type { Season } from '@/types/season';
+import { compareSeasonsByStartDate } from './realDataAdapter';
 
 export interface MoveTargetSeason {
   id: string;
@@ -270,30 +271,21 @@ export function buildMoveTargets(
     s ? new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }) : '';
   const range = (s: Season) =>
     s.start_date && s.end_date ? `${fmt(s.start_date)} → ${fmt(s.end_date)}` : '';
-  const out: MoveTargetSeason[] = [];
+  const merged: Season[] = [];
   const seen = new Set<string>();
-  if (current) {
-    out.push({
-      id: current.id,
-      name: current.name ?? current.short_name ?? 'Current rotation',
-      dateRange: range(current),
-      isCurrent: true,
-      archived: false,
-    });
-    seen.add(current.id);
-  }
-  for (const s of all) {
+  for (const s of current ? [current, ...all] : all) {
     if (seen.has(s.id)) continue;
     seen.add(s.id);
-    out.push({
-      id: s.id,
-      name: s.name ?? s.short_name ?? 'Past rotation',
-      dateRange: range(s),
-      isCurrent: false,
-      archived: s.status === 'archived',
-    });
+    merged.push(s);
   }
-  return out;
+  merged.sort(compareSeasonsByStartDate);
+  return merged.map((s) => ({
+    id: s.id,
+    name: s.name ?? s.short_name ?? (s.id === current?.id ? 'Current rotation' : 'Past rotation'),
+    dateRange: range(s),
+    isCurrent: s.id === current?.id,
+    archived: s.id !== current?.id && s.status === 'archived',
+  }));
 }
 
 const styles = StyleSheet.create({

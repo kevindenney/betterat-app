@@ -123,14 +123,14 @@ interface L4YearsViewProps {
  * label, so a single arc still has internal mix and two+ arcs show the
  * genuine cross-chapter drift.
  *
- * `seasons` arrives newest-first; we reverse to chronological so the
- * river reads left→right oldest→now. Returns null when fewer than two
+ * `seasons` arrives chronologically (oldest first), so the river reads
+ * left→right oldest→now as-is. Returns null when fewer than two
  * arcs carry labeled capability data (drift needs at least two points).
  */
 function buildDriftMix(
   seasons: TimelineSeason[],
 ): { mix: WeeklyCapabilityMix[]; labelByColumn: Map<number, string> } | null {
-  const chronological = [...seasons].reverse();
+  const chronological = seasons;
   const mix: WeeklyCapabilityMix[] = [];
   const labelByColumn = new Map<number, string>();
 
@@ -197,8 +197,8 @@ function resolveLifetimeDominant(seasons: TimelineSeason[]): {
     if (!dominant || bucket.count > dominant.count) dominant = bucket;
   }
   if (!dominant) return null;
-  // Latest arc dominant (seasons[0] is newest).
-  const latest = seasons[0];
+  // Latest arc dominant (seasons are chronological — last is newest).
+  const latest = seasons[seasons.length - 1];
   let latestLabel: string | null = null;
   if (latest) {
     const latestTotals = new Map<string, number>();
@@ -334,7 +334,7 @@ export function L4YearsView({
   // the snaking-timeline twin of the brick-lane archive below, so the
   // whole practice reads as one continuous line, not a stack of chapters.
   const allTimeRiver = useMemo(() => {
-    const chrono = [...dataset.seasons].reverse(); // oldest → now
+    const chrono = dataset.seasons; // already oldest → now
     const allTitles = chrono.flatMap((s) =>
       s.weeks.flatMap((w) => w.steps.map((st) => st.title)),
     );
@@ -674,11 +674,11 @@ export function L4YearsView({
         </View>
       ) : null}
 
-      {dataset.seasons.map((season, idx) => (
+      {dataset.seasons.map((season) => (
         <ChapterCard
           key={season.id}
           season={season}
-          isCurrent={idx === 0}
+          isCurrent={season.id === dataset.currentSeasonId}
           vocab={interestVocab}
           manageMode={manageMode}
           onOpen={() => onOpenSeason?.(season.id)}

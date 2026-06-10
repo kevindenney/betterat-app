@@ -363,8 +363,15 @@ export function TimelineZoomCanvas({
     () =>
       dataset.seasons.find((s) => s.id === selectedSeasonId) ??
       dataset.seasons.find((s) => s.id === dataset.currentSeasonId) ??
-      dataset.seasons[0],
+      // seasons read chronologically — the last lane is the newest arc.
+      dataset.seasons[dataset.seasons.length - 1],
     [dataset.currentSeasonId, dataset.seasons, selectedSeasonId],
+  );
+  const currentSeasonLane = useMemo(
+    () =>
+      dataset.seasons.find((s) => s.id === dataset.currentSeasonId) ??
+      dataset.seasons[dataset.seasons.length - 1],
+    [dataset.currentSeasonId, dataset.seasons],
   );
   const selectedSeasonSteps = useMemo(
     () => selectedSeason?.weeks.flatMap((w) => w.steps) ?? [],
@@ -372,7 +379,7 @@ export function TimelineZoomCanvas({
   );
   const focusedStep =
     flatSteps.find((s) => s.id === focusStepId) ??
-    dataset.seasons[0].weeks[0]?.steps[0];
+    selectedSeason?.weeks[0]?.steps[0];
   const chromeSteps = level === 3 && selectedSeasonSteps.length > 0
     ? selectedSeasonSteps
     : flatSteps;
@@ -462,9 +469,9 @@ export function TimelineZoomCanvas({
             stepCounter={dataset.stepCounter}
             weekCounter={dataset.weekCounter}
             seasonCounter={
-              dataset.seasons[0]
+              currentSeasonLane
                 ? {
-                    current: dataset.seasons[0].bricks.length,
+                    current: currentSeasonLane.bricks.length,
                     total: dataset.totalSteps,
                   }
                 : undefined
