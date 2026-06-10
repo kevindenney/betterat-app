@@ -103,6 +103,15 @@ From f1 walkthrough 2026-06-03 (`project_atlas_peer_steps_present_but_clustered`
 - ✅ N.3 — Peer-step detail callout: tapping an individual peer pin opens a `key="peer-step"` sheet (who · relationship · when + a jitter/privacy note). Identity rides on `AtlasPinSpec.peer` (from `atlas_peer_steps_near`). Reach-out + View-profile CTAs are future work; precision still honors the server-side jitter the RPC applies.
 - ✅ N.4 — Step/Race binary: `is_race` boolean (migration `20260603160000`) replaces the 5-kind lens for Atlas rendering. Set in the step composer (`PlanStepRaceSelector`, gated to sail-racing in `StepPlanQuestions`). Atlas pins render ⛵ royal-blue when `is_race` else a neutral relationship dot; filter row collapsed to All/Races; race next-step keeps the wind/tide cockpit, non-race shows the checklist. `stepKind` stays populated for `StepKindCockpit`'s header (Phase M not ripped out).
 
+### ✅ Phase O — Area local knowledge (scoped venue_discussions)
+Spec: `docs/redesign/specs/AREA_LOCAL_KNOWLEDGE_SPEC.md` (`66afd7f5`). One primitive — `venue_discussions` + `(scope_type, scope_id)` audience (public / private / fleet / org / blueprint), RLS fail-closed via `can_read_venue_discussion()`. Answers "how does a fleet / the public / an org / blueprint subscribers share local knowledge about a race area". Shipped 2026-06-10.
+
+- ✅ O.1 — Migration: scope columns + backfill + RLS rewrite (incl. tag-table read policies scoped via the helper). `458dbf37`, tag policies in `7a2bcc8d`.
+- ✅ O.2 — Read path: `CommunityFeedService.getAreaKnowledge` + `useAreaKnowledge`. `3ea458e2`.
+- ✅ O.3 — Composer: racing-area + audience pickers in `/venue/post/create`. `b3f78ec5`.
+- ✅ O.4 — Atlas: racing-area tap opens a Local Knowledge callout for everyone (was owner-only edit); counts by audience, condition-matched count, top posts, "Add local knowledge" CTA pre-bound to the area. `7a2bcc8d`.
+- ✅ O.5 — Group surfaces: fleet + org pages get a LOCAL KNOWLEDGE section bucketed by area (`useGroupKnowledge`, collapses for non-members via RLS); race-step Plan tab gets ABOUT THIS AREA under the course map (detail view only). Also fixed the function-form-Pressable stacked-row bug in both knowledge sections. `2b1e1be3`.
+
 ### ⏸ Phase D — Atlas round-trip with /races timeline rebuild
 Deferred until the parallel /races rebuild lands (`project_races_rebuild_in_flight`). Then verify atlas pins → races timeline → atlas restores state.
 
