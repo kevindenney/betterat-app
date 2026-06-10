@@ -49,10 +49,11 @@ interface ClinicalSitePick {
 }
 
 /**
- * Precision levels surfaced in the picker. 'site' is intentionally omitted
- * until poi_id is wired (it would silently behave as 'exact'). Default is
- * 'exact' — we never coarsen a location the user already set without asking,
- * since legitimate venue pins (a marina, a course mark) want exact coords.
+ * Precision levels surfaced in the picker. 'At site' only renders when the
+ * location carries a poi_id (otherwise the feed RPC would silently fall back
+ * to exact). Default is 'exact' — we never coarsen a location the user
+ * already set without asking, since legitimate venue pins (a marina, a
+ * course mark) want exact coords.
  */
 const PRECISION_OPTIONS: {
   value: StepLocationPrecision;
@@ -62,6 +63,12 @@ const PRECISION_OPTIONS: {
 }[] = [
   { value: 'exact', label: 'Exact', hint: 'Your precise spot', icon: 'locate' },
   {
+    value: 'site',
+    label: 'At site',
+    hint: 'Shown at the named place',
+    icon: 'business-outline',
+  },
+  {
     value: 'neighborhood',
     label: 'Approximate',
     hint: 'Fuzzed ~500m',
@@ -69,6 +76,11 @@ const PRECISION_OPTIONS: {
   },
   { value: 'hidden', label: 'Hidden', hint: 'Off the map', icon: 'eye-off-outline' },
 ];
+
+/** 'site' can't survive a move to a place with no POI — fall back to exact. */
+function carryPrecision(prev?: StepLocationPrecision): StepLocationPrecision | undefined {
+  return prev === 'site' ? undefined : prev;
+}
 
 interface PlanWhereCardProps {
   location?: StepLocation;
@@ -130,7 +142,8 @@ export function PlanWhereCard({
         lat: picked.lat,
         lng: picked.lng,
         venue_id: location?.venue_id,
-        location_precision: location?.location_precision,
+        poi_id: undefined,
+        location_precision: carryPrecision(location?.location_precision),
       });
       setPickerVisible(false);
     },
@@ -197,12 +210,16 @@ export function PlanWhereCard({
 
   const handleClinicalSitePick = useCallback(
     (site: ClinicalSitePick) => {
+      // Quick-picks aren't atlas_pois rows, so they can't snap — only
+      // curated/poi sources get a poi_id and the 'site' default.
+      const isPoi = site.source !== 'quick-pick';
       onChange({
         name: site.name,
         lat: site.lat,
         lng: site.lng,
         venue_id: site.id,
-        location_precision: 'site',
+        poi_id: isPoi ? site.id : undefined,
+        location_precision: isPoi ? 'site' : undefined,
       });
       setClinicalSitePickerVisible(false);
     },
@@ -231,7 +248,8 @@ export function PlanWhereCard({
         lat: result.lat,
         lng: result.lng,
         venue_id: location?.venue_id,
-        location_precision: location?.location_precision,
+        poi_id: undefined,
+        location_precision: carryPrecision(location?.location_precision),
       });
     });
     router.push({
@@ -314,7 +332,12 @@ export function PlanWhereCard({
         <View style={styles.precisionBlock}>
           <Text style={styles.precisionEyebrow}>Who sees the exact spot?</Text>
           <View style={styles.precisionRow}>
-            {PRECISION_OPTIONS.map((opt) => {
+            {PRECISION_OPTIONS.filter(
+              (opt) =>
+                opt.value !== 'site' ||
+                Boolean(location?.poi_id) ||
+                location?.location_precision === 'site',
+            ).map((opt) => {
               const active = (location?.location_precision ?? 'exact') === opt.value;
               return (
                 <Pressable
@@ -360,7 +383,8 @@ export function PlanWhereCard({
                     lat: qp.lat,
                     lng: qp.lng,
                     venue_id: location?.venue_id,
-                    location_precision: location?.location_precision,
+                    poi_id: undefined,
+                    location_precision: carryPrecision(location?.location_precision),
                   })
                 }
               >

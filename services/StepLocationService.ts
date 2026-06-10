@@ -51,6 +51,14 @@ export async function syncStepLocation(
     lng: location!.lng ?? null,
   };
 
+  // Key-presence semantics: location-change paths pass the key (a POI pick
+  // sets it, a move to a non-POI place sets undefined → NULL clears the
+  // stale snap target). Precision-only edits spread a stored blob that may
+  // predate poi_id — no key, so a seeded DB value is left intact.
+  if ('poi_id' in location!) {
+    row.poi_id = location!.poi_id ?? null;
+  }
+
   // Only write precision when the caller specified one — omitting it leaves
   // any prior choice intact (and a NULL column is treated as 'exact').
   if (location!.location_precision) {
