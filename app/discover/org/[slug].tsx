@@ -64,6 +64,8 @@ import { useMyVerifiedAdminOrgs } from '@/hooks/useMyVerifiedAdminOrgs';
 import { useArchiveOrg } from '@/hooks/useOrgManagement';
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
+import { useQueryClient } from '@tanstack/react-query';
+import { orgMembershipsQueryKey } from '@/hooks/orgMembershipsQuery';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -160,6 +162,7 @@ function OrgDetailScreenInner() {
   const backLabel = params.from === 'people' ? 'People' : params.from === 'forums' ? 'Forums' : 'Orgs';
 
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [org, setOrg] = useState<OrgRow | null>(null);
   const [isMember, setIsMember] = useState(false);
   const [memberSince, setMemberSince] = useState<string | null>(null);
@@ -434,6 +437,9 @@ function OrgDetailScreenInner() {
         orgId: org.id,
         mode: (org.join_mode || 'invite_only') as OrganizationJoinMode,
       });
+      // Membership rows changed — refresh every surface that captions orgs
+      // by the viewer's standing (Library stacks rows, profile menu, …).
+      queryClient.invalidateQueries({ queryKey: orgMembershipsQueryKey(user?.id) });
       if (result.status === 'active' || (result.status === 'existing' && result.membershipStatus === 'active')) {
         setIsMember(true);
         setMemberSince(`Member since ${new Date().getFullYear()}`);
@@ -447,7 +453,7 @@ function OrgDetailScreenInner() {
       console.warn('[OrgDetail] join request failed:', err);
       setJoinState('idle');
     }
-  }, [org?.id, org?.join_mode, joinState]);
+  }, [org?.id, org?.join_mode, joinState, queryClient, user?.id]);
 
   const joinLabel = useMemo(() => {
     if (joinState === 'pending') return 'Pending approval';

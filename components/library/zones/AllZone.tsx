@@ -40,7 +40,12 @@ import { useLifecycleConcepts } from '@/hooks/usePlaybook';
 import { useLibraryResourcesPreview } from '@/hooks/useLibraryResourcesPreview';
 import { useDiscoverBlueprints } from '@/hooks/useBlueprint';
 import { useMarketplaceBlueprints, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
+import { useQuery } from '@tanstack/react-query';
 import { useTopOrgsForInterest } from '@/hooks/useTopOrgsForInterest';
+import {
+  fetchOrgMembershipRows,
+  orgMembershipsQueryKey,
+} from '@/hooks/orgMembershipsQuery';
 import { useUserFleets } from '@/hooks/useFleetData';
 import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
@@ -293,6 +298,22 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
     useMarketplaceBlueprints(interestId ?? null);
   const { data: topOrgs, isLoading: orgsLoading } =
     useTopOrgsForInterest(interestSlug, PREVIEW_LIMIT);
+  // Same cached read OrganizationProvider uses — lets the org rows show the
+  // viewer's own standing ("Member" / "Request pending") instead of only the
+  // org's join mode.
+  const { data: membershipRows } = useQuery({
+    queryKey: orgMembershipsQueryKey(user?.id),
+    enabled: !!user?.id,
+    queryFn: () => fetchOrgMembershipRows(user!.id),
+  });
+  const membershipStatusByOrgId = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of membershipRows ?? []) {
+      const status = row.membership_status ?? row.status;
+      if (status) map.set(row.organization_id, status);
+    }
+    return map;
+  }, [membershipRows]);
 
   const planPreview = (plans ?? []).slice(0, PREVIEW_LIMIT);
   const conceptPreview = (concepts ?? []).slice(0, PREVIEW_LIMIT);
@@ -616,7 +637,10 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
                 initials={initialsForName(org.name)}
                 markColor={pickSquareMarkColor(org.id)}
                 name={org.name}
-                descriptor={describeOrgJoinMode(org.join_mode)}
+                descriptor={describeOrgStanding(
+                  membershipStatusByOrgId.get(org.id),
+                  org.join_mode,
+                )}
                 onPress={() =>
                   router.push(`/discover/org/${org.slug}?from=library` as never)
                 }
@@ -678,6 +702,15 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
       )}
     </View>
   );
+}
+
+function describeOrgStanding(
+  membershipStatus: string | undefined,
+  joinMode: string,
+): string {
+  if (membershipStatus === 'active') return 'Member';
+  if (membershipStatus === 'pending') return 'Request pending';
+  return describeOrgJoinMode(joinMode);
 }
 
 function describeOrgJoinMode(mode: string): string {
