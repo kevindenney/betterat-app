@@ -22,6 +22,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import type { Season, SeasonStatus, CreateSeasonInput, UpdateSeasonInput } from '@/types/season';
@@ -75,6 +76,7 @@ export function SeasonEditSheet({
   onUpdate,
   onArchive,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const initial = useMemo(() => {
     if (mode === 'edit' && season) {
       return {
@@ -181,11 +183,16 @@ export function SeasonEditSheet({
       onRequestClose={onClose}
     >
       <Pressable style={styles.scrim} onPress={onClose} />
+      {/* Android needs 'height', not 'padding': with edge-to-edge enabled
+          (SDK 54 / targetSdk 35) adjustResize is ignored on Android 15+ and
+          'padding' computes 0 inside this transparent Modal, so the keyboard
+          overlays the form. 'height' resizes off keyboard events instead —
+          same pattern as PlusComposerV3Sheet. */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'android' ? 'height' : 'padding'}
         style={styles.sheetWrap}
       >
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: Math.max(18, insets.bottom) }]}>
           <View style={styles.handleBar} />
           <View style={styles.header}>
             <Text style={styles.title}>
@@ -309,21 +316,18 @@ export function SeasonEditSheet({
               </Pressable>
             ) : null}
           </ScrollView>
+          {/* Static style arrays here: the function-form Pressable style
+              silently drops layout props (flex:1, backgroundColor), leaving
+              both buttons text-sized and crammed bottom-left — see
+              feedback_pressable_margin_row_stripping. */}
           <View style={styles.footer}>
-            <Pressable
-              onPress={onClose}
-              style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
-            >
+            <Pressable onPress={onClose} style={styles.secondaryBtn}>
               <Text style={styles.secondaryBtnText}>Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleSubmit}
               disabled={!canSubmit}
-              style={({ pressed }) => [
-                styles.primaryBtn,
-                !canSubmit && styles.disabled,
-                pressed && canSubmit && styles.pressed,
-              ]}
+              style={[styles.primaryBtn, !canSubmit && styles.disabled]}
             >
               <Text style={styles.primaryBtnText}>
                 {mode === 'add' ? 'Create' : 'Save'}
@@ -359,7 +363,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     maxHeight: '90%',
-    paddingBottom: 18,
   },
   handleBar: {
     width: 36,
