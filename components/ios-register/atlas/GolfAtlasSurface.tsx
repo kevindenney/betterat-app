@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -9,7 +10,9 @@ import {
 } from '@/components/ios-register/atlas/AtlasMapLibreCanvas';
 import { InterestSwitcher, openInterestSwitcher } from '@/components/InterestSwitcher';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
+import { PlaceKnowledgeSection } from '@/components/venue/PlaceKnowledgeSection';
 import { useInterest } from '@/providers/InterestProvider';
+import { useAtlasPois } from '@/hooks/useAtlasPois';
 import { useUserAtlasSteps, type PickerStep } from '@/hooks/useUserAtlasSteps';
 import { OpenStepPicker } from './OpenStepPicker';
 
@@ -110,7 +113,23 @@ export function GolfAtlasSurface({
   const insets = useSafeAreaInsets();
   const { currentInterest } = useInterest();
   const { pickerSteps } = useUserAtlasSteps({ interestSlug: 'golf' });
+  const { pois } = useAtlasPois();
   const [surface, setSurface] = useState<GolfSurface>('venues');
+  const [selectedCourse, setSelectedCourse] = useState<{ id: string; name: string } | null>(null);
+  const coursePins = useMemo<AtlasPinSpec[]>(
+    () =>
+      pois
+        .filter((p) => p.kind === 'course')
+        .map((p) => ({
+          id: `poi:${p.id}`,
+          kind: 'poi-club-anchor',
+          lng: p.lng,
+          lat: p.lat,
+          label: p.name,
+          subtitle: 'Golf course',
+        })),
+    [pois],
+  );
   const [lastAtlasSurface, setLastAtlasSurface] = useState<Exclude<GolfSurface, 'nearby'>>('venues');
   const [activeFilter, setActiveFilter] = useState<GolfFilter>('mine');
   const [joinedTeeTime, setJoinedTeeTime] = useState<string | null>(null);
@@ -231,7 +250,12 @@ export function GolfAtlasSurface({
       <GolfMapBackdrop
         surface={surface === 'nearby' ? lastAtlasSurface : surface}
         focusedStep={selectedPickerStep}
+        coursePins={coursePins}
         onPinPress={(pin) => {
+          if (pin.id.startsWith('poi:')) {
+            setSelectedCourse({ id: pin.id.slice('poi:'.length), name: pin.label ?? 'Course' });
+            return;
+          }
           if (pin.id === 'golf-venue-home') showSurface('course');
           if (pin.id === 'golf-venue-sim') showSurface('game');
         }}
@@ -374,6 +398,14 @@ export function GolfAtlasSurface({
         <NextRoundCard bottomPad={bottomPad} onPlan={planRound} onWork={() => setSurface('game')} />
       )}
 
+      {selectedCourse ? (
+        <CourseKnowledgeSheet
+          bottomPad={bottomPad}
+          course={selectedCourse}
+          onClose={() => setSelectedCourse(null)}
+        />
+      ) : null}
+
       <OpenStepPicker
         visible={stepPickerVisible}
         steps={pickerSteps}
@@ -386,13 +418,54 @@ export function GolfAtlasSurface({
   );
 }
 
+function CourseKnowledgeSheet({
+  bottomPad,
+  course,
+  onClose,
+}: {
+  bottomPad: number;
+  course: { id: string; name: string };
+  onClose: () => void;
+}) {
+  return (
+    <View style={[styles.nearbySheet, { bottom: bottomPad }]}>
+      <View style={styles.sheetHeader}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.sheetTitle} numberOfLines={1}>{course.name}</Text>
+          <Text style={styles.muted}>golf course</Text>
+        </View>
+        <IconButton icon="close" label="Close course" onPress={onClose} soft />
+      </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 16 }}
+      >
+        <PlaceKnowledgeSection
+          anchor={{ poiId: course.id }}
+          conditions={null}
+          interestSlug="golf"
+          onAddKnowledge={() => {
+            onClose();
+            router.push({
+              pathname: '/venue/post/create',
+              params: { poiId: course.id, poiName: course.name, interestSlug: 'golf' },
+            } as never);
+          }}
+        />
+      </ScrollView>
+    </View>
+  );
+}
+
 function GolfMapBackdrop({
   surface,
   focusedStep,
+  coursePins,
   onPinPress,
 }: {
   surface: Exclude<GolfSurface, 'nearby'>;
   focusedStep: PickerStep | null;
+  coursePins: AtlasPinSpec[];
   onPinPress: (pin: AtlasPinSpec) => void;
 }) {
   const courseMode = surface === 'course';
@@ -411,9 +484,20 @@ function GolfMapBackdrop({
     };
   }, [focusedStep]);
   const pins = useMemo(() => {
-    const base = courseMode ? GOLF_HOLE_PINS : GOLF_VENUE_PINS;
+    const base = courseMode ? GOLF_HOLE_PINS : [...GOLF_VENUE_PINS, ...coursePins];
     return focusedStepPin ? [...base, focusedStepPin] : base;
-  }, [courseMode, focusedStepPin]);
+  }, [courseMode, coursePins, focusedStepPin]);
+  // Real course POIs sit a few km out from the Oakridge mock cluster; widen
+  // the venues camera to the bounds midpoint so they're on screen at all.
+  const venuesFocus = useMemo(() => {
+    if (courseMode || coursePins.length === 0) return null;
+    const lats = [OAKRIDGE_CC.lat, ...coursePins.map((p) => p.lat)];
+    const lngs = [OAKRIDGE_CC.lng, ...coursePins.map((p) => p.lng)];
+    return {
+      lat: (Math.min(...lats) + Math.max(...lats)) / 2,
+      lng: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+    };
+  }, [courseMode, coursePins]);
   return (
     <View style={styles.map}>
       <AtlasMapLibreCanvas
@@ -425,9 +509,9 @@ function GolfMapBackdrop({
             ? { lat: focusedStepPin.lat, lng: focusedStepPin.lng }
             : courseMode
               ? { ...OAKRIDGE_CC }
-              : null
+              : venuesFocus
         }
-        focusZoomLevel={focusedStepPin ? 15.6 : courseMode ? 15.7 : 14}
+        focusZoomLevel={focusedStepPin ? 15.6 : courseMode ? 15.7 : venuesFocus ? 11.5 : 14}
         focusPadding={{ top: 180, bottom: courseMode ? 420 : 300, left: 28, right: 28 }}
         onPinPress={onPinPress}
       />
