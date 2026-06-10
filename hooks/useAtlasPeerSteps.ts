@@ -20,12 +20,25 @@ export type AtlasPeerRelationship =
   | 'following'
   | 'public';
 
+/** Share scope the poster chose (step_location.location_audience). */
+export type AtlasPeerAudience =
+  | 'private'
+  | 'crew'
+  | 'cohort'
+  | 'program'
+  | 'following'
+  | 'fleet'
+  | 'public';
+
 export interface AtlasPeerStep {
   step_id: string;
   lat: number;
   lng: number;
   set_by: string;
+  /** Viewer-centric lens (why YOU can see this) — use for filtering/grouping. */
   relationship: AtlasPeerRelationship;
+  /** Poster-chosen privacy state — use for share-scope badges. */
+  audience: AtlasPeerAudience;
   preview_name: string | null;
   loc_precision: string | null;
   poi_id: string | null;

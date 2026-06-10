@@ -21,10 +21,12 @@ import {
   useAtlasPeerSteps,
   type AtlasPeerStep,
   type AtlasPeerRelationship,
+  type AtlasPeerAudience,
 } from '@/hooks/useAtlasPeerSteps';
 import { WatchFilterRow, type WatchFilterChip } from '@/components/watch/WatchFilterRow';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { getVisibilityLabels } from '@/lib/vocabulary';
 
 // Source filter for the Nearby feed. People = individual relationships
 // (graph follows + your crew); Groups = fleets and cohorts. Orgs is a
@@ -43,15 +45,20 @@ interface WatchNearbySectionProps {
   interestSlug: string | null;
 }
 
-const RELATIONSHIP_META: Record<
-  AtlasPeerRelationship,
+// Badge styling for the poster-chosen share scope (location_audience).
+// This is the privacy state the poster picked, NOT the viewer relationship —
+// relationship stays a filtering lens (People/Groups chips), never a badge.
+// crew/fleet display labels resolve per-interest via getVisibilityLabels.
+const AUDIENCE_META: Record<
+  AtlasPeerAudience,
   { label: string; color: string; background: string }
 > = {
-  self: { label: 'You', color: '#3155B5', background: '#E5EDFF' },
+  private: { label: 'Private', color: IOS_COLORS.secondaryLabel, background: '#EFEFF3' },
   crew: { label: 'Crew', color: '#0A6A56', background: '#DDF8F0' },
   cohort: { label: 'Cohort', color: '#3155B5', background: '#E5EDFF' },
+  program: { label: 'Program', color: '#3155B5', background: '#E5EDFF' },
+  following: { label: 'Followers', color: '#5B2C83', background: '#F0E6FF' },
   fleet: { label: 'Fleet', color: '#8A4B08', background: '#FFF4D6' },
-  following: { label: 'Following', color: '#5B2C83', background: '#F0E6FF' },
   public: { label: 'Public', color: IOS_COLORS.secondaryLabel, background: '#EFEFF3' },
 };
 
@@ -158,7 +165,7 @@ export function WatchNearbySection({
       {shownSteps.length > 0 ? (
         <View style={styles.feed}>
           {shownSteps.map((step) => (
-            <NearbyStepCard key={step.step_id} step={step} />
+            <NearbyStepCard key={step.step_id} step={step} interestSlug={interestSlug} />
           ))}
         </View>
       ) : (
@@ -168,8 +175,23 @@ export function WatchNearbySection({
   );
 }
 
-function NearbyStepCard({ step }: { step: AtlasPeerStep }) {
-  const rel = RELATIONSHIP_META[step.relationship];
+function NearbyStepCard({
+  step,
+  interestSlug,
+}: {
+  step: AtlasPeerStep;
+  interestSlug: string | null;
+}) {
+  // Badge = the share scope the poster chose, not the viewer relationship.
+  // Fallback covers stale cached rows fetched before `audience` existed.
+  const audienceMeta = AUDIENCE_META[step.audience] ?? AUDIENCE_META.private;
+  const visLabels = getVisibilityLabels(interestSlug);
+  const audienceLabel =
+    step.audience === 'crew'
+      ? visLabels.crew
+      : step.audience === 'fleet'
+        ? visLabels.fleet
+        : audienceMeta.label;
   const handlePress = () => {
     router.push(`/step/${step.step_id}?readOnly=true&origin=watch` as never);
   };
@@ -190,8 +212,8 @@ function NearbyStepCard({ step }: { step: AtlasPeerStep }) {
             {step.loc_precision ?? 'Nearby'} · {formatRelativeTime(step.set_at)}
           </Text>
         </View>
-        <View style={[styles.relPill, { backgroundColor: rel.background }]}>
-          <Text style={[styles.relText, { color: rel.color }]}>{rel.label}</Text>
+        <View style={[styles.relPill, { backgroundColor: audienceMeta.background }]}>
+          <Text style={[styles.relText, { color: audienceMeta.color }]}>{audienceLabel}</Text>
         </View>
       </View>
     </Pressable>
