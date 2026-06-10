@@ -709,6 +709,13 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'my-step-done-old',
 ]);
 
+// On Android the map view hit-tests markers natively and consumes the tap
+// before any RN Pressable inside the marker can receive it (the marker's
+// child is reparented out of the React touch tree), so interactive markers
+// must listen on the Marker-level onPress event instead. iOS markers are
+// ViewAnnotations whose inner Pressables work normally.
+const MARKER_NATIVE_PRESS = Platform.OS === 'android';
+
 export function AtlasMapLibreCanvas({
   frame,
   pins = [],
@@ -1106,6 +1113,11 @@ export function AtlasMapLibreCanvas({
                 key={`area-label:${label.id}`}
                 id={`atlas-area-label:${label.id}`}
                 lngLat={[label.lng, label.lat]}
+                onPress={
+                  MARKER_NATIVE_PRESS && onRacingAreaPress
+                    ? () => onRacingAreaPress(label.area)
+                    : undefined
+                }
               >
                 <Pressable
                   onPress={
@@ -1387,7 +1399,16 @@ export function AtlasMapLibreCanvas({
             />
           );
           return (
-            <MLMarker key={pin.id} id={pin.id} lngLat={[pin.lng, pin.lat]}>
+            <MLMarker
+              key={pin.id}
+              id={pin.id}
+              lngLat={[pin.lng, pin.lat]}
+              onPress={
+                MARKER_NATIVE_PRESS && isTappable
+                  ? () => handlePinTap(pin)
+                  : undefined
+              }
+            >
               {isTappable ? (
                 <Pressable onPress={() => handlePinTap(pin)} hitSlop={14}>
                   {inner}
@@ -1404,6 +1425,11 @@ export function AtlasMapLibreCanvas({
             id="atlas-next-event"
             lngLat={[nextEvent.lng, nextEvent.lat]}
             anchor="bottom"
+            onPress={
+              MARKER_NATIVE_PRESS && onNextEventPress
+                ? () => onNextEventPress()
+                : undefined
+            }
           >
             {onNextEventPress ? (
               <Pressable onPress={onNextEventPress} hitSlop={4}>
@@ -1434,6 +1460,11 @@ export function AtlasMapLibreCanvas({
             id="atlas-next-event-chip"
             lngLat={[nextEventCommittee.lng, nextEventCommittee.lat]}
             anchor="bottom"
+            onPress={
+              MARKER_NATIVE_PRESS && onNextEventPress
+                ? () => onNextEventPress()
+                : undefined
+            }
           >
             {onNextEventPress ? (
               <Pressable onPress={onNextEventPress} hitSlop={6}>
@@ -1457,6 +1488,9 @@ export function AtlasMapLibreCanvas({
             id="atlas-next-series-hit"
             lngLat={[nextSeriesCommittee.lng, nextSeriesCommittee.lat]}
             anchor="top"
+            onPress={
+              MARKER_NATIVE_PRESS ? () => onNextSeriesPress() : undefined
+            }
           >
             <Pressable
               onPress={onNextSeriesPress}
