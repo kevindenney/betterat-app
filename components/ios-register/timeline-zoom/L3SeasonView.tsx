@@ -1546,8 +1546,12 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     letterSpacing: -0.1,
   },
+  // No flex on the buttons: a flex:1 child inside the auto-width actions
+  // row makes Android Yoga stretch the actions full-width and collapse the
+  // flex:1 caption to zero width (it then wraps one character per line,
+  // inflating the toolbar to ~500dp of whitespace). Content-sized buttons
+  // render identically on iOS.
   toolBtn: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
