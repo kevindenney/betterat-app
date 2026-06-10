@@ -1,11 +1,13 @@
 /**
- * AreaKnowledgeSection — "Local knowledge" body for the Atlas racing-area
- * BottomSheet. Shows what the viewer is allowed to see (RLS-scoped): counts
- * by audience, the top posts, and how many posts' condition tags match the
- * live conditions the map is already displaying.
+ * PlaceKnowledgeSection — "Local knowledge" body for one place: a sailing
+ * racing area or any Atlas POI (hospital, haat, market, golf course…).
+ * Shows what the viewer is allowed to see (RLS-scoped): counts by audience,
+ * the top posts, and — when live conditions are supplied (sailing) — how
+ * many posts' condition tags match what the map is already displaying.
  *
- * Presentational + self-fetching via usePlaceKnowledge; the parent sheet owns
- * scroll, chrome, and the "Add local knowledge" CTA.
+ * Copy resolves per interest via getPlaceKnowledgeLabels so each persona
+ * reads its own vernacular. Presentational + self-fetching via
+ * usePlaceKnowledge; the parent sheet owns scroll, chrome, and the add CTA.
  */
 import React, { useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -13,10 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { getPlaceKnowledgeLabels } from '@/lib/vocabulary';
 import { usePlaceKnowledge } from '@/hooks/useCommunityFeed';
 import { ConditionMatchingService } from '@/services/venue/ConditionMatchingService';
 import { POST_TYPE_CONFIG } from '@/types/community-feed';
-import type { CurrentConditions, FeedPost } from '@/types/community-feed';
+import type { CurrentConditions, FeedPost, KnowledgeAnchor } from '@/types/community-feed';
 
 const MATCH_THRESHOLD = 60;
 const TOP_POSTS_SHOWN = 3;
@@ -39,20 +42,24 @@ function bestMatchScore(post: FeedPost, conditions: CurrentConditions): number {
   );
 }
 
-export function AreaKnowledgeSection({
-  racingAreaId,
+export function PlaceKnowledgeSection({
+  anchor,
   conditions,
   onEditArea,
-  heading = 'LOCAL KNOWLEDGE',
+  heading,
+  interestSlug,
 }: {
-  racingAreaId: string;
+  anchor: KnowledgeAnchor;
   conditions: CurrentConditions | null;
   /** Owner-only: opens the existing racing-area edit sheet. */
   onEditArea?: () => void;
-  /** Section heading — race-step detail uses "ABOUT THIS AREA". */
+  /** Override the vocab heading — race-step detail uses "ABOUT THIS AREA". */
   heading?: string;
+  /** Resolves persona copy (sailing/nursing/golf/lac-craft). */
+  interestSlug?: string | null;
 }) {
-  const { data, isLoading } = usePlaceKnowledge({ racingAreaId }, 10);
+  const labels = getPlaceKnowledgeLabels(interestSlug);
+  const { data, isLoading } = usePlaceKnowledge(anchor, 10);
 
   const matchedCount = useMemo(() => {
     if (!data || !conditions || conditions.windSpeed == null) return null;
@@ -83,11 +90,9 @@ export function AreaKnowledgeSection({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.heading}>{heading}</Text>
+      <Text style={styles.heading}>{heading ?? labels.heading}</Text>
       {posts.length === 0 ? (
-        <Text style={styles.emptyText}>
-          No local knowledge for this area yet — be the first to share what you know about this water.
-        </Text>
+        <Text style={styles.emptyText}>{labels.emptyText}</Text>
       ) : (
         <>
           {countsLine ? <Text style={styles.countsLine}>{countsLine}</Text> : null}
@@ -230,4 +235,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AreaKnowledgeSection;
+export default PlaceKnowledgeSection;

@@ -444,6 +444,69 @@ export function getVisibilityLabels(interestSlug?: string | null): VisibilityLab
 }
 
 // ---------------------------------------------------------------------------
+// Place local-knowledge labels
+// ---------------------------------------------------------------------------
+
+// Knowledge posts anchor to a place (racing area, hospital, haat, golf
+// course…). The copy must read persona-native — "local knowledge about this
+// water" is a sailor's phrase, not a nurse's. Spec:
+// docs/redesign/specs/PLACE_LOCAL_KNOWLEDGE_SPEC.md
+export interface PlaceKnowledgeLabels {
+  /** Section heading on list surfaces (fleet/org pages, Atlas callouts). */
+  heading: string;
+  /** Heading when the surface is already about the place (step detail). */
+  aboutHeading: string;
+  emptyText: string;
+  addCta: string;
+}
+
+const DEFAULT_PLACE_KNOWLEDGE_LABELS: PlaceKnowledgeLabels = {
+  heading: 'LOCAL KNOWLEDGE',
+  aboutHeading: 'ABOUT THIS PLACE',
+  emptyText:
+    'No local knowledge for this place yet — be the first to share what you know.',
+  addCta: 'Add local knowledge',
+};
+
+const PLACE_KNOWLEDGE_LABELS_BY_SLUG: Record<string, PlaceKnowledgeLabels> = {
+  'sail-racing': {
+    heading: 'LOCAL KNOWLEDGE',
+    aboutHeading: 'ABOUT THIS AREA',
+    emptyText:
+      'No local knowledge for this area yet — be the first to share what you know about this water.',
+    addCta: 'Add local knowledge',
+  },
+  nursing: {
+    heading: 'SITE KNOWLEDGE',
+    aboutHeading: 'ABOUT THIS SITE',
+    emptyText:
+      'No site knowledge yet — be the first to share what you know: parking, the charge desk, documentation quirks.',
+    addCta: 'Add site knowledge',
+  },
+  golf: {
+    heading: 'COURSE KNOWLEDGE',
+    aboutHeading: 'ABOUT THIS COURSE',
+    emptyText:
+      'No course knowledge yet — be the first to share how this course actually plays.',
+    addCta: 'Add course knowledge',
+  },
+  'lac-craft-business': {
+    heading: 'MARKET KNOWLEDGE',
+    aboutHeading: 'ABOUT THIS PLACE',
+    emptyText:
+      'No knowledge about this place yet — be the first to share prices, timing, and who to ask for.',
+    addCta: 'Add market knowledge',
+  },
+};
+
+export function getPlaceKnowledgeLabels(
+  interestSlug?: string | null,
+): PlaceKnowledgeLabels {
+  if (!interestSlug) return DEFAULT_PLACE_KNOWLEDGE_LABELS;
+  return PLACE_KNOWLEDGE_LABELS_BY_SLUG[interestSlug] ?? DEFAULT_PLACE_KNOWLEDGE_LABELS;
+}
+
+// ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
 

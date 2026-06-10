@@ -402,6 +402,7 @@ export default function FleetOverviewScreen() {
         <GroupKnowledgeSection
           scopeType="fleet"
           scopeId={summaryFleet.id}
+          interestSlug="sail-racing"
           style={styles.knowledgeSection}
         />
       )}

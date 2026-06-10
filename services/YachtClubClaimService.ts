@@ -28,6 +28,7 @@ export type YachtClubOrganization = {
   total_entry_refs: number;
   pricing_tier: YachtClubPricingTier | null;
   join_mode?: OrgJoinMode | null;
+  interest_slug?: string | null;
 };
 
 export type OrganizationEvidenceRow = {
@@ -92,6 +93,7 @@ const ORG_SELECT = [
   'total_entry_refs',
   'pricing_tier',
   'join_mode',
+  'interest_slug',
 ].join(',');
 
 function normalizeArray(value: unknown): string[] {

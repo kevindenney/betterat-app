@@ -5,7 +5,7 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { RacePlan } from '@/types/step-detail';
 import { RaceCourseMiniMap } from './RaceCourseMiniMap';
 import { RaceCourseLiveMap } from './RaceCourseLiveMap';
-import { AreaKnowledgeSection } from '@/components/ios-register/atlas/AreaKnowledgeSection';
+import { PlaceKnowledgeSection } from '@/components/venue/PlaceKnowledgeSection';
 
 /**
  * Phase N.4 — the Step ⟷ Race selector that sits at the top of the Plan
@@ -129,9 +129,10 @@ export function PlanStepRaceSelector({
               knowledge feeds. Per-race chatter stays in the step's own
               discussion; this is about the water. */}
           {liveMap && racePlan?.area_id ? (
-            <AreaKnowledgeSection
-              racingAreaId={racePlan.area_id}
+            <PlaceKnowledgeSection
+              anchor={{ racingAreaId: racePlan.area_id }}
               conditions={null}
+              interestSlug="sail-racing"
               heading="ABOUT THIS AREA"
             />
           ) : null}

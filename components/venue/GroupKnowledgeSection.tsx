@@ -10,18 +10,37 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { getPlaceKnowledgeLabels } from '@/lib/vocabulary';
 import { useGroupKnowledge } from '@/hooks/useCommunityFeed';
 import { POST_TYPE_CONFIG } from '@/types/community-feed';
 
 const POSTS_PER_AREA = 3;
 
+const PLACE_KIND_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  racing_area: 'map-outline',
+  hospital: 'medkit-outline',
+  sim_lab: 'flask-outline',
+  course: 'golf-outline',
+  haat: 'storefront-outline',
+  market: 'storefront-outline',
+  supplier: 'cube-outline',
+};
+
+function placeIcon(group: { placeKind: string | null }): keyof typeof Ionicons.glyphMap {
+  if (!group.placeKind) return 'water-outline';
+  return PLACE_KIND_ICONS[group.placeKind] ?? 'location-outline';
+}
+
 export function GroupKnowledgeSection({
   scopeType,
   scopeId,
+  interestSlug,
   style,
 }: {
   scopeType: 'fleet' | 'org' | 'blueprint';
   scopeId: string | undefined;
+  /** Resolves persona copy (sailing/nursing/golf/lac-craft). */
+  interestSlug?: string | null;
   style?: StyleProp<ViewStyle>;
 }) {
   const { data: groups } = useGroupKnowledge(scopeType, scopeId);
@@ -29,7 +48,7 @@ export function GroupKnowledgeSection({
 
   return (
     <View style={[styles.wrap, style]}>
-      <Text style={styles.heading}>LOCAL KNOWLEDGE</Text>
+      <Text style={styles.heading}>{getPlaceKnowledgeLabels(interestSlug).heading}</Text>
       {groups.map((group) => (
         <View
           key={group.racingAreaId ?? group.poiId ?? 'venue-wide'}
@@ -37,7 +56,7 @@ export function GroupKnowledgeSection({
         >
           <View style={styles.areaHeader}>
             <Ionicons
-              name={group.racingAreaId || group.poiId ? 'map-outline' : 'water-outline'}
+              name={placeIcon(group)}
               size={13}
               color={IOS_REGISTER.labelSecondary}
             />

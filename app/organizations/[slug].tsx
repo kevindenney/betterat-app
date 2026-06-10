@@ -602,7 +602,7 @@ export default function OrganizationPlaceholderPage() {
 
             {/* Org-scoped local knowledge by racing area. RLS hides the
                 rows from non-members, so the card collapses for them. */}
-            <GroupKnowledgeSection scopeType="org" scopeId={org.id} style={styles.card} />
+            <GroupKnowledgeSection scopeType="org" scopeId={org.id} interestSlug={org.interest_slug} style={styles.card} />
 
             {org.source_summary ? (
               <View style={styles.card}>
@@ -872,7 +872,7 @@ export default function OrganizationPlaceholderPage() {
 
             {/* Org-scoped local knowledge by racing area. RLS hides the
                 rows from non-members, so the card collapses for them. */}
-            <GroupKnowledgeSection scopeType="org" scopeId={org.id} style={styles.card} />
+            <GroupKnowledgeSection scopeType="org" scopeId={org.id} interestSlug={org.interest_slug} style={styles.card} />
 
             {isDemo ? (
               <>

@@ -59,7 +59,7 @@ import {
   type AtlasRacingAreaPressTarget,
 } from './AtlasMapLibreCanvas';
 import { CreateRacingAreaSheet } from './CreateRacingAreaSheet';
-import { AreaKnowledgeSection } from './AreaKnowledgeSection';
+import { PlaceKnowledgeSection } from '@/components/venue/PlaceKnowledgeSection';
 import type { CurrentConditions } from '@/types/community-feed';
 import { CreateRaceCourseSheet } from './CreateRaceCourseSheet';
 import { CourseStrategyCard, strategyHeadline } from './CourseStrategyCard';
@@ -3562,8 +3562,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           eyebrow="RACING AREA"
           title={knowledgeArea.name}
           expandedContent={
-            <AreaKnowledgeSection
-              racingAreaId={knowledgeArea.id}
+            <PlaceKnowledgeSection
+              anchor={{ racingAreaId: knowledgeArea.id }}
+              interestSlug="sail-racing"
               conditions={areaLiveConditions}
               onEditArea={
                 knowledgeArea.createdBy === authUser?.id
