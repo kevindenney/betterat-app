@@ -8,6 +8,7 @@
 
 import React from 'react';
 import {
+  Platform,
   View,
   Text,
   TextInput,
@@ -19,6 +20,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprint';
@@ -164,8 +166,10 @@ export default function MarketplaceBlueprintPage() {
     checkout.mutate(blueprint.id, {
       onSuccess: ({ url }) => {
         setPending(false);
-        if (typeof window !== 'undefined') {
+        if (Platform.OS === 'web') {
           window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+          WebBrowser.openBrowserAsync(url);
         }
       },
       onError: (err: unknown) => {

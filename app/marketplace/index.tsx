@@ -9,6 +9,7 @@
 
 import React from 'react';
 import {
+  Platform,
   View,
   Text,
   TextInput,
@@ -19,6 +20,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { WebMeta } from '@/components/marketplace/WebMeta';
@@ -174,8 +176,10 @@ export default function MarketplacePage() {
     checkout.mutate(bp.id, {
       onSuccess: ({ url }) => {
         setPendingId(null);
-        if (typeof window !== 'undefined') {
+        if (Platform.OS === 'web') {
           window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+          WebBrowser.openBrowserAsync(url);
         }
       },
       onError: (err: unknown) => {

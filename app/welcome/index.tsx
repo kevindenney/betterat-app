@@ -90,7 +90,7 @@ export default function WelcomeHeroScreen() {
         >
           <Pressable
             onPress={() => router.push('/welcome/how-it-works')}
-            style={({ pressed }) => [styles.primaryBtn, pressed && styles.primaryBtnPressed]}
+            style={styles.primaryBtn}
             accessibilityRole="button"
             accessibilityLabel="Get started"
           >
@@ -100,19 +100,35 @@ export default function WelcomeHeroScreen() {
 
           <Text style={styles.reassurance}>No account needed to start</Text>
 
-          <Pressable
-            onPress={() =>
-              router.push('/(auth)/login?returnTo=/welcome/pick' as any)
-            }
-            hitSlop={12}
-            style={styles.secondaryLink}
-            accessibilityRole="button"
-            accessibilityLabel="Already have an account? Log in"
-          >
-            <Text style={styles.secondaryLinkText}>
-              Already have an account? <Text style={styles.secondaryLinkBold}>Log in</Text>
-            </Text>
-          </Pressable>
+          <View style={styles.authLinksRow}>
+            <Pressable
+              onPress={() =>
+                router.push('/(auth)/login?returnTo=/welcome/pick' as any)
+              }
+              hitSlop={12}
+              style={styles.secondaryLink}
+              accessibilityRole="button"
+              accessibilityLabel="Already have an account? Log in"
+              testID="welcome-login-link"
+            >
+              <Text style={styles.secondaryLinkText}>
+                Have an account? <Text style={styles.secondaryLinkBold}>Log in</Text>
+              </Text>
+            </Pressable>
+            <Text style={styles.authLinksDot}>·</Text>
+            <Pressable
+              onPress={() => router.push('/(auth)/signup' as any)}
+              hitSlop={12}
+              style={styles.secondaryLink}
+              accessibilityRole="button"
+              accessibilityLabel="Create an account"
+              testID="welcome-create-account-link"
+            >
+              <Text style={styles.secondaryLinkText}>
+                <Text style={styles.secondaryLinkBold}>Create an account</Text>
+              </Text>
+            </Pressable>
+          </View>
         </Animated.View>
       </View>
     </SafeAreaView>
@@ -289,6 +305,16 @@ const styles = StyleSheet.create({
       android: { fontFamily: 'Manrope-Regular' },
       web: { fontFamily: 'Manrope, system-ui, sans-serif' },
     }),
+  },
+  authLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  authLinksDot: {
+    fontSize: 14,
+    color: '#94A3B8',
   },
   secondaryLink: {
     alignItems: 'center',
