@@ -17,7 +17,9 @@ import { useAdminPersonPractice } from '@/hooks/useAdminPersonPractice';
 export interface PersonDetailDrawerProps {
   person: AdminPersonRow | null;
   onClose: () => void;
-  onSuggestAction?: (key: 'open-timeline' | 'send-message' | 'change-role' | 'flag') => void;
+  onSuggestAction?: (
+    key: 'approve' | 'open-timeline' | 'send-message' | 'change-role' | 'flag',
+  ) => void;
 }
 
 const ROLE_TONE: Record<PersonRoleBadge, { bg: string; fg: string; label: string }> = {
@@ -143,6 +145,14 @@ export function PersonDetailDrawer({ person, onClose, onSuggestAction }: PersonD
           <View style={s.section}>
             <Text style={s.sectionTitle}>Actions</Text>
             <View style={s.actionsCol}>
+              {person.status === 'pending' ? (
+                <ActionRow
+                  icon="checkmark-circle-outline"
+                  label="Approve join request"
+                  sublabel="Adds them as an active member of this org"
+                  onPress={() => onSuggestAction?.('approve')}
+                />
+              ) : null}
               <ActionRow
                 icon="timeline"
                 label="Open practice timeline"

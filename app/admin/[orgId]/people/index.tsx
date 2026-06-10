@@ -28,10 +28,12 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import {
   useAdminPeople,
+  useApproveMembership,
   AdminPersonRow,
   PersonRoleBadge,
   PersonStatus,
 } from '@/hooks/useAdminPeople';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   StudioHeader,
   StudioButton,
@@ -59,6 +61,7 @@ function AdminPeopleBody() {
   const { user } = useAuth();
   const menu = useProfileMenuData();
   const data = useAdminPeople(orgId);
+  const approveMembership = useApproveMembership(orgId);
   const { width } = useWindowDimensions();
   const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
@@ -238,9 +241,17 @@ function AdminPeopleBody() {
         person={data.rows.find((r) => r.id === openPersonId) ?? null}
         onClose={() => setOpenPersonId(null)}
         onSuggestAction={(key) => {
-          if (key !== 'open-timeline') return; // other actions still pending wire-up
           const selected = data.rows.find((r) => r.id === openPersonId);
           if (!selected) return;
+          if (key === 'approve') {
+            setOpenPersonId(null);
+            approveMembership.mutate(selected.id, {
+              onError: (err) =>
+                showAlert('Approval failed', err instanceof Error ? err.message : 'Try again.'),
+            });
+            return;
+          }
+          if (key !== 'open-timeline') return; // other actions still pending wire-up
           setOpenPersonId(null);
           router.push(`/admin/${orgId}/person/${selected.userId}`);
         }}

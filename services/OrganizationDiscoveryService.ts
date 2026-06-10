@@ -335,7 +335,7 @@ class OrganizationDiscoveryService {
           is_verified: false,
           verified_at: null,
           joined_at: null,
-          verification_source: 'invite',
+          verification_source: 'self_join',
         };
 
         const missingColumnFallbacks: [string, string][] = [
@@ -387,7 +387,7 @@ class OrganizationDiscoveryService {
 
     const nextStatus = resolvedMode === 'open_join' ? 'active' : 'pending';
     const nextMembershipStatus = resolvedMode === 'open_join' ? 'active' : 'pending';
-    const verificationSource = resolvedMode === 'open_join' ? 'admin' : 'invite';
+    const verificationSource = 'self_join';
 
     const insertPayload: Record<string, any> = {
       organization_id: input.orgId,

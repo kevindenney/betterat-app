@@ -25,7 +25,7 @@
  */
 
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -252,7 +252,9 @@ export function useAdminPeople(orgId: string): AdminPeopleData {
           isYou: !!viewerId && m.user_id === viewerId,
           joinedNote:
             status === 'pending'
-              ? m.created_at
+              ? source === 'self-join'
+                ? `Requested to join ${m.created_at ? relativeLastActive(m.created_at) : ''}`.trim()
+                : m.created_at
                 ? `Invited ${relativeLastActive(m.created_at)} · not redeemed`
                 : 'Pending invite · not redeemed'
               : source === 'sso' && m.joined_at
@@ -324,4 +326,30 @@ export function useAdminPeople(orgId: string): AdminPeopleData {
     seats,
     lastSsoSyncLabel: '12 min ago',
   };
+}
+
+/**
+ * Approve a pending join request (or unredeemed invite) by flipping the
+ * membership to active. RLS `organization_memberships_update_org_admin_v2`
+ * restricts this to org admins.
+ */
+export function useApproveMembership(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (membershipId: string) => {
+      const { error } = await supabase
+        .from('organization_memberships')
+        .update({
+          status: 'active',
+          membership_status: 'active',
+          joined_at: new Date().toISOString(),
+        })
+        .eq('id', membershipId)
+        .eq('organization_id', orgId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-people', orgId] });
+    },
+  });
 }
