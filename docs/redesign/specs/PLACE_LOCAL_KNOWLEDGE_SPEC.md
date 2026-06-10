@@ -1,6 +1,8 @@
 # Place Local Knowledge — generalizing the area-knowledge anchor
 
-> Status: SPEC (2026-06-10). Follow-up to `AREA_LOCAL_KNOWLEDGE_SPEC.md` (shipped as
+> Status: SHIPPED 2026-06-10 as Phase P (`62cadb35` → P.5; see atlas-roadmap.md).
+> Loose threads: golf surface (P.6), per-interest topic categories (P.7).
+> Originally a follow-up to `AREA_LOCAL_KNOWLEDGE_SPEC.md` (shipped as
 > Phase O, commits `458dbf37` → `2b1e1be3`). That work made `venue_discussions` audience-
 > scoped (`scope_type`/`scope_id`: public / private / fleet / org / blueprint) but left the
 > **geo-anchor** sailing-shaped: posts hang off `venue_racing_areas.racing_area_id` and

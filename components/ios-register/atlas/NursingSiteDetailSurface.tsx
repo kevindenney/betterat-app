@@ -9,10 +9,17 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { PlaceKnowledgeSection } from '@/components/venue/PlaceKnowledgeSection';
+
+// Sites opened from the Sites list carry a real atlas_pois uuid (name-bound in
+// NursingSitesSurface); the mock node map passes slugs like 'jhh-4-south',
+// which can't anchor knowledge.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const CLUSTER = {
   cardiac: '#E5484D',
@@ -145,6 +152,22 @@ export function NursingSiteDetailSurface({
             <Text style={styles.preceptorSub}>Respiratory · precepts Tue–Thu</Text>
           </View>
         </View>
+
+        {UUID_RE.test(site.id) ? (
+          <View style={styles.knowledgeCard}>
+            <PlaceKnowledgeSection
+              anchor={{ poiId: site.id }}
+              conditions={null}
+              interestSlug="nursing"
+              onAddKnowledge={() =>
+                router.push({
+                  pathname: '/venue/post/create',
+                  params: { poiId: site.id, poiName: site.name },
+                } as never)
+              }
+            />
+          </View>
+        ) : null}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: bottomOffset + IOS_SPACING.sm }]}>
@@ -213,6 +236,17 @@ const styles = StyleSheet.create({
   privacyRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: IOS_SPACING.md },
   privacyText: { flex: 1, fontSize: 10.5, color: IOS_COLORS.tertiaryLabel },
   preceptor: { flexDirection: 'row', alignItems: 'center', gap: 13, marginHorizontal: IOS_SPACING.lg, paddingVertical: IOS_SPACING.sm },
+  knowledgeCard: {
+    marginHorizontal: IOS_SPACING.lg,
+    marginTop: IOS_SPACING.md,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: IOS_SPACING.md,
+    paddingBottom: IOS_SPACING.sm,
+    paddingTop: IOS_SPACING.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.separator,
+  },
   preceptorDiamond: { width: 34, height: 34, borderRadius: 7, backgroundColor: CLUSTER.med, transform: [{ rotate: '45deg' }] },
   preceptorName: { fontSize: 14, fontWeight: '800', color: IOS_COLORS.label },
   preceptorSub: { marginTop: 2, fontSize: 12, color: IOS_COLORS.secondaryLabel },

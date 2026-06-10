@@ -112,6 +112,17 @@ Spec: `docs/redesign/specs/AREA_LOCAL_KNOWLEDGE_SPEC.md` (`66afd7f5`). One primi
 - ✅ O.4 — Atlas: racing-area tap opens a Local Knowledge callout for everyone (was owner-only edit); counts by audience, condition-matched count, top posts, "Add local knowledge" CTA pre-bound to the area. `7a2bcc8d`.
 - ✅ O.5 — Group surfaces: fleet + org pages get a LOCAL KNOWLEDGE section bucketed by area (`useGroupKnowledge`, collapses for non-members via RLS); race-step Plan tab gets ABOUT THIS AREA under the course map (detail view only). Also fixed the function-form-Pressable stacked-row bug in both knowledge sections. `2b1e1be3`.
 
+### ✅ Phase P — Place local knowledge (POI anchor, all personas)
+Spec: `docs/redesign/specs/PLACE_LOCAL_KNOWLEDGE_SPEC.md`. Generalizes Phase O's geo-anchor: `venue_discussions.poi_id → atlas_pois` alongside the sailing `racing_area_id` (single-anchor CHECK, audience RLS untouched). Per-interest vocab via `getPlaceKnowledgeLabels()` — SITE / COURSE / MARKET / LOCAL KNOWLEDGE. Shipped 2026-06-10.
+
+- ✅ P.1 — Migration: `poi_id` column + single-anchor CHECK + person-kind denylist trigger. `62cadb35`.
+- ✅ P.2 — Read/write path: `getPlaceKnowledge(anchor)` + `usePlaceKnowledge` (KnowledgeAnchor = racingAreaId | poiId); createPost accepts `poi_id`. `6cf1d3ab`.
+- ✅ P.3 — `AreaKnowledgeSection` → `PlaceKnowledgeSection` (vocab-resolved heading/empty/CTA); `GroupKnowledgeSection` place-kind icons + org `interest_slug` plumbing. `acb58192`.
+- ✅ P.4 — Atlas generic POI sheets (F1/F4/F7) gain an expanded knowledge section + "Add … knowledge" CTA; composer gets a pre-bound Place chip (`poiId` param skips community picker, hides race/conditions sections). `2891f695`.
+- ✅ P.5 — Constraint fix (`venue_discussions_has_association` now accepts poi-only rows — poi-anchored inserts 23514'd before; duplicate `venue_or_community_required` dropped), nursing site detail gets SITE KNOWLEDGE (uuid-gated — Sites-list targets carry real `atlas_pois` ids, the mock node map's slugs don't), dev seeds (golf course POIs + 6 public posts across JHH East Baltimore / Bero haat / Baylands). Sim-verified: nursing site detail + composer chip, lac-craft Bero haat sheet + post detail, sailing ABOUT THIS AREA regression.
+- ⬜ P.6 (loose thread) — Golf surface: `GolfAtlasSurface` (f9) is a static Oakridge mock with no `atlas_pois` pins, so the seeded course POIs/posts can't reach it. COURSE KNOWLEDGE vocab + seeds are ready; wire it when f9 gets real POI data.
+- ⬜ P.7 (loose thread) — Composer topic chips are still the sailing category allowlist (`venue_discussions_category_check`: tactics/conditions/gear/…); non-sailing posts default to `general`. Needs per-interest category vocab + constraint relax.
+
 ### ⏸ Phase D — Atlas round-trip with /races timeline rebuild
 Deferred until the parallel /races rebuild lands (`project_races_rebuild_in_flight`). Then verify atlas pins → races timeline → atlas restores state.
 
