@@ -165,6 +165,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
           capture_source: 'universal_plus_sheet',
           capture_kind: payload.kind,
           audio_uri: payload.audioUri ?? null,
+          ...(payload.viewedSeasonId ? { season_id: payload.viewedSeasonId } : {}),
           ...(fields.plan ? { plan: fields.plan } : {}),
           ...buildRaceMetadata(payload.isRace ? payload.racePlan : undefined),
         },

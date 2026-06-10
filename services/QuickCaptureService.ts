@@ -59,6 +59,13 @@ export interface QuickCapturePayload {
    * so it surfaces in the step's Do tab.
    */
   imageUri?: string;
+  /**
+   * The arc the user was viewing when they composed this step (timeline
+   * surfaces only). Stamped as metadata.season_id — the adapter's tier-1
+   * explicit-intent signal — so the step lands in the arc on screen instead
+   * of being date-bucketed.
+   */
+  viewedSeasonId?: string | null;
 }
 
 /**
@@ -291,7 +298,9 @@ export async function createDraftStep({
     visibility: 'private',
     is_race: payload.isRace ?? false,
     // Series link only for races — a non-race capture carries no season.
-    season_id: payload.isRace ? seasonId ?? null : null,
+    // The viewed arc (when composing from a timeline surface) beats the
+    // app-wide current season.
+    season_id: payload.isRace ? payload.viewedSeasonId ?? seasonId ?? null : null,
     // Denormalized columns power Atlas pins + map feeds; the RPC reads
     // these straight off p_input.
     location_name: fields.locationName,
@@ -302,6 +311,8 @@ export async function createDraftStep({
       capture_source: 'universal_plus_sheet',
       capture_kind: payload.kind,
       audio_uri: payload.audioUri ?? null,
+      // Viewed-arc stamp — wins over date bucketing in the timeline adapter.
+      ...(payload.viewedSeasonId ? { season_id: payload.viewedSeasonId } : {}),
       // Canonical source the Plan tab + timeline adapter read for WHAT/WHY/HOW/WHERE.
       ...(fields.plan ? { plan: fields.plan } : {}),
       // Race area/course choice + derived Atlas course-context chips.

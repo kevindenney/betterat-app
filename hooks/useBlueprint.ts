@@ -455,13 +455,20 @@ export function useAdoptBlueprintStep() {
   return useMutation<
     TimelineStepRecord,
     Error,
-    { sourceStepId: string; interestId: string; subscriptionId: string; blueprintId?: string }
+    {
+      sourceStepId: string;
+      interestId: string;
+      subscriptionId: string;
+      blueprintId?: string;
+      /** Arc the user was viewing — stamped as metadata.season_id on the copy. */
+      viewedSeasonId?: string | null;
+    }
   >({
-    mutationFn: async ({ sourceStepId, interestId, subscriptionId, blueprintId }) => {
+    mutationFn: async ({ sourceStepId, interestId, subscriptionId, blueprintId, viewedSeasonId }) => {
       if (!user?.id) throw new Error('Must be logged in');
 
       // Adopt the step (creates copy in user's timeline)
-      const adopted = await adoptStep(user.id, sourceStepId, interestId, blueprintId);
+      const adopted = await adoptStep(user.id, sourceStepId, interestId, blueprintId, viewedSeasonId);
 
       // Mark as adopted in blueprint tracking
       await markStepAction(subscriptionId, sourceStepId, 'adopted', adopted.id);

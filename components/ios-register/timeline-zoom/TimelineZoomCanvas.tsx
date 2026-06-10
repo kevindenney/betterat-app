@@ -455,6 +455,7 @@ export function TimelineZoomCanvas({
                   allSteps={chromeSteps}
                   nowStepId={dataset.focusStepId}
                   onJumpToStep={(id) => setFocusStepId(id)}
+                  viewedSeasonId={selectedSeason?.id ?? null}
                 />
               ) : (
                 <AppChromeRow onPlusPress={() => setAddOpen(true)} />
@@ -632,6 +633,7 @@ export function TimelineZoomCanvas({
             setLevel(1);
           }}
           showRaceSelector={isSailRacing}
+          viewedSeasonId={selectedSeason?.id ?? null}
         />
       </View>
     </GestureHandlerRootView>

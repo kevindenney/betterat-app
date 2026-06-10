@@ -617,6 +617,7 @@ export async function adoptStep(
   sourceStepId: string,
   interestId: string,
   blueprintId?: string | null,
+  viewedSeasonId?: string | null,
 ): Promise<TimelineStepRecord> {
   try {
     logger.debug('Adopting step', { userId, sourceStepId });
@@ -646,6 +647,15 @@ export async function adoptStep(
     // Copy metadata but strip brain_dump (it's author-specific context, not relevant to adopter)
     const sourceMetadata = { ...((source as any).metadata ?? {}) };
     delete sourceMetadata.brain_dump;
+
+    // Stamp the arc the adopter was viewing so the step lands there instead of
+    // being date-bucketed (metadata.season_id is the adapter's tier-1 signal).
+    if (viewedSeasonId) {
+      sourceMetadata.season_id = viewedSeasonId;
+    } else {
+      // Never inherit the author's arc stamp — their arcs aren't the adopter's.
+      delete sourceMetadata.season_id;
+    }
 
     // Copy linked library resources via SECURITY DEFINER RPC so the adopter
     // can read the author's resources (RLS normally blocks cross-user reads).

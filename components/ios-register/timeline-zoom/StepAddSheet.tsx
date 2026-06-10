@@ -64,6 +64,12 @@ interface StepAddSheetProps {
   onStepAdded?: (stepId: string) => void;
   /** Sailing only — lets the user create either a plain step or a race step. */
   showRaceSelector?: boolean;
+  /**
+   * The arc the user is viewing on the timeline. Stamped as metadata.season_id
+   * on every step created from this sheet so it lands in the arc on screen
+   * instead of being date-bucketed into a neighboring one.
+   */
+  viewedSeasonId?: string | null;
 }
 
 export function StepAddSheet({
@@ -72,6 +78,7 @@ export function StepAddSheet({
   onAddBlank,
   onStepAdded,
   showRaceSelector = false,
+  viewedSeasonId = null,
 }: StepAddSheetProps) {
   const router = useRouter();
   const { currentInterest } = useInterest();
@@ -158,6 +165,7 @@ export function StepAddSheet({
         interestId: currentInterest.id,
         subscriptionId: s.subscription_id,
         blueprintId: s.blueprint_id,
+        viewedSeasonId,
       });
       onStepAdded?.(created.id);
       onClose();
@@ -172,6 +180,7 @@ export function StepAddSheet({
       kind: 'text',
       content: suggestion.title,
       why: suggestion.body || undefined,
+      viewedSeasonId,
     });
     await applySuggestion(suggestion);
     resetComposer();
@@ -238,6 +247,7 @@ export function StepAddSheet({
         scheduledAt: whenISO ?? undefined,
         location: whereLocation,
         isRace: showRaceSelector ? isRace : undefined,
+        viewedSeasonId,
       });
       // submit() handles optimistic insert + navigation; just tidy up here.
       resetComposer();

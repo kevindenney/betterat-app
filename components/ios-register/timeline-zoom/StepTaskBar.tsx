@@ -44,6 +44,8 @@ interface StepTaskBarProps {
   onJumpToStep: (stepId: string) => void;
   /** Prominent ＋. Defaults to the universal-plus composer. */
   onAdd?: () => void;
+  /** Arc the user is viewing — threaded to StepAddSheet's creation stamp. */
+  viewedSeasonId?: string | null;
 }
 
 export function StepTaskBar({
@@ -53,6 +55,7 @@ export function StepTaskBar({
   nowStepId,
   onJumpToStep,
   onAdd,
+  viewedSeasonId = null,
 }: StepTaskBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -265,6 +268,7 @@ export function StepTaskBar({
         onAddBlank={blankAction}
         onStepAdded={(id) => onJumpToStep(id)}
         showRaceSelector={isSailRacing}
+        viewedSeasonId={viewedSeasonId}
       />
     </View>
   );
