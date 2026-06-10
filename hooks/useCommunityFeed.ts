@@ -37,7 +37,7 @@ export const communityFeedKeys = {
     sort?: FeedSortType;
     postType?: PostType;
     tagIds?: string[];
-    racingAreaId?: string | null;
+    poiId?: string | null;
     topPeriod?: TopPeriod;
     catalogRaceId?: string;
   }) => [...communityFeedKeys.feeds(), venueId, filters] as const,
@@ -57,8 +57,8 @@ export const communityFeedKeys = {
   }) => [...communityFeedKeys.feeds(), 'joined-communities', communityIds, filters] as const,
   raceFeed: (catalogRaceId: string) => [...communityFeedKeys.feeds(), 'race', catalogRaceId] as const,
   // Lives under feeds() so post/comment/vote mutations invalidate it too.
-  placeKnowledge: (anchorKind: 'area' | 'poi', anchorId: string) =>
-    [...communityFeedKeys.feeds(), 'place-knowledge', anchorKind, anchorId] as const,
+  placeKnowledge: (poiId: string) =>
+    [...communityFeedKeys.feeds(), 'place-knowledge', poiId] as const,
   groupKnowledge: (scopeType: string, scopeId: string) =>
     [...communityFeedKeys.feeds(), 'group-knowledge', scopeType, scopeId] as const,
   aggregatedFeed: (venueIds: string[], filters?: {
@@ -92,7 +92,7 @@ export function useCommunityFeed(
     sort?: FeedSortType;
     postType?: PostType;
     tagIds?: string[];
-    racingAreaId?: string | null;
+    poiId?: string | null;
     topPeriod?: TopPeriod;
     currentConditions?: CurrentConditions;
     enabled?: boolean;
@@ -102,7 +102,7 @@ export function useCommunityFeed(
     sort = 'hot',
     postType,
     tagIds,
-    racingAreaId,
+    poiId,
     topPeriod,
     currentConditions,
     enabled = true,
@@ -113,7 +113,7 @@ export function useCommunityFeed(
   return useInfiniteQuery({
     queryKey: isConditionsSort
       ? communityFeedKeys.conditionsFeed(venueId)
-      : communityFeedKeys.feed(venueId, { sort, postType, tagIds, racingAreaId, topPeriod }),
+      : communityFeedKeys.feed(venueId, { sort, postType, tagIds, poiId, topPeriod }),
     queryFn: async ({ pageParam = 0 }) => {
       if (isConditionsSort && currentConditions) {
         return ConditionMatchingService.getConditionMatchedFeed(
@@ -129,7 +129,7 @@ export function useCommunityFeed(
         sort,
         postType,
         tagIds,
-        racingAreaId,
+        poiId,
         topPeriod,
         page: pageParam,
         limit: 20,
@@ -223,10 +223,7 @@ export function useRaceFeed(catalogRaceId: string | undefined) {
  */
 export function usePlaceKnowledge(anchor: KnowledgeAnchor | undefined, limit = 5) {
   return useQuery({
-    queryKey: communityFeedKeys.placeKnowledge(
-      anchor?.racingAreaId ? 'area' : 'poi',
-      anchor?.racingAreaId ?? anchor?.poiId ?? '',
-    ),
+    queryKey: communityFeedKeys.placeKnowledge(anchor?.poiId ?? ''),
     queryFn: () => CommunityFeedService.getPlaceKnowledge(anchor!, limit),
     enabled: !!anchor,
     staleTime: 1000 * 60 * 2,

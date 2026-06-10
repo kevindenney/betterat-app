@@ -1,11 +1,13 @@
 /**
- * useUpdateRacingArea — UPDATEs an existing user-defined racing area.
- * Mirrors useCreateRacingArea but writes by id. The RLS policy on
- * venue_racing_areas accepts any authenticated user; ownership gating
- * is enforced at the UI layer (community list filters to non-official
- * areas only).
+ * useUpdateRacingArea — UPDATEs an existing user-defined racing area in
+ * atlas_pois. Mirrors useCreateRacingArea but writes by id. RLS only
+ * lets the author update their own user_proposed rows.
  *
- * Invalidates `atlas-racing-areas` so the polygon shape, name, or
+ * The sailing specifics (radius_meters, classes_used, …) live inside the
+ * `metadata` jsonb, so the row's current metadata is read first and merged —
+ * a blind overwrite would drop venue_id/description written elsewhere.
+ *
+ * Invalidates the racing-area queries so the polygon shape, name, or
  * classes flip on the canvas immediately.
  */
 
@@ -13,6 +15,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Polygon } from 'geojson';
 
 import { supabase } from '@/services/supabase';
+
+import { invalidateRacingAreaQueries } from './racingAreaInvalidations';
 
 export interface UpdateRacingAreaInput {
   id: string;
@@ -42,15 +46,28 @@ export function useUpdateRacingArea() {
             type: 'Point',
             coordinates: [input.centerLng, input.centerLat],
           };
+      const { data: existing, error: readError } = await supabase
+        .from('atlas_pois')
+        .select('metadata')
+        .eq('id', input.id)
+        .single();
+      if (readError) {
+        console.warn('[atlas] update racing area read failed', readError);
+        throw new Error(readError.message || 'Could not save changes');
+      }
+      const metadata = {
+        ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
+        radius_meters: radiusMeters,
+        classes_used: classesUsed,
+      };
       const { error } = await supabase
-        .from('venue_racing_areas')
+        .from('atlas_pois')
         .update({
-          area_name: trimmedName,
-          center_lat: input.centerLat,
-          center_lng: input.centerLng,
-          radius_meters: radiusMeters,
+          name: trimmedName,
+          lat: input.centerLat,
+          lng: input.centerLng,
           geometry,
-          classes_used: classesUsed,
+          metadata,
           updated_at: new Date().toISOString(),
         })
         .eq('id', input.id);
@@ -61,7 +78,7 @@ export function useUpdateRacingArea() {
       return input.id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['atlas-racing-areas'] });
+      invalidateRacingAreaQueries(queryClient);
     },
   });
 }

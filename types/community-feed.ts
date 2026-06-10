@@ -51,8 +51,7 @@ export interface FeedPost {
   is_public: boolean;
   scope_type: KnowledgeScopeType;
   scope_id: string | null;
-  racing_area_id: string | null;
-  /** Generic place anchor (atlas_pois) — hospital, haat, market, course… */
+  /** Place anchor (atlas_pois) — racing area, hospital, haat, market, course… */
   poi_id?: string | null;
   location_lat: number | null;
   location_lng: number | null;
@@ -72,10 +71,6 @@ export interface FeedPost {
     id: string;
     full_name: string | null;
     avatar_url: string | null;
-  };
-  racing_area?: {
-    id: string;
-    area_name: string;
   };
   poi?: {
     id: string;
@@ -193,7 +188,6 @@ export interface CreatePostParams {
   category?: string;
   scope_type?: KnowledgeScopeType;
   scope_id?: string;
-  racing_area_id?: string;
   poi_id?: string;
   location_lat?: number;
   location_lng?: number;
@@ -217,7 +211,8 @@ export interface FeedQueryParams {
   sort?: FeedSortType;
   postType?: PostType;
   tagIds?: string[];
-  racingAreaId?: string | null;
+  /** Narrow to posts anchored on this place (or venue-wide posts). */
+  poiId?: string | null;
   topPeriod?: TopPeriod;
   currentConditions?: CurrentConditions;
   catalogRaceId?: string;
@@ -228,13 +223,12 @@ export interface FeedQueryParams {
 }
 
 /**
- * The one place a knowledge post anchors to: a sailing racing area
- * (venue_racing_areas) or any Atlas POI (atlas_pois — hospital, haat,
- * market, course…). DB CHECK enforces at most one.
+ * The one place a knowledge post anchors to: any Atlas POI (atlas_pois —
+ * racing area, hospital, haat, market, course…).
  */
-export type KnowledgeAnchor =
-  | { racingAreaId: string; poiId?: undefined }
-  | { poiId: string; racingAreaId?: undefined };
+export interface KnowledgeAnchor {
+  poiId: string;
+}
 
 export interface AreaKnowledgeSummary {
   posts: FeedPost[];
@@ -245,11 +239,10 @@ export interface AreaKnowledgeSummary {
 
 /** One place bucket of a group's (fleet/org/blueprint) knowledge posts. */
 export interface GroupKnowledgePlace {
-  /** Exactly one of these is set; both null for venue-wide notes. */
-  racingAreaId: string | null;
+  /** Null for venue-wide notes. */
   poiId: string | null;
   placeName: string | null;
-  /** atlas_pois.kind for POI buckets, 'racing_area' for areas, null venue-wide. */
+  /** atlas_pois.kind ('racing_area', 'hospital', …), null venue-wide. */
   placeKind: string | null;
   posts: FeedPost[];
 }

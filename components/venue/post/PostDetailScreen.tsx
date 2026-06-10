@@ -312,11 +312,11 @@ export function PostDetailScreen({ postId, onBack }: PostDetailScreenProps) {
             </View>
           )}
 
-          {/* Racing area */}
-          {post.racing_area?.area_name && (
+          {/* Place anchor (racing area, hospital, …) */}
+          {post.poi?.name && (
             <View style={styles.locationRow}>
               <Ionicons name="navigate-outline" size={12} color="#6B7280" />
-              <Text style={styles.locationText}>{post.racing_area.area_name}</Text>
+              <Text style={styles.locationText}>{post.poi.name}</Text>
             </View>
           )}
 

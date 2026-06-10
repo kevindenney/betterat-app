@@ -39,7 +39,7 @@ export default function PostCreateRoute() {
   const {
     venueId: paramVenueId,
     communityId: paramCommunityId,
-    racingAreaId,
+    areaPoiId,
     poiId,
     poiName,
     interestSlug,
@@ -48,7 +48,7 @@ export default function PostCreateRoute() {
   } = useLocalSearchParams<{
     venueId?: string;
     communityId?: string;
-    racingAreaId?: string;
+    areaPoiId?: string;
     poiId?: string;
     poiName?: string;
     interestSlug?: string;
@@ -176,7 +176,7 @@ export default function PostCreateRoute() {
           visible={true}
           venueId={selectedCommunity.venueId || undefined}
           communityId={selectedCommunity.id || undefined}
-          racingAreaId={racingAreaId}
+          areaPoiId={areaPoiId}
           catalogRaceId={catalogRaceId}
           catalogRaceName={catalogRaceName}
           onDismiss={handleDismiss}

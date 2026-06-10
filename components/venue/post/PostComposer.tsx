@@ -37,7 +37,8 @@ interface PostComposerProps {
   venueId?: string;       // Optional - for venue-linked posts
   communityId?: string;   // Optional - for community posts
   // Note: At least one of venueId, communityId, or poiId should be provided
-  racingAreaId?: string | null;
+  /** Preselects the in-composer racing-area picker (atlas_pois id). */
+  areaPoiId?: string | null;
   /** Atlas POI anchor (hospital, haat, golf course…) — pre-bound, replaces the venue/area pickers. */
   poiId?: string | null;
   poiName?: string | null;
@@ -62,7 +63,7 @@ export function PostComposer({
   visible,
   venueId,
   communityId,
-  racingAreaId,
+  areaPoiId,
   poiId,
   poiName,
   interestSlug,
@@ -80,7 +81,7 @@ export function PostComposer({
   const [conditionLabel, setConditionLabel] = useState('');
 
   // Area + audience scoping
-  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(racingAreaId || null);
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(areaPoiId || null);
   const [scopeType, setScopeType] = useState<KnowledgeScopeType>('public');
   const [scopeId, setScopeId] = useState<string | null>(null);
 
@@ -176,10 +177,9 @@ export function PostComposer({
           title: title.trim(),
           body: body.trim() || undefined,
           post_type: postType,
-          poi_id: poiId || undefined,
-          // Single-anchor CHECK on venue_discussions: a post anchors a
-          // racing area OR a POI, never both.
-          racing_area_id: poiId ? undefined : selectedAreaId || undefined,
+          // One place anchor: the pre-bound POI wins, else the picked
+          // racing area (also an atlas_pois row since the fold).
+          poi_id: poiId || selectedAreaId || undefined,
           scope_type: scopeType,
           scope_id: scopeId || undefined,
           topic_tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,

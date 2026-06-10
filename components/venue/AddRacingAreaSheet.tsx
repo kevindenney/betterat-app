@@ -2,7 +2,7 @@
  * AddRacingAreaSheet
  *
  * Modal for proposing a new community racing area.
- * Uses CommunityVenueCreationService.createCommunityArea() to submit.
+ * Submits via useCreateRacingArea (atlas_pois, kind='racing_area').
  * New areas start as "pending" and get verified after 3 community confirmations.
  */
 
@@ -25,7 +25,7 @@ import {
   IOS_SPACING,
   IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
-import { CommunityVenueCreationService } from '@/services/venue/CommunityVenueCreationService';
+import { useCreateRacingArea } from '@/hooks/useCreateRacingArea';
 import { triggerHaptic } from '@/lib/haptics';
 
 interface AddRacingAreaSheetProps {
@@ -44,6 +44,7 @@ export function AddRacingAreaSheet({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const createArea = useCreateRacingArea();
 
   const resetForm = useCallback(() => {
     setName('');
@@ -64,7 +65,7 @@ export function AddRacingAreaSheet({
 
     setSubmitting(true);
     try {
-      await CommunityVenueCreationService.createCommunityArea({
+      await createArea.mutateAsync({
         name: trimmedName,
         description: description.trim() || undefined,
         venueId,
@@ -84,7 +85,7 @@ export function AddRacingAreaSheet({
     } finally {
       setSubmitting(false);
     }
-  }, [name, description, venueId, resetForm, onDismiss, onSuccess]);
+  }, [name, description, venueId, createArea, resetForm, onDismiss, onSuccess]);
 
   const canSubmit = name.trim().length > 0 && !submitting;
 

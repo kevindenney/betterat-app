@@ -237,8 +237,9 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
     staleTime: 60_000,
     queryFn: async (): Promise<RaceAreaCenter[]> => {
       const { data: rows, error } = await supabase
-        .from('venue_racing_areas')
-        .select('id, area_name, geometry, center_lat, center_lng, is_active')
+        .from('atlas_pois')
+        .select('id, name, geometry, lat, lng')
+        .eq('kind', 'racing_area')
         .eq('is_active', true);
       if (error) {
         console.warn('[atlas] race area center fetch error', error);
@@ -246,8 +247,8 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       }
       return (rows ?? []).flatMap((row: any) => {
         const center =
-          row.center_lat != null && row.center_lng != null
-            ? { lat: Number(row.center_lat), lng: Number(row.center_lng) }
+          row.lat != null && row.lng != null
+            ? { lat: Number(row.lat), lng: Number(row.lng) }
             : geometryCenter(row.geometry);
         if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) {
           return [];
@@ -255,7 +256,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         return [
           {
             id: String(row.id),
-            name: String(row.area_name ?? ''),
+            name: String(row.name ?? ''),
             center,
           },
         ];

@@ -21,7 +21,6 @@ export interface VenueKnowledgeDocument {
   description: string | null;
   is_public: boolean;
   fleet_id: string | null;
-  racing_area_id: string | null;
   race_route_id: string | null;
   upvotes: number;
   view_count: number;
@@ -33,10 +32,6 @@ export interface VenueKnowledgeDocument {
   uploader?: {
     id: string;
     full_name: string | null;
-  };
-  racing_area?: {
-    id: string;
-    area_name: string;
   };
   race_route?: {
     id: string;
@@ -111,7 +106,6 @@ export interface UploadDocumentParams {
   description?: string;
   is_public?: boolean;
   fleet_id?: string;
-  racing_area_id?: string;
   race_route_id?: string;
   file?: File; // For PDF uploads
   external_url?: string; // For video links or external URLs
@@ -226,7 +220,6 @@ class VenueDocumentServiceClass {
   async getDocuments(
     venueId: string,
     options: {
-      racingAreaId?: string | null;
       raceRouteId?: string | null;
       includeGeneral?: boolean;
       limit?: number;
@@ -235,7 +228,6 @@ class VenueDocumentServiceClass {
     } = {}
   ): Promise<{ data: VenueKnowledgeDocument[]; count: number }> {
     const {
-      racingAreaId,
       raceRouteId,
       includeGeneral = true,
       limit = 20,
@@ -247,25 +239,12 @@ class VenueDocumentServiceClass {
       .from('venue_knowledge_documents')
       .select(`
         *,
-        racing_area:venue_racing_areas!racing_area_id (
-          id,
-          area_name
-        ),
         race_route:race_routes!race_route_id (
           id,
           name
         )
       `, { count: 'exact' })
       .eq('venue_id', venueId);
-
-    // Filter by racing area - include area-specific AND general documents
-    if (racingAreaId) {
-      if (includeGeneral) {
-        query = query.or(`racing_area_id.eq.${racingAreaId},racing_area_id.is.null`);
-      } else {
-        query = query.eq('racing_area_id', racingAreaId);
-      }
-    }
 
     // Filter by race route - include route-specific AND general documents
     if (raceRouteId) {
@@ -365,7 +344,6 @@ class VenueDocumentServiceClass {
         description: params.description || null,
         is_public: params.is_public ?? true,
         fleet_id: params.fleet_id || null,
-        racing_area_id: params.racing_area_id || null,
         race_route_id: params.race_route_id || null,
         extraction_status: params.document_type === 'pdf' ? 'pending' : 'completed',
       })

@@ -253,7 +253,7 @@ export default function VenueDetailScreen() {
           />
           <VenueFeedSegment
             venueId={venue.id}
-            racingAreaId={selectedAreaId}
+            poiId={selectedAreaId}
             onPostPress={handlePostPress}
             onCreatePost={() => setShowComposer(true)}
           />

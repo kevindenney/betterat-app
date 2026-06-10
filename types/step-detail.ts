@@ -231,7 +231,7 @@ export interface AtlasRaceCourseContext {
  * geometry and live conditions are layered later on the on-water screen.
  */
 export interface RacePlan {
-  /** venue_racing_areas.id of the chosen racing area, when picked. */
+  /** atlas_pois.id (kind='racing_area') of the chosen racing area, when picked. */
   area_id?: string;
   area_name?: string;
   /**

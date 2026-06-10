@@ -45,7 +45,7 @@ class CommunityFeedServiceClass {
       sort = 'hot',
       postType,
       tagIds,
-      racingAreaId,
+      poiId,
       topPeriod = 'all',
       catalogRaceId,
       scopeType,
@@ -65,9 +65,10 @@ class CommunityFeedServiceClass {
           full_name,
           avatar_url
         ),
-        racing_area:venue_racing_areas!racing_area_id (
+        poi:atlas_pois!poi_id (
           id,
-          area_name
+          name,
+          kind
         )
       `, { count: 'exact' })
       .eq('venue_id', venueId);
@@ -91,9 +92,9 @@ class CommunityFeedServiceClass {
       query = query.eq('catalog_race_id', catalogRaceId);
     }
 
-    // Filter by racing area
-    if (racingAreaId) {
-      query = query.or(`racing_area_id.eq.${racingAreaId},racing_area_id.is.null`);
+    // Filter by place anchor (racing area / POI) — venue-wide posts included
+    if (poiId) {
+      query = query.or(`poi_id.eq.${poiId},poi_id.is.null`);
     }
 
     // Time period filter for 'top' and 'rising'
@@ -233,9 +234,10 @@ class CommunityFeedServiceClass {
           full_name,
           avatar_url
         ),
-        racing_area:venue_racing_areas!racing_area_id (
+        poi:atlas_pois!poi_id (
           id,
-          area_name
+          name,
+          kind
         )
       `, { count: 'exact' })
       .in('venue_id', venueIds);
@@ -375,9 +377,10 @@ class CommunityFeedServiceClass {
           full_name,
           avatar_url
         ),
-        racing_area:venue_racing_areas!racing_area_id (
+        poi:atlas_pois!poi_id (
           id,
-          area_name
+          name,
+          kind
         )
       `, { count: 'exact' })
       .eq('author_id', userId)
@@ -445,9 +448,10 @@ class CommunityFeedServiceClass {
           full_name,
           avatar_url
         ),
-        racing_area:venue_racing_areas!racing_area_id (
+        poi:atlas_pois!poi_id (
           id,
-          area_name
+          name,
+          kind
         ),
         community:communities!community_id (
           id,
@@ -559,7 +563,6 @@ class CommunityFeedServiceClass {
         category: postData.category || 'general',
         scope_type: postData.scope_type || 'public',
         scope_id: postData.scope_id || null,
-        racing_area_id: postData.racing_area_id || null,
         poi_id: postData.poi_id || null,
         location_lat: postData.location_lat || null,
         location_lng: postData.location_lng || null,
@@ -1029,8 +1032,7 @@ class CommunityFeedServiceClass {
    * per-scope counts. Visibility is whatever RLS grants the caller.
    */
   async getPlaceKnowledge(anchor: KnowledgeAnchor, limit = 5): Promise<AreaKnowledgeSummary> {
-    const anchorColumn = anchor.racingAreaId ? 'racing_area_id' : 'poi_id';
-    const anchorId = anchor.racingAreaId ?? anchor.poiId;
+    const anchorId = anchor.poiId;
     const [postsRes, countsRes] = await Promise.all([
       supabase
         .from('venue_discussions')
@@ -1041,10 +1043,6 @@ class CommunityFeedServiceClass {
             full_name,
             avatar_url
           ),
-          racing_area:venue_racing_areas!racing_area_id (
-            id,
-            area_name
-          ),
           poi:atlas_pois!poi_id (
             id,
             name,
@@ -1052,14 +1050,14 @@ class CommunityFeedServiceClass {
           ),
           condition_tags:venue_post_condition_tags (*)
         `)
-        .eq(anchorColumn, anchorId)
+        .eq('poi_id', anchorId)
         .order('pinned', { ascending: false })
         .order('last_activity_at', { ascending: false })
         .limit(limit),
       supabase
         .from('venue_discussions')
         .select('scope_type')
-        .eq(anchorColumn, anchorId),
+        .eq('poi_id', anchorId),
     ]);
 
     if (postsRes.error) {
@@ -1103,9 +1101,10 @@ class CommunityFeedServiceClass {
           full_name,
           avatar_url
         ),
-        racing_area:venue_racing_areas!racing_area_id (
+        poi:atlas_pois!poi_id (
           id,
-          area_name
+          name,
+          kind
         ),
         poi:atlas_pois!poi_id (
           id,
@@ -1130,14 +1129,13 @@ class CommunityFeedServiceClass {
 
     const buckets = new Map<string | null, GroupKnowledgePlace>();
     for (const post of posts) {
-      const key = post.racing_area_id ?? post.poi_id ?? null;
+      const key = post.poi_id ?? null;
       let bucket = buckets.get(key);
       if (!bucket) {
         bucket = {
-          racingAreaId: post.racing_area_id ?? null,
           poiId: post.poi_id ?? null,
-          placeName: post.racing_area?.area_name ?? post.poi?.name ?? null,
-          placeKind: post.racing_area_id ? 'racing_area' : (post.poi?.kind ?? null),
+          placeName: post.poi?.name ?? null,
+          placeKind: post.poi?.kind ?? null,
           posts: [],
         };
         buckets.set(key, bucket);
@@ -1149,8 +1147,8 @@ class CommunityFeedServiceClass {
     }
     // Named places first, busiest first; venue-wide (no place) bucket last.
     return [...buckets.values()].sort((a, b) => {
-      const aPlaced = a.racingAreaId || a.poiId;
-      const bPlaced = b.racingAreaId || b.poiId;
+      const aPlaced = a.poiId;
+      const bPlaced = b.poiId;
       if (!aPlaced !== !bPlaced) return aPlaced ? -1 : 1;
       return b.posts.length - a.posts.length;
     });
@@ -1472,9 +1470,10 @@ class CommunityFeedServiceClass {
           full_name,
           avatar_url
         ),
-        racing_area:venue_racing_areas!racing_area_id (
+        poi:atlas_pois!poi_id (
           id,
-          area_name
+          name,
+          kind
         )
       `, { count: 'exact' })
       .eq('catalog_race_id', catalogRaceId)

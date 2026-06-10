@@ -7,19 +7,8 @@
 // NEW: Apple/Tufte-Inspired Venue Components
 // ===========================================================================
 
-// Hero map with racing areas as first-class citizens
-export { VenueHeroMap, VenueHeroMapCompact } from './VenueHeroMap';
-
-// Racing area components
-export { RacingAreaCard, RacingAreaCardList } from './RacingAreaCard';
-export { RacingAreaCircleOverlay, useRacingAreasAsGeoJSON } from './RacingAreaCircleOverlay';
-
 // Community area creation
-export { UnknownAreaPrompt, UnknownAreaBanner } from './UnknownAreaPrompt';
 export { CommunityAreaBadge } from './CommunityAreaBadge';
-
-// Preview card (for map-unavailable state)
-export { VenuePreviewCard } from './VenuePreviewCard';
 
 // Tufte-style sparklines
 export {
@@ -32,9 +21,6 @@ export {
 
 // Unified knowledge feed
 export { UnifiedKnowledgeFeed } from './UnifiedKnowledgeFeed';
-
-// Redesigned knowledge hub
-export { VenueKnowledgeHubRedesigned } from './VenueKnowledgeHubRedesigned';
 
 // ===========================================================================
 // EXISTING: Legacy Venue Components
@@ -74,9 +60,6 @@ export { IOSConditionsWidgets } from './IOSConditionsWidgets';
 
 // iOS-style map controls
 export { IOSMapControls, type MapLayers as IOSMapLayers } from './IOSMapControls';
-
-// Racing areas collection view
-export { IOSRacingAreasCollection } from './IOSRacingAreasCollection';
 
 // iOS upcoming races list
 export { IOSUpcomingRacesList } from './IOSUpcomingRacesList';

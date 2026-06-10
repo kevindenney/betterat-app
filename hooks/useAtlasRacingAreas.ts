@@ -2,14 +2,14 @@
  * useAtlasRacingAreas — fetches racing-area polygons from Supabase and
  * returns them as a MapLibre-ready FeatureCollection.
  *
- * Two row shapes coexist in venue_racing_areas:
- *   - Official seeds store a Point geometry + radius (no polygon yet).
- *   - User-defined community areas store center_lat/lng + radius_meters.
+ * Racing areas live in atlas_pois (kind='racing_area') since the fold:
+ * polygon GeoJSON in `geometry`, center in lat/lng, and the sailing
+ * specifics (venue_id, classes_used, radius_meters) in `metadata`.
  *
- * Both render the same way here: if a real Polygon/MultiPolygon is in
- * `geometry`, use it directly; otherwise synthesize a circle polygon
- * from center + radius. Atlas deliberately does not fall back to bundled
- * geography here: race-area content must come from persisted user/org rows.
+ * If a real Polygon is in `geometry`, use it directly; otherwise
+ * synthesize a circle polygon from lat/lng + metadata.radius_meters.
+ * Atlas deliberately does not fall back to bundled geography here:
+ * race-area content must come from persisted user/org rows.
  *
  * When `userClasses` is non-empty, each feature is tagged with a
  * `fillOpacity` property that the canvas can read via a data-driven
@@ -25,7 +25,7 @@ import type { Feature, FeatureCollection, Polygon } from 'geojson';
 
 import { supabase } from '@/services/supabase';
 
-export type RacingAreaSource = 'official' | 'community' | 'imported';
+export type RacingAreaSource = 'curated' | 'user_proposed' | 'osm' | 'institution';
 
 export interface RacingAreaProperties {
   id: string;
@@ -55,17 +55,18 @@ interface UseAtlasRacingAreasArgs {
 
 interface RawArea {
   id: string;
-  area_name: string;
-  venue_id: string | null;
+  name: string;
   geometry: unknown;
-  center_lat: number | null;
-  center_lng: number | null;
-  radius_meters: number | null;
+  lat: number | null;
+  lng: number | null;
   source: RacingAreaSource | null;
   verification_status: 'pending' | 'verified' | 'disputed' | null;
-  classes_used: string[] | null;
   created_by: string | null;
-  is_active: boolean | null;
+  metadata: {
+    venue_id?: string;
+    classes_used?: string[];
+    radius_meters?: number;
+  } | null;
 }
 
 const KM_PER_DEG_LAT = 111.32;
@@ -124,26 +125,23 @@ function toFeature(
   row: RawArea,
   userClassesLower: string[],
 ): Feature<Polygon, RacingAreaProperties> | null {
+  const radiusMeters = row.metadata?.radius_meters ?? null;
   let geometry: Polygon | null = null;
   if (isPolygonGeometry(row.geometry)) {
     geometry = row.geometry;
-  } else if (
-    row.center_lat != null &&
-    row.center_lng != null &&
-    row.radius_meters != null
-  ) {
-    geometry = circlePolygon(row.center_lng, row.center_lat, row.radius_meters);
+  } else if (row.lat != null && row.lng != null && radiusMeters != null) {
+    geometry = circlePolygon(row.lng, row.lat, radiusMeters);
   }
   if (!geometry) return null;
-  const classesUsed = row.classes_used ?? [];
+  const classesUsed = row.metadata?.classes_used ?? [];
   return {
     type: 'Feature',
     geometry,
     properties: {
       id: row.id,
-      name: row.area_name,
-      venueId: row.venue_id,
-      source: row.source ?? 'official',
+      name: row.name,
+      venueId: row.metadata?.venue_id ?? null,
+      source: row.source ?? 'curated',
       verificationStatus: row.verification_status ?? 'verified',
       classesUsed,
       createdBy: row.created_by,
@@ -173,14 +171,15 @@ export function useAtlasRacingAreas({
       // fine until we have a real spatial RPC. Require created_by so official
       // placeholder/seed geography does not leak into the Atlas lens.
       const { data, error } = await supabase
-        .from('venue_racing_areas')
+        .from('atlas_pois')
         .select(
-          'id, area_name, venue_id, geometry, center_lat, center_lng, radius_meters, source, verification_status, classes_used, created_by, is_active',
+          'id, name, geometry, lat, lng, source, verification_status, created_by, metadata',
         )
+        .eq('kind', 'racing_area')
         .eq('is_active', true)
         .not('created_by', 'is', null);
       if (error) {
-        console.warn('[atlas] venue_racing_areas fetch error', error);
+        console.warn('[atlas] racing-area pois fetch error', error);
         return [];
       }
       return (data ?? []) as RawArea[];

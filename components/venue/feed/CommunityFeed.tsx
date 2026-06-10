@@ -24,7 +24,7 @@ import type { FeedPost, FeedSortType, PostType, CurrentConditions } from '@/type
 
 interface CommunityFeedProps {
   venueId: string;
-  racingAreaId?: string | null;
+  poiId?: string | null;
   currentConditions?: CurrentConditions;
   onPostPress?: (post: FeedPost) => void;
   onCreatePost?: () => void;
@@ -42,7 +42,7 @@ interface CommunityFeedProps {
 
 export function CommunityFeed({
   venueId,
-  racingAreaId,
+  poiId,
   currentConditions,
   onPostPress,
   onCreatePost,
@@ -79,7 +79,7 @@ export function CommunityFeed({
     sort,
     postType: selectedPostType,
     tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
-    racingAreaId,
+    poiId,
     currentConditions,
   });
 

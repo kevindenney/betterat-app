@@ -96,11 +96,9 @@ export function mapPoiToPinKind(poi: AtlasPoi): AtlasPinSpec['kind'] | null {
       return 'poi-club';
     case 'racing_area':
       // Racing areas render as shaded polygons (with pressable labels) via
-      // the venue_racing_areas layer in useAtlasRacingAreas — the atlas_pois
-      // racing_area rows are the institution catalog and would draw a second,
-      // redundant blue-dot pin on top of each polygon (e.g. the RHKYC club
-      // catalog showing areas the viewer never added). Drop them so the map
-      // reflects the polygon layer only.
+      // useAtlasRacingAreas — drawing a point pin for the same atlas_pois
+      // row would stack a redundant blue dot on top of each polygon. Drop
+      // them so the map reflects the polygon layer only.
       return null;
     case 'hospital':
       return 'poi-hospital';

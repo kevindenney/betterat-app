@@ -1543,9 +1543,9 @@ function eyebrowForPin(pin: AtlasPinSpec): string {
 /**
  * Resolve a pin to an atlas_pois id it can anchor local knowledge on.
  * Knowledge attaches to PLACES — person-kind POIs (preceptor, mentee,
- * home workshop) never anchor venue_discussions. Racing-area mirrors are
- * excluded too: their knowledge anchors on venue_racing_areas, and a
- * second poi-keyed thread would split the same water in two.
+ * home workshop) never anchor venue_discussions. Racing-area point pins are
+ * excluded too: their knowledge anchors through the polygon label tap, and a
+ * second pin-keyed thread would split the same water in two.
  */
 const KNOWLEDGE_POI_EXCLUDED_KINDS = new Set<AtlasPinSpec['kind']>([
   'poi-preceptor',
@@ -2442,7 +2442,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Tap-to-anchor flow: when the user picks a step without a place,
   // we enter "tap the map to anchor STEP here" mode. Reuses the same
   // banner/save-bar plumbing as racing-area reposition, just writing
-  // to timeline_steps.location_lat/lng instead of venue_racing_areas.
+  // to timeline_steps.location_lat/lng instead of the racing-area POI.
   const [anchorStepTarget, setAnchorStepTarget] = useState<{
     stepId: string;
     title: string;
@@ -3583,7 +3583,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           title={knowledgeArea.name}
           expandedContent={
             <PlaceKnowledgeSection
-              anchor={{ racingAreaId: knowledgeArea.id }}
+              anchor={{ poiId: knowledgeArea.id }}
               interestSlug="sail-racing"
               conditions={areaLiveConditions}
               onEditArea={
@@ -3615,7 +3615,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 pathname: '/venue/post/create',
                 params: {
                   ...(a.venueId ? { venueId: a.venueId } : {}),
-                  racingAreaId: a.id,
+                  areaPoiId: a.id,
                 },
               } as never);
             },

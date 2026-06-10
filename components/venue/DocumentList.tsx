@@ -21,7 +21,6 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface DocumentListProps {
   venueId: string;
-  racingAreaId?: string | null;
   raceRouteId?: string | null;
   onSelectDocument: (document: VenueKnowledgeDocument) => void;
   onUploadDocument: () => void;
@@ -29,7 +28,6 @@ interface DocumentListProps {
 
 export function DocumentList({
   venueId,
-  racingAreaId,
   raceRouteId,
   onSelectDocument,
   onUploadDocument,
@@ -37,7 +35,6 @@ export function DocumentList({
   const [sortBy, setSortBy] = useState<'recent' | 'popular'>('recent');
 
   const { data, isLoading, isRefetching, refetch } = useVenueDocuments(venueId, {
-    racingAreaId,
     raceRouteId,
     sortBy,
   });

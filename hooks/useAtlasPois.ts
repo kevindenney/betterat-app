@@ -51,6 +51,7 @@ export function useAtlasPois(): AtlasPoiData {
         .select(
           'id, name, lat, lng, kind, interest_slug, source, is_healthcare_site, claimed_by_org_id, metadata, organizations(name, slug, interest_slug)',
         )
+        .eq('is_active', true)
         .order('claimed_by_org_id', { ascending: true })
         .order('name', { ascending: true });
       if (error) {

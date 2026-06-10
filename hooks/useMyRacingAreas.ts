@@ -1,11 +1,12 @@
 /**
  * useMyRacingAreas — the racing areas a user can pick when flagging a step
- * a race. Unions two sources so the picker matches what the Atlas tab shows:
+ * a race. Racing areas are atlas_pois rows (kind='racing_area'). Unions two
+ * sources so the picker matches what the Atlas tab shows:
  *
  *   1. Areas the user created on Atlas (created_by = me) — surfaced
  *      regardless of venue, since a hand-drawn area may have no venue_id.
- *   2. The step venue's mapped areas (venue_id = venueId) — the official /
- *      community areas already pinned for that water.
+ *   2. The step venue's mapped areas (metadata venue_id = venueId) — the
+ *      official / community areas already pinned for that water.
  *
  * Only active rows. User-created areas are always active; venue seeds can be
  * inactive (see project_venue_racing_areas_inactive_seed), so the venue side
@@ -30,15 +31,15 @@ export interface MyRacingArea {
 
 interface RawRow {
   id: string;
-  area_name: string;
+  name: string;
   geometry: RacingAreaGeometry | null;
-  center_lat: number | null;
-  center_lng: number | null;
-  typical_courses: string[] | null;
+  lat: number | null;
+  lng: number | null;
   created_by: string | null;
+  metadata: { typical_courses?: string[] } | null;
 }
 
-const SELECT = 'id, area_name, geometry, center_lat, center_lng, typical_courses, created_by';
+const SELECT = 'id, name, geometry, lat, lng, created_by, metadata';
 
 export function useMyRacingAreas(venueId?: string | null) {
   const { user } = useAuth();
@@ -57,8 +58,9 @@ export function useMyRacingAreas(venueId?: string | null) {
       if (userId) {
         reqs.push(
           Promise.resolve(supabase
-            .from('venue_racing_areas')
+            .from('atlas_pois')
             .select(SELECT)
+            .eq('kind', 'racing_area')
             .eq('created_by', userId)
             .then(({ data, error }) => {
               if (error) {
@@ -73,9 +75,10 @@ export function useMyRacingAreas(venueId?: string | null) {
       if (venueId) {
         reqs.push(
           Promise.resolve(supabase
-            .from('venue_racing_areas')
+            .from('atlas_pois')
             .select(SELECT)
-            .eq('venue_id', venueId)
+            .eq('kind', 'racing_area')
+            .eq('metadata->>venue_id', venueId)
             .eq('is_active', true)
             .then(({ data, error }) => {
               if (error) {
@@ -99,11 +102,11 @@ export function useMyRacingAreas(venueId?: string | null) {
           }
           byId.set(row.id, {
             id: row.id,
-            areaName: row.area_name,
+            areaName: row.name,
             geometry: row.geometry ?? undefined,
-            centerLat: row.center_lat,
-            centerLng: row.center_lng,
-            typicalCourses: row.typical_courses ?? undefined,
+            centerLat: row.lat,
+            centerLng: row.lng,
+            typicalCourses: row.metadata?.typical_courses ?? undefined,
             ownedByMe,
           });
         }

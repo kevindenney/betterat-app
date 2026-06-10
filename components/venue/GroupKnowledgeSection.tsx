@@ -51,7 +51,7 @@ export function GroupKnowledgeSection({
       <Text style={styles.heading}>{getPlaceKnowledgeLabels(interestSlug).heading}</Text>
       {groups.map((group) => (
         <View
-          key={group.racingAreaId ?? group.poiId ?? 'venue-wide'}
+          key={group.poiId ?? 'venue-wide'}
           style={styles.areaBlock}
         >
           <View style={styles.areaHeader}>

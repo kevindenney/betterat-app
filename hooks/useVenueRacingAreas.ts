@@ -1,7 +1,9 @@
 /**
  * useVenueRacingAreas Hook
- * Fetches racing area geometry from venue_racing_areas table
- * Also fetches race routes for distance/offshore races
+ * Fetches racing area geometry from atlas_pois (kind='racing_area' — the
+ * single place primitive since the fold). The venue link and the sailing
+ * specifics (area_type, classes_used, styling) live in `metadata`.
+ * Also fetches race routes for distance/offshore races.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -105,35 +107,39 @@ export function useVenueRacingAreas(venueId?: string): UseVenueRacingAreasResult
 
     try {
       const { data, error: queryError } = await supabase
-        .from('venue_racing_areas')
-        .select('*')
-        .eq('venue_id', venueId)
+        .from('atlas_pois')
+        .select('id, name, geometry, metadata')
+        .eq('kind', 'racing_area')
         .eq('is_active', true)
-        .order('area_type', { ascending: true });
+        .eq('metadata->>venue_id', venueId)
+        .order('name', { ascending: true });
 
       if (queryError) {
         throw new Error(queryError.message);
       }
 
-      const transformedAreas: VenueRacingArea[] = (data || []).map((row: any) => ({
-        id: row.id,
-        venueId: row.venue_id,
-        areaName: row.area_name,
-        areaType: row.area_type,
-        geometry: row.geometry,
-        strokeColor: row.stroke_color || '#0284c7',
-        strokeWidth: row.stroke_width || 2,
-        fillColor: row.fill_color || '#0284c780',
-        fillOpacity: row.fill_opacity || 0.3,
-        description: row.description,
-        typicalCourses: row.typical_courses,
-        classesUsed: row.classes_used,
-        markName: row.mark_name,
-        markType: row.mark_type,
-        rounding: row.rounding,
-        restrictionReason: row.restriction_reason,
-        penaltyForViolation: row.penalty_for_violation,
-      }));
+      const transformedAreas: VenueRacingArea[] = (data || []).map((row: any) => {
+        const meta = (row.metadata ?? {}) as Record<string, any>;
+        return {
+          id: row.id,
+          venueId: meta.venue_id,
+          areaName: row.name,
+          areaType: meta.area_type ?? 'racing_area',
+          geometry: row.geometry,
+          strokeColor: meta.stroke_color || '#0284c7',
+          strokeWidth: meta.stroke_width || 2,
+          fillColor: meta.fill_color || '#0284c780',
+          fillOpacity: meta.fill_opacity || 0.3,
+          description: meta.description,
+          typicalCourses: meta.typical_courses,
+          classesUsed: meta.classes_used,
+          markName: meta.mark_name,
+          markType: meta.mark_type,
+          rounding: meta.rounding,
+          restrictionReason: meta.restriction_reason,
+          penaltyForViolation: meta.penalty_for_violation,
+        };
+      });
 
       setAreas(transformedAreas);
     } catch (err: any) {

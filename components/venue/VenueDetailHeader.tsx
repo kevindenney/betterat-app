@@ -15,7 +15,7 @@ import {
   IOS_SPACING,
   IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
-import { CommunityVenueCreationService, type VenueRacingArea } from '@/services/venue/CommunityVenueCreationService';
+import { useVenueRacingAreas } from '@/hooks/useVenueRacingAreas';
 import { supabase } from '@/services/supabase';
 import { triggerHaptic } from '@/lib/haptics';
 
@@ -38,7 +38,7 @@ export function VenueDetailHeader({
   onAddArea,
 }: VenueDetailHeaderProps) {
   const [clubs, setClubs] = useState<YachtClub[]>([]);
-  const [racingAreas, setRacingAreas] = useState<VenueRacingArea[]>([]);
+  const { racingAreas } = useVenueRacingAreas(venueId);
 
   useEffect(() => {
     const fetchClubs = async () => {
@@ -53,18 +53,7 @@ export function VenueDetailHeader({
       }
     };
 
-    const fetchAreas = async () => {
-      try {
-        const { verified, pending } =
-          await CommunityVenueCreationService.getRacingAreasForMap(venueId);
-        setRacingAreas([...verified, ...pending]);
-      } catch {
-        // silent
-      }
-    };
-
     fetchClubs();
-    fetchAreas();
   }, [venueId]);
 
   const handleAreaPress = (areaId: string) => {
@@ -120,7 +109,7 @@ export function VenueDetailHeader({
                       isSelected && styles.pillTextSelected,
                     ]}
                   >
-                    {area.area_name}
+                    {area.areaName}
                   </Text>
                 </Pressable>
               );

@@ -89,16 +89,29 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea
       // (see the Atlas content-provenance note). For self-authored
       // areas, the viewer should always see + manage their own work.
       const { data, error } = await supabase
-        .from('venue_racing_areas')
-        .select('id, area_name, source, classes_used, center_lat, center_lng, radius_meters, created_by')
+        .from('atlas_pois')
+        .select('id, name, source, lat, lng, created_by, metadata')
+        .eq('kind', 'racing_area')
         .eq('is_active', true)
         .eq('created_by', user.id)
-        .order('area_name');
+        .order('name');
       if (error) {
         console.warn('[atlas] manage areas fetch error', error);
         return [];
       }
-      return (data ?? []) as AreaRow[];
+      return (data ?? []).map((row: any) => {
+        const meta = (row.metadata ?? {}) as Record<string, any>;
+        return {
+          id: row.id,
+          area_name: row.name,
+          source: row.source,
+          classes_used: meta.classes_used ?? null,
+          center_lat: row.lat,
+          center_lng: row.lng,
+          radius_meters: meta.radius_meters ?? null,
+          created_by: row.created_by,
+        } as AreaRow;
+      });
     },
   });
 

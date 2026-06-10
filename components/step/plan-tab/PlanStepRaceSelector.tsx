@@ -130,7 +130,7 @@ export function PlanStepRaceSelector({
               discussion; this is about the water. */}
           {liveMap && racePlan?.area_id ? (
             <PlaceKnowledgeSection
-              anchor={{ racingAreaId: racePlan.area_id }}
+              anchor={{ poiId: racePlan.area_id }}
               conditions={null}
               interestSlug="sail-racing"
               heading="ABOUT THIS AREA"

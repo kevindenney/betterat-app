@@ -5,8 +5,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   VenueDocumentService,
-  VenueKnowledgeDocument,
-  VenueKnowledgeInsight,
   UploadDocumentParams,
   CreateInsightParams,
   InsightCategory,
@@ -18,7 +16,6 @@ export const documentKeys = {
   lists: () => [...documentKeys.all, 'list'] as const,
   list: (venueId: string, filters?: {
     sortBy?: string;
-    racingAreaId?: string | null;
     raceRouteId?: string | null;
   }) => [...documentKeys.lists(), venueId, filters] as const,
   details: () => [...documentKeys.all, 'detail'] as const,
@@ -36,7 +33,6 @@ export const documentKeys = {
 export function useVenueDocuments(
   venueId: string,
   options: {
-    racingAreaId?: string | null;
     raceRouteId?: string | null;
     sortBy?: 'recent' | 'popular';
     limit?: number;
@@ -44,7 +40,6 @@ export function useVenueDocuments(
   } = {}
 ) {
   const {
-    racingAreaId,
     raceRouteId,
     sortBy = 'recent',
     limit = 20,
@@ -52,10 +47,9 @@ export function useVenueDocuments(
   } = options;
 
   return useQuery({
-    queryKey: documentKeys.list(venueId, { sortBy, racingAreaId, raceRouteId }),
+    queryKey: documentKeys.list(venueId, { sortBy, raceRouteId }),
     queryFn: async () => {
       const result = await VenueDocumentService.getDocuments(venueId, {
-        racingAreaId,
         raceRouteId,
         sortBy,
         limit,
@@ -121,7 +115,7 @@ export function useUploadDocument() {
     mutationFn: async (params: UploadDocumentParams) => {
       return VenueDocumentService.uploadDocument(params);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: documentKeys.lists(),
       });
@@ -138,14 +132,13 @@ export function useDeleteDocument() {
   return useMutation({
     mutationFn: async ({
       documentId,
-      venueId,
     }: {
       documentId: string;
       venueId: string;
     }) => {
       return VenueDocumentService.deleteDocument(documentId);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: documentKeys.lists(),
       });
@@ -163,7 +156,7 @@ export function useCreateInsight() {
     mutationFn: async (params: CreateInsightParams) => {
       return VenueDocumentService.createInsight(params);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: documentKeys.insights(),
       });
@@ -181,7 +174,6 @@ export function useVerifyInsight() {
     mutationFn: async ({
       insightId,
       verified,
-      venueId,
     }: {
       insightId: string;
       verified: boolean;
@@ -189,7 +181,7 @@ export function useVerifyInsight() {
     }) => {
       return VenueDocumentService.verifyInsight(insightId, verified);
     },
-    onSuccess: (data, error, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: documentKeys.insightsList(variables.venueId, {}),
       });

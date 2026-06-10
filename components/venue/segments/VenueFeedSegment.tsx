@@ -15,14 +15,14 @@ import type { FeedPost, FeedSortType, PostType } from '@/types/community-feed';
 
 interface VenueFeedSegmentProps {
   venueId: string;
-  racingAreaId?: string | null;
+  poiId?: string | null;
   onPostPress: (post: FeedPost) => void;
   onCreatePost: () => void;
 }
 
 export function VenueFeedSegment({
   venueId,
-  racingAreaId,
+  poiId,
   onPostPress,
   onCreatePost,
 }: VenueFeedSegmentProps) {
@@ -59,7 +59,7 @@ export function VenueFeedSegment({
     <View style={styles.container}>
       <CommunityFeed
         venueId={venueId}
-        racingAreaId={racingAreaId}
+        poiId={poiId}
         onPostPress={onPostPress}
         onCreatePost={onCreatePost}
         sort={sort}
