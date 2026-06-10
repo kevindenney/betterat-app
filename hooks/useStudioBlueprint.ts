@@ -128,6 +128,7 @@ interface BlueprintRow {
   org_id: string;
   author_user_id: string | null;
   title: string;
+  subtitle: string | null;
   slug: string;
   category: string;
   version: string;
@@ -181,7 +182,7 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
       const { data: bp, error } = await supabase
         .from('blueprints')
         .select(
-          'id, org_id, author_user_id, title, slug, category, version, status, description, access_mode, price_per_seat_cents, last_edited_at, published_at',
+          'id, org_id, author_user_id, title, subtitle, slug, category, version, status, description, access_mode, price_per_seat_cents, last_edited_at, published_at',
         )
         .eq('id', id)
         .maybeSingle();
@@ -286,7 +287,7 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
     id: id,
     isNew: false,
     title: bp?.title ?? 'Untitled blueprint',
-    subtitle: '',
+    subtitle: bp?.subtitle ?? '',
     description: bp?.description ?? '',
     status: statusFromRow(bp?.status ?? 'draft'),
     version: bp?.version ?? 'v0.1',

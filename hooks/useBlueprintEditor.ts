@@ -24,6 +24,7 @@ function slugify(input: string): string {
 
 export interface CreateBlueprintInput {
   title: string;
+  subtitle?: string;
   description?: string;
   accessMode: BlueprintAccessMode;
   orgId?: string | null;
@@ -41,6 +42,7 @@ export function useCreateBlueprint() {
         title,
         slug: slugify(title),
         category: 'procedural',
+        subtitle: input.subtitle?.trim() || null,
         description: input.description?.trim() || null,
         access_mode: input.accessMode,
         author_user_id: input.authorUserId,
@@ -68,6 +70,7 @@ export function useCreateBlueprint() {
 
 export interface UpdateBlueprintMetaInput {
   title?: string;
+  subtitle?: string;
   description?: string;
   accessMode?: BlueprintAccessMode;
   orgId?: string | null;
@@ -80,6 +83,7 @@ export function useUpdateBlueprintMeta(blueprintId: string) {
     mutationFn: async (patch: UpdateBlueprintMetaInput) => {
       const payload: Record<string, unknown> = {};
       if (patch.title !== undefined) payload.title = patch.title.trim() || 'Untitled blueprint';
+      if (patch.subtitle !== undefined) payload.subtitle = patch.subtitle.trim() || null;
       if (patch.description !== undefined) payload.description = patch.description.trim() || null;
       if (patch.accessMode !== undefined) {
         payload.access_mode = patch.accessMode;
@@ -87,8 +91,17 @@ export function useUpdateBlueprintMeta(blueprintId: string) {
       }
       if (patch.pricePerSeatCents !== undefined) payload.price_per_seat_cents = patch.pricePerSeatCents;
       if (Object.keys(payload).length === 0) return;
-      const { error } = await supabase.from('blueprints').update(payload).eq('id', blueprintId);
+      // .select() so an RLS-filtered update (e.g. a non-author editing) is a
+      // visible error instead of a silent 0-row write behind a "Saved" alert.
+      const { data, error } = await supabase
+        .from('blueprints')
+        .update(payload)
+        .eq('id', blueprintId)
+        .select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('You do not have permission to edit this blueprint.');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['studio-blueprint', blueprintId] });

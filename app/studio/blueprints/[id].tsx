@@ -76,7 +76,7 @@ export default function BlueprintEditorPage() {
   const { user, userProfile } = useAuth();
   const { currentInterest } = useInterest();
   const menu = useProfileMenuData();
-  const { blueprint, isInstitutional } = useStudioBlueprint(blueprintId);
+  const { blueprint, isInstitutional, loading: blueprintLoading } = useStudioBlueprint(blueprintId);
   const isNew = blueprint.isNew;
 
   const createBlueprint = useCreateBlueprint();
@@ -96,23 +96,21 @@ export default function BlueprintEditorPage() {
   );
   const [coverGradientIdx, setCoverGradientIdx] = useState(0);
 
-  // Resync local form state when the loaded blueprint changes (async).
+  // Seed local form state once per loaded record (on id change or first
+  // load). Resyncing on every refetched field value would wipe in-progress
+  // typing whenever a background refetch lands.
+  const formSyncKey = React.useRef<string | null>(null);
   React.useEffect(() => {
+    if (blueprintLoading) return;
+    if (formSyncKey.current === blueprint.id) return;
+    formSyncKey.current = blueprint.id;
     setTitle(blueprint.title);
     setSubtitle(blueprint.subtitle);
     setDescription(blueprint.description);
     setDuration(blueprint.durationLabel);
     setAccessMode(blueprint.accessMode);
     setPriceText(blueprint.pricePerMonth != null ? String(blueprint.pricePerMonth) : '');
-  }, [
-    blueprint.id,
-    blueprint.title,
-    blueprint.subtitle,
-    blueprint.description,
-    blueprint.durationLabel,
-    blueprint.accessMode,
-    blueprint.pricePerMonth,
-  ]);
+  }, [blueprintLoading, blueprint]);
 
   function parsePriceCents(): number | null {
     const parsed = parseFloat(priceText);
@@ -127,6 +125,7 @@ export default function BlueprintEditorPage() {
     try {
       const { id: newId } = await createBlueprint.mutateAsync({
         title,
+        subtitle,
         description,
         accessMode,
         orgId: blueprint.orgId,
@@ -144,6 +143,7 @@ export default function BlueprintEditorPage() {
     try {
       await updateMeta.mutateAsync({
         title,
+        subtitle,
         description,
         accessMode,
         orgId: blueprint.orgId,
@@ -961,6 +961,10 @@ const styles = StyleSheet.create({
 const cover = StyleSheet.create({
   body: {
     flexDirection: 'row',
+    // Next to the fixed 160pt preview, a narrow column (iPad portrait)
+    // crushes the actions to ~100pt and wraps button labels one char per
+    // line — let the actions block drop below the preview instead.
+    flexWrap: 'wrap',
     gap: 16,
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -1001,7 +1005,7 @@ const cover = StyleSheet.create({
     borderRadius: 4,
   },
   badgeText: { fontSize: 9, fontWeight: '700', color: '#FFFFFF' },
-  actions: { flex: 1, gap: 8 },
+  actions: { flexGrow: 1, flexBasis: 180, gap: 8 },
   swatchRow: { flexDirection: 'row', gap: 4, marginTop: 4 },
   swatch: {
     width: 22,
