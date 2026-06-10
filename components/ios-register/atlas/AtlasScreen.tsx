@@ -2335,10 +2335,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       if (!stepId) return 'Pick step';
       const index = pickerSteps.findIndex((step) => step.step_id === stepId);
       if (index < 0) return 'Pick step';
-      const step = pickerSteps[index];
-      const ordinal = `Step ${index + 1} of ${pickerSteps.length}`;
-      const title = step?.title?.trim();
-      return title ? `${title} · ${ordinal}` : ordinal;
+      // Short ordinal only — the step title already lives in the sheet
+      // header, and a title-bearing button truncates unreadably.
+      return `Step ${index + 1} of ${pickerSteps.length}`;
     },
     [pickerSteps],
   );
@@ -3054,7 +3053,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         setLayersOpen(false);
         setSelectedPin(null);
         setCandidate(coords);
+        return;
       }
+      // Background tap dismisses the open pin sheet (Apple-Maps callout
+      // behavior) — keeps one popup at a time and lets the wind/tide
+      // scrubber come back. Pin taps don't reach here: marker presses are
+      // handled by the marker itself, not the map surface.
+      setSelectedPin(null);
     },
     [
       commitMode,
@@ -3447,7 +3452,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             collapsed={cockpitCollapsed}
             onToggleCollapse={toggleCockpitCollapsed}
           />
-        ) : (showWind || showTide) ? (
+        ) : (showWind || showTide) && !selectedPin ? (
+          // One popup at a time — the scrubber yields while a pin sheet
+          // (race/step/area) is open so cards never stack.
           <WindTideScrubber
             windows={scrubWindows.map((w) => w.label)}
             value={scrubIndex}
@@ -3843,16 +3850,16 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               />
             }
             primary={{
-              label: selectedStepActionLabel,
-              icon: 'chevron-down',
-              onPress: openSavedSheetFromCallout,
-            }}
-            secondary={{
               label: 'Open step',
               icon: 'open-outline',
               onPress: () => {
                 if (selectedPin.stepId) handlers.onStepPress?.(selectedPin.stepId);
               },
+            }}
+            secondary={{
+              label: selectedStepActionLabel,
+              icon: 'chevron-down',
+              onPress: openSavedSheetFromCallout,
             }}
             showSecondaryInMid
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
@@ -3878,11 +3885,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               ) : null
             }
             primary={{
-              label: selectedStepActionLabel,
-              icon: 'chevron-down',
-              onPress: openSavedSheetFromCallout,
-            }}
-            secondary={{
               label: 'Open step',
               icon: 'open-outline',
               onPress: () => {
@@ -3895,6 +3897,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   'This pin is a step location, but it is missing a step id. Refresh Atlas and try again.',
                 );
               },
+            }}
+            secondary={{
+              label: selectedStepActionLabel,
+              icon: 'chevron-down',
+              onPress: openSavedSheetFromCallout,
             }}
             showSecondaryInMid
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}

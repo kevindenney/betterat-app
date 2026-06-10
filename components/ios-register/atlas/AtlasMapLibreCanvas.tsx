@@ -867,6 +867,11 @@ export function AtlasMapLibreCanvas({
   const { vocab } = useVocabulary();
   const clusterUnit = vocab('Step');
 
+  // Marker z-order follows render order, so badge-carrying hero pins
+  // (NEXT / DONE) render last — otherwise a neighboring step dot draws
+  // over the badge text and "NEXT" reads as "EXT".
+  const orderedPins = useMemo(() => sortHeroPinsLast(pins), [pins]);
+
   // Wrap the supplied preview polygon (circle, rectangle, …) in a
   // FeatureCollection so MapLibre can paint it via the same source
   // pattern as the persisted areas. The sheet owns the shape math.
@@ -1384,7 +1389,7 @@ export function AtlasMapLibreCanvas({
           </MLGeoJSONSource>
         ) : null}
 
-        {pins.map((pin) => {
+        {orderedPins.map((pin) => {
           const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
           const inner = (
             <LabeledPin
@@ -1400,7 +1405,15 @@ export function AtlasMapLibreCanvas({
           );
           return (
             <MLMarker
-              key={pin.id}
+              // iOS annotation z-order is add order, so hero badge markers
+              // remount (fresh key) whenever the pin set changes — markers
+              // added later (e.g. toggling wind on) would otherwise mount
+              // above the badge and clip "NEXT" to "EXT".
+              key={
+                HERO_BADGE_PIN_KINDS.has(pin.kind)
+                  ? `${pin.id}:${pins.length}`
+                  : pin.id
+              }
               id={pin.id}
               lngLat={[pin.lng, pin.lat]}
               onPress={
@@ -1869,7 +1882,7 @@ function WebAtlasMapLibreCanvas({
     if (!map || !Marker || !isLoaded) return;
 
     pinMarkersRef.current.forEach((marker) => marker.remove());
-    pinMarkersRef.current = pins.map((pin) => {
+    pinMarkersRef.current = sortHeroPinsLast(pins).map((pin) => {
       const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
       const element = createWebPinElement({
         pin,
@@ -2538,6 +2551,18 @@ function approxDistanceKm(a: AtlasPinSpec, b: AtlasPinSpec): number {
  * Peer pins, candidate, race-marks never have labels in this grammar (the
  * label slot is reserved for institution POI names).
  */
+// Badge-carrying hero pins must render after (on top of) every other pin
+// marker — z-order is render order, and a neighboring step dot drawn later
+// covers the badge's first glyph ("NEXT" reads as "EXT").
+const HERO_BADGE_PIN_KINDS = new Set<string>(['my-step-next', 'my-step-done-just']);
+
+function sortHeroPinsLast(pins: AtlasPinSpec[]): AtlasPinSpec[] {
+  return [...pins].sort(
+    (a, b) =>
+      Number(HERO_BADGE_PIN_KINDS.has(a.kind)) - Number(HERO_BADGE_PIN_KINDS.has(b.kind)),
+  );
+}
+
 function shouldShowLabel(pin: AtlasPinSpec, allPins: AtlasPinSpec[]): boolean {
   if (!pin.label) return false;
   if (pin.kind === 'race-mark') return true;
@@ -3901,6 +3926,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    // Same snapshot-clip guard as nextChip: deterministic width so the
+    // one-shot annotation bitmap never truncates "NEXT".
+    width: 46,
+    alignItems: 'center',
   },
   myStepNextBadgeText: {
     fontSize: 9,
@@ -3985,6 +4014,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 999,
+    // Fixed width so the iOS annotation bitmap snapshot (taken on first
+    // layout, never refreshed) can't capture a mid-measure narrower frame
+    // and clip the first glyph ("NEXT" → "EXT").
+    width: 48,
+    alignItems: 'center',
     shadowColor: '#F0A93A',
     shadowOpacity: 0.45,
     shadowRadius: 3,
