@@ -1147,6 +1147,15 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
     clearLastTab();
     clearLastViewState();
 
+    // Drop cached interest selections too — the signup screen pre-selects
+    // from these, so leftovers from this account would show a stale interest
+    // chip (and skip the picker) for the next person who signs up.
+    // Keys: InterestProvider.ASYNC_STORAGE_KEY + the onboarding dual-write
+    // (string literals to avoid importing InterestProvider here).
+    AsyncStorage.multiRemove(['betterat_preferred_interest', 'onboarding_interest_slug']).catch(
+      () => {},
+    );
+
     authDebugLog('🚪 [AUTH] ===== SIGNOUT PROCESS STARTING =====')
     authDebugLog('🚪 [AUTH] Current state before signOut:', {
       signedIn,
