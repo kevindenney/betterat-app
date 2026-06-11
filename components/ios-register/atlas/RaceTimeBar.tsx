@@ -35,6 +35,7 @@ export function RaceTimeBar({
   value,
   onChange,
   wind,
+  windTrend,
   tide,
   flipNote,
   strategy,
@@ -48,6 +49,8 @@ export function RaceTimeBar({
   onChange: (value: number) => void;
   /** `"deg|knots"` condition lines for the scrubbed hour. */
   wind: string | null;
+  /** "building" / "easing" vs later in the window. */
+  windTrend?: string | null;
   tide: string | null;
   flipNote: string | null;
   strategy: CourseStrategy | null;
@@ -90,7 +93,11 @@ export function RaceTimeBar({
         <>
           <View style={styles.readoutRow}>
             <Text style={styles.readout} numberOfLines={1}>
-              {[windText, tideText].filter(Boolean).join(' · ') || '—'}
+              {!windText && !tideText ? '—' : null}
+              {windText}
+              {windText && windTrend ? <Text style={styles.trend}> {windTrend}</Text> : null}
+              {windText && tideText ? ' · ' : null}
+              {tideText}
             </Text>
             {flipNote ? (
               <View style={styles.flipPill}>
@@ -214,6 +221,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: IOS_REGISTER.label,
+  },
+  trend: {
+    fontWeight: '500',
+    color: IOS_REGISTER.labelSecondary,
   },
   flipPill: {
     flexDirection: 'row',

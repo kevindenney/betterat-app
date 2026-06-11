@@ -164,8 +164,10 @@ export function PlaceKnowledgeSection({
     );
   };
 
+  // "Matches now: 0" is noise — the pill only earns its place when at
+  // least one note actually matches today's conditions.
   const matchPill =
-    matchedCount != null && conditions ? (
+    matchedCount != null && matchedCount > 0 && conditions ? (
       <View style={styles.matchRow}>
         <Ionicons name="flash" size={12} color="#B45309" />
         <Text style={styles.matchText}>

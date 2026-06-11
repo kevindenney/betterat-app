@@ -2807,18 +2807,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         : null,
     };
   }, [knowledgeArea, next, nextRaceWindow]);
-  // CTA brief (mock parity) — the one-line "what to set up for" under the
-  // Plan-prep label: rig target from the race-start wind, plus the flip.
-  const venuePrepSublabel = useMemo(() => {
-    if (!knowledgeAreaRaceTime) return null;
-    const parts: string[] = [];
-    const w = knowledgeAreaRaceTime.point.wind;
-    if (w) parts.push(`rig for ${Math.round(w.knots)} kn ${compassFromDegrees(w.degrees)}`);
-    if (knowledgeAreaRaceTime.flipLabel) {
-      parts.push(knowledgeAreaRaceTime.flipLabel.toLowerCase());
-    }
-    return parts.length > 0 ? parts.join(' · ') : null;
-  }, [knowledgeAreaRaceTime]);
   // Race-week window for the fleet "N of M boats in" count — only when the
   // tapped area hosts the viewer's next race (that's the date we know).
   const knowledgeAreaRaceWeek = useMemo(() => {
@@ -2839,6 +2827,21 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     areaPoiId: knowledgeArea?.id ?? null,
     eventWindow: knowledgeAreaRaceWeek,
   });
+  // CTA brief (mock parity) — the one-line "what to set up for" under the
+  // Plan-prep label: rig target from the race-start wind, a drill partner
+  // (the fleetmate who knows this water best), plus the flip.
+  const venuePrepSublabel = useMemo(() => {
+    if (!knowledgeAreaRaceTime) return null;
+    const parts: string[] = [];
+    const w = knowledgeAreaRaceTime.point.wind;
+    if (w) parts.push(`rig for ${Math.round(w.knots)} kn ${compassFromDegrees(w.degrees)}`);
+    const top = knowledgeAreaFleetStats?.fleetmates[0];
+    if (top) parts.push(`drill with ${top.displayName.split(' ')[0]}`);
+    if (knowledgeAreaRaceTime.flipLabel) {
+      parts.push(knowledgeAreaRaceTime.flipLabel.toLowerCase());
+    }
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }, [knowledgeAreaRaceTime, knowledgeAreaFleetStats]);
   // Venue-expert pin — the fleetmate with the most completed races at the
   // selected area, marked near (not on) the centroid so it doesn't sit
   // under the area's label pill.
@@ -3028,6 +3031,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, [nextRaceWindow.status, next?.starts_at]);
   const scrubWindow =
     scrubWindows[Math.min(scrubIndex, scrubWindows.length - 1)] ?? scrubWindows[0];
+  // Mock parity — "12 kn SW building": trend word from the scrubbed hour's
+  // wind speed vs two hours later in the same window.
+  const scrubWindTrend = useMemo(() => {
+    const knotsAt = (i: number) => Number((scrubWindows[i]?.wind ?? '').split('|')[1]);
+    const here = knotsAt(Math.min(scrubIndex, scrubWindows.length - 1));
+    const later = knotsAt(Math.min(scrubIndex + 2, scrubWindows.length - 1));
+    if (!Number.isFinite(here) || !Number.isFinite(later)) return null;
+    if (later - here >= 2) return 'building';
+    if (here - later >= 2) return 'easing';
+    return null;
+  }, [scrubWindows, scrubIndex]);
   // Mock parity — race time is TOP chrome, not a bottom card. The bar owns
   // the scrubber whenever the NEXT race's forecast window is open; an open
   // race-step sheet runs its own window, and commit mode needs clear chrome.
@@ -3584,6 +3598,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               value={scrubIndex}
               onChange={setScrubIndex}
               wind={scrubWindow.wind}
+              windTrend={scrubWindTrend}
               tide={scrubWindow.tide}
               flipNote={
                 scrubTideFlip
