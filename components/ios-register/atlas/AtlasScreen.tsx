@@ -63,6 +63,8 @@ import { PlaceKnowledgeSection } from '@/components/venue/PlaceKnowledgeSection'
 import type { CurrentConditions } from '@/types/community-feed';
 import { CreateRaceCourseSheet } from './CreateRaceCourseSheet';
 import { CourseStrategyCard, strategyHeadline } from './CourseStrategyCard';
+import { RaceTimeBar } from './RaceTimeBar';
+import { compassFromDegrees } from './VenueMasterySheet';
 import { deriveCourseStrategy, type CourseStrategy } from '@/lib/courseStrategy';
 import { useShoreSide } from '@/hooks/useShoreSide';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
@@ -1873,12 +1875,22 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const { groups: userGroups } = useUserAffinityGroups('sail-racing');
   // The fleet lens chip names the user's actual fleet ("Dragon HK"), not
   // the generic word — the small group is the lens, not a filter (V.3).
-  const fleetChipLabel = useMemo(() => {
-    const fleet =
+  const fleetChipGroup = useMemo(
+    () =>
       userGroups.find((g) => g.kind === 'class_fleet') ??
-      userGroups.find((g) => g.kind === 'practice_group');
-    return fleet ? fleet.short_name?.trim() || fleet.name : 'Fleet';
-  }, [userGroups]);
+      userGroups.find((g) => g.kind === 'practice_group') ??
+      null,
+    [userGroups],
+  );
+  const fleetChipLabel = fleetChipGroup
+    ? fleetChipGroup.short_name?.trim() || fleetChipGroup.name
+    : 'Fleet';
+  // The group powering the fleet chip's name would render as an identical
+  // subchip right below it — skip it; the renamed chip IS that group's lens.
+  const subchipGroups = useMemo(
+    () => userGroups.filter((g) => g.id !== fleetChipGroup?.id),
+    [userGroups, fleetChipGroup],
+  );
   const [activeGroupIds, setActiveGroupIds] = useState<string[]>([]);
   const toggleGroupChip = useCallback((groupId: string) => {
     setActiveGroupIds((prev) =>
@@ -2772,8 +2784,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     lat: next?.lat ?? null,
     lng: next?.lng ?? null,
     startsAt: next?.starts_at ?? null,
-    enabled:
-      showWind || showTide || showCourse || selectedRaceStepOpen || knowledgeArea !== null,
+    // Always on when a race is upcoming — the top-chrome RaceTimeBar
+    // renders from this window, not just the layer-toggled overlays.
+    enabled: !!next?.starts_at,
   });
   // Race-time conditions for the venue-mastery sheet — only when the tapped
   // racing area is the one hosting the viewer's next race; otherwise the
@@ -2794,6 +2807,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         : null,
     };
   }, [knowledgeArea, next, nextRaceWindow]);
+  // CTA brief (mock parity) — the one-line "what to set up for" under the
+  // Plan-prep label: rig target from the race-start wind, plus the flip.
+  const venuePrepSublabel = useMemo(() => {
+    if (!knowledgeAreaRaceTime) return null;
+    const parts: string[] = [];
+    const w = knowledgeAreaRaceTime.point.wind;
+    if (w) parts.push(`rig for ${Math.round(w.knots)} kn ${compassFromDegrees(w.degrees)}`);
+    if (knowledgeAreaRaceTime.flipLabel) {
+      parts.push(knowledgeAreaRaceTime.flipLabel.toLowerCase());
+    }
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }, [knowledgeAreaRaceTime]);
   // Race-week window for the fleet "N of M boats in" count — only when the
   // tapped area hosts the viewer's next race (that's the date we know).
   const knowledgeAreaRaceWeek = useMemo(() => {
@@ -3003,6 +3028,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, [nextRaceWindow.status, next?.starts_at]);
   const scrubWindow =
     scrubWindows[Math.min(scrubIndex, scrubWindows.length - 1)] ?? scrubWindows[0];
+  // Mock parity — race time is TOP chrome, not a bottom card. The bar owns
+  // the scrubber whenever the NEXT race's forecast window is open; an open
+  // race-step sheet runs its own window, and commit mode needs clear chrome.
+  const raceTimeBarVisible =
+    nextRaceWindow.status === 'ok' && !!next && !selectedRaceStepOpen && !commitMode;
+  const raceCountdownLabel = useMemo(() => {
+    if (!next?.starts_at) return null;
+    const ms = new Date(next.starts_at).getTime() - Date.now();
+    if (!Number.isFinite(ms) || ms <= 0) return null;
+    const hours = Math.round(ms / 3_600_000);
+    return hours <= 72 ? `${hours} h out` : `${Math.round(hours / 24)} d out`;
+  }, [next?.starts_at]);
   const selectedTriangleRaceOpen = isTriangleRaceStepPin(selectedPin);
   const selectedRaceCoursePreview = useMemo<GeoJSON.FeatureCollection | null>(() => {
     if (!selectedTriangleRaceOpen || !selectedPin) return null;
@@ -3465,6 +3502,16 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 <Ionicons name="chevron-down" size={11} color="rgba(10, 132, 255, 0.7)" />
               </Pressable>
               <View style={{ flex: 1 }} />
+              {handlers.onNearbyPress ? (
+                <Pressable
+                  style={shellStyles.capsuleAction}
+                  onPress={handlers.onNearbyPress}
+                  hitSlop={6}
+                  accessibilityLabel="People and sites nearby"
+                >
+                  <Ionicons name="list" size={16} color="rgba(60, 60, 67, 0.85)" />
+                </Pressable>
+              ) : null}
               <Pressable
                 style={shellStyles.capsuleAction}
                 onPress={() => {
@@ -3517,9 +3564,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               opener inside the capsule can pop it. Atlas doesn't mount
               the global NavigationHeader, so the sheet lives here. */}
           <InterestSwitcher headless />
-          {userGroups.length > 0 ? (
+          {subchipGroups.length > 0 ? (
             <View style={shellStyles.groupSubchipRow}>
-              {userGroups.map((g: UserAffinityGroup) => (
+              {subchipGroups.map((g: UserAffinityGroup) => (
                 <GroupSubchip
                   key={g.id}
                   group={g}
@@ -3528,6 +3575,23 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 />
               ))}
             </View>
+          ) : null}
+          {raceTimeBarVisible && next ? (
+            <RaceTimeBar
+              raceLabel={next.label}
+              countdownLabel={raceCountdownLabel}
+              windows={scrubWindows.map((w) => w.label)}
+              value={scrubIndex}
+              onChange={setScrubIndex}
+              wind={scrubWindow.wind}
+              tide={scrubWindow.tide}
+              flipNote={
+                scrubTideFlip
+                  ? `Tide flips ~${formatScrubClock(scrubTideFlip.atIso)}`
+                  : null
+              }
+              strategy={courseStrategy}
+            />
           ) : null}
         </View>
 
@@ -3648,9 +3712,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             collapsed={cockpitCollapsed}
             onToggleCollapse={toggleCockpitCollapsed}
           />
-        ) : (showWind || showTide) && !selectedPin ? (
+        ) : (showWind || showTide) && !selectedPin && !raceTimeBarVisible ? (
           // One popup at a time — the scrubber yields while a pin sheet
-          // (race/step/area) is open so cards never stack.
+          // (race/step/area) is open so cards never stack, and yields to
+          // the top-chrome RaceTimeBar which owns the same scrub state.
           <WindTideScrubber
             title={
               raceScrubPoints && next?.when
@@ -3869,6 +3934,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             knowledgeAreaRaceTime && next
               ? {
                   label: `Plan prep · ${next.label}`,
+                  sublabel: venuePrepSublabel ?? undefined,
                   icon: 'flag-outline',
                   onPress: () => {
                     const a = knowledgeArea;
@@ -7438,7 +7504,12 @@ interface BottomSheetProps {
   expandedContent?: React.ReactNode;
   peerHeader?: { name: string; quote: string; eyebrow: string };
   statsRow?: StatItem[];
-  primary?: { label: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void };
+  primary?: {
+    label: string;
+    sublabel?: string;
+    icon?: keyof typeof Ionicons.glyphMap;
+    onPress?: () => void;
+  };
   secondary?: { label: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void };
   /**
    * Render the secondary CTA in the mid state as well. Use this when the
@@ -7622,9 +7693,23 @@ function BottomSheet({
       {showMid && (primary || secondary) && (
         <View style={shellStyles.btnRow}>
           {primary ? (
-            <Pressable onPress={primary.onPress} style={[shellStyles.btn, shellStyles.btnPrimary]}>
+            <Pressable
+              onPress={primary.onPress}
+              style={[
+                shellStyles.btn,
+                shellStyles.btnPrimary,
+                primary.sublabel ? shellStyles.btnTall : null,
+              ]}
+            >
               {primary.icon ? <Ionicons name={primary.icon} size={14} color="#FFF" /> : null}
-              <Text style={shellStyles.btnPrimaryText} numberOfLines={1}>{primary.label}</Text>
+              <View style={shellStyles.btnPrimaryTextCol}>
+                <Text style={shellStyles.btnPrimaryText} numberOfLines={1}>{primary.label}</Text>
+                {primary.sublabel ? (
+                  <Text style={shellStyles.btnPrimarySubtext} numberOfLines={1}>
+                    {primary.sublabel}
+                  </Text>
+                ) : null}
+              </View>
             </Pressable>
           ) : null}
           {(showFull || showSecondaryInMid) && secondary ? (
@@ -11372,12 +11457,25 @@ const shellStyles = StyleSheet.create({
   btnPrimary: {
     backgroundColor: IOS_REGISTER.accentUserAction,
   },
+  btnTall: {
+    height: 46,
+  },
+  btnPrimaryTextCol: {
+    alignItems: 'center',
+    flexShrink: 1,
+  },
   btnPrimaryText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: -0.1,
     flexShrink: 1,
+  },
+  btnPrimarySubtext: {
+    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 1,
   },
   btnSecondary: {
     backgroundColor: IOS_REGISTER.fillPill,

@@ -28,7 +28,7 @@ const COMPASS_16 = [
   'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW',
 ];
 
-function compassFromDegrees(degrees: number): string {
+export function compassFromDegrees(degrees: number): string {
   return COMPASS_16[Math.round(((degrees % 360) + 360) % 360 / 22.5) % 16];
 }
 
@@ -81,8 +81,31 @@ export function VenueMasterySheet({
     }
   }
 
+  const boatsIn =
+    raceWindow && fleetStats && fleetStats.plannedInWindow > 0
+      ? { count: fleetStats.plannedInWindow, size: fleetStats.fleetSize }
+      : null;
+
   return (
     <View style={styles.wrap}>
+      {raceTime || boatsIn ? (
+        <View style={styles.badgeRow}>
+          {raceTime ? (
+            <View style={[styles.badge, styles.badgeRace]}>
+              <Text style={[styles.badgeText, styles.badgeRaceText]}>
+                NEXT RACE · {raceTime.whenLabel.toUpperCase()}
+              </Text>
+            </View>
+          ) : null}
+          {boatsIn ? (
+            <View style={[styles.badge, styles.badgeFleet]}>
+              <Text style={[styles.badgeText, styles.badgeFleetText]}>
+                {boatsIn.count} OF {boatsIn.size} BOATS IN
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
       {conditionParts.length > 0 ? (
         <View style={styles.block}>
           <Text style={styles.blockHeading}>
@@ -103,23 +126,21 @@ export function VenueMasterySheet({
       {fleetStats ? (
         <View style={styles.block}>
           <Text style={styles.blockHeading}>{fleetStats.fleetName.toUpperCase()} HERE</Text>
-          {raceWindow && fleetStats.plannedInWindow > 0 ? (
-            <Text style={styles.recordLine}>
-              {fleetStats.plannedInWindow} of {fleetStats.fleetSize} boats in for race week
-            </Text>
-          ) : null}
           {fleetStats.fleetmates.length > 0 ? (
-            <Text style={styles.mutedLine}>
+            <Text style={styles.recordLine}>
               Most races here:{' '}
               {fleetStats.fleetmates
                 .slice(0, 2)
                 .map((m) => `${m.displayName} (${m.completedCount})`)
                 .join(' · ')}
             </Text>
-          ) : null}
-          {!(raceWindow && fleetStats.plannedInWindow > 0) && fleetStats.fleetmates.length === 0 ? (
+          ) : boatsIn ? (
+            <Text style={styles.mutedLine}>
+              {boatsIn.count} of {boatsIn.size} boats in for race week
+            </Text>
+          ) : (
             <Text style={styles.mutedLine}>No fleet activity logged here yet.</Text>
-          ) : null}
+          )}
         </View>
       ) : null}
 
@@ -151,6 +172,33 @@ export function VenueMasterySheet({
 const styles = StyleSheet.create({
   wrap: {
     gap: 14,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  badgeRace: {
+    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+  },
+  badgeRaceText: {
+    color: '#B25E09',
+  },
+  badgeFleet: {
+    backgroundColor: 'rgba(109, 40, 217, 0.12)',
+  },
+  badgeFleetText: {
+    color: '#6D28D9',
   },
   block: {
     gap: 4,

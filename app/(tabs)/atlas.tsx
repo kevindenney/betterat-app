@@ -1132,7 +1132,9 @@ export default function AtlasTab() {
           initialFocusLabel={initialFocusLabel}
           initialFocusStepId={initialFocusStepId}
           initialPeerFocus={initialPeerFocus}
-          onNearbyPress={frame === 'f4' ? () => setNearbyOpen(true) : undefined}
+          onNearbyPress={
+            frame === 'f4' || frame === 'f1' ? () => setNearbyOpen(true) : undefined
+          }
           nearbyOverlayOpen={nearbyOpen}
           bottomSheetOffset={tabBarSpace}
         />
@@ -1140,9 +1142,10 @@ export default function AtlasTab() {
         {/* Nearby list entry — a right-edge pill below the Atlas top chrome
             (aligns with the top-chrome-consolidation direction rather than
             competing with the bottom sheet). Hidden while open. Nursing (f4)
-            instead surfaces Nearby as a quiet TopChrome action, so the
-            floating pill is suppressed there to avoid double affordances. */}
-        {!nearbyOpen && !isFromPlan && frame !== 'f4' && frame !== 'f9' ? (
+            and sailing (f1, where the RaceTimeBar owns that band) surface
+            Nearby as a quiet TopChrome action instead, so the floating pill
+            is suppressed there to avoid double affordances. */}
+        {!nearbyOpen && !isFromPlan && frame !== 'f1' && frame !== 'f4' && frame !== 'f9' ? (
           <Pressable
             style={[styles.nearbyPill, { top: insets.top + 96 }]}
             onPress={() => setNearbyOpen(true)}
