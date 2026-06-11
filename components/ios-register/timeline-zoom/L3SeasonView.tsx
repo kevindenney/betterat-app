@@ -648,15 +648,20 @@ export function L3SeasonView({
                 pressed && onReflectOnStep ? styles.reflectionSectionPressed : null,
               ]}
             >
-              <View style={styles.sparklineWrap}>
-                <ReflectionSparkline
-                  density={analysis.reflectionDensity}
-                  totalWeeks={totalWeeks}
-                  currentWeekNumber={currentWeek}
-                  width={riverWidth}
-                  height={16}
-                />
-              </View>
+              {/* Below the river's step threshold the arc has a single
+                  bucket-week, so the sparkline degenerates to one floating
+                  blob under the empty-state card — keep just the caption. */}
+              {flatSteps.length >= ANALYSIS_MIN_STEPS ? (
+                <View style={styles.sparklineWrap}>
+                  <ReflectionSparkline
+                    density={analysis.reflectionDensity}
+                    totalWeeks={totalWeeks}
+                    currentWeekNumber={currentWeek}
+                    width={riverWidth}
+                    height={16}
+                  />
+                </View>
+              ) : null}
               <Text style={styles.reflectionCaption}>
                 <Text style={styles.reflectionCaptionAccent}>✷ Reflections</Text>
                 {pauseWeeks.length > 0
@@ -691,7 +696,8 @@ export function L3SeasonView({
                     : ` is shaping this ${interestVocab.periodNoun} so far.`}
                 </Text>
               ) : null}
-              {isSparseCrew(analysis.peers) ? (
+              {isSparseCrew(analysis.peers) ||
+              flatSteps.length < ANALYSIS_MIN_STEPS ? (
                 <CrewSparseList
                   peers={analysis.peers}
                   totalWeeks={totalWeeks}
