@@ -30,6 +30,11 @@ import { AtlasPickerBus, type AtlasPickerResult } from '@/services/AtlasPickerBu
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useAtlasPois } from '@/hooks/useAtlasPois';
 import { useNursingCuratedSites } from '@/hooks/useNursingCuratedSites';
+import {
+  useUserSavedPlaces,
+  findSavedPlaceAt,
+  type SavedPlaceKind,
+} from '@/hooks/useUserSavedPlaces';
 
 /** Quick-pick chip (e.g. an org's known venues like "RHKYC Clubhouse"). */
 export interface PlanWhereQuickPick {
@@ -112,6 +117,20 @@ export function PlanWhereCard({
     stepCategory === 'clinical';
   const { pois } = useAtlasPois();
   const { partner, sites: curatedSites } = useNursingCuratedSites();
+  const { places: savedPlaces, savePlace, removePlace } = useUserSavedPlaces();
+  // A place saved without an interest (or matching this one) is offered here.
+  const relevantSavedPlaces = useMemo(
+    () =>
+      savedPlaces.filter(
+        (p) => !p.interest_slug || !interestSlug || p.interest_slug === interestSlug,
+      ),
+    [savedPlaces, interestSlug],
+  );
+  const savedHere = findSavedPlaceAt(
+    relevantSavedPlaces,
+    location?.lat,
+    location?.lng,
+  );
   const { data: neighbors } = useStepLocationNeighbors(location?.lat, location?.lng, 5);
   // Subtract the current user's own pin if applicable — we want "OTHER peers".
   const otherSailors = Math.max(0, (neighbors?.sailors ?? 0) - 1);
@@ -262,6 +281,53 @@ export function PlanWhereCard({
     onChange(undefined);
   }, [onChange]);
 
+  const handleSavePlace = useCallback(
+    (kind: SavedPlaceKind) => {
+      if (location?.lat == null || location?.lng == null) return;
+      const label =
+        kind === 'home'
+          ? 'Home'
+          : kind === 'club'
+            ? 'Club'
+            : !isCoordOnlyLabel(location.name) && location.name?.trim()
+              ? location.name.trim()
+              : 'Saved spot';
+      savePlace({
+        label,
+        kind,
+        lat: location.lat,
+        lng: location.lng,
+        placeName: location.name ?? null,
+        interestSlug: interestSlug ?? null,
+      });
+    },
+    [savePlace, location, interestSlug],
+  );
+
+  // Saved places lead the quick-pick row; passed-in picks that duplicate a
+  // saved place (same name) are dropped.
+  const mergedQuickPicks = useMemo(() => {
+    const savedNames = new Set(relevantSavedPlaces.map((p) => p.label.toLowerCase()));
+    const saved = relevantSavedPlaces.map((p) => ({
+      id: `saved:${p.id}`,
+      name: p.label,
+      lat: p.lat,
+      lng: p.lng,
+      icon: (p.kind === 'home'
+        ? 'home'
+        : p.kind === 'club'
+          ? 'business'
+          : 'bookmark') as keyof typeof Ionicons.glyphMap,
+    }));
+    const rest = (quickPicks ?? [])
+      .filter((qp) => !savedNames.has(qp.name.toLowerCase()))
+      .map((qp) => ({
+        ...qp,
+        icon: 'location' as keyof typeof Ionicons.glyphMap,
+      }));
+    return [...saved, ...rest];
+  }, [relevantSavedPlaces, quickPicks]);
+
   const handlePrecision = useCallback(
     (next: StepLocationPrecision) => {
       if (!location) return;
@@ -369,9 +435,9 @@ export function PlanWhereCard({
         </View>
       ) : null}
 
-      {!readOnly && quickPicks && quickPicks.length > 0 && (
+      {!readOnly && mergedQuickPicks.length > 0 && (
         <View style={styles.quickPickRow}>
-          {quickPicks.map((qp) => {
+          {mergedQuickPicks.map((qp) => {
             const isActive = location?.name === qp.name;
             return (
               <Pressable
@@ -389,7 +455,7 @@ export function PlanWhereCard({
                 }
               >
                 <Ionicons
-                  name="location"
+                  name={qp.icon}
                   size={12}
                   color={isActive ? STEP_COLORS.accent : IOS_COLORS.secondaryLabel}
                 />
@@ -407,6 +473,53 @@ export function PlanWhereCard({
           })}
         </View>
       )}
+
+      {hasName && hasCoords && !readOnly ? (
+        savedHere ? (
+          <Pressable
+            style={styles.saveRow}
+            onPress={() => removePlace(savedHere.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove saved place ${savedHere.label}`}
+          >
+            <Ionicons name="bookmark" size={13} color={STEP_COLORS.accent} />
+            <Text style={styles.savedText}>
+              Saved as {savedHere.label} · tap to remove
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={styles.saveRow}>
+            <Ionicons
+              name="bookmark-outline"
+              size={13}
+              color={IOS_COLORS.secondaryLabel}
+            />
+            <Text style={styles.saveLabel}>Save as</Text>
+            {(
+              [
+                { kind: 'home' as SavedPlaceKind, label: 'Home', icon: 'home-outline' },
+                { kind: 'club' as SavedPlaceKind, label: 'Club', icon: 'business-outline' },
+                { kind: 'custom' as SavedPlaceKind, label: 'Spot', icon: 'bookmark-outline' },
+              ] as const
+            ).map((opt) => (
+              <Pressable
+                key={opt.kind}
+                style={styles.saveChip}
+                onPress={() => handleSavePlace(opt.kind)}
+                accessibilityRole="button"
+                accessibilityLabel={`Save this place as ${opt.label}`}
+              >
+                <Ionicons
+                  name={opt.icon}
+                  size={12}
+                  color={IOS_COLORS.secondaryLabel}
+                />
+                <Text style={styles.saveChipText}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )
+      ) : null}
 
       {!readOnly && (
         <Pressable style={styles.pickBtn} onPress={handleOpenPicker}>
@@ -593,6 +706,36 @@ const styles = StyleSheet.create({
   quickPickTextActive: {
     color: STEP_COLORS.accent,
     fontWeight: '600',
+  },
+  saveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  saveLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  saveChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  saveChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: IOS_COLORS.label,
+  },
+  savedText: {
+    fontSize: 11,
+    color: STEP_COLORS.accent,
+    fontWeight: '500',
   },
   precisionBlock: {
     gap: 6,
