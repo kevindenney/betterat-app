@@ -39,14 +39,20 @@ export interface SavedPlaceItem {
   isHome?: boolean;
 }
 
+/** A my-step row inside an arc group; ordinal = position in the picker strip when near-now. */
+export type ArcStepEntry = PickerStep & { ordinal?: number | null };
+
 /**
- * Steps outside the near-now window, bucketed by arc (season). Rendered as
- * collapsed sections under MY STEPS so older work stays one tap away.
+ * ALL of the user's steps bucketed by arc (season). The current arc renders
+ * first and expanded — it's what the user cares about most; older arcs are
+ * collapsed one tap away.
  */
 export interface ArcStepGroup {
   id: string;
   label: string;
-  steps: PickerStep[];
+  /** Current arc — render at top, expanded by default. */
+  isCurrent?: boolean;
+  steps: ArcStepEntry[];
 }
 
 /** A step authored by someone you follow/know, grouped by relationship. */
@@ -193,16 +199,16 @@ export function SavedJumpSheet({
   onPickPeerStep,
   onAddPlaceInView,
 }: SavedJumpSheetProps) {
-  // Arc sections start collapsed — near-now steps stay the headline, older
-  // arcs are one tap away. Persisting across opens within the session is fine.
-  const [expandedArcs, setExpandedArcs] = useState<Set<string>>(() => new Set());
-  const toggleArc = (id: string) =>
-    setExpandedArcs((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  // The current arc starts expanded (it's the headline); other arcs start
+  // collapsed. User taps override either default for the session.
+  const [arcOverrides, setArcOverrides] = useState<Record<string, boolean>>({});
+  const isArcExpanded = (group: ArcStepGroup) =>
+    arcOverrides[group.id] ?? !!group.isCurrent;
+  const toggleArc = (group: ArcStepGroup) =>
+    setArcOverrides((prev) => ({
+      ...prev,
+      [group.id]: !(prev[group.id] ?? !!group.isCurrent),
+    }));
   const hasAnything =
     steps.length > 0 ||
     arcGroups.length > 0 ||
@@ -288,7 +294,7 @@ export function SavedJumpSheet({
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
             >
-              {steps.length > 0 ? (
+              {steps.length > 0 && arcGroups.length === 0 ? (
                 <>
                   <SectionHeader label={`MY STEPS · ${steps.length}`} />
                   {steps.map((step, index) => {
@@ -348,11 +354,11 @@ export function SavedJumpSheet({
 
               {arcGroups.map((group) => {
                 if (group.steps.length === 0) return null;
-                const expanded = expandedArcs.has(group.id);
+                const expanded = isArcExpanded(group);
                 return (
                   <React.Fragment key={group.id}>
                     <TouchableOpacity
-                      onPress={() => toggleArc(group.id)}
+                      onPress={() => toggleArc(group)}
                       activeOpacity={0.55}
                       style={styles.arcHeader}
                       accessibilityRole="button"
@@ -373,13 +379,15 @@ export function SavedJumpSheet({
                           const badgeLabel = STATUS_BADGE_LABEL[step.status];
                           const badgeTone = STATUS_BADGE_TONE[step.status];
                           const subtitle = readableLocationName(step.location_name);
+                          const isSelected = step.step_id === selectedStepId;
                           return (
                             <TouchableOpacity
                               key={step.step_id}
                               onPress={() => onPickStep(step)}
                               activeOpacity={0.55}
-                              style={styles.row}
+                              style={[styles.row, isSelected && styles.rowSelected]}
                               accessibilityRole="button"
+                              accessibilityState={{ selected: isSelected }}
                               accessibilityLabel={`Focus on ${step.title}`}
                             >
                               <View
@@ -392,11 +400,15 @@ export function SavedJumpSheet({
                               />
                               <View style={styles.rowBody}>
                                 <Text style={styles.rowTitle} numberOfLines={1}>
+                                  {step.ordinal != null ? `${step.ordinal}. ` : ''}
                                   {step.title}
                                 </Text>
                                 <View style={styles.rowMetaLine}>
                                   <Text style={styles.rowMeta} numberOfLines={1}>
-                                    {subtitle ?? (step.has_place ? 'On the map' : 'No place yet')}
+                                    {subtitle ??
+                                      (step.has_place
+                                        ? 'On the map'
+                                        : 'Tap to anchor on the map')}
                                   </Text>
                                   {badgeLabel && badgeTone ? (
                                     <View

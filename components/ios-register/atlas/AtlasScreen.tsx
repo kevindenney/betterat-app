@@ -83,13 +83,14 @@ import { useSavedVenues } from '@/hooks/useSavedVenues';
 import {
   SavedJumpSheet,
   type ArcStepGroup,
+  type ArcStepEntry,
   type SavedPlaceItem,
   type RelationshipStepItem,
   type PeerRelationship,
   type AnchorRect,
 } from './SavedJumpSheet';
 import { shapeToPolygon } from '@/lib/atlas-racing-area-shape';
-import type { PickerStep } from '@/hooks/useUserAtlasSteps';
+import type { ArchivePickerStep, PickerStep } from '@/hooks/useUserAtlasSteps';
 import { useUserSeasons, useCurrentSeason } from '@/hooks/useSeason';
 import { compareSeasonsByStartDate } from '@/components/ios-register/timeline-zoom/realDataAdapter';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
@@ -2615,21 +2616,27 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       setSearchFocus({ lat: item.lat, lng: item.lng });
     }
   }, []);
-  // Archive steps → per-arc collapsed sections in the Saved sheet. Arc
-  // membership mirrors the timeline's resolution order (realDataAdapter):
-  // explicit metadata.season_id move → date containment (newest-first wins
-  // overlaps; end_date made inclusive) → season_id column → nearest arc in
-  // time. Steps that resolve to no arc land in an EARLIER bucket.
+  // ALL my steps → per-arc sections in the Saved sheet, current arc first
+  // and expanded (the user cares most about the current arc). Near-now
+  // picker steps keep their strip ordinal and sort ahead of archive steps
+  // within each arc. Arc membership mirrors the timeline's resolution order
+  // (realDataAdapter): explicit metadata.season_id move → date containment
+  // (newest-first wins overlaps; end_date made inclusive) → season_id
+  // column → nearest arc in time. Unresolvable steps land in EARLIER.
   const { data: allSeasons = [] } = useUserSeasons();
   const { data: currentSeason } = useCurrentSeason();
   const arcGroups = useMemo<ArcStepGroup[]>(() => {
-    if (archiveSteps.length === 0) return [];
+    const entries: (ArchivePickerStep & ArcStepEntry)[] = [
+      ...pickerSteps.map((step, index) => ({ ...step, ordinal: index + 1 })),
+      ...archiveSteps,
+    ];
+    if (entries.length === 0) return [];
     const knownIds = new Set(allSeasons.map((s) => s.id));
     const DAY_MS = 24 * 3600 * 1000;
     const windowSeasons = allSeasons
       .filter((s) => s.start_date && s.end_date)
       .sort((a, b) => Date.parse(b.start_date) - Date.parse(a.start_date));
-    const resolveArc = (step: (typeof archiveSteps)[number]): string | null => {
+    const resolveArc = (step: ArchivePickerStep): string | null => {
       if (step.meta_season_id && knownIds.has(step.meta_season_id)) return step.meta_season_id;
       const t = Date.parse(step.starts_at ?? step.created_at);
       let nearest: { id: string; dist: number } | null = null;
@@ -2645,16 +2652,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       if (step.season_id && knownIds.has(step.season_id)) return step.season_id;
       return nearest?.id ?? null;
     };
-    const byArc = new Map<string, typeof archiveSteps>();
-    for (const step of archiveSteps) {
+    const byArc = new Map<string, ArcStepEntry[]>();
+    for (const step of entries) {
       const arcId = resolveArc(step) ?? 'earlier';
       const bucket = byArc.get(arcId);
       if (bucket) bucket.push(step);
       else byArc.set(arcId, [step]);
     }
-    // Newest arc first — the user mostly cares about the current arc and
-    // works backwards from there.
+    // Current arc first, then remaining arcs newest-first, EARLIER last.
     const orderedSeasons = [...allSeasons].sort(compareSeasonsByStartDate).reverse();
+    if (currentSeason?.id) {
+      const idx = orderedSeasons.findIndex((s) => s.id === currentSeason.id);
+      if (idx > 0) orderedSeasons.unshift(orderedSeasons.splice(idx, 1)[0]);
+    }
     const groups: ArcStepGroup[] = [];
     for (const season of orderedSeasons) {
       const steps = byArc.get(season.id);
@@ -2663,6 +2673,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       groups.push({
         id: season.id,
         label: isCurrent ? `${season.name} · current arc` : season.name,
+        isCurrent,
         steps,
       });
     }
@@ -2671,7 +2682,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       groups.push({ id: 'earlier', label: 'Earlier', steps: earlier });
     }
     return groups;
-  }, [archiveSteps, allSeasons, currentSeason?.id]);
+  }, [pickerSteps, archiveSteps, allSeasons, currentSeason?.id]);
   // Peer steps → relationship-grouped rows. Map the data-layer relationship
   // enum (self/crew/cohort/fleet/following/public) onto the four list groups;
   // drop `self` (already covered by MY STEPS).

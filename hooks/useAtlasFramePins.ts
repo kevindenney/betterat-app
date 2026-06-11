@@ -15,7 +15,6 @@ import { useAtlasOrgSteps, type AtlasOrgStep } from './useAtlasOrgSteps';
 import {
   useUserAtlasSteps,
   type ArchivePickerStep,
-  type PickerStep,
   type UserAtlasStep,
 } from './useUserAtlasSteps';
 import { useSailingPoisNear, type SailingPoiRow } from './useSailingPoisNear';
@@ -314,7 +313,7 @@ export function useAtlasFramePins({
   peerClusterThresholdKm = 2,
 }: UseAtlasFramePinsArgs): {
   pins: AtlasPinSpec[];
-  pickerSteps: PickerStep[];
+  pickerSteps: ArchivePickerStep[];
   /** Steps outside the near-now window — the ★ Saved sheet's per-arc archive. */
   archiveSteps: ArchivePickerStep[];
   /** Raw peer steps (un-clustered) — the ★ Saved sheet lists these by relationship. */

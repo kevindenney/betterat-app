@@ -373,7 +373,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
   // active steps by created_at ASC (oldest queued first — the ones the
   // user is most likely to be working on), then recent-done by
   // updated_at DESC.
-  const pickerSteps = useMemo<PickerStep[]>(() => {
+  const pickerSteps = useMemo<ArchivePickerStep[]>(() => {
     const stepMap = new Map(steps.map((s) => [s.step_id, s]));
     type Row = {
       step_id: string;
@@ -386,6 +386,8 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       starts_at: string | null;
       created_at: string;
       updated_at: string;
+      season_id: string | null;
+      meta_season_id: string | null;
     };
     const rows: Row[] = [];
     for (const row of data) {
@@ -426,6 +428,9 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         starts_at: row.starts_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        season_id: (row as { season_id?: string | null }).season_id ?? null,
+        meta_season_id:
+          typeof metadata?.season_id === 'string' ? (metadata.season_id as string) : null,
       });
     }
     rows.sort((a, b) => {
@@ -448,6 +453,10 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       lat: r.lat,
       lng: r.lng,
       location_name: r.location_name,
+      starts_at: r.starts_at,
+      created_at: r.created_at,
+      season_id: r.season_id,
+      meta_season_id: r.meta_season_id,
     }));
   }, [data, raceAreaCenters, steps]);
 
