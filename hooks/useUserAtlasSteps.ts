@@ -97,6 +97,11 @@ interface UseUserAtlasStepsArgs {
   interestSlug: string | null;
   /** Skip the query when false. */
   enabled?: boolean;
+  /**
+   * Map scope. Default: current-arc steps only (the working set). With the
+   * History chip on, other-arc / long-done located steps surface too.
+   */
+  includeHistory?: boolean;
 }
 
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -236,7 +241,11 @@ function extractRacePlanCenter(
   return null;
 }
 
-export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlasStepsArgs) {
+export function useUserAtlasSteps({
+  interestSlug,
+  enabled = true,
+  includeHistory = false,
+}: UseUserAtlasStepsArgs) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   // NEXT lives in the current arc: old arcs can hold abandoned planned
@@ -381,12 +390,40 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       const raceContext = isRaceRow
         ? extractRaceContext(metadata)
         : null;
-      const cls = classify({
+      let cls = classify({
         status: row.status,
         starts_at: row.starts_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
       });
+      // Arc scoping — the map's default working set is the CURRENT arc:
+      // every located arc step shows regardless of classify's near-now
+      // windows, and other-arc steps stay hidden until the History chip
+      // opts them in. Skipped entirely while the season row is still
+      // loading (arcKnown false) so the map doesn't blank out.
+      const arcKnown = currentArcId != null;
+      if (arcKnown) {
+        const inArc = inCurrentArc(
+          typeof metadata?.season_id === 'string' ? (metadata.season_id as string) : null,
+          (row as { season_id?: string | null }).season_id ?? null,
+          row.starts_at,
+          row.created_at,
+        );
+        const fallbackCls = (): { status: UserStepStatus; at_iso: string } =>
+          isDoneStatus(row.status)
+            ? { status: 'done-old', at_iso: row.updated_at }
+            : { status: 'planned-week', at_iso: row.starts_at ?? row.updated_at };
+        if (inArc) {
+          cls = cls ?? fallbackCls();
+        } else if (row.id === nextStepId) {
+          // NEXT backs the cockpit HUD — never hide it behind the arc gate.
+          cls = cls ?? fallbackCls();
+        } else if (!includeHistory) {
+          continue;
+        } else {
+          cls = cls ?? fallbackCls();
+        }
+      }
       if (!cls) continue;
       classified.push({
         step_id: row.id,
@@ -432,7 +469,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
     return classified.map(
       ({ raw_status: _r, created_at: _c, updated_at: _u, ...rest }) => rest,
     );
-  }, [data, raceAreaCenters, nextStepId]);
+  }, [data, raceAreaCenters, nextStepId, currentArcId, inCurrentArc, includeHistory]);
 
   // Picker dataset — every active or recent-done step regardless of
   // whether it has a location yet. Active steps in timeline display

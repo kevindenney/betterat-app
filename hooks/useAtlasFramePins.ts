@@ -70,6 +70,8 @@ interface UseAtlasFramePinsArgs {
    * stacking invisibly. Defaults to 2km (the original fixed behaviour).
    */
   peerClusterThresholdKm?: number;
+  /** History chip — include other-arc / long-done own steps (default off). */
+  includeStepHistory?: boolean;
 }
 
 function mapSailingPoiToPinKind(poi: SailingPoiRow): AtlasPinSpec['kind'] | null {
@@ -311,6 +313,7 @@ export function useAtlasFramePins({
   restrictPeersToUserIds = null,
   peerRelationshipFilter = null,
   peerClusterThresholdKm = 2,
+  includeStepHistory = false,
 }: UseAtlasFramePinsArgs): {
   pins: AtlasPinSpec[];
   pickerSteps: ArchivePickerStep[];
@@ -360,6 +363,7 @@ export function useAtlasFramePins({
   });
   const { steps: userSteps, pickerSteps, archiveSteps, loading: userStepsLoading } = useUserAtlasSteps({
     interestSlug,
+    includeHistory: includeStepHistory,
   });
   // Sailing POI bbox — ~radiusKm half-side in lat (1° ≈ 111km) and lng
   // (cos-corrected at the given latitude). Cheap approximation; the

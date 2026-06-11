@@ -2334,6 +2334,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Causeway Bay demo centroid (22.295, 114.18 = F1 camera preset, see
   // AtlasMapLibreCanvas.FRAME_CAMERA) only when no home venue is set.
   const restrictPeersToUserIds = useAffinityGroupMembers(activeGroupIds);
+  // History chip — default map scope is the current arc's steps; this
+  // opts older/other-arc own steps back in.
+  const [showStepHistory, setShowStepHistory] = useState(false);
   const { pins: framePins, pickerSteps, archiveSteps, peerSteps, orgSteps } = useAtlasFramePins({
     lat: homeVenue?.lat ?? 22.295,
     lng: homeVenue?.lng ?? 114.18,
@@ -2344,6 +2347,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     restrictPeersToUserIds,
     peerRelationshipFilter,
     peerClusterThresholdKm,
+    includeStepHistory: showStepHistory,
   });
   const demoClubPin = useMemo<AtlasPinSpec | null>(() => {
     if (!isYachtClubDemoSlug(handlers.focusOrgSlug)) return null;
@@ -2861,6 +2865,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setActiveFilterIds(activeIds);
     const races = activeIds.includes('races');
     setRaceOnly(races);
+    setShowStepHistory(activeIds.includes('history'));
     // Race marks ride with the Races lens (course geometry draws when Races is on).
     setShowRaceMarks(races || activeIds.includes('race-marks'));
     // Peer filter is the active relationship chips as an allow-list. An empty
@@ -3736,6 +3741,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               { id: 'fleet', label: fleetChipLabel, tone: 'fleet', active: activeFilterIds.includes('fleet') },
               { id: 'following', label: 'Following', tone: 'following', active: activeFilterIds.includes('following') },
               { id: 'races', label: 'Races', icon: 'boat', dotColor: RACE_FILTER_DOT, active: raceOnly },
+              { id: 'history', label: 'History', icon: 'time-outline', active: showStepHistory },
             ]}
             onActiveIdsChange={handleChipsChange}
             rightInset={10}
