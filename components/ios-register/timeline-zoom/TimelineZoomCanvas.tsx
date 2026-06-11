@@ -537,7 +537,10 @@ export function TimelineZoomCanvas({
                       allSteps={arcSteps}
                       onJumpToStep={(id) => setFocusStepId(id)}
                       hideStepSwitcher={hideInterestHeader}
-                      bottomInset={embedFullDetailAtL1 ? tabBarClearance : 0}
+                      // NowFloat hovers 20pt above the tab-bar clearance and is
+                      // ~34pt tall — without this extra room the last element
+                      // (Move to Reflect CTA) stops behind the pager pill.
+                      bottomInset={embedFullDetailAtL1 ? tabBarClearance + 56 : 0}
                     />
                   ) : (
                     <ZoomEmptyState
