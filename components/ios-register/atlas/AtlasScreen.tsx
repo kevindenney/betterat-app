@@ -118,6 +118,7 @@ import { useNearestPlace, formatNearLabel } from '@/hooks/useNearestPlace';
 import { useMarineSnapshot, useMarineTrendWindow, conditionsLineFor, type MarineTrendPoint } from '@/hooks/useMarineSnapshot';
 import { useVenueRaceWindow, detectTideFlip } from '@/hooks/useVenueRaceWindow';
 import { useFleetVenueStats } from '@/hooks/useFleetVenueStats';
+import { useVenueRecord } from '@/hooks/useVenueRecord';
 import { useHKOObservations, isInHongKong } from '@/hooks/useHKOObservations';
 import { useWindOverlay } from '@/hooks/useWindOverlay';
 import { useTideOverlay } from '@/hooks/useTideOverlay';
@@ -2857,6 +2858,33 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       label: `${top.displayName} · ${top.completedCount}× here`,
     };
   }, [knowledgeArea, knowledgeAreaFleetStats]);
+  // Your history lives on the water (racer mock §4) — green dots where the
+  // viewer's completed races at this area actually happened, with the most
+  // recent review note pinned at the race it came from. Same scope as the
+  // venue-expert pin: only while this area's venue sheet is open. Query key
+  // matches the sheet's record row, so React Query dedupes the fetch.
+  const { data: knowledgeAreaRecord } = useVenueRecord(knowledgeArea?.id ?? null);
+  const raceHistoryPins = useMemo<AtlasPinSpec[]>(() => {
+    if (!knowledgeArea) return [];
+    const races = knowledgeAreaRecord?.locatedRaces ?? [];
+    const noteRaceId = races.find((r) => r.noteBody)?.id ?? null;
+    return races.map((r) =>
+      r.id === noteRaceId
+        ? {
+            id: `race-note:${r.id}`,
+            lat: r.lat,
+            lng: r.lng,
+            kind: 'race-note' as const,
+            label: `“${r.noteBody}”`,
+          }
+        : {
+            id: `race-history:${r.id}`,
+            lat: r.lat,
+            lng: r.lng,
+            kind: 'race-history' as const,
+          },
+    );
+  }, [knowledgeArea, knowledgeAreaRecord]);
   const { user: authUser } = useAuth();
   const handleRacingAreaPress = useCallback((area: AtlasRacingAreaPressTarget) => {
     // Everyone gets the local-knowledge callout; owners reach the edit
@@ -3210,6 +3238,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       ...(focusedPeerPin ? [focusedPeerPin] : []),
       ...(venueExpertPin ? [venueExpertPin] : []),
       ...(tideFlipPin ? [tideFlipPin] : []),
+      ...raceHistoryPins,
     ],
     [
       filteredFramePins,
@@ -3219,6 +3248,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       focusedPeerPin,
       venueExpertPin,
       tideFlipPin,
+      raceHistoryPins,
     ],
   );
   const exitCommit = useCallback(() => {

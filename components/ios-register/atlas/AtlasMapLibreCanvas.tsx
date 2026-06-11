@@ -410,6 +410,12 @@ export interface AtlasPinSpec {
     // reverses inside the race window (Phase V.5). Derived from scrubber
     // state, purely informational — not tappable.
     | 'tide-flip'
+    // race-history — a green "you raced here" dot: one of the viewer's
+    // completed races at the racing area whose venue sheet is open.
+    | 'race-history'
+    // race-note — the viewer's most recent review note pinned where it
+    // happened ("overstood layline in ebb"); the history dot that teaches.
+    | 'race-note'
     | 'own'
     | 'candidate'
     | 'race-mark'
@@ -2686,6 +2692,8 @@ const PIN_TONE: Record<
   'org-event': { size: 22, color: '#0A84FF', shape: 'circle' },
   'venue-expert': { size: 20, color: '#AF52DE', shape: 'circle' },
   'tide-flip': { size: 18, color: '#B45309', shape: 'circle' },
+  'race-history': { size: 14, color: '#16A34A', shape: 'circle' },
+  'race-note': { size: 16, color: '#16A34A', shape: 'circle' },
   own: { size: 10, color: 'rgba(0, 122, 255, 0.9)', shape: 'circle' },
   // Compose-at-location: coral drop (per design grammar key)
   candidate: { size: 22, color: '#FF3B30', shape: 'drop' },
@@ -3221,6 +3229,32 @@ function LabeledPin({
         {label ? (
           <View style={styles.tideFlipLabelPill}>
             <Text style={styles.tideFlipLabelText} numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+  // race-history — bare green "you raced here" dot. Past races live on the
+  // water as geography, not labels; the venue sheet carries the detail.
+  if (kind === 'race-history') {
+    return <View style={styles.raceHistoryDot} />;
+  }
+  // race-note — the viewer's most recent review note pinned at the race it
+  // came from: the forecast → race → review → venue-note loop made visible.
+  if (kind === 'race-note') {
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.glyphCol}>
+          <View style={styles.raceNoteMarker}>
+            <Ionicons name="checkmark" size={11} color="#FFFFFF" />
+          </View>
+        </View>
+        {label ? (
+          <View style={styles.raceNoteLabelPill}>
+            <Text style={styles.raceNoteEyebrow}>YOUR NOTE</Text>
+            <Text style={styles.raceNoteLabelText} numberOfLines={1}>
               {label}
             </Text>
           </View>
@@ -3962,6 +3996,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#B45309',
+  },
+  raceHistoryDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#16A34A',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  raceNoteMarker: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#16A34A',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  raceNoteLabelPill: {
+    marginLeft: 6,
+    maxWidth: 150,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderWidth: 1,
+    borderColor: 'rgba(22, 163, 74, 0.45)',
+  },
+  raceNoteEyebrow: {
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    color: '#166534',
+  },
+  raceNoteLabelText: {
+    fontSize: 11,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    color: '#1C1C1E',
   },
   orgEventMarker: {
     width: 24,
