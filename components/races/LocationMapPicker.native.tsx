@@ -400,53 +400,57 @@ export function LocationMapPicker({
           </View>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <Search size={18} color={IOS_COLORS.gray} />
-            <TextInput
-              style={styles.searchInput}
-              value={searchText}
-              onChangeText={setSearchText}
-              placeholder="Search venues..."
-              placeholderTextColor={IOS_COLORS.gray}
-              returnKeyType="search"
-              onSubmitEditing={handleSearchSubmit}
-              onFocus={() => searchText.length >= 2 && setShowSearchResults(true)}
-            />
-            {searching && <ActivityIndicator size="small" color={IOS_COLORS.blue} />}
+        {/* Search Bar — wraps the results dropdown so it anchors below the
+            input (top: '100%') instead of a hardcoded offset that lands on
+            the text field once safe-area insets grow. */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Search size={18} color={IOS_COLORS.gray} />
+              <TextInput
+                style={styles.searchInput}
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder="Search venues..."
+                placeholderTextColor={IOS_COLORS.gray}
+                returnKeyType="search"
+                onSubmitEditing={handleSearchSubmit}
+                onFocus={() => searchText.length >= 2 && setShowSearchResults(true)}
+              />
+              {searching && <ActivityIndicator size="small" color={IOS_COLORS.blue} />}
+            </View>
+
+            {/* Current Location Button */}
+            <TouchableOpacity style={styles.locationButton} onPress={handleUseCurrentLocation}>
+              <Navigation size={20} color={IOS_COLORS.blue} />
+            </TouchableOpacity>
           </View>
 
-          {/* Current Location Button */}
-          <TouchableOpacity style={styles.locationButton} onPress={handleUseCurrentLocation}>
-            <Navigation size={20} color={IOS_COLORS.blue} />
-          </TouchableOpacity>
+          {/* Search Results Dropdown */}
+          {showSearchResults && searchResults.length > 0 && (
+            <View style={styles.searchResultsContainer}>
+              <FlatList
+                data={searchResults}
+                keyExtractor={(item, index) => `${item.name}-${index}`}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.searchResultItem}
+                    onPress={() => handleSelectVenue(item)}
+                  >
+                    <MapPin size={16} color={IOS_COLORS.blue} />
+                    <View style={styles.searchResultText}>
+                      <Text style={styles.searchResultName}>{item.name}</Text>
+                      <Text style={styles.searchResultCoords}>
+                        {item.lat.toFixed(3)}°, {item.lng.toFixed(3)}°
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          )}
         </View>
-
-        {/* Search Results Dropdown */}
-        {showSearchResults && searchResults.length > 0 && (
-          <View style={styles.searchResultsContainer}>
-            <FlatList
-              data={searchResults}
-              keyExtractor={(item, index) => `${item.name}-${index}`}
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.searchResultItem}
-                  onPress={() => handleSelectVenue(item)}
-                >
-                  <MapPin size={16} color={IOS_COLORS.blue} />
-                  <View style={styles.searchResultText}>
-                    <Text style={styles.searchResultName}>{item.name}</Text>
-                    <Text style={styles.searchResultCoords}>
-                      {item.lat.toFixed(3)}°, {item.lng.toFixed(3)}°
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        )}
 
         {/* Map */}
         <View style={styles.mapContainer}>
@@ -591,6 +595,10 @@ const styles = StyleSheet.create({
   },
 
   // Search
+  searchSection: {
+    zIndex: 100,
+    elevation: 100,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -627,7 +635,7 @@ const styles = StyleSheet.create({
   // Search Results
   searchResultsContainer: {
     position: 'absolute',
-    top: 120,
+    top: '100%',
     left: 16,
     right: 16,
     maxHeight: 200,
