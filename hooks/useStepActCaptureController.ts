@@ -43,6 +43,7 @@ import {
   type DoCaptureItem,
 } from '@/components/step/do-tab/doCaptureModel';
 import { deriveDoInteriorState, type DoInteriorState } from '@/components/step/do-tab/doState';
+import { normalizeHowSubSteps } from '@/lib/step/normalizeHowSubSteps';
 import type { DoTabInteriorProps } from '@/components/step/do-tab/DoTabInterior';
 import type { SubStepCaptureKind } from '@/components/step/do-tab/PlanStartingFrameRow';
 import type {
@@ -132,7 +133,10 @@ export function useStepActCaptureController({
   const toast = useToast();
 
   const metadata = (step?.metadata ?? {}) as StepMetadata;
-  const planData: StepPlanData = metadata.plan ?? {};
+  const basePlan: StepPlanData = metadata.plan ?? {};
+  const planData: StepPlanData = basePlan.how_sub_steps?.length
+    ? { ...basePlan, how_sub_steps: normalizeHowSubSteps(basePlan.how_sub_steps) }
+    : basePlan;
   // Wrap in useMemo so the object identity is stable across renders when
   // metadata.act hasn't changed — keeps downstream useMemo deps honest.
   const actData = useMemo<StepActData>(() => metadata.act ?? {}, [metadata.act]);
@@ -472,7 +476,9 @@ export function useStepActCaptureController({
     (subStepId: string, completed: boolean) => {
       if (readOnly) return;
       const currentPlan = (metadataRef.current.plan ?? {}) as StepPlanData;
-      const subs = currentPlan.how_sub_steps ?? [];
+      // Same id fill as the rendered planData, so legacy id-less rows match
+      // and the generated ids persist on first toggle.
+      const subs = normalizeHowSubSteps(currentPlan.how_sub_steps);
       const next = subs.map((s) => (s.id === subStepId ? { ...s, completed } : s));
       updateMetadata.mutate({ plan: { ...currentPlan, how_sub_steps: next } });
     },
