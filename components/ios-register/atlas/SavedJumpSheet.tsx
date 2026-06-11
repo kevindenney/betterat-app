@@ -39,8 +39,8 @@ export interface SavedPlaceItem {
   isHome?: boolean;
 }
 
-/** A my-step row inside an arc group; ordinal = position in the picker strip when near-now. */
-export type ArcStepEntry = PickerStep & { ordinal?: number | null };
+/** A my-step row inside an arc group. */
+export type ArcStepEntry = PickerStep;
 
 /**
  * ALL of the user's steps bucketed by arc (season). The current arc renders
@@ -404,7 +404,6 @@ export function SavedJumpSheet({
                               />
                               <View style={styles.rowBody}>
                                 <Text style={styles.rowTitle} numberOfLines={1}>
-                                  {step.ordinal != null ? `${step.ordinal}. ` : ''}
                                   {step.title}
                                 </Text>
                                 <View style={styles.rowMetaLine}>

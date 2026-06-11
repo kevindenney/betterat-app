@@ -65,20 +65,29 @@ function phaseTriad(status: StepStatus): [PhaseState, PhaseState, PhaseState] {
   return [plan, did, review];
 }
 
-function pillFor(status: StepStatus, isNow: boolean): { label: string; color: string; bg: string } {
-  if (isNow) return { label: 'NOW', color: '#0046A8', bg: 'rgba(0,122,255,0.14)' };
+/** Past the NOW bar: the doing is finished even if review is pending. */
+function isPastNow(status: StepStatus): boolean {
+  return status === 'done' || status === 'reflected' || status === 'reflect';
+}
+
+/** First step in display order that hasn't been done — the single NEXT. */
+function nextStepIndex(statuses: StepStatus[]): number {
+  return statuses.findIndex((s) => !isPastNow(s));
+}
+
+// A step is either done or planned, with exactly one NEXT (the first
+// planned step to the right of NOW). No NOW/DOING pills — NOW is the
+// position marker on the thread, not a step state.
+function pillFor(status: StepStatus, isNext: boolean): { label: string; color: string; bg: string } {
   switch (status) {
     case 'done':
     case 'reflected':
       return { label: 'DONE', color: '#1F8636', bg: 'rgba(52,199,89,0.16)' };
-    case 'do':
-      // Only the single focus step is NOW; other in-progress steps read
-      // as DOING so the river has one unambiguous anchor.
-      return { label: 'DOING', color: '#0046A8', bg: 'rgba(0,122,255,0.10)' };
     case 'reflect':
       return { label: 'REVIEW', color: LILAC, bg: 'rgba(157,112,201,0.14)' };
     default:
-      return { label: 'NEXT', color: IOS_REGISTER.labelSecondary, bg: '#F2F2F7' };
+      if (isNext) return { label: 'NEXT', color: '#0046A8', bg: 'rgba(0,122,255,0.14)' };
+      return { label: 'PLANNED', color: IOS_REGISTER.labelSecondary, bg: '#F2F2F7' };
   }
 }
 
@@ -200,10 +209,13 @@ export function SnakeStepTimeline({
   onToggleSelect,
   onLongPressStep,
 }: SnakeStepTimelineProps) {
-  const focusIndex = steps.findIndex((s) => s.id === focusStepId);
-  const progressCount = focusIndex >= 0 ? focusIndex + 1 : steps.filter((s) => s.status === 'done' || s.status === 'reflected').length;
+  // NOW sits between the done run and the first planned step; the flag
+  // rides the NEXT card and the solid thread covers only done steps.
+  const nextIdx = nextStepIndex(steps.map((s) => s.status));
+  const progressCount = nextIdx === -1 ? steps.length : nextIdx;
+  const nowIndex = nextIdx === -1 ? steps.length - 1 : nextIdx;
   const { size, onContainerLayout, onLaneLayout, onItemLayout, track, prog, nowPoint } =
-    useSnakeThread(steps.length, perLane, progressCount, -NODE_GAP, focusIndex);
+    useSnakeThread(steps.length, perLane, progressCount, -NODE_GAP, nowIndex);
 
   const lanes = useMemo(() => chunk(steps, perLane), [steps, perLane]);
 
@@ -228,13 +240,13 @@ export function SnakeStepTimeline({
         >
           {lane.map((step, j) => {
             const globalIndex = laneIndex * perLane + j;
-            const isNow = step.id === focusStepId;
             const selected = isSelected?.(step.id) ?? false;
             return (
               <View key={step.id} style={styles.cardSlot} onLayout={onItemLayout(globalIndex)}>
                 <SnakeCard
                   step={step}
-                  isNow={isNow}
+                  isFocused={step.id === focusStepId}
+                  isNext={globalIndex === nextIdx}
                   ordinal={globalIndex + 1}
                   total={steps.length}
                   selectEnabled={selectEnabled}
@@ -258,7 +270,8 @@ export function SnakeStepTimeline({
 
 function SnakeCard({
   step,
-  isNow,
+  isFocused,
+  isNext,
   ordinal,
   total,
   selectEnabled,
@@ -267,7 +280,10 @@ function SnakeCard({
   onLongPress,
 }: {
   step: TimelineStep;
-  isNow: boolean;
+  /** The step whose detail is open — highlight only, not a status. */
+  isFocused: boolean;
+  /** The single first-planned-after-NOW step. */
+  isNext: boolean;
   ordinal: number;
   total: number;
   selectEnabled?: boolean;
@@ -275,14 +291,14 @@ function SnakeCard({
   onPress: () => void;
   onLongPress?: () => void;
 }) {
-  const pill = pillFor(step.status, isNow);
+  const pill = pillFor(step.status, isNext);
   const isDone = step.status === 'done' || step.status === 'reflected';
   const caps = (step.capabilities ?? []).filter(
     (c) => !GENERIC_CAP_LABELS.includes(c.label.trim().toLowerCase()),
   );
   const triad = phaseTriad(step.status);
   const stripeColor = step.isRace ? ROSE : step.from ? AZURE : null;
-  const nodeFilled = isDone || isNow;
+  const nodeFilled = isDone || isNext;
   // Eyebrow — prefer the schedule pre-title (TODAY · MORNING); fall back to
   // the dominant capability name so most cards carry a context label like
   // the mockup's ptag (Drills, Tactics, HKDW prep).
@@ -298,7 +314,7 @@ function SnakeCard({
       delayLongPress={300}
       style={[
         styles.card,
-        isNow && styles.cardNow,
+        isFocused && styles.cardNow,
         isDone && styles.cardDone,
         selected && styles.cardSelected,
       ]}
@@ -306,8 +322,8 @@ function SnakeCard({
       <View
         style={[
           styles.node,
-          nodeFilled && { backgroundColor: isNow ? '#FFFFFF' : AZURE, borderColor: isNow ? AZURE : '#FAF8F4' },
-          isNow && styles.nodeNow,
+          nodeFilled && { backgroundColor: isNext ? '#FFFFFF' : AZURE, borderColor: isNext ? AZURE : '#FAF8F4' },
+          isNext && styles.nodeNow,
         ]}
       />
       {stripeColor ? <View style={[styles.stripe, { backgroundColor: stripeColor }]} /> : null}
@@ -487,7 +503,6 @@ export function SnakeNodeRiver({
 export interface SnakeReorderListProps {
   /** Same chronological order the snake renders (oldest → newest). */
   steps: TimelineStep[];
-  focusStepId: string;
   /** (stepId, fromIndex, toIndex) in the flat list — caller resolves neighbours. */
   onReorder: (stepId: string, fromIndex: number, toIndex: number) => void;
   /** Mirror the lifted state up so the parent can freeze its ScrollView. */
@@ -500,7 +515,6 @@ export interface SnakeReorderListProps {
  *  river renders. "Done" returns to the snake. */
 export function SnakeReorderList({
   steps,
-  focusStepId,
   onReorder,
   onDraggingChange,
 }: SnakeReorderListProps) {
@@ -515,6 +529,8 @@ export function SnakeReorderList({
     onDraggingChange?.(drag.isDragging);
   }, [drag.isDragging, onDraggingChange]);
 
+  const nextIdx = nextStepIndex(steps.map((s) => s.status));
+
   return (
     <View style={styles.reorderList}>
       {steps.map((step, index) => (
@@ -523,7 +539,7 @@ export function SnakeReorderList({
           step={step}
           index={index}
           ordinal={index + 1}
-          isNow={step.id === focusStepId}
+          isNext={index === nextIdx}
           isLifted={drag.liftedId === step.id}
           showDropBefore={drag.dropTargetIndex === index && drag.liftedId !== step.id}
           liftedTranslateY={drag.liftedTranslate}
@@ -539,7 +555,7 @@ function ReorderRow({
   step,
   index,
   ordinal,
-  isNow,
+  isNext,
   isLifted,
   showDropBefore,
   liftedTranslateY,
@@ -549,7 +565,7 @@ function ReorderRow({
   step: TimelineStep;
   index: number;
   ordinal: number;
-  isNow: boolean;
+  isNext: boolean;
   isLifted: boolean;
   showDropBefore: boolean;
   liftedTranslateY: number;
@@ -572,7 +588,7 @@ function ReorderRow({
       elevation: 10,
     };
   }, [isLifted, liftedTranslateY]);
-  const pill = pillFor(step.status, isNow);
+  const pill = pillFor(step.status, isNext);
 
   return (
     <View

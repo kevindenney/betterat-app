@@ -2618,18 +2618,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, []);
   // ALL my steps → per-arc sections in the Saved sheet, current arc first
   // and expanded (the user cares most about the current arc). Near-now
-  // picker steps keep their strip ordinal and sort ahead of archive steps
-  // within each arc. Arc membership mirrors the timeline's resolution order
+  // picker steps sort ahead of archive steps within each arc.
+  // Arc membership mirrors the timeline's resolution order
   // (realDataAdapter): explicit metadata.season_id move → date containment
   // (newest-first wins overlaps; end_date made inclusive) → season_id
   // column → nearest arc in time. Unresolvable steps land in EARLIER.
   const { data: allSeasons = [] } = useUserSeasons();
   const { data: currentSeason } = useCurrentSeason();
   const arcGroups = useMemo<ArcStepGroup[]>(() => {
-    const entries: (ArchivePickerStep & ArcStepEntry)[] = [
-      ...pickerSteps.map((step, index) => ({ ...step, ordinal: index + 1 })),
-      ...archiveSteps,
-    ];
+    const entries: (ArchivePickerStep & ArcStepEntry)[] = [...pickerSteps, ...archiveSteps];
     if (entries.length === 0) return [];
     const knownIds = new Set(allSeasons.map((s) => s.id));
     const DAY_MS = 24 * 3600 * 1000;
@@ -2652,12 +2649,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       if (step.season_id && knownIds.has(step.season_id)) return step.season_id;
       return nearest?.id ?? null;
     };
-    const byArc = new Map<string, ArcStepEntry[]>();
+    const byArc = new Map<string, (ArchivePickerStep & ArcStepEntry)[]>();
     for (const step of entries) {
       const arcId = resolveArc(step) ?? 'earlier';
       const bucket = byArc.get(arcId);
       if (bucket) bucket.push(step);
       else byArc.set(arcId, [step]);
+    }
+    // Rows within an arc mirror the Practice timeline's display order.
+    for (const bucket of byArc.values()) {
+      bucket.sort((a, b) => {
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+        return Date.parse(a.created_at) - Date.parse(b.created_at);
+      });
     }
     // Current arc first, then remaining arcs newest-first, EARLIER last.
     const orderedSeasons = [...allSeasons].sort(compareSeasonsByStartDate).reverse();

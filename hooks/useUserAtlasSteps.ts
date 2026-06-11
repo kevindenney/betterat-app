@@ -12,10 +12,11 @@
  * detail instead of duplicating it via "Plan a step here".
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { useCurrentSeason } from '@/hooks/useSeason';
 
 export type UserStepStatus =
   | 'planned-week'
@@ -81,6 +82,8 @@ export interface ArchivePickerStep extends PickerStep {
   season_id: string | null;
   /** Explicit arc pin from metadata.season_id (timeline move-to-arc). */
   meta_season_id: string | null;
+  /** Timeline display order within the arc (timeline_steps.sort_order). */
+  sort_order: number;
 }
 
 interface RaceAreaCenter {
@@ -222,6 +225,30 @@ function extractRacePlanCenter(
 export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlasStepsArgs) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  // NEXT lives in the current arc: old arcs can hold abandoned planned
+  // steps with low sort_order that would otherwise steal the promotion.
+  const { data: currentSeason } = useCurrentSeason();
+  const currentArcId = currentSeason?.id ?? null;
+  const currentArcStart = currentSeason?.start_date ? Date.parse(currentSeason.start_date) : NaN;
+  const currentArcEnd = currentSeason?.end_date
+    ? Date.parse(currentSeason.end_date) + 24 * 3600 * 1000
+    : NaN;
+  const inCurrentArc = useCallback(
+    (
+      metaSeasonId: string | null,
+      seasonId: string | null,
+      startsAt: string | null,
+      createdAt: string,
+    ): boolean => {
+      if (!currentArcId) return false;
+      if (metaSeasonId) return metaSeasonId === currentArcId;
+      if (seasonId === currentArcId) return true;
+      if (Number.isNaN(currentArcStart) || Number.isNaN(currentArcEnd)) return false;
+      const t = Date.parse(startsAt ?? createdAt);
+      return !Number.isNaN(t) && t >= currentArcStart && t < currentArcEnd;
+    },
+    [currentArcId, currentArcStart, currentArcEnd],
+  );
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['user-atlas-steps', userId, interestSlug],
@@ -236,7 +263,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       if (interestErr || !interestRow) return [];
       const { data: rows, error } = await supabase
         .from('timeline_steps')
-        .select('id, title, category, is_race, status, starts_at, created_at, updated_at, season_id, location_lat, location_lng, location_name, metadata')
+        .select('id, title, category, is_race, status, starts_at, created_at, updated_at, sort_order, season_id, location_lat, location_lng, location_name, metadata')
         .eq('user_id', userId)
         .eq('interest_id', interestRow.id)
         .limit(200);
@@ -279,6 +306,37 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       });
     },
   });
+
+  // The single NEXT — first not-yet-done step in timeline display order
+  // (sort_order asc, created_at asc), preferring the current arc so a
+  // stale planned step in an old arc can't steal the badge. Computed over
+  // ALL steps (not just near-now ones) so it always agrees with the
+  // Practice timeline.
+  const nextStepId = useMemo<string | null>(() => {
+    const cands = data
+      .filter((row) => row.status !== 'completed' && row.status !== 'reflected')
+      .map((row) => {
+        const metadata = row.metadata as Record<string, unknown> | null;
+        return {
+          id: row.id as string,
+          sort_order: (row as { sort_order?: number | null }).sort_order ?? 0,
+          created_at: row.created_at as string,
+          in_arc: inCurrentArc(
+            typeof metadata?.season_id === 'string' ? (metadata.season_id as string) : null,
+            (row as { season_id?: string | null }).season_id ?? null,
+            row.starts_at,
+            row.created_at,
+          ),
+        };
+      });
+    if (cands.length === 0) return null;
+    const pool = cands.some((c) => c.in_arc) ? cands.filter((c) => c.in_arc) : cands;
+    pool.sort((a, b) => {
+      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+    return pool[0].id;
+  }, [data, inCurrentArc]);
 
   const steps = useMemo<UserAtlasStep[]>(() => {
     type Classified = UserAtlasStep & {
@@ -336,23 +394,11 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         updated_at: row.updated_at,
       });
     }
-    // Promote one planned step to `planned-next` — the step to the
-    // right of the timeline's NOW bar. Picker mirrors the timeline:
-    // any in_progress step wins, else earliest starts_at, else
-    // earliest created_at among non-completed.
-    const activeIdxs = classified
-      .map((s, i) => ({ s, i }))
-      .filter(({ s }) => s.raw_status !== 'completed' && s.raw_status !== 'reflected');
-    const nextIdx = activeIdxs.sort((a, b) => {
-      const aInProg = a.s.raw_status === 'in_progress' ? 0 : 1;
-      const bInProg = b.s.raw_status === 'in_progress' ? 0 : 1;
-      if (aInProg !== bInProg) return aInProg - bInProg;
-      const aSched = a.s.starts_at ? new Date(a.s.starts_at).getTime() : Infinity;
-      const bSched = b.s.starts_at ? new Date(b.s.starts_at).getTime() : Infinity;
-      if (aSched !== bSched) return aSched - bSched;
-      return new Date(a.s.created_at).getTime() - new Date(b.s.created_at).getTime();
-    })[0]?.i;
-    if (nextIdx != null) {
+    // Mark the single NEXT pin (may be absent if it has no location).
+    const nextIdx = nextStepId
+      ? classified.findIndex((s) => s.step_id === nextStepId)
+      : -1;
+    if (nextIdx >= 0) {
       classified[nextIdx].status = 'planned-next';
     }
     // Promote the single most-recently-completed step to
@@ -365,14 +411,15 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       classified[justDoneIdx].status = 'done-just-completed';
     }
     // Strip internal fields before returning.
-    return classified.map(({ raw_status: _r, created_at: _c, updated_at: _u, ...rest }) => rest);
-  }, [data, raceAreaCenters]);
+    return classified.map(
+      ({ raw_status: _r, created_at: _c, updated_at: _u, ...rest }) => rest,
+    );
+  }, [data, raceAreaCenters, nextStepId]);
 
   // Picker dataset — every active or recent-done step regardless of
-  // whether it has a location yet. Ordered: in_progress first, then
-  // active steps by created_at ASC (oldest queued first — the ones the
-  // user is most likely to be working on), then recent-done by
-  // updated_at DESC.
+  // whether it has a location yet. Active steps in timeline display
+  // order (sort_order asc, created_at asc) so NEXT is the first row,
+  // then recent-done by updated_at DESC.
   const pickerSteps = useMemo<ArchivePickerStep[]>(() => {
     const stepMap = new Map(steps.map((s) => [s.step_id, s]));
     type Row = {
@@ -386,6 +433,8 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       starts_at: string | null;
       created_at: string;
       updated_at: string;
+      sort_order: number;
+      in_current_arc: boolean;
       season_id: string | null;
       meta_season_id: string | null;
     };
@@ -417,7 +466,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         title: row.title,
         // If this step also made it into the placed-steps array, the
         // status may have been promoted (planned-next/done-just-completed).
-        status: placed?.status ?? cls.status,
+        status: row.id === nextStepId ? 'planned-next' : (placed?.status ?? cls.status),
         raw_status: row.status,
         lat,
         lng,
@@ -428,6 +477,13 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         starts_at: row.starts_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        sort_order: (row as { sort_order?: number | null }).sort_order ?? 0,
+        in_current_arc: inCurrentArc(
+          typeof metadata?.season_id === 'string' ? (metadata.season_id as string) : null,
+          (row as { season_id?: string | null }).season_id ?? null,
+          row.starts_at,
+          row.created_at,
+        ),
         season_id: (row as { season_id?: string | null }).season_id ?? null,
         meta_season_id:
           typeof metadata?.season_id === 'string' ? (metadata.season_id as string) : null,
@@ -438,9 +494,9 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       const bDone = b.raw_status === 'completed' || b.raw_status === 'reflected';
       if (aDone !== bDone) return aDone ? 1 : -1;
       if (!aDone) {
-        const aInProg = a.raw_status === 'in_progress' ? 0 : 1;
-        const bInProg = b.raw_status === 'in_progress' ? 0 : 1;
-        if (aInProg !== bInProg) return aInProg - bInProg;
+        // Current-arc steps lead the strip — NEXT is always the first card.
+        if (a.in_current_arc !== b.in_current_arc) return a.in_current_arc ? -1 : 1;
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
@@ -457,8 +513,9 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       created_at: r.created_at,
       season_id: r.season_id,
       meta_season_id: r.meta_season_id,
+      sort_order: r.sort_order,
     }));
-  }, [data, raceAreaCenters, steps]);
+  }, [data, raceAreaCenters, steps, inCurrentArc, nextStepId]);
 
   // Archive dataset — everything classify() rejected as not near-now.
   // The Saved sheet buckets these by arc; newest activity first.
@@ -491,7 +548,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       rows.push({
         step_id: row.id,
         title: row.title,
-        status: done ? 'done-old' : 'planned-week',
+        status: done ? 'done-old' : row.id === nextStepId ? 'planned-next' : 'planned-week',
         has_place: lat != null && lng != null,
         lat,
         lng,
@@ -503,6 +560,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         created_at: row.created_at,
         season_id: (row as { season_id?: string | null }).season_id ?? null,
         meta_season_id: metaSeasonId,
+        sort_order: (row as { sort_order?: number | null }).sort_order ?? 0,
       });
     }
     rows.sort((a, b) => {
@@ -511,7 +569,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       return bt - at;
     });
     return rows;
-  }, [data, raceAreaCenters]);
+  }, [data, raceAreaCenters, nextStepId]);
 
   return { steps, pickerSteps, archiveSteps, loading: isLoading || raceAreaCentersLoading };
 }

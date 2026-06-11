@@ -866,7 +866,6 @@ export function L3SeasonView({
       {isReordering ? (
         <SnakeReorderList
           steps={flatSteps}
-          focusStepId={focusStepId}
           onReorder={handleReorder}
           onDraggingChange={setReorderDragging}
         />
