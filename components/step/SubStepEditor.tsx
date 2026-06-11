@@ -112,7 +112,11 @@ function SubStepRow({
 
       <Text style={styles.stepNumber}>{index + 1}.</Text>
       <TextInput
-        style={[styles.input, { height: inputHeight }]}
+        // Native (Fabric) multiline inputs auto-grow intrinsically; a fixed
+        // height pins them to one clipped line when onContentSizeChange
+        // doesn't fire. Web textareas never auto-grow, so keep the measured
+        // height there.
+        style={[styles.input, Platform.OS === 'web' ? { height: inputHeight } : null]}
         value={localText}
         onChangeText={handleChange}
         placeholder="Describe this sub-step..."
@@ -304,6 +308,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: SUBSTEP_LINE_HEIGHT,
+    minHeight: SUBSTEP_MIN_HEIGHT,
+    maxHeight: SUBSTEP_MAX_HEIGHT,
     color: IOS_COLORS.label,
     backgroundColor: IOS_COLORS.systemGray6,
     borderRadius: 8,
