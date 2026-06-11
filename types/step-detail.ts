@@ -310,6 +310,11 @@ export interface AtlasStepData {
   live_tracking?: AtlasLiveTrackingData;
   local_knowledge_notes?: AtlasRaceNote[];
   local_knowledge_sharing?: AtlasLocalKnowledgeSharing;
+  /** Set when the step was drafted from a racing-area "Plan prep" CTA. */
+  venue_prep?: {
+    area_poi_id: string;
+    starts_at_hint: string | null;
+  };
 }
 
 export interface Observation {

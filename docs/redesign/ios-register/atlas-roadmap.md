@@ -123,6 +123,15 @@ Spec: `docs/redesign/specs/PLACE_LOCAL_KNOWLEDGE_SPEC.md`. Generalizes Phase O's
 - ✅ P.6 — Golf surface: `GolfAtlasSurface` (f9) Courses view overlays real `atlas_pois` `kind='course'` rows (`useAtlasPois`) alongside the Oakridge mock pins; venues camera widens to fit them (zoom 11.5 bounds-midpoint). Pin tap opens a course sheet hosting `PlaceKnowledgeSection` (COURSE KNOWLEDGE) + "Add course knowledge" → composer pre-bound to the course with golf topic chips. Sim-verified on Baylands Golf Links (2 seeded posts + composer chips Greens/Layout/Tee times/Practice).
 - ✅ P.7 — Per-interest composer topic chips: `venue_topic_tags.interest_slug` (NULL = universal Safety/Logistics; sailing tags scoped to `sail-racing`; new nursing/golf/lac-craft tag sets, Hindi-bilingual for lac-craft). `useTopicTags(interestSlug)` defaults to `sail-racing` so legacy venue surfaces keep their chips; add-knowledge CTAs pass the slug through `/venue/post/create`. The `category` column itself stays `general` for poi posts — chips were the real vocab surface. Sim-verified: nursing composer shows Parking/Charge desk/Documentation/Units/Preceptors.
 
+### 🟨 Phase V — Venue mastery (sailing f1)
+Reframe Atlas for racers around venue mastery: race-time conditions, my/fleet record at a racing area, group + public local knowledge — the fleet is the lens, not a filter. Mock: `public/atlas-racer-mockup.html`. Plan: `~/.claude/plans/mighty-cuddling-naur.md` (2026-06-11). Out of scope by data honesty: favored-side/start-bias synthesis, avg finish at venue (race_results has no venue link).
+
+- ⬜ V.1 — Race-time conditions bar: `useVenueRaceWindow` (trend window ±4h around next race `starts_at`, tide-flip detection) + `RaceTimeBar` in f1 top chrome; swap synthetic `scrubWindows` source to real `MarineTrendPoint`s (preserve `"deg|knots"` contract); honest no-race / out-of-range states.
+- ⬜ V.2 — Venue mastery sheet on racing-area select: `useVenueRecord` (all-time race steps at area + last `metadata.review` note), conditions-at-race-time row, knowledge row, "Plan prep for {race}" CTA prefilled via `onPrimaryAction`/AtlasPickerBus `{areaPoiId, startsAtHint}`.
+- ⬜ V.3 — Fleet venue layer: `atlas_fleet_venue_stats` SECURITY DEFINER RPC (class_fleet affinity roster, `atlas_can_view_step_location` gating, planned-in-window count), venue-expert pin, "N of M boats in" badge, f1 Fleet chip renamed to affinity group name.
+- ⬜ V.4 — Public knowledge band: two-band knowledge row (fleet → Everyone on BetterAt), `atlas_author_area_cred` RPC (public-only "raced here N×" badges), condition-match sort.
+- ⬜ V.5 — Tide-flip map annotation near area centroid (derives from V.1 state, no new fetches).
+
 ### ⏸ Phase D — Atlas round-trip with /races timeline rebuild
 Deferred until the parallel /races rebuild lands (`project_races_rebuild_in_flight`). Then verify atlas pins → races timeline → atlas restores state.
 

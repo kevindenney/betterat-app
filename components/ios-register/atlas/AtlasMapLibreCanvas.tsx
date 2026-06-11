@@ -402,6 +402,14 @@ export interface AtlasPinSpec {
     // learn-to-sail session). Attendable activity at an exact spot, not a peer
     // person. Calendar marker + always-on title so it reads as "go to this."
     | 'org-event'
+    // venue-expert — the fleetmate with the most completed races at the
+    // selected racing area (Phase V.3). Purple ribbon marker + name pill,
+    // shown only while that area's venue sheet is open.
+    | 'venue-expert'
+    // tide-flip — annotation chip near the race area when the tidal stream
+    // reverses inside the race window (Phase V.5). Derived from scrubber
+    // state, purely informational — not tappable.
+    | 'tide-flip'
     | 'own'
     | 'candidate'
     | 'race-mark'
@@ -684,6 +692,7 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'following',
   'peer-focus',
   'org-event',
+  'venue-expert',
   'own',
   'poi-club',
   'poi-club-anchor',
@@ -2675,6 +2684,8 @@ const PIN_TONE: Record<
   // over the faint relationship dots; LabeledPin also gives it a name + halo.
   'peer-focus': { size: 20, color: '#FF9500', shape: 'circle' },
   'org-event': { size: 22, color: '#0A84FF', shape: 'circle' },
+  'venue-expert': { size: 20, color: '#AF52DE', shape: 'circle' },
+  'tide-flip': { size: 18, color: '#B45309', shape: 'circle' },
   own: { size: 10, color: 'rgba(0, 122, 255, 0.9)', shape: 'circle' },
   // Compose-at-location: coral drop (per design grammar key)
   candidate: { size: 22, color: '#FF3B30', shape: 'drop' },
@@ -3168,6 +3179,48 @@ function LabeledPin({
         {label ? (
           <View style={styles.peerFocusLabelPill}>
             <Text style={styles.peerFocusLabelText} numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+  // venue-expert — the fleetmate with the deepest record at this racing
+  // area. Ribbon glyph in a purple disc + always-on "name · N×" pill so
+  // local expertise reads as a person you could ask, not another dot.
+  if (kind === 'venue-expert') {
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.glyphCol}>
+          <View style={styles.venueExpertMarker}>
+            <Ionicons name="ribbon" size={12} color="#FFFFFF" />
+          </View>
+        </View>
+        {label ? (
+          <View style={styles.venueExpertLabelPill}>
+            <Text style={styles.venueExpertLabelText} numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+  // tide-flip — amber annotation chip ("tide flips 15:00") near the race
+  // area centroid when the tidal stream reverses inside the race window.
+  // Matches the scrubber's amber flip pill so the two read as one fact.
+  if (kind === 'tide-flip') {
+    return (
+      <View style={styles.pinRow}>
+        <View style={styles.glyphCol}>
+          <View style={styles.tideFlipMarker}>
+            <Ionicons name="swap-vertical" size={11} color="#B45309" />
+          </View>
+        </View>
+        {label ? (
+          <View style={styles.tideFlipLabelPill}>
+            <Text style={styles.tideFlipLabelText} numberOfLines={1}>
               {label}
             </Text>
           </View>
@@ -3863,6 +3916,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  venueExpertMarker: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#AF52DE',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  venueExpertLabelPill: {
+    marginLeft: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 11,
+    backgroundColor: 'rgba(175, 82, 222, 0.95)',
+  },
+  venueExpertLabelText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  tideFlipMarker: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1.5,
+    borderColor: '#B45309',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tideFlipLabelPill: {
+    marginLeft: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 11,
+    backgroundColor: 'rgba(254, 243, 199, 0.95)',
+    borderWidth: 1,
+    borderColor: '#B45309',
+  },
+  tideFlipLabelText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B45309',
   },
   orgEventMarker: {
     width: 24,

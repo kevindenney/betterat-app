@@ -41,6 +41,7 @@ export interface TimelineRaceStepRow {
 
 interface RacePlanShape {
   course_id?: unknown;
+  area_id?: unknown;
   area_name?: unknown;
   center?: { lat?: unknown; lng?: unknown } | null;
 }
@@ -63,6 +64,7 @@ export function mapRaceStepToNextEvent(row: TimelineRaceStepRow): AtlasNextEvent
   const when = formatWhen(row.starts_at);
   const plan = readRacePlan(row.metadata);
   const courseId = typeof plan?.course_id === 'string' ? plan.course_id : undefined;
+  const areaPoiId = typeof plan?.area_id === 'string' ? plan.area_id : undefined;
   const areaName = typeof plan?.area_name === 'string' ? plan.area_name.trim() : undefined;
   const where = areaName || row.location_name?.trim() || undefined;
 
@@ -75,9 +77,11 @@ export function mapRaceStepToNextEvent(row: TimelineRaceStepRow): AtlasNextEvent
     label,
     when,
     where,
+    starts_at: row.starts_at ?? undefined,
     event_kind: 'race_step',
     event_id: row.id,
     course_id: courseId,
+    area_poi_id: areaPoiId,
     season_id: row.season_id ?? undefined,
     lat: lat ?? undefined,
     lng: lng ?? undefined,
@@ -94,6 +98,7 @@ export function mapRegattaToNextEvent(row: RegattaRow): AtlasNextEvent | null {
     when,
     where,
     conditions,
+    starts_at: row.start_date ?? undefined,
     event_kind: 'regatta',
     event_id: row.id,
     lat: row.latitude ?? undefined,
@@ -111,6 +116,7 @@ export function mapRaceEventToNextEvent(row: RaceEventRow): AtlasNextEvent | nul
     when,
     where,
     conditions,
+    starts_at: row.start_time ?? undefined,
     event_kind: 'race_event',
     event_id: row.id,
     lat: row.latitude ?? undefined,

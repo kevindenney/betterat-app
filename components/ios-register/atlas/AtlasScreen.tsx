@@ -75,6 +75,7 @@ import { RepositionAreaBanner } from './RepositionAreaBanner';
 import { RetraceAreaBanner } from './RetraceAreaBanner';
 import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
 import { useUpdateStepLocation } from '@/hooks/useUpdateStepLocation';
+import { useStepLocationSuggestions } from '@/hooks/useStepLocationSuggestions';
 import { useMyRacingAreas } from '@/hooks/useMyRacingAreas';
 import { useSavedVenues } from '@/hooks/useSavedVenues';
 import {
@@ -113,6 +114,8 @@ import {
 } from '@/hooks/useLivelihoodMentorAtlas';
 import { useNearestPlace, formatNearLabel } from '@/hooks/useNearestPlace';
 import { useMarineSnapshot, useMarineTrendWindow, conditionsLineFor, type MarineTrendPoint } from '@/hooks/useMarineSnapshot';
+import { useVenueRaceWindow, detectTideFlip } from '@/hooks/useVenueRaceWindow';
+import { useFleetVenueStats } from '@/hooks/useFleetVenueStats';
 import { useHKOObservations, isInHongKong } from '@/hooks/useHKOObservations';
 import { useWindOverlay } from '@/hooks/useWindOverlay';
 import { useTideOverlay } from '@/hooks/useTideOverlay';
@@ -126,6 +129,7 @@ import {
   type NursingSiteDetailTarget,
 } from '@/components/ios-register/atlas/NursingSiteDetailSurface';
 import { LogShiftSheet, type LogShiftSite } from '@/components/ios-register/atlas/LogShiftSheet';
+import { VenueMasterySheet } from '@/components/ios-register/atlas/VenueMasterySheet';
 import {
   YACHT_CLUB_DEMO_LOCATION,
   YACHT_CLUB_DEMO_NAME,
@@ -203,6 +207,18 @@ export interface AtlasNextEvent {
    *  the eyebrow line. */
   conditions?: string;
   /**
+   * Raw ISO start timestamp from the source row. `when` is the
+   * pre-formatted display snippet; this is the machine-readable form that
+   * feeds race-time forecasting (V.1 race window, tide-flip detection).
+   */
+  starts_at?: string;
+  /**
+   * atlas_pois.id (kind='racing_area') from the race step's
+   * race_plan.area_id — anchors venue-mastery surfaces (record, fleet
+   * stats, local knowledge) to the racing area this race runs in.
+   */
+  area_poi_id?: string;
+  /**
    * Polymorphic event reference — when set, downstream surfaces can
    * auto-link a new Step to this Event (target_event_kind/id). The
    * Atlas amber NEXT tag also uses the source row's venue coords for
@@ -266,6 +282,10 @@ export interface AtlasFrameHandlers {
     suggestedTitle?: string;
     suggestedCategory?: string;
     suggestedInterestSlug?: string;
+    /** Racing-area atlas_pois.id when planning prep for a venue (V.2). */
+    areaPoiId?: string;
+    /** ISO start of the race this prep targets — a hint, not the step's own starts_at. */
+    startsAtHint?: string;
     metadata?: Record<string, unknown>;
   }) => void;
   /** Bottom-sheet secondary CTA — "Open <next event>" / "Skip" etc. */
@@ -1795,6 +1815,15 @@ function formatConditionsValue(line: string | null | undefined): string | null {
   return `${Math.round(parsed.deg)}° · ${parsed.kn.toFixed(1)} kn`;
 }
 
+// Hourly forecast isos arrive as "2026-06-13T06:00" (UTC, no Z). Render as
+// the local clock hour for scrubber ticks — "2pm" matches formatWhen's style.
+function formatScrubClock(iso: string): string {
+  const d = new Date(iso.endsWith('Z') ? iso : `${iso}Z`);
+  if (Number.isNaN(d.getTime())) return iso.slice(11, 16);
+  const hour12 = ((d.getHours() + 11) % 12) + 1;
+  return `${hour12}${d.getHours() >= 12 ? 'pm' : 'am'}`;
+}
+
 // ---------------------------------------------------------------------------
 // F1 — Felix · first-run · Causeway Bay overview
 // ---------------------------------------------------------------------------
@@ -1842,6 +1871,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, []);
   const universalPlus = useUniversalPlus();
   const { groups: userGroups } = useUserAffinityGroups('sail-racing');
+  // The fleet lens chip names the user's actual fleet ("Dragon HK"), not
+  // the generic word — the small group is the lens, not a filter (V.3).
+  const fleetChipLabel = useMemo(() => {
+    const fleet =
+      userGroups.find((g) => g.kind === 'class_fleet') ??
+      userGroups.find((g) => g.kind === 'practice_group');
+    return fleet ? fleet.short_name?.trim() || fleet.name : 'Fleet';
+  }, [userGroups]);
   const [activeGroupIds, setActiveGroupIds] = useState<string[]>([]);
   const toggleGroupChip = useCallback((groupId: string) => {
     setActiveGroupIds((prev) =>
@@ -2727,6 +2764,71 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     targetTime: selectedRaceStartAt,
     enabled: selectedRaceStepOpen && !!selectedRaceStartAt,
   });
+  // Race-time window for the NEXT race (V.1) — when the upcoming race is
+  // inside Open-Meteo's 16-day horizon, the wind/tide scrubber re-anchors
+  // from "now + projections" to real hourly forecasts across the race
+  // window, with the start hour as the scrubber's home position.
+  const nextRaceWindow = useVenueRaceWindow({
+    lat: next?.lat ?? null,
+    lng: next?.lng ?? null,
+    startsAt: next?.starts_at ?? null,
+    enabled:
+      showWind || showTide || showCourse || selectedRaceStepOpen || knowledgeArea !== null,
+  });
+  // Race-time conditions for the venue-mastery sheet — only when the tapped
+  // racing area is the one hosting the viewer's next race; otherwise the
+  // sheet shows honest "now" conditions instead.
+  const knowledgeAreaRaceTime = useMemo(() => {
+    if (!knowledgeArea || !next?.area_poi_id || knowledgeArea.id !== next.area_poi_id) {
+      return null;
+    }
+    if (nextRaceWindow.status !== 'ok') return null;
+    const point =
+      nextRaceWindow.points[nextRaceWindow.startIndex >= 0 ? nextRaceWindow.startIndex : 0];
+    if (!point) return null;
+    return {
+      whenLabel: next.when ?? formatScrubClock(point.iso),
+      point,
+      flipLabel: nextRaceWindow.tideFlip
+        ? `Tide flips ~${formatScrubClock(nextRaceWindow.tideFlip.atIso)}`
+        : null,
+    };
+  }, [knowledgeArea, next, nextRaceWindow]);
+  // Race-week window for the fleet "N of M boats in" count — only when the
+  // tapped area hosts the viewer's next race (that's the date we know).
+  const knowledgeAreaRaceWeek = useMemo(() => {
+    if (!knowledgeArea || !next?.starts_at || !next.area_poi_id) return null;
+    if (knowledgeArea.id !== next.area_poi_id) return null;
+    const start = new Date(next.starts_at);
+    if (Number.isNaN(start.getTime())) return null;
+    const DAY = 24 * 60 * 60 * 1000;
+    return {
+      startIso: new Date(start.getTime() - 3 * DAY).toISOString(),
+      endIso: new Date(start.getTime() + 3 * DAY).toISOString(),
+    };
+  }, [knowledgeArea, next]);
+  // Fleet stats for the selected racing area. Same query key the venue
+  // sheet uses, so React Query dedupes — this read just feeds the
+  // venue-expert map pin.
+  const { data: knowledgeAreaFleetStats } = useFleetVenueStats({
+    areaPoiId: knowledgeArea?.id ?? null,
+    eventWindow: knowledgeAreaRaceWeek,
+  });
+  // Venue-expert pin — the fleetmate with the most completed races at the
+  // selected area, marked near (not on) the centroid so it doesn't sit
+  // under the area's label pill.
+  const venueExpertPin = useMemo<AtlasPinSpec | null>(() => {
+    if (!knowledgeArea) return null;
+    const top = knowledgeAreaFleetStats?.fleetmates[0];
+    if (!top) return null;
+    return {
+      id: `venue-expert:${knowledgeArea.id}:${top.userId}`,
+      lat: knowledgeArea.centerLat + 0.003,
+      lng: knowledgeArea.centerLng,
+      kind: 'venue-expert',
+      label: `${top.displayName} · ${top.completedCount}× here`,
+    };
+  }, [knowledgeArea, knowledgeAreaFleetStats]);
   const { user: authUser } = useAuth();
   const handleRacingAreaPress = useCallback((area: AtlasRacingAreaPressTarget) => {
     // Everyone gets the local-knowledge callout; owners reach the edit
@@ -2794,8 +2896,28 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     windDirection: defaultCourseWindDeg,
     enabled: showCourse || showWind,
   });
-  const scrubWindows = useMemo(
-    () => [
+  // Real hourly forecast points when available — the open race-step's
+  // ±hours trend window first, else the NEXT race's window. Null falls
+  // back to the synthetic now+projection scrub.
+  const raceScrubPoints = useMemo<MarineTrendPoint[] | null>(() => {
+    if (selectedRaceStepOpen && raceTrendWindow?.points?.length) {
+      return raceTrendWindow.points;
+    }
+    if (nextRaceWindow.status === 'ok') return nextRaceWindow.points;
+    return null;
+  }, [selectedRaceStepOpen, raceTrendWindow, nextRaceWindow]);
+  const scrubWindows = useMemo(() => {
+    if (raceScrubPoints) {
+      // Same `"deg|knots"` string contract as the synthetic windows —
+      // everything downstream (overlays, strategy, field pins) parses
+      // via parseConditionsLine and must not care which source fed it.
+      return raceScrubPoints.map((p) => ({
+        label: formatScrubClock(p.iso),
+        wind: conditionsLineFor(p.wind),
+        tide: conditionsLineFor(p.current),
+      }));
+    }
+    return [
       {
         label: 'now',
         wind: windConditionsLine,
@@ -2816,9 +2938,69 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         wind: shiftConditionsLine(windConditionsLine, 14, 1.5),
         tide: shiftConditionsLine(tideConditionsLine, 24, 0.3),
       },
-    ],
-    [tideConditionsLine, windConditionsLine],
-  );
+    ];
+  }, [raceScrubPoints, tideConditionsLine, windConditionsLine]);
+  // Scrubber home position: the race-start hour in real mode, 'now' in
+  // synthetic mode. Snap back whenever the window's source flips (pin
+  // opened/closed, forecast arriving) so a stale index never reads as a
+  // different hour than the one displayed.
+  const scrubStartIndex = useMemo(() => {
+    if (!raceScrubPoints) return 0;
+    const idx = raceScrubPoints.findIndex((p) => p.label === 'Start');
+    return idx >= 0 ? idx : 0;
+  }, [raceScrubPoints]);
+  const scrubModeKey =
+    selectedRaceStepOpen && raceTrendWindow?.points?.length
+      ? `race-step:${selectedRaceStartAt ?? ''}`
+      : nextRaceWindow.status === 'ok'
+        ? `next-race:${next?.starts_at ?? ''}`
+        : 'synthetic';
+  useEffect(() => {
+    setScrubIndex(scrubStartIndex);
+    // Intentionally keyed to the mode only — re-running on every points
+    // refetch would fight the user's scrub position.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrubModeKey]);
+  // Tidal-stream reversal inside the race window — the amber "tide flips
+  // at HH:MM" pill on the scrubber (and V.5's map annotation).
+  const scrubTideFlip = useMemo(() => {
+    if (selectedRaceStepOpen && raceTrendWindow?.points?.length && selectedRaceStartAt) {
+      return detectTideFlip(raceTrendWindow.points, selectedRaceStartAt);
+    }
+    if (nextRaceWindow.status === 'ok') return nextRaceWindow.tideFlip;
+    return null;
+  }, [selectedRaceStepOpen, raceTrendWindow, selectedRaceStartAt, nextRaceWindow]);
+  // V.5 — map annotation twin of the scrubber's amber flip pill. Anchored
+  // just south of whichever point the flip was computed for (the open race
+  // step, else the next race's area) so it doesn't sit under that pin.
+  const tideFlipPin = useMemo<AtlasPinSpec | null>(() => {
+    if (!scrubTideFlip) return null;
+    const anchor =
+      selectedRaceStepOpen && selectedPin
+        ? { lat: selectedPin.lat, lng: selectedPin.lng }
+        : next?.lat != null && next?.lng != null
+          ? { lat: next.lat, lng: next.lng }
+          : null;
+    if (!anchor) return null;
+    return {
+      id: `tide-flip:${scrubTideFlip.atIso}`,
+      lat: anchor.lat - 0.004,
+      lng: anchor.lng,
+      kind: 'tide-flip',
+      label: `Tide flips ~${formatScrubClock(scrubTideFlip.atIso)}`,
+    };
+  }, [scrubTideFlip, selectedRaceStepOpen, selectedPin, next?.lat, next?.lng]);
+  // When the next race is beyond Open-Meteo's 16-day horizon, say when the
+  // race-time forecast will become available instead of silently showing
+  // now-projections as if they were race conditions.
+  const raceForecastOpensLabel = useMemo(() => {
+    if (nextRaceWindow.status !== 'out-of-range' || !next?.starts_at) return null;
+    const t = new Date(next.starts_at).getTime();
+    if (!Number.isFinite(t)) return null;
+    const opens = new Date(t - 16 * 86_400_000);
+    if (opens.getTime() <= Date.now()) return null;
+    return opens.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }, [nextRaceWindow.status, next?.starts_at]);
   const scrubWindow =
     scrubWindows[Math.min(scrubIndex, scrubWindows.length - 1)] ?? scrubWindows[0];
   const selectedTriangleRaceOpen = isTriangleRaceStepPin(selectedPin);
@@ -2899,7 +3081,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     enabled: (showWind || showRaceConditionVectors) && scrubWindow.wind !== null,
     waterAnchors: selectedRaceMarineAnchors,
     waveHeightMeters: marineSnapshot?.waves?.heightMeters,
-    source: scrubIndex === 0 ? windSourceLabel : `${scrubWindow.label} projection`,
+    source: raceScrubPoints
+      ? `${scrubWindow.label} forecast`
+      : scrubIndex === 0
+        ? windSourceLabel
+        : `${scrubWindow.label} projection`,
   });
   const tidePins = useTideOverlay({
     centerLat: mapCenter.lat,
@@ -2971,8 +3157,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       ...(showRaceMarks ? raceMarkPins : []),
       ...windTidePins,
       ...(focusedPeerPin ? [focusedPeerPin] : []),
+      ...(venueExpertPin ? [venueExpertPin] : []),
+      ...(tideFlipPin ? [tideFlipPin] : []),
     ],
-    [filteredFramePins, raceMarkPins, showRaceMarks, windTidePins, focusedPeerPin],
+    [
+      filteredFramePins,
+      raceMarkPins,
+      showRaceMarks,
+      windTidePins,
+      focusedPeerPin,
+      venueExpertPin,
+      tideFlipPin,
+    ],
   );
   const exitCommit = useCallback(() => {
     setCommitMode(false);
@@ -3308,7 +3504,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             chips={[
               { id: 'you', label: 'My steps', tone: 'you', active: activeFilterIds.includes('you') },
               { id: 'crew', label: 'Crew', tone: 'crew', active: activeFilterIds.includes('crew') },
-              { id: 'fleet', label: 'Fleet', tone: 'fleet', active: activeFilterIds.includes('fleet') },
+              { id: 'fleet', label: fleetChipLabel, tone: 'fleet', active: activeFilterIds.includes('fleet') },
               { id: 'following', label: 'Following', tone: 'following', active: activeFilterIds.includes('following') },
               { id: 'races', label: 'Races', icon: 'boat', dotColor: RACE_FILTER_DOT, active: raceOnly },
             ]}
@@ -3456,6 +3652,21 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           // One popup at a time — the scrubber yields while a pin sheet
           // (race/step/area) is open so cards never stack.
           <WindTideScrubber
+            title={
+              raceScrubPoints && next?.when
+                ? `Race time · ${next.when}`
+                : undefined
+            }
+            flipNote={
+              scrubTideFlip
+                ? `Tide flips ~${formatScrubClock(scrubTideFlip.atIso)}`
+                : null
+            }
+            notice={
+              raceForecastOpensLabel
+                ? `Race-time forecast opens ${raceForecastOpensLabel} — showing now`
+                : null
+            }
             windows={scrubWindows.map((w) => w.label)}
             value={scrubIndex}
             onChange={setScrubIndex}
@@ -3597,47 +3808,97 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       ) : knowledgeArea ? (
         <BottomSheet
           key={`area-knowledge:${knowledgeArea.id}`}
-          eyebrow="RACING AREA"
+          eyebrow={
+            knowledgeAreaRaceTime && next?.label
+              ? `RACING AREA · NEXT: ${next.label.toUpperCase()}`
+              : 'RACING AREA'
+          }
           title={knowledgeArea.name}
           expandedContent={
-            <PlaceKnowledgeSection
-              anchor={{ poiId: knowledgeArea.id }}
-              interestSlug="sail-racing"
-              conditions={areaLiveConditions}
-              onEditArea={
-                knowledgeArea.createdBy === authUser?.id
-                  ? () => {
-                      const a = knowledgeArea;
-                      setKnowledgeArea(null);
-                      setEditingArea({
-                        id: a.id,
-                        name: a.name,
-                        centerLat: a.centerLat,
-                        centerLng: a.centerLng,
-                        radiusMeters: null,
-                        classesUsed: a.classesUsed,
-                        polygon: a.polygon,
-                      });
-                    }
-                  : undefined
-              }
-            />
+            <VenueMasterySheet
+              areaPoiId={knowledgeArea.id}
+              raceTime={knowledgeAreaRaceTime}
+              raceWindow={knowledgeAreaRaceWeek}
+              liveConditions={areaLiveConditions}
+            >
+              <PlaceKnowledgeSection
+                anchor={{ poiId: knowledgeArea.id }}
+                interestSlug="sail-racing"
+                conditions={areaLiveConditions}
+                splitPublicBand
+                groupBandLabel={knowledgeAreaFleetStats?.fleetName ?? null}
+                onAddKnowledge={
+                  knowledgeAreaRaceTime
+                    ? () => {
+                        const a = knowledgeArea;
+                        setKnowledgeArea(null);
+                        router.push({
+                          pathname: '/venue/post/create',
+                          params: {
+                            ...(a.venueId ? { venueId: a.venueId } : {}),
+                            areaPoiId: a.id,
+                          },
+                        } as never);
+                      }
+                    : undefined
+                }
+                onEditArea={
+                  knowledgeArea.createdBy === authUser?.id
+                    ? () => {
+                        const a = knowledgeArea;
+                        setKnowledgeArea(null);
+                        setEditingArea({
+                          id: a.id,
+                          name: a.name,
+                          centerLat: a.centerLat,
+                          centerLng: a.centerLng,
+                          radiusMeters: null,
+                          classesUsed: a.classesUsed,
+                          polygon: a.polygon,
+                        });
+                      }
+                    : undefined
+                }
+              />
+            </VenueMasterySheet>
           }
-          primary={{
-            label: 'Add local knowledge',
-            icon: 'add',
-            onPress: () => {
-              const a = knowledgeArea;
-              setKnowledgeArea(null);
-              router.push({
-                pathname: '/venue/post/create',
-                params: {
-                  ...(a.venueId ? { venueId: a.venueId } : {}),
-                  areaPoiId: a.id,
-                },
-              } as never);
-            },
-          }}
+          primary={
+            // When this water hosts the viewer's next race, the prime move
+            // is planning prep for it; knowledge authoring stays reachable
+            // via the add row inside the knowledge section.
+            knowledgeAreaRaceTime && next
+              ? {
+                  label: `Plan prep · ${next.label}`,
+                  icon: 'flag-outline',
+                  onPress: () => {
+                    const a = knowledgeArea;
+                    setKnowledgeArea(null);
+                    handlers.onPrimaryAction?.({
+                      lat: a.centerLat,
+                      lng: a.centerLng,
+                      place: a.name,
+                      suggestedTitle: `Prep for ${next.label}`,
+                      areaPoiId: a.id,
+                      startsAtHint: next.starts_at,
+                    });
+                  },
+                }
+              : {
+                  label: 'Add local knowledge',
+                  icon: 'add',
+                  onPress: () => {
+                    const a = knowledgeArea;
+                    setKnowledgeArea(null);
+                    router.push({
+                      pathname: '/venue/post/create',
+                      params: {
+                        ...(a.venueId ? { venueId: a.venueId } : {}),
+                        areaPoiId: a.id,
+                      },
+                    } as never);
+                  },
+                }
+          }
           secondary={{ label: 'Close', onPress: () => setKnowledgeArea(null) }}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           initialState="expanded"
@@ -4201,7 +4462,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           { id: 'all', label: 'All', active: activeFilterIds.includes('all') },
           { id: 'you', label: 'My steps', tone: 'you', active: activeFilterIds.includes('you') },
           { id: 'crew', label: 'Crew', tone: 'crew', active: activeFilterIds.includes('crew') },
-          { id: 'fleet', label: 'Fleet', tone: 'fleet', active: activeFilterIds.includes('fleet') },
+          { id: 'fleet', label: fleetChipLabel, tone: 'fleet', active: activeFilterIds.includes('fleet') },
           {
             id: 'following',
             label: 'Following',
@@ -5472,6 +5733,12 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     seedCandidate,
   );
 
+  // The user's most common step locations, surfaced as one-tap chips so a
+  // habitual spot never needs a manual pin-drop.
+  const commonSpots = useStepLocationSuggestions({}).filter(
+    (s) => s.lat != null && s.lng != null,
+  );
+
   const focusLat = handlers.initialFocus?.lat;
   const focusLng = handlers.initialFocus?.lng;
   useEffect(() => {
@@ -5537,6 +5804,47 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           Drop a pin to anchor <Text style={{ fontWeight: '700' }}>{areaLabel}</Text> to a location.
         </Text>
       </View>
+
+      {commonSpots.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={shellStyles.spotChipStrip}
+          contentContainerStyle={shellStyles.spotChipRow}
+        >
+          {commonSpots.map((s) => {
+            const selected =
+              Math.abs(candidate.lat - (s.lat as number)) < 0.0005 &&
+              Math.abs(candidate.lng - (s.lng as number)) < 0.0005;
+            return (
+              <Pressable
+                key={s.id}
+                onPress={() => {
+                  const next = { lat: s.lat as number, lng: s.lng as number, place: s.name };
+                  setCandidate(next);
+                  setSearchFocus({ lat: next.lat, lng: next.lng });
+                }}
+                style={[shellStyles.spotChip, selected && shellStyles.spotChipSelected]}
+                accessibilityRole="button"
+                accessibilityLabel={`Use ${s.name}`}
+              >
+                <Ionicons
+                  name={s.reason === 'home_venue' ? 'home-outline' : 'location-outline'}
+                  size={12}
+                  color={selected ? '#FFFFFF' : IOS_REGISTER.accentUserAction}
+                />
+                <Text
+                  style={[shellStyles.spotChipText, selected && shellStyles.spotChipTextSelected]}
+                  numberOfLines={1}
+                >
+                  {s.name}
+                  {s.useCount && s.useCount > 1 ? ` · ${s.useCount}×` : ''}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       <View style={[shellStyles.mapArea, { flex: 1 }]}>
         {handlers.useMapLibre ? (
@@ -7349,6 +7657,9 @@ function WindTideScrubber({
   metrics,
   strategy,
   bottomOffset = 0,
+  title,
+  flipNote,
+  notice,
 }: {
   windows: string[];
   value: number;
@@ -7356,6 +7667,12 @@ function WindTideScrubber({
   metrics: { label: string; value: string }[];
   strategy: CourseStrategy | null;
   bottomOffset?: number;
+  /** Header override — "Race time · Sat 2pm" when real race forecasts feed the scrub. */
+  title?: string;
+  /** Amber tidal-reversal warning, e.g. "Tide flips ~3pm". */
+  flipNote?: string | null;
+  /** Honesty line when the race forecast isn't open yet. */
+  notice?: string | null;
 }) {
   const [strategyOpen, setStrategyOpen] = useState(false);
   if (windows.length === 0) return null;
@@ -7369,11 +7686,32 @@ function WindTideScrubber({
     >
       <View style={shellStyles.windTideScrubberCard}>
         <View style={shellStyles.windTideScrubberHeader}>
-          <Text style={shellStyles.windTideScrubberLabel}>Wind / tide time</Text>
+          <Text
+            style={[
+              shellStyles.windTideScrubberLabel,
+              title ? scrubberRaceStyles.raceTitle : null,
+            ]}
+            numberOfLines={1}
+          >
+            {title ?? 'Wind / tide time'}
+          </Text>
           <Text style={shellStyles.windTideScrubberValue}>
             {windows[Math.min(value, windows.length - 1)]?.toUpperCase()}
           </Text>
         </View>
+        {flipNote ? (
+          <View style={scrubberRaceStyles.flipPill}>
+            <Ionicons name="warning-outline" size={11} color="#B25E09" />
+            <Text style={scrubberRaceStyles.flipText} numberOfLines={1}>
+              {flipNote}
+            </Text>
+          </View>
+        ) : null}
+        {notice ? (
+          <Text style={scrubberRaceStyles.notice} numberOfLines={1}>
+            {notice}
+          </Text>
+        ) : null}
         {metrics.length > 0 ? (
           <View style={cockpitStyles.gaugeRow}>
             {metrics.map((m) => (
@@ -8353,6 +8691,34 @@ const scrubberStrategyStyles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 4,
+  },
+});
+
+const scrubberRaceStyles = StyleSheet.create({
+  raceTitle: {
+    color: '#B25E09',
+  },
+  flipPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: 'rgba(245, 158, 11, 0.14)',
+  },
+  flipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#B25E09',
+  },
+  notice: {
+    marginTop: 6,
+    fontSize: 11,
+    color: IOS_REGISTER.labelSecondary,
+    fontStyle: 'italic',
   },
 });
 
@@ -11080,6 +11446,41 @@ const shellStyles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: -0.05,
     lineHeight: 16,
+  },
+  spotChipStrip: {
+    flexGrow: 0,
+    marginBottom: 8,
+  },
+  spotChipRow: {
+    paddingHorizontal: 16,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  spotChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+    maxWidth: 220,
+  },
+  spotChipSelected: {
+    backgroundColor: IOS_REGISTER.accentUserAction,
+    borderColor: IOS_REGISTER.accentUserAction,
+  },
+  spotChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+    letterSpacing: -0.1,
+  },
+  spotChipTextSelected: {
+    color: '#FFFFFF',
   },
   commitSheet: {
     paddingHorizontal: 16,

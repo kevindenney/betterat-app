@@ -708,6 +708,10 @@ export default function AtlasTab() {
       suggestedTitle?: string;
       suggestedCategory?: string;
       suggestedInterestSlug?: string;
+      /** Racing-area poi backing a "Plan prep for {race}" CTA (V.2). */
+      areaPoiId?: string;
+      /** The target race's starts_at, as a scheduling hint for the draft. */
+      startsAtHint?: string;
       metadata?: Record<string, unknown>;
     }) => {
       // Round-trip mode — PlanWhereCard pushed here expecting a result.
@@ -1005,6 +1009,14 @@ export default function AtlasTab() {
               local_knowledge_sharing: buildDefaultLocalKnowledgeSharing(
                 incomingAtlas.local_knowledge_sharing,
               ),
+              ...(pin.areaPoiId
+                ? {
+                    venue_prep: {
+                      area_poi_id: pin.areaPoiId,
+                      starts_at_hint: pin.startsAtHint ?? null,
+                    },
+                  }
+                : {}),
             },
             plan: {
               where_location: { name: locationName, lat: pin.lat, lng: pin.lng },

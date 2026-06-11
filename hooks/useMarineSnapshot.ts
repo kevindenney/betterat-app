@@ -64,6 +64,11 @@ interface UseMarineTrendWindowArgs {
   lng: number | null;
   targetTime?: string | null;
   enabled?: boolean;
+  /**
+   * Hour offsets (minutes from targetTime) to sample. Defaults to
+   * [-60, 0, 60, 120, 180]. 0 is labeled 'Start', others 'T±Nm'.
+   */
+  offsetsMinutes?: number[];
 }
 
 function roundCoord(n: number): number {
@@ -187,6 +192,94 @@ async function fetchWavesAt(
     console.warn('[atlas] waves forecast fetch failed', err);
     return null;
   }
+}
+
+// --- Batched per-date fetchers ------------------------------------------
+// A trend window samples several hours that usually share one calendar
+// date; fetching the whole day once and indexing by hour ISO turns
+// 3×N requests into 3×(distinct dates).
+
+async function fetchWindDay(
+  lat: number,
+  lng: number,
+  date: string,
+): Promise<Map<string, NonNullable<MarineSnapshot['wind']>>> {
+  const out = new Map<string, NonNullable<MarineSnapshot['wind']>>();
+  const url = `${WEATHER_URL}?latitude=${lat}&longitude=${lng}&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&models=jma_seamless&timezone=GMT&start_date=${date}&end_date=${date}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return out;
+    const json = (await res.json()) as {
+      hourly?: { time?: string[]; wind_speed_10m?: number[]; wind_direction_10m?: number[] };
+    };
+    const h = json.hourly;
+    h?.time?.forEach((iso, idx) => {
+      const spd = h?.wind_speed_10m?.[idx];
+      const dir = h?.wind_direction_10m?.[idx];
+      if (spd == null || dir == null) return;
+      out.set(iso, { degrees: Math.round(dir), knots: Math.round(spd) });
+    });
+  } catch (err) {
+    console.warn('[atlas] wind day fetch failed', err);
+  }
+  return out;
+}
+
+async function fetchCurrentDay(
+  lat: number,
+  lng: number,
+  date: string,
+): Promise<Map<string, NonNullable<MarineSnapshot['current']>>> {
+  const out = new Map<string, NonNullable<MarineSnapshot['current']>>();
+  const url = `${MARINE_URL}?latitude=${lat}&longitude=${lng}&hourly=ocean_current_velocity,ocean_current_direction&timezone=GMT&start_date=${date}&end_date=${date}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return out;
+    const json = (await res.json()) as {
+      hourly?: { time?: string[]; ocean_current_velocity?: number[]; ocean_current_direction?: number[] };
+    };
+    const h = json.hourly;
+    h?.time?.forEach((iso, idx) => {
+      const vel = h?.ocean_current_velocity?.[idx];
+      const dir = h?.ocean_current_direction?.[idx];
+      if (vel == null || dir == null) return;
+      out.set(iso, { degrees: Math.round(dir), knots: Math.round(vel * MS_TO_KNOTS * 10) / 10 });
+    });
+  } catch (err) {
+    console.warn('[atlas] current day fetch failed', err);
+  }
+  return out;
+}
+
+async function fetchWavesDay(
+  lat: number,
+  lng: number,
+  date: string,
+): Promise<Map<string, NonNullable<MarineSnapshot['waves']>>> {
+  const out = new Map<string, NonNullable<MarineSnapshot['waves']>>();
+  const url = `${MARINE_URL}?latitude=${lat}&longitude=${lng}&hourly=wave_height,wave_direction,wave_period&timezone=GMT&start_date=${date}&end_date=${date}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return out;
+    const json = (await res.json()) as {
+      hourly?: { time?: string[]; wave_height?: number[]; wave_direction?: number[]; wave_period?: number[] };
+    };
+    const h = json.hourly;
+    h?.time?.forEach((iso, idx) => {
+      const ht = h?.wave_height?.[idx];
+      const dir = h?.wave_direction?.[idx];
+      const per = h?.wave_period?.[idx];
+      if (ht == null || dir == null || per == null) return;
+      out.set(iso, {
+        degrees: Math.round(dir),
+        heightMeters: Math.round(ht * 10) / 10,
+        periodSeconds: Math.round(per * 10) / 10,
+      });
+    });
+  } catch (err) {
+    console.warn('[atlas] waves day fetch failed', err);
+  }
+  return out;
 }
 
 async function fetchWind(lat: number, lng: number): Promise<MarineSnapshot['wind']> {
@@ -324,45 +417,59 @@ export function useMarineSnapshot({
   });
 }
 
+const DEFAULT_TREND_OFFSETS = [-60, 0, 60, 120, 180];
+
+function trendOffsetLabel(minutes: number): string {
+  if (minutes === 0) return 'Start';
+  return minutes < 0 ? `T-${Math.abs(minutes)}m` : `T+${minutes}m`;
+}
+
 export function useMarineTrendWindow({
   lat,
   lng,
   targetTime = null,
   enabled = true,
+  offsetsMinutes = DEFAULT_TREND_OFFSETS,
 }: UseMarineTrendWindowArgs) {
   const queryEnabled = enabled && lat != null && lng != null && !!targetTime;
   const rLat = lat != null ? roundCoord(lat) : null;
   const rLng = lng != null ? roundCoord(lng) : null;
 
   return useQuery({
-    queryKey: ['marine-trend-window', rLat, rLng, targetTime ?? 'none'],
+    queryKey: ['marine-trend-window', rLat, rLng, targetTime ?? 'none', offsetsMinutes.join(',')],
     enabled: queryEnabled,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<{ points: MarineTrendPoint[]; outOfRange?: boolean }> => {
       if (lat == null || lng == null || !targetTime || !isForecastable(targetTime)) {
         return { points: [], outOfRange: true };
       }
-      const offsets = [
-        { label: 'T-60m', minutes: -60 },
-        { label: 'Start', minutes: 0 },
-        { label: 'T+60m', minutes: 60 },
-        { label: 'T+120m', minutes: 120 },
-        { label: 'T+180m', minutes: 180 },
-      ];
-      const hours = offsets
-        .map((o) => ({ ...o, iso: shiftedHourIso(targetTime, o.minutes) }))
-        .filter((o): o is { label: string; minutes: number; iso: string } => !!o.iso);
-      const points = await Promise.all(
-        hours.map(async (hour): Promise<MarineTrendPoint> => {
-          const date = hour.iso.slice(0, 10);
-          const [wind, current, waves] = await Promise.all([
-            fetchWindAt(lat, lng, date, hour.iso),
-            fetchCurrentAt(lat, lng, date, hour.iso),
-            fetchWavesAt(lat, lng, date, hour.iso),
-          ]);
-          return { label: hour.label, iso: hour.iso, wind, current, waves };
-        }),
-      );
+      const hours = offsetsMinutes
+        .map((minutes) => ({
+          label: trendOffsetLabel(minutes),
+          iso: shiftedHourIso(targetTime, minutes),
+        }))
+        .filter((o): o is { label: string; iso: string } => !!o.iso);
+      const dates = [...new Set(hours.map((h) => h.iso.slice(0, 10)))];
+      const mergeMaps = <T,>(maps: Map<string, T>[]): Map<string, T> => {
+        const merged = new Map<string, T>();
+        for (const m of maps) for (const [k, v] of m) merged.set(k, v);
+        return merged;
+      };
+      const [windMaps, currentMaps, wavesMaps] = await Promise.all([
+        Promise.all(dates.map((d) => fetchWindDay(lat, lng, d))),
+        Promise.all(dates.map((d) => fetchCurrentDay(lat, lng, d))),
+        Promise.all(dates.map((d) => fetchWavesDay(lat, lng, d))),
+      ]);
+      const windByHour = mergeMaps(windMaps);
+      const currentByHour = mergeMaps(currentMaps);
+      const wavesByHour = mergeMaps(wavesMaps);
+      const points = hours.map((hour): MarineTrendPoint => ({
+        label: hour.label,
+        iso: hour.iso,
+        wind: windByHour.get(hour.iso) ?? null,
+        current: currentByHour.get(hour.iso) ?? null,
+        waves: wavesByHour.get(hour.iso) ?? null,
+      }));
       return { points };
     },
   });

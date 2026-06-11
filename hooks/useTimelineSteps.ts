@@ -159,6 +159,9 @@ export function useCreateStep() {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps', variables.user_id] });
       queryClient.invalidateQueries({ queryKey: KEYS.myTimeline() });
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      // A new race step changes the fleet's planned-at-venue count.
+      queryClient.invalidateQueries({ queryKey: ['fleet-venue-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['author-area-cred'] });
       // Fire cross-interest suggestions for the new step (fire-and-forget)
       PlaybookAIService.crossInterest(data.id).catch(() => {});
     },
@@ -185,6 +188,10 @@ export function useUpdateStep() {
       // pin set goes stale ("saved but didn't appear" pattern from
       // feedback_query_cache_key_invalidation_audit).
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      // Status flips (planned→completed) change the venue-mastery record.
+      queryClient.invalidateQueries({ queryKey: ['venue-record'] });
+      queryClient.invalidateQueries({ queryKey: ['fleet-venue-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['author-area-cred'] });
     },
   });
 }
@@ -198,6 +205,9 @@ export function useReopenStepForWork() {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
       queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(stepId) });
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      queryClient.invalidateQueries({ queryKey: ['venue-record'] });
+      queryClient.invalidateQueries({ queryKey: ['fleet-venue-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['author-area-cred'] });
     },
   });
 }
@@ -232,6 +242,9 @@ export function useDeleteStep() {
       // pin set goes stale ("saved but didn't appear" pattern from
       // feedback_query_cache_key_invalidation_audit).
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      queryClient.invalidateQueries({ queryKey: ['venue-record'] });
+      queryClient.invalidateQueries({ queryKey: ['fleet-venue-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['author-area-cred'] });
     },
   });
 }

@@ -106,6 +106,9 @@ export function useUpdateStepMetadata(stepId: string | undefined) {
       // The list query doesn't display metadata, so invalidating it only
       // causes unnecessary re-renders across all cards.
       queryClient.setQueryData(KEYS.stepDetail(stepId!), updatedStep);
+      // Venue record surfaces review-note bodies from metadata, so a
+      // metadata patch (review save) must refresh it.
+      queryClient.invalidateQueries({ queryKey: ['venue-record'] });
     },
   });
 }

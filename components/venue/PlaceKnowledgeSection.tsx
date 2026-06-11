@@ -17,6 +17,7 @@ import { router } from 'expo-router';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { getPlaceKnowledgeLabels } from '@/lib/vocabulary';
 import { usePlaceKnowledge } from '@/hooks/useCommunityFeed';
+import { useAuthorAreaCred } from '@/hooks/useAuthorAreaCred';
 import { ConditionMatchingService } from '@/services/venue/ConditionMatchingService';
 import { POST_TYPE_CONFIG } from '@/types/community-feed';
 import type { CurrentConditions, FeedPost, KnowledgeAnchor } from '@/types/community-feed';
@@ -50,6 +51,8 @@ export function PlaceKnowledgeSection({
   heading,
   interestSlug,
   onAddKnowledge,
+  splitPublicBand = false,
+  groupBandLabel,
 }: {
   anchor: KnowledgeAnchor;
   conditions: CurrentConditions | null;
@@ -61,6 +64,13 @@ export function PlaceKnowledgeSection({
   interestSlug?: string | null;
   /** Renders the vocab add-CTA row (e.g. "Add site knowledge"). */
   onAddKnowledge?: () => void;
+  /**
+   * Venue-mastery sheet (V.4): split posts into a named group band and an
+   * "Everyone on BetterAt" public band with raced-here credibility badges.
+   */
+  splitPublicBand?: boolean;
+  /** Heading for the group band ("Dragon HK"); falls back to vocab heading. */
+  groupBandLabel?: string | null;
 }) {
   const labels = getPlaceKnowledgeLabels(interestSlug);
   const { data, isLoading } = usePlaceKnowledge(anchor, 10);
@@ -69,6 +79,35 @@ export function PlaceKnowledgeSection({
     if (!data || !conditions || conditions.windSpeed == null) return null;
     return data.posts.filter((p) => bestMatchScore(p, conditions) >= MATCH_THRESHOLD).length;
   }, [data, conditions]);
+
+  // V.4 split: group-scoped posts (fleet/org/blueprint/cohort) vs public
+  // posts from anyone on BetterAt. Public band sorts by condition match
+  // first (today's wind finds the relevant note), then recency.
+  const groupPosts = useMemo(
+    () => (data?.posts ?? []).filter((p) => p.scope_type !== 'public'),
+    [data],
+  );
+  const publicPosts = useMemo(() => {
+    const pub = (data?.posts ?? []).filter((p) => p.scope_type === 'public');
+    if (!conditions || conditions.windSpeed == null) return pub;
+    return [...pub].sort((a, b) => {
+      const diff = bestMatchScore(b, conditions) - bestMatchScore(a, conditions);
+      if (diff !== 0) return diff;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [data, conditions]);
+  const publicAuthorIds = useMemo(
+    () =>
+      Array.from(
+        new Set(publicPosts.map((p) => p.author_id).filter((id): id is string => Boolean(id))),
+      ),
+    [publicPosts],
+  );
+  const { data: authorCred } = useAuthorAreaCred({
+    areaPoiId: anchor.poiId ?? null,
+    authorIds: publicAuthorIds,
+    enabled: splitPublicBand,
+  });
 
   const countsLine = useMemo(() => {
     if (!data) return null;
@@ -92,57 +131,97 @@ export function PlaceKnowledgeSection({
 
   const posts = data?.posts ?? [];
 
+  const renderPostRow = (post: FeedPost, credCount?: number) => {
+    const typeConfig = POST_TYPE_CONFIG[post.post_type];
+    const scope = scopeLabel(post);
+    const cred = credCount && credCount > 0 ? `Local · raced here ${credCount}×` : null;
+    return (
+      <Pressable
+        key={post.id}
+        // Function-form Pressable styles silently drop row layout —
+        // keep flexDirection on the inner View.
+        style={({ pressed }) => (pressed ? styles.postRowPressed : null)}
+        onPress={() => router.push(`/venue/post/${post.id}`)}
+        accessibilityRole="button"
+        accessibilityLabel={`Open post: ${post.title}`}
+      >
+        <View style={styles.postRow}>
+          <Ionicons
+            name={(typeConfig?.icon ?? 'chatbubbles-outline') as never}
+            size={14}
+            color={typeConfig?.color ?? IOS_REGISTER.labelSecondary}
+            style={styles.postIcon}
+          />
+          <View style={styles.postBody}>
+            <Text style={styles.postTitle} numberOfLines={1}>{post.title}</Text>
+            <Text style={styles.postMeta} numberOfLines={1}>
+              {[post.author?.full_name, cred ?? scope].filter(Boolean).join(' · ')}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={14} color={IOS_REGISTER.labelTertiary} />
+        </View>
+      </Pressable>
+    );
+  };
+
+  const matchPill =
+    matchedCount != null && conditions ? (
+      <View style={styles.matchRow}>
+        <Ionicons name="flash" size={12} color="#B45309" />
+        <Text style={styles.matchText}>
+          Matches now
+          {conditions.windDirection != null
+            ? ` (${Math.round(conditions.windDirection)}° · ${Math.round(conditions.windSpeed ?? 0)} kn)`
+            : ''}
+          : {matchedCount}
+        </Text>
+      </View>
+    ) : null;
+
   return (
     <View style={styles.card}>
-      <Text style={styles.heading}>{heading ?? labels.heading}</Text>
-      {posts.length === 0 ? (
-        <Text style={styles.emptyText}>{labels.emptyText}</Text>
+      {splitPublicBand ? (
+        <>
+          <Text style={styles.heading}>
+            {(groupBandLabel?.trim() || heading || labels.heading).toUpperCase()}
+          </Text>
+          {groupPosts.length === 0 ? (
+            <Text style={styles.emptyText}>{labels.emptyText}</Text>
+          ) : (
+            <>
+              {countsLine ? <Text style={styles.countsLine}>{countsLine}</Text> : null}
+              {matchPill}
+              {groupPosts.slice(0, TOP_POSTS_SHOWN).map((post) => renderPostRow(post))}
+            </>
+          )}
+          {publicPosts.length > 0 ? (
+            <>
+              <Text style={[styles.heading, styles.publicBandHeading]}>
+                EVERYONE ON BETTERAT
+              </Text>
+              {publicPosts
+                .slice(0, TOP_POSTS_SHOWN)
+                .map((post) =>
+                  renderPostRow(
+                    post,
+                    post.author_id ? authorCred?.[post.author_id] : undefined,
+                  ),
+                )}
+            </>
+          ) : null}
+        </>
       ) : (
         <>
-          {countsLine ? <Text style={styles.countsLine}>{countsLine}</Text> : null}
-          {matchedCount != null && conditions ? (
-            <View style={styles.matchRow}>
-              <Ionicons name="flash" size={12} color="#B45309" />
-              <Text style={styles.matchText}>
-                Matches now
-                {conditions.windDirection != null
-                  ? ` (${Math.round(conditions.windDirection)}° · ${Math.round(conditions.windSpeed ?? 0)} kn)`
-                  : ''}
-                : {matchedCount}
-              </Text>
-            </View>
-          ) : null}
-          {posts.slice(0, TOP_POSTS_SHOWN).map((post) => {
-            const typeConfig = POST_TYPE_CONFIG[post.post_type];
-            const scope = scopeLabel(post);
-            return (
-              <Pressable
-                key={post.id}
-                // Function-form Pressable styles silently drop row layout —
-                // keep flexDirection on the inner View.
-                style={({ pressed }) => (pressed ? styles.postRowPressed : null)}
-                onPress={() => router.push(`/venue/post/${post.id}`)}
-                accessibilityRole="button"
-                accessibilityLabel={`Open post: ${post.title}`}
-              >
-                <View style={styles.postRow}>
-                  <Ionicons
-                    name={(typeConfig?.icon ?? 'chatbubbles-outline') as never}
-                    size={14}
-                    color={typeConfig?.color ?? IOS_REGISTER.labelSecondary}
-                    style={styles.postIcon}
-                  />
-                  <View style={styles.postBody}>
-                    <Text style={styles.postTitle} numberOfLines={1}>{post.title}</Text>
-                    <Text style={styles.postMeta} numberOfLines={1}>
-                      {[post.author?.full_name, scope].filter(Boolean).join(' · ')}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={14} color={IOS_REGISTER.labelTertiary} />
-                </View>
-              </Pressable>
-            );
-          })}
+          <Text style={styles.heading}>{heading ?? labels.heading}</Text>
+          {posts.length === 0 ? (
+            <Text style={styles.emptyText}>{labels.emptyText}</Text>
+          ) : (
+            <>
+              {countsLine ? <Text style={styles.countsLine}>{countsLine}</Text> : null}
+              {matchPill}
+              {posts.slice(0, TOP_POSTS_SHOWN).map((post) => renderPostRow(post))}
+            </>
+          )}
         </>
       )}
       {onAddKnowledge ? (
@@ -189,6 +268,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.8,
     color: IOS_REGISTER.labelSecondary,
+  },
+  publicBandHeading: {
+    marginTop: 6,
   },
   countsLine: {
     fontSize: 13,
