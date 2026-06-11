@@ -25,6 +25,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import type { Season, SeasonStatus, CreateSeasonInput, UpdateSeasonInput } from '@/types/season';
 
 type Mode = 'add' | 'edit';
@@ -42,6 +43,9 @@ interface Props {
   onCreate?: (input: CreateSeasonInput) => Promise<void> | void;
   onUpdate?: (seasonId: string, input: UpdateSeasonInput) => Promise<void> | void;
   onArchive?: (seasonId: string) => Promise<void> | void;
+  onDelete?: (seasonId: string) => Promise<void> | void;
+  /** Only empty arcs (no steps resolved to them) may be deleted outright. */
+  canDelete?: boolean;
 }
 
 const STATUS_OPTIONS: { value: SeasonStatus; label: string }[] = [
@@ -75,6 +79,8 @@ export function SeasonEditSheet({
   onCreate,
   onUpdate,
   onArchive,
+  onDelete,
+  canDelete = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const initial = useMemo(() => {
@@ -175,6 +181,26 @@ export function SeasonEditSheet({
     }
   };
 
+  const handleDelete = () => {
+    if (!season || !onDelete) return;
+    showConfirm(
+      `Delete ${periodNoun}`,
+      `Delete “${season.name}”? It has no steps, so nothing else is removed. This can’t be undone.`,
+      async () => {
+        setError(null);
+        setSubmitting(true);
+        try {
+          await onDelete(season.id);
+          onClose();
+        } catch (e) {
+          setError(e instanceof Error ? e.message : `Couldn’t delete the ${periodNoun}.`);
+          setSubmitting(false);
+        }
+      },
+      { destructive: true },
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -266,11 +292,7 @@ export function SeasonEditSheet({
                       <Pressable
                         key={opt.value}
                         onPress={() => setStatus(opt.value)}
-                        style={({ pressed }) => [
-                          styles.statusChip,
-                          active && styles.statusChipActive,
-                          pressed && styles.pressed,
-                        ]}
+                        style={[styles.statusChip, active && styles.statusChipActive]}
                       >
                         <Text
                           style={[
@@ -305,14 +327,21 @@ export function SeasonEditSheet({
               <Pressable
                 onPress={handleArchive}
                 disabled={submitting}
-                style={({ pressed }) => [
-                  styles.archiveBtn,
-                  pressed && styles.pressed,
-                  submitting && styles.disabled,
-                ]}
+                style={[styles.archiveBtn, submitting && styles.disabled]}
               >
                 <Ionicons name="archive-outline" size={16} color={IOS_REGISTER.labelSecondary} />
                 <Text style={styles.archiveBtnText}>Archive arc</Text>
+              </Pressable>
+            ) : null}
+
+            {mode === 'edit' && onDelete && canDelete && season ? (
+              <Pressable
+                onPress={handleDelete}
+                disabled={submitting}
+                style={[styles.archiveBtn, submitting && styles.disabled]}
+              >
+                <Ionicons name="trash-outline" size={16} color="#E5484D" />
+                <Text style={styles.deleteBtnText}>Delete arc</Text>
               </Pressable>
             ) : null}
           </ScrollView>
@@ -468,6 +497,11 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.labelSecondary,
     fontWeight: '500',
   },
+  deleteBtnText: {
+    fontSize: 13.5,
+    color: '#E5484D',
+    fontWeight: '500',
+  },
   footer: {
     flexDirection: 'row',
     gap: 10,
@@ -502,8 +536,5 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.4,
-  },
-  pressed: {
-    opacity: 0.55,
   },
 });

@@ -25,7 +25,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useMyTimeline, useUpdateStep, useDeleteStep } from '@/hooks/useTimelineSteps';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
-import { useCurrentSeason, useUserSeasons, useCreateSeason, useUpdateSeason, useArchiveSeason } from '@/hooks/useSeason';
+import { useCurrentSeason, useUserSeasons, useCreateSeason, useUpdateSeason, useArchiveSeason, useDeleteSeason } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 import { useStepCapabilityEvidence } from '@/hooks/useStepCapabilityEvidence';
 import { useInterestVision } from '@/hooks/useInterestVision';
@@ -424,6 +424,7 @@ export function TimelineZoomPracticeScreen() {
   const createSeason = useCreateSeason();
   const updateSeasonMutation = useUpdateSeason();
   const archiveSeasonMutation = useArchiveSeason();
+  const deleteSeasonMutation = useDeleteSeason();
 
   // Season add/edit sheet — opened from L3 picker footer + L4 BROWSE ARCS
   // header. The sheet handles both modes via the same form; we resolve
@@ -457,6 +458,25 @@ export function TimelineZoomPracticeScreen() {
     },
     [archiveSeasonMutation],
   );
+  const handleSeasonDelete = useCallback(
+    async (seasonId: string) => {
+      await deleteSeasonMutation.mutateAsync(seasonId);
+    },
+    [deleteSeasonMutation],
+  );
+  // Delete is only offered when no step explicitly references the arc
+  // (season_id column or metadata pin). Lane bricks are the wrong gate:
+  // the adapter back-fills undated steps into the nearest arc, so an
+  // arc with zero real references can still show a populated lane.
+  const editingArcIsEmpty = useMemo(() => {
+    if (seasonSheetState?.mode !== 'edit') return false;
+    const arcId = seasonSheetState.season.id;
+    return !steps.some(
+      (s) =>
+        s.season_id === arcId ||
+        (s.metadata as { season_id?: string } | null)?.season_id === arcId,
+    );
+  }, [seasonSheetState, steps]);
   const moveTargets = useMemo(
     () => buildMoveTargets(currentSeason, seasonRecords),
     [currentSeason, seasonRecords],
@@ -644,6 +664,8 @@ export function TimelineZoomPracticeScreen() {
         onCreate={handleSeasonCreate}
         onUpdate={handleSeasonUpdate}
         onArchive={handleSeasonArchive}
+        onDelete={handleSeasonDelete}
+        canDelete={editingArcIsEmpty}
       />
       <MoveToSeasonSheet
         visible={moveTargetIds !== null}
