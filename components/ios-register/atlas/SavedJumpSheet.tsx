@@ -11,7 +11,7 @@
  * "from where I'm looking", matching Apple/Google favourites behavior.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dimensions,
   Modal,
@@ -19,6 +19,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +37,16 @@ export interface SavedPlaceItem {
   /** Trailing context shown after the distance (e.g. a class or fleet). */
   subtitle?: string | null;
   isHome?: boolean;
+}
+
+/**
+ * Steps outside the near-now window, bucketed by arc (season). Rendered as
+ * collapsed sections under MY STEPS so older work stays one tap away.
+ */
+export interface ArcStepGroup {
+  id: string;
+  label: string;
+  steps: PickerStep[];
 }
 
 /** A step authored by someone you follow/know, grouped by relationship. */
@@ -81,6 +92,8 @@ interface SavedJumpSheetProps {
   selectedStepId?: string | null;
   /** When set, the menu opens as a dropdown anchored under this rect (mockup #39). */
   anchor?: AnchorRect | null;
+  /** Older/further-out steps grouped by arc, newest arc first. */
+  arcGroups?: ArcStepGroup[];
   /** Steps authored by crew/fleet/following/nearby, grouped by relationship. */
   relationshipSteps?: RelationshipStepItem[];
   /** Org-/group-originated mapped steps (RHKYC Dragon Class, cohorts…). */
@@ -168,6 +181,7 @@ export function SavedJumpSheet({
   steps,
   selectedStepId = null,
   anchor = null,
+  arcGroups = [],
   relationshipSteps = [],
   orgStepItems = [],
   racingAreas,
@@ -179,8 +193,19 @@ export function SavedJumpSheet({
   onPickPeerStep,
   onAddPlaceInView,
 }: SavedJumpSheetProps) {
+  // Arc sections start collapsed — near-now steps stay the headline, older
+  // arcs are one tap away. Persisting across opens within the session is fine.
+  const [expandedArcs, setExpandedArcs] = useState<Set<string>>(() => new Set());
+  const toggleArc = (id: string) =>
+    setExpandedArcs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const hasAnything =
     steps.length > 0 ||
+    arcGroups.length > 0 ||
     relationshipSteps.length > 0 ||
     orgStepItems.length > 0 ||
     racingAreas.length > 0 ||
@@ -272,14 +297,13 @@ export function SavedJumpSheet({
                     const subtitle = readableLocationName(step.location_name);
                     const isSelected = step.step_id === selectedStepId;
                     return (
-                      <Pressable
+                      // TouchableOpacity + static style array — the function-form
+                      // Pressable style silently strips flexDirection:'row' here.
+                      <TouchableOpacity
                         key={step.step_id}
                         onPress={() => onPickStep(step)}
-                        style={({ pressed }) => [
-                          styles.row,
-                          isSelected && styles.rowSelected,
-                          pressed && styles.rowPressed,
-                        ]}
+                        activeOpacity={0.55}
+                        style={[styles.row, isSelected && styles.rowSelected]}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isSelected }}
                         accessibilityLabel={`Focus on ${step.title}`}
@@ -316,11 +340,88 @@ export function SavedJumpSheet({
                             ) : null}
                           </View>
                         </View>
-                      </Pressable>
+                      </TouchableOpacity>
                     );
                   })}
                 </>
               ) : null}
+
+              {arcGroups.map((group) => {
+                if (group.steps.length === 0) return null;
+                const expanded = expandedArcs.has(group.id);
+                return (
+                  <React.Fragment key={group.id}>
+                    <TouchableOpacity
+                      onPress={() => toggleArc(group.id)}
+                      activeOpacity={0.55}
+                      style={styles.arcHeader}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded }}
+                      accessibilityLabel={`${group.label}, ${group.steps.length} steps`}
+                    >
+                      <Text style={styles.sectionHeaderInline}>
+                        {group.label} · {group.steps.length}
+                      </Text>
+                      <Ionicons
+                        name={expanded ? 'chevron-down' : 'chevron-forward'}
+                        size={13}
+                        color={IOS_COLORS.secondaryLabel}
+                      />
+                    </TouchableOpacity>
+                    {expanded
+                      ? group.steps.map((step) => {
+                          const badgeLabel = STATUS_BADGE_LABEL[step.status];
+                          const badgeTone = STATUS_BADGE_TONE[step.status];
+                          const subtitle = readableLocationName(step.location_name);
+                          return (
+                            <TouchableOpacity
+                              key={step.step_id}
+                              onPress={() => onPickStep(step)}
+                              activeOpacity={0.55}
+                              style={styles.row}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Focus on ${step.title}`}
+                            >
+                              <View
+                                style={[
+                                  styles.dot,
+                                  {
+                                    backgroundColor: statusDotColor(step.status, step.has_place),
+                                  },
+                                ]}
+                              />
+                              <View style={styles.rowBody}>
+                                <Text style={styles.rowTitle} numberOfLines={1}>
+                                  {step.title}
+                                </Text>
+                                <View style={styles.rowMetaLine}>
+                                  <Text style={styles.rowMeta} numberOfLines={1}>
+                                    {subtitle ?? (step.has_place ? 'On the map' : 'No place yet')}
+                                  </Text>
+                                  {badgeLabel && badgeTone ? (
+                                    <View
+                                      style={[
+                                        styles.badge,
+                                        {
+                                          backgroundColor: badgeTone.background,
+                                          borderColor: badgeTone.border,
+                                        },
+                                      ]}
+                                    >
+                                      <Text style={[styles.badgeText, { color: badgeTone.text }]}>
+                                        {badgeLabel}
+                                      </Text>
+                                    </View>
+                                  ) : null}
+                                </View>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })
+                      : null}
+                  </React.Fragment>
+                );
+              })}
 
               {RELATIONSHIP_ORDER.map((rel) => {
                 const group = relationshipSteps.filter((s) => s.relationship === rel);
@@ -335,10 +436,11 @@ export function SavedJumpSheet({
                       const dist = formatDistance(center, item.lat, item.lng);
                       const rowMeta = [item.by, dist].filter(Boolean).join(' · ');
                       return (
-                        <Pressable
+                        <TouchableOpacity
                           key={item.id}
                           onPress={() => onPickPeerStep?.(item)}
-                          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                          activeOpacity={0.55}
+                          style={styles.row}
                           accessibilityRole="button"
                           accessibilityLabel={`Focus on ${item.title}`}
                         >
@@ -353,7 +455,7 @@ export function SavedJumpSheet({
                             </Text>
                           ) : null}
                         </View>
-                      </Pressable>
+                      </TouchableOpacity>
                     );
                   })}
                     {overflow > 0 ? (
@@ -370,10 +472,11 @@ export function SavedJumpSheet({
                     const dist = formatDistance(center, item.lat, item.lng);
                     const meta = [dist, item.subtitle].filter(Boolean).join(' · ');
                     return (
-                      <Pressable
+                      <TouchableOpacity
                         key={item.id}
                         onPress={() => onPickPlace(item)}
-                        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                        activeOpacity={0.55}
+                        style={styles.row}
                         accessibilityRole="button"
                         accessibilityLabel={`Go to ${item.name}`}
                       >
@@ -393,7 +496,7 @@ export function SavedJumpSheet({
                             </Text>
                           ) : null}
                         </View>
-                      </Pressable>
+                      </TouchableOpacity>
                     );
                   })}
                 </>
@@ -406,10 +509,11 @@ export function SavedJumpSheet({
                     const dist = formatDistance(center, area.lat, area.lng);
                     const meta = [dist, area.subtitle].filter(Boolean).join(' · ');
                     return (
-                      <Pressable
+                      <TouchableOpacity
                         key={area.id}
                         onPress={() => onPickPlace(area)}
-                        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                        activeOpacity={0.55}
+                        style={styles.row}
                         accessibilityRole="button"
                         accessibilityLabel={`Go to ${area.name}`}
                       >
@@ -429,7 +533,7 @@ export function SavedJumpSheet({
                             </Text>
                           ) : null}
                         </View>
-                      </Pressable>
+                      </TouchableOpacity>
                     );
                   })}
                 </>
@@ -446,10 +550,11 @@ export function SavedJumpSheet({
                         : `${dist} away`
                       : null;
                     return (
-                      <Pressable
+                      <TouchableOpacity
                         key={venue.id}
                         onPress={() => onPickPlace(venue)}
-                        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                        activeOpacity={0.55}
+                        style={styles.row}
                         accessibilityRole="button"
                         accessibilityLabel={`Go to ${venue.name}`}
                       >
@@ -469,7 +574,7 @@ export function SavedJumpSheet({
                             </Text>
                           ) : null}
                         </View>
-                      </Pressable>
+                      </TouchableOpacity>
                     );
                   })}
                 </>
@@ -478,15 +583,16 @@ export function SavedJumpSheet({
           )}
 
           {onAddPlaceInView ? (
-            <Pressable
+            <TouchableOpacity
               onPress={onAddPlaceInView}
-              style={({ pressed }) => [styles.footer, pressed && styles.footerPressed]}
+              activeOpacity={0.55}
+              style={styles.footer}
               accessibilityRole="button"
               accessibilityLabel="Add the place in view to saved"
             >
               <Ionicons name="add" size={16} color={IOS_COLORS.systemBlue} />
               <Text style={styles.footerText}>Add the place in view to Saved</Text>
-            </Pressable>
+            </TouchableOpacity>
           ) : null}
         </Pressable>
       </Pressable>
@@ -581,6 +687,25 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 5,
   },
+  arcHeader: {
+    alignSelf: 'stretch',
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingTop: 12,
+    paddingBottom: 5,
+    borderRadius: 8,
+  },
+  sectionHeaderInline: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.6,
+    color: IOS_COLORS.secondaryLabel,
+    textTransform: 'uppercase',
+  },
   scroll: {
     maxHeight: 460,
     flexShrink: 1,
@@ -607,9 +732,6 @@ const styles = StyleSheet.create({
   },
   rowSelected: {
     backgroundColor: 'rgba(10, 132, 255, 0.08)',
-  },
-  rowPressed: {
-    backgroundColor: 'rgba(120, 120, 130, 0.12)',
   },
   dot: {
     width: 9,
@@ -686,9 +808,6 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(60, 60, 67, 0.18)',
-  },
-  footerPressed: {
-    opacity: 0.55,
   },
   footerText: {
     fontSize: 13.5,

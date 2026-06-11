@@ -12,7 +12,12 @@ import { useMemo } from 'react';
 import { useAtlasPois, type AtlasPoi } from './useAtlasPois';
 import { useAtlasPeerSteps, type AtlasPeerStep } from './useAtlasPeerSteps';
 import { useAtlasOrgSteps, type AtlasOrgStep } from './useAtlasOrgSteps';
-import { useUserAtlasSteps, type PickerStep, type UserAtlasStep } from './useUserAtlasSteps';
+import {
+  useUserAtlasSteps,
+  type ArchivePickerStep,
+  type PickerStep,
+  type UserAtlasStep,
+} from './useUserAtlasSteps';
 import { useSailingPoisNear, type SailingPoiRow } from './useSailingPoisNear';
 import { useVocabulary } from './useVocabulary';
 import { getVisibilityLabels } from '@/lib/vocabulary';
@@ -310,6 +315,8 @@ export function useAtlasFramePins({
 }: UseAtlasFramePinsArgs): {
   pins: AtlasPinSpec[];
   pickerSteps: PickerStep[];
+  /** Steps outside the near-now window — the ★ Saved sheet's per-arc archive. */
+  archiveSteps: ArchivePickerStep[];
   /** Raw peer steps (un-clustered) — the ★ Saved sheet lists these by relationship. */
   peerSteps: AtlasPeerStep[];
   /** Org-published located steps nearby — the ★ Saved sheet's "Groups" section. */
@@ -352,7 +359,7 @@ export function useAtlasFramePins({
     radiusKm,
     interestSlug,
   });
-  const { steps: userSteps, pickerSteps, loading: userStepsLoading } = useUserAtlasSteps({
+  const { steps: userSteps, pickerSteps, archiveSteps, loading: userStepsLoading } = useUserAtlasSteps({
     interestSlug,
   });
   // Sailing POI bbox — ~radiusKm half-side in lat (1° ≈ 111km) and lng
@@ -609,6 +616,7 @@ export function useAtlasFramePins({
   return {
     pins,
     pickerSteps,
+    archiveSteps,
     peerSteps: peers,
     orgSteps,
     loading: poisLoading || peersLoading || orgStepsLoading || userStepsLoading,

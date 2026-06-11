@@ -67,6 +67,22 @@ export interface PickerStep {
   location_name: string | null;
 }
 
+/**
+ * Archive entry — a step OUTSIDE the near-now window (classify() rejected
+ * it: completed >30d ago, scheduled >14d out, or stale unscheduled). The
+ * Saved sheet groups these by arc (season) so older work stays one tap away
+ * without crowding the near-now picker. Carries the fields arc resolution
+ * needs (explicit metadata season pin → date containment → season column).
+ */
+export interface ArchivePickerStep extends PickerStep {
+  starts_at: string | null;
+  created_at: string;
+  /** seasons.id from the timeline_steps.season_id column, if set. */
+  season_id: string | null;
+  /** Explicit arc pin from metadata.season_id (timeline move-to-arc). */
+  meta_season_id: string | null;
+}
+
 interface RaceAreaCenter {
   id: string;
   name: string;
@@ -220,7 +236,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       if (interestErr || !interestRow) return [];
       const { data: rows, error } = await supabase
         .from('timeline_steps')
-        .select('id, title, category, is_race, status, starts_at, created_at, updated_at, location_lat, location_lng, location_name, metadata')
+        .select('id, title, category, is_race, status, starts_at, created_at, updated_at, season_id, location_lat, location_lng, location_name, metadata')
         .eq('user_id', userId)
         .eq('interest_id', interestRow.id)
         .limit(200);
@@ -435,5 +451,58 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
     }));
   }, [data, raceAreaCenters, steps]);
 
-  return { steps, pickerSteps, loading: isLoading || raceAreaCentersLoading };
+  // Archive dataset — everything classify() rejected as not near-now.
+  // The Saved sheet buckets these by arc; newest activity first.
+  const archiveSteps = useMemo<ArchivePickerStep[]>(() => {
+    const rows: ArchivePickerStep[] = [];
+    for (const row of data) {
+      const cls = classify({
+        status: row.status,
+        starts_at: row.starts_at,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      });
+      if (cls) continue; // near-now — already in pickerSteps
+      const metadata = row.metadata as Record<string, unknown> | null;
+      const plan = (row.metadata as { plan?: { where_location?: unknown } } | null)?.plan;
+      const whereLocation = plan?.where_location as
+        | { lat?: unknown; lng?: unknown; name?: unknown }
+        | undefined;
+      const isRaceRow = (row as { is_race?: boolean | null }).is_race ?? false;
+      const raceCenter = isRaceRow ? extractRacePlanCenter(metadata, raceAreaCenters) : null;
+      const fallbackLat =
+        typeof whereLocation?.lat === 'number' ? whereLocation.lat : null;
+      const fallbackLng =
+        typeof whereLocation?.lng === 'number' ? whereLocation.lng : null;
+      const lat = raceCenter?.lat ?? row.location_lat ?? fallbackLat;
+      const lng = raceCenter?.lng ?? row.location_lng ?? fallbackLng;
+      const done = row.status === 'completed' || row.status === 'reflected';
+      const metaSeasonId =
+        typeof metadata?.season_id === 'string' ? (metadata.season_id as string) : null;
+      rows.push({
+        step_id: row.id,
+        title: row.title,
+        status: done ? 'done-old' : 'planned-week',
+        has_place: lat != null && lng != null,
+        lat,
+        lng,
+        location_name:
+          (raceCenter ? extractRaceContext(metadata)?.areaName : null) ??
+          row.location_name ??
+          (typeof whereLocation?.name === 'string' ? whereLocation.name : null),
+        starts_at: row.starts_at,
+        created_at: row.created_at,
+        season_id: (row as { season_id?: string | null }).season_id ?? null,
+        meta_season_id: metaSeasonId,
+      });
+    }
+    rows.sort((a, b) => {
+      const at = new Date(a.starts_at ?? a.created_at).getTime();
+      const bt = new Date(b.starts_at ?? b.created_at).getTime();
+      return bt - at;
+    });
+    return rows;
+  }, [data, raceAreaCenters]);
+
+  return { steps, pickerSteps, archiveSteps, loading: isLoading || raceAreaCentersLoading };
 }
