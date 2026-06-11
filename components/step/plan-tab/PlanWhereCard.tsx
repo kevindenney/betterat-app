@@ -272,7 +272,9 @@ export function PlanWhereCard({
       });
     });
     router.push({
-      pathname: '/(tabs)/atlas',
+      // Root-level alias: pushing the tab route would POP the step screen
+      // (killing the bus subscription above), so the pick was never applied.
+      pathname: '/atlas-picker',
       params: { fromPlan: '1' },
     });
   }, [router, onChange, location?.venue_id, location?.location_precision, isNursing]);

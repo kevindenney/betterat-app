@@ -2710,8 +2710,10 @@ const PIN_TONE: Record<
   AtlasPinSpec['kind'],
   { size: number; color: string; shape: PinShape }
 > = {
-  // Relationships — circles
-  you: { size: 14, color: '#FF3B30', shape: 'circle' },
+  // Relationships — circles. 'you' matches the blue my-step pins (own steps
+  // render via the my-step pipeline; this tone only backs the chip key and
+  // any residual self rendering).
+  you: { size: 14, color: '#007AFF', shape: 'circle' },
   crew: { size: 11, color: '#FF3B30', shape: 'circle' },
   fleet: { size: 10, color: 'rgba(40, 50, 70, 0.85)', shape: 'circle' },
   following: { size: 8, color: 'rgba(60, 70, 90, 0.55)', shape: 'circle' },

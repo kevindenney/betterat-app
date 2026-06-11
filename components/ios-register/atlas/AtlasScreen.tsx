@@ -851,7 +851,9 @@ function FilterChip({
   onPress,
 }: FilterChipItem & { compact?: boolean; onPress?: () => void }) {
   const toneDot: Record<string, string> = {
-    you: '#FF3B30',
+    // Own steps render as the blue my-step pins — the key must match them,
+    // not the red peer tone (own steps no longer surface via the peer feed).
+    you: '#007AFF',
     crew: '#FF3B30',
     fleet: 'rgba(40, 50, 70, 0.78)',
     following: 'rgba(60, 70, 90, 0.45)',
@@ -6158,11 +6160,6 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <Text style={shellStyles.commitSheetCoords} numberOfLines={1}>
           {candidate.lat.toFixed(3)} N · {candidate.lng.toFixed(3)} E · within {areaLabel} area
         </Text>
-        <View style={shellStyles.statsRow}>
-          <Stat value="14" label="PEERS ≤ 200M" />
-          <Stat value="6" label="IN YOUR FLEET" />
-          <Stat value="3" label="CREW" />
-        </View>
         <View style={shellStyles.btnRow}>
           <Pressable
             onPress={() =>
@@ -6178,17 +6175,11 @@ function FrameF6({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             <Text style={shellStyles.btnPrimaryText}>Use this location</Text>
           </Pressable>
           <Pressable
-            onPress={() =>
-              setCandidate({
-                lat: F6_DEFAULT_CANDIDATE.lat,
-                lng: F6_DEFAULT_CANDIDATE.lng,
-                place: F6_DEFAULT_CANDIDATE.place,
-              })
-            }
+            onPress={() => setSearchFocus({ lat: candidate.lat, lng: candidate.lng })}
             style={[shellStyles.btn, shellStyles.btnSecondary]}
           >
             <Ionicons name="locate-outline" size={14} color={IOS_REGISTER.label} />
-            <Text style={shellStyles.btnSecondaryText}>Adjust</Text>
+            <Text style={shellStyles.btnSecondaryText}>Recenter</Text>
           </Pressable>
         </View>
       </View>

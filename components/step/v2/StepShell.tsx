@@ -88,7 +88,9 @@ export function StepShell({
     }, () => {
       unsubscribePickerRef.current = null;
     });
-    router.push({ pathname: '/(tabs)/atlas', params: { fromPlan: '1' } });
+    // Root-level alias: pushing the tab route would POP this step screen
+    // (killing the bus subscription above), so the pick was never applied.
+    router.push({ pathname: '/atlas-picker', params: { fromPlan: '1' } });
   }, []);
 
   const showDiscuss = step.hasSharedAccess !== false; // default true if undefined
