@@ -699,6 +699,8 @@ const TAPPABLE_PIN_KINDS = new Set<AtlasPinSpec['kind']>([
   'peer-focus',
   'org-event',
   'venue-expert',
+  'race-note',
+  'race-history',
   'own',
   'poi-club',
   'poi-club-anchor',

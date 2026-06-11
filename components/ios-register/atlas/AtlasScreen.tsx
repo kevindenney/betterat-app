@@ -2437,6 +2437,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setSearchFocus({ lat: seed.lat, lng: seed.lng });
   }, [handlers.initialCreateRacingArea, handlers.initialFocus, searchFocus]);
   const handlePinPress = useCallback((pin: AtlasPinSpec) => {
+    // History-on-the-water pins ARE a past race step — go straight to it
+    // (its review is what the note bubble previews) instead of a callout.
+    if ((pin.kind === 'race-note' || pin.kind === 'race-history') && pin.stepId) {
+      router.push(`/step/${pin.stepId}` as never);
+      return;
+    }
     // Auto-close the Layers sheet when a pin is tapped so the detail
     // sheet doesn't render inside / behind the Layers panel.
     setLayersOpen(false);
@@ -2876,12 +2882,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             lng: r.lng,
             kind: 'race-note' as const,
             label: `“${r.noteBody}”`,
+            stepId: r.id,
           }
         : {
             id: `race-history:${r.id}`,
             lat: r.lat,
             lng: r.lng,
             kind: 'race-history' as const,
+            stepId: r.id,
           },
     );
   }, [knowledgeArea, knowledgeAreaRecord]);
