@@ -3033,12 +3033,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     );
   }, [knowledgeArea, knowledgeAreaRecord]);
   const { user: authUser } = useAuth();
+  // One racing area "active" at a time — tapping an area's label focuses
+  // it (others recede to a faint wash). Sticky after the knowledge sheet
+  // closes; a background map tap restores all areas to normal.
+  const [activeRacingAreaId, setActiveRacingAreaId] = useState<string | null>(null);
   const handleRacingAreaPress = useCallback((area: AtlasRacingAreaPressTarget) => {
     // Everyone gets the local-knowledge callout; owners reach the edit
     // sheet via the "Edit area" link inside the panel.
     setLayersOpen(false);
     setSelectedPin(null);
     setKnowledgeArea(area);
+    setActiveRacingAreaId(area.id);
   }, []);
   // HKO observations override Open-Meteo wind when a station is within
   // ~5km of map center. Real anemometer beats a 5km model grid for the
@@ -3482,8 +3487,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       // Background tap dismisses the open pin sheet (Apple-Maps callout
       // behavior) — keeps one popup at a time and lets the wind/tide
       // scrubber come back. Pin taps don't reach here: marker presses are
-      // handled by the marker itself, not the map surface.
+      // handled by the marker itself, not the map surface. Also releases
+      // the one-area-at-a-time racing-area focus back to "all areas".
       setSelectedPin(null);
+      setActiveRacingAreaId(null);
     },
     [
       commitMode,
@@ -3607,6 +3614,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             onZoomChange={handleZoomChange}
             onPinPress={handlePinPress}
             onRacingAreaPress={handleRacingAreaPress}
+            activeRacingAreaId={activeRacingAreaId}
             // Tapping the "N races · {Series}" caption opens the series sheet.
             // Wired only when the caption actually renders (multi-race series
             // on the drawn course), matching nextRaceSeries above.

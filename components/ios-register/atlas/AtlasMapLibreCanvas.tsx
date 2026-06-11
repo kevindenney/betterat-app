@@ -614,6 +614,12 @@ interface AtlasMapLibreCanvasProps {
   /** Fires when a rendered racing-area label is tapped/clicked. */
   onRacingAreaPress?: (area: AtlasRacingAreaPressTarget) => void;
   /**
+   * One-area-at-a-time scoping — the active area keeps the bright fill
+   * while every other racing area recedes to a faint wash (labels stay
+   * tappable so the user can switch). null/undefined = all areas normal.
+   */
+  activeRacingAreaId?: string | null;
+  /**
    * Fires when the amber NEXT pill is tapped. Opens the "tomorrow at X"
    * sheet so the user can prep — checklist, cohort context, plan-a-step.
    */
@@ -756,6 +762,7 @@ export function AtlasMapLibreCanvas({
   candidate,
   onPinPress,
   onRacingAreaPress,
+  activeRacingAreaId = null,
   showRaceAreas = false,
   showCourse = false,
   coursePreviewCollection = null,
@@ -912,9 +919,29 @@ export function AtlasMapLibreCanvas({
   // payload (createdBy, classesUsed, polygon) the onPress handler needs.
   // The earlier inline version omitted `area`, so tapping a label on
   // native threw "Cannot read property 'createdBy' of undefined".
+  // One-area-at-a-time scoping: when an area is active (its label was
+  // tapped), it keeps the bright fill and every other area recedes to a
+  // faint wash so the water being worked reads first. Overrides the
+  // class-match opacity from useAtlasRacingAreas while active.
+  const scopedRaceAreasCollection = useMemo<GeoJSON.FeatureCollection>(() => {
+    if (!activeRacingAreaId) return raceAreasCollection;
+    return {
+      ...raceAreasCollection,
+      features: raceAreasCollection.features.map((feature) => {
+        const props = (feature.properties ?? {}) as { id?: string };
+        return {
+          ...feature,
+          properties: {
+            ...props,
+            fillOpacity: props.id === activeRacingAreaId ? 0.28 : 0.04,
+          },
+        };
+      }),
+    };
+  }, [raceAreasCollection, activeRacingAreaId]);
   const racingAreaLabels = useMemo(
-    () => getRacingAreaLabels(raceAreasCollection),
-    [raceAreasCollection],
+    () => getRacingAreaLabels(scopedRaceAreasCollection),
+    [scopedRaceAreasCollection],
   );
   const racingAreaPreviewCollection = useMemo<GeoJSON.FeatureCollection | null>(() => {
     if (!racingAreaPreviewPolygon) return null;
@@ -997,6 +1024,16 @@ export function AtlasMapLibreCanvas({
   // lands in the middle of the remaining top band. `padding.top: 120`
   // does the same for the floating chrome. This is zoom-independent,
   // unlike the lat-offset approach.
+  // Area-label taps double-fire the map press exactly like pin taps —
+  // without the stamp, the trailing map press hits the background-dismiss
+  // branch upstream and instantly clears the area focus the tap just set.
+  const handleAreaLabelPress = useCallback(
+    (area: AtlasRacingAreaPressTarget) => {
+      lastPinTapAtRef.current = Date.now();
+      onRacingAreaPress?.(area);
+    },
+    [onRacingAreaPress],
+  );
   const handlePinTap = useCallback(
     (pin: AtlasPinSpec) => {
       lastPinTapAtRef.current = Date.now();
@@ -1074,7 +1111,7 @@ export function AtlasMapLibreCanvas({
         basemap={basemap}
         baseCamera={baseCamera}
         walkLineCollection={walkLineCollection}
-        raceAreasCollection={raceAreasCollection}
+        raceAreasCollection={scopedRaceAreasCollection}
         hideArrowChips={hideArrowChips}
       />
     );
@@ -1132,7 +1169,15 @@ export function AtlasMapLibreCanvas({
             revert to a constant fillColor with embedded alpha; see
             feedback_maplibre_native_strict_expressions for context. */}
         {showRaceAreas ? (
-          <MLGeoJSONSource id="atlas-race-areas" data={raceAreasCollection}>
+          // Keyed on the active area: MapLibre Native iOS does not apply
+          // in-place `data` updates to a mounted GeoJSON source, so the
+          // one-area-at-a-time opacity change only paints if the source
+          // remounts with the rescoped collection.
+          <MLGeoJSONSource
+            key={`race-areas:${activeRacingAreaId ?? 'all'}`}
+            id="atlas-race-areas"
+            data={scopedRaceAreasCollection}
+          >
             <MLLayer
               id="atlas-race-areas-fill"
               type="fill"
@@ -1157,20 +1202,28 @@ export function AtlasMapLibreCanvas({
                 lngLat={[label.lng, label.lat]}
                 onPress={
                   MARKER_NATIVE_PRESS && onRacingAreaPress
-                    ? () => onRacingAreaPress(label.area)
+                    ? () => handleAreaLabelPress(label.area)
                     : undefined
                 }
               >
                 <Pressable
                   onPress={
                     onRacingAreaPress
-                      ? () => onRacingAreaPress(label.area)
+                      ? () => handleAreaLabelPress(label.area)
                       : undefined
                   }
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${label.name} racing area`}
                 >
-                  <View pointerEvents="none" style={styles.areaLabelPill}>
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.areaLabelPill,
+                      activeRacingAreaId && label.id !== activeRacingAreaId
+                        ? styles.areaLabelPillDim
+                        : null,
+                    ]}
+                  >
                     <Text style={styles.areaLabelText} numberOfLines={1}>
                       {label.name}
                     </Text>
@@ -1827,8 +1880,12 @@ function WebAtlasMapLibreCanvas({
       return;
     }
 
+    // Data-driven opacity mirrors the native layer — per-feature
+    // fillOpacity carries both the class-match dim and the
+    // one-area-at-a-time scoping from the (already scoped) collection.
     syncGeoJsonLayer(map, 'atlas-web-race-areas', 'fill', raceAreasCollection, {
-      'fill-color': 'rgba(255, 191, 99, 0.20)',
+      'fill-color': 'rgb(255, 191, 99)',
+      'fill-opacity': ['coalesce', ['get', 'fillOpacity'], 0.20],
       'fill-outline-color': 'rgba(231, 137, 60, 0.55)',
     });
 
@@ -4278,6 +4335,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     maxWidth: 140,
+  },
+  areaLabelPillDim: {
+    opacity: 0.45,
   },
   areaLabelText: {
     fontSize: 10,
