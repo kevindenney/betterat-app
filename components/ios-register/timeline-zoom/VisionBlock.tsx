@@ -213,10 +213,15 @@ export function VisionBlock({
   return (
     <Pressable
       onPress={onEdit}
-      style={({ pressed }) => [styles.block, pressed && styles.pressed]}
       accessibilityRole="button"
       accessibilityLabel={`Edit ${periodNoun} vision`}
     >
+      {({ pressed }) => (
+      // Card chrome lives on this View, not the Pressable: a function-form
+      // Pressable `style` silently drops margins/background (same trap as
+      // the empty-state branch above), leaving the statement flush against
+      // the screen edge.
+      <View style={[styles.block, pressed && styles.pressed]}>
       <View style={styles.headRow}>
         <Text style={styles.eyebrow}>VISION</Text>
         <Ionicons
@@ -275,7 +280,9 @@ export function VisionBlock({
             );
           })}
         </View>
-      ) : evidenceTrend.length > 0 ? (
+      ) : maxAggregateWeekly > 0 ? (
+        // All-zero trends render as one faint full-width 2px bar that reads
+        // as a stray separator line — skip the sparkline until evidence lands.
         <View style={styles.aggregateSpark}>
           {evidenceTrend.map((n, i) => {
             const h =
@@ -320,6 +327,8 @@ export function VisionBlock({
           </>
         )}
       </View>
+      </View>
+      )}
     </Pressable>
   );
 }
