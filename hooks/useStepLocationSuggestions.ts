@@ -30,6 +30,8 @@ export interface StepLocationSuggestion {
   lng?: number;
   /** Why this suggestion surfaced — used for an optional subtitle. */
   reason: 'home_venue' | 'recent' | 'title_match' | 'org_location';
+  /** How many of the user's steps used this location (recent reason only). */
+  useCount?: number;
 }
 
 interface UseStepLocationSuggestionsArgs {
@@ -117,24 +119,51 @@ async function fetchSuggestions(args: {
     }
   }
 
-  // 2) Recent step locations the user has set themselves.
+  // 2) The user's step locations, ranked by how often each spot is used
+  //    (most common first), tie-broken by most recent. Distinct places are
+  //    keyed by name + ~100m-rounded coords so re-pins of the same venue
+  //    aggregate instead of fragmenting.
   const { data: recents } = await supabase
     .from('step_location')
     .select('step_id, name, lat, lng, set_at')
     .eq('set_by', args.userId)
     .not('name', 'is', null)
     .order('set_at', { ascending: false })
-    .limit(15);
+    .limit(100);
 
   if (recents) {
+    const agg = new Map<
+      string,
+      { row: RecentLocationRow; count: number; lastAt: string }
+    >();
     for (const row of recents as RecentLocationRow[]) {
       if (!row.name) continue;
+      const key =
+        row.name.toLowerCase() +
+        '|' +
+        (row.lat != null ? Number(row.lat).toFixed(3) : '') +
+        '|' +
+        (row.lng != null ? Number(row.lng).toFixed(3) : '');
+      const prior = agg.get(key);
+      if (!prior) {
+        agg.set(key, { row, count: 1, lastAt: row.set_at });
+      } else {
+        prior.count += 1;
+        if (row.set_at > prior.lastAt) prior.lastAt = row.set_at;
+      }
+    }
+    const ranked = Array.from(agg.values()).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return b.lastAt.localeCompare(a.lastAt);
+    });
+    for (const { row, count } of ranked) {
       pushIfNew({
         id: `recent:${row.step_id}`,
-        name: row.name,
+        name: row.name!,
         lat: row.lat != null ? Number(row.lat) : undefined,
         lng: row.lng != null ? Number(row.lng) : undefined,
         reason: 'recent',
+        useCount: count,
       });
       if (out.length >= 5) break;
     }

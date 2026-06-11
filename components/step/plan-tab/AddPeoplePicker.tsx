@@ -206,7 +206,9 @@ export function AddPeoplePicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  // Load follow + recent crew on open.
+  // Load recent crew + follow on open. Crew loads first so a person you both
+  // follow AND collaborate with lands in RECENT CREW (with their count)
+  // rather than the count-less follow group.
   useEffect(() => {
     if (!visible || !user?.id) return;
     setLoading(true);
@@ -215,29 +217,7 @@ export function AddPeoplePicker({
       const aggregated: PersonRow[] = [];
       const seen = new Set<string>();
 
-      // 1. People you follow
-      try {
-        const { users } = await SailorProfileService.getFollowing(user.id, user.id, {
-          limit: 50,
-          offset: 0,
-        });
-        for (const u of users) {
-          if (seen.has(u.userId)) continue;
-          seen.add(u.userId);
-          aggregated.push({
-            userId: u.userId,
-            displayName: u.displayName,
-            email: u.email,
-            avatarEmoji: u.avatarEmoji,
-            avatarColor: u.avatarColor,
-            source: 'follow',
-          });
-        }
-      } catch {
-        /* swallow — empty group ok */
-      }
-
-      // 2. Recent crew — distinct user_ids from step_collaborators within the
+      // 1. Recent crew — distinct user_ids from step_collaborators within the
       //    last 30 days where I was the owner. Falls back silently if the
       //    table is empty (Phase 11 schema, new feature).
       //
@@ -276,13 +256,24 @@ export function AddPeoplePicker({
               .in('user_id', recentIds);
             const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
             const sailorMap = new Map((sailors ?? []).map((s: any) => [s.user_id, s]));
-            for (const id of recentIds) {
+            // Rank crew by how often we've collaborated (most common first),
+            // tie-breaking on most recent — not raw recency.
+            const rankedIds = recentIds
+              .slice()
+              .sort((a, b) => {
+                const aggA = collabAgg.get(a)!;
+                const aggB = collabAgg.get(b)!;
+                if (aggB.count !== aggA.count) return aggB.count - aggA.count;
+                return aggB.lastAt.localeCompare(aggA.lastAt);
+              });
+            const crewRows: PersonRow[] = [];
+            for (const id of rankedIds) {
               if (seen.has(id)) continue;
               const p = profMap.get(id) as any;
               const s = sailorMap.get(id) as any;
               const agg = collabAgg.get(id)!;
               seen.add(id);
-              aggregated.unshift({
+              crewRows.push({
                 userId: id,
                 displayName: p?.full_name || p?.email || 'Unknown',
                 email: p?.email,
@@ -293,10 +284,33 @@ export function AddPeoplePicker({
                 lastCollabAt: agg.lastAt,
               });
             }
+            aggregated.unshift(...crewRows);
           }
         }
       } catch {
         /* swallow */
+      }
+
+      // 2. People you follow
+      try {
+        const { users } = await SailorProfileService.getFollowing(user.id, user.id, {
+          limit: 50,
+          offset: 0,
+        });
+        for (const u of users) {
+          if (seen.has(u.userId)) continue;
+          seen.add(u.userId);
+          aggregated.push({
+            userId: u.userId,
+            displayName: u.displayName,
+            email: u.email,
+            avatarEmoji: u.avatarEmoji,
+            avatarColor: u.avatarColor,
+            source: 'follow',
+          });
+        }
+      } catch {
+        /* swallow — empty group ok */
       }
 
       // 3. Enrichment pass — for every person we just collected, fetch home
