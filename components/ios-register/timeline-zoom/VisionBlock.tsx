@@ -280,9 +280,11 @@ export function VisionBlock({
             );
           })}
         </View>
-      ) : maxAggregateWeekly > 0 ? (
+      ) : maxAggregateWeekly > 0 && evidenceTrend.length > 1 ? (
         // All-zero trends render as one faint full-width 2px bar that reads
-        // as a stray separator line — skip the sparkline until evidence lands.
+        // as a stray separator line, and a single-bucket arc renders as one
+        // full-width solid block — skip the sparkline until there's an
+        // actual trend to show (the footer already carries the counts).
         <View style={styles.aggregateSpark}>
           {evidenceTrend.map((n, i) => {
             const h =
