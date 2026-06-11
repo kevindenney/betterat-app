@@ -501,6 +501,17 @@ export interface AtlasPinSpec {
    * list is server-jittered, but it replaces the dishonest "Coming soon" stub.
    */
   peerMembers?: AtlasPeerMember[];
+  /**
+   * Co-located viewer-owned steps folded into one "+N" pin (several steps
+   * at the same venue would otherwise stack invisibly). Tapping opens a
+   * steps-at-this-place sheet listing each one.
+   */
+  stackedSteps?: {
+    stepId: string;
+    title: string;
+    statusNote: string;
+    isRace?: boolean;
+  }[];
   /** Organization backing this place pin, when the POI is claimed. */
   orgId?: string | null;
   /** Slug for the public organization route, e.g. /organizations/rhkyc. */
@@ -918,9 +929,17 @@ export function AtlasMapLibreCanvas({
       ],
     };
   }, [racingAreaPreviewPolygon]);
+  // A tap on a marker's inner Pressable can ALSO fire the map-level tap
+  // (UIKit hit-tests the annotation and the map independently of RN's
+  // touch tree), and the map press lands after the pin press — so the
+  // "background tap dismisses the sheet" handler upstream would close
+  // the sheet the pin tap just opened. Swallow map presses that arrive
+  // right after a pin tap.
+  const lastPinTapAtRef = useRef(0);
   const handlePress = useCallback(
     (event: NativeSyntheticEvent<PressEvent>) => {
       if (!onMapPress) return;
+      if (Date.now() - lastPinTapAtRef.current < 500) return;
       const [lng, lat] = event.nativeEvent.lngLat;
       onMapPress({ lng, lat });
     },
@@ -980,6 +999,7 @@ export function AtlasMapLibreCanvas({
   // unlike the lat-offset approach.
   const handlePinTap = useCallback(
     (pin: AtlasPinSpec) => {
+      lastPinTapAtRef.current = Date.now();
       onPinPress?.(pin);
       cameraRef.current?.flyTo({
         center: [pin.lng, pin.lat],
@@ -3098,6 +3118,29 @@ function LabeledPin({
   // day-of-week badge ("MON"). label = "stepTitle|MON" so the renderer
   // can split out the badge text the same way haats do.
   if (kind === 'my-step-planned') {
+    // Co-located own-steps fold into one "+N steps" pill (clusterCount set
+    // by useAtlasFramePins); the plain-dot treatment below would hide the
+    // fold entirely.
+    if (clusterCount != null) {
+      return (
+        <View style={styles.pinRow}>
+          <View style={styles.glyphCol}>
+            <PinGlyph
+              shape="circle"
+              size={16}
+              color="rgba(0, 122, 255, 0.95)"
+              clusterCount={clusterCount}
+              clusterUnit={clusterUnit}
+            />
+          </View>
+          {showLabel && label ? (
+            <Text style={styles.pinLabel} numberOfLines={1}>
+              {label}
+            </Text>
+          ) : null}
+        </View>
+      );
+    }
     const parts = (label ?? '').split('|');
     const titleLabel = parts[0] ?? '';
     const dayBadge = (parts[1] ?? '').trim().toUpperCase();

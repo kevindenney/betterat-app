@@ -576,9 +576,8 @@ export function useAtlasFramePins({
     // exempt: it backs the persistent cockpit HUD, so hiding it while the
     // cockpit still shows that step would make map and cockpit disagree.
     const showOwnSteps = !peerRelationshipFilter || peerRelationshipFilter.has('you');
-    for (const step of userSteps) {
+    const pushSingleUserStep = (step: UserAtlasStep) => {
       const kind = mapUserStepStatusToPinKind(step);
-      if (!showOwnSteps && kind !== 'my-step-next') continue;
       // Drafts (Atlas long-press) start with title=null until the user types
       // one on /step/[id]. Fall back to "Untitled step" so the pin doesn't
       // render as a bare badge ("NEXT" with no caption) or the literal
@@ -606,6 +605,50 @@ export function useAtlasFramePins({
         isRace: step.is_race === true,
         raceContext: step.raceContext,
         raceStartAt: step.is_race === true ? step.starts_at : null,
+      });
+    };
+    // Several of the viewer's steps at the same spot (~100m via 3-decimal
+    // rounding — same venue grain as the Where-card suggestions) would
+    // stack invisibly, so they fold into one "+N" pin whose tap opens a
+    // steps-at-this-place list. The NEXT step never folds in: it backs
+    // the persistent cockpit HUD and must stay a hero pin.
+    const coLocated = new Map<string, UserAtlasStep[]>();
+    for (const step of userSteps) {
+      const kind = mapUserStepStatusToPinKind(step);
+      if (!showOwnSteps && kind !== 'my-step-next') continue;
+      if (kind === 'my-step-next') {
+        pushSingleUserStep(step);
+        continue;
+      }
+      const key = `${step.lat.toFixed(3)}|${step.lng.toFixed(3)}`;
+      const group = coLocated.get(key);
+      if (group) group.push(step);
+      else coLocated.set(key, [step]);
+    }
+    for (const members of coLocated.values()) {
+      if (members.length === 1) {
+        pushSingleUserStep(members[0]);
+        continue;
+      }
+      const placeName =
+        members.find((m) => m.location_name?.trim())?.location_name?.trim() ??
+        undefined;
+      out.push({
+        id: `mystep-stack:${members[0].step_id}`,
+        lat: members[0].lat,
+        lng: members[0].lng,
+        kind: 'my-step-planned',
+        clusterCount: members.length,
+        clusterUnit: clusterLabels.noun.toLowerCase(),
+        label: placeName,
+        subtitle: placeName,
+        isRace: members.some((m) => m.is_race === true),
+        stackedSteps: members.map((m) => ({
+          stepId: m.step_id,
+          title: m.title?.trim() || 'Untitled step',
+          statusNote: STATUS_NOTES[m.status],
+          isRace: m.is_race === true,
+        })),
       });
     }
 

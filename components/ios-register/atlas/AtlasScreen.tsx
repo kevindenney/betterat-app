@@ -1051,6 +1051,50 @@ function PeerMemberList({
   );
 }
 
+function StackedStepList({
+  steps,
+  onOpenStep,
+}: {
+  steps: NonNullable<AtlasPinSpec['stackedSteps']>;
+  onOpenStep: (stepId: string) => void;
+}) {
+  return (
+    <View style={shellStyles.peerListWrap}>
+      {steps.map((s) => (
+        <Pressable
+          key={s.stepId}
+          style={shellStyles.peerListRow}
+          onPress={() => onOpenStep(s.stepId)}
+          hitSlop={4}
+        >
+          <View
+            style={[
+              shellStyles.peerListDot,
+              {
+                backgroundColor:
+                  s.statusNote === 'Planned' ? '#007AFF' : '#8E8E93',
+              },
+            ]}
+          />
+          <Text style={shellStyles.peerListName} numberOfLines={1}>
+            {s.isRace ? '⛵ ' : ''}
+            {s.title}
+          </Text>
+          <Text style={shellStyles.peerListMeta} numberOfLines={1}>
+            {s.statusNote}
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={14}
+            color="rgba(60, 60, 67, 0.3)"
+            style={shellStyles.peerListChevron}
+          />
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 function GroupSubchip({
   group,
   active,
@@ -4173,6 +4217,28 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 openClubLens(selectedPin, handlers.onOrgLensPress);
               },
             }}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
+          />
+        ) : selectedPin.stackedSteps && selectedPin.stackedSteps.length > 0 ? (
+          // Several of the viewer's own steps share this spot — list them
+          // so each is reachable. Must precede the clusterCount branch:
+          // stack pins carry clusterCount too and would read "PEER STEPS".
+          <BottomSheet
+            key="my-step-stack"
+            eyebrow="YOUR STEPS HERE"
+            title={`${selectedPin.stackedSteps.length} ${selectedPin.clusterUnit ?? 'step'}s at ${selectedPin.subtitle ?? 'this spot'}`}
+            body="Several of your steps share this location. Tap one to open it."
+            expandedContent={
+              <StackedStepList
+                steps={selectedPin.stackedSteps}
+                onOpenStep={(stepId) => {
+                  clearSelectedPin();
+                  handlers.onStepPress?.(stepId);
+                }}
+              />
+            }
+            secondary={{ label: 'Close', onPress: clearSelectedPin }}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
