@@ -380,54 +380,84 @@ export function TimelineZoomCanvas({
   const focusedStep =
     flatSteps.find((s) => s.id === focusStepId) ??
     selectedSeason?.weeks[0]?.steps[0];
+
+  // Step-level navigation stays inside one arc. Anchor on the arc that owns
+  // the focused step (so snap-to-NOW still lands in NOW's arc), else the
+  // viewed arc — swiping must never leak into a neighboring arc.
+  const arcIndexOfStep = useCallback(
+    (stepId: string | null | undefined) =>
+      stepId
+        ? dataset.seasons.findIndex((s) =>
+            s.weeks.some((w) => w.steps.some((st) => st.id === stepId)),
+          )
+        : -1,
+    [dataset.seasons],
+  );
+  const focusedArcIdx = arcIndexOfStep(focusedStep?.id);
+  const focusedArc = focusedArcIdx >= 0 ? dataset.seasons[focusedArcIdx] : selectedSeason;
+  const arcSteps = useMemo(
+    () => focusedArc?.weeks.flatMap((w) => w.steps) ?? [],
+    [focusedArc],
+  );
+
   const chromeSteps = level === 3 && selectedSeasonSteps.length > 0
     ? selectedSeasonSteps
-    : flatSteps;
+    : arcSteps;
   const chromeFocusedStep =
     chromeSteps.find((s) => s.id === focusStepId) ??
     (level === 3 ? chromeSteps[0] : focusedStep);
 
   const swipeToNeighbor = useCallback(
     (direction: 'prev' | 'next') => {
-      if (flatSteps.length < 2) return;
-      const idx = flatSteps.findIndex((s) => s.id === focusStepId);
+      if (arcSteps.length < 2) return;
+      const idx = arcSteps.findIndex((s) => s.id === focusStepId);
       if (idx < 0) return;
       const nextIdx = direction === 'prev' ? idx - 1 : idx + 1;
-      if (nextIdx < 0 || nextIdx >= flatSteps.length) return;
-      setFocusStepId(flatSteps[nextIdx].id);
+      if (nextIdx < 0 || nextIdx >= arcSteps.length) return;
+      setFocusStepId(arcSteps[nextIdx].id);
     },
-    [flatSteps, focusStepId],
+    [arcSteps, focusStepId],
   );
-  const jumpToFlatIndex = useCallback(
+  const jumpToArcIndex = useCallback(
     (index: number) => {
-      const step = flatSteps[index];
+      const step = arcSteps[index];
       if (!step) return;
       setFocusStepId(step.id);
       setLevel(1);
     },
-    [flatSteps],
+    [arcSteps],
   );
 
-  const focusedFlatIdx = useMemo(
-    () => flatSteps.findIndex((s) => s.id === focusStepId),
-    [flatSteps, focusStepId],
+  const focusedArcStepIdx = useMemo(
+    () => arcSteps.findIndex((s) => s.id === focusStepId),
+    [arcSteps, focusStepId],
   );
-  const prevStep = focusedFlatIdx > 0 ? flatSteps[focusedFlatIdx - 1] : null;
+  const prevStep = focusedArcStepIdx > 0 ? arcSteps[focusedArcStepIdx - 1] : null;
   const nextStep =
-    focusedFlatIdx >= 0 && focusedFlatIdx < flatSteps.length - 1
-      ? flatSteps[focusedFlatIdx + 1]
+    focusedArcStepIdx >= 0 && focusedArcStepIdx < arcSteps.length - 1
+      ? arcSteps[focusedArcStepIdx + 1]
       : null;
-  // NowFloat — the viewed step's relation to the canonical now-step.
-  const nowFlatIdx = useMemo(
-    () => flatSteps.findIndex((s) => s.id === dataset.focusStepId),
-    [flatSteps, dataset.focusStepId],
+  // NowFloat — the viewed step's relation to the canonical now-step. When the
+  // now-step lives in a different arc, compare the arcs chronologically.
+  const nowArcStepIdx = useMemo(
+    () => arcSteps.findIndex((s) => s.id === dataset.focusStepId),
+    [arcSteps, dataset.focusStepId],
   );
+  const nowArcIdx = arcIndexOfStep(dataset.focusStepId);
   const nowRelation: NowRelation =
-    focusedFlatIdx < 0 || nowFlatIdx < 0 || focusedFlatIdx === nowFlatIdx
+    focusedArcStepIdx < 0
       ? 'now'
-      : focusedFlatIdx < nowFlatIdx
-        ? 'done'
-        : 'next';
+      : nowArcStepIdx >= 0
+        ? focusedArcStepIdx === nowArcStepIdx
+          ? 'now'
+          : focusedArcStepIdx < nowArcStepIdx
+            ? 'done'
+            : 'next'
+        : nowArcIdx < 0 || focusedArcIdx === nowArcIdx
+          ? 'now'
+          : focusedArcIdx < nowArcIdx
+            ? 'done'
+            : 'next';
 
   // Compute the level the user is about to snap to, given direction +
   // current level. Returns null when at a boundary (can't go further).
@@ -504,7 +534,7 @@ export function TimelineZoomCanvas({
                       nextStep={nextStep}
                       onScroll={onInnerScroll}
                       onStepDeleted={() => setLevel(3)}
-                      allSteps={flatSteps}
+                      allSteps={arcSteps}
                       onJumpToStep={(id) => setFocusStepId(id)}
                       hideStepSwitcher={hideInterestHeader}
                       bottomInset={embedFullDetailAtL1 ? tabBarClearance : 0}
@@ -615,10 +645,10 @@ export function TimelineZoomCanvas({
         {level === 1 && embedFullDetailAtL1 && !select.enabled && focusedStep ? (
           <NowFloat
             relation={nowRelation}
-            nowIndex={nowFlatIdx}
-            viewedIndex={Math.max(focusedFlatIdx, 0)}
-            total={flatSteps.length}
-            onJumpToIndex={jumpToFlatIndex}
+            nowIndex={nowArcStepIdx}
+            viewedIndex={Math.max(focusedArcStepIdx, 0)}
+            total={arcSteps.length}
+            onJumpToIndex={jumpToArcIndex}
             onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
             onNext={nextStep ? () => swipeToNeighbor('next') : undefined}
             bottomOffset={tabBarClearance + 20}
