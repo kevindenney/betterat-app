@@ -15,6 +15,7 @@ import { OnboardingStateService } from '@/services/onboarding/OnboardingStateSer
 import { FeatureTourService } from '@/services/onboarding/FeatureTourService';
 import { commitSignupContext } from '@/services/onboarding/commitSignupContext';
 import { ASYNC_STORAGE_KEY as PREFERRED_INTEREST_KEY } from '@/providers/InterestProvider';
+import { resolveSignupCode } from '@/lib/signupCodes';
 
 // Helper to get user-friendly error messages for signup
 const getSignupErrorMessage = (error: any): string => {
@@ -50,6 +51,7 @@ export default function SignUp() {
     returnTo?: string;
     blueprint?: string;
     blueprintName?: string;
+    code?: string;
     intent?: string;
   }>();
 
@@ -57,8 +59,12 @@ export default function SignUp() {
   const paramInterest = params.interest || undefined;
   const inviteToken = params.inviteToken || undefined;
   const returnTo = params.returnTo || undefined;
-  const blueprintRef = params.blueprint || undefined;
-  const blueprintName = params.blueprintName || undefined;
+  // Event/invite code — prefilled from ?code= but also editable in the form
+  // for users who copy a code from a partner app and type it in manually.
+  const [codeInput, setCodeInput] = useState(params.code ?? '');
+  const codeGrant = resolveSignupCode(codeInput);
+  const blueprintRef = params.blueprint || codeGrant?.blueprintRef;
+  const blueprintName = params.blueprintName || codeGrant?.blueprintName;
   const wantsCreateOrg = params.intent === 'create-org';
 
   const [selectedInterest, setSelectedInterest] = useState<string | undefined>(paramInterest);
@@ -542,6 +548,25 @@ export default function SignUp() {
             </TouchableOpacity>
           </View>
 
+          <Text style={styles.sectionLabel}>Event code (optional)</Text>
+          <TextInput
+            testID="signup-code-input"
+            style={styles.input}
+            placeholder="Have a code? Enter it here"
+            value={codeInput}
+            onChangeText={setCodeInput}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            editable={!isLoading}
+          />
+          {codeInput.trim().length > 0 && (
+            <Text style={codeGrant ? styles.codeHintOk : styles.codeHintBad}>
+              {codeGrant
+                ? `Code applied — ${codeGrant.blueprintName} included free.`
+                : 'Code not recognized — check the spelling.'}
+            </Text>
+          )}
+
           {/* Submit Button */}
           <TouchableOpacity
             testID="signup-submit-button"
@@ -796,6 +821,18 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     fontSize: 16,
+  },
+  codeHintOk: {
+    fontSize: 13,
+    color: '#16A34A',
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  codeHintBad: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginTop: -8,
+    marginBottom: 16,
   },
   passwordContainer: {
     flexDirection: 'row',
