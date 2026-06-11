@@ -94,6 +94,11 @@ export interface Phase4ReflectViewProps {
   onToggleCapability: (id: string) => void;
   onChangeCapabilityStrength: (id: string, strength: EvidenceStrength) => void;
   onAddCapability: () => void;
+  capabilityPickerVisible: boolean;
+  capabilityPickerInterestId: string | null;
+  onCloseCapabilityPicker: () => void;
+  onPickCompetency: (competencyId: string, title: string) => void;
+  onPickCapabilityLabel: (label: string) => void;
   onSuggestCapabilities: () => Promise<void>;
   onMarkFieldAsConceptSeed: (id: ReflectFieldId) => Promise<void>;
   onAnswerConceptPrompt: (conceptId: string, answer: boolean) => void;
@@ -292,6 +297,7 @@ export function useStepReflectController({
   const [draftedFieldIds, setDraftedFieldIds] = useState<Set<ReflectFieldId>>(() => new Set());
   const [localFields, setLocalFields] = useState<Partial<Record<ReflectFieldId, string>>>({});
   const [localCapabilities, setLocalCapabilities] = useState<CapabilityEvidenceRow[] | null>(null);
+  const [showCapabilityPicker, setShowCapabilityPicker] = useState(false);
   const [capabilitySuggestState, setCapabilitySuggestState] = useState<CapabilitySuggestState>('idle');
   const [settling, setSettling] = useState(false);
   const [conceptPrompts, setConceptPrompts] = useState<{ conceptId: string; title: string; answer: boolean | null }[]>([]);
@@ -512,23 +518,53 @@ export function useStepReflectController({
   }, [seededCapabilities]);
 
   const onAddCapability = useCallback(() => {
-    setLocalCapabilities((current) => {
-      const rows = current ?? seededCapabilities;
-      if (rows.some((row) => row.capabilityId === 'reflect-added-capability')) return rows;
-      return [
-        ...rows,
-        {
-          capabilityId: 'reflect-added-capability',
-          capabilityName: 'Reflective judgment',
-          confirmed: true,
-          strength: 'worth-noting',
-          pipLevel: 2,
-          evidenceCount: capturesCount,
-          source: 'manual',
-        },
-      ];
-    });
-  }, [capturesCount, seededCapabilities]);
+    if (readOnly) return;
+    setShowCapabilityPicker(true);
+  }, [readOnly]);
+
+  const manualRow = useCallback(
+    (capabilityId: string, capabilityName: string): CapabilityEvidenceRow => ({
+      capabilityId,
+      capabilityName,
+      confirmed: true,
+      strength: 'worth-noting',
+      pipLevel: 2,
+      evidenceCount: capturesCount,
+      source: 'manual',
+    }),
+    [capturesCount],
+  );
+
+  const onPickCompetency = useCallback(
+    (competencyId: string, title: string) => {
+      setLocalCapabilities((current) => {
+        const rows = current ?? seededCapabilities;
+        if (rows.some((row) => row.capabilityId === competencyId)) {
+          return rows.filter((row) => row.capabilityId !== competencyId);
+        }
+        return [...rows, manualRow(competencyId, title)];
+      });
+    },
+    [manualRow, seededCapabilities],
+  );
+
+  const onPickCapabilityLabel = useCallback(
+    (label: string) => {
+      const trimmed = label.trim();
+      if (!trimmed) return;
+      const key = trimmed.toLowerCase();
+      setLocalCapabilities((current) => {
+        const rows = current ?? seededCapabilities;
+        if (rows.some((row) => row.capabilityName.trim().toLowerCase() === key)) {
+          return rows.filter((row) => row.capabilityName.trim().toLowerCase() !== key);
+        }
+        // capability_id is free-text for label-only capabilities — same
+        // convention plan.capability_goals rows use in buildCapabilityEvidenceRows.
+        return [...rows, manualRow(trimmed, trimmed)];
+      });
+    },
+    [manualRow, seededCapabilities],
+  );
 
   const onSuggestCapabilities = useCallback(async () => {
     if (readOnly || capabilitySuggestState === 'loading') return;
@@ -729,6 +765,11 @@ export function useStepReflectController({
       onToggleCapability,
       onChangeCapabilityStrength,
       onAddCapability,
+      capabilityPickerVisible: showCapabilityPicker,
+      capabilityPickerInterestId: step?.interest_id ?? currentInterest?.id ?? null,
+      onCloseCapabilityPicker: () => setShowCapabilityPicker(false),
+      onPickCompetency,
+      onPickCapabilityLabel,
       onSuggestCapabilities,
       onMarkFieldAsConceptSeed,
       onAnswerConceptPrompt,

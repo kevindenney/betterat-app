@@ -10,6 +10,7 @@ import {
 import { SynthesisPrompt } from './SynthesisPrompt';
 import { ReflectField } from './ReflectField';
 import { CapabilitiesPracticed } from './CapabilitiesPracticed';
+import { CompetencyPickerModal } from '@/components/competency/CompetencyPickerModal';
 import { MicPrompt } from './MicPrompt';
 import { SaveAndSettleCTA } from './SaveAndSettleCTA';
 import { useStepReflectController } from './useStepReflectController';
@@ -111,6 +112,18 @@ export function ReflectTabIOSRegisterShell({
         onChangeStrength={view.onChangeCapabilityStrength}
         onAddCapability={view.onAddCapability}
       />
+
+      {view.capabilityPickerInterestId ? (
+        <CompetencyPickerModal
+          visible={view.capabilityPickerVisible}
+          onClose={view.onCloseCapabilityPicker}
+          selectedIds={view.capabilities.map((row) => row.capabilityId)}
+          interestId={view.capabilityPickerInterestId}
+          selectedSuggestedLabels={view.capabilities.map((row) => row.capabilityName)}
+          onToggle={view.onPickCompetency}
+          onToggleSuggested={view.onPickCapabilityLabel}
+        />
+      ) : null}
 
       {view.conceptPrompts.length > 0 ? (
         <View style={styles.conceptPromptWrap}>
