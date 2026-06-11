@@ -101,6 +101,12 @@ interface UseUserAtlasStepsArgs {
 
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
+// 'settled' and 'reflected' are both post-completion states; treating them
+// as active made backfilled old steps render as planned pins.
+function isDoneStatus(status: string): boolean {
+  return status === 'completed' || status === 'settled' || status === 'reflected';
+}
+
 function classify(row: {
   status: string;
   starts_at: string | null;
@@ -109,7 +115,7 @@ function classify(row: {
 }): { status: UserStepStatus; at_iso: string } | null {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
-  if (row.status === 'completed') {
+  if (isDoneStatus(row.status)) {
     const at = new Date(row.updated_at).getTime();
     if (at >= now - 7 * day) return { status: 'done-recent', at_iso: row.updated_at };
     if (at >= now - 30 * day) return { status: 'done-old', at_iso: row.updated_at };
@@ -124,7 +130,15 @@ function classify(row: {
     return null;
   }
   const starts = new Date(row.starts_at).getTime();
-  if (starts < now - 1 * day) return null; // missed; drop
+  if (starts < now - 1 * day) {
+    // Past-dated but still active — it's still the user's plan (often a
+    // backdated starts_at), so keep the pin while the step is recently
+    // touched. Hard-dropping these left the step visible in the picker but
+    // absent from the map, which read as a bug.
+    const touched = new Date(row.updated_at ?? row.created_at).getTime();
+    if (touched >= now - 14 * day) return { status: 'planned-week', at_iso: row.updated_at ?? row.created_at };
+    return null;
+  }
   if (starts <= now + 14 * day) return { status: 'planned-week', at_iso: row.starts_at };
   return null;
 }
@@ -314,7 +328,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
   // Practice timeline.
   const nextStepId = useMemo<string | null>(() => {
     const cands = data
-      .filter((row) => row.status !== 'completed' && row.status !== 'reflected')
+      .filter((row) => !isDoneStatus(row.status))
       .map((row) => {
         const metadata = row.metadata as Record<string, unknown> | null;
         return {
@@ -405,7 +419,7 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
     // `done-just-completed` — the step to the left of NOW.
     const justDoneIdx = classified
       .map((s, i) => ({ s, i }))
-      .filter(({ s }) => s.raw_status === 'completed' || s.raw_status === 'reflected')
+      .filter(({ s }) => isDoneStatus(s.raw_status))
       .sort((a, b) => new Date(b.s.updated_at).getTime() - new Date(a.s.updated_at).getTime())[0]?.i;
     if (justDoneIdx != null) {
       classified[justDoneIdx].status = 'done-just-completed';
@@ -490,8 +504,8 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
       });
     }
     rows.sort((a, b) => {
-      const aDone = a.raw_status === 'completed' || a.raw_status === 'reflected';
-      const bDone = b.raw_status === 'completed' || b.raw_status === 'reflected';
+      const aDone = isDoneStatus(a.raw_status);
+      const bDone = isDoneStatus(b.raw_status);
       if (aDone !== bDone) return aDone ? 1 : -1;
       if (!aDone) {
         // Current-arc steps lead the strip — NEXT is always the first card.

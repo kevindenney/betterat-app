@@ -499,9 +499,13 @@ export function useAtlasFramePins({
     // Org-published events also reach the peer RPC when viewer + author
     // share the org (relationship=fleet) — drop them here so each event
     // surfaces once, as its org-event pin with provenance, not twice.
+    // The RPC also returns the viewer's own steps (relationship='self');
+    // drop those too — own steps render exclusively through the my-step
+    // pipeline below, otherwise they double-surface as red "PEER STEP"
+    // dots with peer privacy copy.
     const orgStepIds = new Set(orgSteps.map((ev) => ev.step_id));
     const peerPins: AtlasPinSpec[] = peers
-      .filter((step) => !orgStepIds.has(step.step_id))
+      .filter((step) => step.relationship !== 'self' && !orgStepIds.has(step.step_id))
       .map((step) => ({
         id: `peer:${step.step_id}`,
         lat: step.lat,

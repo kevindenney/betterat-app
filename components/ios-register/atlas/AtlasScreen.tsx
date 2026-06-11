@@ -2481,8 +2481,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     // sheet doesn't render inside / behind the Layers panel.
     setLayersOpen(false);
     setKnowledgeArea(null);
+    // The checklist cockpit owns the NEXT step's surface AND only renders
+    // while no pin is selected — selecting the suppressed NEXT pin would
+    // unmount the cockpit and render no sheet (a dead-end tap). Instead,
+    // restore the full cockpit: that IS this pin's detail surface.
+    if (pin.kind === 'my-step-next' && cockpitOwnsNext) {
+      setSelectedPin(null);
+      setCockpitManuallyCollapsed(false);
+      return;
+    }
     setSelectedPin(pin);
-  }, []);
+  }, [cockpitOwnsNext]);
   // A peer broken out of a privacy cluster on demand (tapped in the cluster
   // drill-down list or the Nearby list). Rendered as one extra highlighted
   // pin so "8 nearby" stops being a dead-end count — you can see exactly
