@@ -1,12 +1,12 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { IOS_SPACING } from '@/lib/design-tokens-ios';
 import type { StepPlanData } from '@/types/step-detail';
 import type { DoCaptureItem } from './doCaptureModel';
 import type { DoInteriorState } from './doState';
 import { DoStartCard } from './DoStartCard';
+import { DoMoveToReflectCTA } from './DoMoveToReflectCTA';
 import { PlanStartingFrameRow, type SubStepCaptureKind } from './PlanStartingFrameRow';
 import { DoLiveCard } from './DoLiveCard';
 import { DoPostActivityCard } from './DoPostActivityCard';
@@ -235,7 +235,7 @@ export function DoTabInterior({
         {stepId ? beatsList : null}
         {outcomeCard}
         {onMoveToReflect && !readOnly ? (
-          <MoveToReflectCTA onPress={onMoveToReflect} />
+          <DoMoveToReflectCTA onPress={onMoveToReflect} />
         ) : null}
         {libraryCard}
         {footer}
@@ -371,37 +371,4 @@ const styles = StyleSheet.create({
   containerEmbedded: {
     // intrinsic — parent ScrollView owns vertical scroll
   },
-  moveToReview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: IOS_COLORS.label,
-  },
-  moveToReviewPressed: {
-    opacity: 0.78,
-  },
-  moveToReviewText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.1,
-  },
 });
-
-function MoveToReflectCTA({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.moveToReview, pressed && styles.moveToReviewPressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel="Move to Reflect"
-    >
-      <Ionicons name="checkmark-done-outline" size={18} color="#FFFFFF" />
-      <Text style={styles.moveToReviewText}>Move to Reflect</Text>
-      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-    </Pressable>
-  );
-}
