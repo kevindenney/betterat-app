@@ -199,16 +199,20 @@ export function SavedJumpSheet({
   onPickPeerStep,
   onAddPlaceInView,
 }: SavedJumpSheetProps) {
-  // The current arc starts expanded (it's the headline); other arcs start
-  // collapsed. User taps override either default for the session.
-  const [arcOverrides, setArcOverrides] = useState<Record<string, boolean>>({});
-  const isArcExpanded = (group: ArcStepGroup) =>
-    arcOverrides[group.id] ?? !!group.isCurrent;
-  const toggleArc = (group: ArcStepGroup) =>
-    setArcOverrides((prev) => ({
+  // Collapsible sections: the current arc starts expanded (it's the
+  // headline); other arcs and the place sections start collapsed. User
+  // taps override either default for the session.
+  const [sectionOverrides, setSectionOverrides] = useState<Record<string, boolean>>({});
+  const isSectionExpanded = (key: string, defaultExpanded: boolean) =>
+    sectionOverrides[key] ?? defaultExpanded;
+  const toggleSection = (key: string, defaultExpanded: boolean) =>
+    setSectionOverrides((prev) => ({
       ...prev,
-      [group.id]: !(prev[group.id] ?? !!group.isCurrent),
+      [key]: !(prev[key] ?? defaultExpanded),
     }));
+  const isArcExpanded = (group: ArcStepGroup) =>
+    isSectionExpanded(group.id, !!group.isCurrent);
+  const toggleArc = (group: ArcStepGroup) => toggleSection(group.id, !!group.isCurrent);
   const hasAnything =
     steps.length > 0 ||
     arcGroups.length > 0 ||
@@ -516,8 +520,28 @@ export function SavedJumpSheet({
 
               {racingAreas.length > 0 ? (
                 <>
-                  <SectionHeader label="YOUR RACING AREAS" />
-                  {racingAreas.map((area) => {
+                  <TouchableOpacity
+                    onPress={() => toggleSection('racing-areas', false)}
+                    activeOpacity={0.55}
+                    style={styles.arcHeader}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: isSectionExpanded('racing-areas', false) }}
+                    accessibilityLabel={`Your racing areas, ${racingAreas.length}`}
+                  >
+                    <Text style={styles.sectionHeaderInline}>
+                      YOUR RACING AREAS · {racingAreas.length}
+                    </Text>
+                    <Ionicons
+                      name={
+                        isSectionExpanded('racing-areas', false)
+                          ? 'chevron-down'
+                          : 'chevron-forward'
+                      }
+                      size={13}
+                      color={IOS_COLORS.secondaryLabel}
+                    />
+                  </TouchableOpacity>
+                  {isSectionExpanded('racing-areas', false) ? racingAreas.map((area) => {
                     const dist = formatDistance(center, area.lat, area.lng);
                     const meta = [dist, area.subtitle].filter(Boolean).join(' · ');
                     return (
@@ -547,14 +571,34 @@ export function SavedJumpSheet({
                         </View>
                       </TouchableOpacity>
                     );
-                  })}
+                  }) : null}
                 </>
               ) : null}
 
               {savedVenues.length > 0 ? (
                 <>
-                  <SectionHeader label="SAVED VENUES" />
-                  {savedVenues.map((venue) => {
+                  <TouchableOpacity
+                    onPress={() => toggleSection('saved-venues', false)}
+                    activeOpacity={0.55}
+                    style={styles.arcHeader}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: isSectionExpanded('saved-venues', false) }}
+                    accessibilityLabel={`Saved venues, ${savedVenues.length}`}
+                  >
+                    <Text style={styles.sectionHeaderInline}>
+                      SAVED VENUES · {savedVenues.length}
+                    </Text>
+                    <Ionicons
+                      name={
+                        isSectionExpanded('saved-venues', false)
+                          ? 'chevron-down'
+                          : 'chevron-forward'
+                      }
+                      size={13}
+                      color={IOS_COLORS.secondaryLabel}
+                    />
+                  </TouchableOpacity>
+                  {isSectionExpanded('saved-venues', false) ? savedVenues.map((venue) => {
                     const dist = formatDistance(center, venue.lat, venue.lng);
                     const meta = dist
                       ? dist === 'here'
@@ -588,7 +632,7 @@ export function SavedJumpSheet({
                         </View>
                       </TouchableOpacity>
                     );
-                  })}
+                  }) : null}
                 </>
               ) : null}
             </ScrollView>
