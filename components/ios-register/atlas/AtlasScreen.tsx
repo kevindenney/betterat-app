@@ -2649,10 +2649,28 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       })),
     [orgSteps],
   );
-  const handlePickPeerStep = useCallback((item: RelationshipStepItem) => {
-    setSavedSheetOpen(false);
-    setSearchFocus({ lat: item.lat, lng: item.lng });
-  }, []);
+  const handlePickPeerStep = useCallback(
+    (item: RelationshipStepItem) => {
+      setSavedSheetOpen(false);
+      // Break the peer out like a cluster drill-down: highlighted pin +
+      // callout. A bare fly-to lands on an 8pt relationship dot the eye
+      // can't find, and nothing on screen names the step you tapped.
+      const peer = peerSteps.find((p) => p.step_id === item.id);
+      if (peer) {
+        focusPeerMember({
+          stepId: peer.step_id,
+          relationship: peer.relationship,
+          name: peer.preview_name ?? peer.set_by_name ?? null,
+          setAt: peer.set_at ?? null,
+          lat: peer.lat,
+          lng: peer.lng,
+        });
+        return;
+      }
+      setSearchFocus({ lat: item.lat, lng: item.lng });
+    },
+    [peerSteps, focusPeerMember],
+  );
   const handleAddPlaceInView = useCallback(() => {
     setSavedSheetOpen(false);
     if (savedCenter) {
