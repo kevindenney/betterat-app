@@ -65,6 +65,9 @@ export function useRecordCompetencyEvidence(stepId: string | null | undefined) {
       queryClient.invalidateQueries({
         queryKey: ['admin-competency-evidence'],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['viewer-org-competency-evidence'],
+      });
     },
   });
 }
