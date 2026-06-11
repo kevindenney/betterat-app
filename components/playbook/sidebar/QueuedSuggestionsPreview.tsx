@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { usePlaybookSuggestions } from '@/hooks/usePlaybook';
@@ -51,9 +51,10 @@ export function QueuedSuggestionsPreview({
   const top = suggestions.slice(0, 3);
 
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={onOpen}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={styles.card}
+      activeOpacity={0.85}
     >
       <View style={styles.header}>
         <Ionicons name="sparkles-outline" size={16} color={IOS_COLORS.systemPurple} />
@@ -78,7 +79,7 @@ export function QueuedSuggestionsPreview({
           ))}
         </View>
       )}
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -88,9 +89,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: IOS_SPACING.lg,
     gap: IOS_SPACING.md,
-  },
-  cardPressed: {
-    opacity: 0.85,
   },
   header: {
     flexDirection: 'row',

@@ -6,11 +6,10 @@
 
 import React, { useCallback, useRef } from 'react';
 import {
-  Pressable,
   Text,
   View,
   StyleSheet,
-  Animated,
+  Animated, TouchableOpacity,
 } from 'react-native';
 import { Heart } from 'lucide-react-native';
 import {
@@ -77,11 +76,9 @@ export function LikeButton({
 
   if (compact) {
     return (
-      <Pressable
-        style={({ pressed }) => [
-          styles.compactButton,
-          pressed && styles.buttonPressed,
-        ]}
+      <TouchableOpacity
+        style={styles.compactButton}
+        activeOpacity={0.85}
         onPress={handlePress}
         disabled={isLoading}
       >
@@ -102,18 +99,14 @@ export function LikeButton({
             {formatCount(likeCount)}
           </Text>
         )}
-      </Pressable>
+      </TouchableOpacity>
     );
   }
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.button,
-        size === 'small' && styles.buttonSmall,
-        size === 'large' && styles.buttonLarge,
-        pressed && styles.buttonPressed,
-      ]}
+    <TouchableOpacity
+      style={[styles.button, size === 'small' && styles.buttonSmall, size === 'large' && styles.buttonLarge]}
+      activeOpacity={0.85}
       onPress={handlePress}
       disabled={isLoading}
     >
@@ -138,7 +131,7 @@ export function LikeButton({
           {likeCount > 0 ? formatCount(likeCount) : 'Like'}
         </Text>
       )}
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -159,9 +152,6 @@ const styles = StyleSheet.create({
   buttonLarge: {
     paddingHorizontal: IOS_SPACING.lg,
     paddingVertical: IOS_SPACING.md,
-  },
-  buttonPressed: {
-    opacity: 0.7,
   },
   iconContainer: {
     alignItems: 'center',

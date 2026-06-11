@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
@@ -18,9 +18,10 @@ export function SuggestionsBar({ pendingCount, onPress }: SuggestionsBarProps) {
   if (pendingCount <= 0) return null;
 
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={onPress}
-      style={({ pressed }) => [styles.bar, pressed && styles.barPressed]}
+      style={styles.bar}
+      activeOpacity={0.85}
     >
       <View style={styles.iconBubble}>
         <Ionicons name="sparkles" size={16} color="#fff" />
@@ -29,7 +30,7 @@ export function SuggestionsBar({ pendingCount, onPress }: SuggestionsBarProps) {
         {pendingCount} pending suggestion{pendingCount === 1 ? '' : 's'}
       </Text>
       <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.8)" />
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -42,9 +43,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: IOS_SPACING.lg,
     paddingVertical: IOS_SPACING.md,
     borderRadius: 12,
-  },
-  barPressed: {
-    opacity: 0.85,
   },
   iconBubble: {
     width: 28,

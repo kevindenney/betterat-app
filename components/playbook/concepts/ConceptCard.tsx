@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -39,9 +39,10 @@ function snippet(body: string): string {
 
 export function ConceptCard({ concept, hasUpdate }: ConceptCardProps) {
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={() => router.push(`/library/concepts/${concept.slug}` as any)}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={styles.card}
+      activeOpacity={0.85}
     >
       <View style={styles.header}>
         <View
@@ -71,7 +72,7 @@ export function ConceptCard({ concept, hasUpdate }: ConceptCardProps) {
       ) : (
         <Text style={styles.empty}>No body yet.</Text>
       )}
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -82,9 +83,6 @@ const styles = StyleSheet.create({
     padding: IOS_SPACING.lg,
     gap: IOS_SPACING.sm,
     minHeight: 160,
-  },
-  pressed: {
-    opacity: 0.6,
   },
   header: {
     flexDirection: 'row',

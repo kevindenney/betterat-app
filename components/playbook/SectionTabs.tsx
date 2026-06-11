@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -40,17 +40,18 @@ export function SectionTabs({ counts }: SectionTabsProps) {
       {TABS.map((tab) => {
         const count = counts?.[tab.key] ?? 0;
         return (
-          <Pressable
+          <TouchableOpacity
             key={tab.key}
             onPress={() => router.push(tab.route as any)}
-            style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
+            style={styles.tab}
+            activeOpacity={0.85}
           >
             <Ionicons name={tab.icon} size={16} color={IOS_COLORS.systemBlue} />
             <Text style={styles.label}>{tab.label}</Text>
             <View style={styles.countPill}>
               <Text style={styles.countText}>{count}</Text>
             </View>
-          </Pressable>
+          </TouchableOpacity>
         );
       })}
     </ScrollView>
@@ -70,9 +71,6 @@ const styles = StyleSheet.create({
     paddingVertical: IOS_SPACING.sm,
     backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
     borderRadius: 10,
-  },
-  tabPressed: {
-    opacity: 0.6,
   },
   label: {
     fontSize: 14,

@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
@@ -353,13 +354,14 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Pressable
+      <TouchableOpacity
         onPress={() => router.back()}
-        style={({ pressed }) => [styles.backLink, pressed && styles.pressed]}
+        style={styles.backLink}
+        activeOpacity={0.85}
       >
         <Ionicons name="chevron-back" size={16} color={IOS_COLORS.systemBlue} />
         <Text style={styles.backLinkText}>Concepts</Text>
-      </Pressable>
+      </TouchableOpacity>
 
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
@@ -382,58 +384,63 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
 
       <View style={styles.actionsRow}>
         {canEdit ? (
-          <Pressable
+          <TouchableOpacity
             onPress={() => setEditing(true)}
-            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            style={styles.action}
+            activeOpacity={0.85}
           >
             <Ionicons name="create-outline" size={16} color={IOS_COLORS.systemBlue} />
             <Text style={styles.actionText}>Edit</Text>
-          </Pressable>
+          </TouchableOpacity>
         ) : null}
         {canFork ? (
-          <Pressable
+          <TouchableOpacity
             onPress={handleFork}
             disabled={forkMutation.isPending}
-            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            style={styles.action}
+            activeOpacity={0.85}
           >
             <Ionicons name="git-branch-outline" size={16} color={IOS_COLORS.systemBlue} />
             <Text style={styles.actionText}>
               {forkMutation.isPending ? 'Forking…' : 'Fork'}
             </Text>
-          </Pressable>
+          </TouchableOpacity>
         ) : null}
         {canDelete ? (
-          <Pressable
+          <TouchableOpacity
             onPress={handleDelete}
-            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            style={styles.action}
+            activeOpacity={0.85}
           >
             <Ionicons name="trash-outline" size={16} color={IOS_COLORS.systemRed} />
             <Text style={[styles.actionText, { color: IOS_COLORS.systemRed }]}>
               Delete
             </Text>
-          </Pressable>
+          </TouchableOpacity>
         ) : null}
         {concept.body_md ? (
-          <Pressable
+          <TouchableOpacity
             onPress={handleDeepDive}
-            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            style={styles.action}
+            activeOpacity={0.85}
           >
             <Ionicons name="open-outline" size={16} color={IOS_COLORS.systemIndigo} />
             <Text style={[styles.actionText, { color: IOS_COLORS.systemIndigo }]}>
               Deep dive
             </Text>
-          </Pressable>
+          </TouchableOpacity>
         ) : null}
-        <Pressable
+        <TouchableOpacity
           onPress={handleCreateStepFromConcept}
           disabled={creatingStep}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+          style={styles.action}
+          activeOpacity={0.85}
         >
           <Ionicons name="add-circle-outline" size={16} color={IOS_COLORS.systemGreen} />
           <Text style={[styles.actionText, { color: IOS_COLORS.systemGreen }]}>
             {creatingStep ? 'Creating…' : 'Create step'}
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
       {concept.body_md ? (
@@ -453,16 +460,17 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
           </View>
           <View style={styles.relatedChips}>
             {relatedConcepts.map((rc) => (
-              <Pressable
+              <TouchableOpacity
                 key={rc.id}
                 onPress={() => router.push(`/library/concepts/${rc.slug}` as any)}
-                style={({ pressed }) => [styles.relatedChip, pressed && styles.pressed]}
+                style={styles.relatedChip}
+                activeOpacity={0.85}
               >
                 <Ionicons name="bulb-outline" size={12} color={IOS_COLORS.systemTeal} />
                 <Text style={styles.relatedChipText} numberOfLines={1}>
                   {rc.title}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -488,21 +496,18 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
             editable={!asking}
             onSubmitEditing={handleAsk}
           />
-          <Pressable
+          <TouchableOpacity
             onPress={handleAsk}
             disabled={asking || !askQuestion.trim()}
-            style={({ pressed }) => [
-              styles.askBtn,
-              (asking || !askQuestion.trim()) && styles.askBtnDisabled,
-              pressed && styles.askBtnPressed,
-            ]}
+            style={[styles.askBtn, (asking || !askQuestion.trim()) && styles.askBtnDisabled]}
+            activeOpacity={0.85}
           >
             {asking ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Ionicons name="arrow-up" size={18} color="#fff" />
             )}
-          </Pressable>
+          </TouchableOpacity>
         </View>
         {qaHistory.map((entry, i) => (
           <View key={i} style={styles.qaEntry}>
@@ -540,10 +545,11 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
         {/* Action buttons after conversation */}
         {qaHistory.length > 0 && !asking ? (
           <View style={styles.qaActionsRow}>
-            <Pressable
+            <TouchableOpacity
               onPress={handleUpdateConceptFromQA}
               disabled={updatingConcept}
-              style={({ pressed }) => [styles.qaAction, styles.qaActionUpdate, pressed && styles.pressed]}
+              style={[styles.qaAction, styles.qaActionUpdate]}
+              activeOpacity={0.85}
             >
               {updatingConcept ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -553,11 +559,12 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
                   <Text style={styles.qaActionText}>Update concept</Text>
                 </>
               )}
-            </Pressable>
-            <Pressable
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={handleCreateStepFromQA}
               disabled={creatingStep}
-              style={({ pressed }) => [styles.qaAction, styles.qaActionStep, pressed && styles.pressed]}
+              style={[styles.qaAction, styles.qaActionStep]}
+              activeOpacity={0.85}
             >
               {creatingStep ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -567,7 +574,7 @@ export function ConceptDetail({ slug }: ConceptDetailProps) {
                   <Text style={styles.qaActionText}>Create step</Text>
                 </>
               )}
-            </Pressable>
+            </TouchableOpacity>
           </View>
         ) : null}
       </View>
@@ -651,9 +658,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: IOS_COLORS.systemBlue,
-  },
-  pressed: {
-    opacity: 0.6,
   },
   updateBanner: {
     flexDirection: 'row',
@@ -745,9 +749,6 @@ const styles = StyleSheet.create({
   },
   askBtnDisabled: {
     opacity: 0.4,
-  },
-  askBtnPressed: {
-    opacity: 0.8,
   },
   answerCard: {
     backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,

@@ -20,7 +20,6 @@ import React, {
   useContext,
   useState,
   useCallback,
-  useRef,
   useImperativeHandle,
   forwardRef,
   useMemo,
@@ -28,6 +27,7 @@ import React, {
 import {
   View,
   Pressable,
+  TouchableOpacity,
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
@@ -126,18 +126,17 @@ const FamilyButtonTrigger: React.FC<FamilyButtonTriggerProps> = ({
     toggle();
   };
 
-  // Use Pressable for both web and native - it has the best cross-platform support
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={handlePress}
-      style={({ pressed }) => [
+      activeOpacity={0.8}
+      style={[
         styles.trigger,
         Platform.OS === 'web' && styles.triggerWeb,
         {
           width: size,
           height: size,
           borderRadius: size / 2,
-          opacity: pressed ? 0.8 : 1,
         },
       ]}
       accessibilityRole="button"
@@ -145,7 +144,7 @@ const FamilyButtonTrigger: React.FC<FamilyButtonTriggerProps> = ({
       accessibilityHint="Tap to expand and add a new race"
     >
       {children}
-    </Pressable>
+    </TouchableOpacity>
   );
 };
 
@@ -216,7 +215,7 @@ const FamilyButtonComponent = forwardRef<FamilyButtonRef, FamilyButtonProps>(
     // Use controlled value if provided, otherwise use internal state
     const isExpanded = isControlled ? controlledExpanded : internalExpanded;
 
-    const [contentHeight, setContentHeight] = useState(0);
+    const [contentHeight] = useState(0);
     const triggerSize = 56;
 
     const expand = useCallback(() => {

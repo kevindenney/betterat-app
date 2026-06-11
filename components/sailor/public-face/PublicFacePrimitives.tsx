@@ -29,6 +29,7 @@
 import React from 'react';
 import {
   Pressable,
+  TouchableOpacity,
   StyleSheet,
   Text,
   View,
@@ -133,7 +134,7 @@ export function FramingLine({ text, provenance }: FramingLineProps) {
 }
 
 // =============================================================================
-// MESSAGE ICON BUTTON — secondary chrome-grey icon-only Pressable
+// MESSAGE ICON BUTTON — secondary chrome-grey icon-only button
 // Sits beside Follow in the hero. Position taken: not a primary action — it's
 // a quiet affordance for opening a direct thread with the practitioner.
 // Primary relationship action is Follow; messaging is what you do after.
@@ -141,15 +142,16 @@ export function FramingLine({ text, provenance }: FramingLineProps) {
 
 export function MessageIconButton({ onPress }: { onPress: () => void }) {
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Message"
-      style={({ pressed }) => [msgStyles.btn, pressed && msgStyles.btnPressed]}
+      style={msgStyles.btn}
+      activeOpacity={0.85}
       hitSlop={6}
     >
       <Ionicons name="chatbubble-outline" size={18} color={LABEL_2} />
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -583,7 +585,6 @@ const msgStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnPressed: { opacity: 0.7 },
 });
 
 const pillStyles = StyleSheet.create({

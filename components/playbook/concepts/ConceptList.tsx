@@ -9,6 +9,7 @@ import {
   View,
   Text,
   Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -117,13 +118,14 @@ export function ConceptList() {
           <Text style={styles.backText}>Playbook</Text>
         </Pressable>
         <View style={{ flex: 1 }} />
-        <Pressable
+        <TouchableOpacity
           onPress={() => setEditorOpen(true)}
-          style={({ pressed }) => [styles.newButton, pressed && styles.newPressed]}
+          style={styles.newButton}
+          activeOpacity={0.85}
         >
           <Ionicons name="add" size={16} color="#fff" />
           <Text style={styles.newText}>New concept</Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
       <TextInput
@@ -138,19 +140,16 @@ export function ConceptList() {
         {FILTERS.map((f) => {
           const active = filter === f.key;
           return (
-            <Pressable
+            <TouchableOpacity
               key={f.key}
               onPress={() => setFilter(f.key)}
-              style={({ pressed }) => [
-                styles.chip,
-                active && styles.chipActive,
-                pressed && !active && styles.chipPressed,
-              ]}
+              style={[styles.chip, active && styles.chipActive]}
+              activeOpacity={0.85}
             >
               <Text style={[styles.chipText, active && styles.chipTextActive]}>
                 {f.label}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -233,9 +232,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: IOS_COLORS.systemBlue,
   },
-  newPressed: {
-    opacity: 0.8,
-  },
   newText: {
     fontSize: 13,
     fontWeight: '700',
@@ -267,9 +263,6 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     backgroundColor: IOS_COLORS.systemBlue,
-  },
-  chipPressed: {
-    opacity: 0.6,
   },
   chipText: {
     fontSize: 12,

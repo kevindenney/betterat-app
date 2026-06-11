@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -56,13 +56,14 @@ export function QAList() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Q&A</Text>
-        <Pressable
+        <TouchableOpacity
           onPress={handleAsk}
-          style={({ pressed }) => [styles.askButton, pressed && styles.pressed]}
+          style={styles.askButton}
+          activeOpacity={0.85}
         >
           <Ionicons name="chatbubble-outline" size={14} color="#fff" />
           <Text style={styles.askText}>Ask a question</Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -101,12 +102,12 @@ export function QAList() {
                     {sourceCount} source{sourceCount === 1 ? '' : 's'} ·{' '}
                     {new Date(q.created_at).toLocaleDateString()}
                   </Text>
-                  <Pressable
+                  <TouchableOpacity
                     onPress={() => handleDelete(q)}
-                    style={({ pressed }) => [pressed && styles.pressed]}
+                    activeOpacity={0.85}
                   >
                     <Text style={styles.deleteText}>Delete</Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
               </View>
             );
@@ -149,9 +150,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#fff',
-  },
-  pressed: {
-    opacity: 0.6,
   },
   loading: {
     fontSize: 13,

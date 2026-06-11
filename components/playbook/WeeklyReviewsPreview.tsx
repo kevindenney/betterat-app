@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { ActivityIndicator, View, Text, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, Text, Pressable, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { usePlaybookReviews } from '@/hooks/usePlaybook';
@@ -67,9 +67,10 @@ export function WeeklyReviewsPreview({ playbookId }: WeeklyReviewsPreviewProps) 
           const { title, body } = splitSummary(review.summary_md);
           const isLatest = i === 0;
           return (
-            <Pressable
+            <TouchableOpacity
               key={review.id}
-              style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+              style={styles.card}
+              activeOpacity={0.85}
               onPress={() => router.push('/library/reviews' as any)}
             >
               <View style={styles.cardHeader}>
@@ -99,7 +100,7 @@ export function WeeklyReviewsPreview({ playbookId }: WeeklyReviewsPreviewProps) 
                   </>
                 ) : null}
               </View>
-            </Pressable>
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -143,9 +144,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: IOS_SPACING.lg,
     gap: 6,
-  },
-  pressed: {
-    opacity: 0.7,
   },
   cardHeader: {
     flexDirection: 'row',

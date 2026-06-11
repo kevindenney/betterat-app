@@ -7,7 +7,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { usePlaybookShares } from '@/hooks/usePlaybook';
@@ -70,13 +70,14 @@ export function SharedWithCard({ playbookId }: SharedWithCardProps) {
           ))}
         </View>
       )}
-      <Pressable
+      <TouchableOpacity
         onPress={handleInvite}
-        style={({ pressed }) => [styles.inviteButton, pressed && styles.pressed]}
+        style={styles.inviteButton}
+        activeOpacity={0.85}
       >
         <Ionicons name="add" size={18} color={IOS_COLORS.systemBlue} />
         <Text style={styles.inviteButtonText}>Invite coach or teammate</Text>
-      </Pressable>
+      </TouchableOpacity>
       <InviteCoachModal
         visible={inviteOpen}
         playbookId={playbookId}
@@ -164,8 +165,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: IOS_COLORS.systemBlue,
-  },
-  pressed: {
-    opacity: 0.6,
   },
 });

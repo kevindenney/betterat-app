@@ -7,11 +7,10 @@
 
 import React, { useState, useCallback } from 'react';
 import {
-  Pressable,
   Text,
   ActivityIndicator,
   StyleSheet,
-  GestureResponderEvent,
+  TouchableOpacity,
 } from 'react-native';
 import { UserPlus, UserCheck, ChevronDown } from 'lucide-react-native';
 import { FollowOptionsSheet } from './FollowOptionsSheet';
@@ -110,13 +109,9 @@ export function FollowButton({
 
   return (
     <>
-      <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          sizeStyles[size],
-          isFollowing ? styles.buttonFollowing : styles.buttonNotFollowing,
-          pressed && styles.buttonPressed,
-        ]}
+      <TouchableOpacity
+        style={[styles.button, sizeStyles[size], isFollowing ? styles.buttonFollowing : styles.buttonNotFollowing]}
+        activeOpacity={0.85}
         onPress={handlePress}
         onLongPress={handleLongPress}
         delayLongPress={300}
@@ -161,7 +156,7 @@ export function FollowButton({
             )}
           </>
         )}
-      </Pressable>
+      </TouchableOpacity>
 
       {/* Follow Options Sheet */}
       <FollowOptionsSheet
@@ -209,9 +204,6 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_COLORS.tertiarySystemFill,
     borderWidth: 1,
     borderColor: IOS_COLORS.systemBlue,
-  },
-  buttonPressed: {
-    opacity: 0.8,
   },
   icon: {
     marginRight: IOS_SPACING.xs,

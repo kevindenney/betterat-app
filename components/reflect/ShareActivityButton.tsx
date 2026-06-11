@@ -7,12 +7,11 @@
 
 import React, { useState } from 'react';
 import {
-  View,
   Text,
   StyleSheet,
   Pressable,
+  TouchableOpacity,
   Share,
-  Modal,
   ActivityIndicator,
 } from 'react-native';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
@@ -222,13 +221,9 @@ export function ShareActivityButton({
 
   if (variant === 'text') {
     return (
-      <Pressable
-        style={({ pressed }) => [
-          styles.textButton,
-          pressed && styles.textButtonPressed,
-          { opacity: disabled ? 0.5 : 1 },
-          style,
-        ]}
+      <TouchableOpacity
+        style={[styles.textButton, { opacity: disabled ? 0.5 : 1 }, style]}
+        activeOpacity={0.85}
         onPress={handleShare}
         disabled={disabled || isSharing}
       >
@@ -240,19 +235,15 @@ export function ShareActivityButton({
             <Text style={[styles.textButtonLabel, { fontSize }]}>Share</Text>
           </>
         )}
-      </Pressable>
+      </TouchableOpacity>
     );
   }
 
   // Full variant
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.fullButton,
-        pressed && styles.fullButtonPressed,
-        { opacity: disabled ? 0.5 : 1 },
-        style,
-      ]}
+    <TouchableOpacity
+      style={[styles.fullButton, { opacity: disabled ? 0.5 : 1 }, style]}
+      activeOpacity={0.85}
       onPress={handleShare}
       disabled={disabled || isSharing}
     >
@@ -264,7 +255,7 @@ export function ShareActivityButton({
           <Text style={[styles.fullButtonLabel, { fontSize }]}>Share Activity</Text>
         </>
       )}
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -327,9 +318,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  textButtonPressed: {
-    opacity: 0.6,
-  },
   textButtonLabel: {
     fontWeight: '500',
     color: IOS_COLORS.systemBlue,
@@ -344,9 +332,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     ...IOS_SHADOWS.sm,
-  },
-  fullButtonPressed: {
-    opacity: 0.8,
   },
   fullButtonLabel: {
     fontWeight: '600',

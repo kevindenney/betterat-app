@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   Pressable,
+  TouchableOpacity,
   StyleSheet,
   Platform,
   ActivityIndicator,
@@ -22,9 +23,8 @@ import {
   PlaybookAIService,
   type PlaybookQAResponse,
   type PlaybookQAConceptUpdate,
-  type PlaybookQAKnowledgeGap,
 } from '@/services/ai/PlaybookAIService';
-import { useCreatePlaybookQA, usePlaybookPendingSuggestionCount } from '@/hooks/usePlaybook';
+import { useCreatePlaybookQA } from '@/hooks/usePlaybook';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 
@@ -230,21 +230,18 @@ export function AskYourPlaybook({
           editable={!busy}
           style={styles.input}
         />
-        <Pressable
+        <TouchableOpacity
           onPress={handleAsk}
           disabled={busy || !playbookId}
-          style={({ pressed }) => [
-            styles.askButton,
-            (busy || !playbookId) && styles.askButtonDisabled,
-            pressed && !busy && styles.askButtonPressed,
-          ]}
+          style={[styles.askButton, (busy || !playbookId) && styles.askButtonDisabled]}
+          activeOpacity={0.85}
         >
           {busy ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Ionicons name="arrow-up" size={18} color="#fff" />
           )}
-        </Pressable>
+        </TouchableOpacity>
       </View>
       {answer && (
         <View style={styles.answerBox}>
@@ -276,14 +273,12 @@ export function AskYourPlaybook({
                 <Text style={styles.compoundTitle}>Strengthen your knowledge</Text>
               </View>
               {(answer.concept_updates ?? []).map((cu, i) => (
-                <Pressable
+                <TouchableOpacity
                   key={`cu-${i}`}
                   onPress={() => handleSaveInsight(cu)}
                   disabled={savingInsight}
-                  style={({ pressed }) => [
-                    styles.compoundChip,
-                    pressed && styles.chipPressed,
-                  ]}
+                  style={styles.compoundChip}
+                  activeOpacity={0.85}
                 >
                   <Ionicons name="add-circle-outline" size={14} color={IOS_COLORS.systemTeal} />
                   <View style={styles.compoundChipText}>
@@ -294,7 +289,7 @@ export function AskYourPlaybook({
                       {cu.new_insight}
                     </Text>
                   </View>
-                </Pressable>
+                </TouchableOpacity>
               ))}
             </View>
           ) : null}
@@ -322,15 +317,16 @@ export function AskYourPlaybook({
       {!answer && !busy && (
         <View style={styles.chipRow}>
           {suggestions.map((s) => (
-            <Pressable
+            <TouchableOpacity
               key={s}
               onPress={() => setQuestion(s)}
-              style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
+              style={styles.chip}
+              activeOpacity={0.85}
             >
               <Text style={styles.chipText} numberOfLines={1}>
                 {s}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -400,9 +396,6 @@ const styles = StyleSheet.create({
   },
   askButtonDisabled: {
     opacity: 0.4,
-  },
-  askButtonPressed: {
-    opacity: 0.7,
   },
   answerBox: {
     backgroundColor: IOS_COLORS.tertiarySystemGroupedBackground,
@@ -511,9 +504,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: IOS_COLORS.tertiarySystemGroupedBackground,
-  },
-  chipPressed: {
-    opacity: 0.6,
   },
   chipText: {
     fontSize: 12,
