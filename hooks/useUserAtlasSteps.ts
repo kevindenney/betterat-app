@@ -371,8 +371,12 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         typeof whereLocation?.lat === 'number' ? whereLocation.lat : null;
       const fallbackLng =
         typeof whereLocation?.lng === 'number' ? whereLocation.lng : null;
-      const lat = raceCenter?.lat ?? row.location_lat ?? fallbackLat;
-      const lng = raceCenter?.lng ?? row.location_lng ?? fallbackLng;
+      // metadata.plan.where_location is the EDITABLE location (the Where
+      // card writes it); location_lat/lng columns are a creation-time
+      // snapshot that goes stale after a move. Metadata must win or moved
+      // steps keep rendering at their old spot.
+      const lat = raceCenter?.lat ?? fallbackLat ?? row.location_lat;
+      const lng = raceCenter?.lng ?? fallbackLng ?? row.location_lng;
       if (lat == null || lng == null) continue;
       const raceContext = isRaceRow
         ? extractRaceContext(metadata)
@@ -394,8 +398,8 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         raceContext,
         location_name:
           (raceCenter ? raceContext?.areaName : null) ??
-          row.location_name ??
-          (typeof whereLocation?.name === 'string' ? whereLocation.name : null),
+          (typeof whereLocation?.name === 'string' ? whereLocation.name : null) ??
+          row.location_name,
         status: cls.status,
         at_iso: cls.at_iso,
         starts_at: row.starts_at,
@@ -472,8 +476,8 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         typeof whereLocation?.lat === 'number' ? whereLocation.lat : null;
       const fallbackLng =
         typeof whereLocation?.lng === 'number' ? whereLocation.lng : null;
-      const lat = raceCenter?.lat ?? row.location_lat ?? fallbackLat;
-      const lng = raceCenter?.lng ?? row.location_lng ?? fallbackLng;
+      const lat = raceCenter?.lat ?? fallbackLat ?? row.location_lat;
+      const lng = raceCenter?.lng ?? fallbackLng ?? row.location_lng;
       const placed = stepMap.get(row.id);
       rows.push({
         step_id: row.id,
@@ -486,8 +490,8 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         lng,
         location_name:
           (raceCenter ? placed?.raceContext?.areaName : null) ??
-          row.location_name ??
-          (typeof whereLocation?.name === 'string' ? whereLocation.name : null),
+          (typeof whereLocation?.name === 'string' ? whereLocation.name : null) ??
+          row.location_name,
         starts_at: row.starts_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
@@ -554,9 +558,9 @@ export function useUserAtlasSteps({ interestSlug, enabled = true }: UseUserAtlas
         typeof whereLocation?.lat === 'number' ? whereLocation.lat : null;
       const fallbackLng =
         typeof whereLocation?.lng === 'number' ? whereLocation.lng : null;
-      const lat = raceCenter?.lat ?? row.location_lat ?? fallbackLat;
-      const lng = raceCenter?.lng ?? row.location_lng ?? fallbackLng;
-      const done = row.status === 'completed' || row.status === 'reflected';
+      const lat = raceCenter?.lat ?? fallbackLat ?? row.location_lat;
+      const lng = raceCenter?.lng ?? fallbackLng ?? row.location_lng;
+      const done = isDoneStatus(row.status);
       const metaSeasonId =
         typeof metadata?.season_id === 'string' ? (metadata.season_id as string) : null;
       rows.push({
