@@ -1440,7 +1440,15 @@ export function AtlasMapLibreCanvas({
               }
             >
               {isTappable ? (
-                <Pressable onPress={() => handlePinTap(pin)} hitSlop={14}>
+                // hitSlop alone can't grow a marker's touch area — the native
+                // annotation view is content-sized, so touches outside it hit
+                // the map. A centered min-size pad makes 8–14pt peer/step dots
+                // actually hittable; it's a no-op for pill-sized markers.
+                <Pressable
+                  onPress={() => handlePinTap(pin)}
+                  hitSlop={14}
+                  style={styles.pinTouchPad}
+                >
                   {inner}
                 </Pressable>
               ) : (
@@ -4006,6 +4014,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#16A34A',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+  },
+  pinTouchPad: {
+    minWidth: 32,
+    minHeight: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   raceNoteMarker: {
     width: 20,
