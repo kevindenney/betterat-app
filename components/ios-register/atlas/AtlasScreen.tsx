@@ -7638,17 +7638,16 @@ function BottomSheet({
           onPress={() => setState('mid')}
           accessibilityRole="button"
           accessibilityLabel={`Show ${collapsedLabel ?? title ?? 'step card'}`}
-          hitSlop={{ top: 10, right: 12, bottom: 10, left: 0 }}
-          style={({ pressed }) => [
-            shellStyles.edgeSheetTab,
-            pressed && shellStyles.edgeSheetTabPressed,
-          ]}
+          hitSlop={{ top: 10, right: 12, bottom: 10, left: 12 }}
+          style={({ pressed }) => (pressed ? shellStyles.edgeSheetTabPressed : null)}
         >
-          <View style={shellStyles.edgeSheetTabAccent} />
-          <Ionicons name="chevron-forward" size={16} color={IOS_REGISTER.label} />
-          <Text style={shellStyles.edgeSheetTabText} numberOfLines={1}>
-            {collapsedLabel ?? eyebrow ?? 'Step'}
-          </Text>
+          <View style={[shellStyles.edgeSheetTab, shellStyles.edgeSheetTabRow]}>
+            <View style={shellStyles.edgeSheetTabAccent} />
+            <Text style={shellStyles.edgeSheetTabText} numberOfLines={1}>
+              {collapsedLabel ?? eyebrow ?? 'Step'}
+            </Text>
+            <Ionicons name="chevron-up" size={13} color={IOS_REGISTER.labelTertiary} />
+          </View>
         </Pressable>
       </View>
     );
@@ -7951,17 +7950,21 @@ function StepCockpit({
           onPress={onToggleCollapse}
           accessibilityRole="button"
           accessibilityLabel="Next step — tap to expand"
-          hitSlop={{ top: 10, right: 12, bottom: 10, left: 0 }}
-          style={({ pressed }) => [
-            shellStyles.edgeSheetTab,
-            pressed && shellStyles.edgeSheetTabPressed,
-          ]}
+          hitSlop={{ top: 10, right: 12, bottom: 10, left: 12 }}
+          style={({ pressed }) => (pressed ? shellStyles.edgeSheetTabPressed : null)}
         >
-          <View style={shellStyles.edgeSheetTabAccent} />
-          <Ionicons name="chevron-forward" size={16} color={IOS_REGISTER.label} />
-          <Text style={shellStyles.edgeSheetTabText} numberOfLines={1}>
-            STEP
-          </Text>
+          <View style={[shellStyles.edgeSheetTab, shellStyles.edgeSheetTabRow]}>
+            <View style={shellStyles.edgeSheetTabAccent} />
+            <Text style={shellStyles.edgeSheetTabText} numberOfLines={1}>
+              NEXT STEP
+            </Text>
+            {subSteps.length > 0 ? (
+              <Text style={shellStyles.edgeSheetTabCount}>
+                {doneCount}/{subSteps.length}
+              </Text>
+            ) : null}
+            <Ionicons name="chevron-up" size={13} color={IOS_REGISTER.labelTertiary} />
+          </View>
         </Pressable>
       </View>
     );
@@ -11300,25 +11303,16 @@ const shellStyles = StyleSheet.create({
   },
   edgeSheetTabWrap: {
     position: 'absolute',
-    left: 0,
-    bottom: 0,
+    left: 12,
+    bottom: 12,
     zIndex: 12,
     alignItems: 'flex-start',
   },
   edgeSheetTab: {
-    minHeight: 44,
-    maxWidth: 118,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingLeft: 0,
-    paddingRight: 10,
-    borderTopRightRadius: 18,
-    borderBottomRightRadius: 18,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
-    borderLeftWidth: 0,
-    borderColor: 'rgba(60, 60, 67, 0.20)',
+    borderColor: 'rgba(60, 60, 67, 0.18)',
     shadowColor: '#000',
     shadowOpacity: 0.16,
     shadowRadius: 10,
@@ -11328,20 +11322,36 @@ const shellStyles = StyleSheet.create({
   edgeSheetTabPressed: {
     opacity: 0.72,
   },
+  // Row layout lives on this inner View — function-form Pressable styles
+  // silently strip flexDirection (see feedback_pressable_margin_row_stripping).
+  edgeSheetTabRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    maxWidth: 200,
+  },
   edgeSheetTabAccent: {
-    alignSelf: 'stretch',
-    width: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: IOS_REGISTER.accentUserAction,
-    borderTopRightRadius: 2,
-    borderBottomRightRadius: 2,
   },
   edgeSheetTabText: {
+    flexShrink: 1,
     fontFamily: fontFamily.mono,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.6,
     color: IOS_REGISTER.label,
     textTransform: 'uppercase',
+  },
+  edgeSheetTabCount: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    fontWeight: '600',
+    color: IOS_REGISTER.labelSecondary,
   },
   sheetScrollContent: {
     gap: 8,
