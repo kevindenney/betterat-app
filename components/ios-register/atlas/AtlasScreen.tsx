@@ -2384,20 +2384,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     selectedPin && (isUserStepPin(selectedPin) || isRaceStepPin(selectedPin))
       ? selectedPin.stepId ?? null
       : null;
-  const formatStepSwitcherLabel = useCallback(
-    (stepId: string | null | undefined) => {
-      if (!stepId) return 'Pick step';
-      const index = pickerSteps.findIndex((step) => step.step_id === stepId);
-      if (index < 0) return 'Pick step';
-      // Short ordinal only — the step title already lives in the sheet
-      // header, and a title-bearing button truncates unreadably.
-      return `Step ${index + 1} of ${pickerSteps.length}`;
-    },
-    [pickerSteps],
-  );
-  const selectedStepActionLabel = useMemo(() => {
-    return formatStepSwitcherLabel(selectedPickerStepId);
-  }, [formatStepSwitcherLabel, selectedPickerStepId]);
   const topStepPickerStepId = useMemo(() => {
     if (selectedPickerStepId) return selectedPickerStepId;
     if (myNextStepPin?.stepId) return myNextStepPin.stepId;
@@ -3580,10 +3566,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             courseCurrentDirectionDeg={courseCurrent?.deg}
             courseCurrentSpeedKn={courseCurrent?.kn}
             basemap={basemap}
-            // In generic Wind/Tide layer mode the scrubber owns the numbers,
-            // so arrows stay directional-only. In selected-race mode the
-            // race markers should carry their own compact value chips.
-            hideArrowChips={(showWind || showTide) && !showRaceConditionVectors}
           />
         ) : (
           <HongKongOverviewMap />
@@ -3792,7 +3774,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <NextEventTag
             leftPct={50}
             topPct={47}
-            eyebrow={`NEXT · ${next!.label.toUpperCase()}${next!.when ? ` · ${next!.when.toUpperCase()}` : ''}`}
+            eyebrow={`NEXT RACE · ${next!.label.toUpperCase()}${next!.when ? ` · ${next!.when.toUpperCase()}` : ''}`}
             detail={next!.conditions}
           />
         )}
@@ -3892,8 +3874,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               (m): m is { label: string; value: string } =>
                 m != null && m.value != null,
             )}
-            strategy={courseStrategy}
-            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            // Strategy advice only makes sense in a race context — the
+            // ambient layer scrubber can sit over land or open water with
+            // no course, where "favored side" is nonsense. Race-time scrub
+            // (anchored to the next race's venue) is the gate.
+            strategy={raceScrubPoints ? courseStrategy : null}
+            bottomOffset={
+              ((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) +
+              // The "NEXT RACE · plan a step" sheet sits in the same bottom
+              // band; lift the scrubber clear of it so the cards never stack.
+              (hasNext && !myNextStepPin ? 84 : 0)
+            }
           />
         ) : null}
       </View>
@@ -4329,14 +4320,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 if (selectedPin.stepId) handlers.onStepPress?.(selectedPin.stepId);
               },
             }}
-            secondary={{
-              label: selectedStepActionLabel,
-              icon: 'chevron-down',
-              onPress: openSavedSheetFromCallout,
-            }}
+            secondary={{ label: 'Close', onPress: clearSelectedPin }}
             showSecondaryInMid
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
+            handleBehavior="edgeTab"
+            collapsedLabel="Race"
           />
         ) : isUserStepPin(selectedPin) ? (
           <BottomSheet
@@ -4371,14 +4360,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 );
               },
             }}
-            secondary={{
-              label: selectedStepActionLabel,
-              icon: 'chevron-down',
-              onPress: openSavedSheetFromCallout,
-            }}
+            secondary={{ label: 'Close', onPress: clearSelectedPin }}
             showSecondaryInMid
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
+            handleBehavior="edgeTab"
+            collapsedLabel="Step"
           />
         ) : (
           <BottomSheet
@@ -4421,7 +4408,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       ) : cockpitOwnsNext || selectedPin ? null : hasNext && !myNextStepPin ? (
         <BottomSheet
           key="has-next"
-          eyebrow={`NEXT · ${next!.label.toUpperCase()}`}
+          // "NEXT RACE", not "NEXT" — NEXT is reserved for the single next
+          // step (first un-done step after now); this card is the next
+          // race *event* on the calendar.
+          eyebrow={`NEXT RACE · ${next!.label.toUpperCase()}`}
           title={`Plan a step for ${next!.label}.`}
           body={`${[next!.where, next!.when].filter(Boolean).join(' · ')}\nNo steps here from you, your crew, or your fleet yet.`}
           primary={{ label: `${next!.label} details`, icon: 'open-outline', onPress: handlers.onSecondaryAction }}
@@ -7786,8 +7776,11 @@ function BottomSheet({
             {eyebrow ? <Text style={shellStyles.eyebrow}>{eyebrow}</Text> : null}
             {title ? <Text style={shellStyles.sheetTitle} numberOfLines={showFull ? undefined : 1}>{title}</Text> : null}
           </View>
+          {/* Chevron toggles expanded ↔ mid only — it must match its own
+              arrow direction. Minimizing further (handle / edge tab) is
+              the grabber's job. */}
           <Pressable
-            onPress={cycle}
+            onPress={() => setState(showFull ? 'mid' : 'expanded')}
             accessibilityRole="button"
             accessibilityLabel={showFull ? 'Collapse sheet' : 'Expand sheet'}
             hitSlop={8}

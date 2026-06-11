@@ -2455,7 +2455,7 @@ function createWebNextEventElement(
 ) {
   const root = document.createElement(onPress ? 'button' : 'div');
   const eyebrow = document.createElement('div');
-  eyebrow.textContent = 'NEXT';
+  eyebrow.textContent = 'NEXT RACE';
   eyebrow.style.font = '800 8px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   eyebrow.style.letterSpacing = '1px';
   eyebrow.style.color = '#B26B00';
@@ -3474,7 +3474,7 @@ function NextEventMarker({
 }) {
   return (
     <View style={styles.nextTag}>
-      <Text style={styles.nextTagEyebrow}>NEXT</Text>
+      <Text style={styles.nextTagEyebrow}>NEXT RACE</Text>
       <Text style={styles.nextTagLabel} numberOfLines={2}>
         {label}
         {when ? <Text style={styles.nextTagWhen}>{` · ${when}`}</Text> : null}
