@@ -984,7 +984,7 @@ export default function BlueprintPage() {
               {/* Adoption reassurance — only before someone has committed */}
               {!isOwner && !isSubscribed && (
                 <Text style={v2.adoptHelper}>
-                  Steps land on your own timeline — adopt them one at a time, reorder, or skip. Nothing is locked.
+                  Steps land on your own timeline — adopt them one at a time, reorder, or skip. Nothing is locked. The blueprint author can see your progress on these steps.
                 </Text>
               )}
 

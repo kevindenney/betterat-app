@@ -315,7 +315,8 @@ export function StepAddSheet({
             </View>
           </View>
         ) : (
-          blueprintGroups.map((g) => (
+          <>
+          {blueprintGroups.map((g) => (
             <View key={g.title} style={styles.bpgroup}>
               <View style={styles.bph}>
                 <View style={styles.bpLogo}>
@@ -354,7 +355,11 @@ export function StepAddSheet({
                 </View>
               ))}
             </View>
-          ))
+          ))}
+          <Text style={styles.bpDisclosure}>
+            The blueprint author can see your progress on these steps.
+          </Text>
+          </>
         )}
       </View>
 
@@ -635,7 +640,8 @@ export function StepAddSheet({
               ) : blueprintGroups.length === 0 ? (
                 <Text style={styles.empty}>No blueprint steps waiting — you're all caught up.</Text>
               ) : (
-                blueprintGroups.map((g) => (
+                <>
+                {blueprintGroups.map((g) => (
                   <View key={g.title} style={styles.bpgroup}>
                     <View style={styles.bph}>
                       <View style={styles.bpLogo}>
@@ -674,7 +680,11 @@ export function StepAddSheet({
                       </View>
                     ))}
                   </View>
-                ))
+                ))}
+                <Text style={styles.bpDisclosure}>
+                  The blueprint author can see your progress on these steps.
+                </Text>
+                </>
               )}
             </View>
 
@@ -1087,6 +1097,13 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     color: IOS_REGISTER.labelSecondary,
     marginTop: 1,
+  },
+  bpDisclosure: {
+    fontSize: 11.5,
+    lineHeight: 15,
+    color: IOS_REGISTER.labelTertiary,
+    marginTop: 8,
+    paddingHorizontal: 2,
   },
   bpCount: {
     fontSize: 13,

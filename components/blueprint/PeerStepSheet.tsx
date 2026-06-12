@@ -224,6 +224,12 @@ export function PeerStepSheet({
                 </Pressable>
               )}
 
+              {!isAdopted ? (
+                <Text style={styles.adoptDisclosure}>
+                  The blueprint author can see your progress on these steps.
+                </Text>
+              ) : null}
+
               {isAdopted ? (
                 <View style={styles.adoptedBadge}>
                   <Ionicons name="checkmark-circle" size={14} color="#34C759" />
@@ -408,6 +414,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#34C759',
     fontWeight: '500',
+  },
+  adoptDisclosure: {
+    fontSize: 11.5,
+    lineHeight: 15,
+    color: '#8E8E93',
+    textAlign: 'center',
   },
   secondaryButton: {
     flexDirection: 'row',
