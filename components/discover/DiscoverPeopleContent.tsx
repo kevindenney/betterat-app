@@ -187,6 +187,13 @@ function DemoPath({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Search leads the surface — the foot placement read as "no search
+            exists" in user testing (feedback_cta_on_visible_element_not_buried). */}
+        <SearchField
+          ref={searchInputRef}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
         {filtered.length > 0 ? (
           <>
             <CanonicalListEyebrow {...eyebrow} />
@@ -224,13 +231,6 @@ function DemoPath({
             label={searchQuery ? `No people match “${searchQuery}” yet.` : 'No people available.'}
           />
         )}
-
-        {/* Pass 11 — search moves to a quiet pill at the foot. */}
-        <SearchField
-          ref={searchInputRef}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
       </ScrollView>
     </View>
   );
@@ -319,6 +319,13 @@ function LivePath({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Search leads the surface — the foot placement read as "no search
+            exists" in user testing (feedback_cta_on_visible_element_not_buried). */}
+        <SearchField
+          ref={searchInputRef}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={IOS_COLORS.systemBlue} />
@@ -390,13 +397,6 @@ function LivePath({
             }
           />
         )}
-
-        {/* Pass 11 — search moves to a quiet pill at the foot. */}
-        <SearchField
-          ref={searchInputRef}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
       </ScrollView>
     </View>
   );

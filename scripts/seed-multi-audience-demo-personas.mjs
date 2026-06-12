@@ -70,8 +70,10 @@ const PERSONAS = [
   },
   {
     key: 'pradan-field',
+    // Retired account — demo-suman@betterat.app is the canonical Suman
+    // Tirkey now. Distinct name so people search doesn't show two Sumans.
     email: 'pradan.field@betterat.app',
-    fullName: 'Suman Tirkey',
+    fullName: 'PRADAN Field Office (retired demo)',
     metadataRole: 'coach',
     org: { match: { slug: 'pradan-khunti' }, role: 'manager' },
     interestSlug: 'lac-craft-business',

@@ -78,14 +78,22 @@ export function useSailorSuggestions(
           )
         : base;
 
-    const localTransformed: SailorSuggestion[] = localFiltered.map((sailor) => ({
-      userId: sailor.userId,
-      fullName: sailor.fullName,
-      avatarEmoji: sailor.avatarEmoji,
-      avatarColor: sailor.avatarColor,
-      similarityReason: sailor.similarityReasons[0],
-      followerCount: sailor.similarityScore, // Use score as proxy
-    }));
+    // getSimilarSailors can return the same person via multiple similarity
+    // sources — keep the first (highest-ranked) row per user.
+    const localTransformed: SailorSuggestion[] = [];
+    const localSeen = new Set<string>();
+    for (const sailor of localFiltered) {
+      if (localSeen.has(sailor.userId)) continue;
+      localSeen.add(sailor.userId);
+      localTransformed.push({
+        userId: sailor.userId,
+        fullName: sailor.fullName,
+        avatarEmoji: sailor.avatarEmoji,
+        avatarColor: sailor.avatarColor,
+        similarityReason: sailor.similarityReasons[0],
+        followerCount: sailor.similarityScore, // Use score as proxy
+      });
+    }
 
     if (query.length === 0) return localTransformed;
 
