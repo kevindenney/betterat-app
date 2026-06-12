@@ -6,7 +6,7 @@
  * Supports light and dark mode via useIOSColors hook.
  */
 
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,12 +19,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Send } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import * as Haptics from 'expo-haptics';
 import { ChatMessageSkeleton } from './MessagingSkeleton';
 import {
   IOS_COLORS,
-  IOS_COLORS_DARK,
   IOS_TYPOGRAPHY,
   IOS_SPACING,
 } from '@/lib/design-tokens-ios';
@@ -257,6 +257,7 @@ export function CrewThreadChat({
   onLoadMore,
 }: CrewThreadChatProps) {
   const colors = useIOSColors();
+  const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const isLoadingMoreRef = useRef(false);
@@ -430,6 +431,7 @@ export function CrewThreadChat({
           {
             borderTopColor: colors.separator,
             backgroundColor: colors.systemBackground,
+            paddingBottom: Math.max(insets.bottom, IOS_SPACING.sm),
           },
         ]}
       >
@@ -451,11 +453,13 @@ export function CrewThreadChat({
           blurOnSubmit
           onSubmitEditing={handleSend}
         />
+        {/* Static style array, not function form — Fabric drops the static
+            circle styles from function-form Pressable styles (see
+            feedback_pressable_margin_row_stripping). */}
         <Pressable
-          style={({ pressed }) => [
+          style={[
             staticStyles.sendButton,
             { backgroundColor: canSend ? colors.systemBlue : colors.systemGray5 },
-            pressed && canSend && staticStyles.sendButtonPressed,
           ]}
           onPress={handleSend}
           disabled={!canSend}
