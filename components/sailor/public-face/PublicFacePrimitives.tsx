@@ -213,8 +213,9 @@ export function StatusPill({ status }: { status: CapabilityStatus }) {
 export interface CapabilityRowProps {
   name: string;
   status: CapabilityStatus;
-  /** Evidence quote — practitioner's own words from a reflection/debrief. */
-  evidence: string;
+  /** Evidence quote — practitioner's own words from a reflection/debrief.
+      Absent for rows built from evidence counts alone; the quote line drops. */
+  evidence?: string;
   /** "from a reflection · Mar 2026" — provenance sub. */
   provenance: string;
   onPress?: () => void;
@@ -240,7 +241,7 @@ export function CapabilityRow({
           ) : null}
         </View>
       </View>
-      <Text style={capStyles.evidence}>{`“${evidence}”`}</Text>
+      {evidence ? <Text style={capStyles.evidence}>{`“${evidence}”`}</Text> : null}
       <Text style={capStyles.provenance}>{provenance}</Text>
     </View>
   );

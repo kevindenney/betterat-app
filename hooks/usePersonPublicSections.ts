@@ -38,10 +38,54 @@ export interface PersonPublicThread {
   replies: number;
 }
 
+export interface PersonConcept {
+  id: string;
+  title: string;
+  body: string;
+  state: 'forming' | 'testing';
+  weekTail: number;
+  linkedStepCount: number;
+  settledCount: number;
+}
+
+export interface PersonCapability {
+  name: string;
+  standing: 'settled' | 'working' | 'emerging';
+  evidenceCount: number;
+  pipLevel: number;
+}
+
+export interface PersonCircleMember {
+  userId: string | null;
+  name: string;
+  avatarUrl: string | null;
+  role?: string;
+  isPrimary?: boolean;
+}
+
+export interface PersonCircle {
+  mutuals: PersonCircleMember[];
+  mutualCount: number;
+  crew: PersonCircleMember[];
+  crewCount: number;
+}
+
+export interface PersonDescriptorFields {
+  sailingPosition: string | null;
+  sailingClass: string | null;
+  sailingLocation: string | null;
+  sailingClub: string | null;
+  seasonsActive: number | null;
+}
+
 export interface PersonPublicSections {
   trajectory: PersonTrajectoryItem[];
   inCommonOrgs: PersonInCommonOrg[];
   publicThreads: PersonPublicThread[];
+  concept: PersonConcept | null;
+  capabilities: PersonCapability[];
+  circle: PersonCircle | null;
+  descriptor: PersonDescriptorFields | null;
 }
 
 const STALE_MS = 60_000;
@@ -84,10 +128,22 @@ export function usePersonPublicSections(userId: string | null | undefined) {
         .order('created_at', { ascending: false })
         .limit(3);
 
-      const [stepsRes, orgsRes, threadsRes] = await Promise.all([
+      const facePromise = supabase.rpc('get_person_public_face', {
+        target_user_id: userId!,
+      });
+
+      const descriptorPromise = supabase
+        .from('profiles')
+        .select('sailing_position, sailing_class, sailing_location, sailing_club, seasons_active')
+        .eq('id', userId!)
+        .maybeSingle();
+
+      const [stepsRes, orgsRes, threadsRes, faceRes, descriptorRes] = await Promise.all([
         stepsQuery,
         orgsPromise,
         threadsPromise,
+        facePromise,
+        descriptorPromise,
       ]);
 
       const trajectory: PersonTrajectoryItem[] = (stepsRes.data ?? []).map(
@@ -137,7 +193,37 @@ export function usePersonPublicSections(userId: string | null | undefined) {
         replies: replyCounts.get(row.id) ?? 0,
       }));
 
-      return { trajectory, inCommonOrgs, publicThreads };
+      const face = (faceRes.data ?? {}) as {
+        concept?: PersonConcept | null;
+        capabilities?: PersonCapability[];
+        circle?: PersonCircle | null;
+      };
+
+      const d = descriptorRes.data as {
+        sailing_position: string | null;
+        sailing_class: string | null;
+        sailing_location: string | null;
+        sailing_club: string | null;
+        seasons_active: number | null;
+      } | null;
+
+      return {
+        trajectory,
+        inCommonOrgs,
+        publicThreads,
+        concept: face.concept ?? null,
+        capabilities: face.capabilities ?? [],
+        circle: face.circle ?? null,
+        descriptor: d
+          ? {
+              sailingPosition: d.sailing_position,
+              sailingClass: d.sailing_class,
+              sailingLocation: d.sailing_location,
+              sailingClub: d.sailing_club,
+              seasonsActive: d.seasons_active,
+            }
+          : null,
+      };
     },
   });
 }

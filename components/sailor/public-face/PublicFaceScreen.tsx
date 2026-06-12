@@ -10,15 +10,17 @@
  * Data wiring:
  *   - Hero / descriptor / meta / framing line  →  profiles row (real)
  *   - Where X practises                         →  profiles row (real)
- *   - Practice timeline / published             →  enrichment when a seed
+ *   - Practice timeline / published /
+ *     working on now / capabilities /
+ *     practice circle                           →  enrichment when a seed
  *                                                  sailor has it; otherwise
- *                                                  real settled steps and
- *                                                  public thread posts via
- *                                                  usePersonPublicSections.
- *   - Working on now / capabilities /
- *     practice circle / events                  →  demo enrichment (seed
- *                                                  sailors only) until the
- *                                                  underlying schemas land.
+ *                                                  real data via
+ *                                                  usePersonPublicSections
+ *                                                  (get_person_public_face
+ *                                                  RPC centralizes privacy).
+ *   - Events                                    →  demo enrichment only
+ *                                                  (deferred — race_results
+ *                                                  has no public RLS story).
  *
  * Production users without data see hero + framing + where, with other
  * sections absent — exactly the "STATE 2 · sparse data" rule the canonical
@@ -137,6 +139,78 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     }));
   }, [enrichment.published, sections?.publicThreads]);
 
+  const realConcept = useMemo(() => {
+    if (enrichment.concept || !sections?.concept) return null;
+    const c = sections.concept;
+    const statBits: string[] = [];
+    if (c.linkedStepCount > 0) {
+      statBits.push(`In play across ${c.linkedStepCount} step${c.linkedStepCount === 1 ? '' : 's'}`);
+    }
+    if (c.settledCount > 0) {
+      statBits.push(`${c.settledCount} settled`);
+    }
+    return {
+      weekTail: `Week ${c.weekTail}`,
+      text: c.body.trim() || c.title,
+      stats: statBits.length ? statBits.join(' · ') : undefined,
+    };
+  }, [enrichment.concept, sections?.concept]);
+
+  const realCapabilities = useMemo(() => {
+    if (enrichment.capabilities?.length || !sections?.capabilities?.length) return null;
+    const statusFor = (standing: string): CapabilityStatus =>
+      standing === 'settled' ? 'settled' : standing === 'working' ? 'practicing' : 'learning';
+    return sections.capabilities.slice(0, 4).map((c) => ({
+      name: c.name,
+      status: statusFor(c.standing),
+      provenance: `${c.evidenceCount} evidence capture${c.evidenceCount === 1 ? '' : 's'} across practice steps`,
+    }));
+  }, [enrichment.capabilities, sections?.capabilities]);
+
+  const realCircle = useMemo(() => {
+    if (enrichment.circle?.length || !sections?.circle) return null;
+    const seen = new Set<string>();
+    const rows: {
+      name: string;
+      role: string;
+      initials: string;
+      tail?: string;
+      userId?: string;
+    }[] = [];
+    for (const m of sections.circle.mutuals) {
+      if (m.userId) {
+        if (seen.has(m.userId)) continue;
+        seen.add(m.userId);
+      }
+      rows.push({
+        name: m.name,
+        role: 'Follows each other',
+        initials: initialsForName(m.name),
+        tail: 'Mutual',
+        userId: m.userId ?? undefined,
+      });
+    }
+    for (const c of sections.circle.crew) {
+      if (c.userId) {
+        if (seen.has(c.userId)) continue;
+        seen.add(c.userId);
+      }
+      const roleLabel = c.role ? c.role[0].toUpperCase() + c.role.slice(1) : 'Crew';
+      rows.push({
+        name: c.name,
+        role: c.isPrimary ? `${roleLabel} · primary crew` : `${roleLabel} · crew`,
+        initials: initialsForName(c.name),
+        userId: c.userId ?? undefined,
+      });
+    }
+    return rows.length ? rows : null;
+  }, [enrichment.circle, sections?.circle]);
+
+  const realCircleTotal =
+    (sections?.circle?.mutualCount ?? 0) + (sections?.circle?.crewCount ?? 0);
+
+  const realCapabilitiesTotal = sections?.capabilities?.length ?? 0;
+
   const displayName = profile?.displayName || 'Practitioner';
 
   const handleFollow = useCallback(async () => {
@@ -179,9 +253,23 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
 
   // Descriptor + meta — pulled from the merged profiles/users row. The
   // public-face hero mirrors the Discover Person descriptor pattern but
-  // scaled up. Meta-pellets carry venue + seasons.
-  const descriptor = enrichment.descriptor ?? profile.location ?? undefined;
-  const meta = enrichment.meta ?? [];
+  // scaled up: "Dragon Helm · Hong Kong". Meta-pellets carry club + seasons.
+  const d = sections?.descriptor;
+  const identity = [d?.sailingClass?.trim(), d?.sailingPosition?.trim()]
+    .filter(Boolean)
+    .join(' ');
+  const realDescriptor =
+    [identity, d?.sailingLocation?.trim()].filter(Boolean).join(' · ') || undefined;
+  const descriptor = enrichment.descriptor ?? realDescriptor ?? profile.location ?? undefined;
+  const realMeta: { icon?: any; text: string }[] = [];
+  if (d?.sailingClub) realMeta.push({ icon: 'location-outline', text: d.sailingClub });
+  if (d?.seasonsActive) {
+    realMeta.push({
+      icon: 'calendar-outline',
+      text: `${d.seasonsActive} season${d.seasonsActive === 1 ? '' : 's'}`,
+    });
+  }
+  const meta = enrichment.meta ?? realMeta;
 
   // Framing line — written when joining BetterAt. Falls back to profile.bio
   // (the closest existing field) when there's no explicit framing.
@@ -300,6 +388,14 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               }
             />
           </IOSDetailSection>
+        ) : realConcept ? (
+          <IOSDetailSection header="Working on now" bare>
+            <ConceptCard
+              tail={realConcept.weekTail}
+              text={realConcept.text}
+              stats={realConcept.stats}
+            />
+          </IOSDetailSection>
         ) : null}
 
         {/* 04 · PRACTICE TIMELINE — chronological feed of settled moments.
@@ -357,6 +453,28 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               />
             ))}
           </IOSDetailSection>
+        ) : realCapabilities ? (
+          <IOSDetailSection
+            header="Capabilities at hand"
+            seeAll={
+              realCapabilitiesTotal > 4
+                ? {
+                    label: `All ${realCapabilitiesTotal}`,
+                    onPress: () => router.push(`/sailor/${userId}/capabilities` as any),
+                  }
+                : undefined
+            }
+          >
+            {realCapabilities.map((c, i) => (
+              <CapabilityRow
+                key={i}
+                name={c.name}
+                status={c.status}
+                provenance={c.provenance}
+                isFirst={i === 0}
+              />
+            ))}
+          </IOSDetailSection>
         ) : null}
 
         {/* 06 · PRACTICE CIRCLE — single curated list, not a follow split.
@@ -381,6 +499,32 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 role={p.role}
                 initials={p.initials}
                 markColor={p.markColor}
+                tail={p.tail}
+                onPress={
+                  p.userId ? () => router.push(`/sailor/${p.userId}` as any) : undefined
+                }
+                isFirst={i === 0}
+              />
+            ))}
+          </IOSDetailSection>
+        ) : realCircle ? (
+          <IOSDetailSection
+            header="Practice circle"
+            seeAll={
+              realCircleTotal > realCircle.length
+                ? {
+                    label: `All ${realCircleTotal}`,
+                    onPress: () => router.push(`/sailor/${userId}/circle` as any),
+                  }
+                : undefined
+            }
+          >
+            {realCircle.map((p, i) => (
+              <PracticeCircleRow
+                key={i}
+                name={p.name}
+                role={p.role}
+                initials={p.initials}
                 tail={p.tail}
                 onPress={
                   p.userId ? () => router.push(`/sailor/${p.userId}` as any) : undefined
