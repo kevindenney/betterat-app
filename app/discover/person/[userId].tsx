@@ -5,17 +5,18 @@
  * `docs/redesign/ios-register/discover-detail-trio-canonical.html` Surface 2.
  *
  * Hero opens with Follow in iOS blue when not yet followed; gray "Following"
- * pill when already followed. Body leads with the practice signal — current
- * concept — trajectory next, in-common third. Public threads renders only
- * when the user publishes; absent otherwise (no empty-state copy).
+ * pill when already followed; "This is you" pill on the viewer's own profile.
+ * Body leads with the practice signal — current concept (bio). Trajectory,
+ * in-common, and public-threads sections return once they're backed by real
+ * queries (the canonical's mock versions were removed).
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -33,9 +34,6 @@ import {
   IOSDetailSection,
   RelationshipButton,
   RelationshipMinePill,
-  DRow,
-  TrophyRow,
-  InCommonRow,
   ConceptCard,
   WebDetailContainer,
   IOS_DETAIL_GROUND_BG,
@@ -81,6 +79,7 @@ function PersonDetailScreenInner() {
   const backLabel = params.from === 'orgs' ? 'Orgs' : params.from === 'forums' ? 'Forums' : 'People';
 
   const { user } = useAuth();
+  const isSelf = Boolean(user?.id && user.id === userId);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
@@ -201,9 +200,9 @@ function PersonDetailScreenInner() {
           backLabel={backLabel}
           contextLabel="Person"
           dockedName={displayName}
-          docked={docked && !isFollowing}
+          docked={docked && !isFollowing && !isSelf}
           trailingAction={
-            docked && !isFollowing
+            docked && !isFollowing && !isSelf
               ? { label: 'Follow', icon: 'add', onPress: handleFollow }
               : undefined
           }
@@ -227,7 +226,12 @@ function PersonDetailScreenInner() {
           descriptor={descriptor || undefined}
           meta={heroMeta}
         >
-          {isFollowing ? (
+          {isSelf ? (
+            <RelationshipMinePill
+              label="This is you · Edit profile"
+              onPress={() => router.push('/settings/edit-profile' as any)}
+            />
+          ) : isFollowing ? (
             <RelationshipMinePill
               label="Following"
               onPress={() =>
@@ -253,26 +257,28 @@ function PersonDetailScreenInner() {
             Sits below the hero, above the first content section. Gated by
             SUGGEST_VERB_V3. The Reflect path is a stub for v1 (peer
             reflections schema lands in a follow-up). */}
-        {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (
+        {FEATURE_FLAGS.SUGGEST_VERB_V3 && !isSelf ? (
           <View style={dualCtaStyles.row}>
-            <Pressable
+            <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Suggest a step"
               onPress={() => setComposerOpen(true)}
-              style={({ pressed }) => [dualCtaStyles.primary, pressed && dualCtaStyles.pressed]}
+              style={dualCtaStyles.primary}
+              activeOpacity={0.7}
             >
               <Ionicons name="bulb-outline" size={15} color="#FFFFFF" />
               <Text style={dualCtaStyles.primaryText}>Suggest a step</Text>
-            </Pressable>
-            <Pressable
+            </TouchableOpacity>
+            <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Reflect"
               onPress={() => showAlert('Reflect', 'Peer reflections are coming soon.')}
-              style={({ pressed }) => [dualCtaStyles.secondary, pressed && dualCtaStyles.pressed]}
+              style={dualCtaStyles.secondary}
+              activeOpacity={0.7}
             >
               <Ionicons name="chatbubble-outline" size={15} color={IOS_REGISTER.label} />
               <Text style={dualCtaStyles.secondaryText}>Reflect</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         ) : null}
 
@@ -294,80 +300,11 @@ function PersonDetailScreenInner() {
           </IOSDetailSection>
         ) : null}
 
-        {/* Recent trajectory — restrained, no medallions, just name + date.
-            Pass 11: dropped the "Trophy of becoming" chip from each row —
-            the section header carries that framing once. Tighter Component-2
-            chronology pattern. Each row drills into the trophy detail surface. */}
-        <IOSDetailSection header="Recent trajectory">
-          <TrophyRow
-            title={
-              <Text>
-                Heavy-air helm work · <Text style={styles.italic}>settled</Text>
-              </Text>
-            }
-            when="Mar 2026"
-            onPress={() =>
-              router.push(`/sailor/${userId}/trophy/heavy-air-helm` as any)
-            }
-            isFirst
-          />
-          <TrophyRow
-            title="Decision-making under start-line pressure"
-            when="Sep 2025"
-            onPress={() =>
-              router.push(`/sailor/${userId}/trophy/start-line-patience` as any)
-            }
-          />
-        </IOSDetailSection>
-
-        {/* In common — concrete anchors with italic emphasis. Each row
-            drills into the primary anchor (the italic noun). */}
-        <IOSDetailSection header="In common">
-          <InCommonRow
-            icon="boat-outline"
-            when="Both based out of Victoria Harbour"
-            onPress={() =>
-              router.push(
-                '/discover/org/royal-hong-kong-yacht-club?from=people' as any,
-              )
-            }
-            isFirst
-          >
-            You both race out of <Text style={styles.italic}>RHKYC</Text>.
-          </InCommonRow>
-          <InCommonRow
-            icon="grid-outline"
-            onPress={() =>
-              router.push(
-                `/discover/topic/rhkyc-dragon-rig-setup?from=people&name=${encodeURIComponent('Dragon fleet · rig setup')}` as any,
-              )
-            }
-          >
-            You both follow <Text style={styles.italic}>Dragon fleet · rig setup</Text>.
-          </InCommonRow>
-        </IOSDetailSection>
-
-        {/* Public threads — renders only if user publishes; section absent
-            otherwise. Tap drills into the topic where the thread lives. */}
-        <IOSDetailSection header="Public threads">
-          <DRow
-            icon="chatbubble-outline"
-            title={`"Halyard tension downwind in chop"`}
-            sub="In Dragon fleet · rig setup · 23 replies"
-            onPress={() =>
-              router.push(
-                `/discover/topic/rhkyc-dragon-rig-setup?from=people&name=${encodeURIComponent('Dragon fleet · rig setup')}` as any,
-              )
-            }
-            isFirst
-          />
-        </IOSDetailSection>
-
         <View style={styles.bottomPad} />
         </WebDetailContainer>
       </ScrollView>
 
-      {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (
+      {FEATURE_FLAGS.SUGGEST_VERB_V3 && !isSelf ? (
         <SuggestStepComposer
           visible={composerOpen}
           onClose={() => setComposerOpen(false)}
@@ -423,9 +360,6 @@ const dualCtaStyles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: -0.1,
   },
-  pressed: {
-    opacity: 0.7,
-  },
 });
 
 /**
@@ -462,5 +396,4 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
   bottomPad: { height: 120 },
-  italic: { fontStyle: 'italic', fontWeight: '500' },
 });
