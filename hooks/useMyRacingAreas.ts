@@ -27,6 +27,10 @@ export interface MyRacingArea {
   typicalCourses?: string[];
   /** True when the current user authored this area on Atlas. */
   ownedByMe: boolean;
+  venueId: string | null;
+  createdBy: string | null;
+  classesUsed: string[];
+  radiusMeters: number | null;
 }
 
 interface RawRow {
@@ -36,7 +40,12 @@ interface RawRow {
   lat: number | null;
   lng: number | null;
   created_by: string | null;
-  metadata: { typical_courses?: string[] } | null;
+  metadata: {
+    typical_courses?: string[];
+    venue_id?: string;
+    classes_used?: string[];
+    radius_meters?: number;
+  } | null;
 }
 
 const SELECT = 'id, name, geometry, lat, lng, created_by, metadata';
@@ -108,6 +117,10 @@ export function useMyRacingAreas(venueId?: string | null) {
             centerLng: row.lng,
             typicalCourses: row.metadata?.typical_courses ?? undefined,
             ownedByMe,
+            venueId: row.metadata?.venue_id ?? null,
+            createdBy: row.created_by,
+            classesUsed: row.metadata?.classes_used ?? [],
+            radiusMeters: row.metadata?.radius_meters ?? null,
           });
         }
       }

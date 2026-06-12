@@ -80,6 +80,7 @@ import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
 import { useUpdateStepLocation } from '@/hooks/useUpdateStepLocation';
 import { useStepLocationSuggestions } from '@/hooks/useStepLocationSuggestions';
 import { useMyRacingAreas } from '@/hooks/useMyRacingAreas';
+import { circlePolygon } from '@/hooks/useAtlasRacingAreas';
 import { useSavedVenues } from '@/hooks/useSavedVenues';
 import {
   SavedJumpSheet,
@@ -3095,6 +3096,34 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setKnowledgeArea(area);
     setActiveRacingAreaId(area.id);
   }, []);
+  // Saved-sheet racing-area rows behave like tapping the area on the map:
+  // refocus the camera AND open the knowledge sheet (a bare refocus read
+  // as "tap did nothing" in user testing).
+  const handlePickSavedRacingArea = useCallback(
+    (item: SavedPlaceItem) => {
+      setSavedSheetOpen(false);
+      if (item.lat != null && item.lng != null) {
+        setSearchFocus({ lat: item.lat, lng: item.lng });
+      }
+      const area = myRacingAreas.find((a) => a.id === item.id);
+      if (!area || area.centerLat == null || area.centerLng == null) return;
+      const polygon: GeoJSON.Polygon =
+        area.geometry?.type === 'Polygon'
+          ? (area.geometry as GeoJSON.Polygon)
+          : circlePolygon(area.centerLng, area.centerLat, area.radiusMeters ?? 1000);
+      handleRacingAreaPress({
+        id: area.id,
+        name: area.areaName,
+        venueId: area.venueId,
+        centerLat: area.centerLat,
+        centerLng: area.centerLng,
+        classesUsed: area.classesUsed,
+        createdBy: area.createdBy,
+        polygon,
+      });
+    },
+    [myRacingAreas, handleRacingAreaPress],
+  );
   // HKO observations override Open-Meteo wind when a station is within
   // ~5km of map center. Real anemometer beats a 5km model grid for the
   // local read, but only inside the HK bbox — outside we don't bother
@@ -4679,6 +4708,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         onDismiss={() => setSavedSheetOpen(false)}
         onPickStep={handlePickStepFromPicker}
         onPickPlace={handlePickSavedPlace}
+        onPickRacingArea={handlePickSavedRacingArea}
         onPickPeerStep={handlePickPeerStep}
         onAddPlaceInView={handleAddPlaceInView}
       />

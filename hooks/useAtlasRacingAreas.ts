@@ -80,7 +80,7 @@ function isPolygonGeometry(geom: unknown): geom is Polygon {
   return g.type === 'Polygon' && Array.isArray(g.coordinates);
 }
 
-function circlePolygon(
+export function circlePolygon(
   centerLng: number,
   centerLat: number,
   radiusMeters: number,

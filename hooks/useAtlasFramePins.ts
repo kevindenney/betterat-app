@@ -54,9 +54,8 @@ interface UseAtlasFramePinsArgs {
    * here rather than on the finished pin list because clustering collapses
    * every cluster to a single `kind:'fleet'` — filtering after the merge
    * would make Crew/Following hide the whole badge. 'you' also governs the
-   * viewer's own my-step-* status dots (except my-step-next, which backs the
-   * cockpit HUD and always renders). `null` = show all; empty Set = hide all
-   * relationship pins.
+   * viewer's own my-step-* status dots, including my-step-next. `null` =
+   * show all; empty Set = hide all relationship pins.
    */
   peerRelationshipFilter?: Set<string> | null;
   /**
@@ -623,7 +622,7 @@ export function useAtlasFramePins({
     const coLocated = new Map<string, UserAtlasStep[]>();
     for (const step of userSteps) {
       const kind = mapUserStepStatusToPinKind(step);
-      if (!showOwnSteps && kind !== 'my-step-next') continue;
+      if (!showOwnSteps) continue;
       if (kind === 'my-step-next') {
         pushSingleUserStep(step);
         continue;

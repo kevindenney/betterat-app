@@ -111,6 +111,8 @@ interface SavedJumpSheetProps {
   onDismiss: () => void;
   onPickStep: (step: PickerStep) => void;
   onPickPlace: (item: SavedPlaceItem) => void;
+  /** Racing-area rows open the area's knowledge sheet, not just refocus. */
+  onPickRacingArea?: (item: SavedPlaceItem) => void;
   /** Recenter the map on a peer/relationship step. */
   onPickPeerStep?: (item: RelationshipStepItem) => void;
   /** Footer action — save the place currently centered in the map view. */
@@ -196,6 +198,7 @@ export function SavedJumpSheet({
   onDismiss,
   onPickStep,
   onPickPlace,
+  onPickRacingArea,
   onPickPeerStep,
   onAddPlaceInView,
 }: SavedJumpSheetProps) {
@@ -546,14 +549,16 @@ export function SavedJumpSheet({
                     return (
                       <TouchableOpacity
                         key={area.id}
-                        onPress={() => onPickPlace(area)}
+                        onPress={() => (onPickRacingArea ?? onPickPlace)(area)}
                         activeOpacity={0.55}
                         style={styles.row}
                         accessibilityRole="button"
                         accessibilityLabel={`Go to ${area.name}`}
                       >
+                        {/* map glyph, NOT a circle — ellipse-outline read as
+                            an on/off checkbox in user testing */}
                         <Ionicons
-                          name="ellipse-outline"
+                          name="map-outline"
                           size={18}
                           color={IOS_COLORS.systemBlue}
                           style={styles.placeIcon}

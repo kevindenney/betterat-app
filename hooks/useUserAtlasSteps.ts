@@ -544,7 +544,17 @@ export function useUserAtlasSteps({
           typeof metadata?.season_id === 'string' ? (metadata.season_id as string) : null,
       });
     }
-    rows.sort((a, b) => {
+    // The picker strip (and its "N of M" pill) is the CURRENT-ARC working
+    // set — with hundreds of lifetime steps the count is meaningless
+    // otherwise. Near-now steps from other arcs drop to archiveSteps,
+    // which the Saved sheet still surfaces bucketed by arc. NEXT is
+    // exempt: when the current arc has no candidates it can live in an
+    // old arc and must stay pageable.
+    const arcScoped =
+      currentArcId != null
+        ? rows.filter((r) => r.in_current_arc || r.step_id === nextStepId)
+        : rows;
+    arcScoped.sort((a, b) => {
       const aDone = isDoneStatus(a.raw_status);
       const bDone = isDoneStatus(b.raw_status);
       if (aDone !== bDone) return aDone ? 1 : -1;
@@ -556,7 +566,7 @@ export function useUserAtlasSteps({
       }
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });
-    return rows.map((r) => ({
+    return arcScoped.map((r) => ({
       step_id: r.step_id,
       title: r.title,
       status: r.status,
@@ -570,7 +580,7 @@ export function useUserAtlasSteps({
       meta_season_id: r.meta_season_id,
       sort_order: r.sort_order,
     }));
-  }, [data, raceAreaCenters, steps, inCurrentArc, nextStepId]);
+  }, [data, raceAreaCenters, steps, inCurrentArc, nextStepId, currentArcId]);
 
   // Archive dataset — everything classify() rejected as not near-now.
   // The Saved sheet buckets these by arc; newest activity first.
@@ -583,8 +593,19 @@ export function useUserAtlasSteps({
         created_at: row.created_at,
         updated_at: row.updated_at,
       });
-      if (cls) continue; // near-now — already in pickerSteps
       const metadata = row.metadata as Record<string, unknown> | null;
+      if (cls) {
+        // Near-now rows live in pickerSteps ONLY when they're in the
+        // current arc (or are NEXT) — the picker is arc-scoped. Other-arc
+        // near-now rows fall through here so the Saved sheet keeps them.
+        const inArc = inCurrentArc(
+          typeof metadata?.season_id === 'string' ? (metadata.season_id as string) : null,
+          (row as { season_id?: string | null }).season_id ?? null,
+          row.starts_at,
+          row.created_at,
+        );
+        if (currentArcId == null || inArc || row.id === nextStepId) continue;
+      }
       const plan = (row.metadata as { plan?: { where_location?: unknown } } | null)?.plan;
       const whereLocation = plan?.where_location as
         | { lat?: unknown; lng?: unknown; name?: unknown }
@@ -624,7 +645,7 @@ export function useUserAtlasSteps({
       return bt - at;
     });
     return rows;
-  }, [data, raceAreaCenters, nextStepId]);
+  }, [data, raceAreaCenters, nextStepId, currentArcId, inCurrentArc]);
 
   return { steps, pickerSteps, archiveSteps, loading: isLoading || raceAreaCentersLoading };
 }
