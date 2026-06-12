@@ -25,6 +25,7 @@ import {
 } from '@/hooks/useAtlasPeerSteps';
 import { WatchFilterRow, type WatchFilterChip } from '@/components/watch/WatchFilterRow';
 import { LocationFocusSuggestionPill } from '@/components/discover/LocationFocusSuggestionPill';
+import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { getVisibilityLabels } from '@/lib/vocabulary';
@@ -86,6 +87,7 @@ export function WatchNearbySection({
 }: WatchNearbySectionProps) {
   const hasVenue = homeVenueLat != null && homeVenueLng != null;
   const [source, setSource] = useState<NearbySource>('all');
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const { data: peerSteps = [], isLoading } = useAtlasPeerSteps({
     lat: homeVenueLat,
@@ -124,14 +126,21 @@ export function WatchNearbySection({
 
   if (!hasVenue) {
     return (
-      <View style={styles.emptyCard}>
-        <Ionicons name="location-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-        <Text style={styles.emptyTitle}>Set your location</Text>
-        <Text style={styles.emptyCopy}>
-          Nearby surfaces people working steps around your current location.
-          Set yours to light up this feed.
-        </Text>
-      </View>
+      <>
+        <View style={styles.emptyCard}>
+          <Ionicons name="location-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+          <Text style={styles.emptyTitle}>Set your location</Text>
+          <Text style={styles.emptyCopy}>
+            Nearby surfaces people working steps around your current location.
+            Set yours to light up this feed.
+          </Text>
+          <Pressable style={styles.setLocationBtn} onPress={() => setPickerOpen(true)}>
+            <Ionicons name="navigate" size={16} color="#FFFFFF" />
+            <Text style={styles.setLocationBtnText}>Set your location</Text>
+          </Pressable>
+        </View>
+        <HomeVenuePickerSheet visible={pickerOpen} onDismiss={() => setPickerOpen(false)} />
+      </>
     );
   }
 
@@ -323,6 +332,22 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.secondaryLabel,
     fontSize: 13,
     paddingHorizontal: IOS_SPACING.md,
+  },
+  setLocationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: IOS_SPACING.sm,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: '#0A84FF',
+  },
+  setLocationBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
 });
 
