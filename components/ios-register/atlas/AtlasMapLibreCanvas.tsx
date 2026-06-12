@@ -1000,8 +1000,12 @@ export function AtlasMapLibreCanvas({
   // event on long pans, leaving the snapshot ~300m behind the camera.
   const pendingCenterRef = useRef<{ lng: number; lat: number } | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Last time the camera was in motion — the annotation-redraw nudge
+  // below skips itself while the map is moving (motion already redraws).
+  const lastRegionActivityRef = useRef(0);
   const handleRegionChange = useCallback(
     (event: NativeSyntheticEvent<{ center: [number, number] }>) => {
+      lastRegionActivityRef.current = Date.now();
       // Always poll the map's bearing — reading from the event payload
       // was unreliable across legacy/Fabric bridges; the async ref read
       // is the source of truth.
@@ -1084,6 +1088,36 @@ export function AtlasMapLibreCanvas({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, focusLocation?.zoom, focusPadding, focusZoomLevel, mapReady]);
+  // iOS MapLibre silently fails to DRAW ViewAnnotations that mount (or
+  // remount via key change — e.g. the History chip changing the pin set)
+  // while the camera is idle; they only appear on the next camera move.
+  // Nudge the zoom imperceptibly (±0.004) after the pin membership
+  // changes so the engine repaints the annotation layer. Skipped while
+  // the map is moving — motion already redraws.
+  const pinsSignature = useMemo(
+    () => pins.map((p) => p.id).sort().join('|'),
+    [pins],
+  );
+  const pinsSignatureRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const prev = pinsSignatureRef.current;
+    pinsSignatureRef.current = pinsSignature;
+    if (prev === null || prev === pinsSignature || !mapReady) return;
+    const timer = setTimeout(() => {
+      if (Date.now() - lastRegionActivityRef.current < 400) return;
+      const m = mapRef.current;
+      if (!m) return;
+      void m.getZoom().then((z: number) => {
+        if (typeof z !== 'number' || !Number.isFinite(z)) return;
+        void cameraRef.current?.setStop({ zoom: z + 0.004, duration: 50 });
+        setTimeout(() => {
+          void cameraRef.current?.setStop({ zoom: z, duration: 50 });
+        }, 120);
+      });
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [pinsSignature, mapReady]);
   const walkLineCollection = useMemo<GeoJSON.FeatureCollection>(() => {
     const features: GeoJSON.Feature[] = pins
       .filter((pin) => pin.kind === 'walk-annotation' && pin.walkLine)
