@@ -1,17 +1,12 @@
 /**
- * useHomeVenuePicker — search `sailing_venues` and persist the chosen one as
- * the user's home venue.
- *
- * Home venue anchors the Nearby surfaces (Discover/Watch/Atlas) on a
- * coordinate. Clubs carry no lat/lng, so the picker draws from
- * `sailing_venues` (OSM-sourced, coordinate-bearing) and snapshots the
- * selection's id/name/lat/lng onto `sailor_profiles`.
+ * Location-picker search sources: `sailing_venues` (coordinate-bearing,
+ * OSM-sourced — also keys racing-area lookups) and general Nominatim place
+ * search. Selection is persisted via useSetLocationFocus (users table).
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
-import { useAuth } from '@/providers/AuthProvider';
-import { USER_HOME_VENUE_KEY } from '@/hooks/useUserHomeVenue';
+import { nominatimService } from '@/services/location/NominatimService';
 
 export interface VenueSearchResult {
   id: string;
@@ -74,36 +69,42 @@ export function useVenueSearch(query: string) {
   });
 }
 
-export function useSetHomeVenue() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const userId = user?.id ?? null;
+export interface PlaceSearchResult {
+  id: string;
+  name: string;
+  detail: string | null;
+  lat: number;
+  lng: number;
+}
 
-  return useMutation({
-    mutationFn: async (venue: VenueSearchResult) => {
-      if (!userId) throw new Error('Not signed in.');
-      const patch = {
-        home_venue_id: venue.id,
-        home_venue_name: venue.name,
-        home_venue_lat: venue.lat,
-        home_venue_lng: venue.lng,
-      };
-      const { data, error } = await supabase
-        .from('sailor_profiles')
-        .update(patch)
-        .eq('user_id', userId)
-        .select('id');
-      if (error) throw error;
-      // No profile row yet — create one so the home venue persists.
-      if (!data || data.length === 0) {
-        const { error: insertError } = await supabase
-          .from('sailor_profiles')
-          .insert({ user_id: userId, ...patch });
-        if (insertError) throw insertError;
+/**
+ * General place search via Nominatim (free OSM geocoding, rate-limited in
+ * the service). Lets the picker resolve any town/harbour/campus — not just
+ * rows in `sailing_venues`.
+ */
+export function usePlaceSearch(query: string) {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ['place-search', trimmed],
+    enabled: trimmed.length >= 3,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<PlaceSearchResult[]> => {
+      try {
+        const results = await nominatimService.search(trimmed, { limit: 6 });
+        return results.map((r) => {
+          const [name, ...rest] = r.displayName.split(',');
+          return {
+            id: `${r.osmType}:${r.osmId}`,
+            name: name.trim(),
+            detail: rest.length > 0 ? rest.join(',').trim() : null,
+            lat: r.lat,
+            lng: r.lng,
+          };
+        });
+      } catch (e) {
+        console.warn('[location-picker] place search error', e);
+        return [];
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [USER_HOME_VENUE_KEY, userId] });
     },
   });
 }

@@ -53,23 +53,52 @@ interface SailorProfileRow {
   home_venue_lng: number | null;
 }
 
-async function fetchHomeVenue(userId: string): Promise<UserHomeVenue> {
-  const { data: sailor } = await supabase
-    .from('sailor_profiles')
-    .select('home_venue_id, home_venue_name, home_venue_lat, home_venue_lng')
-    .eq('user_id', userId)
-    .maybeSingle<SailorProfileRow>();
+interface UserFocusRow {
+  location_focus_lat: number | null;
+  location_focus_lng: number | null;
+  location_focus_label: string | null;
+}
 
-  if (!sailor?.home_venue_id) {
+async function fetchHomeVenue(userId: string): Promise<UserHomeVenue> {
+  // Location focus (users.location_focus_*) is the user's *current* movable
+  // anchor and wins for coords + label. The home venue snapshot remains the
+  // fallback anchor, and its id always rides along — it keys racing-area
+  // lookups for sailors regardless of where the focus currently sits.
+  const [{ data: focus }, { data: sailor }] = await Promise.all([
+    supabase
+      .from('users')
+      .select('location_focus_lat, location_focus_lng, location_focus_label')
+      .eq('id', userId)
+      .maybeSingle<UserFocusRow>(),
+    supabase
+      .from('sailor_profiles')
+      .select('home_venue_id, home_venue_name, home_venue_lat, home_venue_lng')
+      .eq('user_id', userId)
+      .maybeSingle<SailorProfileRow>(),
+  ]);
+
+  const venueId = sailor?.home_venue_id ?? null;
+
+  if (focus?.location_focus_lat != null && focus.location_focus_lng != null) {
+    return {
+      id: venueId,
+      region: null,
+      venue: focus.location_focus_label ?? sailor?.home_venue_name ?? null,
+      lat: focus.location_focus_lat,
+      lng: focus.location_focus_lng,
+    };
+  }
+
+  if (!venueId) {
     return { id: null, region: null, venue: null, lat: null, lng: null };
   }
 
-  const lat = Number.isFinite(sailor.home_venue_lat) ? (sailor.home_venue_lat as number) : null;
-  const lng = Number.isFinite(sailor.home_venue_lng) ? (sailor.home_venue_lng as number) : null;
+  const lat = Number.isFinite(sailor!.home_venue_lat) ? (sailor!.home_venue_lat as number) : null;
+  const lng = Number.isFinite(sailor!.home_venue_lng) ? (sailor!.home_venue_lng as number) : null;
   return {
-    id: sailor.home_venue_id,
+    id: venueId,
     region: null,
-    venue: sailor.home_venue_name ?? null,
+    venue: sailor!.home_venue_name ?? null,
     lat,
     lng,
   };

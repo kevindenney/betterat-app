@@ -463,17 +463,13 @@ function LoggedInMenu({
           onPress={() => onNavigate('/account')}
           trailing="chevron"
         />
-        {homeVenueName ? (
-          <>
-            <ItemDivider />
-            <DropdownItem
-              icon="location-outline"
-              label={homeVenueName}
-              onPress={onOpenVenuePicker}
-              trailing="chevron"
-            />
-          </>
-        ) : null}
+        <ItemDivider />
+        <DropdownItem
+          icon="location-outline"
+          label={homeVenueName ?? 'Set your location'}
+          onPress={onOpenVenuePicker}
+          trailing="chevron"
+        />
         {!menu.isAuthor && !menu.isAdmin && (
           <>
             <ItemDivider />

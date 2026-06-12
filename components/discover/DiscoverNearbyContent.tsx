@@ -23,6 +23,7 @@ import { useVocabulary } from '@/hooks/useVocabulary';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
+import { LocationFocusSuggestionPill } from '@/components/discover/LocationFocusSuggestionPill';
 
 interface DiscoverNearbyContentProps {
   homeVenueLat: number | null;
@@ -121,15 +122,15 @@ export function DiscoverNearbyContent({
       <>
         <View style={[styles.emptyCard, { marginTop: toolbarOffset + IOS_SPACING.md }]}>
           <Ionicons name="location-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-          <Text style={styles.emptyTitle}>Set a home venue</Text>
+          <Text style={styles.emptyTitle}>Set your location</Text>
           <Text style={styles.emptyCopy}>
             Nearby shows organizations, {vocab('Peers').toLowerCase()}, and
-            activity around your home base. Set a home venue to light up this
+            activity around your current location. Set yours to light up this
             segment.
           </Text>
           <Pressable style={styles.setVenueBtn} onPress={() => setPickerOpen(true)}>
-            <Ionicons name="add" size={16} color="#FFFFFF" />
-            <Text style={styles.setVenueBtnText}>Set home venue</Text>
+            <Ionicons name="navigate" size={16} color="#FFFFFF" />
+            <Text style={styles.setVenueBtnText}>Set your location</Text>
           </Pressable>
         </View>
         <HomeVenuePickerSheet visible={pickerOpen} onDismiss={() => setPickerOpen(false)} />
@@ -151,13 +152,16 @@ export function DiscoverNearbyContent({
 
   if (hasNothing) {
     return (
-      <View style={[styles.emptyCard, { marginTop: toolbarOffset + IOS_SPACING.md }]}>
-        <Ionicons name="locate-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-        <Text style={styles.emptyTitle}>Quiet around {homeVenueLabel ?? 'you'}</Text>
-        <Text style={styles.emptyCopy}>
-          No organizations or {vocab('Peers').toLowerCase()} registered
-          nearby yet. As more join, this segment will fill in.
-        </Text>
+      <View style={{ marginTop: toolbarOffset + IOS_SPACING.md }}>
+        <LocationFocusSuggestionPill focusLat={homeVenueLat} focusLng={homeVenueLng} />
+        <View style={styles.emptyCard}>
+          <Ionicons name="locate-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+          <Text style={styles.emptyTitle}>Quiet around {homeVenueLabel ?? 'you'}</Text>
+          <Text style={styles.emptyCopy}>
+            No organizations or {vocab('Peers').toLowerCase()} registered
+            nearby yet. As more join, this segment will fill in.
+          </Text>
+        </View>
       </View>
     );
   }
@@ -171,6 +175,7 @@ export function DiscoverNearbyContent({
       ]}
       showsVerticalScrollIndicator={false}
     >
+      <LocationFocusSuggestionPill focusLat={homeVenueLat} focusLng={homeVenueLng} />
       <Text style={styles.sectionHeader}>
         Within 25km · {homeVenueLabel ?? 'your area'}
       </Text>

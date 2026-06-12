@@ -3,13 +3,13 @@
  *
  * Rendered when the user selects the `Nearby` grouping chip. Queries
  * atlas_peer_steps_near for peer step pins within 25km of the user's
- * home venue, filters out the viewer's own pins, and lists what other
+ * location focus, filters out the viewer's own pins, and lists what other
  * sailors are doing in the same place. Distinct from the Following
  * feed (which is graph-based) — this is proximity-based.
  *
  * Empty states:
- *   - No home venue → prompt to set one in settings.
- *   - Have home venue but no nearby peers → encouraging copy.
+ *   - No location set → prompt to set one.
+ *   - Location set but no nearby peers → encouraging copy.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -24,6 +24,7 @@ import {
   type AtlasPeerAudience,
 } from '@/hooks/useAtlasPeerSteps';
 import { WatchFilterRow, type WatchFilterChip } from '@/components/watch/WatchFilterRow';
+import { LocationFocusSuggestionPill } from '@/components/discover/LocationFocusSuggestionPill';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { getVisibilityLabels } from '@/lib/vocabulary';
@@ -125,10 +126,10 @@ export function WatchNearbySection({
     return (
       <View style={styles.emptyCard}>
         <Ionicons name="location-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-        <Text style={styles.emptyTitle}>Set a home venue</Text>
+        <Text style={styles.emptyTitle}>Set your location</Text>
         <Text style={styles.emptyCopy}>
-          Nearby surfaces people working steps around your home base. Add
-          one in settings to light up this feed.
+          Nearby surfaces people working steps around your current location.
+          Set yours to light up this feed.
         </Text>
       </View>
     );
@@ -140,18 +141,22 @@ export function WatchNearbySection({
 
   if (visibleSteps.length === 0) {
     return (
-      <View style={styles.emptyCard}>
-        <Ionicons name="locate-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
-        <Text style={styles.emptyTitle}>Quiet around {homeVenueLabel ?? 'you'}</Text>
-        <Text style={styles.emptyCopy}>
-          Nobody nearby is working a step right now. Check back soon.
-        </Text>
+      <View>
+        <LocationFocusSuggestionPill focusLat={homeVenueLat} focusLng={homeVenueLng} />
+        <View style={styles.emptyCard}>
+          <Ionicons name="locate-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+          <Text style={styles.emptyTitle}>Quiet around {homeVenueLabel ?? 'you'}</Text>
+          <Text style={styles.emptyCopy}>
+            Nobody nearby is working a step right now. Check back soon.
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.section}>
+      <LocationFocusSuggestionPill focusLat={homeVenueLat} focusLng={homeVenueLng} />
       {sourceChips.length > 1 ? (
         <WatchFilterRow
           categories={sourceChips}
