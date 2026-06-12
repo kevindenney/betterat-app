@@ -31,6 +31,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator, LayoutChangeEvent, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
@@ -156,6 +157,9 @@ export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6' | 'f7' | 'f8'
 /** Phase N.4 — royal blue for the "Races" filter dot, matching the ⛵ pin. */
 const RACE_FILTER_DOT = '#0E7490';
 const STEP_FILTER_DOT = '#2563EB';
+// Last-viewed f1 camera ({lat, lng, zoom}) — Atlas reopens here instead of
+// flying to the next step, matching maps-app spatial stability.
+const ATLAS_F1_LAST_CAMERA_KEY = 'atlas:f1:last-camera';
 
 /**
  * Stub for unwired CTAs. Tells the user what the action WILL do once
@@ -2150,6 +2154,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     lat: number;
     lng: number;
     bounds?: [number, number, number, number];
+    zoom?: number;
   } | null>(handlers.initialFocus ?? null);
   // Sync searchFocus when handlers.initialFocus arrives async (e.g.
   // /(tabs)/atlas?orgSlug=... resolves the org's primary location
@@ -2385,32 +2390,62 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // a completed-step marker must show THAT step, not silently defer to the
   // cockpit's next step (which reads as "this marker is the next step").
   const cockpitOwnsNext = cockpitShowsChecklist;
-  // Auto-center on the viewer's next step the first time it appears.
-  // The point of Atlas is "show me where I'm going" — landing on the
-  // bbox centroid is a useless default when we already know which
-  // pin matters most. Fires once per session per next-step id so
-  // panning away doesn't snap back.
-  const autoCenteredNextStepIdRef = React.useRef<string | null>(null);
+  // Atlas opens like a maps app: unfocused, at the last-viewed camera.
+  // The viewer's NEXT step no longer hijacks the camera on open — fly-to
+  // is reserved for explicit acts (tapping the NEXT pin, search, a step
+  // pick). Restore the persisted center+zoom once; 'none' lets the
+  // home-venue fallback below take over for first-ever opens.
+  const [lastCameraRestore, setLastCameraRestore] = useState<'pending' | 'restored' | 'none'>(
+    'pending',
+  );
   React.useEffect(() => {
-    if (!myNextStepPin) return;
-    const id = myNextStepPin.stepId ?? myNextStepPin.id ?? null;
-    if (!id) return;
-    if (autoCenteredNextStepIdRef.current === id) return;
-    autoCenteredNextStepIdRef.current = id;
-    setSearchFocus({ lat: myNextStepPin.lat, lng: myNextStepPin.lng });
-  }, [myNextStepPin]);
-  // No upcoming step to anchor on? Center on the viewer's home venue once
-  // so Atlas opens where they actually are, not the Causeway Bay demo
+    let cancelled = false;
+    void AsyncStorage.getItem(ATLAS_F1_LAST_CAMERA_KEY).then((raw) => {
+      if (cancelled) return;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as { lat?: number; lng?: number; zoom?: number };
+          if (
+            typeof parsed.lat === 'number' && Number.isFinite(parsed.lat) &&
+            typeof parsed.lng === 'number' && Number.isFinite(parsed.lng)
+          ) {
+            // Don't clobber an explicit focus that beat us here (deep link
+            // via initialFocus, or an eager search) — restore is a default,
+            // never an override.
+            setSearchFocus((prev) =>
+              prev ?? {
+                lat: parsed.lat as number,
+                lng: parsed.lng as number,
+                zoom: typeof parsed.zoom === 'number' && Number.isFinite(parsed.zoom)
+                  ? parsed.zoom
+                  : undefined,
+              },
+            );
+            setLastCameraRestore('restored');
+            return;
+          }
+        } catch {
+          // fall through to 'none'
+        }
+      }
+      setLastCameraRestore('none');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  // Nothing persisted yet (first open)? Center on the viewer's home venue
+  // once so Atlas opens where they actually are, not the Causeway Bay demo
   // centroid baked into the F1 camera preset. One-shot so panning away
-  // doesn't snap back; the next-step effect above takes precedence.
+  // doesn't snap back.
   const autoCenteredHomeRef = React.useRef(false);
   React.useEffect(() => {
     if (autoCenteredHomeRef.current) return;
-    if (myNextStepPin) return;
+    if (lastCameraRestore !== 'none') return;
     if (homeVenue?.lat == null || homeVenue?.lng == null) return;
     autoCenteredHomeRef.current = true;
-    setSearchFocus({ lat: homeVenue.lat, lng: homeVenue.lng });
-  }, [myNextStepPin, homeVenue]);
+    setSearchFocus((prev) => prev ?? { lat: homeVenue.lat as number, lng: homeVenue.lng as number });
+  }, [lastCameraRestore, homeVenue]);
   const focusedClubPin = useMemo(
     () =>
       handlers.focusOrgSlug
@@ -2494,6 +2529,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     if (pin.kind === 'my-step-next' && cockpitOwnsNext) {
       setSelectedPin(null);
       setCockpitManuallyCollapsed(false);
+      setCockpitDismissed(false);
       return;
     }
     setSelectedPin(pin);
@@ -2535,6 +2571,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // pill restores the full cockpit (and dismisses any open POI sheet so the
   // two don't immediately re-collide).
   const [cockpitManuallyCollapsed, setCockpitManuallyCollapsed] = useState(false);
+  // Fully closed (no pill) — distinct from collapsed. Tapping the NEXT
+  // pin on the map brings it back, as does a new next step.
+  const [cockpitDismissed, setCockpitDismissed] = useState(false);
+  React.useEffect(() => {
+    setCockpitDismissed(false);
+  }, [myNextStepPin?.stepId]);
   // A bottom sheet visibly occupies the bottom slot when a step preview, a
   // dropped-pin candidate, or a (non-suppressed) selected pin is showing —
   // mirror the render conditions below so the cockpit knows to yield.
@@ -2910,6 +2952,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     lat: next?.lat ?? 22.2978,
     lng: next?.lng ?? 114.185,
   });
+  // Persist every settled pan/zoom so the next Atlas open restores it.
+  const handleMapCenterChange = useCallback(
+    (coords: { lat: number; lng: number; zoom?: number }) => {
+      setMapCenter({ lat: coords.lat, lng: coords.lng });
+      void AsyncStorage.setItem(ATLAS_F1_LAST_CAMERA_KEY, JSON.stringify(coords));
+    },
+    [],
+  );
   const { data: marineSnapshot } = useMarineSnapshot({
     lat: mapCenter.lat,
     lng: mapCenter.lng,
@@ -3610,7 +3660,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 : candidate
             }
             racingAreaPreviewPolygon={areaSheetPolygon}
-            onMapCenterChange={setMapCenter}
+            onMapCenterChange={handleMapCenterChange}
             onZoomChange={handleZoomChange}
             onPinPress={handlePinPress}
             onRacingAreaPress={handleRacingAreaPress}
@@ -3891,7 +3941,8 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 
         {handlers.nearbyOverlayOpen ? null : cockpitShowsChecklist &&
           myNextStepPin &&
-          !selectedPin ? (
+          !selectedPin &&
+          !cockpitDismissed ? (
           <StepCockpit
             title={
               cockpitStep?.title ??
@@ -3908,6 +3959,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             collapsed={cockpitCollapsed}
             onToggleCollapse={toggleCockpitCollapsed}
+            onClose={() => setCockpitDismissed(true)}
           />
         ) : (showWind || showTide) && !selectedPin && !raceTimeBarVisible ? (
           // One popup at a time — the scrubber yields while a pin sheet
@@ -8090,6 +8142,7 @@ function StepCockpit({
   bottomOffset = 0,
   collapsed = false,
   onToggleCollapse,
+  onClose,
 }: {
   title: string;
   locationName: string | null;
@@ -8099,6 +8152,7 @@ function StepCockpit({
   bottomOffset?: number;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  onClose?: () => void;
 }) {
   const doneCount = subSteps.filter((s) => s.completed).length;
   const beatDoneCount = beats.filter((b) => b.done).length;
@@ -8163,6 +8217,17 @@ function StepCockpit({
               style={stepCockpitStyles.collapseBtn}
             >
               <Ionicons name="chevron-down" size={16} color={IOS_REGISTER.labelTertiary} />
+            </Pressable>
+          ) : null}
+          {onClose ? (
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close next step"
+              hitSlop={10}
+              style={stepCockpitStyles.collapseBtn}
+            >
+              <Ionicons name="close" size={16} color={IOS_REGISTER.labelTertiary} />
             </Pressable>
           ) : null}
         </View>

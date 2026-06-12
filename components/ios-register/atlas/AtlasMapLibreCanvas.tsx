@@ -574,6 +574,8 @@ interface AtlasMapLibreCanvasProps {
     lng: number;
     lat: number;
     bounds?: [number, number, number, number];
+    /** Per-focus zoom override (e.g. restoring the last-viewed camera). Falls back to `focusZoomLevel`. */
+    zoom?: number;
   } | null;
   /** Camera padding for focusLocation. Full-screen Atlas uses large bottom padding for sheets; embedded maps can pass compact padding. */
   focusPadding?: { top: number; bottom: number; left: number; right: number };
@@ -684,7 +686,7 @@ interface AtlasMapLibreCanvasProps {
    * wind/tide overlays anchored to whatever water the user is looking
    * at, refetching marine conditions for the new center.
    */
-  onMapCenterChange?: (coords: { lng: number; lat: number }) => void;
+  onMapCenterChange?: (coords: { lng: number; lat: number; zoom?: number }) => void;
   /**
    * Fires whenever the live map zoom changes. The parent buckets this into a
    * "expand peer clusters" boolean so close-up zoom breaks the "+N" peer badge
@@ -802,11 +804,15 @@ export function AtlasMapLibreCanvas({
   useEffect(() => {
     onZoomChangeRef.current = onZoomChange;
   }, [onZoomChange]);
+  // Mirror of the zoom state for non-render reads (region-settle commits)
+  // — the debounce timeout would otherwise close over a stale `zoom`.
+  const zoomRef = useRef(baseCamera.zoom);
   const pollZoom = useCallback(() => {
     const m = mapRef.current;
     if (!m) return;
     void m.getZoom().then((z: number) => {
       if (typeof z === 'number' && Number.isFinite(z)) {
+        zoomRef.current = z;
         setZoom(z);
         onZoomChangeRef.current?.(z);
       }
@@ -864,6 +870,11 @@ export function AtlasMapLibreCanvas({
   // chip; otherwise the big amber tag stays put at every zoom (nothing to
   // stack against).
   const nextCourseDrawn = showCourse && nextEventCommittee != null;
+  // The wide amber NEXT pill renders BELOW step/peer pins (it mounts first;
+  // pin keys carry this flag so they remount above whenever the pill
+  // (re)mounts — iOS annotation z-order is add order). Neighbors used to
+  // vanish under the pill at venue zooms.
+  const nextPillVisible = !!nextEvent && !(zoom >= COURSE_MIN_ZOOM && nextCourseDrawn);
 
   // The "N races · {Series}" line is rendered as a native SymbolLayer, not as
   // part of the RN "NEXT" pill: on iOS the pill is an MLNPointAnnotation that
@@ -1004,7 +1015,7 @@ export function AtlasMapLibreCanvas({
         const next = pendingCenterRef.current;
         if (!next) return;
         if (__DEV__) console.warn(`[atlas-ios] region settled → lat=${next.lat.toFixed(4)} lng=${next.lng.toFixed(4)}`);
-        onMapCenterChange(next);
+        onMapCenterChange({ ...next, zoom: zoomRef.current });
       }, 300);
     },
     [onMapCenterChange, pollBearing, pollZoom],
@@ -1067,12 +1078,12 @@ export function AtlasMapLibreCanvas({
     }
     cameraRef.current?.flyTo({
       center: [focusLocation.lng, focusLocation.lat],
-      zoom: focusZoomLevel,
+      zoom: focusLocation.zoom ?? focusZoomLevel,
       padding: focusPadding ?? { top: 120, bottom: 380, left: 32, right: 32 },
       duration: 500,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, focusPadding, focusZoomLevel, mapReady]);
+  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, focusLocation?.zoom, focusPadding, focusZoomLevel, mapReady]);
   const walkLineCollection = useMemo<GeoJSON.FeatureCollection>(() => {
     const features: GeoJSON.Feature[] = pins
       .filter((pin) => pin.kind === 'walk-annotation' && pin.walkLine)
@@ -1479,59 +1490,7 @@ export function AtlasMapLibreCanvas({
           </MLGeoJSONSource>
         ) : null}
 
-        {orderedPins.map((pin) => {
-          const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
-          const inner = (
-            <LabeledPin
-              kind={pin.kind}
-              label={pin.label}
-              isRace={pin.isRace}
-              clusterCount={pin.clusterCount}
-              clusterUnit={pin.clusterUnit ?? clusterUnit}
-              glowCluster={pin.glowCluster}
-              showLabel={shouldShowLabel(pin, pins)}
-              hideArrowChips={hideArrowChips}
-            />
-          );
-          return (
-            <MLMarker
-              // iOS annotation z-order is add order, so hero badge markers
-              // remount (fresh key) whenever the pin set changes — markers
-              // added later (e.g. toggling wind on) would otherwise mount
-              // above the badge and clip "NEXT" to "EXT".
-              key={
-                HERO_BADGE_PIN_KINDS.has(pin.kind)
-                  ? `${pin.id}:${pins.length}`
-                  : pin.id
-              }
-              id={pin.id}
-              lngLat={[pin.lng, pin.lat]}
-              onPress={
-                MARKER_NATIVE_PRESS && isTappable
-                  ? () => handlePinTap(pin)
-                  : undefined
-              }
-            >
-              {isTappable ? (
-                // hitSlop alone can't grow a marker's touch area — the native
-                // annotation view is content-sized, so touches outside it hit
-                // the map. A centered min-size pad makes 8–14pt peer/step dots
-                // actually hittable; it's a no-op for pill-sized markers.
-                <Pressable
-                  onPress={() => handlePinTap(pin)}
-                  hitSlop={14}
-                  style={styles.pinTouchPad}
-                >
-                  {inner}
-                </Pressable>
-              ) : (
-                inner
-              )}
-            </MLMarker>
-          );
-        })}
-
-        {nextEvent && !(zoom >= COURSE_MIN_ZOOM && nextCourseDrawn) ? (
+        {nextPillVisible && nextEvent ? (
           <MLMarker
             id="atlas-next-event"
             lngLat={[nextEvent.lng, nextEvent.lat]}
@@ -1562,6 +1521,60 @@ export function AtlasMapLibreCanvas({
             )}
           </MLMarker>
         ) : null}
+
+        {orderedPins.map((pin) => {
+          const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
+          const inner = (
+            <LabeledPin
+              kind={pin.kind}
+              label={pin.label}
+              isRace={pin.isRace}
+              clusterCount={pin.clusterCount}
+              clusterUnit={pin.clusterUnit ?? clusterUnit}
+              glowCluster={pin.glowCluster}
+              showLabel={shouldShowLabel(pin, pins)}
+              hideArrowChips={hideArrowChips}
+            />
+          );
+          return (
+            <MLMarker
+              // iOS annotation z-order is add order, so hero badge markers
+              // remount (fresh key) whenever the pin set changes — markers
+              // added later (e.g. toggling wind on) would otherwise mount
+              // above the badge and clip "NEXT" to "EXT". Every pin also
+              // remounts when the amber NEXT pill (re)mounts so pins land
+              // above it instead of vanishing underneath.
+              key={
+                HERO_BADGE_PIN_KINDS.has(pin.kind)
+                  ? `${pin.id}:${pins.length}:${nextPillVisible ? 'n1' : 'n0'}`
+                  : `${pin.id}:${nextPillVisible ? 'n1' : 'n0'}`
+              }
+              id={pin.id}
+              lngLat={[pin.lng, pin.lat]}
+              onPress={
+                MARKER_NATIVE_PRESS && isTappable
+                  ? () => handlePinTap(pin)
+                  : undefined
+              }
+            >
+              {isTappable ? (
+                // hitSlop alone can't grow a marker's touch area — the native
+                // annotation view is content-sized, so touches outside it hit
+                // the map. A centered min-size pad makes 8–14pt peer/step dots
+                // actually hittable; it's a no-op for pill-sized markers.
+                <Pressable
+                  onPress={() => handlePinTap(pin)}
+                  hitSlop={14}
+                  style={styles.pinTouchPad}
+                >
+                  {inner}
+                </Pressable>
+              ) : (
+                inner
+              )}
+            </MLMarker>
+          );
+        })}
 
         {nextEvent && nextEventCommittee && zoom >= COURSE_MIN_ZOOM && nextCourseDrawn ? (
           <MLMarker
@@ -1774,7 +1787,7 @@ function WebAtlasMapLibreCanvas({
 
         map.on('moveend', () => {
           const c = map.getCenter();
-          onMapCenterChangeRef.current?.({ lng: c.lng, lat: c.lat });
+          onMapCenterChangeRef.current?.({ lng: c.lng, lat: c.lat, zoom: map.getZoom() });
         });
 
         map.on('zoom', () => {
@@ -1846,7 +1859,7 @@ function WebAtlasMapLibreCanvas({
     }
     map.easeTo({
       center: [focusLocation.lng, focusLocation.lat],
-      zoom: focusZoomLevel,
+      zoom: focusLocation.zoom ?? focusZoomLevel,
       padding: focusPadding ?? { top: 120, bottom: 380, left: 32, right: 32 },
       duration: 500,
     });
@@ -1855,7 +1868,7 @@ function WebAtlasMapLibreCanvas({
     // parent render (the parent recreates the object inline), which
     // flies the camera back to its last focus on every state change
     // unrelated to focus.
-  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, focusPadding, focusZoomLevel, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.bounds, focusLocation?.zoom, focusPadding, focusZoomLevel, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const map = mapRef.current;
