@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
+import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { useUserHomeVenue, isSailingInterest } from '@/hooks/useUserHomeVenue';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
@@ -123,6 +124,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   const [addChooserOpen, setAddChooserOpen] = useState(false);
   const [stepAddOpen, setStepAddOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [conceptEditorOpen, setConceptEditorOpen] = useState(false);
   const isSailRacing = (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing';
   // Sticky "added" set for the Interests stack so its Add chips stay
@@ -229,7 +231,11 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
       <TabScreenToolbar
         subtitleContent={
           isSailingInterest(currentInterest?.slug) ? (
-            <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
+            <LocationAnchor
+              region={homeVenue?.region}
+              venue={homeVenue?.venue}
+              onPress={() => setLocationPickerOpen(true)}
+            />
           ) : undefined
         }
         topInset={insets.top}
@@ -269,6 +275,11 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           </Pressable>
         </View>
       ) : null}
+
+      <HomeVenuePickerSheet
+        visible={locationPickerOpen}
+        onDismiss={() => setLocationPickerOpen(false)}
+      />
 
       <CaptureSheet
         visible={captureOpen}

@@ -7,9 +7,9 @@
  * one; Atlas's map orientation is implicit. This component is the shared
  * primitive every tab can lean on.
  *
- * v1: static label sourced by the caller (typically "Region · HomeVenue",
- * e.g. "Hong Kong · RHKYC"). v2 will accept an onPress to open a venue
- * picker and a `live` flag for GPS-derived region.
+ * Label is sourced by the caller (typically `useUserHomeVenue()` — the
+ * location focus when set, home venue as fallback). Pass `onPress` to open
+ * the location picker; a chevron renders so the pill reads as tappable.
  */
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -28,7 +28,7 @@ export interface LocationAnchorProps {
    * Skip when the user has no home venue set.
    */
   venue?: string | null;
-  /** Future-proofing: a tap will eventually open a venue picker. */
+  /** Opens the location picker. Adds a chevron affordance when present. */
   onPress?: () => void;
 }
 
@@ -37,7 +37,13 @@ export function LocationAnchor({ region, venue, onPress }: LocationAnchorProps) 
   const label = region && venue ? `${region} · ${venue}` : (region ?? venue ?? '');
   const Wrapper: React.ElementType = onPress ? Pressable : View;
   return (
-    <Wrapper style={styles.pill} onPress={onPress} hitSlop={6}>
+    <Wrapper
+      style={styles.pill}
+      onPress={onPress}
+      hitSlop={6}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={onPress ? `Change location: ${label}` : undefined}
+    >
       <Ionicons
         name="location"
         size={11}
@@ -47,6 +53,14 @@ export function LocationAnchor({ region, venue, onPress }: LocationAnchorProps) 
       <Text style={styles.text} numberOfLines={1}>
         {label}
       </Text>
+      {onPress ? (
+        <Ionicons
+          name="chevron-down"
+          size={10}
+          color="rgba(60, 60, 67, 0.55)"
+          style={styles.chevron}
+        />
+      ) : null}
     </Wrapper>
   );
 }
@@ -71,6 +85,9 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 4,
+  },
+  chevron: {
+    marginLeft: 4,
   },
   text: {
     fontSize: 12,

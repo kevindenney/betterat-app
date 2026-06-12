@@ -38,12 +38,16 @@ export class NominatimService {
     return new Promise((resolve, reject) => {
       this.requestQueue = this.requestQueue
         .then(() => {
+          // Manual timeout: RN's AbortSignal polyfill has no .timeout(), so
+          // AbortSignal.timeout() throws on native and kills every request.
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 30_000);
           return fetch(url, {
             headers: {
               'User-Agent': this.userAgent,
             },
-            signal: AbortSignal.timeout(30_000),
-          });
+            signal: controller.signal,
+          }).finally(() => clearTimeout(timer));
         })
         .then(resolve)
         .catch(reject);
@@ -217,7 +221,7 @@ export class NominatimService {
   async geocodeVenue(
     name: string,
     country?: string,
-    region?: string
+    _region?: string
   ): Promise<NominatimResult | null> {
     const options: NominatimSearchOptions = {
       limit: 5, // Get more results to find best match
@@ -291,9 +295,9 @@ export class NominatimService {
    * Automatically respects 1 req/sec limit
    */
   async batchGeocode(
-    queries: Array<{ name: string; country?: string }>
-  ): Promise<Array<{ query: string; result: NominatimResult | null }>> {
-    const results: Array<{ query: string; result: NominatimResult | null }> = [];
+    queries: { name: string; country?: string }[]
+  ): Promise<{ query: string; result: NominatimResult | null }[]> {
+    const results: { query: string; result: NominatimResult | null }[] = [];
 
     for (const query of queries) {
       const result = await this.geocodeYachtClub(query.name, query.country);

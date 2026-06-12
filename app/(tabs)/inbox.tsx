@@ -51,6 +51,7 @@ import { SuggestStepComposer } from '@/components/sailor/SuggestStepComposer';
 import { InterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
+import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { useToast } from '@/components/ui/AppToast';
 import { useUserHomeVenue, isSailingInterest } from '@/hooks/useUserHomeVenue';
@@ -347,6 +348,7 @@ function InboxTopRow() {
   const universalPlus = useUniversalPlus();
   const homeVenue = useUserHomeVenue();
   const { currentInterest } = useInterest();
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   // canGoBack() is true when the user arrived via router.push (e.g. tapped
   // the mail icon from Practice / Atlas). In that case, render a "Done"
   // affordance that returns them to the tab they came from. When they
@@ -369,7 +371,11 @@ function InboxTopRow() {
           <>
             <InterestSwitcher />
             {isSailingInterest(currentInterest?.slug) ? (
-              <LocationAnchor region={homeVenue?.region} venue={homeVenue?.venue} />
+              <LocationAnchor
+                region={homeVenue?.region}
+                venue={homeVenue?.venue}
+                onPress={() => setLocationPickerOpen(true)}
+              />
             ) : null}
           </>
         )}
@@ -387,6 +393,10 @@ function InboxTopRow() {
         ) : null}
         <ProfileDropdown />
       </View>
+      <HomeVenuePickerSheet
+        visible={locationPickerOpen}
+        onDismiss={() => setLocationPickerOpen(false)}
+      />
     </View>
   );
 }

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { LocationAnchor } from '@/components/ui/LocationAnchor';
+import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { useUserHomeVenue, isSailingInterest } from '@/hooks/useUserHomeVenue';
 import { useInterest } from '@/providers/InterestProvider';
@@ -106,6 +107,7 @@ export default function WatchScreen() {
   // Discover tab into Watch — it opens as a focused full-bleed surface
   // over the feed, with a floating back pill (mirrors the Library zones).
   const [findPeopleOpen, setFindPeopleOpen] = useState(false);
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
   const onToggleFollow = (id: string) => {
     setFollowedIds((prev) => {
@@ -380,7 +382,7 @@ export default function WatchScreen() {
             <LocationAnchor
               region={homeVenue.region}
               venue={homeVenue.venue}
-              onPress={() => setGrouping('location')}
+              onPress={() => setLocationPickerOpen(true)}
             />
           ) : undefined
         }
@@ -419,6 +421,11 @@ export default function WatchScreen() {
           </Pressable>
         </View>
       ) : null}
+
+      <HomeVenuePickerSheet
+        visible={locationPickerOpen}
+        onDismiss={() => setLocationPickerOpen(false)}
+      />
     </View>
   );
 }
