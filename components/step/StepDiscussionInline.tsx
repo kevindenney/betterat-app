@@ -355,6 +355,8 @@ export function StepDiscussionInline({
         );
       }
       queryClient.invalidateQueries({ queryKey: ['step-discussion-peek', stepId] });
+      // Top-level posts on public steps surface on the author's calling card.
+      queryClient.invalidateQueries({ queryKey: ['person-public-sections'] });
     },
   });
 

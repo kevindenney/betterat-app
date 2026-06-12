@@ -28,6 +28,7 @@
 
 import React from 'react';
 import {
+  Image,
   Pressable,
   TouchableOpacity,
   StyleSheet,
@@ -66,6 +67,8 @@ export interface PublicFaceHeroProps {
   markText: string;
   /** Mark background colour. Defaults to pickAvatarMarkColor(name). */
   markColor?: string;
+  /** Avatar photo — when set, fills the mark instead of initials. */
+  markImageUrl?: string;
   /** Practitioner display name. */
   name: string;
   /** "Dragon helm · Buenos Aires · also racing in Hong Kong" — primary descriptor. */
@@ -79,16 +82,30 @@ export interface PublicFaceHeroProps {
 export function PublicFaceHero({
   markText,
   markColor,
+  markImageUrl,
   name,
   descriptor,
   meta,
   children,
 }: PublicFaceHeroProps) {
+  // avatar_url sometimes holds a device-local file:// ImagePicker path that
+  // never got uploaded — unloadable anywhere else, so fall back to initials.
+  const imageUrl =
+    markImageUrl && /^https?:\/\//.test(markImageUrl) ? markImageUrl : undefined;
   return (
     <View style={heroStyles.hero}>
       <View style={heroStyles.row}>
         <View style={[heroStyles.mark, { backgroundColor: markColor ?? pickAvatarMarkColor(name) }]}>
-          <Text style={heroStyles.markText}>{markText}</Text>
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              accessibilityIgnoresInvertColors
+            />
+          ) : (
+            <Text style={heroStyles.markText}>{markText}</Text>
+          )}
         </View>
         <View style={heroStyles.body}>
           <Text style={heroStyles.name}>{name}</Text>

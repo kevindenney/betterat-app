@@ -22,6 +22,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -150,6 +151,8 @@ export interface IOSDetailHeroProps {
   markText?: string;
   markIcon?: keyof typeof Ionicons.glyphMap;
   markColor?: string;
+  /** Avatar photo — when set, fills the mark instead of initials/icon. */
+  markImageUrl?: string;
   name: string;
   descriptor?: string;
   meta?: { icon?: keyof typeof Ionicons.glyphMap; text: string }[];
@@ -161,6 +164,7 @@ export function IOSDetailHero({
   markText,
   markIcon,
   markColor,
+  markImageUrl,
   name,
   descriptor,
   meta,
@@ -168,6 +172,10 @@ export function IOSDetailHero({
 }: IOSDetailHeroProps) {
   const isTopic = markShape === 'topic';
   const isCircle = markShape === 'circle';
+  // avatar_url sometimes holds a device-local file:// ImagePicker path that
+  // never got uploaded — unloadable anywhere else, so fall back to initials.
+  const imageUrl =
+    markImageUrl && /^https?:\/\//.test(markImageUrl) ? markImageUrl : undefined;
 
   const markStyle = [
     heroStyles.mark,
@@ -181,7 +189,14 @@ export function IOSDetailHero({
     <View style={heroStyles.hero}>
       <View style={heroStyles.row}>
         <View style={markStyle}>
-          {isTopic && markIcon ? (
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              accessibilityIgnoresInvertColors
+            />
+          ) : isTopic && markIcon ? (
             <Ionicons name={markIcon} size={32} color={LABEL} />
           ) : (
             <Text

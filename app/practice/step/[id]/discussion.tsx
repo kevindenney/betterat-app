@@ -121,6 +121,8 @@ export default function StepDiscussionRoute() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['phase10-step-discussion', id] });
+      // Top-level posts on public steps surface on the author's calling card.
+      queryClient.invalidateQueries({ queryKey: ['person-public-sections'] });
     },
   });
 

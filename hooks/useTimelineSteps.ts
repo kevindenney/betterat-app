@@ -192,6 +192,8 @@ export function useUpdateStep() {
       queryClient.invalidateQueries({ queryKey: ['venue-record'] });
       queryClient.invalidateQueries({ queryKey: ['fleet-venue-stats'] });
       queryClient.invalidateQueries({ queryKey: ['author-area-cred'] });
+      // Settled/completed flips feed the person calling-card trajectory.
+      queryClient.invalidateQueries({ queryKey: ['person-public-sections'] });
     },
   });
 }

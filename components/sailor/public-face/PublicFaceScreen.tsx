@@ -10,24 +10,28 @@
  * Data wiring:
  *   - Hero / descriptor / meta / framing line  →  profiles row (real)
  *   - Where X practises                         →  profiles row (real)
- *   - Working on now / practice timeline /
- *     capabilities / practice circle /
- *     published / events                        →  demo enrichment (seed
+ *   - Practice timeline / published             →  enrichment when a seed
+ *                                                  sailor has it; otherwise
+ *                                                  real settled steps and
+ *                                                  public thread posts via
+ *                                                  usePersonPublicSections.
+ *   - Working on now / capabilities /
+ *     practice circle / events                  →  demo enrichment (seed
  *                                                  sailors only) until the
  *                                                  underlying schemas land.
  *
- * The enrichment lookup table lives at the bottom of this file. Production
- * users without enrichment see hero + framing + where, with other sections
- * absent — exactly the "STATE 2 · sparse data" rule the canonical locks.
+ * Production users without data see hero + framing + where, with other
+ * sections absent — exactly the "STATE 2 · sparse data" rule the canonical
+ * locks.
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -48,6 +52,10 @@ import {
 import { initialsForName } from '@/components/discover/canonical';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useSailorFullProfile } from '@/hooks/useSailorFullProfile';
+import {
+  usePersonPublicSections,
+  formatPersonWhen,
+} from '@/hooks/usePersonPublicSections';
 import { CrewThreadService } from '@/services/CrewThreadService';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
@@ -77,8 +85,9 @@ export function PublicFaceScreen({ userId }: PublicFaceScreenProps) {
 }
 
 function PublicFaceScreenInner({ userId }: { userId: string }) {
-  const { profile, isLoading, error, toggleFollow, isToggling } =
+  const { profile, isLoading, error, isOwnProfile, toggleFollow, isToggling } =
     useSailorFullProfile(userId);
+  const { data: sections } = usePersonPublicSections(userId);
   const [docked, setDocked] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
 
@@ -101,6 +110,32 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
   }, [userId]);
 
   const enrichment = useMemo(() => getPublicFaceEnrichment(userId), [userId]);
+
+  // Real-data fallbacks — when a seed sailor has hand-written enrichment it
+  // wins; otherwise the practitioner's own settled steps and public thread
+  // posts populate the timeline/published sections. Empty lists leave the
+  // section absent, per the sparse-data rule.
+  const timeline = useMemo(() => {
+    if (enrichment.timeline?.length) return enrichment.timeline;
+    return (sections?.trajectory ?? []).map((t) => ({
+      title: t.title,
+      settled: t.settled,
+      sub: undefined as string | undefined,
+      when: formatPersonWhen(t.whenISO),
+      trophyId: undefined as string | undefined,
+    }));
+  }, [enrichment.timeline, sections?.trajectory]);
+
+  const publishedThreads = useMemo(() => {
+    if (enrichment.published?.length) return null;
+    return (sections?.publicThreads ?? []).map((p) => ({
+      title: `“${p.snippet}”`,
+      topic: p.stepTitle,
+      replies: p.replies,
+      when: formatPersonWhen(p.whenISO) ?? '',
+      stepId: p.stepId,
+    }));
+  }, [enrichment.published, sections?.publicThreads]);
 
   const displayName = profile?.displayName || 'Practitioner';
 
@@ -162,9 +197,9 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
           backLabel="Back"
           contextLabel="Public face"
           dockedName={displayName}
-          docked={docked && !profile.isFollowing}
+          docked={docked && !isOwnProfile && !profile.isFollowing}
           trailingAction={
-            docked && !profile.isFollowing
+            docked && !isOwnProfile && !profile.isFollowing
               ? { label: 'Follow', icon: 'add', onPress: handleFollow }
               : undefined
           }
@@ -183,47 +218,59 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
         {/* 01 · HERO — bigger mark + name. Identity, descriptor, meta. */}
         <PublicFaceHero
           markText={initials}
+          markImageUrl={profile.avatarUrl ?? undefined}
           name={displayName}
           descriptor={descriptor}
           meta={meta}
         >
-          {profile.isFollowing ? (
-            <RelationshipMinePill label="Following" onPress={handleUnfollowConfirm} />
-          ) : (
-            <RelationshipButton
-              label={isToggling ? 'Following…' : 'Follow'}
-              icon="add"
-              loading={isToggling}
-              onPress={handleFollow}
+          {isOwnProfile ? (
+            <RelationshipMinePill
+              label="This is you · Edit profile"
+              onPress={() => router.push('/settings/edit-profile' as any)}
             />
+          ) : (
+            <>
+              {profile.isFollowing ? (
+                <RelationshipMinePill label="Following" onPress={handleUnfollowConfirm} />
+              ) : (
+                <RelationshipButton
+                  label={isToggling ? 'Following…' : 'Follow'}
+                  icon="add"
+                  loading={isToggling}
+                  onPress={handleFollow}
+                />
+              )}
+              <MessageIconButton onPress={onMessage} />
+            </>
           )}
-          <MessageIconButton onPress={onMessage} />
         </PublicFaceHero>
 
         {/* v3 screen-designs Phase C — dual CTA row: Suggest a step + Reflect.
             Sits below the hero, above the framing line. Gated by
             SUGGEST_VERB_V3. The Reflect path is a stub for v1 (peer
             reflections schema lands in a follow-up). */}
-        {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (
+        {FEATURE_FLAGS.SUGGEST_VERB_V3 && !isOwnProfile ? (
           <View style={dualCtaStyles.row}>
-            <Pressable
+            <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Suggest a step"
               onPress={() => setComposerOpen(true)}
-              style={({ pressed }) => [dualCtaStyles.primary, pressed && dualCtaStyles.pressed]}
+              activeOpacity={0.7}
+              style={dualCtaStyles.primary}
             >
               <Ionicons name="bulb-outline" size={15} color="#FFFFFF" />
               <Text style={dualCtaStyles.primaryText}>Suggest a step</Text>
-            </Pressable>
-            <Pressable
+            </TouchableOpacity>
+            <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Reflect"
               onPress={() => showAlert('Reflect', 'Peer reflections are coming soon.')}
-              style={({ pressed }) => [dualCtaStyles.secondary, pressed && dualCtaStyles.pressed]}
+              activeOpacity={0.7}
+              style={dualCtaStyles.secondary}
             >
               <Ionicons name="chatbubble-outline" size={15} color={IOS_REGISTER.label} />
               <Text style={dualCtaStyles.secondaryText}>Reflect</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         ) : null}
 
@@ -259,7 +306,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
             No medallions; italic-emphasis settled marker on title.
             Row-level taps reserved for a future trophy-detail surface — not
             wired here so the chevron doesn't promise something undelivered. */}
-        {enrichment.timeline && enrichment.timeline.length > 0 ? (
+        {timeline.length > 0 ? (
           <IOSDetailSection
             header="Practice timeline"
             seeAll={{
@@ -267,7 +314,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               onPress: () => router.push(`/sailor/${userId}/timeline` as any),
             }}
           >
-            {enrichment.timeline.map((t, i) => (
+            {timeline.map((t, i) => (
               <TrophyRowPublic
                 key={i}
                 title={t.title}
@@ -378,6 +425,22 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               ),
             )}
           </IOSDetailSection>
+        ) : publishedThreads && publishedThreads.length > 0 ? (
+          <IOSDetailSection header="Published">
+            {publishedThreads.map((p, i) => (
+              <PublishedThreadRow
+                key={i}
+                title={p.title}
+                topic={p.topic}
+                replies={p.replies}
+                when={p.when}
+                onPress={() =>
+                  router.push(`/practice/step/${p.stepId}/discussion` as any)
+                }
+                isFirst={i === 0}
+              />
+            ))}
+          </IOSDetailSection>
         ) : null}
 
         {/* 08 · WHERE X PRACTISES — iOS form-row pattern. */}
@@ -421,7 +484,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
         </WebDetailContainer>
       </ScrollView>
 
-      {FEATURE_FLAGS.SUGGEST_VERB_V3 ? (
+      {FEATURE_FLAGS.SUGGEST_VERB_V3 && !isOwnProfile ? (
         <SuggestStepComposer
           visible={composerOpen}
           onClose={() => setComposerOpen(false)}
@@ -479,9 +542,6 @@ const dualCtaStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     letterSpacing: -0.1,
-  },
-  pressed: {
-    opacity: 0.7,
   },
 });
 

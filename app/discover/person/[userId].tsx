@@ -6,9 +6,10 @@
  *
  * Hero opens with Follow in iOS blue when not yet followed; gray "Following"
  * pill when already followed; "This is you" pill on the viewer's own profile.
- * Body leads with the practice signal — current concept (bio). Trajectory,
- * in-common, and public-threads sections return once they're backed by real
- * queries (the canonical's mock versions were removed).
+ * Body leads with the practice signal — current concept (bio) — then
+ * trajectory (settled steps), in-common (shared orgs), and public threads
+ * (discussion posts on public steps), all from usePersonPublicSections.
+ * Sparse data means sections are absent, never empty placeholders.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -34,12 +35,19 @@ import {
   IOSDetailSection,
   RelationshipButton,
   RelationshipMinePill,
+  DRow,
+  TrophyRow,
+  InCommonRow,
   ConceptCard,
   WebDetailContainer,
   IOS_DETAIL_GROUND_BG,
   pickAvatarMarkColor,
 } from '@/components/discover/detail';
 import { useAuth } from '@/providers/AuthProvider';
+import {
+  usePersonPublicSections,
+  formatPersonWhen,
+} from '@/hooks/usePersonPublicSections';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { SuggestStepComposer } from '@/components/sailor/SuggestStepComposer';
@@ -85,6 +93,11 @@ function PersonDetailScreenInner() {
   const [followBusy, setFollowBusy] = useState(false);
   const [docked, setDocked] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+
+  const { data: sections } = usePersonPublicSections(userId);
+  const trajectory = (sections?.trajectory ?? []).slice(0, 3);
+  const inCommonOrgs = sections?.inCommonOrgs ?? [];
+  const publicThreads = sections?.publicThreads ?? [];
 
   useEffect(() => {
     if (!userId) return;
@@ -221,6 +234,7 @@ function PersonDetailScreenInner() {
         <IOSDetailHero
           markShape="circle"
           markText={initials}
+          markImageUrl={profile?.avatar_url ?? undefined}
           markColor={pickAvatarMarkColor(userId || displayName)}
           name={displayName}
           descriptor={descriptor || undefined}
@@ -297,6 +311,72 @@ function PersonDetailScreenInner() {
                 onPress: () => router.push(`/sailor/${userId}` as any),
               }}
             />
+          </IOSDetailSection>
+        ) : null}
+
+        {/* Recent trajectory — the person's settled/completed steps the
+            viewer is allowed to see (RLS + visibility filter). Absent when
+            there's nothing visible. */}
+        {trajectory.length > 0 ? (
+          <IOSDetailSection header="Recent trajectory">
+            {trajectory.map((item, i) => (
+              <TrophyRow
+                key={item.stepId}
+                title={
+                  item.settled ? (
+                    <Text>
+                      {item.title} · <Text style={styles.italic}>settled</Text>
+                    </Text>
+                  ) : (
+                    item.title
+                  )
+                }
+                when={formatPersonWhen(item.whenISO)}
+                isFirst={i === 0}
+              />
+            ))}
+          </IOSDetailSection>
+        ) : null}
+
+        {/* In common — orgs where viewer and person are both active members.
+            Never shown on your own profile. */}
+        {!isSelf && inCommonOrgs.length > 0 ? (
+          <IOSDetailSection header="In common">
+            {inCommonOrgs.map((org, i) => (
+              <InCommonRow
+                key={org.orgId}
+                icon="business-outline"
+                onPress={
+                  org.slug
+                    ? () =>
+                        router.push(`/discover/org/${org.slug}?from=people` as any)
+                    : undefined
+                }
+                isFirst={i === 0}
+              >
+                You&apos;re both members of <Text style={styles.italic}>{org.name}</Text>.
+              </InCommonRow>
+            ))}
+          </IOSDetailSection>
+        ) : null}
+
+        {/* Public threads — top-level discussion posts the person wrote on
+            public steps. Absent when they haven't published. */}
+        {publicThreads.length > 0 ? (
+          <IOSDetailSection header="Public threads">
+            {publicThreads.map((thread, i) => (
+              <DRow
+                key={thread.postId}
+                icon="chatbubble-outline"
+                title={`“${thread.snippet}”`}
+                sub={`On ${thread.stepTitle}`}
+                metaWhen={formatPersonWhen(thread.whenISO)}
+                onPress={() =>
+                  router.push(`/practice/step/${thread.stepId}/discussion` as any)
+                }
+                isFirst={i === 0}
+              />
+            ))}
           </IOSDetailSection>
         ) : null}
 
@@ -396,4 +476,5 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
   bottomPad: { height: 120 },
+  italic: { fontStyle: 'italic', fontWeight: '500' },
 });
