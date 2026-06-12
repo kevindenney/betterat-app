@@ -37,9 +37,12 @@ import { useUniversalPlus } from '@/components/capture';
 import { ComposerWhereField } from '@/components/capture/ComposerWhereField';
 import { ComposerWhenField } from '@/components/capture/ComposerWhenField';
 import { PlanStepRaceSelector } from '@/components/step/plan-tab/PlanStepRaceSelector';
+import { StepVisibilityChip } from '@/components/step/StepVisibilityChip';
+import { useDefaultStepVisibility } from '@/hooks/useDefaultStepVisibility';
 import type { BlueprintSuggestedNextStep } from '@/types/blueprint';
 import type { AISuggestion } from '@/services/ai/crossInterestSuggestions';
 import type { StepLocation } from '@/types/step-detail';
+import type { TimelineStepVisibility } from '@/types/timeline-steps';
 
 type BlankFieldKey = 'why' | 'how' | 'when' | 'where';
 
@@ -101,6 +104,12 @@ export function StepAddSheet({
   const [whereLocation, setWhereLocation] = useState<StepLocation | undefined>(undefined);
   const [whenISO, setWhenISO] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Visibility chip — shows the user's resolved default (per-interest →
+  // profile → private) so new steps are never silently private; an
+  // override applies to this step only.
+  const { data: defaultVisibility } = useDefaultStepVisibility(currentInterest?.id, visible);
+  const [visibilityOverride, setVisibilityOverride] = useState<TimelineStepVisibility | null>(null);
+  const visibility = visibilityOverride ?? defaultVisibility ?? 'private';
   const whatRef = useRef<TextInput | null>(null);
   const fieldRefs = useRef<Partial<Record<BlankFieldKey, TextInput | null>>>({});
 
@@ -113,6 +122,7 @@ export function StepAddSheet({
     setWhereLocation(undefined);
     setWhenISO(null);
     setSaving(false);
+    setVisibilityOverride(null);
   }, []);
 
   const insertField = useCallback((key: BlankFieldKey) => {
@@ -248,6 +258,7 @@ export function StepAddSheet({
         location: whereLocation,
         isRace: showRaceSelector ? isRace : undefined,
         viewedSeasonId,
+        visibility,
       });
       // submit() handles optimistic insert + navigation; just tidy up here.
       resetComposer();
@@ -534,6 +545,13 @@ export function StepAddSheet({
                   );
                 })}
               </View>
+
+              <Text style={styles.optEyebrow}>WHO CAN SEE IT</Text>
+              <StepVisibilityChip
+                visibility={visibility}
+                interestSlug={currentInterest?.slug}
+                onChange={setVisibilityOverride}
+              />
 
               {activeFields.length > 0 ? (
                 <View style={styles.fieldStack}>

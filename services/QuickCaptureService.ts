@@ -14,7 +14,7 @@
 import { supabase } from './supabase';
 import { logger } from '@/lib/logger';
 import { createStep } from './TimelineStepService';
-import type { TimelineStepRecord } from '@/types/timeline-steps';
+import type { TimelineStepRecord, TimelineStepVisibility } from '@/types/timeline-steps';
 import type {
   MediaUpload,
   RacePlan,
@@ -66,6 +66,11 @@ export interface QuickCapturePayload {
    * of being date-bucketed.
    */
   viewedSeasonId?: string | null;
+  /**
+   * Visibility tier chosen on the sheet's chip. Absent → 'private' (the
+   * sheet pre-resolves the user's default, so absence means legacy callers).
+   */
+  visibility?: TimelineStepVisibility;
 }
 
 /**
@@ -295,7 +300,7 @@ export async function createDraftStep({
     status: 'pending',
     starts_at: fields.startsAt ?? placement.startsAt,
     sort_order: placement.sortOrder,
-    visibility: 'private',
+    visibility: payload.visibility ?? 'private',
     is_race: payload.isRace ?? false,
     // Series link only for races — a non-race capture carries no season.
     // The viewed arc (when composing from a timeline surface) beats the

@@ -26,6 +26,7 @@ import {
   useUpdateStep,
 } from '@/hooks/useTimelineSteps';
 import { StepCombinatorsRow } from './StepCombinatorsRow';
+import { StepVisibilityChip } from './StepVisibilityChip';
 import { StepHeaderSubtitle } from './StepHeaderMeta';
 import { PlanTab } from './PlanTab';
 import { ActTab } from './ActTab';
@@ -1715,6 +1716,17 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     // as the in-deck quote.
     const useIdentityDeck = FEATURE_FLAGS.STEP_IDENTITY_DECK_V3;
 
+    // Owner-only visibility affordance — steps are created private
+    // silently, so without this chip the tier is invisible until the
+    // user digs into settings (task #37).
+    const visibilityChipEl = isOwner ? (
+      <StepVisibilityChip
+        visibility={step.visibility}
+        interestSlug={currentInterest?.slug}
+        onChange={(visibility) => updateStep.mutate({ stepId, input: { visibility } })}
+      />
+    ) : null;
+
     const deckCounter =
       useIdentityDeck && blueprintChrome?.stepNumber != null
         ? blueprintChrome.totalSteps != null
@@ -1741,6 +1753,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           ) : undefined
         }
         counter={deckCounter}
+        visibilitySlot={visibilityChipEl ?? undefined}
         blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
         blueprintAuthorName={blueprintChrome?.authorName ?? null}
         crossInterestSlot={
@@ -1795,6 +1808,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             stepCounter={step.title ? undefined : 'Step'}
             rightCluster={
               <>
+                {visibilityChipEl}
                 {!isOwner ? (
                   <Pressable
                     accessibilityRole="button"

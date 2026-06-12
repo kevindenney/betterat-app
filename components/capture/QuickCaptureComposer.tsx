@@ -28,6 +28,7 @@ import {
 } from 'react-native';
 import { ArrowUp, Mic, Pencil } from 'lucide-react-native';
 import { voiceNoteService } from '@/services/ai/VoiceNoteService';
+import type { TimelineStepVisibility } from '@/types/timeline-steps';
 import { logger } from '@/lib/logger';
 import {
   GRAY_5,
@@ -49,6 +50,8 @@ export interface QuickCaptureSubmitPayload {
   kind: QuickCaptureKind;
   content: string;
   audioUri?: string;
+  /** Visibility tier chosen on the sheet's chip; absent → resolved default. */
+  visibility?: TimelineStepVisibility;
 }
 
 export interface QuickCaptureComposerProps {

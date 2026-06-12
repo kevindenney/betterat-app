@@ -36,6 +36,9 @@ import {
 } from './QuickCaptureComposer';
 import { useInterest } from '@/providers/InterestProvider';
 import { getVisibilityLabels } from '@/lib/vocabulary';
+import { useDefaultStepVisibility } from '@/hooks/useDefaultStepVisibility';
+import { StepVisibilityChip } from '@/components/step/StepVisibilityChip';
+import type { TimelineStepVisibility } from '@/types/timeline-steps';
 
 const VOICE_SUPPORTED = Platform.OS !== 'web';
 
@@ -66,9 +69,21 @@ export function UniversalPlusSheet({
   const crewLabel = getVisibilityLabels(currentInterest?.slug).crew.toLowerCase();
   const [draftText, setDraftText] = React.useState('');
 
+  // New steps default per the user's privacy cascade (per-interest override →
+  // profile default → private). The chip shows the resolved tier so creation
+  // is never silently private; an override applies to this capture only.
+  const { data: defaultVisibility } = useDefaultStepVisibility(
+    currentInterest?.id,
+    visible,
+  );
+  const [visibilityOverride, setVisibilityOverride] =
+    React.useState<TimelineStepVisibility | null>(null);
+  const visibility = visibilityOverride ?? defaultVisibility ?? 'private';
+
   React.useEffect(() => {
     if (!visible) {
       setDraftText('');
+      setVisibilityOverride(null);
     }
   }, [visible]);
 
@@ -104,9 +119,16 @@ export function UniversalPlusSheet({
             >
               <QuickCaptureComposer
                 autoFocus
-                onSubmit={onQuickCapture}
+                onSubmit={(payload) => onQuickCapture({ ...payload, visibility })}
                 onDraftChange={setDraftText}
               />
+              <View style={styles.visibilityRow}>
+                <StepVisibilityChip
+                  visibility={visibility}
+                  interestSlug={currentInterest?.slug}
+                  onChange={setVisibilityOverride}
+                />
+              </View>
               <Text style={styles.hint}>
                 {VOICE_SUPPORTED
                   ? "Hold to speak · or tap to type. We'll name it for you."
@@ -236,6 +258,10 @@ const styles = StyleSheet.create({
   },
   bodyContent: {
     paddingBottom: 4,
+  },
+  visibilityRow: {
+    alignItems: 'center',
+    marginTop: 8,
   },
   hint: {
     fontSize: 10.5,

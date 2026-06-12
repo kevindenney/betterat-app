@@ -57,6 +57,8 @@ export interface IdentityDeckProps {
   onPeerAvatarPress?: (userId: string) => void;
   /** Pre-rendered cross-interest chip slot (e.g. StepCombinatorsRow output). */
   crossInterestSlot?: React.ReactNode;
+  /** Visibility chip rendered top-right next to the state pill. */
+  visibilitySlot?: React.ReactNode;
   testID?: string;
 }
 
@@ -79,6 +81,7 @@ export function IdentityDeck({
   peerAvatars,
   onPeerAvatarPress,
   crossInterestSlot,
+  visibilitySlot,
   testID,
 }: IdentityDeckProps) {
   const showState = Boolean(stateLabel);
@@ -88,15 +91,18 @@ export function IdentityDeck({
 
   return (
     <View style={styles.root} testID={testID}>
-      {(counter || showState) && (
+      {(counter || showState || visibilitySlot) && (
         <View style={styles.topRow}>
           {counter ? <Text style={styles.counter}>{counter}</Text> : <View />}
-          {showState ? (
-            <View style={[styles.statePill, { backgroundColor: stateColor.bg }]}>
-              <View style={[styles.stateDot, { backgroundColor: stateColor.dot }]} />
-              <Text style={[styles.stateText, { color: stateColor.fg }]}>{stateLabel}</Text>
-            </View>
-          ) : null}
+          <View style={styles.topRowRight}>
+            {visibilitySlot}
+            {showState ? (
+              <View style={[styles.statePill, { backgroundColor: stateColor.bg }]}>
+                <View style={[styles.stateDot, { backgroundColor: stateColor.dot }]} />
+                <Text style={[styles.stateText, { color: stateColor.fg }]}>{stateLabel}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       )}
 
@@ -180,6 +186,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
     gap: 8,
+  },
+  topRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   counter: {
     fontSize: 11,

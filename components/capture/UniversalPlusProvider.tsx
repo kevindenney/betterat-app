@@ -154,7 +154,7 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
         location_lat: fields.locationLat,
         location_lng: fields.locationLng,
         location_place_id: null,
-        visibility: 'private',
+        visibility: payload.visibility ?? 'private',
         share_approximate_location: false,
         copied_from_user_id: null,
         source_blueprint_id: null,
