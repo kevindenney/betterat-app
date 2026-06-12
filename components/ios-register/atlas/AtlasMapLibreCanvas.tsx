@@ -37,6 +37,7 @@ import {
   Map as MLMap,
   Camera as MLCamera,
   Marker as MLMarker,
+  ViewAnnotation as MLViewAnnotation,
   GeoJSONSource as MLGeoJSONSource,
   Layer as MLLayer,
   type CameraRef,
@@ -682,6 +683,17 @@ interface AtlasMapLibreCanvasProps {
    */
   racingAreaPreviewPolygon?: GeoJSON.Polygon | null;
   /**
+   * Draggable corner handles rendered while a racing area is in
+   * reshape mode. One handle per polygon vertex (unclosed ring).
+   * Dragging a handle fires onReshapeVertexDrag with its new coords.
+   */
+  reshapeVertices?: { lat: number; lng: number }[] | null;
+  onReshapeVertexDrag?: (index: number, coords: { lat: number; lng: number }) => void;
+  /** Tap-to-select fallback: tapping a handle arms it; the next map tap
+   *  moves it. Selected handle renders filled. */
+  onReshapeVertexPress?: (index: number) => void;
+  reshapeSelectedIndex?: number | null;
+  /**
    * Fires after a pan/zoom gesture settles. Atlas uses this to keep
    * wind/tide overlays anchored to whatever water the user is looking
    * at, refetching marine conditions for the new center.
@@ -775,6 +787,10 @@ export function AtlasMapLibreCanvas({
   onNextSeriesPress,
   onMapLongPress,
   racingAreaPreviewPolygon = null,
+  reshapeVertices = null,
+  onReshapeVertexDrag,
+  onReshapeVertexPress,
+  reshapeSelectedIndex = null,
   onMapCenterChange,
   onZoomChange,
   basemap = 'map',
@@ -1095,8 +1111,9 @@ export function AtlasMapLibreCanvas({
   // changes so the engine repaints the annotation layer. Skipped while
   // the map is moving — motion already redraws.
   const pinsSignature = useMemo(
-    () => pins.map((p) => p.id).sort().join('|'),
-    [pins],
+    () =>
+      [...pins.map((p) => p.id).sort(), `reshape:${reshapeVertices?.length ?? 0}`].join('|'),
+    [pins, reshapeVertices?.length],
   );
   const pinsSignatureRef = useRef<string | null>(null);
   useEffect(() => {
@@ -1523,6 +1540,40 @@ export function AtlasMapLibreCanvas({
             />
           </MLGeoJSONSource>
         ) : null}
+
+        {reshapeVertices && onReshapeVertexDrag
+          ? reshapeVertices.map((v, i) => (
+              <MLViewAnnotation
+                key={`atlas-reshape-vertex-${i}`}
+                id={`atlas-reshape-vertex-${i}`}
+                lngLat={[v.lng, v.lat]}
+                draggable
+                onDragEnd={(event) => {
+                  const [lng, lat] = event.nativeEvent.lngLat;
+                  onReshapeVertexDrag(i, { lat, lng });
+                }}
+              >
+                <Pressable
+                  onPress={() => {
+                    // Swallow the leaked map press (see lastPinTapAtRef)
+                    // so selecting a corner doesn't immediately move it.
+                    lastPinTapAtRef.current = Date.now();
+                    onReshapeVertexPress?.(i);
+                  }}
+                  style={styles.reshapeHandle}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Corner ${i + 1}`}
+                >
+                  <View
+                    style={[
+                      styles.reshapeHandleDot,
+                      i === reshapeSelectedIndex && styles.reshapeHandleDotSelected,
+                    ]}
+                  />
+                </Pressable>
+              </MLViewAnnotation>
+            ))
+          : null}
 
         {nextPillVisible && nextEvent ? (
           <MLMarker
@@ -3698,6 +3749,33 @@ function findCommitteeByCourseId(
 }
 
 const styles = StyleSheet.create({
+  // Generous transparent touch target around a small visible dot so
+  // corner handles are grabbable without covering the polygon.
+  reshapeHandle: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reshapeHandleDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: 'rgba(0, 122, 255, 0.95)',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  reshapeHandleDotSelected: {
+    backgroundColor: 'rgba(0, 122, 255, 0.95)',
+    borderColor: '#FFFFFF',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+  },
   fill: {
     flex: 1,
   },

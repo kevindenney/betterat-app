@@ -34,6 +34,7 @@ export interface ManageAreasEditTarget {
   centerLng: number;
   radiusMeters: number | null;
   classesUsed: string[];
+  polygon?: { type: 'Polygon'; coordinates: number[][][] } | null;
 }
 
 interface ManageRacingAreasSheetProps {
@@ -61,6 +62,7 @@ interface AreaRow {
   center_lng: number | null;
   radius_meters: number | null;
   created_by: string | null;
+  polygon: { type: 'Polygon'; coordinates: number[][][] } | null;
 }
 
 function formatMeters(meters: number | null): string {
@@ -90,7 +92,7 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea
       // areas, the viewer should always see + manage their own work.
       const { data, error } = await supabase
         .from('atlas_pois')
-        .select('id, name, source, lat, lng, created_by, metadata')
+        .select('id, name, source, lat, lng, created_by, metadata, geometry')
         .eq('kind', 'racing_area')
         .eq('is_active', true)
         .eq('created_by', user.id)
@@ -110,6 +112,7 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea
           center_lng: row.lng,
           radius_meters: meta.radius_meters ?? null,
           created_by: row.created_by,
+          polygon: row.geometry?.type === 'Polygon' ? row.geometry : null,
         } as AreaRow;
       });
     },
@@ -255,6 +258,7 @@ export function ManageRacingAreasSheet({ visible, onClose, onEditArea, onAddArea
                                 centerLng: area.center_lng!,
                                 radiusMeters: area.radius_meters,
                                 classesUsed: area.classes_used ?? [],
+                                polygon: area.polygon,
                               })
                             }
                             hitSlop={8}

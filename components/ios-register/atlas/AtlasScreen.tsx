@@ -76,6 +76,7 @@ import { ManageRacingAreasSheet, type ManageAreasEditTarget } from './ManageRaci
 import type { EditingRacingArea } from './CreateRacingAreaSheet';
 import { RepositionAreaBanner } from './RepositionAreaBanner';
 import { RetraceAreaBanner } from './RetraceAreaBanner';
+import { ReshapeAreaBanner } from './ReshapeAreaBanner';
 import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
 import { useUpdateStepLocation } from '@/hooks/useUpdateStepLocation';
 import { useStepLocationSuggestions } from '@/hooks/useStepLocationSuggestions';
@@ -1977,6 +1978,16 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     | (EditingRacingArea & { vertices: { lat: number; lng: number }[] })
     | null
   >(null);
+  // Drag-to-reshape flow: the area's existing polygon vertices become
+  // draggable handles. Vertex count never changes — only positions.
+  const [reshapeTarget, setReshapeTarget] = useState<
+    | (EditingRacingArea & {
+        vertices: { lat: number; lng: number }[];
+        dirty: boolean;
+        selectedIndex: number | null;
+      })
+    | null
+  >(null);
   const updateRacingAreaMutation = useUpdateRacingArea();
   // Map-editing modes (reposition / retrace) are map-only. If the user leaves
   // Atlas — or opens a non-map overlay — without finishing, the banner would
@@ -1987,6 +1998,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       return () => {
         setRepositionTarget(null);
         setRetraceTarget(null);
+        setReshapeTarget(null);
       };
     }, []),
   );
@@ -1996,6 +2008,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     if (handlers.nearbyOverlayOpen) {
       setRepositionTarget(null);
       setRetraceTarget(null);
+      setReshapeTarget(null);
     }
   }, [handlers.nearbyOverlayOpen]);
   const handleRetraceOnMap = useCallback((target: EditingRacingArea) => {
@@ -2051,6 +2064,78 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       console.warn('[atlas] save retrace failed', err);
     }
   }, [retraceTarget, updateRacingAreaMutation]);
+  const handleReshapeOnMap = useCallback((target: EditingRacingArea) => {
+    const ring = target.polygon?.coordinates?.[0];
+    if (!ring || ring.length < 4) return;
+    // Drop the closing vertex (ring is [v1..vN, v1]) — handles are 1:1
+    // with distinct corners.
+    const vertices = ring.slice(0, -1).map(([lng, lat]) => ({ lat, lng }));
+    setEditingArea(null);
+    setReshapeTarget({ ...target, vertices, dirty: false, selectedIndex: null });
+    // Fly to the area so the handles are actually in view — the edit
+    // sheet can be opened from Manage areas with the camera elsewhere.
+    setSearchFocus({ lat: target.centerLat, lng: target.centerLng });
+  }, []);
+  const handleReshapeVertexPress = useCallback((index: number) => {
+    setReshapeTarget((prev) =>
+      prev
+        ? { ...prev, selectedIndex: prev.selectedIndex === index ? null : index }
+        : prev,
+    );
+  }, []);
+  const handleReshapeVertexDrag = useCallback(
+    (index: number, coords: { lat: number; lng: number }) => {
+      setReshapeTarget((prev) => {
+        if (!prev || index < 0 || index >= prev.vertices.length) return prev;
+        const vertices = prev.vertices.slice();
+        vertices[index] = coords;
+        return { ...prev, vertices, dirty: true };
+      });
+    },
+    [],
+  );
+  const handleCancelReshape = useCallback(() => {
+    const reverted = reshapeTarget
+      ? {
+          id: reshapeTarget.id,
+          name: reshapeTarget.name,
+          centerLat: reshapeTarget.centerLat,
+          centerLng: reshapeTarget.centerLng,
+          radiusMeters: reshapeTarget.radiusMeters,
+          classesUsed: reshapeTarget.classesUsed,
+          polygon: reshapeTarget.polygon,
+        }
+      : null;
+    setReshapeTarget(null);
+    if (reverted) setEditingArea(reverted);
+  }, [reshapeTarget]);
+  const handleSaveReshape = useCallback(async () => {
+    if (!reshapeTarget || !reshapeTarget.dirty || reshapeTarget.vertices.length < 3) return;
+    const ring: [number, number][] = reshapeTarget.vertices.map((v) => [v.lng, v.lat]);
+    ring.push(ring[0]);
+    let sumLat = 0;
+    let sumLng = 0;
+    for (const v of reshapeTarget.vertices) {
+      sumLat += v.lat;
+      sumLng += v.lng;
+    }
+    const centerLat = sumLat / reshapeTarget.vertices.length;
+    const centerLng = sumLng / reshapeTarget.vertices.length;
+    try {
+      await updateRacingAreaMutation.mutateAsync({
+        id: reshapeTarget.id,
+        name: reshapeTarget.name,
+        centerLat,
+        centerLng,
+        radiusMeters: reshapeTarget.radiusMeters ?? undefined,
+        polygon: { type: 'Polygon', coordinates: [ring] },
+        classesUsed: reshapeTarget.classesUsed,
+      });
+      setReshapeTarget(null);
+    } catch (err) {
+      console.warn('[atlas] save reshape failed', err);
+    }
+  }, [reshapeTarget, updateRacingAreaMutation]);
   const handleMoveOnMap = useCallback((target: EditingRacingArea) => {
     setEditingArea(null);
     setRepositionTarget({
@@ -2115,6 +2200,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setAreaSheetPolygon({ type: 'Polygon', coordinates: [ring] });
     return () => setAreaSheetPolygon(null);
   }, [retraceTarget]);
+  // While reshaping, paint the live polygon as handles move.
+  React.useEffect(() => {
+    if (!reshapeTarget || reshapeTarget.vertices.length < 3) return;
+    const ring: [number, number][] = reshapeTarget.vertices.map((v) => [v.lng, v.lat]);
+    ring.push(ring[0]);
+    setAreaSheetPolygon({ type: 'Polygon', coordinates: [ring] });
+    return () => setAreaSheetPolygon(null);
+  }, [reshapeTarget]);
   const handleSaveReposition = useCallback(async () => {
     if (!repositionTarget) return;
     // For polygon-shaped areas, translate every vertex by the delta so
@@ -3511,6 +3604,21 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         );
         return;
       }
+      // While reshaping: with a corner selected, a map tap moves it
+      // there. With nothing selected, taps are inert — a stray tap
+      // shouldn't dismiss the mode or warp the shape.
+      if (reshapeTarget) {
+        if (reshapeTarget.selectedIndex != null) {
+          const idx = reshapeTarget.selectedIndex;
+          setReshapeTarget((prev) => {
+            if (!prev || idx >= prev.vertices.length) return prev;
+            const vertices = prev.vertices.slice();
+            vertices[idx] = { lat: coords.lat, lng: coords.lng };
+            return { ...prev, vertices, dirty: true };
+          });
+        }
+        return;
+      }
       if (anchorStepTarget) {
         // Commit immediately on the first tap — clearer than a preview-
         // then-save dance. Fire the mutation, exit anchor mode, and
@@ -3575,6 +3683,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       commitMode,
       repositionTarget,
       retraceTarget,
+      reshapeTarget,
       editingArea,
       areaSheetCenter,
       anchorStepTarget,
@@ -3689,6 +3798,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 : candidate
             }
             racingAreaPreviewPolygon={areaSheetPolygon}
+            reshapeVertices={reshapeTarget?.vertices ?? null}
+            onReshapeVertexDrag={handleReshapeVertexDrag}
+            onReshapeVertexPress={handleReshapeVertexPress}
+            reshapeSelectedIndex={reshapeTarget?.selectedIndex ?? null}
             onMapCenterChange={handleMapCenterChange}
             onZoomChange={handleZoomChange}
             onPinPress={handlePinPress}
@@ -3795,6 +3908,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   // to bleed through the search modal.
                   setRepositionTarget(null);
                   setRetraceTarget(null);
+                  setReshapeTarget(null);
                   setCommitMode(false);
                   setCandidate(null);
                   setSearchOpen(true);
@@ -3968,7 +4082,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           }}
         />
 
-        {handlers.nearbyOverlayOpen ? null : cockpitShowsChecklist &&
+        {handlers.nearbyOverlayOpen ||
+        repositionTarget ||
+        retraceTarget ||
+        reshapeTarget ? null : cockpitShowsChecklist &&
           myNextStepPin &&
           !selectedPin &&
           !cockpitDismissed ? (
@@ -4047,7 +4164,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           first ever mount. That made initialState='handle' silently
           inherit a prior 'mid' state when myNextStepPin loaded after
           the ATLAS empty-state branch had already mounted the sheet. */}
-      {layersOpen || anchorStepTarget || retraceTarget ? null : repositionTarget ? (
+      {layersOpen || anchorStepTarget || retraceTarget || reshapeTarget ? null : repositionTarget ? (
         <BottomSheet
           key={`reposition:${repositionTarget.id}:${repositionHasMoved ? 'moved' : 'pending'}`}
           eyebrow="MOVE RACING AREA"
@@ -4719,6 +4836,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         editingArea={editingArea}
         onMoveOnMap={handleMoveOnMap}
         onRetraceOnMap={handleRetraceOnMap}
+        onReshapeOnMap={handleReshapeOnMap}
         onAddCourse={handleAddCourse}
         onClose={() => {
           // Lock searchFocus to the area's coords before clearing the
@@ -4774,6 +4892,17 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           onUndo={handleRetraceUndo}
           onCancel={handleCancelRetrace}
           onSave={handleSaveRetrace}
+          bottomOffset={((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) + 16}
+        />
+      ) : null}
+
+      {reshapeTarget ? (
+        <ReshapeAreaBanner
+          areaName={reshapeTarget.name}
+          dirty={reshapeTarget.dirty}
+          saving={updateRacingAreaMutation.isPending}
+          onCancel={handleCancelReshape}
+          onSave={handleSaveReshape}
           bottomOffset={((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) + 16}
         />
       ) : null}

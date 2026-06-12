@@ -78,6 +78,13 @@ interface CreateRacingAreaSheetProps {
    */
   onRetraceOnMap?: (target: EditingRacingArea) => void;
   /**
+   * Edit mode only: open the drag-to-reshape flow where the user
+   * adjusts the existing polygon by dragging its corner handles on
+   * the map. Only offered for hand-traced polygons (3–20 vertices) —
+   * synthesized circle rings have too many points to drag usefully.
+   */
+  onReshapeOnMap?: (target: EditingRacingArea) => void;
+  /**
    * Edit mode only: open the race-course authoring sheet anchored to
    * this area. Lets a sailor add a reusable W/L course inside an area
    * they own without leaving the Atlas.
@@ -163,6 +170,7 @@ export function CreateRacingAreaSheet({
   editingArea,
   onMoveOnMap,
   onRetraceOnMap,
+  onReshapeOnMap,
   onAddCourse,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
   onShapeChange,
@@ -170,6 +178,11 @@ export function CreateRacingAreaSheet({
   onCreated,
 }: CreateRacingAreaSheetProps) {
   const isEditing = Boolean(editingArea);
+  // Only hand-traced polygons are corner-draggable; synthesized circle
+  // rings have 30+ vertices and would be unmanageable as handles.
+  const editingRingLength = editingArea?.polygon?.coordinates?.[0]?.length ?? 0;
+  const editingVertexCount = editingRingLength > 0 ? editingRingLength - 1 : 0;
+  const canReshapeEditingArea = editingVertexCount >= 3 && editingVertexCount <= 20;
   const [name, setName] = useState('');
   const [shapeKind, setShapeKind] = useState<ShapeKind>('circle');
   const [radiusMeters, setRadiusMeters] = useState<number>(DEFAULT_RADIUS_METERS);
@@ -463,6 +476,17 @@ export function CreateRacingAreaSheet({
               >
                 <Ionicons name="create-outline" size={14} color={IOS_REGISTER.accentUserAction} />
                 <Text style={styles.moveOnMapLinkText}>Trace actual shape</Text>
+              </Pressable>
+            ) : null}
+            {onReshapeOnMap && canReshapeEditingArea ? (
+              <Pressable
+                onPress={() => onReshapeOnMap(editingArea)}
+                style={({ pressed }) => [styles.moveOnMapLink, pressed && { opacity: 0.6 }]}
+                accessibilityRole="button"
+                accessibilityLabel="Adjust corners of the shape"
+              >
+                <Ionicons name="git-commit-outline" size={14} color={IOS_REGISTER.accentUserAction} />
+                <Text style={styles.moveOnMapLinkText}>Adjust corners</Text>
               </Pressable>
             ) : null}
             {onAddCourse ? (

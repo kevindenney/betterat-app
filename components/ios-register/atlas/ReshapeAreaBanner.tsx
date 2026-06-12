@@ -1,10 +1,9 @@
 /**
- * RetraceAreaBanner — overlay chrome shown while the user is tracing
- * the actual outline of a racing area by tapping vertices on the
- * map. Replaces the area's current shape (circle / rectangle /
- * existing polygon) with whatever the user traces.
- *
- * Save enables once the user has placed at least 3 vertices.
+ * ReshapeAreaBanner — overlay chrome shown while the user is adjusting
+ * a racing area's polygon corners (tap a handle to select, tap the map
+ * to move it; press-and-hold dragging also works). The vertex count
+ * stays the same; only positions change. Sibling of RetraceAreaBanner
+ * (which replaces the shape wholesale).
  */
 
 import React from 'react';
@@ -14,73 +13,45 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 
-interface RetraceAreaBannerProps {
+interface ReshapeAreaBannerProps {
   areaName: string;
-  vertexCount: number;
+  /** True once at least one handle has been dragged. Gates Save. */
+  dirty: boolean;
   saving: boolean;
-  onUndo: () => void;
   onCancel: () => void;
   onSave: () => void;
   bottomOffset?: number;
 }
 
-// Same chrome-clear offset as RepositionAreaBanner so the banner
-// doesn't sit under the floating chrome cluster.
+// Same chrome-clear offset as the sibling banners so this never sits
+// under the floating chrome cluster.
 const CHROME_CLEAR_HEIGHT = 96;
-const MIN_VERTICES = 3;
 
-export function RetraceAreaBanner({
+export function ReshapeAreaBanner({
   areaName,
-  vertexCount,
+  dirty,
   saving,
-  onUndo,
   onCancel,
   onSave,
   bottomOffset = 16,
-}: RetraceAreaBannerProps) {
+}: ReshapeAreaBannerProps) {
   const insets = useSafeAreaInsets();
   const top = Math.max(insets.top, 8) + CHROME_CLEAR_HEIGHT;
-  const canSave = vertexCount >= MIN_VERTICES && !saving;
-  const hint =
-    vertexCount === 0
-      ? `Tap on the map to start tracing ${areaName}'s outline.`
-      : vertexCount < MIN_VERTICES
-        ? `${vertexCount} of ${MIN_VERTICES} points placed. Keep tapping around the outline.`
-        : `${vertexCount} points placed. Tap Save to finish, or keep adding points.`;
+  const canSave = dirty && !saving;
   return (
     <>
       <View style={[styles.topBanner, { top }]} pointerEvents="none">
         <View style={styles.topBannerInner}>
-          <Ionicons name="create" size={14} color="#FFFFFF" />
+          <Ionicons name="move" size={14} color="#FFFFFF" />
           <Text style={styles.topBannerText} numberOfLines={3}>
             <Text style={styles.topBannerName}>{areaName}</Text>
             {'\n'}
-            {hint}
+            Tap a corner to select it, then tap the map to move it there.
           </Text>
         </View>
       </View>
 
       <View style={[styles.actionBar, { bottom: bottomOffset }]} pointerEvents="box-none">
-        <Pressable
-          onPress={onUndo}
-          disabled={vertexCount === 0 || saving}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel="Undo last point"
-        >
-          {({ pressed }) => (
-            <View
-              style={[
-                styles.btn,
-                styles.btnGhost,
-                (vertexCount === 0 || saving) && { opacity: 0.4 },
-                pressed && vertexCount > 0 && !saving && { opacity: 0.7 },
-              ]}
-            >
-              <Ionicons name="arrow-undo" size={18} color={IOS_REGISTER.label} />
-            </View>
-          )}
-        </Pressable>
         {/* Chrome lives on child Views, not the Pressables: a function-form
             Pressable `style` silently drops backgrounds (same trap as
             VisionBlock — see f798c7fe). */}
@@ -89,7 +60,7 @@ export function RetraceAreaBanner({
           disabled={saving}
           style={styles.btnFlex}
           accessibilityRole="button"
-          accessibilityLabel="Cancel retrace"
+          accessibilityLabel="Cancel reshape"
         >
           {({ pressed }) => (
             <View
@@ -123,13 +94,8 @@ export function RetraceAreaBanner({
               {saving ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text
-                  style={[
-                    styles.btnPrimaryText,
-                    !canSave && styles.btnDisabledText,
-                  ]}
-                >
-                  {canSave ? 'Save shape' : `${vertexCount}/${MIN_VERTICES}`}
+                <Text style={[styles.btnPrimaryText, !canSave && styles.btnDisabledText]}>
+                  {dirty ? 'Save shape' : 'Tap a corner'}
                 </Text>
               )}
             </View>
@@ -193,11 +159,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
-  btnGhost: {
-    width: 44,
-    paddingHorizontal: 0,
-    backgroundColor: 'rgba(120, 120, 130, 0.10)',
-  },
   btnSecondary: {
     backgroundColor: '#D1D1D6',
     borderWidth: 1,
@@ -216,8 +177,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  // Strong mid-gray fill + outline + dark text so the disabled state
-  // reads as a clear inactive button against the white card.
   btnDisabled: {
     backgroundColor: '#D1D1D6',
     borderWidth: 1,
