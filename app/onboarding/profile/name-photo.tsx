@@ -25,6 +25,7 @@ import { OnboardingStateService } from '@/services/onboarding/OnboardingStateSer
 import { useAuth } from '@/providers/AuthProvider';
 import { ReverseTrialService } from '@/lib/subscriptions/reverseTrialService';
 import { supabase } from '@/services/supabase';
+import { AvatarStorageService } from '@/services/storage/AvatarStorageService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { extractOAuthDisplayName } from '@/lib/utils/oauthName';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -89,25 +90,7 @@ export default function NamePhotoScreen() {
         let avatarUrl: string | undefined;
         if (photoUri && !photoUri.startsWith('http')) {
           try {
-            const ext = photoUri.split('.').pop()?.toLowerCase() || 'jpg';
-            const fileName = `${user.id}/avatar.${ext}`;
-            const response = await fetch(photoUri);
-            const blob = await response.blob();
-            const arrayBuffer = await new Response(blob).arrayBuffer();
-
-            const { error: uploadError } = await supabase.storage
-              .from('avatars')
-              .upload(fileName, arrayBuffer, {
-                contentType: blob.type || `image/${ext}`,
-                upsert: true,
-              });
-
-            if (!uploadError) {
-              const { data: { publicUrl } } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(fileName);
-              avatarUrl = `${publicUrl}?t=${Date.now()}`;
-            }
+            avatarUrl = await AvatarStorageService.uploadAvatar(user.id, photoUri);
           } catch (uploadErr) {
             console.warn('[NamePhoto] Photo upload failed, continuing without photo:', uploadErr);
           }

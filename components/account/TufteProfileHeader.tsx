@@ -20,10 +20,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { IOS_COLORS, IOS_TYPOGRAPHY, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { IOS_COLORS, IOS_TYPOGRAPHY } from '@/lib/design-tokens-ios';
 import { accountStyles, getInitials, formatMemberSince } from './accountStyles';
 import { IOSListSection } from '@/components/ui/ios/IOSListSection';
-import { supabase } from '@/services/supabase';
+import { AvatarStorageService } from '@/services/storage/AvatarStorageService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { getSafeImageUri } from '@/lib/utils/safeImageUri';
 
@@ -83,37 +83,7 @@ export function TufteProfileHeader({
         setUploadingAvatar(true);
 
         try {
-          // Get file extension from URI
-          const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
-          const fileName = `${userId}/avatar.${ext}`;
-
-          // Fetch the image as a blob
-          const response = await fetch(uri);
-          const blob = await response.blob();
-
-          // Convert blob to array buffer for Supabase upload
-          const arrayBuffer = await new Response(blob).arrayBuffer();
-
-          // Upload to Supabase storage
-          const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(fileName, arrayBuffer, {
-              contentType: blob.type || `image/${ext}`,
-              upsert: true,
-            });
-
-          if (uploadError) {
-            console.error('Upload error:', uploadError);
-            throw uploadError;
-          }
-
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
-
-          // Add cache-busting query param
-          const finalUrl = `${publicUrl}?t=${Date.now()}`;
+          const finalUrl = await AvatarStorageService.uploadAvatar(userId, uri);
           setLocalAvatarUrl(finalUrl);
 
           // Save to profile

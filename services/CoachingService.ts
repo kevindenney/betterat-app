@@ -10,6 +10,7 @@
 
 import { addDays } from 'date-fns';
 import { supabase } from './supabase';
+import { AvatarStorageService } from '@/services/storage/AvatarStorageService';
 import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { createLogger } from '@/lib/utils/logger';
 import type { CoachingFeedback, FrameworkScores } from '@/types/raceAnalysis';
@@ -4448,35 +4449,13 @@ class CoachingService {
   /**
    * Upload profile photo and get URL
    */
-  async uploadProfilePhoto(coachId: string, imageUri: string): Promise<{ url: string | null; error?: string }> {
+  async uploadProfilePhoto(_coachId: string, imageUri: string): Promise<{ url: string | null; error?: string }> {
     try {
-      await this.requireAuth();
-
-      // Convert URI to blob for upload
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-
-      const fileName = `coach-${coachId}-${Date.now()}.jpg`;
-      const filePath = `coach-photos/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: 'image/jpeg',
-        });
-
-      if (uploadError) {
-        logger.error('[uploadProfilePhoto] Upload error:', uploadError);
-        return { url: null, error: uploadError.message };
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      return { url: urlData.publicUrl };
+      // Bucket INSERT RLS requires the first folder to be the uploader's
+      // auth.uid(), so upload under the user's folder, not coach-photos/.
+      const user = await this.requireAuth();
+      const url = await AvatarStorageService.uploadAvatar(user.id, imageUri);
+      return { url };
     } catch (error: any) {
       logger.error('[uploadProfilePhoto] Error:', error);
       return { url: null, error: error.message };

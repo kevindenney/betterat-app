@@ -22,10 +22,12 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft, Save, Camera } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { TUFTE_BACKGROUND } from '@/components/cards';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { AvatarStorageService } from '@/services/storage/AvatarStorageService';
 import { supabase } from '@/services/supabase';
 import { getSafeImageUri } from '@/lib/utils/safeImageUri';
 import { fontFamily } from '@/lib/design-tokens-editorial';
@@ -34,11 +36,17 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, userProfile, updateUserProfile } = useAuth();
+  const queryClient = useQueryClient();
   const [saving, setSaving] = React.useState(false);
   const [fullName, setFullName] = React.useState('');
   const [bio, setBio] = React.useState('');
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = React.useState(false);
+  const [position, setPosition] = React.useState('');
+  const [boatClass, setBoatClass] = React.useState('');
+  const [location, setLocation] = React.useState('');
+  const [club, setClub] = React.useState('');
+  const [seasons, setSeasons] = React.useState('');
   const safePhotoUri = getSafeImageUri(photoUri);
 
   // Initialize from userProfile
@@ -49,6 +57,28 @@ export default function EditProfileScreen() {
       setPhotoUri(userProfile.avatar_url || null);
     }
   }, [userProfile]);
+
+  // Descriptor fields live on profiles, not users
+  React.useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    supabase
+      .from('profiles')
+      .select('sailing_position, sailing_class, sailing_location, sailing_club, seasons_active')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setPosition(data.sailing_position || '');
+        setBoatClass(data.sailing_class || '');
+        setLocation(data.sailing_location || '');
+        setClub(data.sailing_club || '');
+        setSeasons(data.seasons_active != null ? String(data.seasons_active) : '');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const handlePickPhoto = async () => {
     try {
@@ -69,41 +99,9 @@ export default function EditProfileScreen() {
 
   const uploadAvatar = async (uri: string): Promise<string | null> => {
     if (!user?.id) return null;
-
     try {
       setUploadingPhoto(true);
-
-      // Get file extension from URI
-      const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${user.id}/avatar.${ext}`;
-
-      // Fetch the image as a blob
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      // Convert blob to array buffer for Supabase upload
-      const arrayBuffer = await new Response(blob).arrayBuffer();
-
-      // Upload to Supabase storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, arrayBuffer, {
-          contentType: blob.type || `image/${ext}`,
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      // Add cache-busting query param
-      return `${publicUrl}?t=${Date.now()}`;
+      return await AvatarStorageService.uploadAvatar(user.id, uri);
     } catch (error) {
       console.error('Error uploading avatar:', error);
       throw error;
@@ -152,6 +150,26 @@ export default function EditProfileScreen() {
       }
 
       await updateUserProfile(updates);
+
+      const seasonsNum = parseInt(seasons.trim(), 10);
+      const { error: profileError } = await supabase.from('profiles').upsert(
+        {
+          id: user.id,
+          // profiles.email is NOT NULL with no default; upsert builds the
+          // full insert tuple, so omitting it fails even on existing rows
+          email: user.email ?? '',
+          sailing_position: position.trim() || null,
+          sailing_class: boatClass.trim() || null,
+          sailing_location: location.trim() || null,
+          sailing_club: club.trim() || null,
+          seasons_active: Number.isFinite(seasonsNum) ? seasonsNum : null,
+        },
+        { onConflict: 'id' },
+      );
+      if (profileError) throw profileError;
+
+      queryClient.invalidateQueries({ queryKey: ['person-public-sections'] });
+      queryClient.invalidateQueries({ queryKey: ['sailor-full-profile', user.id] });
 
       showAlert('Success', 'Profile updated successfully');
       router.back();
@@ -275,6 +293,74 @@ export default function EditProfileScreen() {
             </Text>
           </View>
 
+        </View>
+
+        {/* Sailing descriptor — shown on the public person card */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sailing Profile</Text>
+
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Position</Text>
+            <TextInput
+              value={position}
+              onChangeText={setPosition}
+              placeholder="e.g. Helm, Trimmer, Bow"
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              style={styles.input}
+              autoCapitalize="words"
+            />
+          </View>
+
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Class</Text>
+            <TextInput
+              value={boatClass}
+              onChangeText={setBoatClass}
+              placeholder="e.g. Dragon, Etchells, ILCA 7"
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              style={styles.input}
+              autoCapitalize="words"
+            />
+          </View>
+
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Location</Text>
+            <TextInput
+              value={location}
+              onChangeText={setLocation}
+              placeholder="e.g. Hong Kong"
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              style={styles.input}
+              autoCapitalize="words"
+            />
+          </View>
+
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Club</Text>
+            <TextInput
+              value={club}
+              onChangeText={setClub}
+              placeholder="e.g. RHKYC"
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              style={styles.input}
+              autoCapitalize="characters"
+            />
+          </View>
+
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Seasons Active</Text>
+            <TextInput
+              value={seasons}
+              onChangeText={(text) => setSeasons(text.replace(/[^0-9]/g, ''))}
+              placeholder="e.g. 3"
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              style={styles.input}
+              keyboardType="number-pad"
+            />
+            <Text style={styles.fieldHint}>
+              Shown as “N seasons” on your public profile
+            </Text>
+          </View>
         </View>
 
       </ScrollView>
