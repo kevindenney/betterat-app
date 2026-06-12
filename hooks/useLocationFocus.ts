@@ -31,7 +31,9 @@ export async function labelForCoords(lat: number, lng: number): Promise<string> 
     // fall through to reverse geocode
   }
   try {
-    const rev = await nominatimService.reverse(lat, lng);
+    // zoom 14 = village/suburb granularity ("Yung Shue Wan"), not the
+    // nearest shop the default building-level reverse would return.
+    const rev = await nominatimService.reverse(lat, lng, { zoom: 14 });
     if (rev?.displayName) return rev.displayName.split(',')[0].trim();
   } catch {
     // fall through to raw coords

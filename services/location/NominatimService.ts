@@ -124,14 +124,21 @@ export class NominatimService {
    * Reverse geocode coordinates to address
    * @param lat - Latitude
    * @param lng - Longitude
+   * @param opts.zoom - Nominatim result granularity (e.g. 14 = village/suburb,
+   *   default 18 = nearest building/POI)
    */
-  async reverse(lat: number, lng: number): Promise<NominatimResult | null> {
+  async reverse(
+    lat: number,
+    lng: number,
+    opts?: { zoom?: number },
+  ): Promise<NominatimResult | null> {
     const params = new URLSearchParams({
       lat: String(lat),
       lon: String(lng),
       format: 'json',
       addressdetails: '1',
     });
+    if (opts?.zoom != null) params.set('zoom', String(opts.zoom));
 
     const url = `${this.baseUrl}/reverse?${params.toString()}`;
 
