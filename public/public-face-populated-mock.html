@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BetterAt — Public face · Kevin Denney (fully populated mock)</title>
+<style>
+  :root {
+    --ground: #F2F2F7;
+    --card: #FFFFFF;
+    --label: #1C1C1E;
+    --label-2: #6C6C70;
+    --label-3: #AEAEB2;
+    --sep: rgba(60, 60, 67, 0.12);
+    --sep-strong: rgba(60, 60, 67, 0.24);
+    --blue: #007AFF;
+    --coral: #D97757;
+    --coral-bg: #F7E8E2;
+    --green: #34C759;
+    --serif: Georgia, 'Times New Roman', serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    background: #D8D8DE;
+    color: var(--label);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px 80px;
+  }
+  .phone {
+    width: 400px;
+    background: var(--ground);
+    border-radius: 38px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.18);
+  }
+  .screen { padding: 0 0 48px; }
+
+  /* nav bar */
+  .navbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 16px 10px;
+  }
+  .navbar .back { color: var(--blue); font-size: 15px; }
+  .navbar .context {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--label-2); font-weight: 600;
+  }
+  .navbar .spacer { width: 48px; }
+
+  /* hero */
+  .hero { padding: 8px 16px 0; }
+  .hero-row { display: flex; align-items: center; gap: 14px; }
+  .mark {
+    width: 80px; height: 80px; border-radius: 40px; overflow: hidden;
+    flex-shrink: 0; background: #A78B7D;
+  }
+  .mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hero-name { font-size: 26px; font-weight: 700; letter-spacing: -0.4px; }
+  .hero-desc { font-size: 14px; color: var(--label-2); margin-top: 3px; }
+  .hero-meta { display: flex; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
+  .pellet { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--label-2); }
+  .pellet .ico { font-size: 12px; color: var(--label-3); }
+  .hero-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .btn-follow {
+    flex: 1; text-align: center; background: var(--blue); color: #fff;
+    font-size: 15px; font-weight: 600; padding: 10px 0; border-radius: 12px;
+  }
+  .btn-msg {
+    width: 44px; display: flex; align-items: center; justify-content: center;
+    background: #E4E4E9; border-radius: 12px; font-size: 16px;
+  }
+
+  /* dual CTA */
+  .dual-cta { display: flex; gap: 8px; padding: 10px 16px 4px; }
+  .cta-primary, .cta-secondary {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 11px 0; border-radius: 12px; font-size: 14px; font-weight: 600;
+  }
+  .cta-primary { background: var(--label); color: #fff; }
+  .cta-secondary { background: var(--card); border: 0.5px solid var(--sep-strong); }
+
+  /* framing line */
+  .framing {
+    margin: 14px 16px 0; padding: 14px 0 16px;
+    border-top: 0.5px solid var(--sep);
+  }
+  .framing .quote {
+    font-family: var(--serif); font-style: italic; font-size: 16.5px;
+    line-height: 1.45; color: var(--label);
+  }
+  .provenance { font-size: 11.5px; color: var(--label-3); margin-top: 8px; }
+
+  /* sections */
+  .section { margin-top: 22px; }
+  .section-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 0 16px 7px;
+  }
+  .section-title {
+    font-size: 12px; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--label-2); font-weight: 600;
+  }
+  .see-all { font-size: 13px; color: var(--blue); }
+  .card { background: var(--card); border-radius: 12px; margin: 0 16px; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; position: relative; }
+  .row + .row::before {
+    content: ''; position: absolute; top: 0; left: 14px; right: 0;
+    border-top: 0.5px solid var(--sep);
+  }
+  .chev { color: var(--label-3); font-size: 14px; margin-left: auto; flex-shrink: 0; }
+
+  /* concept card */
+  .concept-card {
+    margin: 0 16px; background: var(--coral-bg); border-radius: 12px; padding: 14px 16px 12px;
+  }
+  .concept-tag {
+    font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--coral); font-weight: 700;
+  }
+  .concept-tail { font-size: 10.5px; color: var(--label-3); float: right; }
+  .concept-body {
+    font-family: var(--serif); font-style: italic; font-size: 15.5px;
+    line-height: 1.45; margin-top: 8px;
+  }
+  .concept-stats { font-size: 12px; color: var(--label-2); margin-top: 10px; }
+  .concept-history {
+    margin-top: 10px; padding-top: 10px; border-top: 0.5px solid rgba(217,119,87,0.25);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .concept-history .primary { font-size: 13px; color: var(--blue); }
+  .concept-history .secondary { font-size: 11.5px; color: var(--label-3); }
+
+  /* timeline rows */
+  .t-title { font-size: 14.5px; font-weight: 590; letter-spacing: -0.1px; }
+  .t-title .settled { font-style: italic; font-weight: 400; color: var(--label-2); }
+  .t-sub { font-size: 12.5px; color: var(--label-2); margin-top: 2px; }
+  .t-when { font-size: 12px; color: var(--label-3); margin-left: auto; flex-shrink: 0; padding-left: 10px; }
+  .t-main { min-width: 0; }
+
+  /* capabilities */
+  .cap-row { padding: 12px 14px; position: relative; }
+  .cap-row + .cap-row::before {
+    content: ''; position: absolute; top: 0; left: 14px; right: 0;
+    border-top: 0.5px solid var(--sep);
+  }
+  .cap-head { display: flex; align-items: center; justify-content: space-between; }
+  .cap-name { font-size: 14.5px; font-weight: 590; }
+  .pill {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 99px;
+  }
+  .pill.settled { background: rgba(52,199,89,0.14); color: #1E8E3E; }
+  .pill.working { background: rgba(217,119,87,0.14); color: var(--coral); }
+  .pill.emerging { background: rgba(0,122,255,0.10); color: var(--blue); }
+  .cap-evidence {
+    font-family: var(--serif); font-style: italic; font-size: 13.5px;
+    line-height: 1.4; color: var(--label-2); margin-top: 7px;
+  }
+  .cap-prov { font-size: 11px; color: var(--label-3); margin-top: 5px; }
+
+  /* circle */
+  .c-mark {
+    width: 38px; height: 38px; border-radius: 19px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 700;
+  }
+  .c-name { font-size: 14.5px; font-weight: 590; }
+  .c-role { font-size: 12.5px; color: var(--label-2); margin-top: 1px; }
+  .c-tail { font-size: 11px; color: var(--label-3); margin-left: auto; flex-shrink: 0; padding-left: 8px; }
+
+  /* published */
+  .pub-reflection { padding: 13px 14px; }
+  .pub-reflection .text {
+    font-family: var(--serif); font-style: italic; font-size: 14.5px; line-height: 1.45;
+  }
+  .pub-thread { padding: 12px 14px; position: relative; }
+  .pub-thread::before, .pub-reflection + .pub-thread::before {
+    content: ''; position: absolute; top: 0; left: 14px; right: 0;
+    border-top: 0.5px solid var(--sep);
+  }
+  .pub-thread:first-child::before { display: none; }
+  .pub-title { font-size: 14.5px; font-weight: 590; }
+  .pub-meta { font-size: 12px; color: var(--label-2); margin-top: 3px; }
+
+  /* where — form rows */
+  .form-row {
+    display: flex; justify-content: space-between; padding: 11px 14px; position: relative;
+    font-size: 14px;
+  }
+  .form-row + .form-row::before {
+    content: ''; position: absolute; top: 0; left: 14px; right: 0;
+    border-top: 0.5px solid var(--sep);
+  }
+  .form-row .k { color: var(--label-2); }
+  .form-row .v { font-weight: 510; text-align: right; }
+
+  /* events */
+  .ev-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; position: relative; }
+  .ev-row + .ev-row::before {
+    content: ''; position: absolute; top: 0; left: 14px; right: 0;
+    border-top: 0.5px solid var(--sep);
+  }
+  .ev-date { width: 40px; text-align: center; flex-shrink: 0; }
+  .ev-date .top { font-size: 15px; font-weight: 700; }
+  .ev-date .bottom { font-size: 10.5px; color: var(--label-3); text-transform: uppercase; letter-spacing: 0.05em; }
+  .ev-name { font-size: 14.5px; font-weight: 590; }
+  .ev-venue { font-size: 12.5px; color: var(--label-2); margin-top: 1px; }
+  .ev-result { margin-left: auto; text-align: right; flex-shrink: 0; padding-left: 10px; }
+  .ev-result .top { font-size: 13.5px; font-weight: 600; }
+  .ev-result .bottom { font-size: 11px; color: var(--label-3); margin-top: 1px; }
+
+  .note {
+    max-width: 400px; margin: 18px auto 0; font-size: 12px; color: #6C6C70;
+    text-align: center; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div>
+<div class="phone"><div class="screen">
+
+  <div class="navbar">
+    <span class="back">‹ Back</span>
+    <span class="context">Public face</span>
+    <span class="spacer"></span>
+  </div>
+
+  <!-- 01 · HERO -->
+  <div class="hero">
+    <div class="hero-row">
+      <div class="mark">
+        <img src="https://i.pravatar.cc/160?img=12" alt="Kevin Denney" />
+      </div>
+      <div>
+        <div class="hero-name">Kevin Denney</div>
+        <div class="hero-desc">Dragon Helm · Hong Kong</div>
+      </div>
+    </div>
+    <div class="hero-meta">
+      <span class="pellet"><span class="ico">📍</span>RHKYC · Middle Island</span>
+      <span class="pellet"><span class="ico">🗓</span>1 season</span>
+      <span class="pellet"><span class="ico">✓</span>82 steps logged</span>
+    </div>
+    <div class="hero-actions">
+      <div class="btn-follow">＋ Follow</div>
+      <div class="btn-msg">💬</div>
+    </div>
+  </div>
+
+  <!-- dual CTA -->
+  <div class="dual-cta">
+    <div class="cta-primary">💡 Suggest a step</div>
+    <div class="cta-secondary">💬 Reflect</div>
+  </div>
+
+  <!-- 02 · FRAMING -->
+  <div class="framing">
+    <div class="quote">“Building a repeatable Dragon racing program — rig-tuning baselines, two-boat testing, and a first-beat decision system for shifty Hong Kong waters.”</div>
+    <div class="provenance">Written when joining BetterAt</div>
+  </div>
+
+  <!-- 03 · WORKING ON NOW -->
+  <div class="section">
+    <div class="section-head"><span class="section-title">Working on now</span></div>
+    <div class="concept-card">
+      <span class="concept-tail">Week 3</span>
+      <div class="concept-tag">Current concept</div>
+      <div class="concept-body">“Commit to a side before the gun — pick the first shift from the compass numbers, not from the fleet.”</div>
+      <div class="concept-stats">6 steps practised against · 2 debriefs</div>
+      <div class="concept-history">
+        <span class="primary">3 concepts settled before this one ›</span>
+        <span class="secondary">newest: Rig baselines</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 · PRACTICE TIMELINE -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-title">Practice timeline</span>
+      <span class="see-all">See full timeline →</span>
+    </div>
+    <div class="card">
+      <div class="row">
+        <div class="t-main">
+          <div class="t-title">Rig-tuning baselines · <span class="settled">settled</span></div>
+          <div class="t-sub">12 sessions → one-page tuning matrix for 8–18 kt</div>
+        </div>
+        <span class="t-when">May 2026</span>
+      </div>
+      <div class="row">
+        <div class="t-main">
+          <div class="t-title">Two-boat testing vs. Wei Lun</div>
+          <div class="t-sub">Upwind splits, 40-min windows off Middle Island</div>
+        </div>
+        <span class="t-when">May 2026</span>
+      </div>
+      <div class="row">
+        <div class="t-main">
+          <div class="t-title">Start-line time-and-distance · <span class="settled">settled</span></div>
+          <div class="t-sub">Held the front row 4 of 5 starts in the spring series</div>
+        </div>
+        <span class="t-when">Apr 2026</span>
+      </div>
+      <div class="row">
+        <div class="t-main">
+          <div class="t-title">Compass-number journaling</div>
+          <div class="t-sub">Pre-start shift log, every race day</div>
+        </div>
+        <span class="t-when">Mar 2026</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 · CAPABILITIES AT HAND -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-title">Capabilities at hand</span>
+      <span class="see-all">All 9</span>
+    </div>
+    <div class="card">
+      <div class="cap-row">
+        <div class="cap-head"><span class="cap-name">Rig tuning to conditions</span><span class="pill settled">Settled</span></div>
+        <div class="cap-evidence">“Matrix says 28 on the uppers at 14 kt — boat speed proved it both ways on the test day.”</div>
+        <div class="cap-prov">From a two-boat testing debrief · May 2026</div>
+      </div>
+      <div class="cap-row">
+        <div class="cap-head"><span class="cap-name">Start-line boat handling</span><span class="pill settled">Settled</span></div>
+        <div class="cap-evidence">“Time-and-distance is no longer a guess — I know what 35 seconds looks like.”</div>
+        <div class="cap-prov">From a race debrief · Apr 2026</div>
+      </div>
+      <div class="cap-row">
+        <div class="cap-head"><span class="cap-name">First-beat strategy</span><span class="pill working">Working</span></div>
+        <div class="cap-evidence">“Still ducking the fleet instead of trusting the numbers when the pressure’s on.”</div>
+        <div class="cap-prov">From this week’s concept · Jun 2026</div>
+      </div>
+      <div class="cap-row">
+        <div class="cap-head"><span class="cap-name">Crew choreography under spinnaker</span><span class="pill emerging">Emerging</span></div>
+        <div class="cap-evidence">“Gybe-set worked twice in practice; not yet race-proven.”</div>
+        <div class="cap-prov">From a practice session log · May 2026</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 · PRACTICE CIRCLE -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-title">Practice circle</span>
+      <span class="see-all">All 7</span>
+    </div>
+    <div class="card">
+      <div class="row">
+        <div class="c-mark" style="background:#5E81AC">WL</div>
+        <div><div class="c-name">Wei Lun Cheung</div><div class="c-role">Two-boat testing partner · Dragon helm</div></div>
+        <span class="c-tail">Mutual</span><span class="chev">›</span>
+      </div>
+      <div class="row">
+        <div class="c-mark" style="background:#A3736C">MR</div>
+        <div><div class="c-name">Marta Reyes</div><div class="c-role">Coach · starts &amp; boat-on-boat</div></div>
+        <span class="chev">›</span>
+      </div>
+      <div class="row">
+        <div class="c-mark" style="background:#7B9E89">JT</div>
+        <div><div class="c-name">James Tse</div><div class="c-role">Crew · bow, since March</div></div>
+        <span class="c-tail">Mutual</span><span class="chev">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 · PUBLISHED -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-title">Published</span>
+      <span class="see-all">All 11</span>
+    </div>
+    <div class="card">
+      <div class="pub-reflection">
+        <div class="text">“The fleet is a rumor. The compass is a fact. Six races of journaling finally made that real.”</div>
+        <div class="provenance">Reflection · on settling Start-line time-and-distance · Apr 2026</div>
+      </div>
+      <div class="pub-thread">
+        <div class="pub-title">“Anyone else find the ebb tide line moves 200m north after 1400?”</div>
+        <div class="pub-meta">On Spring Series R4 debrief · 7 replies · May 2026</div>
+      </div>
+      <div class="pub-thread">
+        <div class="pub-title">“Posting our 8–18kt tuning matrix — corrections welcome.”</div>
+        <div class="pub-meta">On Rig-tuning baselines · 12 replies · May 2026</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 · WHERE -->
+  <div class="section">
+    <div class="section-head"><span class="section-title">Where Kevin practises</span></div>
+    <div class="card">
+      <div class="form-row"><span class="k">Home waters</span><span class="v">Middle Island, Hong Kong</span></div>
+      <div class="form-row"><span class="k">Club</span><span class="v">RHKYC</span></div>
+      <div class="form-row"><span class="k">Class</span><span class="v">Dragon</span></div>
+      <div class="form-row"><span class="k">Racing area</span><span class="v">Repulse Bay E course</span></div>
+    </div>
+  </div>
+
+  <!-- 09 · EVENTS -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-title">Events</span>
+      <span class="see-all">All 6</span>
+    </div>
+    <div class="card">
+      <div class="ev-row">
+        <div class="ev-date"><div class="top">24</div><div class="bottom">May</div></div>
+        <div><div class="ev-name">Spring Series · Race 5</div><div class="ev-venue">Middle Island</div></div>
+        <div class="ev-result"><div class="top">4th of 18</div><div class="bottom">best of season</div></div>
+      </div>
+      <div class="ev-row">
+        <div class="ev-date"><div class="top">10</div><div class="bottom">May</div></div>
+        <div><div class="ev-name">Spring Series · Race 4</div><div class="ev-venue">Middle Island</div></div>
+        <div class="ev-result"><div class="top">7th of 19</div></div>
+      </div>
+      <div class="ev-row">
+        <div class="ev-date"><div class="top">26</div><div class="bottom">Apr</div></div>
+        <div><div class="ev-name">Spring Series · Race 3</div><div class="ev-venue">Repulse Bay</div></div>
+        <div class="ev-result"><div class="top">11th of 19</div><div class="bottom">OCS recovered</div></div>
+      </div>
+    </div>
+  </div>
+
+</div></div>
+
+<p class="note">
+  Mock — Kevin Denney's public face at full strength. Live today: hero, framing (bio),
+  practice timeline (settled/completed steps), published (public-step threads), where.
+  Needs schemas: working-on-now concept, capabilities, practice circle, events.
+</p>
+</div>
+</body>
+</html>
