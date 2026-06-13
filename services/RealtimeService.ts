@@ -6,12 +6,16 @@ const logger = createLogger('RealtimeService');
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
 
-export interface RealtimeSubscriptionConfig {
+export interface RealtimeChangeConfig {
   table: string;
   event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
   filter?: string;
   schema?: string;
+}
+
+export interface RealtimeSubscriptionConfig extends RealtimeChangeConfig {
   onStatus?: (status: string) => void;
+  changes?: RealtimeChangeConfig[];
 }
 
 class RealtimeService {
@@ -39,12 +43,25 @@ class RealtimeService {
   }
 
   private getConfigSignature(config: RealtimeSubscriptionConfig): string {
-    return JSON.stringify({
+    return JSON.stringify(this.getChangeConfigs(config).map((change) => ({
+      table: change.table,
+      event: change.event || '*',
+      schema: change.schema || 'public',
+      filter: change.filter || '',
+    })));
+  }
+
+  private getChangeConfigs(config: RealtimeSubscriptionConfig): RealtimeChangeConfig[] {
+    if (config.changes?.length) {
+      return config.changes;
+    }
+
+    return [{
       table: config.table,
       event: config.event || '*',
       schema: config.schema || 'public',
       filter: config.filter || '',
-    });
+    }];
   }
 
   private isMatchingTopic(topic: string, channelName: string): boolean {
@@ -214,15 +231,15 @@ class RealtimeService {
       statusCallbacks.add(config.onStatus);
     }
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
+    const channel = supabase.channel(channelName);
+    for (const change of this.getChangeConfigs(config)) {
+      channel.on(
         'postgres_changes' as any,
         {
-          event: config.event || '*',
-          schema: config.schema || 'public',
-          table: config.table,
-          filter: config.filter,
+          event: change.event || '*',
+          schema: change.schema || 'public',
+          table: change.table,
+          filter: change.filter,
         },
         (payload) => {
           logger.debug(`${channelName} event received`);
@@ -236,36 +253,38 @@ class RealtimeService {
             }
           });
         }
-      )
-      .subscribe((status) => {
-        logger.debug(`${channelName} subscription status: ${status}`);
-        const channelEntry = this.channels.get(channelName);
-        channelEntry?.statusCallbacks.forEach((cb) => {
-          try {
-            cb(status);
-          } catch (error) {
-            logger.error(`Error in ${channelName} status callback:`, error);
-          }
-        });
-        if (status === 'SUBSCRIBED') {
-          this.reconnectAttempts = 0;
-          if (this.reconnectTimer) {
-            clearTimeout(this.reconnectTimer);
-            this.reconnectTimer = null;
-          }
-          this.setConnectionStatus('connected');
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          this.setConnectionStatus('reconnecting');
-          this.attemptReconnect();
-        } else if (status === 'CLOSED') {
-          if (this.channels.size > 0) {
-            this.setConnectionStatus('reconnecting');
-            this.attemptReconnect();
-          } else {
-            this.setConnectionStatus('disconnected');
-          }
+      );
+    }
+
+    channel.subscribe((status) => {
+      logger.debug(`${channelName} subscription status: ${status}`);
+      const channelEntry = this.channels.get(channelName);
+      channelEntry?.statusCallbacks.forEach((cb) => {
+        try {
+          cb(status);
+        } catch (error) {
+          logger.error(`Error in ${channelName} status callback:`, error);
         }
       });
+      if (status === 'SUBSCRIBED') {
+        this.reconnectAttempts = 0;
+        if (this.reconnectTimer) {
+          clearTimeout(this.reconnectTimer);
+          this.reconnectTimer = null;
+        }
+        this.setConnectionStatus('connected');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        this.setConnectionStatus('reconnecting');
+        this.attemptReconnect();
+      } else if (status === 'CLOSED') {
+        if (this.channels.size > 0) {
+          this.setConnectionStatus('reconnecting');
+          this.attemptReconnect();
+        } else {
+          this.setConnectionStatus('disconnected');
+        }
+      }
+    });
 
     this.channels.set(channelName, {
       channel,

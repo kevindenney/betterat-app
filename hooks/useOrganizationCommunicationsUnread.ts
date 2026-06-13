@@ -3,7 +3,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { programService } from '@/services/ProgramService';
-import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 
 export function useOrganizationCommunicationsUnread() {
   const { user } = useAuth();
@@ -42,24 +42,20 @@ export function useOrganizationCommunicationsUnread() {
 
     void refresh();
 
-    const channel = supabase.channel(`org-unread-count:${organizationId}:${userId}`);
-    channel
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'communication_messages', filter: `organization_id=eq.${organizationId}` },
-        () => void refresh()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'communication_thread_reads', filter: `organization_id=eq.${organizationId}` },
-        () => void refresh()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'communication_threads', filter: `organization_id=eq.${organizationId}` },
-        () => void refresh()
-      )
-      .subscribe();
+    const channelName = `org-unread-count:${organizationId}:${userId}`;
+    const handleUnreadChange = () => void refresh();
+    realtimeService.subscribe(
+      channelName,
+      {
+        table: 'communication_messages',
+        changes: [
+          { event: '*', schema: 'public', table: 'communication_messages', filter: `organization_id=eq.${organizationId}` },
+          { event: '*', schema: 'public', table: 'communication_thread_reads', filter: `organization_id=eq.${organizationId}` },
+          { event: '*', schema: 'public', table: 'communication_threads', filter: `organization_id=eq.${organizationId}` },
+        ],
+      },
+      handleUnreadChange,
+    );
 
     const interval = setInterval(() => {
       void refresh();
@@ -67,7 +63,7 @@ export function useOrganizationCommunicationsUnread() {
 
     return () => {
       clearInterval(interval);
-      void supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handleUnreadChange);
     };
   }, [ready, isFocused, organizationId, userId, refresh]);
 

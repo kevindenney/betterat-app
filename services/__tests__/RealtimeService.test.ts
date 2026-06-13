@@ -139,6 +139,32 @@ describe('RealtimeService', () => {
     expect(statusCallback).toHaveBeenCalledTimes(1);
   });
 
+  it('attaches multiple postgres change handlers to one managed channel', async () => {
+    realtimeService.subscribe(
+      'org-unread-count:org-1:user-1',
+      {
+        table: 'communication_messages',
+        changes: [
+          { table: 'communication_messages', filter: 'organization_id=eq.org-1' },
+          { table: 'communication_thread_reads', filter: 'organization_id=eq.org-1' },
+          { table: 'communication_threads', filter: 'organization_id=eq.org-1' },
+        ],
+      },
+      jest.fn()
+    );
+
+    const channel = mockChannelFactory.mock.results[0]?.value;
+
+    expect(channel.on).toHaveBeenCalledTimes(3);
+    expect(channel.on.mock.calls.map(([, config]: [unknown, { table: string }]) => config.table)).toEqual([
+      'communication_messages',
+      'communication_thread_reads',
+      'communication_threads',
+    ]);
+
+    await realtimeService.cleanup();
+  });
+
   it('allows scheduling a new reconnect after previous timer fires', async () => {
     const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
 
