@@ -392,7 +392,7 @@ export const INTEREST_DOMAINS = [
   { name: 'Creative Arts', color: '#F59E0B', slugs: ['drawing', 'design', 'knitting', 'fiber-arts', 'painting-printing'] },
   { name: 'Sports & Outdoors', color: '#0EA5E9', slugs: ['sail-racing', 'golf', 'health-and-fitness'] },
   { name: 'Livelihoods & Enterprise', color: '#D35400', slugs: ['lac-craft-business', 'food-processing', 'textile-weaving'] },
-  { name: 'Education & Learning', color: '#5C6BC0', slugs: ['lifelong-learning', 'self-mastery'] },
+  { name: 'Education & Learning', color: '#5C6BC0', slugs: ['lifelong-learning', 'self-mastery', 'college-career-planning'] },
   { name: 'Agriculture & Environment', color: '#2E7D32', slugs: ['regenerative-agriculture'] },
 ];
 
@@ -4306,6 +4306,13 @@ export const SAMPLE_INTERESTS: SampleInterest[] = [
         groups: [],
       },
     ],
+  },
+  {
+    slug: 'college-career-planning',
+    name: 'College & Career Planning',
+    color: '#7C3AED',
+    icon: 'school',
+    organizations: [],
   },
 ];
 
