@@ -11,12 +11,14 @@ export interface RealtimeSubscriptionConfig {
   event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
   filter?: string;
   schema?: string;
+  onStatus?: (status: string) => void;
 }
 
 class RealtimeService {
   private channels: Map<string, {
     channel: RealtimeChannel;
     callbacks: Set<(payload: RealtimePostgresChangesPayload<any>) => void>;
+    statusCallbacks: Set<(status: string) => void>;
     configSignature: string;
   }> = new Map();
   private connectionStatus: ConnectionStatus = 'disconnected';
@@ -187,6 +189,9 @@ class RealtimeService {
       } else {
         logger.debug(`Reusing existing channel: ${channelName}`);
         existingEntry.callbacks.add(callback as (payload: RealtimePostgresChangesPayload<any>) => void);
+        if (config.onStatus) {
+          existingEntry.statusCallbacks.add(config.onStatus);
+        }
         return existingEntry.channel;
       }
     }
@@ -204,6 +209,10 @@ class RealtimeService {
 
     const callbacks = new Set<(payload: RealtimePostgresChangesPayload<any>) => void>();
     callbacks.add(callback as (payload: RealtimePostgresChangesPayload<any>) => void);
+    const statusCallbacks = new Set<(status: string) => void>();
+    if (config.onStatus) {
+      statusCallbacks.add(config.onStatus);
+    }
 
     const channel = supabase
       .channel(channelName)
@@ -230,6 +239,14 @@ class RealtimeService {
       )
       .subscribe((status) => {
         logger.debug(`${channelName} subscription status: ${status}`);
+        const channelEntry = this.channels.get(channelName);
+        channelEntry?.statusCallbacks.forEach((cb) => {
+          try {
+            cb(status);
+          } catch (error) {
+            logger.error(`Error in ${channelName} status callback:`, error);
+          }
+        });
         if (status === 'SUBSCRIBED') {
           this.reconnectAttempts = 0;
           if (this.reconnectTimer) {
@@ -253,6 +270,7 @@ class RealtimeService {
     this.channels.set(channelName, {
       channel,
       callbacks,
+      statusCallbacks,
       configSignature,
     });
     return channel;
@@ -263,7 +281,8 @@ class RealtimeService {
    */
   async unsubscribe(
     channelName: string,
-    callback?: (payload: RealtimePostgresChangesPayload<any>) => void
+    callback?: (payload: RealtimePostgresChangesPayload<any>) => void,
+    statusCallback?: (status: string) => void
   ): Promise<void> {
     const channelEntry = this.channels.get(channelName);
     if (!channelEntry) {
@@ -276,6 +295,11 @@ class RealtimeService {
     } else {
       // Backward-compatible behavior: no callback means remove the full channel.
       channelEntry.callbacks.clear();
+    }
+    if (statusCallback) {
+      channelEntry.statusCallbacks.delete(statusCallback);
+    } else if (!callback) {
+      channelEntry.statusCallbacks.clear();
     }
 
     if (channelEntry.callbacks.size > 0) {

@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { fetchOrgMembershipRows, orgMembershipsQueryKey } from '@/hooks/orgMembershipsQuery';
 import { createLogger } from '@/lib/utils/logger';
 import { isAbortError } from '@/lib/utils/fetchWithTimeout';
@@ -653,70 +654,72 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!signedIn || !user?.id) return;
 
-    const channel = supabase
-      .channel(`org-memberships:${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'organization_memberships',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload: RealtimePostgresChangesPayload<any>) => {
-          const payloadRowId = String((payload.new as any)?.id || (payload.old as any)?.id || '');
-          if (!payloadRowId) return;
-          const commitTime = new Date(payload.commit_timestamp || Date.now()).getTime();
-          const knownCommitTime = membershipRealtimeCommitRef.current.get(payloadRowId) ?? Number.NEGATIVE_INFINITY;
-          if (commitTime < knownCommitTime) {
-            return;
-          }
-          membershipRealtimeCommitRef.current.set(payloadRowId, commitTime);
+    const channelName = `org-memberships:${user.id}`;
+    const handleMembershipChange = (payload: RealtimePostgresChangesPayload<any>) => {
+      const payloadRowId = String((payload.new as any)?.id || (payload.old as any)?.id || '');
+      if (!payloadRowId) return;
+      const commitTime = new Date(payload.commit_timestamp || Date.now()).getTime();
+      const knownCommitTime = membershipRealtimeCommitRef.current.get(payloadRowId) ?? Number.NEGATIVE_INFINITY;
+      if (commitTime < knownCommitTime) {
+        return;
+      }
+      membershipRealtimeCommitRef.current.set(payloadRowId, commitTime);
 
-          setMemberships((prev) => {
-            let next = prev;
-            if (payload.eventType === 'DELETE') {
-              const deletedId = String((payload.old as any)?.id || '');
-              next = prev.filter((row) => row.id !== deletedId);
-            } else {
-              const incoming = payload.new as Record<string, any>;
-              const incomingId = String(incoming?.id || '');
-              if (!incomingId) return prev;
-              const existing = prev.find((row) => row.id === incomingId);
-              const normalized = normalizeRealtimeMembershipRow(incoming, existing);
-              const withoutIncoming = prev.filter((row) => row.id !== incomingId);
-              next = dedupeMemberships([normalized, ...withoutIncoming]).sort((a, b) => {
-                const statusRank = rankActiveMembershipStatus(a) - rankActiveMembershipStatus(b);
-                if (statusRank !== 0) return statusRank;
-                return String(a.organization?.name || '').localeCompare(String(b.organization?.name || ''));
-              });
-            }
-
-            const nextActiveOrgId = resolvePreferredActiveOrgId(next, activeOrganizationIdRef.current);
-            if (nextActiveOrgId !== activeOrganizationIdRef.current) {
-              activeOrganizationIdRef.current = nextActiveOrgId;
-              setActiveOrganizationIdState(nextActiveOrgId);
-              void storeActiveOrganizationId(nextActiveOrgId);
-            }
-            return next;
+      setMemberships((prev) => {
+        let next = prev;
+        if (payload.eventType === 'DELETE') {
+          const deletedId = String((payload.old as any)?.id || '');
+          next = prev.filter((row) => row.id !== deletedId);
+        } else {
+          const incoming = payload.new as Record<string, any>;
+          const incomingId = String(incoming?.id || '');
+          if (!incomingId) return prev;
+          const existing = prev.find((row) => row.id === incomingId);
+          const normalized = normalizeRealtimeMembershipRow(incoming, existing);
+          const withoutIncoming = prev.filter((row) => row.id !== incomingId);
+          next = dedupeMemberships([normalized, ...withoutIncoming]).sort((a, b) => {
+            const statusRank = rankActiveMembershipStatus(a) - rankActiveMembershipStatus(b);
+            if (statusRank !== 0) return statusRank;
+            return String(a.organization?.name || '').localeCompare(String(b.organization?.name || ''));
           });
         }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          if (membershipRealtimeSubscribedOnceRef.current) {
-            void refreshMemberships();
-          } else {
-            membershipRealtimeSubscribedOnceRef.current = true;
-          }
+
+        const nextActiveOrgId = resolvePreferredActiveOrgId(next, activeOrganizationIdRef.current);
+        if (nextActiveOrgId !== activeOrganizationIdRef.current) {
+          activeOrganizationIdRef.current = nextActiveOrgId;
+          setActiveOrganizationIdState(nextActiveOrgId);
+          void storeActiveOrganizationId(nextActiveOrgId);
         }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          void refreshMemberships();
-        }
+        return next;
       });
+    };
+    const handleMembershipStatus = (status: string) => {
+      if (status === 'SUBSCRIBED') {
+        if (membershipRealtimeSubscribedOnceRef.current) {
+          void refreshMemberships();
+        } else {
+          membershipRealtimeSubscribedOnceRef.current = true;
+        }
+      }
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        void refreshMemberships();
+      }
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'organization_memberships',
+        filter: `user_id=eq.${user.id}`,
+        onStatus: handleMembershipStatus,
+      },
+      handleMembershipChange,
+    );
 
     return () => {
-      void supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handleMembershipChange, handleMembershipStatus);
     };
   }, [refreshMemberships, signedIn, user?.id]);
 

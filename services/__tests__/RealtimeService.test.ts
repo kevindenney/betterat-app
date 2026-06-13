@@ -116,6 +116,29 @@ describe('RealtimeService', () => {
     expect(realtimeService.getConnectionStatus()).toBe('disconnected');
   });
 
+  it('notifies and removes per-subscription status callbacks', async () => {
+    const callback = jest.fn();
+    const statusCallback = jest.fn();
+
+    realtimeService.subscribe(
+      'org-memberships:user-1',
+      {
+        table: 'organization_memberships',
+        filter: 'user_id=eq.user-1',
+        onStatus: statusCallback,
+      },
+      callback
+    );
+
+    statusHandlers.get('org-memberships:user-1')?.('SUBSCRIBED');
+    expect(statusCallback).toHaveBeenCalledWith('SUBSCRIBED');
+
+    await realtimeService.unsubscribe('org-memberships:user-1', callback, statusCallback);
+
+    statusHandlers.get('org-memberships:user-1')?.('TIMED_OUT');
+    expect(statusCallback).toHaveBeenCalledTimes(1);
+  });
+
   it('allows scheduling a new reconnect after previous timer fires', async () => {
     const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
 
