@@ -37,7 +37,16 @@ import { useInterest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { supabase } from '@/services/supabase';
-import { IOS_SPACING, IOS_RADIUS } from '@/lib/design-tokens-ios';
+import { IOS_SPACING } from '@/lib/design-tokens-ios';
+import { gearErrorMessage, getGearLabels, type GearItem, type GearStatus } from '@/services/GearService';
+import { GearEditorSheet, type GearEditorValues } from '@/components/discover/GearEditorSheet';
+import {
+  useCreateGearItem,
+  useDeleteGearItem,
+  useInterestGear,
+  useSetPrimaryGearItem,
+  useUpdateGearItem,
+} from '@/hooks/useGear';
 import {
   fetchOrgMembershipRows,
   type OrgMembershipRawRow,
@@ -120,6 +129,34 @@ function orgInitial(name: string): string {
   return (name.trim()[0] ?? '?').toUpperCase();
 }
 
+function outlineIconName(icon: string | null | undefined): string {
+  const base = icon || 'compass';
+  return base.endsWith('-outline') ? base : `${base}-outline`;
+}
+
+function interestCaption(slug: string, fallback: string | null | undefined): string {
+  const normalized = slug.toLowerCase();
+  if (normalized.includes('sail')) return 'Regattas · fleets · crews — your sailing vocabulary';
+  if (normalized.includes('nurs')) return 'Rotations · competencies · shifts';
+  if (normalized.includes('food')) return 'Products · FSSAI · home-scale batches';
+  if (normalized.includes('golf')) return 'Practice · clubs · rounds';
+  return fallback || 'Organizations · blueprints · practice';
+}
+
+function displayInitials(value: string | null | undefined): string {
+  const source = value?.trim();
+  if (!source) return 'KD';
+  const parts = source.includes('@')
+    ? source.split('@')[0].split(/[._-]+/)
+    : source.split(/\s+/);
+  const letters = parts
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+  return letters || 'KD';
+}
+
 // Deterministic accent for an org avatar from its name.
 const AV_COLORS = ['#1B3FA8', '#2E62F0', '#1E9E6A', '#C8631A', '#7B4FB5', '#0E7C86'];
 function avatarColor(seed: string): string {
@@ -137,6 +174,7 @@ interface DiscoverInterestsContentProps {
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   addedInterestSlugs?: Set<string>;
   onAddInterest?: (slug: string) => void;
+  showContextChrome?: boolean;
 }
 
 // =============================================================================
@@ -146,6 +184,9 @@ interface DiscoverInterestsContentProps {
 export function DiscoverInterestsContent({
   toolbarOffset,
   onScroll,
+  addedInterestSlugs,
+  onAddInterest,
+  showContextChrome = true,
 }: DiscoverInterestsContentProps) {
   const { width } = useWindowDimensions();
   const [mounted, setMounted] = useState(false);
@@ -176,6 +217,7 @@ export function DiscoverInterestsContent({
   const [memberships, setMemberships] = useState<OrgMembershipRawRow[]>([]);
   // The viewer's subscribed timeline blueprints.
   const [subBlueprints, setSubBlueprints] = useState<SubBlueprint[]>([]);
+  const [stepsThisWeekByInterest, setStepsThisWeekByInterest] = useState<Record<string, number>>({});
 
   // --- fetch: all active orgs grouped by interest_slug -----------------------
   useEffect(() => {
@@ -225,6 +267,29 @@ export function DiscoverInterestsContent({
       });
   }, [user?.id]);
 
+  // --- fetch: lightweight "steps this week" counts for the active summary ----
+  useEffect(() => {
+    if (!user?.id) {
+      setStepsThisWeekByInterest({});
+      return;
+    }
+    const since = new Date();
+    since.setDate(since.getDate() - 7);
+    supabase
+      .from('timeline_steps')
+      .select('interest_id')
+      .eq('user_id', user.id)
+      .gte('created_at', since.toISOString())
+      .then(({ data }) => {
+        const next: Record<string, number> = {};
+        for (const row of (data ?? []) as { interest_id: string | null }[]) {
+          if (!row.interest_id) continue;
+          next[row.interest_id] = (next[row.interest_id] ?? 0) + 1;
+        }
+        setStepsThisWeekByInterest(next);
+      });
+  }, [user?.id]);
+
   // Default the active interest to expanded once it resolves.
   useEffect(() => {
     if (currentInterest?.slug) setExpandedSlug(currentInterest.slug);
@@ -239,6 +304,11 @@ export function DiscoverInterestsContent({
     () => new Set(userInterests.map((i) => i.slug)),
     [userInterests],
   );
+  const visibleAddedSlugs = useMemo(() => {
+    const next = new Set(userInterestSlugs);
+    addedInterestSlugs?.forEach((slug) => next.add(slug));
+    return next;
+  }, [addedInterestSlugs, userInterestSlugs]);
 
   // interest_slug → real DB org slugs (used to keep Discover links honest).
   const realOrgSlugs = useMemo(() => {
@@ -282,10 +352,21 @@ export function DiscoverInterestsContent({
     if (busySlug) return;
     setBusySlug(slug);
     try {
-      const existsInDb = allInterests.some((i) => i.slug === slug);
+      // The cached interest list can lag a freshly-created interest, so
+      // confirm existence against the DB before deciding to propose a new one.
+      let existsInDb = allInterests.some((i) => i.slug === slug);
+      if (!existsInDb) {
+        const { data } = await supabase
+          .from('interests')
+          .select('id')
+          .eq('slug', slug)
+          .maybeSingle();
+        existsInDb = !!data;
+      }
       if (existsInDb) {
         if (!userInterestSlugs.has(slug)) await addInterest(slug);
         await switchInterest(slug);
+        await refreshInterests();
       } else {
         const sample = SAMPLE_INTERESTS.find((i) => i.slug === slug);
         const { error } = await supabase.from('interests').insert({
@@ -304,6 +385,7 @@ export function DiscoverInterestsContent({
         await refreshInterests();
         await switchInterest(slug).catch(() => {});
       }
+      onAddInterest?.(slug);
       setTab('yours');
       setExpandedSlug(slug);
     } catch {
@@ -359,9 +441,9 @@ export function DiscoverInterestsContent({
         topOrg: realOrgs[0]?.name ?? null,
       };
     })
-      .filter((i) => !userInterestSlugs.has(i.slug))
+      .filter((i) => !visibleAddedSlugs.has(i.slug))
       .filter((i) => !q || i.name.toLowerCase().includes(q));
-  }, [searchQuery, allInterests, orgsByInterest, realOrgSlugs, userInterestSlugs]);
+  }, [searchQuery, allInterests, orgsByInterest, realOrgSlugs, visibleAddedSlugs]);
 
   const discoverGroups = useMemo(() => {
     const slugToDomain = new Map<string, { name: string; color: string }>();
@@ -391,8 +473,15 @@ export function DiscoverInterestsContent({
 
   const yourInterests = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return userInterests.filter((i) => !q || i.name.toLowerCase().includes(q));
-  }, [userInterests, searchQuery]);
+    return userInterests
+      .filter((i) => !q || i.name.toLowerCase().includes(q))
+      .slice()
+      .sort((a, b) => {
+        if (a.slug === currentInterest?.slug) return -1;
+        if (b.slug === currentInterest?.slug) return 1;
+        return a.name.localeCompare(b.name);
+      });
+  }, [currentInterest?.slug, userInterests, searchQuery]);
 
   // ---------------------------------------------------------------------------
   // RENDER: a single "Yours" interest card
@@ -409,8 +498,15 @@ export function DiscoverInterestsContent({
     const joinedIds = new Set(mine.map((m) => orgOf(m)?.id).filter(Boolean) as string[]);
     const available = (orgsByInterest[slug] ?? []).filter((o) => !joinedIds.has(o.id));
     const bps = blueprintsByInterestId.get(interest.id) ?? [];
+    const stepsThisWeek = stepsThisWeekByInterest[interest.id] ?? 0;
 
-    const subtitle = interest.hero_tagline || interest.description || null;
+    const subtitle = interestCaption(slug, interest.hero_tagline || interest.description);
+    const stats = [
+      { value: joinedActive.length, label: 'Orgs joined' },
+      { value: bps.length, label: bps.length === 1 ? 'Blueprint subscribed' : 'Blueprints' },
+      ...(isActive || expanded ? [{ value: stepsThisWeek, label: 'Steps this week' }] : []),
+      { value: available.length, label: available.length === 1 ? 'Org available' : 'Orgs available' },
+    ];
 
     return (
       <View
@@ -419,6 +515,7 @@ export function DiscoverInterestsContent({
           styles.icard,
           isActive && [styles.icardActive, { shadowColor: accent }],
           isDesktop && styles.icardDesktop,
+          isDesktop && (isActive || expanded) && styles.icardFullDesktop,
         ]}
       >
         {/* header — tap toggles expand */}
@@ -429,7 +526,7 @@ export function DiscoverInterestsContent({
         >
           <View style={[styles.badgeIc, { backgroundColor: accent + '18' }]}>
             <Ionicons
-              name={`${interest.icon_name ?? 'compass'}-outline` as any}
+              name={outlineIconName(interest.icon_name) as any}
               size={22}
               color={accent}
             />
@@ -459,26 +556,37 @@ export function DiscoverInterestsContent({
 
         {/* stat strip */}
         <View style={styles.stats}>
-          <View style={styles.stat}>
-            <Text style={styles.statN}>{joinedActive.length}</Text>
-            <Text style={styles.statL}>Orgs joined</Text>
-          </View>
-          <View style={[styles.stat, styles.statBorder]}>
-            <Text style={styles.statN}>{bps.length}</Text>
-            <Text style={styles.statL}>Blueprints</Text>
-          </View>
-          <View style={[styles.stat, styles.statBorder]}>
-            <Text style={styles.statN}>{available.length}</Text>
-            <Text style={styles.statL}>Orgs available</Text>
-          </View>
+          {stats.map((stat, index) => (
+            <View key={stat.label} style={[styles.stat, index > 0 && styles.statBorder]}>
+              <Text style={styles.statN}>{stat.value}</Text>
+              <Text style={styles.statL}>{stat.label}</Text>
+            </View>
+          ))}
         </View>
+
+        <InterestGearPanel
+          userId={user?.id ?? null}
+          interestId={interest.id}
+          interestSlug={slug}
+          accent={accent}
+          expanded={expanded}
+        />
 
         {expanded && (
           <>
             {/* ORG tier */}
             {(mine.length > 0 || available.length > 0) && (
               <View style={styles.tier}>
-                <Text style={styles.tierLbl}>Organizations</Text>
+                <View style={styles.tierLblRow}>
+                  <Text style={styles.tierLbl}>Organizations · you</Text>
+                  {available.length > 0 ? (
+                    <TouchableOpacity onPress={() => browseInterest(slug)}>
+                      <Text style={[styles.tierLink, { color: accent }]}>
+                        Browse all {available.length} →
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
                 {mine.map((m) => {
                   const org = orgOf(m);
                   if (!org) return null;
@@ -502,6 +610,11 @@ export function DiscoverInterestsContent({
                         </Text>
                       </View>
                       <View style={[styles.state, pending ? styles.statePending : styles.stateJoined]}>
+                        <Ionicons
+                          name={pending ? 'hourglass-outline' : 'checkmark'}
+                          size={11}
+                          color={pending ? C.amber : C.green}
+                        />
                         <Text style={[styles.stateTxt, { color: pending ? C.amber : C.green }]}>
                           {pending ? 'Pending' : 'Joined'}
                         </Text>
@@ -557,7 +670,9 @@ export function DiscoverInterestsContent({
             {/* BLUEPRINT tier */}
             {bps.length > 0 && (
               <View style={styles.tier}>
-                <Text style={styles.tierLbl}>Blueprints</Text>
+                <View style={styles.tierLblRow}>
+                  <Text style={styles.tierLbl}>Blueprints</Text>
+                </View>
                 {bps.map((b) => (
                   <TouchableOpacity
                     key={b.id}
@@ -598,9 +713,9 @@ export function DiscoverInterestsContent({
         {/* footer */}
         <View style={styles.icardFoot}>
           {isActive ? (
-            <View style={[styles.footTag, { backgroundColor: accent + '14' }]}>
-              <Text style={[styles.footTagTxt, { color: accent }]}>Active</Text>
-            </View>
+            <TouchableOpacity style={styles.btn} onPress={() => browseInterest(slug)}>
+              <Text style={styles.btnTxt}>Open practice</Text>
+            </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={[styles.btn, styles.btnPri, { backgroundColor: accent, borderColor: accent }]}
@@ -609,8 +724,11 @@ export function DiscoverInterestsContent({
               <Text style={[styles.btnTxt, { color: '#FFFFFF' }]}>Set active</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.btn} onPress={() => browseInterest(slug)}>
-            <Text style={styles.btnTxt}>View</Text>
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => (isActive ? router.push('/atlas' as any) : setExpandedSlug(expanded ? null : slug))}
+          >
+            <Text style={styles.btnTxt}>{isActive ? 'View on Atlas' : 'Manage'}</Text>
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
           <TouchableOpacity style={styles.ghost} onPress={() => handleRemove(slug, interest.name)}>
@@ -638,14 +756,19 @@ export function DiscoverInterestsContent({
         <Text style={styles.dn}>{item.name}</Text>
         <Text style={styles.dm}>
           {item.orgCount === 0
-            ? 'No organizations yet'
+            ? 'no organizations yet'
             : `${item.orgCount} organization${item.orgCount !== 1 ? 's' : ''}`}
         </Text>
         {item.topOrg ? (
-          <Text style={[styles.dorg, { color: item.accentColor }]} numberOfLines={1}>
+          <Text style={styles.dorg} numberOfLines={1}>
+            <Text style={{ color: item.accentColor }}>• </Text>
             {item.topOrg}
           </Text>
-        ) : null}
+        ) : (
+          <Text style={[styles.dorg, { color: C.ink3 }]} numberOfLines={1}>
+            no orgs joined yet
+          </Text>
+        )}
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.addBtn, { borderColor: item.accentColor + '55' }]}
@@ -657,6 +780,55 @@ export function DiscoverInterestsContent({
           {busySlug === item.slug ? 'Adding…' : 'Add interest'}
         </Text>
       </TouchableOpacity>
+    </View>
+  );
+
+  const renderDiscoverSection = (compact: boolean) => (
+    <View style={[styles.section, compact && styles.discoverPeek]}>
+      <View style={styles.secHead}>
+        <Text style={styles.secTitle}>Discover more</Text>
+        <Text style={styles.secCount}>grouped by domain</Text>
+      </View>
+      {discoverGroups.length > 0 ? (
+        discoverGroups.map((group) => (
+          <View key={group.name} style={styles.domainGroup}>
+            <View style={styles.domainRow}>
+              <Text style={styles.domain}>{group.name}</Text>
+              <View style={styles.domainRule} />
+            </View>
+            <View style={[styles.dgrid, isDesktop && styles.dgridDesktop]}>
+              {group.items.map(renderDiscoverCard)}
+            </View>
+          </View>
+        ))
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="checkmark-circle-outline" size={28} color={C.ink3} />
+          <Text style={styles.emptyText}>
+            {searchQuery
+              ? `No interests match "${searchQuery}"`
+              : 'You’ve added everything available.'}
+          </Text>
+        </View>
+      )}
+      <View style={styles.legend}>
+        <Text style={styles.legendStrong}>Verbs by tier:</Text>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendSwatch, { backgroundColor: C.ink3 }]} />
+          <Text style={styles.legendText}><Text style={styles.legendBold}>Interest</Text> — add / remove</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendSwatch, { backgroundColor: C.green }]} />
+          <Text style={styles.legendText}><Text style={styles.legendBold}>Organization</Text> — join / request / apply / leave</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendSwatch, { backgroundColor: C.azure }]} />
+          <Text style={styles.legendText}><Text style={styles.legendBold}>Blueprint</Text> — subscribe / unsubscribe</Text>
+        </View>
+      </View>
+      <Text style={styles.footnote}>
+        Interest → organization → blueprint is one nested spine. The switcher flips context; this surface manages the relationships.
+      </Text>
     </View>
   );
 
@@ -672,12 +844,48 @@ export function DiscoverInterestsContent({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={styles.shell}>
+          {showContextChrome ? (
+            <View style={styles.contextChrome}>
+              <TouchableOpacity
+                style={styles.contextSwitcher}
+                activeOpacity={0.75}
+                onPress={() => setExpandedSlug(currentInterest?.slug ?? expandedSlug)}
+              >
+                <View
+                  style={[
+                    styles.contextIcon,
+                    { backgroundColor: (currentInterest?.accent_color ?? C.azure) + '18' },
+                  ]}
+                >
+                  <Ionicons
+                    name={outlineIconName(currentInterest?.icon_name) as any}
+                    size={17}
+                    color={currentInterest?.accent_color ?? C.azure}
+                  />
+                </View>
+                <Text style={styles.contextLabel}>{currentInterest?.name ?? 'Choose interest'}</Text>
+                <Ionicons name="chevron-down" size={13} color={C.ink3} />
+                {currentInterest ? (
+                  <View style={styles.contextTag}>
+                    <Text style={styles.contextTagText}>Active</Text>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+              <View style={styles.contextAvatar}>
+                <Text style={styles.contextAvatarText}>
+                  {displayInitials((user as any)?.user_metadata?.full_name ?? user?.email)}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
         {/* header + segmented control */}
         <View style={styles.headWrap}>
           <Text style={styles.h1}>Interests</Text>
           <Text style={styles.sub}>
-            Add or remove an interest, join its organizations, and subscribe to blueprints — all in
-            one place.
+            Everything you’re working on, and everything you could. Add or remove an interest,
+            join its organizations, and subscribe to blueprints — all in one place.
           </Text>
 
           <View style={styles.seg}>
@@ -686,7 +894,7 @@ export function DiscoverInterestsContent({
               onPress={() => setTab('yours')}
             >
               <Text style={[styles.segTxt, tab === 'yours' && styles.segTxtOn]}>
-                Yours · {userInterests.length}
+                Yours
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -716,9 +924,45 @@ export function DiscoverInterestsContent({
           </View>
         </View>
 
+        <View style={styles.railWrap}>
+          <Text style={styles.railLabel}>Jump back in</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.rail}
+          >
+            <TouchableOpacity style={styles.railPill} onPress={() => currentInterest && browseInterest(currentInterest.slug)}>
+              <View style={[styles.railIcon, { backgroundColor: currentInterest?.accent_color ?? C.azure }]}>
+                <Ionicons name={outlineIconName(currentInterest?.icon_name) as any} size={15} color="#FFFFFF" />
+              </View>
+              <View>
+                <Text style={styles.railTitle}>{currentInterest?.name ?? 'Active interest'}</Text>
+                <Text style={styles.railSub}>{currentInterest ? 'Open practice' : 'Choose a context'}</Text>
+              </View>
+            </TouchableOpacity>
+            {yourInterests.slice(0, 2).filter((interest) => interest.slug !== currentInterest?.slug).map((interest) => (
+              <TouchableOpacity key={interest.slug} style={styles.railPill} onPress={() => handleSetActive(interest.slug)}>
+                <View style={[styles.railIcon, { backgroundColor: interest.accent_color || C.green }]}>
+                  <Ionicons name={outlineIconName(interest.icon_name) as any} size={15} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.railTitle}>{interest.name}</Text>
+                  <Text style={styles.railSub}>Set active</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* ===================== YOURS ===================== */}
         {tab === 'yours' && (
           <View style={styles.section}>
+            <View style={styles.secHead}>
+              <Text style={styles.secTitle}>Your interests</Text>
+              <Text style={styles.secCount}>
+                {userInterests.length} added · {currentInterest ? '1 active' : '0 active'}
+              </Text>
+            </View>
             {yourInterests.length > 0 ? (
               <View style={[styles.grid, isDesktop && styles.gridDesktop]}>
                 {yourInterests.map(renderYourCard)}
@@ -742,30 +986,280 @@ export function DiscoverInterestsContent({
         )}
 
         {/* ===================== DISCOVER ===================== */}
-        {tab === 'discover' && (
-          <View style={styles.section}>
-            {discoverGroups.length > 0 ? (
-              discoverGroups.map((group) => (
-                <View key={group.name} style={{ marginBottom: 6 }}>
-                  <Text style={styles.domain}>{group.name}</Text>
-                  <View style={[styles.dgrid, isDesktop && styles.dgridDesktop]}>
-                    {group.items.map(renderDiscoverCard)}
-                  </View>
-                </View>
-              ))
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="checkmark-circle-outline" size={28} color={C.ink3} />
-                <Text style={styles.emptyText}>
-                  {searchQuery
-                    ? `No interests match "${searchQuery}"`
-                    : 'You’ve added everything available.'}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
+        {tab === 'yours' ? renderDiscoverSection(true) : renderDiscoverSection(false)}
+        </View>
       </ScrollView>
+    </View>
+  );
+}
+
+function gearSpecSummary(item: GearItem): string {
+  const spec = item.spec ?? {};
+  const parts = [
+    spec.class_name,
+    spec.sail_number,
+    spec.model,
+    spec.manufacturer,
+    spec.subcategory,
+  ]
+    .filter((value): value is string | number => typeof value === 'string' || typeof value === 'number')
+    .map(String)
+    .filter((value) => value.trim().length > 0);
+  if (item.status === 'loaned') parts.unshift('loaned');
+  if (item.status === 'backup') parts.unshift('backup');
+  if (item.status === 'retired') parts.unshift('retired');
+  return parts.slice(0, 2).join(' · ');
+}
+
+function gearIconFor(item: Pick<GearItem, 'kind'>, slug?: string | null): string {
+  const kind = item.kind.toLowerCase();
+  if (kind.includes('boat') || slug?.includes('sail')) return 'boat-outline';
+  if (kind.includes('sail') || kind.includes('jib') || kind.includes('rig')) return 'flag-outline';
+  if (kind.includes('club') || slug?.includes('golf')) return 'golf-outline';
+  if (kind.includes('kit') || slug?.includes('nursing')) return 'medkit-outline';
+  if (kind.includes('vehicle')) return 'bicycle-outline';
+  if (kind.includes('machine')) return 'cog-outline';
+  return 'construct-outline';
+}
+
+function statusLabel(status: GearStatus): string {
+  switch (status) {
+    case 'loaned':
+      return 'Loaned';
+    case 'retired':
+      return 'Retired';
+    case 'backup':
+      return 'Backup';
+    case 'active':
+      return 'Active';
+  }
+}
+
+function InterestGearPanel({
+  userId,
+  interestId,
+  interestSlug,
+  accent,
+  expanded,
+}: {
+  userId: string | null;
+  interestId: string;
+  interestSlug: string;
+  accent: string;
+  expanded: boolean;
+}) {
+  const labels = getGearLabels(interestSlug);
+  const { data: items = [], isLoading } = useInterestGear(interestId, userId);
+  const createGear = useCreateGearItem();
+  const updateGear = useUpdateGearItem();
+  const deleteGear = useDeleteGearItem();
+  const setPrimary = useSetPrimaryGearItem();
+
+  const roots = React.useMemo(
+    () => items.filter((item) => !item.parent_id),
+    [items],
+  );
+  const childrenByParent = React.useMemo(() => {
+    const map = new Map<string, GearItem[]>();
+    for (const item of items) {
+      if (!item.parent_id) continue;
+      const list = map.get(item.parent_id) ?? [];
+      list.push(item);
+      map.set(item.parent_id, list);
+    }
+    return map;
+  }, [items]);
+  const previewItems = roots.slice(0, 3);
+
+  const [editor, setEditor] = React.useState<{ item: GearItem | null; parent: GearItem | null } | null>(null);
+
+  const handleAdd = React.useCallback((parent?: GearItem | null) => {
+    if (!userId) {
+      router.push('/(auth)/signup');
+      return;
+    }
+    setEditor({ item: null, parent: parent ?? null });
+  }, [userId]);
+
+  const handleEdit = React.useCallback((item: GearItem) => {
+    setEditor({ item, parent: null });
+  }, []);
+
+  const handleEditorSave = React.useCallback((values: GearEditorValues) => {
+    if (!editor) return;
+    const onError = (error: unknown) =>
+      showAlert('Could not save gear', gearErrorMessage(error));
+
+    if (editor.item) {
+      const item = editor.item;
+      const makingPrimary = values.isPrimary && !item.is_primary;
+      updateGear.mutate({
+        id: item.id,
+        patch: {
+          name: values.name,
+          kind: values.kind,
+          spec: values.spec,
+          status: values.status,
+          notes: values.notes,
+          ...(values.isPrimary ? {} : { is_primary: false }),
+        },
+      }, {
+        onSuccess: (updated) => {
+          setEditor(null);
+          if (makingPrimary) setPrimary.mutate(updated, { onError });
+        },
+        onError,
+      });
+      return;
+    }
+
+    if (!userId) return;
+    createGear.mutate({
+      userId,
+      interestId,
+      kind: values.kind,
+      name: values.name,
+      parentId: editor.parent?.id ?? null,
+      isPrimary: values.isPrimary,
+      status: values.status,
+      spec: values.spec,
+      notes: values.notes,
+    }, {
+      onSuccess: () => setEditor(null),
+      onError,
+    });
+  }, [createGear, editor, interestId, setPrimary, updateGear, userId]);
+
+  const handleToggleRetired = React.useCallback((item: GearItem) => {
+    const nextStatus: GearStatus = item.status === 'retired' ? 'active' : 'retired';
+    updateGear.mutate({ id: item.id, patch: { status: nextStatus, is_primary: nextStatus === 'retired' ? false : item.is_primary } }, {
+      onError: (error) => showAlert('Could not update gear', gearErrorMessage(error)),
+    });
+  }, [updateGear]);
+
+  const handleDelete = React.useCallback((item: GearItem) => {
+    showConfirm(
+      'Delete gear?',
+      `Delete ${item.name}? This also removes it from steps where it was selected.`,
+      () => deleteGear.mutate(
+        { id: item.id, userId: item.user_id, interestId: item.interest_id },
+        { onError: (error) => showAlert('Could not delete gear', gearErrorMessage(error)) },
+      ),
+      { destructive: true, confirmText: 'Delete' },
+    );
+  }, [deleteGear]);
+
+  return (
+    <View style={styles.gearBlock}>
+      <View style={styles.gearHeader}>
+        <Text style={styles.gearLabel}>{labels.railLabel}</Text>
+        <TouchableOpacity
+          style={styles.gearAdd}
+          onPress={() => handleAdd(null)}
+          disabled={createGear.isPending}
+        >
+          <Ionicons name="add" size={14} color={accent} />
+          <Text style={[styles.gearAddText, { color: accent }]}>
+            {createGear.isPending ? 'Adding...' : labels.addLabel}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {isLoading ? (
+        <Text style={styles.gearEmpty}>Loading {labels.railLabel.toLowerCase()}...</Text>
+      ) : previewItems.length === 0 ? (
+        <Text style={styles.gearEmpty}>{labels.emptyLabel}</Text>
+      ) : (
+        <View style={styles.gearRail}>
+          {previewItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[
+                styles.gearTile,
+                item.is_primary && { borderColor: accent + '55', backgroundColor: accent + '08' },
+              ]}
+              activeOpacity={0.75}
+              onPress={() => handleEdit(item)}
+            >
+              <View style={styles.gearTileTop}>
+                <Ionicons name={gearIconFor(item, interestSlug) as any} size={18} color={item.status === 'retired' ? C.ink3 : accent} />
+                {item.is_primary ? <Ionicons name="star" size={13} color="#F59E0B" /> : null}
+              </View>
+              <Text style={styles.gearTileName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.gearTileMeta} numberOfLines={1}>{gearSpecSummary(item) || statusLabel(item.status)}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {expanded ? (
+        <View style={styles.gearManager}>
+          {roots.length === 0 ? null : roots.map((item) => {
+            const children = childrenByParent.get(item.id) ?? [];
+            return (
+              <View key={item.id} style={styles.gearManageGroup}>
+                <View style={styles.gearManageRow}>
+                  <View style={[styles.gearManageIcon, { backgroundColor: accent + '14' }]}>
+                    <Ionicons name={gearIconFor(item, interestSlug) as any} size={16} color={accent} />
+                  </View>
+                  <TouchableOpacity style={styles.gearManageMeta} onPress={() => handleEdit(item)}>
+                    <Text style={styles.gearManageName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.gearManageSub} numberOfLines={1}>{gearSpecSummary(item) || statusLabel(item.status)}</Text>
+                  </TouchableOpacity>
+                  {item.is_primary ? (
+                    <View style={[styles.gearChip, styles.gearChipPrimary]}>
+                      <Text style={styles.gearChipPrimaryText}>Primary</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={styles.gearIconButton} onPress={() => setPrimary.mutate(item)}>
+                      <Ionicons name="star-outline" size={16} color={C.ink3} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.gearIconButton} onPress={() => handleToggleRetired(item)}>
+                    <Ionicons name={item.status === 'retired' ? 'refresh-outline' : 'archive-outline'} size={16} color={C.ink3} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.gearIconButton} onPress={() => handleDelete(item)}>
+                    <Ionicons name="trash-outline" size={16} color={C.rose} />
+                  </TouchableOpacity>
+                </View>
+                {children.map((child) => (
+                  <View key={child.id} style={[styles.gearManageRow, styles.gearChildRow]}>
+                    <View style={styles.gearChildStem} />
+                    <View style={styles.gearManageIcon}>
+                      <Ionicons name={gearIconFor(child, interestSlug) as any} size={15} color={C.ink2} />
+                    </View>
+                    <TouchableOpacity style={styles.gearManageMeta} onPress={() => handleEdit(child)}>
+                      <Text style={styles.gearManageName} numberOfLines={1}>{child.name}</Text>
+                      <Text style={styles.gearManageSub} numberOfLines={1}>{gearSpecSummary(child) || statusLabel(child.status)}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.gearIconButton} onPress={() => handleToggleRetired(child)}>
+                      <Ionicons name={child.status === 'retired' ? 'refresh-outline' : 'archive-outline'} size={16} color={C.ink3} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.gearIconButton} onPress={() => handleDelete(child)}>
+                      <Ionicons name="trash-outline" size={16} color={C.rose} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.gearNestedAdd} onPress={() => handleAdd(item)}>
+                  <Ionicons name="add" size={13} color={accent} />
+                  <Text style={[styles.gearNestedAddText, { color: accent }]}>Add sub-gear</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+
+      <GearEditorSheet
+        visible={editor !== null}
+        labels={labels}
+        item={editor?.item ?? null}
+        parentName={editor?.parent?.name ?? null}
+        suggestPrimary={!editor?.parent && roots.length === 0}
+        saving={createGear.isPending || updateGear.isPending}
+        onClose={() => setEditor(null)}
+        onSave={handleEditorSave}
+      />
     </View>
   );
 }
@@ -775,19 +1269,68 @@ export function DiscoverInterestsContent({
 // =============================================================================
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#FAF8F4' },
   scrollView: { flex: 1 },
-  scrollContent: { paddingBottom: 120 },
+  scrollContent: { paddingBottom: 240 },
+  shell: {
+    width: '100%',
+    maxWidth: 1000,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+  },
 
+  // current context note
+  contextChrome: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  contextSwitcher: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.hair,
+    backgroundColor: C.card,
+    ...Platform.select({ web: { boxShadow: '0 1px 2px rgba(26,28,34,0.04), 0 8px 24px rgba(26,28,34,0.06)' } as any }),
+  },
+  contextIcon: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  contextLabel: { fontSize: 15, fontWeight: '800', color: C.ink },
+  contextTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: C.azureSoft,
+  },
+  contextTagText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: C.azure,
+  },
+  contextAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#C8631A',
+  },
+  contextAvatarText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
   // header
-  headWrap: { paddingHorizontal: IOS_SPACING.lg, paddingTop: IOS_SPACING.md },
-  h1: { fontSize: 30, fontWeight: '800', letterSpacing: -0.6, color: C.ink },
-  sub: { fontSize: 14, color: C.ink2, marginTop: 4, maxWidth: 560, lineHeight: 20 },
+  headWrap: { paddingTop: 0 },
+  h1: { fontSize: 34, fontWeight: '800', letterSpacing: -0.6, color: C.ink },
+  sub: { fontSize: 14.5, color: C.ink2, marginTop: 4, maxWidth: 620, lineHeight: 21 },
 
   seg: {
     flexDirection: 'row',
     alignSelf: 'flex-start',
-    backgroundColor: C.paper,
+    backgroundColor: '#F3F0EA',
     borderRadius: 999,
     padding: 4,
     marginTop: 18,
@@ -804,20 +1347,17 @@ const styles = StyleSheet.create({
   segTxtOn: { color: C.ink },
 
   // search
-  searchContainer: {
-    paddingHorizontal: IOS_SPACING.lg,
-    paddingTop: IOS_SPACING.md,
-    paddingBottom: IOS_SPACING.xs,
-  },
+  searchContainer: { paddingTop: 14, paddingBottom: 4 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: C.card,
-    borderRadius: IOS_RADIUS.sm,
+    borderRadius: 12,
     paddingHorizontal: IOS_SPACING.sm,
     height: 38,
     borderWidth: 1,
     borderColor: C.hair,
+    ...Platform.select({ web: { boxShadow: '0 1px 2px rgba(26,28,34,0.04), 0 8px 24px rgba(26,28,34,0.06)' } as any }),
   },
   searchInput: {
     flex: 1,
@@ -827,8 +1367,46 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { outlineStyle: 'none' } as any, default: {} }),
   },
 
+  // jump rail
+  railWrap: { paddingTop: 22, paddingBottom: 14 },
+  railLabel: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: C.ink3,
+    marginBottom: 10,
+  },
+  rail: { gap: 12, paddingRight: 16, paddingBottom: 4 },
+  railPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: C.hair,
+    backgroundColor: C.card,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingLeft: 9,
+    paddingRight: 16,
+    ...Platform.select({ web: { boxShadow: '0 1px 2px rgba(26,28,34,0.04), 0 8px 24px rgba(26,28,34,0.06)' } as any }),
+  },
+  railIcon: { width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  railTitle: { fontSize: 13, fontWeight: '700', color: C.ink },
+  railSub: { fontSize: 11.5, color: C.ink3, marginTop: 1 },
+
   // sections
-  section: { paddingHorizontal: 16, paddingTop: 14 },
+  section: { paddingTop: 14 },
+  discoverPeek: { paddingTop: 34 },
+  secHead: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 14,
+  },
+  secTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.2, color: C.ink },
+  secCount: { fontSize: 13, fontWeight: '700', color: C.ink3 },
 
   grid: { gap: 14 },
   gridDesktop: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
@@ -843,6 +1421,7 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { boxShadow: '0 1px 3px rgba(0,0,0,0.05)' } as any }),
   },
   icardDesktop: { width: '48.5%' as any, flexGrow: 1, flexBasis: 380 },
+  icardFullDesktop: { width: '100%' as any, flexBasis: '100%' as any },
   icardActive: {
     borderColor: '#C9D6FB',
     ...Platform.select({
@@ -872,16 +1451,132 @@ const styles = StyleSheet.create({
   statN: { fontSize: 18, fontWeight: '800', color: C.ink },
   statL: { fontSize: 11, fontWeight: '600', color: C.ink3, marginTop: 1 },
 
+  // gear rail
+  gearBlock: {
+    borderTopWidth: 1,
+    borderTopColor: C.hair2,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  gearHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  gearLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    color: C.ink3,
+  },
+  gearAdd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingVertical: 3,
+  },
+  gearAddText: { fontSize: 12.5, fontWeight: '700' },
+  gearEmpty: { fontSize: 12.5, color: C.ink3 },
+  gearRail: { flexDirection: 'row', gap: 8 },
+  gearTile: {
+    flex: 1,
+    minWidth: 0,
+    borderWidth: 1,
+    borderColor: C.hair,
+    backgroundColor: '#FEFEFE',
+    borderRadius: 12,
+    padding: 10,
+    gap: 5,
+  },
+  gearTileTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 18,
+  },
+  gearTileName: { fontSize: 13, fontWeight: '800', color: C.ink },
+  gearTileMeta: { fontSize: 11.5, color: C.ink3 },
+  gearManager: { gap: 8 },
+  gearManageGroup: {
+    borderTopWidth: 1,
+    borderTopColor: C.hair2,
+    paddingTop: 8,
+    gap: 6,
+  },
+  gearManageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    minHeight: 38,
+  },
+  gearChildRow: { paddingLeft: 20 },
+  gearChildStem: {
+    width: 14,
+    height: 1,
+    backgroundColor: C.hair,
+  },
+  gearManageIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    backgroundColor: C.paper,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gearManageMeta: { flex: 1, minWidth: 0 },
+  gearManageName: { fontSize: 13.5, fontWeight: '700', color: C.ink },
+  gearManageSub: { fontSize: 11.5, color: C.ink3, marginTop: 1 },
+  gearChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  gearChipPrimary: { backgroundColor: C.azureSoft },
+  gearChipPrimaryText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: C.azure,
+  },
+  gearIconButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.paper,
+  },
+  gearNestedAdd: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingVertical: 4,
+    paddingLeft: 52,
+  },
+  gearNestedAddText: { fontSize: 12, fontWeight: '700' },
+
   // nested tier
   tier: { borderTopWidth: 1, borderTopColor: C.hair2, paddingHorizontal: 16, paddingVertical: 12 },
+  tierLblRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 6,
+  },
   tierLbl: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     color: C.ink3,
-    marginBottom: 6,
   },
+  tierLink: { fontSize: 11.5, fontWeight: '800' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -945,14 +1640,20 @@ const styles = StyleSheet.create({
   ghostTxt: { fontSize: 12.5, fontWeight: '600', color: C.ink3 },
 
   // discover
+  domainGroup: { marginBottom: 26 },
+  domainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
   domain: {
     fontSize: 13,
     fontWeight: '700',
     color: C.ink2,
-    marginTop: 8,
-    marginBottom: 10,
     letterSpacing: -0.1,
   },
+  domainRule: { flex: 1, height: 1, backgroundColor: C.hair },
   dgrid: { gap: 12 },
   dgridDesktop: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   dcard: {
@@ -982,6 +1683,24 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: 'pointer' } as any }),
   },
   addBtnTxt: { fontSize: 12.5, fontWeight: '700' },
+
+  // legend
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 14,
+    borderTopWidth: 1,
+    borderTopColor: C.hair,
+    paddingTop: 18,
+    marginTop: 4,
+  },
+  legendStrong: { fontSize: 12, fontWeight: '800', color: C.ink },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  legendSwatch: { width: 11, height: 11, borderRadius: 4 },
+  legendText: { fontSize: 12, color: C.ink2 },
+  legendBold: { fontWeight: '800', color: C.ink },
+  footnote: { fontSize: 11.5, lineHeight: 17, color: C.ink3, marginTop: 10 },
 
   // empty
   emptyContainer: { alignItems: 'center', paddingVertical: 48, gap: 10 },
