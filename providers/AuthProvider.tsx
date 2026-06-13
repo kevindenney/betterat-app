@@ -7,6 +7,7 @@ import { clearLastViewState } from '@/lib/utils/lastViewState'
 import { GuestStorageService } from '@/services/GuestStorageService'
 import { OnboardingStateService } from '@/services/onboarding/OnboardingStateService'
 import { setSentryUser } from '@/lib/sentry'
+import { queryClient } from '@/lib/queryClient'
 import { supabase, UserType } from '@/services/supabase'
 import { bindAuthDiagnostics } from '@/utils/authDebug'
 import { logAuthEvent, logAuthState } from '@/utils/errToText'
@@ -265,6 +266,7 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
     } catch (signOutError) {
       console.warn(`[AUTH] Failed to sign out after invalid session (${context}):`, signOutError)
     }
+    queryClient.clear()
     setSignedIn(false)
     setUser(null)
     setUserProfile(null)
@@ -1155,6 +1157,7 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
     AsyncStorage.multiRemove(['betterat_preferred_interest', 'onboarding_interest_slug']).catch(
       () => {},
     );
+    queryClient.clear();
 
     authDebugLog('🚪 [AUTH] ===== SIGNOUT PROCESS STARTING =====')
     authDebugLog('🚪 [AUTH] Current state before signOut:', {

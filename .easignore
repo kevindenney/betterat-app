@@ -6,8 +6,12 @@ node_modules/
 .claude/
 dist/
 dist-test/
+build-output/
 logs/
 *.log
+TasteHK_*.pdf
+credentials.json
+credentials/
 .git/
 .chrome-devtools/
 mcp-server/

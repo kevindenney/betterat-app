@@ -258,7 +258,7 @@ class CheckInService {
     }
 
     // Check if user is registered as a participant (new simpler registration)
-    const { data: participant, error: participantError } = await supabase
+    const { data: participant } = await supabase
       .from('race_participants')
       .select('id, user_id, regatta_id')
       .eq('regatta_id', race.regatta_id)
@@ -667,8 +667,21 @@ class CheckInService {
     
     if (new Date() < reminderTime) return [];
 
-    // Get pending entries that haven't been reminded
-    const { data, error } = await supabase
+    const { data: remindedRows, error: remindedError } = await supabase
+      .from('check_in_notifications')
+      .select('entry_id')
+      .eq('regatta_id', regattaId)
+      .eq('race_number', raceNumber)
+      .eq('notification_type', 'reminder');
+
+    if (remindedError) throw remindedError;
+
+    const remindedEntryIds = Array.from(
+      new Set((remindedRows || []).map((row) => row.entry_id).filter(Boolean)),
+    );
+
+    // Get pending entries that haven't been reminded.
+    let pendingQuery = supabase
       .from('race_check_ins')
       .select(`
         *,
@@ -680,15 +693,13 @@ class CheckInService {
       `)
       .eq('regatta_id', regattaId)
       .eq('race_number', raceNumber)
-      .eq('status', 'pending')
-      .not('entry_id', 'in', 
-        supabase
-          .from('check_in_notifications')
-          .select('entry_id')
-          .eq('regatta_id', regattaId)
-          .eq('race_number', raceNumber)
-          .eq('notification_type', 'reminder')
-      );
+      .eq('status', 'pending');
+
+    if (remindedEntryIds.length > 0) {
+      pendingQuery = pendingQuery.not('entry_id', 'in', `(${remindedEntryIds.join(',')})`);
+    }
+
+    const { data, error } = await pendingQuery;
 
     if (error) throw error;
     return data || [];

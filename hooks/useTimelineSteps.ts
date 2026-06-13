@@ -155,9 +155,8 @@ export function useCreateStep() {
 
   return useMutation<TimelineStepRecord, Error, CreateTimelineStepInput>({
     mutationFn: createStep,
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['timeline-steps', variables.user_id] });
-      queryClient.invalidateQueries({ queryKey: KEYS.myTimeline() });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
       // A new race step changes the fleet's planned-at-venue count.
       queryClient.invalidateQueries({ queryKey: ['fleet-venue-stats'] });

@@ -2854,20 +2854,22 @@ class CoachingService {
 
       if (error) throw error;
 
-      // Transform data to include services and calculate next available slot
-      let searchResults: CoachSearchResult[] = await Promise.all(
-        (coaches || []).map(async (coach: any) => {
-          const services = coach.coach_services || [];
-          delete coach.coach_services; // Remove nested services from coach object
-
-          return {
-            ...coach,
-            services,
-            next_available: await this.getNextAvailableSlot(coach.id),
-            match_score: this.calculateMatchScore(coach, filters)
-          };
-        })
+      const coachRows = coaches || [];
+      const nextAvailableByCoach = await this.getNextAvailableSlotsForCoaches(
+        coachRows.map((coach: any) => coach.id).filter(Boolean),
       );
+
+      // Transform data to include services and batched next available slot.
+      let searchResults: CoachSearchResult[] = coachRows.map((coach: any) => {
+        const { coach_services: services = [], ...coachProfile } = coach;
+
+        return {
+          ...coachProfile,
+          services,
+          next_available: nextAvailableByCoach.get(coach.id),
+          match_score: this.calculateMatchScore(coachProfile, filters)
+        };
+      });
 
       // Apply minimum match score filter if specified
       if (filters.min_match_score !== undefined) {
@@ -2893,60 +2895,92 @@ class CoachingService {
    * Get next available time slot for a coach
    */
   async getNextAvailableSlot(coachId: string): Promise<string | undefined> {
+    const slotsByCoach = await this.getNextAvailableSlotsForCoaches([coachId]);
+    return slotsByCoach.get(coachId);
+  }
+
+  private async getNextAvailableSlotsForCoaches(
+    coachIds: string[],
+  ): Promise<Map<string, string | undefined>> {
+    const nextAvailableByCoach = new Map<string, string | undefined>();
+    const uniqueCoachIds = Array.from(new Set(coachIds.filter(Boolean)));
+    if (uniqueCoachIds.length === 0) return nextAvailableByCoach;
+
     try {
-      // Get coach availability
-      const { data: availability } = await supabase
+      const { data: availability, error: availabilityError } = await supabase
         .from('coach_availability')
-        .select('*')
-        .eq('coach_id', coachId)
+        .select('coach_id, day_of_week, start_time')
+        .in('coach_id', uniqueCoachIds)
         .eq('is_recurring', true);
 
-      if (!availability?.length) return undefined;
+      if (availabilityError) throw availabilityError;
+      if (!availability?.length) return nextAvailableByCoach;
 
-      // Get existing bookings for next 30 days
       const startDate = new Date();
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + 30);
 
-      const { data: bookings } = await supabase
+      const { data: bookings, error: bookingsError } = await supabase
         .from('coaching_sessions')
-        .select('scheduled_start, scheduled_end')
-        .eq('coach_id', coachId)
+        .select('coach_id, scheduled_start, scheduled_end')
+        .in('coach_id', uniqueCoachIds)
         .gte('scheduled_start', startDate.toISOString())
         .lte('scheduled_start', endDate.toISOString())
         .in('status', ['confirmed', 'pending']);
 
-      // Simple algorithm to find next available slot
+      if (bookingsError) throw bookingsError;
+
+      const availabilityByCoach = new Map<string, any[]>();
+      for (const slot of availability || []) {
+        const slots = availabilityByCoach.get(slot.coach_id) || [];
+        slots.push(slot);
+        availabilityByCoach.set(slot.coach_id, slots);
+      }
+
+      const bookingsByCoach = new Map<string, any[]>();
+      for (const booking of bookings || []) {
+        const coachBookings = bookingsByCoach.get(booking.coach_id) || [];
+        coachBookings.push(booking);
+        bookingsByCoach.set(booking.coach_id, coachBookings);
+      }
+
       const now = new Date();
-      for (let i = 0; i < 30; i++) {
-        const checkDate = new Date(now);
-        checkDate.setDate(checkDate.getDate() + i);
-        const dayOfWeek = checkDate.getDay();
+      for (const coachId of uniqueCoachIds) {
+        const coachAvailability = availabilityByCoach.get(coachId) || [];
+        const coachBookings = bookingsByCoach.get(coachId) || [];
 
-        const dayAvailability = availability.filter(slot => slot.day_of_week === dayOfWeek);
+        for (let i = 0; i < 30; i++) {
+          const checkDate = new Date(now);
+          checkDate.setDate(checkDate.getDate() + i);
+          const dayOfWeek = checkDate.getDay();
 
-        for (const slot of dayAvailability) {
-          const slotStart = new Date(checkDate);
-          const [startHour, startMinute] = slot.start_time.split(':');
-          slotStart.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
+          const dayAvailability = coachAvailability.filter(slot => slot.day_of_week === dayOfWeek);
 
-          // Check if this slot is not booked
-          const isBooked = bookings?.some(booking => {
-            const bookingStart = new Date(booking.scheduled_start);
-            const bookingEnd = new Date(booking.scheduled_end);
-            return slotStart >= bookingStart && slotStart < bookingEnd;
-          });
+          for (const slot of dayAvailability) {
+            const slotStart = new Date(checkDate);
+            const [startHour, startMinute] = slot.start_time.split(':');
+            slotStart.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
 
-          if (!isBooked && slotStart > now) {
-            return slotStart.toISOString();
+            const isBooked = coachBookings.some(booking => {
+              const bookingStart = new Date(booking.scheduled_start);
+              const bookingEnd = new Date(booking.scheduled_end);
+              return slotStart >= bookingStart && slotStart < bookingEnd;
+            });
+
+            if (!isBooked && slotStart > now) {
+              nextAvailableByCoach.set(coachId, slotStart.toISOString());
+              break;
+            }
           }
+
+          if (nextAvailableByCoach.has(coachId)) break;
         }
       }
 
-      return undefined;
+      return nextAvailableByCoach;
     } catch (error) {
-      logger.error('Error getting next available slot:', error);
-      return undefined;
+      logger.error('Error getting next available slots:', error);
+      return nextAvailableByCoach;
     }
   }
 

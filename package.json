@@ -22,6 +22,7 @@
     "validate:integration:vercel-strict": "INTEGRATION_BASE_URL=https://betterat-app.vercel.app npm run validate:integration:strict",
     "ops:check:auth-probe-secrets": "node scripts/check-auth-probe-gh-secrets.mjs",
     "ops:check:auth-probe-secrets:strict": "node scripts/check-auth-probe-gh-secrets.mjs --strict",
+    "guard:secrets": "node scripts/check-secret-guard.mjs",
     "gate:integration-validation": "node scripts/check-integration-validation-gate.mjs --report docs/integration-validation-latest.md",
     "smoke:gate:integration-validation": "node scripts/smoke-integration-validation-gate.mjs",
     "report:deployment-readiness": "node scripts/generate-deployment-readiness.mjs",

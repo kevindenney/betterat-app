@@ -26,7 +26,8 @@ import { initializeCrewMutationHandlers } from '@/services/crewManagementService
 import { initializeRaceRegistrationMutationHandlers } from '@/services/RaceRegistrationService';
 import { initializeBoatMutationHandlers } from '@/services/SailorBoatService';
 import { initializeMutationQueueHandlers } from '@/services/userManualClubsService';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import { ToastProvider } from '@/components/ui/AppToast';
 import { WebAlertProvider } from '@/components/ui/WebAlertDialog';
 import { UniversalPlusProvider } from '@/components/capture';
@@ -122,26 +123,6 @@ try {
 } catch (error) {
   FontFaceObserverModule = null;
 }
-
-// Configure React Query
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
-      retry: (failureCount, error) => {
-        // Never retry 4xx client errors — they won't succeed on retry
-        const status = (error as any)?.status ?? (error as any)?.code;
-        if (typeof status === 'number' && status >= 400 && status < 500) return false;
-        // For PostgREST errors with message containing status codes
-        const msg = (error as any)?.message ?? '';
-        if (/\b4\d{2}\b/.test(msg)) return false;
-        return failureCount < 1;
-      },
-      refetchOnWindowFocus: false,
-    },
-  },
-})
 
 // Suppress React Native Web deprecation warnings and font loading errors
 if (typeof window !== 'undefined' && Platform.OS === 'web') {
