@@ -24,8 +24,6 @@ import { dropInsight } from '@/services/QuickCaptureService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { addConceptTrailQuote, getStepConceptLinks } from '@/services/PlaybookService';
 import { supabase } from '@/services/supabase';
-import { encodeHingeId } from '@/services/HingeBuildService';
-import { useToast } from '@/components/ui/AppToast';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import type {
   CapabilityEvidenceRow,
@@ -110,6 +108,12 @@ export interface UseStepReflectControllerInput {
   readOnly?: boolean;
   onGoToDo?: () => void;
   onNextStepCreated?: (newStepId: string) => void;
+  /**
+   * Fired once the step has settled. Carries the next pending step in the
+   * same interest (or null when none) so the surface can offer a "take a
+   * beat" hinge inside the step-complete celebration instead of a toast.
+   */
+  onSettled?: (info: { nextStepId: string | null }) => void;
 }
 
 export interface StepReflectControllerView {
@@ -285,11 +289,11 @@ function buildSeedForField(
 export function useStepReflectController({
   stepId,
   readOnly,
+  onSettled,
 }: UseStepReflectControllerInput): StepReflectControllerView {
   const { data: step, isLoading } = useStepDetail(stepId);
   const updateMetadata = useUpdateStepMetadata(stepId);
   const queryClient = useQueryClient();
-  const toast = useToast();
   const { currentInterest, allInterests } = useInterest();
   const [synthesisState, setSynthesisState] = useState<ReflectSynthesisState>('idle');
   const [activeFieldId, setActiveFieldId] = useState<ReflectFieldId | undefined>('what_worked');
@@ -703,6 +707,7 @@ export function useStepReflectController({
       // so freshly auto-tagged rows light the card without a relaunch.
       queryClient.invalidateQueries({ queryKey: ['step-capability-evidence'] });
 
+      let nextStepId: string | null = null;
       if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER && step.user_id && step.interest_id) {
         try {
           const { data: nextRow } = await supabase
@@ -715,30 +720,20 @@ export function useStepReflectController({
             .order('created_at', { ascending: true })
             .limit(1)
             .maybeSingle();
-          const nextStepId = (nextRow as { id?: string } | null)?.id;
-          if (nextStepId) {
-            // Skippable nudge, not a forced page: offer the hinge as a
-            // gentle "take a beat" toast that auto-dismisses. The user can
-            // tap through to the hinge surface or simply let it fade.
-            toast.show('Settled. Take a beat before the next step?', 'info', {
-              duration: 6000,
-              action: {
-                label: 'Take a beat',
-                onPress: () =>
-                  router.push(
-                    `/practice/hinges/${encodeHingeId(stepId, nextStepId)}` as any,
-                  ),
-              },
-            });
-          }
+          nextStepId = (nextRow as { id?: string } | null)?.id ?? null;
         } catch {
-          // Best-effort: if the next-step lookup fails, leave the user on Reflect.
+          // Best-effort: if the next-step lookup fails, leave the hinge absent.
         }
       }
+
+      // The settle is the signature beat — hand it to the surface so it can
+      // raise the step-complete celebration (which folds in the "take a beat"
+      // hinge to the next step) instead of a transient toast.
+      onSettled?.({ nextStepId });
     } finally {
       setSettling(false);
     }
-  }, [step, readOnly, fields, stepId, updateMetadata, capabilities, actData.observations, actData.media_uploads, queryClient, conceptPrompts, toast]);
+  }, [step, readOnly, fields, stepId, updateMetadata, capabilities, actData.observations, actData.media_uploads, queryClient, conceptPrompts, onSettled]);
 
   return {
     loading: isLoading,

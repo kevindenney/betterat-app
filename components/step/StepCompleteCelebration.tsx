@@ -65,6 +65,12 @@ export interface StepCompleteCelebrationProps {
    * "In the {groupLabel}". Defaults to "group".
    */
   groupLabel?: string;
+  /**
+   * Solo variant only: when a next pending step exists, offer a "Take a beat →"
+   * hinge that pauses between this step and the next one. Absent → the solo
+   * moment shows a plain "Done" dismiss.
+   */
+  onTakeABeat?: () => void;
   /** Dismiss the celebration back to the step's tabs. */
   onDismiss?: () => void;
 }
@@ -81,6 +87,7 @@ export function StepCompleteCelebration({
   onContinue,
   isContinuing,
   groupLabel = 'group',
+  onTakeABeat,
   onDismiss,
 }: StepCompleteCelebrationProps) {
   const isSolo = variant === 'solo';
@@ -119,17 +126,44 @@ export function StepCompleteCelebration({
       </View>
 
       {isSolo ? (
-        <Pressable
-          style={({ pressed }) => [
-            styles.continueBtn,
-            pressed && styles.continueBtnPressed,
-          ]}
-          onPress={onDismiss}
-          accessibilityRole="button"
-          accessibilityLabel="Done"
-        >
-          <Text style={styles.continueLbl}>Done</Text>
-        </Pressable>
+        onTakeABeat ? (
+          <>
+            <Pressable
+              style={({ pressed }) => [
+                styles.continueBtn,
+                pressed && styles.continueBtnPressed,
+              ]}
+              onPress={onTakeABeat}
+              accessibilityRole="button"
+              accessibilityLabel="Take a beat before the next step"
+            >
+              <Text style={styles.continueLbl}>Take a beat</Text>
+              <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.2} />
+            </Pressable>
+            {onDismiss ? (
+              <Pressable
+                style={styles.dismissBtn}
+                onPress={onDismiss}
+                accessibilityRole="button"
+                accessibilityLabel="Back to step"
+              >
+                <Text style={styles.dismissLbl}>Back to step</Text>
+              </Pressable>
+            ) : null}
+          </>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [
+              styles.continueBtn,
+              pressed && styles.continueBtnPressed,
+            ]}
+            onPress={onDismiss}
+            accessibilityRole="button"
+            accessibilityLabel="Done"
+          >
+            <Text style={styles.continueLbl}>Done</Text>
+          </Pressable>
+        )
       ) : (
         <>
       <View style={styles.statsCard}>

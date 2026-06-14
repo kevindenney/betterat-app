@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { StatePill } from '@/components/step-loop';
 import {
   GRAY_5,
@@ -14,6 +15,14 @@ import { CompetencyPickerModal } from '@/components/competency/CompetencyPickerM
 import { MicPrompt } from './MicPrompt';
 import { SaveAndSettleCTA } from './SaveAndSettleCTA';
 import { useStepReflectController } from './useStepReflectController';
+import { StepCompleteCelebration } from '@/components/step/StepCompleteCelebration';
+import { useStepDetail } from '@/hooks/useStepDetail';
+import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
+import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
+import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
+import { useInterest } from '@/providers/InterestProvider';
+import { getVisibilityLabels } from '@/lib/vocabulary';
+import { encodeHingeId } from '@/services/HingeBuildService';
 
 export interface ReflectTabIOSRegisterShellProps {
   stepId: string;
@@ -33,12 +42,43 @@ export function ReflectTabIOSRegisterShell({
   footer,
   embedded,
 }: ReflectTabIOSRegisterShellProps) {
+  // The step-complete celebration is a transient *moment* fired by the act of
+  // settling, not a persistent view of a done step. We raise it from the
+  // controller's onSettled callback and clear it on dismiss / hinge tap.
+  const [celebrating, setCelebrating] = React.useState(false);
+  const [hingeNextStepId, setHingeNextStepId] = React.useState<string | null>(null);
+
   const controller = useStepReflectController({
     stepId,
     readOnly,
     onGoToDo,
     onNextStepCreated,
+    onSettled: ({ nextStepId }) => {
+      setHingeNextStepId(nextStepId);
+      setCelebrating(true);
+    },
   });
+
+  // Celebration data — all RQ-cached, so these reuse the same queries the rest
+  // of the step screen already warmed. blueprintChrome is null for solo steps,
+  // which selects the lighter 'solo' celebration variant.
+  const { data: step } = useStepDetail(stepId);
+  const { data: blueprintChrome } = useStepBlueprintChrome(stepId);
+  const stepSourceId =
+    (step as { source_id?: string | null } | null)?.source_id ?? null;
+  const { data: celebrationData, isLoading: celebrationLoading } =
+    useStepCompleteCelebration({
+      stepId,
+      blueprintId: blueprintChrome?.blueprintId ?? null,
+      sourceStepId: stepSourceId,
+    });
+  const continueNext = useContinueToNextBlueprintStep({
+    blueprintId: blueprintChrome?.blueprintId ?? null,
+    interestId: step?.interest_id ?? null,
+    nextSourceStepId: celebrationData?.next?.sourceStepId ?? null,
+    alreadyAdoptedStepId: celebrationData?.next?.alreadyAdoptedStepId ?? null,
+  });
+  const { currentInterest } = useInterest();
 
   const view = controller.reflectViewProps;
   const settled = view.state === 'settled';
@@ -50,6 +90,54 @@ export function ReflectTabIOSRegisterShell({
 
   if (controller.loading || controller.missing) {
     return <View style={styles.container} />;
+  }
+
+  if (celebrating) {
+    const celebration = (
+      <StepCompleteCelebration
+        variant={blueprintChrome ? 'blueprint' : 'solo'}
+        stepNumber={blueprintChrome?.stepNumber ?? null}
+        totalSteps={blueprintChrome?.totalSteps ?? null}
+        stepTitle={step?.title ?? 'This step'}
+        sessionCount={celebrationData?.sessionCount ?? 0}
+        fleet={celebrationData?.fleet ?? { ahead: 0, sameStep: 0, behind: 0 }}
+        next={
+          celebrationData?.next
+            ? {
+                stepNumber: celebrationData.next.stepNumber,
+                title: celebrationData.next.title,
+              }
+            : null
+        }
+        isLoadingNext={celebrationLoading || !stepSourceId}
+        onContinue={continueNext.handleContinue}
+        isContinuing={continueNext.isContinuing}
+        groupLabel={getVisibilityLabels(currentInterest?.slug).fleet.toLowerCase()}
+        onTakeABeat={
+          hingeNextStepId
+            ? () => {
+                setCelebrating(false);
+                router.push(
+                  `/practice/hinges/${encodeHingeId(stepId, hingeNextStepId)}` as never,
+                );
+              }
+            : undefined
+        }
+        onDismiss={() => setCelebrating(false)}
+      />
+    );
+    if (embedded) {
+      return <View style={styles.contentEmbedded}>{celebration}</View>;
+    }
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {celebration}
+      </ScrollView>
+    );
   }
 
   const body = (
