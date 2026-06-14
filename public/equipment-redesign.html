@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Gear / Equipment generalization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper:       #FAF8F4;
+    --paper-2:     #F3F0EA;
+    --card:        #FFFFFF;
+    --ink:         #1A1C22;
+    --ink-2:       #565B66;
+    --ink-3:       #8A8F99;
+    --hair:        #E9E5DD;
+    --hair-2:      #EFEBE3;
+    --azure:       #2E62F0;
+    --azure-deep:  #1B3FA8;
+    --azure-soft:  #EAF0FE;
+    --amber:       #E08A2B;
+    --amber-soft:  #FBEFDD;
+    --green:       #1E9E6A;
+    --green-soft:  #E2F3EB;
+    --rose:        #D9476B;
+    --rose-soft:   #FBE7EC;
+    --shadow:      0 1px 2px rgba(26,28,34,.04), 0 8px 24px rgba(26,28,34,.06);
+    --shadow-lg:   0 2px 6px rgba(26,28,34,.05), 0 18px 50px rgba(26,28,34,.10);
+    --r:           18px;
+    --r-sm:        12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: 'Figtree', system-ui, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 88% -8%, #EFF3FE 0%, rgba(239,243,254,0) 55%),
+      radial-gradient(900px 500px at -6% 4%, #FBF2E4 0%, rgba(251,242,228,0) 50%),
+      var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.45;
+  }
+  .shell { max-width: 1060px; margin: 0 auto; padding: 34px 28px 90px; }
+
+  .head { margin-bottom: 10px; }
+  .head h1 { font-family:'Manrope'; font-weight: 800; font-size: 34px; letter-spacing: -.025em; }
+  .head p { color: var(--ink-2); font-size: 14.5px; margin-top: 6px; max-width: 72ch; }
+  .head p b { color: var(--ink); }
+
+  .note {
+    display:flex; gap:10px; align-items:flex-start;
+    background: linear-gradient(180deg,#fff, #FCFBF8);
+    border: 1px dashed var(--hair); border-radius: var(--r-sm);
+    padding: 11px 14px; margin: 18px 0 34px; font-size: 12.5px; color: var(--ink-2);
+  }
+  .note b { color: var(--ink); font-weight:700; }
+  .note .k { color:var(--azure); font-weight:700; }
+
+  .sec { margin: 44px 0 0; }
+  .sec-head { display:flex; align-items:baseline; gap: 12px; margin: 0 0 6px; }
+  .sec-head .n { font-family:'JetBrains Mono'; font-size: 12px; font-weight: 600; color:var(--azure); background: var(--azure-soft); border-radius: 7px; padding: 3px 8px; }
+  .sec-head h2 { font-family:'Manrope'; font-weight: 800; font-size: 21px; letter-spacing: -.015em; }
+  .sec-sub { color: var(--ink-2); font-size: 13.5px; margin: 0 0 18px; max-width: 76ch; }
+
+  /* ============ persona gear cards ============ */
+  .pgrid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px){ .pgrid { grid-template-columns: 1fr; } .shell{padding:24px 16px 70px;} }
+
+  .icard {
+    background: var(--card); border:1px solid var(--hair); border-radius: var(--r);
+    box-shadow: var(--shadow); overflow:hidden;
+  }
+  .icard-top { padding: 15px 16px 12px; display:flex; gap:12px; align-items:center; }
+  .badge-ic { width: 42px; height:42px; border-radius: 12px; display:grid; place-items:center; font-size:20px; flex:0 0 auto; }
+  .icard h3 { font-family:'Manrope'; font-weight:700; font-size: 16px; letter-spacing:-.01em; }
+  .icard .vocab { color: var(--ink-3); font-size: 12px; margin-top: 1px; }
+  .glabel { display:flex; align-items:center; justify-content:space-between; padding: 0 16px; margin-top: 4px;}
+  .glabel .t { font-size: 11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color: var(--ink-3); }
+  .glabel .add { font-size: 12px; font-weight:700; color: var(--azure); cursor:pointer; }
+  .gear-rail { display:flex; gap:10px; overflow:auto; padding: 10px 16px 16px; }
+  .gear-rail::-webkit-scrollbar{height:0;}
+  .gitem {
+    flex: 0 0 auto; width: 132px;
+    border:1px solid var(--hair); border-radius: 13px; background: linear-gradient(180deg,#fff,#FCFBF8);
+    padding: 10px 11px; cursor:pointer; position:relative;
+  }
+  .gitem.primary { border-color:#CBD9FB; box-shadow: 0 0 0 1px #CBD9FB; }
+  .gitem .em { font-size: 19px; }
+  .gitem .nm { font-weight:700; font-size: 12.5px; margin-top: 6px; letter-spacing:-.005em; line-height:1.25;}
+  .gitem .sp { color: var(--ink-3); font-size: 11px; margin-top: 2px; }
+  .gitem .star { position:absolute; top:8px; right:9px; font-size: 11px; color: var(--amber); }
+  .gitem.ghost { display:grid; place-items:center; color: var(--ink-3); font-size: 12px; font-weight:600; border-style: dashed; background: transparent; min-height: 86px; text-align:center;}
+
+  /* ============ detail list (sailing expanded) ============ */
+  .panel {
+    background: var(--card); border:1px solid var(--hair); border-radius: var(--r);
+    box-shadow: var(--shadow); overflow:hidden;
+  }
+  .panel-head { padding: 16px 18px 13px; border-bottom: 1px solid var(--hair-2); display:flex; align-items:center; gap: 12px;}
+  .panel-head h3 { font-family:'Manrope'; font-weight:700; font-size: 16px; flex:1; }
+  .btn { font-family:'Figtree'; border:0; cursor:pointer; font-weight:700; font-size: 12.5px; border-radius: 999px; padding: 7px 14px; }
+  .btn.pri { background: var(--azure); color:#fff; }
+  .btn.quiet { background: var(--paper-2); color: var(--ink-2); border:1px solid var(--hair); }
+  .row { display:flex; align-items:center; gap: 13px; padding: 13px 18px; border-bottom: 1px solid var(--hair-2); }
+  .row:last-child { border-bottom: 0; }
+  .row .em { width: 38px; height: 38px; border-radius: 11px; display:grid; place-items:center; font-size: 18px; background: var(--paper-2); flex: 0 0 auto;}
+  .row .mid { flex:1; min-width:0; }
+  .row .nm { font-weight:700; font-size: 14px; letter-spacing:-.005em; display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+  .row .sub { color: var(--ink-3); font-size: 12px; margin-top: 1px; }
+  .chip { font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding: 2.5px 7px; border-radius: 6px; }
+  .chip.pri { color: var(--azure); background: var(--azure-soft); }
+  .chip.ret { color: var(--ink-3); background: var(--paper-2); }
+  .chip.loan { color: var(--amber); background: var(--amber-soft); }
+  .chip.kind { color: var(--ink-2); background: var(--paper-2); font-weight:700; text-transform:none; letter-spacing:0; font-size: 10.5px;}
+  .row .car { color: var(--ink-3); font-size: 14px; }
+  .subrow { padding-left: 69px; }
+  .subrow .em { width: 30px; height: 30px; font-size: 14px; border-radius: 9px;}
+  .subrow .nm { font-size: 13px; }
+
+  .two-col { display:grid; grid-template-columns: 1.25fr 1fr; gap: 16px; align-items: start;}
+  @media (max-width: 860px){ .two-col { grid-template-columns: 1fr; } }
+
+  /* ============ phone frames / contextual picker ============ */
+  .phones { display:flex; gap: 22px; flex-wrap: wrap; }
+  .phone {
+    width: 300px; border-radius: 34px; background: #0E0F13; padding: 9px;
+    box-shadow: var(--shadow-lg); flex: 0 0 auto;
+  }
+  .screen { background: var(--paper); border-radius: 26px; overflow:hidden; min-height: 480px; display:flex; flex-direction:column; position: relative;}
+  .p-cap { text-align:center; color:var(--ink-2); font-size: 12.5px; margin-top: 10px; max-width: 300px;}
+  .p-cap b { color: var(--ink); }
+  .s-head { padding: 16px 16px 10px; }
+  .s-head .crumb { font-size: 10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color: var(--ink-3); }
+  .s-head h4 { font-family:'Manrope'; font-weight:800; font-size: 18px; letter-spacing:-.015em; margin-top: 3px;}
+  .s-head .meta { color: var(--ink-2); font-size: 12px; margin-top: 2px;}
+  .s-body { padding: 4px 16px 16px; flex: 1; }
+  .field-lbl { font-size: 10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color: var(--ink-3); margin: 14px 0 7px;}
+  .sel {
+    display:flex; align-items:center; gap: 10px; background: var(--card);
+    border:1px solid var(--hair); border-radius: 13px; padding: 10px 12px; box-shadow: var(--shadow);
+  }
+  .sel .em { font-size: 17px; }
+  .sel .t { font-weight:700; font-size: 13px; flex:1;}
+  .sel .s { color: var(--ink-3); font-size: 11px; }
+  .sel .car { color: var(--ink-3); }
+  .sheet {
+    position:absolute; left:0; right:0; bottom:0;
+    background: var(--card); border-radius: 22px 22px 26px 26px;
+    box-shadow: 0 -10px 40px rgba(26,28,34,.16);
+    padding: 14px 16px 18px;
+  }
+  .sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--hair); margin: 0 auto 12px; }
+  .sheet h5 { font-family:'Manrope'; font-weight:800; font-size: 15px; margin-bottom: 2px;}
+  .sheet .sub { color: var(--ink-3); font-size: 11.5px; margin-bottom: 10px;}
+  .opt { display:flex; align-items:center; gap: 11px; padding: 10px 10px; border-radius: 12px; border: 1px solid transparent;}
+  .opt.on { background: var(--azure-soft); border-color:#CBD9FB; }
+  .opt .em { font-size: 17px; }
+  .opt .t { font-weight:700; font-size: 13px; flex: 1;}
+  .opt .t small { display:block; font-weight:500; color: var(--ink-3); font-size: 11px;}
+  .opt .tick { color: var(--azure); font-weight: 800; font-size: 13px;}
+  .opt.dim .t, .opt.dim .em { opacity:.45; }
+  .opt-add { color: var(--azure); font-weight:700; font-size: 12.5px; padding: 9px 10px 0; }
+  .dimmer { position:absolute; inset:0; background: rgba(14,15,19,.25); border-radius: 26px;}
+
+  /* ============ schema panel ============ */
+  .schema { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items:start;}
+  @media (max-width: 860px){ .schema { grid-template-columns: 1fr; } }
+  .tbl { background: #14161C; border-radius: var(--r); padding: 18px 20px; box-shadow: var(--shadow-lg); }
+  .tbl h4 { font-family:'JetBrains Mono'; color:#7EA1F8; font-size: 13.5px; font-weight:600; margin-bottom: 10px;}
+  .tbl h4 small { color: #6B7280; font-weight:500; margin-left: 8px; font-size: 11px;}
+  .frow { display:flex; gap: 12px; font-family:'JetBrains Mono'; font-size: 11.5px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05);}
+  .frow:last-child{border-bottom:0;}
+  .frow .f { color:#E8EAEF; width: 124px; flex: 0 0 auto; font-weight:600;}
+  .frow .ty { color:#8FBC8F; width: 64px; flex:0 0 auto;}
+  .frow .c { color:#6B7280; flex:1; }
+  .vocab-card { background: var(--card); border:1px solid var(--hair); border-radius: var(--r); box-shadow: var(--shadow); padding: 18px 20px;}
+  .vocab-card h4 { font-family:'Manrope'; font-weight:800; font-size: 15px; margin-bottom: 4px;}
+  .vocab-card .sub { color: var(--ink-3); font-size: 12px; margin-bottom: 12px;}
+  .vrow { display:flex; align-items:center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--hair-2); font-size: 13px;}
+  .vrow:last-child{border-bottom:0;}
+  .vrow .em { font-size: 16px; width: 24px;}
+  .vrow .slug { font-family:'JetBrains Mono'; font-size: 11px; color: var(--ink-3); width: 118px; flex:0 0 auto;}
+  .vrow b { font-weight: 700; }
+  .vrow .kinds { margin-left:auto; color: var(--ink-3); font-size: 11px; text-align:right;}
+  .mig { margin-top: 16px; background: var(--amber-soft); border:1px solid #F2DDBE; border-radius: var(--r-sm); padding: 12px 14px; font-size: 12.5px; color: #7A5210;}
+  .mig b { color: #5C3D08; }
+  .mig code { font-family:'JetBrains Mono'; font-size: 11px; background: rgba(255,255,255,.6); padding: 1px 5px; border-radius: 5px;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="head">
+    <h1>Gear, not boats</h1>
+    <p>Boat selection today is a sailing-only leftover (<b>sailor_boats</b>, <b>boat_equipment</b>) reachable from Settings.
+    This redesign generalizes it to a per-interest <b>gear</b> primitive: boats for sailing, the bag for golf,
+    the kit for nursing, tools &amp; machines for a home entrepreneur — owned by the interest surface, picked contextually on steps.</p>
+  </div>
+
+  <div class="note">
+    <span>📍</span>
+    <div><b>Where it lives:</b> gear moves out of Settings. It's managed on the <span class="k">interest card in /library?zone=interests</span>
+    (Settings keeps account-level things only: password, notifications, units). A one-release Settings row deep-links to the new home for people
+    who learned "My Boats" lives in Settings.</div>
+  </div>
+
+  <!-- ============ SECTION 1 ============ -->
+  <div class="sec">
+    <div class="sec-head"><span class="n">1</span><h2>One primitive, four vocabularies</h2></div>
+    <p class="sec-sub">Each interest card grows a gear rail. The label, item kinds, and spec fields come from the interest's vocab —
+    same table underneath. Primary item gets the ring + star (it's the default pick on steps).</p>
+
+    <div class="pgrid">
+      <!-- sailing -->
+      <div class="icard">
+        <div class="icard-top">
+          <div class="badge-ic" style="background:var(--azure-soft);">⛵</div>
+          <div><h3>Sail Racing</h3><div class="vocab">gear label: “Boats &amp; Gear”</div></div>
+        </div>
+        <div class="glabel"><span class="t">Boats &amp; Gear</span><span class="add">+ Add boat</span></div>
+        <div class="gear-rail">
+          <div class="gitem primary"><span class="star">★</span><div class="em">⛵</div><div class="nm">Kraken</div><div class="sp">J/70 · HKG 1417</div></div>
+          <div class="gitem"><div class="em">⛵</div><div class="nm">Club Laser #6</div><div class="sp">ILCA 7 · loaned</div></div>
+          <div class="gitem"><div class="em">🪁</div><div class="nm">Heavy-air jib</div><div class="sp">sail · on Kraken</div></div>
+          <div class="gitem ghost">+ Add<br/>boat or sail</div>
+        </div>
+      </div>
+
+      <!-- golf -->
+      <div class="icard">
+        <div class="icard-top">
+          <div class="badge-ic" style="background:var(--green-soft);">⛳</div>
+          <div><h3>Golf</h3><div class="vocab">gear label: “Your Bag”</div></div>
+        </div>
+        <div class="glabel"><span class="t">Your Bag</span><span class="add">+ Add club</span></div>
+        <div class="gear-rail">
+          <div class="gitem primary"><span class="star">★</span><div class="em">🏌️</div><div class="nm">Sunday bag</div><div class="sp">set · 8 clubs</div></div>
+          <div class="gitem"><div class="em">🪵</div><div class="nm">Stealth 2 Driver</div><div class="sp">10.5° · stiff</div></div>
+          <div class="gitem"><div class="em">⛏️</div><div class="nm">Scotty Newport</div><div class="sp">putter · 34"</div></div>
+          <div class="gitem ghost">+ Add<br/>club or ball</div>
+        </div>
+      </div>
+
+      <!-- nursing -->
+      <div class="icard">
+        <div class="icard-top">
+          <div class="badge-ic" style="background:var(--rose-soft);">🩺</div>
+          <div><h3>JHU MD Program</h3><div class="vocab">gear label: “Your Kit”</div></div>
+        </div>
+        <div class="glabel"><span class="t">Your Kit</span><span class="add">+ Add item</span></div>
+        <div class="gear-rail">
+          <div class="gitem primary"><span class="star">★</span><div class="em">🩺</div><div class="nm">Littmann CORE</div><div class="sp">stethoscope</div></div>
+          <div class="gitem"><div class="em">📓</div><div class="nm">Pocket Medicine</div><div class="sp">reference · 8th ed</div></div>
+          <div class="gitem"><div class="em">⌚</div><div class="nm">Apple Watch</div><div class="sp">pulse / timer</div></div>
+          <div class="gitem ghost">+ Add<br/>kit item</div>
+        </div>
+      </div>
+
+      <!-- entrepreneur -->
+      <div class="icard">
+        <div class="icard-top">
+          <div class="badge-ic" style="background:var(--amber-soft);">🧵</div>
+          <div><h3>Tailoring Business</h3><div class="vocab">gear label: “Equipment”</div></div>
+        </div>
+        <div class="glabel"><span class="t">Equipment</span><span class="add">+ Add equipment</span></div>
+        <div class="gear-rail">
+          <div class="gitem primary"><span class="star">★</span><div class="em">🧵</div><div class="nm">Usha Janome</div><div class="sp">machine · 2019</div></div>
+          <div class="gitem"><div class="em">✂️</div><div class="nm">Cutting table</div><div class="sp">workshop</div></div>
+          <div class="gitem"><div class="em">🛵</div><div class="nm">Delivery scooter</div><div class="sp">vehicle · shared</div></div>
+          <div class="gitem ghost">+ Add<br/>tool</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SECTION 2 ============ -->
+  <div class="sec">
+    <div class="sec-head"><span class="n">2</span><h2>Manage in place — sailing expanded</h2></div>
+    <p class="sec-sub">Tapping the rail opens the full list on the same surface. Sub-gear nests under its parent
+    (<i>sails under the boat, clubs under the bag</i>) via <code style="font-family:'JetBrains Mono';font-size:12px;">parent_id</code>.
+    Status chips replace the old maintenance screens for v1.</p>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>⛵ Boats &amp; Gear</h3>
+          <button class="btn quiet">Retired (2)</button>
+          <button class="btn pri">+ Add boat</button>
+        </div>
+        <div class="row">
+          <div class="em">⛵</div>
+          <div class="mid">
+            <div class="nm">Kraken <span class="chip pri">Primary</span> <span class="chip kind">J/70</span></div>
+            <div class="sub">Sail # HKG 1417 · since 2024 · 31 steps logged</div>
+          </div>
+          <div class="car">›</div>
+        </div>
+        <div class="row subrow">
+          <div class="em">🪁</div>
+          <div class="mid">
+            <div class="nm">Heavy-air jib <span class="chip kind">sail</span></div>
+            <div class="sub">North 3Di · 2025</div>
+          </div>
+          <div class="car">›</div>
+        </div>
+        <div class="row subrow">
+          <div class="em">🪁</div>
+          <div class="mid">
+            <div class="nm">Light A2 kite <span class="chip kind">sail</span></div>
+            <div class="sub">repair pending</div>
+          </div>
+          <div class="car">›</div>
+        </div>
+        <div class="row">
+          <div class="em">⛵</div>
+          <div class="mid">
+            <div class="nm">Club Laser #6 <span class="chip loan">Loaned</span> <span class="chip kind">ILCA 7</span></div>
+            <div class="sub">RHKYC boat pool · Tue/Thu sessions</div>
+          </div>
+          <div class="car">›</div>
+        </div>
+      </div>
+
+      <div class="vocab-card">
+        <h4>Why not Settings?</h4>
+        <div class="sub">The test: does it change per interest?</div>
+        <div class="vrow"><span class="em">🔒</span><b>Password, units, notifications</b><span class="kinds">account-level → Settings</span></div>
+        <div class="vrow"><span class="em">⛵</span><b>Boats, bag, kit, tools</b><span class="kinds">interest-level → interest card</span></div>
+        <div class="vrow"><span class="em">🏁</span><b>Which boat for Sunday's race</b><span class="kinds">step-level → picker on step</span></div>
+        <div class="mig" style="margin-top:14px;">
+          <b>Transition affordance:</b> Settings keeps one row — “Boats &amp; equipment → moved to your interests” —
+          deep-linking to <code>/library?zone=interests</code>, removable after a release.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SECTION 3 ============ -->
+  <div class="sec">
+    <div class="sec-head"><span class="n">3</span><h2>Picked at point of use</h2></div>
+    <p class="sec-sub">Steps that involve gear get a one-tap selector pre-filled with the primary item.
+    The selection writes a <code style="font-family:'JetBrains Mono';font-size:12px;">step_gear</code> row — later, results and evidence
+    know exactly what you used. A race step asks “which boat”; a golf practice step asks “which bag/club”.</p>
+
+    <div class="phones">
+      <!-- race step -->
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="s-head">
+            <div class="crumb">Race · Sun Jun 21 · 13:30</div>
+            <h4>Spring Series R4</h4>
+            <div class="meta">Victoria Harbour East · RHKYC</div>
+          </div>
+          <div class="s-body">
+            <div class="field-lbl">Boat</div>
+            <div class="sel"><span class="em">⛵</span><span class="t">Kraken · J/70</span><span class="s">HKG 1417</span><span class="car">›</span></div>
+            <div class="field-lbl">Course</div>
+            <div class="sel"><span class="em">🗺️</span><span class="t">Windward–leeward</span><span class="s">edit</span><span class="car">›</span></div>
+            <div class="field-lbl">Crew</div>
+            <div class="sel"><span class="em">👥</span><span class="t">Mia, Jonas +1</span><span class="car">›</span></div>
+          </div>
+          <div class="dimmer"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <h5>Which boat?</h5>
+            <div class="sub">Saved to this race · used for results &amp; evidence</div>
+            <div class="opt on"><span class="em">⛵</span><span class="t">Kraken<small>J/70 · HKG 1417 · primary</small></span><span class="tick">✓</span></div>
+            <div class="opt"><span class="em">⛵</span><span class="t">Club Laser #6<small>ILCA 7 · loaned</small></span></div>
+            <div class="opt dim"><span class="em">⛵</span><span class="t">Old Etchells<small>retired 2025</small></span></div>
+            <div class="opt-add">+ Add a boat</div>
+          </div>
+        </div></div>
+        <div class="p-cap"><b>Race step (sailing)</b> — boat slot sits beside course &amp; crew; sheet defaults to primary.</div>
+      </div>
+
+      <!-- golf step -->
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="s-head">
+            <div class="crumb">Practice · Today 17:00</div>
+            <h4>Range session — driver dispersion</h4>
+            <div class="meta">Deep Water Bay Driving Range</div>
+          </div>
+          <div class="s-body">
+            <div class="field-lbl">Clubs</div>
+            <div class="sel"><span class="em">🪵</span><span class="t">Stealth 2 Driver</span><span class="s">10.5° stiff</span><span class="car">›</span></div>
+            <div class="field-lbl">Focus</div>
+            <div class="sel"><span class="em">🎯</span><span class="t">Start line left of target</span><span class="car">›</span></div>
+            <div class="field-lbl">Capture</div>
+            <div class="sel"><span class="em">📝</span><span class="t">Type a note in place…</span><span class="car"> </span></div>
+          </div>
+        </div></div>
+        <div class="p-cap"><b>Practice step (golf)</b> — same slot, golf vocab. Non-gear steps simply don't render the slot.</div>
+      </div>
+
+      <!-- nursing step -->
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="s-head">
+            <div class="crumb">Shift · Thu Jun 18 · 07:00</div>
+            <h4>Med-surg rotation — day 3</h4>
+            <div class="meta">Johns Hopkins Hospital · Unit 5C</div>
+          </div>
+          <div class="s-body">
+            <div class="field-lbl">Kit check</div>
+            <div class="sel"><span class="em">🩺</span><span class="t">Littmann CORE</span><span class="s">✓ packed</span><span class="car">›</span></div>
+            <div class="sel" style="margin-top:8px;"><span class="em">📓</span><span class="t">Pocket Medicine</span><span class="s">✓ packed</span><span class="car">›</span></div>
+            <div class="field-lbl">Competencies</div>
+            <div class="sel"><span class="em">🎓</span><span class="t">IV insertion · 2 attempts due</span><span class="car">›</span></div>
+          </div>
+        </div></div>
+        <div class="p-cap"><b>Shift step (nursing)</b> — gear shows as a kit checklist, not a single pick. Same rows, different render.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SECTION 4 ============ -->
+  <div class="sec">
+    <div class="sec-head"><span class="n">4</span><h2>The model underneath</h2></div>
+    <p class="sec-sub">Two tables and a vocab map. Interest-specific structure lives in <b>spec jsonb</b>, so a new vertical
+    is a vocab entry — not a migration.</p>
+
+    <div class="schema">
+      <div>
+        <div class="tbl">
+          <h4>gear_items <small>one row per thing you own</small></h4>
+          <div class="frow"><span class="f">id</span><span class="ty">uuid</span><span class="c">pk</span></div>
+          <div class="frow"><span class="f">user_id</span><span class="ty">uuid</span><span class="c">→ users · RLS owner</span></div>
+          <div class="frow"><span class="f">interest_id</span><span class="ty">uuid</span><span class="c">→ interests · gear is per-interest</span></div>
+          <div class="frow"><span class="f">kind</span><span class="ty">text</span><span class="c">'boat' 'sail' 'driver' 'stethoscope' 'machine'…</span></div>
+          <div class="frow"><span class="f">name</span><span class="ty">text</span><span class="c">"Kraken", "Stealth 2 Driver"</span></div>
+          <div class="frow"><span class="f">spec</span><span class="ty">jsonb</span><span class="c">{class_id, sail_number} | {loft, shaft} | {edition}</span></div>
+          <div class="frow"><span class="f">parent_id</span><span class="ty">uuid</span><span class="c">nullable → gear_items · sails on boat, clubs in bag</span></div>
+          <div class="frow"><span class="f">is_primary</span><span class="ty">bool</span><span class="c">default pick on steps · one per (user, interest, kind)</span></div>
+          <div class="frow"><span class="f">status</span><span class="ty">text</span><span class="c">active | retired | loaned</span></div>
+          <div class="frow"><span class="f">photo_url</span><span class="ty">text</span><span class="c">nullable</span></div>
+          <div class="frow"><span class="f">acquired_on</span><span class="ty">date</span><span class="c">nullable · retired_on too</span></div>
+          <div class="frow"><span class="f">notes</span><span class="ty">text</span><span class="c">free text</span></div>
+        </div>
+        <div class="tbl" style="margin-top:14px;">
+          <h4>step_gear <small>what a step plans / used</small></h4>
+          <div class="frow"><span class="f">step_id</span><span class="ty">uuid</span><span class="c">→ steps</span></div>
+          <div class="frow"><span class="f">gear_item_id</span><span class="ty">uuid</span><span class="c">→ gear_items</span></div>
+          <div class="frow"><span class="f">role</span><span class="ty">text</span><span class="c">'vessel' | 'club' | 'kit' — render hint</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="vocab-card">
+          <h4>getGearLabels(slug)</h4>
+          <div class="sub">Mirrors getVisibilityLabels — vocab is data, like the visibility tiers.</div>
+          <div class="vrow"><span class="em">⛵</span><span class="slug">sailing</span><b>Boats &amp; Gear</b><span class="kinds">boat · sail · rig</span></div>
+          <div class="vrow"><span class="em">⛳</span><span class="slug">golf</span><b>Your Bag</b><span class="kinds">set · club · ball</span></div>
+          <div class="vrow"><span class="em">🩺</span><span class="slug">nursing</span><b>Your Kit</b><span class="kinds">instrument · reference</span></div>
+          <div class="vrow"><span class="em">🧵</span><span class="slug">default</span><b>Equipment</b><span class="kinds">tool · machine · vehicle</span></div>
+        </div>
+        <div class="mig">
+          <b>Migration:</b> <code>sailor_boats</code> → <code>gear_items kind='boat'</code> with
+          <code>spec = {class_id, sail_number, manufacturer, year}</code>;
+          <code>boat_equipment</code> → child rows via <code>parent_id</code>;
+          <code>boat_classes</code> stays as a sailing reference table pointed at from <code>spec.class_id</code>.
+          Old <code>app/(tabs)/boat/*</code> screens retire once the interest-card surface ships.
+          RLS: owner-only CRUD with <code>(SELECT auth.uid())</code>; read follows step visibility when joined through <code>step_gear</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterAt — Profile dropdown redesign (one identity, two clean layers)</title>
+<style>
+  :root {
+    --bg: #E9E9EE;
+    --card: #FFFFFF;
+    --grouped-bg: #F2F2F7;
+    --label: #1C1C1E;
+    --secondary: #6E6E73;
+    --tertiary: #AEAEB2;
+    --separator: rgba(60,60,67,0.12);
+    --blue: #0A84FF;
+    --coral: #FF6B5E;
+    --green: #34C759;
+    --red: #FF3B30;
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--label);
+    padding: 40px 32px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .page-sub { font-size: 14px; color: var(--secondary); margin: 6px 0 36px; max-width: 760px; line-height: 1.45; }
+  .page-sub b { color: var(--label); }
+
+  .panels { display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; }
+  .panel { width: 340px; flex-shrink: 0; }
+  .panel-caption { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--secondary); margin-bottom: 12px; font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+  .panel-note { font-size: 12.5px; color: var(--secondary); line-height: 1.5; margin-top: 14px; }
+  .panel-note b { color: var(--label); font-weight: 600; }
+
+  /* ---------- Shared menu chrome ---------- */
+  .sheet {
+    background: var(--grouped-bg);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .group { background: var(--card); border-radius: var(--radius); margin: 0 12px 14px; overflow: hidden; }
+  .group-header { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--secondary); padding: 0 28px 6px; }
+  .row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; position: relative; cursor: default;
+  }
+  .row + .row::before {
+    content: ""; position: absolute; top: 0; left: 46px; right: 0; height: 1px; background: var(--separator);
+  }
+  .row .ico {
+    width: 24px; height: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: var(--secondary);
+  }
+  .row .txt { flex: 1; min-width: 0; }
+  .row .txt .t { font-size: 15px; font-weight: 400; }
+  .row .txt .s { font-size: 12px; color: var(--secondary); margin-top: 1px; }
+  .row .trail { font-size: 13px; color: var(--tertiary); display: flex; align-items: center; gap: 6px; }
+  .chev { color: var(--tertiary); font-size: 14px; }
+  .badge {
+    min-width: 20px; height: 20px; border-radius: 10px; background: var(--coral); color: #fff;
+    font-size: 11.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 6px;
+  }
+  .row.destructive .t, .row.destructive .ico { color: var(--red); }
+
+  /* ---------- Identity header ---------- */
+  .identity { display: flex; align-items: center; gap: 12px; padding: 16px 16px 12px; }
+  .avatar {
+    width: 52px; height: 52px; border-radius: 26px; background: #5A8DEE; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 600; flex-shrink: 0;
+    position: relative;
+  }
+  .identity .who { flex: 1; min-width: 0; }
+  .identity .name { font-size: 16.5px; font-weight: 600; letter-spacing: -0.2px; }
+  .identity .mail { font-size: 12.5px; color: var(--secondary); margin-top: 1px; }
+
+  /* public profile strip — the new piece */
+  .pub-strip {
+    margin: 0 12px 14px; border-radius: var(--radius); overflow: hidden;
+    background: linear-gradient(135deg, #FBF7F2 0%, #F6EFE6 100%);
+    border: 1px solid rgba(166,124,82,0.18);
+  }
+  .pub-strip .row + .row::before { left: 14px; background: rgba(166,124,82,0.16); }
+  .pub-strip .t { font-weight: 500; }
+  .pub-strip .ico { color: #A67C52; }
+  .pub-kicker {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #A67C52;
+    padding: 10px 14px 0; font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  .pub-desc { font-size: 12px; color: #8A6D4F; padding: 2px 14px 0; line-height: 1.4; }
+  .pub-edit {
+    font-size: 12.5px; font-weight: 600; color: var(--blue); background: rgba(10,132,255,0.1);
+    padding: 4px 10px; border-radius: 999px;
+  }
+
+  /* org switcher rows */
+  .org-row .ico { width: 28px; height: 28px; border-radius: 7px; background: #EFEFF4; font-size: 12px; font-weight: 700; color: var(--secondary); }
+  .org-chip { font-size: 10.5px; font-weight: 600; color: var(--secondary); background: #EFEFF4; border-radius: 999px; padding: 2px 8px; }
+  .check { color: var(--blue); font-size: 15px; font-weight: 700; }
+  .add-row .t { color: var(--blue); font-weight: 500; }
+  .add-row .ico { color: var(--blue); }
+
+  /* ---------- BEFORE column ---------- */
+  .before-wrap { display: flex; flex-direction: column; gap: 18px; }
+  .before-shot { border-radius: 14px; overflow: hidden; box-shadow: 0 8px 28px rgba(0,0,0,0.16); opacity: 0.92; }
+  .strike { color: var(--red); }
+
+  /* annotations */
+  .legend { width: 320px; }
+  .legend h3 { font-size: 13px; font-weight: 700; margin: 18px 0 6px; }
+  .legend p, .legend li { font-size: 12.5px; color: var(--secondary); line-height: 1.55; }
+  .legend ul { padding-left: 18px; }
+  .legend li { margin-bottom: 6px; }
+  .legend li b { color: var(--label); font-weight: 600; }
+  .pill { display: inline-block; font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 2px 8px; vertical-align: 1px; }
+  .pill.new { background: rgba(52,199,89,0.15); color: #1E8E3E; }
+  .pill.moved { background: rgba(10,132,255,0.12); color: var(--blue); }
+  .pill.gone { background: rgba(255,59,48,0.1); color: var(--red); }
+
+  /* ---------- Header trigger mini-mock ---------- */
+  .trigger-mock {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--card); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  }
+  .trigger-avatar {
+    width: 36px; height: 36px; border-radius: 18px; background: #5A8DEE; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600;
+    position: relative; flex-shrink: 0;
+  }
+  .trigger-avatar .unread {
+    position: absolute; top: -5px; right: -7px;
+    min-width: 19px; height: 19px; border-radius: 10px; background: var(--coral); color: #fff;
+    font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    padding: 0 5px; border: 2px solid var(--card);
+  }
+  .trigger-notes { flex: 1; }
+  .trigger-notes .line { font-size: 11.5px; color: var(--secondary); line-height: 1.5; }
+  .trigger-notes .line b { color: var(--label); font-weight: 600; }
+  .trigger-notes .line .tap { color: var(--blue); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Profile dropdown — one identity, two clean layers</div>
+<div class="page-sub">
+  The avatar menu is the <b>person + context switcher</b> (fast, glanceable). The settings screen is the
+  <b>durable account stuff</b>. Each thing lives in exactly one place, both wear the same iOS register,
+  and your <b>public profile finally has a front door</b>: see it the way others see it, and edit it, right from the top.
+</div>
+
+<div class="panels">
+
+  <!-- ================= PANEL 1: the new dropdown ================= -->
+  <div class="panel">
+    <div class="panel-caption">Layer 1 · avatar dropdown (redesigned)</div>
+
+    <!-- header trigger: the badge IS the inbox shortcut -->
+    <div class="trigger-mock">
+      <div class="trigger-avatar">ST<span class="unread">9</span></div>
+      <div class="trigger-notes">
+        <div class="line"><span class="tap">Tap avatar</span> → this menu.</div>
+        <div class="line"><span class="tap">Tap the red badge</span> → <b>straight to Inbox</b>, no menu stop.</div>
+      </div>
+    </div>
+
+    <div class="sheet" style="padding-bottom: 4px;">
+
+      <div class="identity">
+        <div class="avatar">ST</div>
+        <div class="who">
+          <div class="name">Suman Tirkey</div>
+          <div class="mail">demo-suman@betterat.app</div>
+        </div>
+      </div>
+
+      <!-- NEW: public profile front door -->
+      <div class="pub-strip">
+        <div class="pub-kicker">Your public face</div>
+        <div class="pub-desc">Entrepreneurship · Khunti — what peers and orgs see.</div>
+        <div class="row">
+          <div class="ico">&#128065;</div>
+          <div class="txt"><div class="t">View as others see you</div></div>
+          <div class="trail"><span class="pub-edit">Edit</span><span class="chev">&#8250;</span></div>
+        </div>
+      </div>
+
+      <div class="group-header">Signed in at</div>
+      <div class="group">
+        <div class="row org-row">
+          <div class="ico">P</div>
+          <div class="txt"><div class="t">PRADAN — Khunti Unit</div></div>
+          <div class="trail"><span class="org-chip">Member</span></div>
+        </div>
+        <div class="row org-row">
+          <div class="ico">·</div>
+          <div class="txt"><div class="t">Personal</div><div class="s">For your own practice</div></div>
+          <div class="trail"><span class="org-chip">You</span><span class="check">&#10003;</span></div>
+        </div>
+        <div class="row add-row">
+          <div class="ico">+</div>
+          <div class="txt"><div class="t">Join another organization</div></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="row">
+          <div class="ico">&#10003;</div>
+          <div class="txt"><div class="t">My Practice</div></div>
+          <div class="trail"><span class="chev">&#8250;</span></div>
+        </div>
+        <div class="row">
+          <div class="ico">&#9993;</div>
+          <div class="txt"><div class="t">Inbox</div></div>
+          <div class="trail"><span class="badge">9</span></div>
+        </div>
+        <div class="row">
+          <div class="ico">&#9881;</div>
+          <div class="txt"><div class="t">Account &amp; settings</div><div class="s">Subscription · boats · notifications · privacy</div></div>
+          <div class="trail"><span class="chev">&#8250;</span></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="row">
+          <div class="ico">?</div>
+          <div class="txt"><div class="t">Help &amp; feedback</div></div>
+        </div>
+        <div class="row destructive">
+          <div class="ico">&#8618;</div>
+          <div class="txt"><div class="t">Sign out</div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="panel-note">
+      Five zones, no scroll: <b>who you are</b> → <b>your public face</b> → <b>where you're signed in</b> →
+      <b>your stuff</b> → exit. Location, subscribed blueprints, authoring and connected services move
+      down a layer — they're durable settings, not daily flips.
+    </div>
+  </div>
+
+  <!-- ================= PANEL 2: the settings layer ================= -->
+  <div class="panel">
+    <div class="panel-caption">Layer 2 · account &amp; settings (slimmed)</div>
+    <div class="sheet" style="padding: 14px 0 4px;">
+
+      <!-- compact identity reference, not a second editor -->
+      <div class="group">
+        <div class="row">
+          <div class="avatar" style="width:36px;height:36px;border-radius:18px;font-size:14px;">ST</div>
+          <div class="txt">
+            <div class="t" style="font-weight:600;">Suman Tirkey</div>
+            <div class="s">Public profile &amp; photo — edit in one place &#8250;</div>
+          </div>
+          <div class="trail"><span class="chev">&#8250;</span></div>
+        </div>
+      </div>
+
+      <div class="group-header">Practice</div>
+      <div class="group">
+        <div class="row"><div class="ico">&#9973;</div><div class="txt"><div class="t">Boats</div><div class="s">No boats added yet</div></div><div class="trail"><span class="chev">&#8250;</span></div></div>
+        <div class="row"><div class="ico">&#128205;</div><div class="txt"><div class="t">Location</div></div><div class="trail">Discovery Bay <span class="chev">&#8250;</span></div></div>
+        <div class="row"><div class="ico">&#128278;</div><div class="txt"><div class="t">Subscribed blueprints</div></div><div class="trail">0 <span class="chev">&#8250;</span></div></div>
+      </div>
+
+      <div class="group-header">Subscription</div>
+      <div class="group">
+        <div class="row"><div class="ico">&#9733;</div><div class="txt"><div class="t">Plan</div></div><div class="trail">Pro · Expired <span class="chev">&#8250;</span></div></div>
+        <div class="row"><div class="ico">&#8635;</div><div class="txt"><div class="t">Manage subscription</div></div><div class="trail"><span class="chev">&#8250;</span></div></div>
+      </div>
+
+      <div class="group-header">General</div>
+      <div class="group">
+        <div class="row"><div class="ico">&#9878;</div><div class="txt"><div class="t">Units</div></div><div class="trail">Metric <span class="chev">&#8250;</span></div></div>
+        <div class="row"><div class="ico">&#128276;</div><div class="txt"><div class="t">Notification preferences</div></div><div class="trail"><span class="chev">&#8250;</span></div></div>
+        <div class="row"><div class="ico">&#9992;</div><div class="txt"><div class="t">Connected services</div><div class="s">Telegram assistant</div></div><div class="trail">Connect <span class="chev">&#8250;</span></div></div>
+      </div>
+
+      <div class="group-header">Privacy &amp; security</div>
+      <div class="group">
+        <div class="row"><div class="ico">&#128737;</div><div class="txt"><div class="t">Privacy settings</div></div><div class="trail"><span class="chev">&#8250;</span></div></div>
+        <div class="row"><div class="ico">&#128274;</div><div class="txt"><div class="t">Change password</div></div><div class="trail"><span class="chev">&#8250;</span></div></div>
+      </div>
+
+      <div class="group-header">Support</div>
+      <div class="group">
+        <div class="row"><div class="ico">?</div><div class="txt"><div class="t">Help &amp; support</div></div><div class="trail"><span class="chev">&#8250;</span></div></div>
+        <div class="row"><div class="ico">&#167;</div><div class="txt"><div class="t">Privacy policy · Terms</div></div><div class="trail"><span class="chev">&#8250;</span></div></div>
+      </div>
+
+    </div>
+    <div class="panel-note">
+      The identity card stops being a <b>second, different-looking editor</b> — it's a pointer to the same
+      edit-profile screen. <b>No second Sign out</b> (that lives in the dropdown). Inherits the dropdown's
+      orphans: location, blueprints, connected services.
+    </div>
+  </div>
+
+  <!-- ================= PANEL 3: what changed ================= -->
+  <div class="legend">
+    <div class="panel-caption">What changed &amp; why</div>
+
+    <h3>Your question, answered <span class="pill new">NEW</span></h3>
+    <ul>
+      <li><b>"Your public face" strip</b> sits right under your name — <b>View as others see you</b> opens
+        <code>/sailor/&lt;you&gt;</code> (the real public face), <b>Edit</b> opens edit-profile
+        (photo, bio, position/class/location/club/seasons). Today edit hides behind a tiny pencil and
+        there is <b>no way at all</b> to view your own public face.</li>
+    </ul>
+
+    <h3>Redundancy removed</h3>
+    <ul>
+      <li><b>One identity card</b> <span class="pill gone">WAS ×2</span> — the settings screen's editable
+        header (different style, own photo picker) becomes a compact pointer to the same editor.</li>
+      <li><b>One Sign out</b> <span class="pill gone">WAS ×2</span> — dropdown only.</li>
+      <li><b>One settings entry</b> — "Profile &amp; settings" renamed
+        <b>Account &amp; settings</b> with a subtitle that says what's inside, so the two layers stop
+        sounding like the same thing.</li>
+    </ul>
+
+    <h3>One visual register</h3>
+    <ul>
+      <li>Both layers use the same <b>iOS inset-grouped</b> grammar (cards, hairlines, chevrons,
+        SF type) — the dropdown stops looking like a different app from the sheet it opens.</li>
+    </ul>
+
+    <h3>Moved down a layer <span class="pill moved">MOVED</span></h3>
+    <ul>
+      <li>Location, Subscribed blueprints, Start authoring, Connected services → settings.
+        The dropdown keeps only daily verbs: switch context, Practice, Inbox.</li>
+    </ul>
+
+    <h3>Two layers, confirmed</h3>
+    <ul>
+      <li>The dropdown is an ephemeral popover — it can't host Units, notifications, subscription
+        and password without becoming a giant scrolling menu. <b>Fast context switcher</b> +
+        <b>durable settings screen</b> is the Apple ID pattern; the bug was the duplication
+        between them, not the layering.</li>
+    </ul>
+
+    <h3>Inbox stays — the badge becomes the shortcut <span class="pill new">NEW</span></h3>
+    <ul>
+      <li>The avatar already wears the unread count, so the signal is always visible without
+        opening anything. Instead of spending a 6th tab or re-adding the header bell,
+        <b>tapping the red badge deep-links straight to Inbox</b>; tapping the avatar opens
+        the menu as usual. Promotion-level speed, zero new chrome.</li>
+      <li>Revisit a real promotion only if Inbox becomes a many-times-a-day surface.</li>
+    </ul>
+  </div>
+
+</div>
+
+</body>
+</html>
