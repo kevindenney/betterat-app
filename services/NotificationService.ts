@@ -9,8 +9,9 @@
  */
 
 import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { createLogger } from '@/lib/utils/logger';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 const logger = createLogger('NotificationService');
 
@@ -154,6 +155,9 @@ function normalizeNotificationType(
 class NotificationServiceClass {
   private realtimeChannel: RealtimeChannel | null = null;
   private realtimeUserId: string | null = null;
+  private realtimeChannelName: string | null = null;
+  private realtimeNotificationHandler: ((payload: RealtimePostgresChangesPayload<any>) => void) | null = null;
+  private realtimeStatusHandler: ((status: string) => void) | null = null;
   private realtimeChannelRunId = 0;
   private recentlyDeliveredNotificationIds = new Set<string>();
   private recentlyDeliveredOrder: string[] = [];
@@ -174,6 +178,29 @@ class NotificationServiceClass {
   private resetDeliveredNotificationCache(): void {
     this.recentlyDeliveredNotificationIds.clear();
     this.recentlyDeliveredOrder = [];
+  }
+
+  private clearRealtimeSubscription(): void {
+    if (
+      this.realtimeChannelName &&
+      this.realtimeNotificationHandler &&
+      this.realtimeStatusHandler
+    ) {
+      void realtimeService.unsubscribe(
+        this.realtimeChannelName,
+        this.realtimeNotificationHandler,
+        this.realtimeStatusHandler
+      );
+    } else if (this.realtimeChannelName) {
+      void realtimeService.unsubscribe(this.realtimeChannelName);
+    }
+
+    this.realtimeChannel = null;
+    this.realtimeChannelName = null;
+    this.realtimeNotificationHandler = null;
+    this.realtimeStatusHandler = null;
+    this.realtimeUserId = null;
+    this.realtimeChannelRunId += 1;
   }
 
   private async backfillNotificationsAfterReconnect(
@@ -612,10 +639,7 @@ class NotificationServiceClass {
     // If the active realtime channel is bound to a different user,
     // rotate it to avoid cross-account notification streams.
     if (this.realtimeChannel && this.realtimeUserId && this.realtimeUserId !== userId) {
-      void supabase.removeChannel(this.realtimeChannel);
-      this.realtimeChannel = null;
-      this.realtimeUserId = null;
-      this.realtimeChannelRunId += 1;
+      this.clearRealtimeSubscription();
       this.resetDeliveredNotificationCache();
     }
 
@@ -623,112 +647,118 @@ class NotificationServiceClass {
     if (!this.realtimeChannel) {
       const channelRunId = ++this.realtimeChannelRunId;
       const channelUserId = userId;
+      const channelName = `notifications:${userId}`;
       this.realtimeUserId = userId;
-      this.realtimeChannel = supabase
-        .channel(`notifications:${userId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'social_notifications',
-            filter: `user_id=eq.${userId}`,
-          },
-          async (payload) => {
-            if (
-              this.realtimeChannelRunId !== channelRunId ||
-              this.realtimeUserId !== channelUserId
-            ) {
-              return;
-            }
-            logger.info('Received realtime notification', { payload });
+      this.realtimeChannelName = channelName;
 
-            const n = payload.new as any;
+      const handleNotificationInsert = async (payload: RealtimePostgresChangesPayload<any>) => {
+        if (
+          this.realtimeChannelRunId !== channelRunId ||
+          this.realtimeUserId !== channelUserId
+        ) {
+          return;
+        }
+        logger.info('Received realtime notification', { payload });
 
-            // Fetch actor info
-            let actorInfo: {
-              name?: string;
-              avatarEmoji?: string;
-              avatarColor?: string;
-            } = {};
-            if (n.actor_id) {
-              const [{ data: profile }, { data: userProfile }, { data: sailorProfile }] =
-                await Promise.all([
-                  supabase
-                    .from('profiles')
-                    .select('full_name')
-                    .eq('id', n.actor_id)
-                    .maybeSingle(),
-                  supabase
-                    .from('users')
-                    .select('full_name,email')
-                    .eq('id', n.actor_id)
-                    .maybeSingle(),
-                  supabase
-                    .from('sailor_profiles')
-                    .select('avatar_emoji, avatar_color')
-                    .eq('user_id', n.actor_id)
-                    .maybeSingle(),
-                ]);
+        const n = payload.new as any;
 
-              actorInfo = {
-                name: profile?.full_name || userProfile?.full_name || userProfile?.email || 'User',
-                avatarEmoji: sailorProfile?.avatar_emoji,
-                avatarColor: sailorProfile?.avatar_color,
-              };
-            }
+        // Fetch actor info
+        let actorInfo: {
+          name?: string;
+          avatarEmoji?: string;
+          avatarColor?: string;
+        } = {};
+        if (n.actor_id) {
+          const [{ data: profile }, { data: userProfile }, { data: sailorProfile }] =
+            await Promise.all([
+              supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', n.actor_id)
+                .maybeSingle(),
+              supabase
+                .from('users')
+                .select('full_name,email')
+                .eq('id', n.actor_id)
+                .maybeSingle(),
+              supabase
+                .from('sailor_profiles')
+                .select('avatar_emoji, avatar_color')
+                .eq('user_id', n.actor_id)
+                .maybeSingle(),
+            ]);
 
-            const notification: SocialNotification = {
-              id: n.id,
-              type: normalizeNotificationType(
-                String(n.type || ''),
-                (n.data || null) as Record<string, any> | null,
-                n.title || null,
-                n.body || null
-              ),
-              title: n.title,
-              body: n.body,
-              isRead: n.is_read,
-              createdAt: n.created_at,
-              actorId: n.actor_id,
-              actorName: actorInfo.name,
-              actorAvatarEmoji: actorInfo.avatarEmoji,
-              actorAvatarColor: actorInfo.avatarColor,
-              regattaId: n.regatta_id,
-              commentId: n.comment_id,
-              achievementId: n.achievement_id,
-              data: n.data,
-            };
+          actorInfo = {
+            name: profile?.full_name || userProfile?.full_name || userProfile?.email || 'User',
+            avatarEmoji: sailorProfile?.avatar_emoji,
+            avatarColor: sailorProfile?.avatar_color,
+          };
+        }
 
-            // Notify all listeners
-            if (
-              this.realtimeChannelRunId !== channelRunId ||
-              this.realtimeUserId !== channelUserId
-            ) {
-              return;
-            }
-            this.rememberDeliveredNotification(notification.id);
-            this.listeners.forEach((listener) => {
-              try {
-                listener(notification);
-              } catch (e) {
-                logger.error('Error in notification listener', { error: e });
-              }
-            });
-          }
-        )
-        .subscribe((status) => {
-          if (
-            this.realtimeChannelRunId !== channelRunId ||
-            this.realtimeUserId !== channelUserId
-          ) {
-            return;
-          }
+        const notification: SocialNotification = {
+          id: n.id,
+          type: normalizeNotificationType(
+            String(n.type || ''),
+            (n.data || null) as Record<string, any> | null,
+            n.title || null,
+            n.body || null
+          ),
+          title: n.title,
+          body: n.body,
+          isRead: n.is_read,
+          createdAt: n.created_at,
+          actorId: n.actor_id,
+          actorName: actorInfo.name,
+          actorAvatarEmoji: actorInfo.avatarEmoji,
+          actorAvatarColor: actorInfo.avatarColor,
+          regattaId: n.regatta_id,
+          commentId: n.comment_id,
+          achievementId: n.achievement_id,
+          data: n.data,
+        };
 
-          if (status === 'SUBSCRIBED') {
-            void this.backfillNotificationsAfterReconnect(channelUserId, channelRunId);
+        // Notify all listeners
+        if (
+          this.realtimeChannelRunId !== channelRunId ||
+          this.realtimeUserId !== channelUserId
+        ) {
+          return;
+        }
+        this.rememberDeliveredNotification(notification.id);
+        this.listeners.forEach((listener) => {
+          try {
+            listener(notification);
+          } catch (e) {
+            logger.error('Error in notification listener', { error: e });
           }
         });
+      };
+      const handleRealtimeStatus = (status: string) => {
+        if (
+          this.realtimeChannelRunId !== channelRunId ||
+          this.realtimeUserId !== channelUserId
+        ) {
+          return;
+        }
+
+        if (status === 'SUBSCRIBED') {
+          void this.backfillNotificationsAfterReconnect(channelUserId, channelRunId);
+        }
+      };
+
+      this.realtimeNotificationHandler = handleNotificationInsert;
+      this.realtimeStatusHandler = handleRealtimeStatus;
+      this.realtimeChannel = realtimeService.subscribe(
+        channelName,
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'social_notifications',
+          filter: `user_id=eq.${userId}`,
+          onStatus: handleRealtimeStatus,
+        },
+        handleNotificationInsert
+      );
     }
 
     // Return unsubscribe function
@@ -737,10 +767,7 @@ class NotificationServiceClass {
 
       // Unsubscribe from realtime if no more listeners
       if (this.listeners.size === 0 && this.realtimeChannel) {
-        void supabase.removeChannel(this.realtimeChannel);
-        this.realtimeChannel = null;
-        this.realtimeUserId = null;
-        this.realtimeChannelRunId += 1;
+        this.clearRealtimeSubscription();
         this.resetDeliveredNotificationCache();
       }
     };
@@ -752,10 +779,7 @@ class NotificationServiceClass {
   unsubscribeAll(): void {
     this.listeners.clear();
     if (this.realtimeChannel) {
-      void supabase.removeChannel(this.realtimeChannel);
-      this.realtimeChannel = null;
-      this.realtimeUserId = null;
-      this.realtimeChannelRunId += 1;
+      this.clearRealtimeSubscription();
     }
     this.resetDeliveredNotificationCache();
     logger.info('Unsubscribed from all notifications');
