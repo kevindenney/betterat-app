@@ -88,6 +88,7 @@ import { ZOOM_RAIL_RESERVED_WIDTH } from '@/components/ios-register/timeline-zoo
 import { FacultyAttestSheet } from '@/components/competency/FacultyAttestSheet';
 import { StepCompleteCelebration } from './StepCompleteCelebration';
 import { CrewThreadService } from '@/services/CrewThreadService';
+import { hapticSuccess } from '@/lib/haptics';
 
 type TabValue = 'plan' | 'act' | 'review' | 'discussion';
 type TimingDraft = {
@@ -341,7 +342,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     alreadyAdoptedStepId: celebrationData?.next?.alreadyAdoptedStepId ?? null,
   });
   const showCelebration =
-    Boolean(blueprintChrome) && (step?.status === 'completed');
+    Boolean(blueprintChrome) &&
+    (step?.status === 'completed' || step?.status === 'settled');
 
   // Use the step's own interest for vocabulary so labels match the step's
   // domain (e.g. sail-racing labels for a sailing step, even when the viewer's
@@ -1073,6 +1075,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     }
 
     const completedAt = new Date().toISOString();
+    hapticSuccess();
     queryClient.setQueryData(
       ['timeline-steps', 'detail', stepId],
       (old: any) => old ? { ...old, status: 'settled', completed_at: completedAt } : old,
