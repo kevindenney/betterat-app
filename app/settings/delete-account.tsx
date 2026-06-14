@@ -11,9 +11,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { showAlert, showAlertWithButtons, showConfirm } from '@/lib/utils/crossPlatformAlert';
-import { useRouter, type Href } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, AlertTriangle, Trash2 } from 'lucide-react-native';
+import { Stack, useRouter, type Href } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { AlertTriangle, Trash2 } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
@@ -30,7 +30,6 @@ const DELETABLE_ITEMS = [
 
 export default function DeleteAccountScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
   const [loading, setLoading] = React.useState(false);
   const [confirmText, setConfirmText] = React.useState('');
@@ -108,12 +107,23 @@ export default function DeleteAccountScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={IOS_COLORS.label} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Delete Account</Text>
-      </View>
+      <Stack.Screen
+        options={{
+          title: 'Delete Account',
+          headerShown: true,
+          headerBackTitle: 'Settings',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+            >
+              <Ionicons name="chevron-back" size={26} color={IOS_COLORS.systemBlue} />
+              <Text style={{ color: IOS_COLORS.systemBlue, fontSize: 17 }}>Settings</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.warningCard}>
@@ -206,23 +216,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: IOS_COLORS.systemGroupedBackground,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: IOS_COLORS.systemBackground,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: IOS_COLORS.separator,
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: IOS_COLORS.label,
   },
   scroll: {
     flex: 1,

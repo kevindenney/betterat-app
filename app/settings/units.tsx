@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { useUserSettings, UnitSystem } from '@/hooks/useUserSettings';
 import { useInterest } from '@/providers/InterestProvider';
 
@@ -82,16 +82,24 @@ export default function UnitsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Units of Measurement</Text>
-        </View>
-      </View>
+    <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          title: 'Units of Measurement',
+          headerShown: true,
+          headerBackTitle: 'Settings',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+            >
+              <Ionicons name="chevron-back" size={26} color={IOS_COLORS.systemBlue} />
+              <Text style={{ color: IOS_COLORS.systemBlue, fontSize: 17 }}>Settings</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Section Header */}
@@ -122,7 +130,7 @@ export default function UnitsScreen() {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -130,26 +138,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    marginRight: 16,
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
   },
   scrollView: {
     flex: 1,
