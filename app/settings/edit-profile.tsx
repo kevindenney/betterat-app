@@ -31,11 +31,14 @@ import { AvatarStorageService } from '@/services/storage/AvatarStorageService';
 import { supabase } from '@/services/supabase';
 import { getSafeImageUri } from '@/lib/utils/safeImageUri';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { useInterest } from '@/hooks/useInterest';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, userProfile, updateUserProfile } = useAuth();
+  const { currentInterest } = useInterest();
+  const isSailing = currentInterest?.slug === 'sail-racing';
   const queryClient = useQueryClient();
   const [saving, setSaving] = React.useState(false);
   const [fullName, setFullName] = React.useState('');
@@ -295,7 +298,9 @@ export default function EditProfileScreen() {
 
         </View>
 
-        {/* Sailing descriptor — shown on the public person card */}
+        {/* Sailing descriptor — shown on the public person card. These are
+            sailing-specific fields, so hidden for non-sailing interests. */}
+        {isSailing && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sailing Profile</Text>
 
@@ -362,6 +367,7 @@ export default function EditProfileScreen() {
             </Text>
           </View>
         </View>
+        )}
 
       </ScrollView>
     </KeyboardAvoidingView>
