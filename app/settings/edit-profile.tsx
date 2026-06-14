@@ -32,13 +32,14 @@ import { supabase } from '@/services/supabase';
 import { getSafeImageUri } from '@/lib/utils/safeImageUri';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useInterest } from '@/hooks/useInterest';
+import { isSailingInterest } from '@/hooks/useUserHomeVenue';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, userProfile, updateUserProfile } = useAuth();
   const { currentInterest } = useInterest();
-  const isSailing = currentInterest?.slug === 'sail-racing';
+  const isSailing = isSailingInterest(currentInterest?.slug);
   const queryClient = useQueryClient();
   const [saving, setSaving] = React.useState(false);
   const [fullName, setFullName] = React.useState('');
