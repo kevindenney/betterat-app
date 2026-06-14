@@ -611,7 +611,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addChoiceText: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 'auto',
     minWidth: 0,
   },
   addChoiceTitle: {
