@@ -341,9 +341,10 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     nextSourceStepId: celebrationData?.next?.sourceStepId ?? null,
     alreadyAdoptedStepId: celebrationData?.next?.alreadyAdoptedStepId ?? null,
   });
-  const showCelebration =
-    Boolean(blueprintChrome) &&
-    (step?.status === 'completed' || step?.status === 'settled');
+  // The celebration is a transient *moment* fired by the act of completing a
+  // step, not a persistent view of a settled one — re-opening a done step shows
+  // its tabs, not the trophy. Set in handleToggleDone, cleared on dismiss/reopen.
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // Use the step's own interest for vocabulary so labels match the step's
   // domain (e.g. sail-racing labels for a sailing step, even when the viewer's
@@ -1060,6 +1061,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const handleToggleDone = useCallback(() => {
     if (!step || !isOwner) return;
     if (step.status === 'settled' || step.status === 'completed') {
+      setShowCelebration(false);
       reopenStep.mutate(stepId, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
@@ -1076,6 +1078,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
 
     const completedAt = new Date().toISOString();
     hapticSuccess();
+    setShowCelebration(true);
     queryClient.setQueryData(
       ['timeline-steps', 'detail', stepId],
       (old: any) => old ? { ...old, status: 'settled', completed_at: completedAt } : old,
@@ -1492,6 +1495,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   // brief is explicit that this content is unchanged across flag states.
   const tabBodyJsx = showCelebration && activeTab !== 'discussion' ? (
     <StepCompleteCelebration
+      variant={blueprintChrome ? 'blueprint' : 'solo'}
       stepNumber={blueprintChrome?.stepNumber ?? null}
       totalSteps={blueprintChrome?.totalSteps ?? null}
       stepTitle={step?.title ?? 'This step'}
@@ -1511,6 +1515,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       onContinue={continueNext.handleContinue}
       isContinuing={continueNext.isContinuing}
       groupLabel={getVisibilityLabels(currentInterest?.slug).fleet.toLowerCase()}
+      onDismiss={() => setShowCelebration(false)}
     />
   ) : (
     <>

@@ -29,6 +29,12 @@ import { ArrowRight, Trophy, Users } from 'lucide-react-native';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 
 export interface StepCompleteCelebrationProps {
+  /**
+   * 'blueprint' — full cohort-shaped moment (fleet position + continue-to-next).
+   * 'solo' — a plain step with no blueprint behind it: trophy + quoted title
+   * only, dismissed back to the step's tabs. Defaults to 'blueprint'.
+   */
+  variant?: 'blueprint' | 'solo';
   /** Step number among the blueprint (1-indexed). */
   stepNumber: number | null;
   totalSteps: number | null;
@@ -59,9 +65,12 @@ export interface StepCompleteCelebrationProps {
    * "In the {groupLabel}". Defaults to "group".
    */
   groupLabel?: string;
+  /** Dismiss the celebration back to the step's tabs. */
+  onDismiss?: () => void;
 }
 
 export function StepCompleteCelebration({
+  variant = 'blueprint',
   stepNumber,
   totalSteps,
   stepTitle,
@@ -72,7 +81,9 @@ export function StepCompleteCelebration({
   onContinue,
   isContinuing,
   groupLabel = 'group',
+  onDismiss,
 }: StepCompleteCelebrationProps) {
+  const isSolo = variant === 'solo';
   const positionLabel =
     stepNumber != null && totalSteps != null
       ? `STEP ${stepNumber} · CLOSED`
@@ -102,9 +113,25 @@ export function StepCompleteCelebration({
         <Text style={styles.stepTitleQuoted}>
           {`"${stepTitle.trim().replace(/[.!?]*$/, '')} — done."`}
         </Text>
-        <Text style={styles.sessionLine}>{sessionLabel}</Text>
+        {sessionCount > 0 ? (
+          <Text style={styles.sessionLine}>{sessionLabel}</Text>
+        ) : null}
       </View>
 
+      {isSolo ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.continueBtn,
+            pressed && styles.continueBtnPressed,
+          ]}
+          onPress={onDismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Done"
+        >
+          <Text style={styles.continueLbl}>Done</Text>
+        </Pressable>
+      ) : (
+        <>
       <View style={styles.statsCard}>
         <View style={styles.statsRow}>
           <Users size={14} color={C.label2} />
@@ -156,6 +183,18 @@ export function StepCompleteCelebration({
             You worked through every step in this blueprint.
           </Text>
         </View>
+      )}
+      {onDismiss ? (
+        <Pressable
+          style={styles.dismissBtn}
+          onPress={onDismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Back to step"
+        >
+          <Text style={styles.dismissLbl}>Back to step</Text>
+        </Pressable>
+      ) : null}
+        </>
       )}
     </View>
   );
@@ -365,6 +404,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: -0.1,
+  },
+  dismissBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  dismissLbl: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: C.label3,
     letterSpacing: -0.1,
   },
 });
