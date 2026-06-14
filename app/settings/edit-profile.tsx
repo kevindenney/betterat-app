@@ -18,9 +18,9 @@ import {
   StyleSheet,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Save, Camera, Eye } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter, Stack } from 'expo-router';
+import { Save, Camera, Eye } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
@@ -36,7 +36,6 @@ import { isSailingInterest } from '@/hooks/useUserHomeVenue';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { user, userProfile, updateUserProfile } = useAuth();
   const { currentInterest } = useInterest();
   const isSailing = isSailingInterest(currentInterest?.slug);
@@ -203,31 +202,39 @@ export default function EditProfileScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <ArrowLeft size={24} color={IOS_COLORS.label} />
+      <Stack.Screen
+        options={{
+          title: 'Edit Profile',
+          headerShown: true,
+          headerBackTitle: 'Settings',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+            >
+              <Ionicons name="chevron-back" size={26} color={IOS_COLORS.systemBlue} />
+              <Text style={{ color: IOS_COLORS.systemBlue, fontSize: 17 }}>Settings</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Edit Profile</Text>
-          </View>
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={saving}
-            style={styles.saveButton}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <>
-                <Save size={18} color="#FFFFFF" />
-                <Text style={styles.saveButtonText}>Save</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+          ),
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={saving}
+              style={styles.saveButton}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Save size={18} color="#FFFFFF" />
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Profile Photo */}
@@ -461,34 +468,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: IOS_COLORS.systemBlue,
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: IOS_COLORS.separator,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  backButton: {
-    marginRight: 12,
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: fontFamily.serif,
-    fontWeight: '500',
-    color: IOS_COLORS.label,
-    letterSpacing: -0.3,
   },
   saveButton: {
     backgroundColor: IOS_COLORS.systemBlue,
