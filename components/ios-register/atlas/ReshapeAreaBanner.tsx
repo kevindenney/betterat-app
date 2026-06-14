@@ -15,8 +15,10 @@ import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 interface ReshapeAreaBannerProps {
   areaName: string;
-  /** True once at least one handle has been dragged. Gates Save. */
+  /** True once at least one handle has moved. Gates Save. */
   dirty: boolean;
+  /** True after the user taps a corner handle and the next map tap will move it. */
+  hasSelection: boolean;
   saving: boolean;
   onCancel: () => void;
   onSave: () => void;
@@ -30,6 +32,7 @@ const CHROME_CLEAR_HEIGHT = 96;
 export function ReshapeAreaBanner({
   areaName,
   dirty,
+  hasSelection,
   saving,
   onCancel,
   onSave,
@@ -46,7 +49,9 @@ export function ReshapeAreaBanner({
           <Text style={styles.topBannerText} numberOfLines={3}>
             <Text style={styles.topBannerName}>{areaName}</Text>
             {'\n'}
-            Tap a corner to select it, then tap the map to move it there.
+            {hasSelection
+              ? 'Tap the map to move the selected corner there.'
+              : 'Tap a corner to select it, then tap the map to move it there.'}
           </Text>
         </View>
       </View>
@@ -95,7 +100,7 @@ export function ReshapeAreaBanner({
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={[styles.btnPrimaryText, !canSave && styles.btnDisabledText]}>
-                  {dirty ? 'Save shape' : 'Tap a corner'}
+                  {dirty ? 'Save shape' : hasSelection ? 'Tap map' : 'Tap a corner'}
                 </Text>
               )}
             </View>

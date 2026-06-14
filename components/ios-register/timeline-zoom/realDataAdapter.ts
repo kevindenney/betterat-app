@@ -489,6 +489,18 @@ function collabToAvatar(c: StepCollaborator): CohortAvatar {
 
 const ROLE_HONORIFIC_REGEX = /^(preceptor|coach|mentor|instructor|teacher|guide|attending)$/i;
 
+function isStepCollaborator(value: unknown): value is StepCollaborator {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<StepCollaborator>;
+  return typeof candidate.id === 'string' && typeof candidate.display_name === 'string';
+}
+
+function getPlanCollaborators(plan: StepPlanData | null): StepCollaborator[] {
+  return Array.isArray(plan?.collaborators)
+    ? plan.collaborators.filter(isStepCollaborator)
+    : [];
+}
+
 function findRoleCollab(collabs: StepCollaborator[]): StepCollaborator | null {
   return collabs.find((c) => c.role && ROLE_HONORIFIC_REGEX.test(c.role)) ?? null;
 }
@@ -530,6 +542,7 @@ function recordToStep(
   const scheduleAnchor = resolveScheduleAnchor(rec);
   const today = isToday(scheduleAnchor);
   const plan = getPlanData(rec.metadata);
+  const planCollaborators = getPlanCollaborators(plan);
   const metadata = rec.metadata as { race_plan?: unknown } | null | undefined;
 
   // Capability tags — metadata.plan.capability_goals holds the user-facing
@@ -579,20 +592,20 @@ function recordToStep(
       ? `${DAY_LABEL[dayKey]} · ${locName}`
       : DAY_LABEL[dayKey]
     : locName || undefined;
-  const roleCollab = plan?.collaborators ? findRoleCollab(plan.collaborators) : null;
+  const roleCollab = findRoleCollab(planCollaborators);
   const metaRight = roleCollab
     ? `${capitalize(roleCollab.role!)}: ${roleCollab.display_name}`
     : undefined;
 
   // Cohort avatars (excluding the role-tagged collab — they're called out
   // separately on the right of the meta row).
-  const cohortAvatars: CohortAvatar[] | undefined = plan?.collaborators
-    ?.filter((c) => !roleCollab || c.id !== roleCollab.id)
+  const cohortAvatars: CohortAvatar[] | undefined = planCollaborators
+    .filter((c) => !roleCollab || c.id !== roleCollab.id)
     .slice(0, 3)
     .map(collabToAvatar);
   const cohortLabel =
-    plan?.collaborators && plan.collaborators.length > 0
-      ? `${plan.collaborators.length} ${plan.collaborators.length === 1 ? 'collab' : 'collabs'}`
+    planCollaborators.length > 0
+      ? `${planCollaborators.length} ${planCollaborators.length === 1 ? 'collab' : 'collabs'}`
       : undefined;
 
   // FROM provenance — blueprint title from id map when available

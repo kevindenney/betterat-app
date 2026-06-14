@@ -11,7 +11,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { IOS_COLORS } from '@/lib/design-tokens-ios';
+import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 interface RepositionAreaBannerProps {
   areaName: string;
@@ -21,6 +21,7 @@ interface RepositionAreaBannerProps {
   onSave: () => void;
   bottomOffset?: number;
   showActionBar?: boolean;
+  targetKind?: 'area' | 'step';
 }
 
 // The Atlas floating chrome (location anchor + layers/mail/profile
@@ -37,23 +38,39 @@ export function RepositionAreaBanner({
   onSave,
   bottomOffset = 16,
   showActionBar = true,
+  targetKind = 'area',
 }: RepositionAreaBannerProps) {
   const insets = useSafeAreaInsets();
   const top = Math.max(insets.top, 8) + CHROME_CLEAR_HEIGHT;
-  return (
-    <>
-      <View style={[styles.topBanner, { top }]} pointerEvents="none">
-        <View style={styles.topBannerInner}>
-          <Ionicons name="move" size={14} color="#FFFFFF" />
-          <Text style={styles.topBannerText} numberOfLines={2}>
-            Tap on the map to set a new center for{' '}
-            <Text style={styles.topBannerName}>{areaName}</Text>
-          </Text>
-        </View>
-      </View>
+  const noun = targetKind === 'step' ? 'step location' : 'racing area center';
+  const pendingText =
+    targetKind === 'step'
+      ? `Tap the map where "${areaName}" should happen.`
+      : `Tap the map to set a new center for ${areaName}.`;
+  const movedText =
+    targetKind === 'step'
+      ? `New location selected for "${areaName}". Save it, or tap the map again to adjust.`
+      : `New center selected for ${areaName}. Save it, or tap the map again to adjust.`;
+  const bodyText = hasMoved ? movedText : pendingText;
 
-      {showActionBar ? (
-        <View style={[styles.actionBar, { bottom: bottomOffset }]} pointerEvents="box-none">
+  if (showActionBar) {
+    return (
+      <View style={[styles.dialog, { bottom: bottomOffset }]}>
+        <View style={styles.dialogHeader}>
+          <View style={styles.dialogTitleRow}>
+            <Ionicons
+              name={targetKind === 'step' ? 'location-outline' : 'move'}
+              size={15}
+              color={IOS_COLORS.systemBlue}
+            />
+            <Text style={styles.dialogEyebrow}>
+              {hasMoved ? 'Ready to save' : `Set ${noun}`}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.dialogBody}>{bodyText}</Text>
+
+        <View style={styles.actionRow}>
           <View style={[styles.btnSlot, styles.btnSlotLeft]}>
             <Pressable
               onPress={onCancel}
@@ -86,15 +103,25 @@ export function RepositionAreaBanner({
               {saving ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.btnText}>
-                  {hasMoved ? 'Save position' : 'Tap the map...'}
-                </Text>
+                <Text style={styles.btnText}>Save position</Text>
               )}
             </Pressable>
           </View>
         </View>
-      ) : null}
-    </>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.topBanner, { top }]} pointerEvents="none">
+      <View style={styles.topBannerInner}>
+        <Ionicons name="move" size={14} color="#FFFFFF" />
+        <Text style={styles.topBannerText} numberOfLines={2}>
+          Tap on the map to set a new center for{' '}
+          <Text style={styles.topBannerName}>{areaName}</Text>
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -127,19 +154,47 @@ const styles = StyleSheet.create({
   topBannerName: {
     fontWeight: '700',
   },
-  actionBar: {
+  dialog: {
     position: 'absolute',
     left: 12,
     right: 12,
     zIndex: 1310,
-    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    padding: 10,
+    padding: 12,
     borderRadius: 14,
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
+  },
+  dialogHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  dialogTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  dialogEyebrow: {
+    color: IOS_COLORS.systemBlue,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0,
+  },
+  dialogBody: {
+    color: IOS_REGISTER.label,
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
   },
   // Wrapper Views with explicit flex sizing so each Pressable gets a
   // concrete width to render its bg against. Direct Pressables with

@@ -360,8 +360,12 @@ export interface AtlasPeerMember {
   stepId: string;
   /** crew / cohort / fleet / following / public — drives the relationship tone. */
   relationship: string;
-  /** Display name; null when the peer is hidden behind a privacy preview. */
+  /** Author display name; null when the peer is hidden behind a privacy preview. */
   name: string | null;
+  /** Step title, fetched after the privacy-filtered peer RPC returns. */
+  stepTitle?: string | null;
+  /** Privacy-safe place label for the peer step, when available. */
+  placeName?: string | null;
   /** ISO timestamp the step location was set, for a relative "2d ago" line. */
   setAt: string | null;
   /** Server-jittered latitude — lets the drill-down focus this one peer. */
@@ -989,11 +993,12 @@ export function AtlasMapLibreCanvas({
   // "background tap dismisses the sheet" handler upstream would close
   // the sheet the pin tap just opened. Swallow map presses that arrive
   // right after a pin tap.
+  const PIN_TAP_MAP_PRESS_SUPPRESSION_MS = 150;
   const lastPinTapAtRef = useRef(0);
   const handlePress = useCallback(
     (event: NativeSyntheticEvent<PressEvent>) => {
       if (!onMapPress) return;
-      if (Date.now() - lastPinTapAtRef.current < 500) return;
+      if (Date.now() - lastPinTapAtRef.current < PIN_TAP_MAP_PRESS_SUPPRESSION_MS) return;
       const [lng, lat] = event.nativeEvent.lngLat;
       onMapPress({ lng, lat });
     },
@@ -2429,6 +2434,11 @@ function createWebPinElement({
     return root;
   }
 
+  const isPeerRelationshipPin =
+    pin.kind === 'crew' ||
+    pin.kind === 'fleet' ||
+    pin.kind === 'following' ||
+    pin.kind === 'peer-focus';
   const marker = document.createElement('span');
   marker.style.display = 'inline-flex';
   marker.style.alignItems = 'center';
@@ -2438,8 +2448,10 @@ function createWebPinElement({
   marker.style.background = pin.glowCluster
     ? COHORT_CLUSTER_TONE[pin.glowCluster] ?? tone.color
     : tone.color;
-  marker.style.border = '2px solid #fff';
-  marker.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
+  marker.style.border = isPeerRelationshipPin ? '3px solid #fff' : '2px solid #fff';
+  marker.style.boxShadow = isPeerRelationshipPin
+    ? '0 0 0 2px rgba(28,28,30,0.12), 0 4px 12px rgba(0,0,0,0.28)'
+    : '0 2px 8px rgba(0,0,0,0.18)';
   marker.style.color = '#fff';
   marker.style.fontSize = '9px';
   marker.style.lineHeight = '1';
@@ -2871,9 +2883,9 @@ const PIN_TONE: Record<
   // render via the my-step pipeline; this tone only backs the chip key and
   // any residual self rendering).
   you: { size: 14, color: '#007AFF', shape: 'circle' },
-  crew: { size: 11, color: '#FF3B30', shape: 'circle' },
-  fleet: { size: 10, color: 'rgba(40, 50, 70, 0.85)', shape: 'circle' },
-  following: { size: 8, color: 'rgba(60, 70, 90, 0.55)', shape: 'circle' },
+  crew: { size: 15, color: '#FF3B30', shape: 'circle' },
+  fleet: { size: 14, color: '#2563EB', shape: 'circle' },
+  following: { size: 13, color: '#AF52DE', shape: 'circle' },
   // peer-focus — a single sailor pulled out of a privacy cluster. Large,
   // saturated, white-ringed so it reads as "this is the one you tapped"
   // over the faint relationship dots; LabeledPin also gives it a name + halo.
@@ -3510,6 +3522,10 @@ function LabeledPin({
       ? { ...baseTone, color: hexWithAlpha(raceCfg.color, kind === 'my-step-done-old' ? 0.4 : 0.85) }
       : baseTone;
   const glowColor = glowCluster ? COHORT_CLUSTER_TONE[glowCluster] : undefined;
+  const isPeerRelationshipPin =
+    kind === 'crew' ||
+    kind === 'fleet' ||
+    kind === 'following';
   return (
     <View style={styles.pinRow}>
       <View style={styles.glyphCol}>
@@ -3519,6 +3535,15 @@ function LabeledPin({
             style={[
               styles.glowAura,
               { backgroundColor: glowColor },
+            ]}
+          />
+        ) : null}
+        {isPeerRelationshipPin && !clusterCount ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.peerPinHalo,
+              { borderColor: tone.color },
             ]}
           />
         ) : null}
@@ -4133,6 +4158,15 @@ const styles = StyleSheet.create({
   glyphCol: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  peerPinHalo: {
+    position: 'absolute',
+    width: 25,
+    height: 25,
+    borderRadius: 12.5,
+    borderWidth: 2,
+    opacity: 0.26,
+    backgroundColor: 'rgba(255, 255, 255, 0.68)',
   },
   glowAura: {
     position: 'absolute',

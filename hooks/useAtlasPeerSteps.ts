@@ -39,6 +39,8 @@ export interface AtlasPeerStep {
   relationship: AtlasPeerRelationship;
   /** Poster-chosen privacy state — use for share-scope badges. */
   audience: AtlasPeerAudience;
+  /** Actual step title; enriched client-side from visible returned step IDs. */
+  step_title?: string | null;
   preview_name: string | null;
   loc_precision: string | null;
   poi_id: string | null;
@@ -105,7 +107,35 @@ export function useAtlasPeerSteps({
         console.warn('[atlas] atlas_peer_steps_near error', error);
         return [];
       }
-      return (data ?? []) as AtlasPeerStep[];
+      const rows = (data ?? []) as AtlasPeerStep[];
+      const missingTitleIds = rows
+        .filter((row) => !row.step_title?.trim())
+        .map((row) => row.step_id)
+        .filter(Boolean);
+      const stepIds = Array.from(new Set(missingTitleIds));
+      if (stepIds.length === 0) return rows;
+
+      const { data: titleRows, error: titleError } = await supabase
+        .from('timeline_steps')
+        .select('id, title')
+        .in('id', stepIds);
+      if (titleError) {
+        console.warn('[atlas] peer step title lookup error', titleError);
+        return rows;
+      }
+
+      const titleById = new Map(
+        (titleRows ?? []).map((row: any) => [
+          String(row.id),
+          typeof row.title === 'string' && row.title.trim().length > 0
+            ? row.title.trim()
+            : null,
+        ]),
+      );
+      return rows.map((row) => ({
+        ...row,
+        step_title: titleById.get(row.step_id) ?? null,
+      }));
     },
   });
 }

@@ -39,6 +39,7 @@ export function RaceTimeBar({
   tide,
   flipNote,
   strategy,
+  onDismiss,
 }: {
   raceLabel: string;
   /** "38 h out" / "3 d out" — urgency next to the race name. */
@@ -54,6 +55,7 @@ export function RaceTimeBar({
   tide: string | null;
   flipNote: string | null;
   strategy: CourseStrategy | null;
+  onDismiss?: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [strategyOpen, setStrategyOpen] = useState(false);
@@ -69,13 +71,14 @@ export function RaceTimeBar({
 
   return (
     <View style={styles.card}>
-      <Pressable
-        onPress={() => setCollapsed((v) => !v)}
-        accessibilityRole="button"
-        accessibilityLabel={collapsed ? 'Expand race-time bar' : 'Collapse race-time bar'}
-        hitSlop={6}
-      >
-        <View style={styles.headerRow}>
+      <View style={styles.headerRow}>
+        <Pressable
+          onPress={() => setCollapsed((v) => !v)}
+          accessibilityRole="button"
+          accessibilityLabel={collapsed ? 'Expand race-time bar' : 'Collapse race-time bar'}
+          hitSlop={6}
+          style={styles.headerToggle}
+        >
           <Text style={styles.eyebrow}>RACE TIME</Text>
           <Text style={styles.headerTitle} numberOfLines={1}>
             {tickLabel ? `${tickLabel} · ` : ''}
@@ -87,8 +90,19 @@ export function RaceTimeBar({
             size={14}
             color={IOS_REGISTER.labelTertiary}
           />
-        </View>
-      </Pressable>
+        </Pressable>
+        {onDismiss ? (
+          <Pressable
+            onPress={onDismiss}
+            accessibilityRole="button"
+            accessibilityLabel="Close race-time bar"
+            hitSlop={8}
+            style={styles.closeButton}
+          >
+            <Ionicons name="close" size={14} color={IOS_REGISTER.labelTertiary} />
+          </Pressable>
+        ) : null}
+      </View>
       {collapsed ? null : (
         <>
           <View style={styles.readoutRow}>
@@ -193,6 +207,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  headerToggle: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  closeButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(118, 118, 128, 0.12)',
   },
   eyebrow: {
     fontSize: 10,

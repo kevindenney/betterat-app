@@ -38,6 +38,7 @@ import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import Svg, { Circle, Path } from 'react-native-svg';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
@@ -162,6 +163,9 @@ const STEP_FILTER_DOT = '#2563EB';
 // Last-viewed f1 camera ({lat, lng, zoom}) — Atlas reopens here instead of
 // flying to the next step, matching maps-app spatial stability.
 const ATLAS_F1_LAST_CAMERA_KEY = 'atlas:f1:last-camera';
+// Last explicit Atlas step selection. Used only to restore a user's previous
+// Atlas context; Atlas should not auto-open the generic NEXT step on cold load.
+const ATLAS_F1_LAST_STEP_KEY = 'atlas:f1:last-step-id';
 
 /**
  * Stub for unwired CTAs. Tells the user what the action WILL do once
@@ -762,10 +766,15 @@ function FilterChipsRow({
   );
   const chipScrollHeightRef = useRef<number | null>(null);
   const chipContentHeightRef = useRef<number | null>(null);
+  const onActiveIdsChangeRef = useRef(onActiveIdsChange);
 
   React.useEffect(() => {
-    onActiveIdsChange?.(activeIds);
-  }, [activeIds, onActiveIdsChange]);
+    onActiveIdsChangeRef.current = onActiveIdsChange;
+  }, [onActiveIdsChange]);
+
+  React.useEffect(() => {
+    onActiveIdsChangeRef.current?.(activeIds);
+  }, [activeIds]);
 
   const isAllChip = (id: string) =>
     id === 'all' || id === 'marks' || id === 'class' || id === 'cohort';
@@ -982,6 +991,24 @@ function relativeSetAt(iso: string | null): string | null {
   return `${Math.round(days / 30)}mo ago`;
 }
 
+function readablePeerPlaceName(name: string | null | undefined): string | null {
+  const trimmed = name?.trim();
+  if (!trimmed) return null;
+  if (/^dropped pin\b/i.test(trimmed)) return null;
+  if (/^\(?\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*\)?$/.test(trimmed)) {
+    return null;
+  }
+  return trimmed;
+}
+
+function peerStepTitle(peer: AtlasPeerMember): string {
+  return (
+    peer.stepTitle?.trim() ||
+    readablePeerPlaceName(peer.placeName) ||
+    (peer.name ? `${peer.name}'s step` : 'Peer step')
+  );
+}
+
 /**
  * Map a peer relationship to the pin kind used when one peer is broken out of
  * a cluster (focused from a list row). Mirrors mapPeerToPinKind in the frame-
@@ -1039,11 +1066,14 @@ function PeerMemberList({
               ]}
             />
             <Text style={shellStyles.peerListName} numberOfLines={1}>
-              {m.name?.trim() || 'Someone nearby'}
+              {peerStepTitle(m)}
             </Text>
             <Text style={shellStyles.peerListMeta} numberOfLines={1}>
-              {peerRelationshipLabel(m.relationship)}
-              {when ? ` · ${when}` : ''}
+              {[
+                m.name?.trim() || null,
+                peerRelationshipLabel(m.relationship),
+                when,
+              ].filter(Boolean).join(' · ')}
             </Text>
             {onSelectMember ? (
               <Ionicons
@@ -1911,7 +1941,29 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const insets = useSafeAreaInsets();
   const homeVenue = useUserHomeVenue();
   const { getCurrentLocation } = useCurrentLocation();
+  const { user: authUser } = useAuth();
   const { currentInterest } = useInterest();
+  const queryClient = useQueryClient();
+  const lastAtlasStepStorageKey = useMemo(
+    () =>
+      [
+        ATLAS_F1_LAST_STEP_KEY,
+        authUser?.id ?? 'anon',
+        currentInterest?.id ?? currentInterest?.slug ?? 'none',
+      ].join(':'),
+    [authUser?.id, currentInterest?.id, currentInterest?.slug],
+  );
+  useFocusEffect(
+    useCallback(() => {
+      void queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
+      if (authUser?.id && currentInterest?.slug) {
+        void queryClient.invalidateQueries({
+          queryKey: ['user-atlas-steps', authUser.id, currentInterest.slug],
+        });
+      }
+      void queryClient.invalidateQueries({ queryKey: ['atlas-series-races'] });
+    }, [authUser?.id, currentInterest?.slug, queryClient]),
+  );
   // ★ Saved dropdown (mockup #39 frame B) data — the user's mapped race
   // waters and favourited venues, consolidated alongside the step picker.
   const { racingAreas: myRacingAreas } = useMyRacingAreas(homeVenue?.id ?? null);
@@ -1924,12 +1976,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     savedStarRef.current?.measureInWindow((x, y, width, height) => {
       setSavedAnchor({ x, y, width, height });
     });
-    setSavedSheetOpen(true);
-  }, []);
-  // Entry points from bottom callouts open as a bottom sheet (a dropdown
-  // anchored to the top-bar ★ would float detached from the tapped control).
-  const openSavedSheetFromCallout = useCallback(() => {
-    setSavedAnchor(null);
     setSavedSheetOpen(true);
   }, []);
   const universalPlus = useUniversalPlus();
@@ -2405,12 +2451,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showRaceAreas, setShowRaceAreas] = useState(true);
   const [showCourse, setShowCourse] = useState(true);
   const [basemap, setBasemap] = useState<AtlasBasemap>('map');
-  // Default the relationship lens to "people I race with" — your own steps
-  // plus crew + fleet — so the race frame answers "what's my fleet doing near
-  // my race?" without the user having to opt in. Following stays off by
-  // default (people you watch are discovery, not your immediate race circle).
+  // Default the relationship lens to the same set exposed in the top chip row:
+  // your own steps plus crew, fleet, and people you follow. Public peer steps
+  // use the same pin tone as Following, so keeping this on by default prevents
+  // public/followed Atlas steps from looking "missing" until a chip is toggled.
   const [peerRelationshipFilter, setPeerRelationshipFilter] = useState<Set<string> | null>(
-    () => new Set(['you', 'crew', 'fleet']),
+    () => new Set(['you', 'crew', 'fleet', 'following']),
   );
   // Cluster peers by on-screen pixel proximity, not a fixed km radius. We
   // derive the merge threshold from the live zoom so it stays pixel-stable:
@@ -2478,8 +2524,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // is just a step and shows the step's "how" checklist and saved beats.
   const cockpitIsRace = myNextStepPin?.isRace ?? false;
   const cockpitShowsChecklist = !!myNextStepPin && !cockpitIsRace;
+  // Do not auto-open the generic NEXT step on Atlas entry. Atlas restores the
+  // last explicitly selected step instead; if none exists, it starts map-only.
+  const showAmbientNextStepCockpit = false;
   const cockpitStep = useAtlasCockpitStep(
-    cockpitShowsChecklist ? (myNextStepPin?.stepId ?? null) : null,
+    showAmbientNextStepCockpit && cockpitShowsChecklist ? (myNextStepPin?.stepId ?? null) : null,
   );
   // When the checklist cockpit owns the next step, it already renders that
   // ONE step — so tapping the my-step-NEXT pin is suppressed to avoid stacking
@@ -2555,6 +2604,73 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // it so the bottom sheet can swap from the default "Plan a step" CTA
   // to a context-specific detail card. Null = default sheet.
   const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
+  const [lastAtlasStepId, setLastAtlasStepId] = useState<string | null | undefined>(undefined);
+  const restoredLastStepRef = useRef<string | null>(null);
+  const persistLastAtlasStep = useCallback(
+    (stepId: string | null | undefined) => {
+      const trimmed = stepId?.trim();
+      if (!trimmed) return;
+      void AsyncStorage.setItem(lastAtlasStepStorageKey, trimmed).catch(() => {});
+    },
+    [lastAtlasStepStorageKey],
+  );
+  const selectableStepPin = useCallback((pin: AtlasPinSpec, prefix: string): AtlasPinSpec => {
+    if (pin.kind !== 'my-step-next') return pin;
+    return {
+      ...pin,
+      id: `${prefix}-${pin.id}`,
+      kind: 'my-step-planned',
+    };
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    setLastAtlasStepId(undefined);
+    restoredLastStepRef.current = null;
+    void AsyncStorage.getItem(lastAtlasStepStorageKey)
+      .then((value) => {
+        if (!cancelled) setLastAtlasStepId(value?.trim() || null);
+      })
+      .catch(() => {
+        if (!cancelled) setLastAtlasStepId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lastAtlasStepStorageKey]);
+  useEffect(() => {
+    if (!lastAtlasStepId) return;
+    if (restoredLastStepRef.current === lastAtlasStepId) return;
+    if (selectedPin) return;
+    if (
+      handlers.initialFocusStepId ||
+      handlers.initialPeerFocus ||
+      handlers.focusOrgSlug ||
+      handlers.initialCommitMode ||
+      handlers.initialCreateRacingArea
+    ) {
+      return;
+    }
+    if (framePinsWithDemo.length === 0) return;
+    const pin = framePinsWithDemo.find((candidatePin) => candidatePin.stepId === lastAtlasStepId);
+    if (!pin) return;
+    restoredLastStepRef.current = lastAtlasStepId;
+    setLayersOpen(false);
+    setSelectedPin(selectableStepPin(pin, 'restored'));
+    setSearchFocus({ lat: pin.lat, lng: pin.lng });
+  }, [
+    framePinsWithDemo,
+    handlers.focusOrgSlug,
+    handlers.initialCommitMode,
+    handlers.initialCreateRacingArea,
+    handlers.initialFocusStepId,
+    handlers.initialPeerFocus,
+    lastAtlasStepId,
+    selectableStepPin,
+    selectedPin,
+  ]);
+  useEffect(() => {
+    persistLastAtlasStep(selectedPin?.stepId ?? selectedPin?.peer?.stepId ?? null);
+  }, [persistLastAtlasStep, selectedPin?.peer?.stepId, selectedPin?.stepId]);
   const selectedStepId =
     selectedPin && isUserStepPin(selectedPin) && !isRaceStepPin(selectedPin)
       ? selectedPin.stepId ?? null
@@ -2625,13 +2741,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     // unmount the cockpit and render no sheet (a dead-end tap). Instead,
     // restore the full cockpit: that IS this pin's detail surface.
     if (pin.kind === 'my-step-next' && cockpitOwnsNext) {
-      setSelectedPin(null);
-      setCockpitManuallyCollapsed(false);
-      setCockpitDismissed(false);
+      setSelectedPin(selectableStepPin(pin, 'selected'));
       return;
     }
     setSelectedPin(pin);
-  }, [cockpitOwnsNext]);
+  }, [cockpitOwnsNext, selectableStepPin]);
   // A peer broken out of a privacy cluster on demand (tapped in the cluster
   // drill-down list or the Nearby list). Rendered as one extra highlighted
   // pin so "8 nearby" stops being a dead-end count — you can see exactly
@@ -2887,9 +3001,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     return peerSteps.reduce<RelationshipStepItem[]>((acc, peer) => {
       const relationship = REL_MAP[peer.relationship];
       if (!relationship) return acc;
+      const title =
+        peer.step_title?.trim() ||
+        readablePeerPlaceName(peer.preview_name) ||
+        `${peer.set_by_name ?? 'A sailor'}'s step`;
       acc.push({
         id: peer.step_id,
-        title: peer.preview_name ?? `${peer.set_by_name ?? 'A sailor'}'s step`,
+        title,
         relationship,
         lat: peer.lat,
         lng: peer.lng,
@@ -2920,7 +3038,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         focusPeerMember({
           stepId: peer.step_id,
           relationship: peer.relationship,
-          name: peer.preview_name ?? peer.set_by_name ?? null,
+          name: peer.set_by_name ?? null,
+          stepTitle: peer.step_title ?? null,
+          placeName: peer.preview_name ?? null,
           setAt: peer.set_at ?? null,
           lat: peer.lat,
           lng: peer.lng,
@@ -2997,10 +3117,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // collapse into ONE relationship-first lens strip. The hero jobs are mapping
   // your own steps (My steps, on by default) and seeing the steps of people you
   // follow & know (Crew/Fleet/Following), with Races as a trailing filter.
-  const [activeFilterIds, setActiveFilterIds] = useState<string[]>(['you', 'crew', 'fleet']);
+  const [activeFilterIds, setActiveFilterIds] = useState<string[]>(['you', 'crew', 'fleet', 'following']);
   // false = all steps; true = show only race pins (steps that carry
   // course/marks/conditions). Driven by the same merged strip now.
   const [raceOnly, setRaceOnly] = useState(false);
+  const [dismissedRaceTimeEventKey, setDismissedRaceTimeEventKey] = useState<string | null>(null);
   const handleChipsChange = useCallback((activeIds: string[]) => {
     setActiveFilterIds(activeIds);
     const races = activeIds.includes('races');
@@ -3016,7 +3137,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       ['you', 'crew', 'fleet', 'following'].includes(id),
     );
     setPeerRelationshipFilter(new Set(peerChips));
-  }, []);
+    if (races) {
+      const exactRacePin =
+        next?.event_kind === 'race_step' && next.event_id
+          ? framePinsWithDemo.find((pin) => pin.isRace && pin.stepId === next.event_id)
+          : null;
+      const fallbackRacePin = framePinsWithDemo.find((pin) => pin.isRace && isUserStepPin(pin));
+      const racePin = exactRacePin ?? fallbackRacePin;
+      if (racePin) {
+        setLayersOpen(false);
+        setSelectedPin(selectableStepPin(racePin, 'race-filter'));
+        setSearchFocus({ lat: racePin.lat, lng: racePin.lng });
+      }
+    }
+  }, [framePinsWithDemo, next?.event_id, next?.event_kind, selectableStepPin]);
   // Mirror layers/chips into the controlled keys the LayersSheet reads.
   const controlledLayerKeys = useMemo(() => {
     const out = new Set<string>();
@@ -3180,7 +3314,6 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           },
     );
   }, [knowledgeArea, knowledgeAreaRecord]);
-  const { user: authUser } = useAuth();
   // One racing area "active" at a time — tapping an area's label focuses
   // it (others recede to a faint wash). Sticky after the knowledge sheet
   // closes; a background map tap restores all areas to normal.
@@ -3402,7 +3535,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // the scrubber whenever the NEXT race's forecast window is open; an open
   // race-step sheet runs its own window, and commit mode needs clear chrome.
   const raceTimeBarVisible =
-    nextRaceWindow.status === 'ok' && !!next && !selectedRaceStepOpen && !commitMode;
+    nextRaceWindow.status === 'ok' &&
+    !!next &&
+    !selectedRaceStepOpen &&
+    !commitMode &&
+    dismissedRaceTimeEventKey !== `${next.event_id ?? next.label}:${next.starts_at ?? ''}`;
   const raceCountdownLabel = useMemo(() => {
     if (!next?.starts_at) return null;
     const ms = new Date(next.starts_at).getTime() - Date.now();
@@ -3552,7 +3689,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             lat: focusedPeer.lat,
             lng: focusedPeer.lng,
             kind: 'peer-focus',
-            label: focusedPeer.name ?? undefined,
+            label: peerStepTitle(focusedPeer),
             peer: focusedPeer,
           }
         : null,
@@ -3583,7 +3720,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setCommitMode(false);
     setCandidate(null);
   }, []);
-  const handleDropPinPress = useCallback(() => {
+  const _handleDropPinPress = useCallback(() => {
     if (commitMode) exitCommit();
     else {
       // Entering commit-mode — clear any other sheet so the pin-drop
@@ -3985,6 +4122,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   : null
               }
               strategy={courseStrategy}
+              onDismiss={() => {
+                setDismissedRaceTimeEventKey(`${next.event_id ?? next.label}:${next.starts_at ?? ''}`);
+              }}
             />
           ) : null}
         </View>
@@ -4089,7 +4229,8 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         {handlers.nearbyOverlayOpen ||
         repositionTarget ||
         retraceTarget ||
-        reshapeTarget ? null : cockpitShowsChecklist &&
+        reshapeTarget ? null : showAmbientNextStepCockpit &&
+          cockpitShowsChecklist &&
           myNextStepPin &&
           !selectedPin &&
           !cockpitDismissed ? (
@@ -4466,6 +4607,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               />
             }
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            onClose={clearSelectedPin}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
@@ -4491,6 +4633,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               ) : null
             }
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            onClose={clearSelectedPin}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
@@ -4515,6 +4658,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               },
             }}
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            onClose={clearSelectedPin}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
@@ -4522,11 +4666,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <BottomSheet
             key="peer-step"
             eyebrow="PEER STEP"
-            title={selectedPin.peer.name?.trim() || 'Someone nearby'}
+            title={peerStepTitle(selectedPin.peer)}
             source={
               [
+                selectedPin.peer.name?.trim() || null,
                 peerRelationshipLabel(selectedPin.peer.relationship),
                 relativeSetAt(selectedPin.peer.setAt),
+                readablePeerPlaceName(selectedPin.peer.placeName),
               ]
                 .filter(Boolean)
                 .join(' · ')
@@ -4543,6 +4689,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               },
             }}
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            onClose={clearSelectedPin}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
@@ -4557,6 +4704,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               <RaceStepSheetContent
                 strategy={courseStrategy}
                 raceStartLabel={formatRaceStartLabel(selectedPin.raceStartAt)}
+                courseSummary={
+                  [
+                    selectedPin.raceContext?.areaName?.trim() || null,
+                    selectedPin.raceContext?.courseLabel?.trim() || null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || null
+                }
                 forecastUnavailable={Boolean(selectedPin.raceStartAt && marineSnapshot?.outOfRange)}
                 conditionsLabel={
                   selectedPin.raceStartAt && marineSnapshot?.outOfRange
@@ -4603,6 +4758,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 onSetStart={() => {
                   if (selectedPin.stepId) handlers.onStepPress?.(selectedPin.stepId);
                 }}
+                onSetCourse={() => {
+                  if (selectedPin.stepId) handlers.onStepPress?.(selectedPin.stepId);
+                }}
                 fallbackBody={bodyForRaceStepPin(selectedPin)}
               />
             }
@@ -4614,6 +4772,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               },
             }}
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            onClose={clearSelectedPin}
             showSecondaryInMid
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
@@ -4654,6 +4813,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               },
             }}
             secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            onClose={clearSelectedPin}
             showSecondaryInMid
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
@@ -4698,67 +4858,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             initialState="expanded"
           />
         )
-      ) : cockpitOwnsNext || selectedPin ? null : hasNext && !myNextStepPin ? (
-        <BottomSheet
-          key="has-next"
-          // "NEXT RACE", not "NEXT" — NEXT is reserved for the single next
-          // step (first un-done step after now); this card is the next
-          // race *event* on the calendar.
-          eyebrow={`NEXT RACE · ${next!.label.toUpperCase()}`}
-          title={`Plan a step for ${next!.label}.`}
-          body={`${[next!.where, next!.when].filter(Boolean).join(' · ')}\nNo steps here from you, your crew, or your fleet yet.`}
-          primary={{ label: `${next!.label} details`, icon: 'open-outline', onPress: handlers.onSecondaryAction }}
-          secondary={{ label: 'Drop a pin', icon: 'location-outline', onPress: handleDropPinPress }}
-          showSecondaryInMid
-          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-          initialState="mid"
-        />
-      ) : selectedPin ? null : myNextStepPin ? (
-        <BottomSheet
-          key="my-next-step"
-          eyebrow="YOUR NEXT STEP"
-          title={titleForUserStepPin(myNextStepPin)}
-          body={[
-            myNextStepPin.label?.includes('|') ? null : myNextStepPin.label,
-            'Tap to open this step, or drop a pin to anchor a new one.',
-          ]
-            .filter(Boolean)
-            .join('\n')}
-          primary={{
-            label: 'Open step',
-            icon: 'chevron-down',
-            onPress: openSavedSheetFromCallout,
-          }}
-          secondary={{ label: 'Drop a pin', icon: 'location-outline', onPress: handleDropPinPress }}
-          showSecondaryInMid
-          bottomOffset={Math.max(
-            0,
-            ((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) - 12,
-          )}
-          // Start collapsed so the sheet doesn't eat the map by
-          // default. User can pull it up via the handle when they
-          // want it. Selected-pin and committed-mode sheets keep
-          // initialState="mid" / "expanded" since those are the
-          // result of an explicit user action.
-          initialState="handle"
-          handleBehavior="edgeTab"
-          collapsedLabel="Step"
-        />
-      ) : (
-        <BottomSheet
-          key="atlas-empty"
-          eyebrow="ATLAS"
-          title="Anchor your next step to a place."
-          body="No steps here from you, your crew, or your fleet yet. Drop a pin to start, or tap any pin to see who's there."
-          primary={{
-            label: 'Drop a pin',
-            icon: 'location-outline',
-            onPress: handleDropPinPress,
-          }}
-          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-          initialState="mid"
-        />
-      )}
+      ) : null}
 
       {/* Series sheet — opened by tapping the "N races · {Series}" caption.
           Renders last so it stacks above the mapArea-sibling sheets above. */}
@@ -4904,6 +5004,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         <ReshapeAreaBanner
           areaName={reshapeTarget.name}
           dirty={reshapeTarget.dirty}
+          hasSelection={reshapeTarget.selectedIndex != null}
           saving={updateRacingAreaMutation.isPending}
           onCancel={handleCancelReshape}
           onSave={handleSaveReshape}
@@ -4914,6 +5015,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       {anchorStepTarget ? (
         <RepositionAreaBanner
           areaName={anchorStepTarget.title}
+          targetKind="step"
           hasMoved={anchorStepTarget.newLat != null && anchorStepTarget.newLng != null}
           saving={updateStepLocationMutation.isPending}
           onCancel={handleCancelAnchorStep}
@@ -6019,6 +6121,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               },
             }}
             secondary={{ label: 'Close', onPress: clearF4SelectedPin }}
+            onClose={clearF4SelectedPin}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="mid"
           />
@@ -7953,6 +8056,7 @@ interface BottomSheetProps {
     onPress?: () => void;
   };
   secondary?: { label: string; icon?: keyof typeof Ionicons.glyphMap; onPress?: () => void };
+  onClose?: () => void;
   /**
    * Render the secondary CTA in the mid state as well. Use this when the
    * secondary action is actually a primary navigation path, not a detail-
@@ -7993,6 +8097,7 @@ function BottomSheet({
   statsRow,
   primary,
   secondary,
+  onClose,
   showSecondaryInMid = false,
   topStripContent,
   bottomOffset = 0,
@@ -8060,9 +8165,7 @@ function BottomSheet({
         },
       ]}
     >
-      {/* Grabber is the only sheet-state control — Apple sheets don't
-          render a separate corner button. Tap the grabber to cycle
-          handle → mid → expanded. */}
+      {/* The grabber cycles sheet height; close, when present, lives in the header. */}
       <Pressable
         onPress={cycle}
         accessibilityRole="button"
@@ -8081,22 +8184,35 @@ function BottomSheet({
             {eyebrow ? <Text style={shellStyles.eyebrow}>{eyebrow}</Text> : null}
             {title ? <Text style={shellStyles.sheetTitle} numberOfLines={showFull ? undefined : 1}>{title}</Text> : null}
           </View>
-          {/* Chevron toggles expanded ↔ mid only — it must match its own
-              arrow direction. Minimizing further (handle / edge tab) is
-              the grabber's job. */}
-          <Pressable
-            onPress={() => setState(showFull ? 'mid' : 'expanded')}
-            accessibilityRole="button"
-            accessibilityLabel={showFull ? 'Collapse sheet' : 'Expand sheet'}
-            hitSlop={8}
-            style={shellStyles.sheetCollapseButton}
-          >
-            <Ionicons
-              name={showFull ? 'chevron-down' : 'chevron-up'}
-              size={18}
-              color={IOS_REGISTER.labelSecondary}
-            />
-          </Pressable>
+          <View style={shellStyles.sheetHeaderActions}>
+            {/* Chevron toggles expanded ↔ mid only — it must match its own
+                arrow direction. Minimizing further (handle / edge tab) is
+                the grabber's job. */}
+            <Pressable
+              onPress={() => setState(showFull ? 'mid' : 'expanded')}
+              accessibilityRole="button"
+              accessibilityLabel={showFull ? 'Collapse sheet' : 'Expand sheet'}
+              hitSlop={8}
+              style={shellStyles.sheetCollapseButton}
+            >
+              <Ionicons
+                name={showFull ? 'chevron-down' : 'chevron-up'}
+                size={18}
+                color={IOS_REGISTER.labelSecondary}
+              />
+            </Pressable>
+            {onClose ? (
+              <Pressable
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="Close sheet"
+                hitSlop={8}
+                style={shellStyles.sheetCloseButton}
+              >
+                <Ionicons name="close" size={18} color={IOS_REGISTER.labelSecondary} />
+              </Pressable>
+            ) : null}
+          </View>
         </View>
       ) : null}
       {showMid && source ? (
@@ -8563,21 +8679,25 @@ function StepBeatList({ beats, compact = false }: { beats: CockpitBeat[]; compac
 
 function RaceStepSheetContent({
   raceStartLabel,
+  courseSummary,
   forecastUnavailable,
   conditionsLabel,
   metrics,
   trends,
   strategy,
   onSetStart,
+  onSetCourse,
   fallbackBody,
 }: {
   raceStartLabel: string | null;
+  courseSummary: string | null;
   forecastUnavailable: boolean;
   conditionsLabel: string;
   metrics: { label: string; value: string | null; detail?: string | null }[];
   trends: { label: string; value: string | null; values: (number | null)[]; color: string }[];
   strategy: CourseStrategy | null;
   onSetStart: () => void;
+  onSetCourse: () => void;
   fallbackBody: string;
 }) {
   const [openSections, setOpenSections] = useState({
@@ -8608,6 +8728,24 @@ function RaceStepSheetContent({
         >
           <Text style={raceStepStyles.startEditText}>
             {raceStartLabel ? 'Edit in step' : 'Set start time'}
+          </Text>
+        </Pressable>
+      </View>
+      <View style={raceStepStyles.startRow}>
+        <View style={raceStepStyles.courseTextCol}>
+          <Text style={raceStepStyles.startEyebrow}>RACE AREA & COURSE</Text>
+          <Text style={raceStepStyles.startValue} numberOfLines={2}>
+            {courseSummary ?? 'Not set'}
+          </Text>
+        </View>
+        <Pressable
+          onPress={onSetCourse}
+          style={raceStepStyles.startEditButton}
+          accessibilityRole="button"
+          accessibilityLabel={courseSummary ? 'Edit race area and course' : 'Set race area and course'}
+        >
+          <Text style={raceStepStyles.startEditText}>
+            {courseSummary ? 'Edit in step' : 'Set in step'}
           </Text>
         </Pressable>
       </View>
@@ -8852,6 +8990,10 @@ const raceStepStyles = StyleSheet.create({
     backgroundColor: 'rgba(0, 122, 255, 0.08)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(0, 122, 255, 0.20)',
+  },
+  courseTextCol: {
+    flex: 1,
+    minWidth: 0,
   },
   startEyebrow: {
     fontSize: 9.5,
@@ -11787,6 +11929,11 @@ const shellStyles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  sheetHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   sheetCollapseButton: {
     width: 34,
     height: 34,
@@ -11794,6 +11941,14 @@ const shellStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: IOS_REGISTER.fillPill,
+  },
+  sheetCloseButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(120, 120, 128, 0.12)',
   },
   eyebrow: {
     fontFamily: fontFamily.mono,

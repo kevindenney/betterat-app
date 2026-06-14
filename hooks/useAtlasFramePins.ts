@@ -520,7 +520,9 @@ export function useAtlasFramePins({
         peer: {
           stepId: step.step_id,
           relationship: step.relationship,
-          name: step.preview_name ?? step.set_by_name ?? null,
+          name: step.set_by_name ?? null,
+          stepTitle: step.step_title ?? null,
+          placeName: step.preview_name ?? null,
           setAt: step.set_at ?? null,
           lat: step.lat,
           lng: step.lng,
