@@ -109,11 +109,13 @@ export interface UseStepReflectControllerInput {
   onGoToDo?: () => void;
   onNextStepCreated?: (newStepId: string) => void;
   /**
-   * Fired once the step has settled. Carries the next pending step in the
-   * same interest (or null when none) so the surface can offer a "take a
-   * beat" hinge inside the step-complete celebration instead of a toast.
+   * Fired once the step has settled. Carries the id of the step that was just
+   * completed (settling re-sorts the timeline and the surface's live stepId can
+   * drift to a neighbour, so the celebration must pin to this snapshot) plus the
+   * next pending step in the same interest (or null when none) so the surface
+   * can offer a "take a beat" hinge inside the celebration instead of a toast.
    */
-  onSettled?: (info: { nextStepId: string | null }) => void;
+  onSettled?: (info: { completedStepId: string; nextStepId: string | null }) => void;
 }
 
 export interface StepReflectControllerView {
@@ -729,7 +731,7 @@ export function useStepReflectController({
       // The settle is the signature beat — hand it to the surface so it can
       // raise the step-complete celebration (which folds in the "take a beat"
       // hinge to the next step) instead of a transient toast.
-      onSettled?.({ nextStepId });
+      onSettled?.({ completedStepId: stepId, nextStepId });
     } finally {
       setSettling(false);
     }

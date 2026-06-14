@@ -129,10 +129,7 @@ export function StepCompleteCelebration({
         onTakeABeat ? (
           <>
             <Pressable
-              style={({ pressed }) => [
-                styles.continueBtn,
-                pressed && styles.continueBtnPressed,
-              ]}
+              style={styles.continueBtn}
               onPress={onTakeABeat}
               accessibilityRole="button"
               accessibilityLabel="Take a beat before the next step"
@@ -153,10 +150,7 @@ export function StepCompleteCelebration({
           </>
         ) : (
           <Pressable
-            style={({ pressed }) => [
-              styles.continueBtn,
-              pressed && styles.continueBtnPressed,
-            ]}
+            style={styles.continueBtn}
             onPress={onDismiss}
             accessibilityRole="button"
             accessibilityLabel="Done"
@@ -185,11 +179,7 @@ export function StepCompleteCelebration({
           {upNextEyebrow ? <Text style={styles.upNextEyebrow}>{upNextEyebrow}</Text> : null}
           <Text style={styles.upNextTitle}>{next.title}</Text>
           <Pressable
-            style={({ pressed }) => [
-              styles.continueBtn,
-              pressed && styles.continueBtnPressed,
-              isContinuing && styles.continueBtnDisabled,
-            ]}
+            style={[styles.continueBtn, isContinuing && styles.continueBtnDisabled]}
             onPress={isContinuing ? undefined : onContinue}
             disabled={isContinuing}
             accessibilityRole="button"
@@ -424,12 +414,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: C.blue,
+    minHeight: 50,
     paddingVertical: 14,
     borderRadius: 12,
     marginTop: 4,
-  },
-  continueBtnPressed: {
-    opacity: 0.85,
   },
   continueBtnDisabled: {
     opacity: 0.6,

@@ -47,13 +47,18 @@ export function ReflectTabIOSRegisterShell({
   // controller's onSettled callback and clear it on dismiss / hinge tap.
   const [celebrating, setCelebrating] = React.useState(false);
   const [hingeNextStepId, setHingeNextStepId] = React.useState<string | null>(null);
+  // Settling re-sorts the timeline and the parent can re-select a neighbouring
+  // step, so the live `stepId` prop drifts off the step we just completed. Pin
+  // the celebration to the snapshot the controller hands back at settle time.
+  const [celebratedStepId, setCelebratedStepId] = React.useState<string | null>(null);
 
   const controller = useStepReflectController({
     stepId,
     readOnly,
     onGoToDo,
     onNextStepCreated,
-    onSettled: ({ nextStepId }) => {
+    onSettled: ({ completedStepId, nextStepId }) => {
+      setCelebratedStepId(completedStepId);
       setHingeNextStepId(nextStepId);
       setCelebrating(true);
     },
@@ -61,14 +66,16 @@ export function ReflectTabIOSRegisterShell({
 
   // Celebration data — all RQ-cached, so these reuse the same queries the rest
   // of the step screen already warmed. blueprintChrome is null for solo steps,
-  // which selects the lighter 'solo' celebration variant.
-  const { data: step } = useStepDetail(stepId);
-  const { data: blueprintChrome } = useStepBlueprintChrome(stepId);
+  // which selects the lighter 'solo' celebration variant. Keyed on the pinned
+  // completed step so the moment never drifts to a neighbour after the re-sort.
+  const dataStepId = celebratedStepId ?? stepId;
+  const { data: step } = useStepDetail(dataStepId);
+  const { data: blueprintChrome } = useStepBlueprintChrome(dataStepId);
   const stepSourceId =
     (step as { source_id?: string | null } | null)?.source_id ?? null;
   const { data: celebrationData, isLoading: celebrationLoading } =
     useStepCompleteCelebration({
-      stepId,
+      stepId: dataStepId,
       blueprintId: blueprintChrome?.blueprintId ?? null,
       sourceStepId: stepSourceId,
     });
@@ -118,12 +125,15 @@ export function ReflectTabIOSRegisterShell({
             ? () => {
                 setCelebrating(false);
                 router.push(
-                  `/practice/hinges/${encodeHingeId(stepId, hingeNextStepId)}` as never,
+                  `/practice/hinges/${encodeHingeId(dataStepId, hingeNextStepId)}` as never,
                 );
               }
             : undefined
         }
-        onDismiss={() => setCelebrating(false)}
+        onDismiss={() => {
+          setCelebrating(false);
+          setCelebratedStepId(null);
+        }}
       />
     );
     if (embedded) {
