@@ -41,7 +41,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { SuggestStepComposer } from '@/components/sailor/SuggestStepComposer';
 
 import {
@@ -159,7 +158,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
   const realCapabilities = useMemo(() => {
     if (enrichment.capabilities?.length || !sections?.capabilities?.length) return null;
     const statusFor = (standing: string): CapabilityStatus =>
-      standing === 'settled' ? 'settled' : standing === 'working' ? 'practicing' : 'learning';
+      standing === 'settled' ? 'settled' : standing === 'working' ? 'working' : 'emerging';
     return sections.capabilities.slice(0, 4).map((c) => ({
       name: c.name,
       status: statusFor(c.standing),
@@ -276,6 +275,21 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
   const framingText = enrichment.framing?.text ?? profile.bio ?? undefined;
   const framingProvenance =
     enrichment.framing?.provenance ?? (profile.bio ? 'Written when joining BetterAt' : undefined);
+  const realWhereRows = d
+    ? ([
+        d.sailingLocation ? { k: 'Home waters', v: d.sailingLocation } : null,
+        d.sailingClub ? { k: 'Club', v: d.sailingClub } : null,
+        d.sailingClass ? { k: 'Class', v: d.sailingClass } : null,
+        d.sailingPosition ? { k: 'Position', v: d.sailingPosition } : null,
+        d.seasonsActive
+          ? {
+              k: 'Seasons active',
+              v: `${d.seasonsActive} season${d.seasonsActive === 1 ? '' : 's'}`,
+            }
+          : null,
+      ].filter(Boolean) as { k: string; v: string }[])
+    : [];
+  const realWhere = realWhereRows.length ? realWhereRows : null;
 
   return (
     <SafeAreaView style={styles.ground} edges={['top']}>
@@ -333,11 +347,8 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
           )}
         </PublicFaceHero>
 
-        {/* v3 screen-designs Phase C — dual CTA row: Suggest a step + Reflect.
-            Sits below the hero, above the framing line. Gated by
-            SUGGEST_VERB_V3. The Reflect path is a stub for v1 (peer
-            reflections schema lands in a follow-up). */}
-        {FEATURE_FLAGS.SUGGEST_VERB_V3 && !isOwnProfile ? (
+        {/* Public peer actions. Reflect is a stub until peer reflections land. */}
+        {!isOwnProfile ? (
           <View style={dualCtaStyles.row}>
             <TouchableOpacity
               accessibilityRole="button"
@@ -594,6 +605,12 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               <WhereFormRow key={i} k={r.k} v={r.v} isFirst={i === 0} />
             ))}
           </IOSDetailSection>
+        ) : realWhere ? (
+          <IOSDetailSection header={`Where ${(displayName.split(' ')[0] || displayName)} practises`}>
+            {realWhere.map((r, i) => (
+              <WhereFormRow key={i} k={r.k} v={r.v} isFirst={i === 0} />
+            ))}
+          </IOSDetailSection>
         ) : null}
 
         {/* 09 · EVENTS — plain-text result, no medal glyphs, no podium. */}
@@ -628,7 +645,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
         </WebDetailContainer>
       </ScrollView>
 
-      {FEATURE_FLAGS.SUGGEST_VERB_V3 && !isOwnProfile ? (
+      {!isOwnProfile ? (
         <SuggestStepComposer
           visible={composerOpen}
           onClose={() => setComposerOpen(false)}

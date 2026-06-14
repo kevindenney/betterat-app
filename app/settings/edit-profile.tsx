@@ -19,7 +19,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Save, Camera } from 'lucide-react-native';
+import { ArrowLeft, Save, Camera, Eye } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useQueryClient } from '@tanstack/react-query';
@@ -120,6 +120,11 @@ export default function EditProfileScreen() {
       .join('')
       .toUpperCase()
       .slice(0, 2) || '?';
+  };
+
+  const handleViewPublicFace = () => {
+    if (!user?.id) return;
+    router.push(`/sailor/${user.id}` as any);
   };
 
   const handleSave = async () => {
@@ -248,6 +253,15 @@ export default function EditProfileScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.photoHint}>Tap to change photo</Text>
+          <TouchableOpacity
+            onPress={handleViewPublicFace}
+            disabled={!user?.id}
+            style={styles.publicFaceButton}
+            activeOpacity={0.8}
+          >
+            <Eye size={16} color={IOS_COLORS.systemBlue} />
+            <Text style={styles.publicFaceButtonText}>View public face</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Basic Information */}
@@ -428,6 +442,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: IOS_COLORS.secondaryLabel,
     marginTop: 4,
+  },
+  publicFaceButton: {
+    marginTop: 14,
+    minHeight: 36,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_COLORS.separator,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  publicFaceButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
   },
   header: {
     backgroundColor: '#FFFFFF',

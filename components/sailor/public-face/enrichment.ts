@@ -457,8 +457,188 @@ const MARKUS: PublicFaceEnrichment = {
   eventsTotal: 38,
 };
 
+const KEVIN_DENNEY: PublicFaceEnrichment = {
+  firstName: 'Kevin',
+  descriptor: 'Dragon Helm · Hong Kong',
+  meta: [
+    { icon: 'location-outline', text: 'RHKYC · Middle Island' },
+    { icon: 'calendar-outline', text: '1 season' },
+    { icon: 'checkmark-outline', text: '82 steps logged' },
+  ],
+  framing: {
+    text:
+      'Building a repeatable Dragon racing program — rig-tuning baselines, ' +
+      'two-boat testing, and a first-beat decision system for shifty Hong Kong waters.',
+    provenance: 'Written when joining BetterAt',
+  },
+  concept: {
+    weekTail: 'Week 3',
+    text:
+      'Commit to a side before the gun — pick the first shift from the compass ' +
+      'numbers, not from the fleet.',
+    stats: '6 steps practised against · 2 debriefs',
+    history: {
+      primary: '3 concepts settled before this one',
+      secondary: 'newest: Rig baselines',
+    },
+  },
+  conceptHistory: [
+    {
+      title: 'Rig baselines',
+      capability: 'Rig tuning to conditions',
+      closed: 'Closed May 2026',
+      text: 'Twelve sessions became one usable tuning matrix for the 8-18 kt band.',
+    },
+    {
+      title: 'Start-line time-and-distance',
+      capability: 'Start-line boat handling',
+      closed: 'Closed Apr 2026',
+      text: 'Held the front row in four of five spring-series starts.',
+    },
+    {
+      title: 'Compass-number journaling',
+      capability: 'First-beat strategy',
+      closed: 'Closed Mar 2026',
+      text: 'Stopped treating the fleet as the signal and made the compass numbers first-class evidence.',
+    },
+  ],
+  timeline: [
+    {
+      title: 'Rig-tuning baselines',
+      settled: true,
+      sub: '12 sessions → one-page tuning matrix for 8-18 kt',
+      when: 'May 2026',
+    },
+    {
+      title: 'Two-boat testing vs. Wei Lun',
+      sub: 'Upwind splits, 40-min windows off Middle Island',
+      when: 'May 2026',
+    },
+    {
+      title: 'Start-line time-and-distance',
+      settled: true,
+      sub: 'Held the front row 4 of 5 starts in the spring series',
+      when: 'Apr 2026',
+    },
+    {
+      title: 'Compass-number journaling',
+      sub: 'Pre-start shift log, every race day',
+      when: 'Mar 2026',
+    },
+  ],
+  capabilities: [
+    {
+      name: 'Rig tuning to conditions',
+      status: 'settled',
+      evidence:
+        'Matrix says 28 on the uppers at 14 kt — boat speed proved it both ways on the test day.',
+      provenance: 'From a two-boat testing debrief · May 2026',
+    },
+    {
+      name: 'Start-line boat handling',
+      status: 'settled',
+      evidence:
+        'Time-and-distance is no longer a guess — I know what 35 seconds looks like.',
+      provenance: 'From a race debrief · Apr 2026',
+    },
+    {
+      name: 'First-beat strategy',
+      status: 'working',
+      evidence:
+        'Still ducking the fleet instead of trusting the numbers when the pressure’s on.',
+      provenance: 'From this week’s concept · Jun 2026',
+    },
+    {
+      name: 'Crew choreography under spinnaker',
+      status: 'emerging',
+      evidence: 'Gybe-set worked twice in practice; not yet race-proven.',
+      provenance: 'From a practice session log · May 2026',
+    },
+  ],
+  capabilitiesTotal: 9,
+  circle: [
+    {
+      name: 'Wei Lun Cheung',
+      initials: 'WL',
+      markColor: '#5E81AC',
+      role: 'Two-boat testing partner · Dragon helm',
+      tail: 'Mutual',
+    },
+    {
+      name: 'Marta Reyes',
+      initials: 'MR',
+      markColor: '#A3736C',
+      role: 'Coach · starts & boat-on-boat',
+    },
+    {
+      name: 'James Tse',
+      initials: 'JT',
+      markColor: '#7B9E89',
+      role: 'Crew · bow, since March',
+      tail: 'Mutual',
+    },
+  ],
+  circleTotal: 7,
+  published: [
+    {
+      kind: 'reflection',
+      text:
+        'The fleet is a rumor. The compass is a fact. Six races of journaling finally made that real.',
+      provenance: 'Reflection · on settling Start-line time-and-distance · Apr 2026',
+    },
+    {
+      kind: 'thread',
+      title: 'Anyone else find the ebb tide line moves 200m north after 1400?',
+      topic: 'Spring Series R4 debrief',
+      replies: 7,
+      when: 'May 2026',
+    },
+    {
+      kind: 'thread',
+      title: 'Posting our 8-18kt tuning matrix — corrections welcome.',
+      topic: 'Rig-tuning baselines',
+      replies: 12,
+      when: 'May 2026',
+    },
+  ],
+  publishedTotal: 11,
+  where: [
+    { k: 'Home waters', v: 'Middle Island, Hong Kong' },
+    { k: 'Club', v: 'RHKYC' },
+    { k: 'Class', v: 'Dragon' },
+    { k: 'Racing area', v: 'Repulse Bay E course' },
+  ],
+  events: [
+    {
+      dateTop: '24',
+      dateBottom: 'May',
+      name: 'Spring Series · Race 5',
+      venue: 'Middle Island',
+      resultTop: '4th of 18',
+      resultBottom: 'best of season',
+    },
+    {
+      dateTop: '10',
+      dateBottom: 'May',
+      name: 'Spring Series · Race 4',
+      venue: 'Middle Island',
+      resultTop: '7th of 19',
+    },
+    {
+      dateTop: '26',
+      dateBottom: 'Apr',
+      name: 'Spring Series · Race 3',
+      venue: 'Repulse Bay',
+      resultTop: '11th of 19',
+      resultBottom: 'OCS recovered',
+    },
+  ],
+  eventsTotal: 6,
+};
+
 const ENRICHMENT_BY_ID: Record<string, PublicFaceEnrichment> = {
   '11111111-1111-1111-1111-000000000001': MARKUS,
+  'd67f765e-7fe6-4f79-b514-f1b7f9a1ba3f': KEVIN_DENNEY,
 };
 
 export function getPublicFaceEnrichment(userId: string): PublicFaceEnrichment {

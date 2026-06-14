@@ -179,11 +179,19 @@ export function MessageIconButton({ onPress }: { onPress: () => void }) {
 // surface (defensible because settled already exists in the trophy register).
 // =============================================================================
 
-export type CapabilityStatus = 'learning' | 'practicing' | 'breakthrough' | 'settled';
+export type CapabilityStatus =
+  | 'learning'
+  | 'emerging'
+  | 'practicing'
+  | 'working'
+  | 'breakthrough'
+  | 'settled';
 
 const STATUS_PALETTE: Record<CapabilityStatus, { fill: string; color: string }> = {
   learning: { fill: 'rgba(60, 60, 67, 0.10)', color: LABEL_2 },
+  emerging: { fill: 'rgba(0, 122, 255, 0.12)', color: '#2563EB' },
   practicing: { fill: 'rgba(0, 122, 255, 0.12)', color: '#0A5BAA' },
+  working: { fill: 'rgba(217, 119, 87, 0.16)', color: ACCENT_DISCOVER },
   breakthrough: { fill: 'rgba(217, 119, 87, 0.16)', color: ACCENT_DISCOVER },
   settled: { fill: 'rgba(63, 135, 88, 0.14)', color: '#2F6D45' },
 };
