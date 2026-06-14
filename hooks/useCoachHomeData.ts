@@ -3,7 +3,6 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { CompetencyProgressTrend, programService } from '@/services/ProgramService';
 import { signatureInsightService } from '@/services/SignatureInsightService';
-import { supabase } from '@/services/supabase';
 import { createCoachHomeRealtimeController } from '@/hooks/coachHomeRealtimeController';
 import { resolveCoachUnreadThreadCount } from '@/lib/coach/unreadScope';
 import {
@@ -273,7 +272,6 @@ export function useCoachHomeData() {
       userId,
       runId,
       isActiveRun: () => activeRunIdRef.current === runId,
-      supabase,
       scheduleRefresh,
     });
 

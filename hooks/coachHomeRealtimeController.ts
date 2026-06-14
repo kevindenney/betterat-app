@@ -1,3 +1,6 @@
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { realtimeService } from '@/services/RealtimeService';
+
 export type CoachHomeRealtimePayload = {
   table?: string;
   eventType?: string;
@@ -6,61 +9,26 @@ export type CoachHomeRealtimePayload = {
   old?: Record<string, unknown>;
 };
 
-export type CoachHomeRealtimeStatus = 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED' | string;
-
-export type CoachHomeRealtimeChannel = {
-  on: (
-    event: 'postgres_changes',
-    config: { event: '*'; schema: 'public'; table: string; filter: string },
-    callback: (payload: CoachHomeRealtimePayload) => void
-  ) => CoachHomeRealtimeChannel;
-  subscribe: (callback: (status: CoachHomeRealtimeStatus) => void) => CoachHomeRealtimeChannel;
-};
-
-export type CoachHomeRealtimeSupabase = {
-  channel: (name: string) => CoachHomeRealtimeChannel;
-  removeChannel: (channel: CoachHomeRealtimeChannel) => unknown;
-};
-
 type CreateCoachHomeRealtimeControllerParams = {
   organizationId: string;
   userId: string;
   runId: number;
   isActiveRun: () => boolean;
-  supabase: CoachHomeRealtimeSupabase;
   scheduleRefresh: (delayMs?: number) => void;
   now?: () => number;
-  setTimer?: (handler: () => void, timeoutMs: number) => ReturnType<typeof setTimeout>;
-  clearTimer?: (timer: ReturnType<typeof setTimeout>) => void;
 };
 
 const DUPLICATE_WINDOW_MS = 5_000;
 const SIGNATURE_TTL_MS = 90_000;
-const RECONNECT_DELAY_MS = 1_500;
 
 export function createCoachHomeRealtimeController(params: CreateCoachHomeRealtimeControllerParams) {
   const now = params.now ?? (() => Date.now());
-  const setTimer = params.setTimer ?? ((handler, timeoutMs) => setTimeout(handler, timeoutMs));
-  const clearTimer = params.clearTimer ?? ((timer) => clearTimeout(timer));
   const seenSignatures = new Map<string, number>();
 
   let disposed = false;
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let channel: CoachHomeRealtimeChannel | null = null;
+  const channelName = `coach-home-counters:${params.organizationId}:${params.userId}:${params.runId}`;
 
   const canCommit = () => !disposed && params.isActiveRun();
-
-  const clearReconnectTimer = () => {
-    if (!reconnectTimer) return;
-    clearTimer(reconnectTimer);
-    reconnectTimer = null;
-  };
-
-  const clearChannel = () => {
-    if (!channel) return;
-    void params.supabase.removeChannel(channel);
-    channel = null;
-  };
 
   const buildKeyId = (payload: CoachHomeRealtimePayload): string => {
     const table = String(payload.table || '');
@@ -127,61 +95,39 @@ export function createCoachHomeRealtimeController(params: CreateCoachHomeRealtim
     params.scheduleRefresh();
   };
 
-  const scheduleReconnect = () => {
-    if (!canCommit()) return;
-    clearReconnectTimer();
-    reconnectTimer = setTimer(() => {
-      reconnectTimer = null;
-      if (!canCommit()) return;
-      connect();
-    }, RECONNECT_DELAY_MS);
+  const handlePayload = (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+    onRealtimePayload(payload as CoachHomeRealtimePayload);
   };
 
-  const onStatus = (status: CoachHomeRealtimeStatus) => {
+  const onStatus = (status: string) => {
     if (!canCommit()) return;
     if (status === 'SUBSCRIBED') {
-      clearReconnectTimer();
       params.scheduleRefresh(0);
-      return;
-    }
-    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-      scheduleReconnect();
     }
   };
 
-  const connect = () => {
-    if (!canCommit()) return;
-    clearChannel();
-
-    const channelName = `coach-home-counters:${params.organizationId}:${params.userId}:${params.runId}`;
-    channel = params.supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'assessment_records', filter: `organization_id=eq.${params.organizationId}` },
-        onRealtimePayload
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'communication_messages', filter: `organization_id=eq.${params.organizationId}` },
-        onRealtimePayload
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'communication_thread_reads', filter: `organization_id=eq.${params.organizationId}` },
-        onRealtimePayload
-      );
-
-    channel.subscribe(onStatus);
-  };
-
-  connect();
+  const filter = `organization_id=eq.${params.organizationId}`;
+  realtimeService.subscribe<Record<string, unknown>>(
+    channelName,
+    {
+      table: 'assessment_records',
+      event: '*',
+      schema: 'public',
+      filter,
+      onStatus,
+      changes: [
+        { event: '*', schema: 'public', table: 'assessment_records', filter },
+        { event: '*', schema: 'public', table: 'communication_messages', filter },
+        { event: '*', schema: 'public', table: 'communication_thread_reads', filter },
+      ],
+    },
+    handlePayload
+  );
 
   return {
     dispose: () => {
       disposed = true;
-      clearReconnectTimer();
-      clearChannel();
+      void realtimeService.unsubscribe(channelName, handlePayload, onStatus);
     },
   };
 }
