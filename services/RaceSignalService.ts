@@ -5,7 +5,8 @@
  */
 
 import { supabase } from './supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { realtimeService } from './RealtimeService';
 import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { createLogger } from '@/lib/utils/logger';
 
@@ -131,8 +132,10 @@ export interface SignalInput {
 // ============================================================================
 
 class RaceSignalService {
-  private subscriptions: Map<string, RealtimeChannel> = new Map();
-  private listeners: Map<string, Set<(signal: RaceSignal) => void>> = new Map();
+  private signalWrappers: Map<
+    string,
+    Map<(signal: RaceSignal) => void, (payload: RealtimePostgresChangesPayload<RaceSignal>) => void>
+  > = new Map();
   private raceSignalsIdColumn: 'regatta_id' | 'race_id' = 'regatta_id';
   private liveRaceStateIdColumn: 'regatta_id' | 'race_id' = 'regatta_id';
 
@@ -571,49 +574,39 @@ class RaceSignalService {
     callback: (signal: RaceSignal) => void
   ): () => void {
     const channelKey = `signals:${regattaId}`;
-    
-    // Add callback to listeners
-    const existing = this.listeners.get(channelKey) || new Set<(signal: RaceSignal) => void>();
-    existing.add(callback);
-    this.listeners.set(channelKey, existing);
+    const wrappers = this.signalWrappers.get(channelKey) || new Map();
 
-    // Create subscription if not exists
-    if (!this.subscriptions.has(channelKey)) {
-      const channel = supabase
-        .channel(channelKey)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'race_signals',
-          },
-          (payload) => {
-            const signal = payload.new as RaceSignal;
-            const signalRaceId = (signal as any).regatta_id || (signal as any).race_id;
-            if (signalRaceId !== regattaId) return;
-            const listeners = this.listeners.get(channelKey);
-            if (!listeners || listeners.size === 0) return;
-            listeners.forEach((cb) => cb(signal));
-          }
-        )
-        .subscribe();
+    if (!wrappers.has(callback)) {
+      const wrapper = (payload: RealtimePostgresChangesPayload<RaceSignal>) => {
+        const signal = payload.new as RaceSignal;
+        const signalRaceId = (signal as any).regatta_id || (signal as any).race_id;
+        if (signalRaceId !== regattaId) return;
+        callback(signal);
+      };
+      wrappers.set(callback, wrapper);
+      this.signalWrappers.set(channelKey, wrappers);
 
-      this.subscriptions.set(channelKey, channel);
+      realtimeService.subscribe<RaceSignal>(
+        channelKey,
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'race_signals',
+        },
+        wrapper
+      );
     }
 
     // Return unsubscribe function
     return () => {
-      const listeners = this.listeners.get(channelKey);
-      listeners?.delete(callback);
-
-      if (!listeners || listeners.size === 0) {
-        const channel = this.subscriptions.get(channelKey);
-        if (channel) {
-          void supabase.removeChannel(channel);
-          this.subscriptions.delete(channelKey);
-        }
-        this.listeners.delete(channelKey);
+      const current = this.signalWrappers.get(channelKey);
+      const wrapper = current?.get(callback);
+      if (wrapper) {
+        void realtimeService.unsubscribe(channelKey, wrapper);
+        current!.delete(callback);
+      }
+      if (current && current.size === 0) {
+        this.signalWrappers.delete(channelKey);
       }
     };
   }
@@ -622,11 +615,10 @@ class RaceSignalService {
    * Unsubscribe from all
    */
   unsubscribeAll(): void {
-    for (const channel of this.subscriptions.values()) {
-      void supabase.removeChannel(channel);
+    for (const channelKey of this.signalWrappers.keys()) {
+      void realtimeService.unsubscribe(channelKey);
     }
-    this.subscriptions.clear();
-    this.listeners.clear();
+    this.signalWrappers.clear();
   }
 
   // -------------------------------------------------------------------------
