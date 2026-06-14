@@ -507,6 +507,30 @@ export function getPlaceKnowledgeLabels(
 }
 
 // ---------------------------------------------------------------------------
+// Atlas next-event eyebrow label
+// ---------------------------------------------------------------------------
+
+// The Atlas highlights the user's next anchored event with an amber tag whose
+// eyebrow names what kind of event it is. "NEXT RACE" is a sailor's phrase; an
+// entrepreneur heading to a market reads "NEXT MARKET", a nurse "NEXT SHIFT".
+// Generic personas get the neutral "NEXT UP".
+const DEFAULT_ATLAS_NEXT_EVENT_LABEL = 'NEXT UP';
+
+const ATLAS_NEXT_EVENT_LABEL_BY_SLUG: Record<string, string> = {
+  'sail-racing': 'NEXT RACE',
+  sailing: 'NEXT RACE',
+  sail: 'NEXT RACE',
+  nursing: 'NEXT SHIFT',
+  golf: 'NEXT ROUND',
+  'lac-craft-business': 'NEXT MARKET',
+};
+
+export function getAtlasNextEventLabel(interestSlug?: string | null): string {
+  if (!interestSlug) return DEFAULT_ATLAS_NEXT_EVENT_LABEL;
+  return ATLAS_NEXT_EVENT_LABEL_BY_SLUG[interestSlug] ?? DEFAULT_ATLAS_NEXT_EVENT_LABEL;
+}
+
+// ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
 

@@ -100,6 +100,7 @@ import { compareSeasonsByStartDate } from '@/components/ios-register/timeline-zo
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 import { useInterest } from '@/providers/InterestProvider';
+import { getAtlasNextEventLabel } from '@/lib/vocabulary';
 import { InterestSwitcher, openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
@@ -4180,7 +4181,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <NextEventTag
             leftPct={50}
             topPct={47}
-            eyebrow={`NEXT RACE · ${next!.label.toUpperCase()}${next!.when ? ` · ${next!.when.toUpperCase()}` : ''}`}
+            eyebrow={`${next!.eyebrow ?? getAtlasNextEventLabel(currentInterest?.slug)} · ${next!.label.toUpperCase()}${next!.when ? ` · ${next!.when.toUpperCase()}` : ''}`}
             detail={next!.conditions}
           />
         )}

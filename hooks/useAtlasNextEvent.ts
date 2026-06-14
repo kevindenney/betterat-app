@@ -35,6 +35,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useVocabulary } from '@/hooks/useVocabulary';
+import { getAtlasNextEventLabel } from '@/lib/vocabulary';
 import { supabase } from '@/services/supabase';
 import type { AtlasNextEvent } from '@/components/ios-register/atlas/AtlasScreen';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -304,5 +305,11 @@ export function useAtlasNextEvent(interestSlugOverride?: string | null): AtlasNe
     staleTime: 60_000,
   });
 
-  return query.data ?? null;
+  // Stamp the persona-native eyebrow ("NEXT RACE" / "NEXT MARKET" / "NEXT
+  // SHIFT" / "NEXT UP") so every consumer — the MapLibre amber tag and the
+  // SVG fallback alike — names the event in the user's own vocabulary rather
+  // than the sailing-default "NEXT RACE".
+  const event = query.data ?? null;
+  if (!event) return null;
+  return { ...event, eyebrow: event.eyebrow ?? getAtlasNextEventLabel(interestSlug) };
 }
