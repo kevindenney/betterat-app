@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { createLogger } from '@/lib/utils/logger';
 import {
   TeamRaceEntry,
@@ -431,26 +432,26 @@ class TeamRaceEntryServiceClass {
     entryId: string,
     callback: (state: TeamRaceChecklistState) => void
   ): () => void {
-    const channel = supabase
-      .channel(`team-checklist:${entryId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'team_race_checklists',
-          filter: `team_entry_id=eq.${entryId}`,
-        },
-        (payload) => {
-          if (payload.new) {
-            callback(rowToTeamRaceChecklistState(payload.new as TeamRaceChecklistRow));
-          }
-        }
-      )
-      .subscribe();
+    const channelName = `team-checklist:${entryId}`;
+    const handleChecklistChange = (payload: { new: unknown }) => {
+      if (payload.new) {
+        callback(rowToTeamRaceChecklistState(payload.new as TeamRaceChecklistRow));
+      }
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'team_race_checklists',
+        filter: `team_entry_id=eq.${entryId}`,
+      },
+      handleChecklistChange
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handleChecklistChange);
     };
   }
 
@@ -462,26 +463,26 @@ class TeamRaceEntryServiceClass {
     entryId: string,
     callback: (members: TeamRaceEntryMember[]) => void
   ): () => void {
-    const channel = supabase
-      .channel(`team-members:${entryId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'team_race_entry_members',
-          filter: `team_entry_id=eq.${entryId}`,
-        },
-        async () => {
-          // Refetch all members on any change
-          const members = await this.getTeamMembers(entryId);
-          callback(members);
-        }
-      )
-      .subscribe();
+    const channelName = `team-members:${entryId}`;
+    const handleMemberChange = async () => {
+      // Refetch all members on any change
+      const members = await this.getTeamMembers(entryId);
+      callback(members);
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'team_race_entry_members',
+        filter: `team_entry_id=eq.${entryId}`,
+      },
+      handleMemberChange
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handleMemberChange);
     };
   }
 }
