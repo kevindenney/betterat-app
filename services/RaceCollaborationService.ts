@@ -11,6 +11,8 @@
  */
 
 import { supabase } from '@/services/supabase';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { realtimeService } from '@/services/RealtimeService';
 import { createLogger } from '@/lib/utils/logger';
 import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { isUuid } from '@/utils/uuid';
@@ -929,32 +931,32 @@ class RaceCollaborationServiceClass {
       return () => {}; // No-op unsubscribe
     }
 
-    const channel = supabase
-      .channel(`race-collaborators:${regattaId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'race_collaborators',
-          filter: `regatta_id=eq.${regattaId}`,
-        },
-        async (payload) => {
-          const payloadRaceId =
-            (payload as any)?.new?.regatta_id ||
-            (payload as any)?.new?.race_id ||
-            (payload as any)?.old?.regatta_id ||
-            (payload as any)?.old?.race_id;
-          if (payloadRaceId !== regattaId) return;
-          // Refetch all collaborators on any change
-          const collaborators = await this.getCollaborators(regattaId);
-          callback(collaborators);
-        }
-      )
-      .subscribe();
+    const channelName = `race-collaborators:${regattaId}`;
+    const handler = async (payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+      const payloadRaceId =
+        (payload as any)?.new?.regatta_id ||
+        (payload as any)?.new?.race_id ||
+        (payload as any)?.old?.regatta_id ||
+        (payload as any)?.old?.race_id;
+      if (payloadRaceId !== regattaId) return;
+      // Refetch all collaborators on any change
+      const collaborators = await this.getCollaborators(regattaId);
+      callback(collaborators);
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'race_collaborators',
+        filter: `regatta_id=eq.${regattaId}`,
+      },
+      handler
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handler);
     };
   }
 
@@ -972,32 +974,32 @@ class RaceCollaborationServiceClass {
       return () => {}; // No-op unsubscribe
     }
 
-    const channel = supabase
-      .channel(`race-messages:${regattaId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'race_messages',
-          filter: `regatta_id=eq.${regattaId}`,
-        },
-        async (payload) => {
-          const payloadRaceId =
-            (payload as any)?.new?.regatta_id ||
-            (payload as any)?.new?.race_id ||
-            (payload as any)?.old?.regatta_id ||
-            (payload as any)?.old?.race_id;
-          if (payloadRaceId !== regattaId) return;
-          // Refetch all messages on any change
-          const messages = await this.getMessages(regattaId);
-          callback(messages);
-        }
-      )
-      .subscribe();
+    const channelName = `race-messages:${regattaId}`;
+    const handler = async (payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+      const payloadRaceId =
+        (payload as any)?.new?.regatta_id ||
+        (payload as any)?.new?.race_id ||
+        (payload as any)?.old?.regatta_id ||
+        (payload as any)?.old?.race_id;
+      if (payloadRaceId !== regattaId) return;
+      // Refetch all messages on any change
+      const messages = await this.getMessages(regattaId);
+      callback(messages);
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'race_messages',
+        filter: `regatta_id=eq.${regattaId}`,
+      },
+      handler
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handler);
     };
   }
 }
