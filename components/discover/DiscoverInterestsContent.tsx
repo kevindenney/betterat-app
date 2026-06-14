@@ -38,7 +38,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { supabase } from '@/services/supabase';
 import { IOS_SPACING } from '@/lib/design-tokens-ios';
-import { gearErrorMessage, getGearLabels, type GearItem, type GearStatus } from '@/services/GearService';
+import { gearErrorMessage, getGearLabels, hasGearConcept, type GearItem, type GearStatus } from '@/services/GearService';
 import { GearEditorSheet, type GearEditorValues } from '@/components/discover/GearEditorSheet';
 import {
   useCreateGearItem,
@@ -564,13 +564,15 @@ export function DiscoverInterestsContent({
           ))}
         </View>
 
-        <InterestGearPanel
-          userId={user?.id ?? null}
-          interestId={interest.id}
-          interestSlug={slug}
-          accent={accent}
-          expanded={expanded}
-        />
+        {hasGearConcept(slug) && (
+          <InterestGearPanel
+            userId={user?.id ?? null}
+            interestId={interest.id}
+            interestSlug={slug}
+            accent={accent}
+            expanded={expanded}
+          />
+        )}
 
         {expanded && (
           <>

@@ -177,6 +177,19 @@ export function getGearLabels(slug: string | null | undefined): GearLabels {
   };
 }
 
+// Interests whose practice has no physical equipment to track. The Equipment
+// panel is hidden for these so academic/reflective interests don't show an
+// empty "Equipment" rail.
+const GEARLESS_INTEREST_SLUGS = new Set([
+  'self-mastery',
+  'lifelong-learning',
+  'college-career-planning',
+]);
+
+export function hasGearConcept(slug: string | null | undefined): boolean {
+  return !GEARLESS_INTEREST_SLUGS.has(String(slug ?? '').toLowerCase());
+}
+
 function sortGearItems(a: GearItem, b: GearItem): number {
   if (a.status === 'retired' && b.status !== 'retired') return 1;
   if (a.status !== 'retired' && b.status === 'retired') return -1;
