@@ -8,6 +8,7 @@ import ProtestModal from '@/components/race-control/ProtestModal';
 import { useClubWorkspace } from '@/hooks/useClubWorkspace';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
@@ -151,24 +152,23 @@ export default function RaceControlScreen() {
   useEffect(() => {
     if (!clubId) return;
 
-    const channel = supabase
-      .channel(`race-control-${id}-${raceNumber}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'race_results',
-          filter: `regatta_id=eq.${id}`,
-        },
-        () => {
-          loadResults();
-        }
-      )
-      .subscribe();
+    const channelName = `race-control-${id}-${raceNumber}`;
+    const handler = () => {
+      loadResults();
+    };
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'race_results',
+        filter: `regatta_id=eq.${id}`,
+      },
+      handler
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, raceNumber, clubId]);
@@ -656,24 +656,23 @@ export default function RaceControlScreen() {
     useEffect(() => {
       loadProtests();
 
-      const channel = supabase
-        .channel(`protests-${regattaId}-${raceNumber}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'race_protests',
-            filter: `regatta_id=eq.${regattaId}`,
-          },
-          () => {
-            loadProtests();
-          }
-        )
-        .subscribe();
+      const channelName = `protests-${regattaId}-${raceNumber}`;
+      const handler = () => {
+        loadProtests();
+      };
+      realtimeService.subscribe(
+        channelName,
+        {
+          event: '*',
+          schema: 'public',
+          table: 'race_protests',
+          filter: `regatta_id=eq.${regattaId}`,
+        },
+        handler
+      );
 
       return () => {
-        supabase.removeChannel(channel);
+        void realtimeService.unsubscribe(channelName, handler);
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [regattaId, raceNumber]);
