@@ -2632,7 +2632,7 @@ function createWebNextEventElement(
 ) {
   const root = document.createElement(onPress ? 'button' : 'div');
   const eyebrow = document.createElement('div');
-  eyebrow.textContent = 'NEXT RACE';
+  eyebrow.textContent = nextEvent.eyebrow ?? 'NEXT RACE';
   eyebrow.style.font = '800 8px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   eyebrow.style.letterSpacing = '1px';
   eyebrow.style.color = '#B26B00';
