@@ -254,12 +254,18 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
   // public-face hero mirrors the Discover Person descriptor pattern but
   // scaled up: "Dragon Helm · Hong Kong". Meta-pellets carry club + seasons.
   const d = sections?.descriptor;
+  const personInterests = sections?.interests ?? [];
   const identity = [d?.sailingClass?.trim(), d?.sailingPosition?.trim()]
     .filter(Boolean)
     .join(' ');
   const realDescriptor =
     [identity, d?.sailingLocation?.trim()].filter(Boolean).join(' · ') || undefined;
-  const descriptor = enrichment.descriptor ?? realDescriptor ?? profile.location ?? undefined;
+  // Non-sailing personas have no sailing_* columns; fall back to the person's
+  // primary interest + generic location so the identity layer still renders.
+  const interestDescriptor =
+    [personInterests[0]?.name, profile.location?.trim()].filter(Boolean).join(' · ') || undefined;
+  const descriptor =
+    enrichment.descriptor ?? realDescriptor ?? interestDescriptor ?? profile.location ?? undefined;
   const realMeta: { icon?: any; text: string }[] = [];
   if (d?.sailingClub) realMeta.push({ icon: 'location-outline', text: d.sailingClub });
   if (d?.seasonsActive) {
@@ -289,7 +295,24 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
           : null,
       ].filter(Boolean) as { k: string; v: string }[])
     : [];
-  const realWhere = realWhereRows.length ? realWhereRows : null;
+  // Generic identity rows for non-sailing personas — built from the real
+  // interest + location data, never invented. Used only when the sailing
+  // block is empty so the "where" section doesn't silently disappear.
+  const genericWhereRows: { k: string; v: string }[] = [];
+  if (personInterests.length) {
+    genericWhereRows.push({
+      k: personInterests.length === 1 ? 'Focus' : 'Focuses',
+      v: personInterests.map((i) => i.name).join(', '),
+    });
+  }
+  if (profile.location?.trim()) {
+    genericWhereRows.push({ k: 'Based in', v: profile.location.trim() });
+  }
+  const realWhere = realWhereRows.length
+    ? realWhereRows
+    : genericWhereRows.length
+      ? genericWhereRows
+      : null;
 
   return (
     <SafeAreaView style={styles.ground} edges={['top']}>

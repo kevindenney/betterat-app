@@ -78,6 +78,11 @@ export interface PersonDescriptorFields {
   seasonsActive: number | null;
 }
 
+export interface PersonInterest {
+  name: string;
+  slug: string;
+}
+
 export interface PersonPublicSections {
   trajectory: PersonTrajectoryItem[];
   inCommonOrgs: PersonInCommonOrg[];
@@ -86,6 +91,7 @@ export interface PersonPublicSections {
   capabilities: PersonCapability[];
   circle: PersonCircle | null;
   descriptor: PersonDescriptorFields | null;
+  interests: PersonInterest[];
 }
 
 const STALE_MS = 60_000;
@@ -197,6 +203,7 @@ export function usePersonPublicSections(userId: string | null | undefined) {
         concept?: PersonConcept | null;
         capabilities?: PersonCapability[];
         circle?: PersonCircle | null;
+        interests?: PersonInterest[];
       };
 
       const d = descriptorRes.data as {
@@ -206,6 +213,13 @@ export function usePersonPublicSections(userId: string | null | undefined) {
         sailing_club: string | null;
         seasons_active: number | null;
       } | null;
+
+      // Interests come from the SECURITY DEFINER public-face RPC, not a direct
+      // user_interests read — RLS only lets a person read their own interest
+      // rows, so a direct query would return empty for any peer viewer.
+      const interests: PersonInterest[] = (face.interests ?? []).filter(
+        (i): i is PersonInterest => Boolean(i?.name && i?.slug),
+      );
 
       return {
         trajectory,
@@ -223,6 +237,7 @@ export function usePersonPublicSections(userId: string | null | undefined) {
               seasonsActive: d.seasons_active,
             }
           : null,
+        interests,
       };
     },
   });
