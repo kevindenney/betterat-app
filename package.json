@@ -55,7 +55,6 @@
     "test:e2e:auth-complete": "maestro test .maestro/auth/complete-auth-flow.yaml",
     "test:e2e:critical": "maestro test .maestro/ --include-tags=critical",
     "test:e2e:alerts": "maestro test .maestro/ --include-tags=alert",
-    "test:coach-home:realtime-harness": "npx jest hooks/__tests__/coachHomeRealtimeController.reliability.test.ts --runInBand",
     "validate:api-smoke:deploy": "node scripts/run-api-smoke-deploy.mjs",
     "test": "jest",
     "test:watch": "jest --watch",
