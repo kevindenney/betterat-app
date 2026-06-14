@@ -6,7 +6,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { useAuth } from '@/providers/AuthProvider';
 import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
 import {
@@ -220,51 +222,53 @@ export function useRaceMessages({
       runId === realtimeRunIdRef.current &&
       activeRegattaIdRef.current === targetRegattaId;
 
-    const channel = supabase
-      .channel(`race-messages:${regattaId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'race_messages',
-          filter: `regatta_id=eq.${regattaId}`,
-        },
-        async (payload) => {
-          const row = payload.new as RaceMessageRow;
-          const payloadRaceId = (row as any).regatta_id || (row as any).race_id;
-          if (payloadRaceId !== targetRegattaId) return;
-          let msg = rowToRaceMessage(row);
+    const channelName = `race-messages:${regattaId}`;
+    const handleMessageInsert = async (payload: RealtimePostgresChangesPayload<any>) => {
+      const row = payload.new as RaceMessageRow;
+      const payloadRaceId = (row as any).regatta_id || (row as any).race_id;
+      if (payloadRaceId !== targetRegattaId) return;
+      let msg = rowToRaceMessage(row);
 
-          // Try cached profile first, then fetch
-          if (profileCacheRef.current[msg.userId]) {
-            msg.profile = profileCacheRef.current[msg.userId];
-          } else {
-            msg = await enrichWithProfile(msg);
-            if (msg.profile) {
-              profileCacheRef.current[msg.userId] = msg.profile;
-            }
-          }
+      // Try cached profile first, then fetch
+      if (profileCacheRef.current[msg.userId]) {
+        msg.profile = profileCacheRef.current[msg.userId];
+      } else {
+        msg = await enrichWithProfile(msg);
+        if (msg.profile) {
+          profileCacheRef.current[msg.userId] = msg.profile;
+        }
+      }
 
-          if (!canCommit()) return;
-          setMessages((prev) => {
-            // Avoid duplicates (e.g., from optimistic insert)
-            if (prev.some((m) => m.id === msg.id)) return prev;
-            return [...prev, msg];
-          });
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          logger.warn('Realtime channel error for race messages');
-        }
+      if (!canCommit()) return;
+      setMessages((prev) => {
+        // Avoid duplicates (e.g., from optimistic insert)
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
       });
+    };
+    const handleRealtimeStatus = (status: string) => {
+      if (status === 'CHANNEL_ERROR') {
+        logger.warn('Realtime channel error for race messages');
+      }
+    };
+
+    realtimeService.subscribe<RaceMessageRow>(
+      channelName,
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'race_messages',
+        filter: `regatta_id=eq.${regattaId}`,
+        onStatus: handleRealtimeStatus,
+      },
+      handleMessageInsert
+    );
 
     return () => {
       if (realtimeRunIdRef.current === runId) {
         realtimeRunIdRef.current += 1;
       }
-      void supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handleMessageInsert, handleRealtimeStatus);
     };
   }, [regattaId, realtime, user?.id]);
 
