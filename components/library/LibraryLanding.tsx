@@ -431,7 +431,7 @@ function AddChoiceRow({
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.addChoiceRow, pressed && styles.addChoicePressed]}
+      style={styles.addChoiceRow}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
@@ -595,15 +595,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   addChoiceRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     minHeight: 68,
     paddingHorizontal: 18,
     paddingVertical: 10,
-  },
-  addChoicePressed: {
-    backgroundColor: IOS_COLORS.systemGray6,
   },
   addChoiceIcon: {
     width: 38,
