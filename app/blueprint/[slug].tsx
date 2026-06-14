@@ -36,6 +36,7 @@ import {
   useSubscribe,
   useUnsubscribe,
   useAdoptBlueprintStep,
+  useSubscriberAdoptedSteps,
 } from '@/hooks/useBlueprint';
 import { getBlueprintAccessInfo, checkBlueprintPurchase, getPeerSubscriberTimelines } from '@/services/BlueprintService';
 import { blueprintPaymentService } from '@/services/BlueprintPaymentService';
@@ -98,6 +99,10 @@ export default function BlueprintPage() {
   const subscribeMutation = useSubscribe();
   const unsubscribeMutation = useUnsubscribe();
   const adoptStepMutation = useAdoptBlueprintStep();
+  // Subscriber progress lives on their own adopted timeline copies, keyed by the
+  // source blueprint step. Required so the page reflects the viewer's own
+  // progress — not the author's template completion — after subscribing.
+  const { data: myAdoptedSteps } = useSubscriberAdoptedSteps(blueprint?.id, user?.id);
 
   // Access info for restricted blueprints (fetched when blueprint is null but might exist)
   const [accessInfo, setAccessInfo] = useState<{
@@ -568,8 +573,19 @@ export default function BlueprintPage() {
     );
   }
 
-  const completedCount = steps?.filter((s) => s.status === 'completed').length ?? 0;
   const totalCount = steps?.length ?? 0;
+  // Owners view their own template status; everyone else must see THEIR own
+  // progress on adopted copies (0 until they complete steps), never the
+  // author's. Keyed by source blueprint-step id (== steps[].id).
+  const myStatusBySource = new Map<string, string>();
+  if (!isOwner) {
+    (myAdoptedSteps ?? []).forEach((a) => {
+      if (a.step?.status) myStatusBySource.set(a.source_step_id, a.step.status);
+    });
+  }
+  const completedCount = isOwner
+    ? (steps?.filter((s) => s.status === 'completed').length ?? 0)
+    : (steps?.filter((s) => myStatusBySource.get(s.id) === 'completed').length ?? 0);
   // RLS hides non-public steps from non-subscribers, so a zero count on a
   // restricted blueprint means "locked", not "the author published nothing".
   const stepsLocked =
@@ -582,9 +598,14 @@ export default function BlueprintPage() {
   // Plan → Do → Review → Discuss phase band: every step moves through these four
   // working phases. The band lights up the phases the blueprint has reached so
   // far (Plan is always live; Discuss only once everything's complete).
-  const anyStarted = (steps ?? []).some(
-    (st) => st.status === 'in_progress' || st.status === 'completed',
-  );
+  const anyStarted = isOwner
+    ? (steps ?? []).some(
+        (st) => st.status === 'in_progress' || st.status === 'completed',
+      )
+    : (steps ?? []).some((st) => {
+        const ss = myStatusBySource.get(st.id);
+        return ss === 'in_progress' || ss === 'completed';
+      });
   const phaseBand: { label: string; on: boolean }[] = [
     { label: 'Plan', on: true },
     { label: 'Do', on: anyStarted },
@@ -1088,6 +1109,7 @@ export default function BlueprintPage() {
                       step={step}
                       index={index}
                       total={totalCount}
+                      viewerStatus={isOwner ? step.status : (myStatusBySource.get(step.id) ?? 'pending')}
                       onPress={() => setPreviewStep(step)}
                       accentColor={accent}
                     />
@@ -1227,16 +1249,21 @@ function StepListItem({
   step,
   index,
   total,
+  viewerStatus,
   onPress,
   accentColor,
 }: {
   step: TimelineStepRecord;
   index: number;
   total: number;
+  viewerStatus?: string;
   onPress: () => void;
   accentColor: string;
 }) {
-  const statusCfg = STATUS_CONFIG[step.status] ?? STATUS_CONFIG.pending;
+  // The status the *viewer* should see: their own adopted-copy status (or
+  // "pending" preview for non-owners), not the author's template status.
+  const effectiveStatus = viewerStatus ?? step.status;
+  const statusCfg = STATUS_CONFIG[effectiveStatus] ?? STATUS_CONFIG.pending;
   const metadata = step.metadata as Record<string, any> | undefined;
   const planData = metadata?.plan ?? {};
   const howSubSteps: { text: string }[] = planData.how_sub_steps || [];
@@ -1245,7 +1272,7 @@ function StepListItem({
   const capabilityGoals: string[] = planData.capability_goals || [];
   const collaborators = formatPlanCollaborators(planData.collaborators);
   const isLast = index === total - 1;
-  const isDone = step.status === 'completed';
+  const isDone = effectiveStatus === 'completed';
 
   // "Why" facet prefers the reasoning sentence, else folds the capability goals
   // into a single readable line. "Who" comes straight from collaborators.
