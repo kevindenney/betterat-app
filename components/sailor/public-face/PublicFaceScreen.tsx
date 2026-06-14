@@ -39,9 +39,11 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Star, Bell, BellOff, UserMinus } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { SuggestStepComposer } from '@/components/sailor/SuggestStepComposer';
+import { IOSActionSheet, type ActionSheetAction } from '@/components/ui/IOSActionSheet';
 
 import {
   IOSDetailNavBar,
@@ -86,8 +88,18 @@ export function PublicFaceScreen({ userId }: PublicFaceScreenProps) {
 }
 
 function PublicFaceScreenInner({ userId }: { userId: string }) {
-  const { profile, isLoading, error, isOwnProfile, toggleFollow, isToggling } =
-    useSailorFullProfile(userId);
+  const {
+    profile,
+    isLoading,
+    error,
+    isOwnProfile,
+    toggleFollow,
+    isToggling,
+    toggleFavorite,
+    toggleNotifications,
+    toggleMute,
+  } = useSailorFullProfile(userId);
+  const [relOptionsOpen, setRelOptionsOpen] = useState(false);
   const { data: sections } = usePersonPublicSections(userId);
   const [docked, setDocked] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -225,6 +237,48 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     );
   }, [displayName, handleFollow]);
 
+  // Relationship dials live behind the "Following" pill — favorite / notify /
+  // mute toggle the matching user_follows columns; unfollow stays gated behind
+  // its confirm. Labels reflect current state so reopening shows the new value.
+  const isFavorite = profile?.isFavorite ?? false;
+  const notificationsEnabled = profile?.notificationsEnabled ?? false;
+  const isMuted = profile?.isMuted ?? false;
+  const relationshipActions = useMemo<ActionSheetAction[]>(
+    () => [
+      {
+        label: isFavorite ? 'Remove favorite' : 'Add to favorites',
+        icon: <Star fill={isFavorite ? '#F5A623' : 'transparent'} color="#F5A623" />,
+        onPress: toggleFavorite,
+      },
+      {
+        label: notificationsEnabled ? 'Turn off notifications' : 'Turn on notifications',
+        icon: notificationsEnabled ? <BellOff /> : <Bell />,
+        onPress: toggleNotifications,
+      },
+      {
+        label: isMuted ? 'Unmute' : 'Mute',
+        icon: isMuted ? <Bell /> : <BellOff />,
+        onPress: toggleMute,
+      },
+      {
+        label: `Unfollow ${displayName}`,
+        icon: <UserMinus />,
+        destructive: true,
+        onPress: handleUnfollowConfirm,
+      },
+    ],
+    [
+      isFavorite,
+      notificationsEnabled,
+      isMuted,
+      displayName,
+      toggleFavorite,
+      toggleNotifications,
+      toggleMute,
+      handleUnfollowConfirm,
+    ],
+  );
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.ground} edges={['top']}>
@@ -356,7 +410,10 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
           ) : (
             <>
               {profile.isFollowing ? (
-                <RelationshipMinePill label="Following" onPress={handleUnfollowConfirm} />
+                <RelationshipMinePill
+                  label="Following"
+                  onPress={() => setRelOptionsOpen(true)}
+                />
               ) : (
                 <RelationshipButton
                   label={isToggling ? 'Following…' : 'Follow'}
@@ -676,6 +733,15 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
           recipientName={displayName}
           recipientInitials={initials}
           reContext={enrichment.concept?.weekTail ?? null}
+        />
+      ) : null}
+
+      {!isOwnProfile ? (
+        <IOSActionSheet
+          isOpen={relOptionsOpen}
+          onClose={() => setRelOptionsOpen(false)}
+          title={displayName}
+          actions={relationshipActions}
         />
       ) : null}
     </SafeAreaView>
