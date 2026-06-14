@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { createLogger } from '@/lib/utils/logger';
 import {
   PracticeSession,
@@ -866,27 +867,27 @@ class PracticeSessionServiceClass {
     sessionId: string,
     callback: (members: PracticeSessionMember[]) => void
   ): () => void {
-    const channel = supabase
-      .channel(`practice-members-${sessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'practice_session_members',
-          filter: `session_id=eq.${sessionId}`,
-        },
-        async () => {
-          // Refetch all members on any change
-          const members = await this.getSessionMembers(sessionId);
-          callback(members);
-        }
-      )
-      .subscribe();
+    const channelName = `practice-members-${sessionId}`;
+    const handleMemberChange = async () => {
+      // Refetch all members on any change
+      const members = await this.getSessionMembers(sessionId);
+      callback(members);
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'practice_session_members',
+        filter: `session_id=eq.${sessionId}`,
+      },
+      handleMemberChange
+    );
 
     // Return unsubscribe function
     return () => {
-      supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handleMemberChange);
     };
   }
 }
