@@ -31,7 +31,7 @@ export function FleetActivityFeed({ fleetId, userId }: FleetActivityFeedProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
-  const [postType, setPostType] = useState<PostType>('discussion');
+  const [postType] = useState<PostType>('discussion');
   const [filter, setFilter] = useState<FilterType>('all');
   const [showComments, setShowComments] = useState<string | null>(null);
   const [comments, setComments] = useState<PostComment[]>([]);
@@ -60,12 +60,12 @@ export function FleetActivityFeed({ fleetId, userId }: FleetActivityFeedProps) {
 
   // Real-time subscription
   useEffect(() => {
-    const subscription = fleetSocialService.subscribeToFleetPosts(fleetId, (newPost) => {
+    const unsubscribe = fleetSocialService.subscribeToFleetPosts(fleetId, (newPost) => {
       setPosts((prev) => [newPost, ...prev]);
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, [fleetId]);
 

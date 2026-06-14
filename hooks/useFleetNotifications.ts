@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { fleetSocialService, FleetNotification } from '@/services/FleetSocialService';
-import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('useFleetNotifications');
@@ -80,7 +79,7 @@ export function useFleetNotifications(userId: string | undefined) {
       runId === subscriptionRunIdRef.current &&
       activeUserIdRef.current === targetUserId;
 
-    const subscription = fleetSocialService.subscribeToNotifications(
+    const unsubscribe = fleetSocialService.subscribeToNotifications(
       userId,
       (newNotification) => {
         if (!canCommit()) return;
@@ -100,7 +99,7 @@ export function useFleetNotifications(userId: string | undefined) {
       if (subscriptionRunIdRef.current === runId) {
         subscriptionRunIdRef.current += 1;
       }
-      void supabase.removeChannel(subscription);
+      unsubscribe();
     };
   }, [userId]);
 

@@ -6,7 +6,6 @@ import {
   CreatePostParams
 } from '@/services/FleetSocialService';
 import { useAuth } from '@/providers/AuthProvider';
-import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('useFleetSocial');
@@ -81,7 +80,7 @@ export function useFleetPosts(fleetId?: string, options?: UseFleetPostsOptions) 
     loadPosts();
 
     // Subscribe to new posts
-    const channel = fleetSocialService.subscribeToFleetPosts(fleetId, (newPost) => {
+    const unsubscribe = fleetSocialService.subscribeToFleetPosts(fleetId, (newPost) => {
       if (runId !== subscriptionRunIdRef.current) return;
       if (!isMountedRef.current) return;
       setPosts((prev) => {
@@ -94,7 +93,7 @@ export function useFleetPosts(fleetId?: string, options?: UseFleetPostsOptions) 
 
     return () => {
       subscriptionRunIdRef.current += 1;
-      void supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, [fleetId, loadPosts]);
 

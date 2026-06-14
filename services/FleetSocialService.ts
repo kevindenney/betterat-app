@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { realtimeService } from './RealtimeService';
 import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('FleetSocialService');
@@ -825,105 +827,119 @@ class FleetSocialService {
   // REAL-TIME SUBSCRIPTIONS
   // ==========================================
 
-  subscribeToFleetPosts(fleetId: string, callback: (post: FleetPost) => void) {
-    return supabase
-      .channel(`fleet_posts:${fleetId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'fleet_posts',
-          filter: `fleet_id=eq.${fleetId}`,
-        },
-        async (payload) => {
-          // Fetch full post with author data
-          const { data } = await supabase
-            .from('fleet_posts')
-            .select()
-            .eq('id', payload.new.id)
-            .single();
+  subscribeToFleetPosts(fleetId: string, callback: (post: FleetPost) => void): () => void {
+    const channelName = `fleet_posts:${fleetId}`;
+    const handler = async (payload: RealtimePostgresChangesPayload<{ id: string }>) => {
+      // Fetch full post with author data
+      const newRow = payload.new as { id: string };
+      const { data } = await supabase
+        .from('fleet_posts')
+        .select()
+        .eq('id', newRow.id)
+        .single();
 
-          if (data) {
-            const author = await this.getUserData(data.author_id);
-            callback(this.mapPost({ ...data, author }));
-          }
-        }
-      )
-      .subscribe();
+      if (data) {
+        const author = await this.getUserData(data.author_id);
+        callback(this.mapPost({ ...data, author }));
+      }
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'fleet_posts',
+        filter: `fleet_id=eq.${fleetId}`,
+      },
+      handler
+    );
+
+    return () => {
+      void realtimeService.unsubscribe(channelName, handler);
+    };
   }
 
-  subscribeToPostLikes(postId: string, callback: (count: number) => void) {
-    return supabase
-      .channel(`post_likes:${postId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'fleet_post_likes',
-          filter: `post_id=eq.${postId}`,
-        },
-        async () => {
-          const { count } = await supabase
-            .from('fleet_post_likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', postId);
+  subscribeToPostLikes(postId: string, callback: (count: number) => void): () => void {
+    const channelName = `post_likes:${postId}`;
+    const handler = async () => {
+      const { count } = await supabase
+        .from('fleet_post_likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', postId);
 
-          callback(count || 0);
-        }
-      )
-      .subscribe();
+      callback(count || 0);
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'fleet_post_likes',
+        filter: `post_id=eq.${postId}`,
+      },
+      handler
+    );
+
+    return () => {
+      void realtimeService.unsubscribe(channelName, handler);
+    };
   }
 
-  subscribeToNotifications(userId: string, callback: (notification: FleetNotification) => void) {
-    return supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'fleet_notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        async (payload) => {
-          const { data } = await supabase
-            .from('fleet_notifications')
-            .select(`
-              *,
-              actor:actor_id (id, full_name, avatar_url),
-              fleet:fleet_id (id, name)
-            `)
-            .eq('id', payload.new.id)
-            .single();
+  subscribeToNotifications(userId: string, callback: (notification: FleetNotification) => void): () => void {
+    const channelName = `notifications:${userId}`;
+    const handler = async (payload: RealtimePostgresChangesPayload<{ id: string }>) => {
+      const newRow = payload.new as { id: string };
+      const { data } = await supabase
+        .from('fleet_notifications')
+        .select(`
+          *,
+          actor:actor_id (id, full_name, avatar_url),
+          fleet:fleet_id (id, name)
+        `)
+        .eq('id', newRow.id)
+        .single();
 
-          if (data) {
-            callback({
-              id: data.id,
-              userId: data.user_id,
-              fleetId: data.fleet_id,
-              notificationType: data.notification_type,
-              relatedPostId: data.related_post_id,
-              relatedCommentId: data.related_comment_id,
-              actorId: data.actor_id,
-              message: data.message,
-              isRead: data.is_read,
-              createdAt: data.created_at,
-              actor: data.actor ? {
-                id: data.actor.id,
-                name: data.actor.full_name || 'Someone',
-                avatar_url: data.actor.avatar_url,
-              } : undefined,
-              fleet: data.fleet ? {
-                id: data.fleet.id,
-                name: data.fleet.name,
-              } : undefined,
-            });
-          }
-        }
-      )
-      .subscribe();
+      if (data) {
+        callback({
+          id: data.id,
+          userId: data.user_id,
+          fleetId: data.fleet_id,
+          notificationType: data.notification_type,
+          relatedPostId: data.related_post_id,
+          relatedCommentId: data.related_comment_id,
+          actorId: data.actor_id,
+          message: data.message,
+          isRead: data.is_read,
+          createdAt: data.created_at,
+          actor: data.actor ? {
+            id: data.actor.id,
+            name: data.actor.full_name || 'Someone',
+            avatar_url: data.actor.avatar_url,
+          } : undefined,
+          fleet: data.fleet ? {
+            id: data.fleet.id,
+            name: data.fleet.name,
+          } : undefined,
+        });
+      }
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'fleet_notifications',
+        filter: `user_id=eq.${userId}`,
+      },
+      handler
+    );
+
+    return () => {
+      void realtimeService.unsubscribe(channelName, handler);
+    };
   }
 
   // ==========================================
