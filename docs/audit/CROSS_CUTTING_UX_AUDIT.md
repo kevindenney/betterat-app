@@ -250,7 +250,7 @@ Consolidated across all flows. P0 = blocks a flow / data loss / crash. P1 = real
 **P2**
 9. ✅ **RESOLVED** (code-verified) — New-concept TITLE placeholder sailing vocab. "Downwind trim in heavy air" placeholder no longer present.
 10. Public-face cold-load shows a bare spinner, no skeleton (§7, §8 — cross-platform). **OPEN — `PublicFaceScreen.tsx` under WIP.**
-11. No optimistic UI on follow (~2s spinner) (§4); thin person profile for a follow decision (§4). **OPEN — `PublicFaceScreen.tsx` under WIP.**
+11. **PARTIAL** — *Optimistic UI on follow* ✅ **RESOLVED** (code-verified): the follow/unfollow mutations in `useSailorFullProfile` now carry `onMutate`/`onError`/`onSettled` (matching the favorite/notify/mute toggles), flipping `isFollowing` in the cache synchronously so the pill switches to "Following" on tap and reverts on failure — no more ~2s spinner. *Thin person profile for a follow decision (§4)* still **OPEN** (needs added bio/primary-interest/counts + interest-labeled trajectory rows).
 12. `/sailor/[userId]` sailing-named route for a universal profile (§7). **OPEN — deferred (risky route rename; folds into sailing-namespace pass).**
 13. ✅ **RESOLVED** — Inconsistent settings back-nav standardized to native `‹ Settings` header on Units/Connected Devices/Change Password/Delete Account (`66e864e9`); units info-note already generic (no race/venue framing). *(edit-profile back-nav still pending — blocked on its WIP.)*
 14. Dev-only network LogBoxes during Library load (§5) — QA noise, not a prod bug. **No action.**

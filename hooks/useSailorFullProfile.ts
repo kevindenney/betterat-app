@@ -66,7 +66,23 @@ export function useSailorFullProfile(userId: string) {
       if (!user?.id) throw new Error('Not authenticated');
       await CrewFinderService.followUser(user.id, userId);
     },
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: profileQueryKey });
+      const previous = queryClient.getQueryData<FullSailorProfile>(profileQueryKey);
+      if (previous) {
+        queryClient.setQueryData<FullSailorProfile>(profileQueryKey, {
+          ...previous,
+          isFollowing: true,
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(profileQueryKey, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: profileQueryKey });
       queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
     },
@@ -78,7 +94,23 @@ export function useSailorFullProfile(userId: string) {
       if (!user?.id) throw new Error('Not authenticated');
       await CrewFinderService.unfollowUser(user.id, userId);
     },
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: profileQueryKey });
+      const previous = queryClient.getQueryData<FullSailorProfile>(profileQueryKey);
+      if (previous) {
+        queryClient.setQueryData<FullSailorProfile>(profileQueryKey, {
+          ...previous,
+          isFollowing: false,
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(profileQueryKey, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: profileQueryKey });
       queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
     },
