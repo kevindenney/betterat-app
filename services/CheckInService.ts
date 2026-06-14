@@ -5,7 +5,8 @@
  */
 
 import { supabase } from './supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { realtimeService } from './RealtimeService';
 import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
 
 // ============================================================================
@@ -98,8 +99,10 @@ export interface FleetStatus {
 
 class CheckInService {
   private raceResultsIdColumn: 'regatta_id' | 'race_id' = 'regatta_id';
-  private subscriptions: Map<string, RealtimeChannel> = new Map();
-  private listeners: Map<string, Set<(checkIn: CheckIn) => void>> = new Map();
+  private checkInWrappers: Map<
+    string,
+    Map<(checkIn: CheckIn) => void, (payload: RealtimePostgresChangesPayload<CheckIn>) => void>
+  > = new Map();
 
   private async upsertRaceResultWithFallback(
     regattaId: string,
@@ -741,36 +744,25 @@ class CheckInService {
     callback: (checkIn: CheckIn) => void
   ) {
     const channelKey = `check-ins:${regattaId}:${raceNumber}`;
-    const existingListeners = this.listeners.get(channelKey) || new Set();
-    existingListeners.add(callback);
-    this.listeners.set(channelKey, existingListeners);
+    const wrappers = this.checkInWrappers.get(channelKey) || new Map();
 
-    if (!this.subscriptions.has(channelKey)) {
-      const channel = supabase
-        .channel(channelKey)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'race_check_ins',
-            filter: `regatta_id=eq.${regattaId}&race_number=eq.${raceNumber}`,
-          },
-          (payload) => {
-            const checkIn = payload.new as CheckIn;
-            const listeners = this.listeners.get(channelKey);
-            if (!listeners || listeners.size === 0) return;
-            listeners.forEach((listener) => {
-              try {
-                listener(checkIn);
-              } catch (_err) {
-                // Listener errors are isolated so one callback cannot break stream fan-out.
-              }
-            });
-          }
-        )
-        .subscribe();
-      this.subscriptions.set(channelKey, channel);
+    if (!wrappers.has(callback)) {
+      const wrapper = (payload: RealtimePostgresChangesPayload<CheckIn>) => {
+        callback(payload.new as CheckIn);
+      };
+      wrappers.set(callback, wrapper);
+      this.checkInWrappers.set(channelKey, wrappers);
+
+      realtimeService.subscribe<CheckIn>(
+        channelKey,
+        {
+          event: '*',
+          schema: 'public',
+          table: 'race_check_ins',
+          filter: `regatta_id=eq.${regattaId}&race_number=eq.${raceNumber}`,
+        },
+        wrapper
+      );
     }
 
     return () => this.unsubscribeFromCheckIns(regattaId, raceNumber, callback);
@@ -785,25 +777,23 @@ class CheckInService {
     callback?: (checkIn: CheckIn) => void
   ) {
     const channelKey = `check-ins:${regattaId}:${raceNumber}`;
-    const listeners = this.listeners.get(channelKey);
+    const wrappers = this.checkInWrappers.get(channelKey);
+    if (!wrappers) return;
 
-    if (listeners && callback) {
-      listeners.delete(callback);
-    } else if (listeners) {
-      listeners.clear();
-    }
-
-    const remaining = this.listeners.get(channelKey);
-    if (remaining && remaining.size > 0) {
+    if (callback) {
+      const wrapper = wrappers.get(callback);
+      if (wrapper) {
+        void realtimeService.unsubscribe(channelKey, wrapper);
+        wrappers.delete(callback);
+      }
+      if (wrappers.size === 0) {
+        this.checkInWrappers.delete(channelKey);
+      }
       return;
     }
 
-    const channel = this.subscriptions.get(channelKey);
-    if (channel) {
-      void supabase.removeChannel(channel);
-      this.subscriptions.delete(channelKey);
-    }
-    this.listeners.delete(channelKey);
+    void realtimeService.unsubscribe(channelKey);
+    this.checkInWrappers.delete(channelKey);
   }
 }
 
