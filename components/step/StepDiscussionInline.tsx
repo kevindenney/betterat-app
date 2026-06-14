@@ -34,7 +34,8 @@ import {
 import { useAuth } from '@/providers/AuthProvider';
 import { useAdoptQuotedStep, useMyTimeline } from '@/hooks/useTimelineSteps';
 import { supabase } from '@/services/supabase';
-import { showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { realtimeService } from '@/services/RealtimeService';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import {
   deleteStepNote,
   editStepNote,
@@ -187,6 +188,24 @@ const REACTION_LABEL: Record<StepDiscussionReactionKind, string> = {
 
 type DiscussionScope = 'private' | 'cohort';
 
+function discussionErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (error && typeof error === 'object') {
+    const maybe = error as {
+      message?: unknown;
+      details?: unknown;
+      hint?: unknown;
+      code?: unknown;
+    };
+    const parts = [maybe.message, maybe.details, maybe.hint]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      .map((value) => value.trim());
+    if (parts.length > 0) return parts.join('\n');
+    if (typeof maybe.code === 'string' && maybe.code.trim()) return `Supabase error ${maybe.code}`;
+  }
+  return 'Please check that you still have access to this step and try again.';
+}
+
 export function StepDiscussionInline({
   stepId,
   access = [],
@@ -266,25 +285,24 @@ export function StepDiscussionInline({
   // viewer having to reload.
   useEffect(() => {
     if (!blueprintStepId || effectiveScope !== 'cohort') return;
-    const channel = supabase
-      .channel(`cohort-discussion:${blueprintStepId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'step_discussions',
-          filter: `blueprint_step_id=eq.${blueprintStepId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: ['phase10-blueprint-step-discussion', blueprintStepId],
-          });
-        },
-      )
-      .subscribe();
+    const channelName = `cohort-discussion:${blueprintStepId}`;
+    const handler = () => {
+      queryClient.invalidateQueries({
+        queryKey: ['phase10-blueprint-step-discussion', blueprintStepId],
+      });
+    };
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'step_discussions',
+        filter: `blueprint_step_id=eq.${blueprintStepId}`,
+      },
+      handler
+    );
     return () => {
-      supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handler);
     };
   }, [blueprintStepId, effectiveScope, queryClient]);
   const [replyingTo, setReplyingTo] = useState<{
@@ -357,6 +375,9 @@ export function StepDiscussionInline({
       queryClient.invalidateQueries({ queryKey: ['step-discussion-peek', stepId] });
       // Top-level posts on public steps surface on the author's calling card.
       queryClient.invalidateQueries({ queryKey: ['person-public-sections'] });
+    },
+    onError: (error) => {
+      showAlert('Could not post', discussionErrorMessage(error));
     },
   });
 
@@ -469,15 +490,20 @@ export function StepDiscussionInline({
     // A note needs either typed text or an attached quote. A quote-only
     // post (body '') is valid — the quote carries the content.
     if (!body && !pendingQuote) return;
-    await postMutation.mutateAsync({
-      body,
-      parentId: replyingTo?.noteId ?? null,
-      quotedStepId: pendingQuote?.stepId ?? null,
-      quoteBody: pendingQuote?.body ?? null,
-    });
-    setDraft('');
-    setReplyingTo(null);
-    setPendingQuote(null);
+    try {
+      await postMutation.mutateAsync({
+        body,
+        parentId: replyingTo?.noteId ?? null,
+        quotedStepId: pendingQuote?.stepId ?? null,
+        quoteBody: pendingQuote?.body ?? null,
+      });
+      setDraft('');
+      setReplyingTo(null);
+      setPendingQuote(null);
+    } catch {
+      // The mutation's onError shows a user-facing message. Swallow here so
+      // React Native does not surface an "Uncaught (in promise)" object toast.
+    }
   }, [draft, replyingTo, pendingQuote, postMutation]);
 
   const handleReact = useCallback(
