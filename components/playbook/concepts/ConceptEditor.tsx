@@ -105,7 +105,7 @@ export function ConceptEditor(props: EditorMode) {
             <TextInput
               value={title}
               onChangeText={setTitle}
-              placeholder="e.g. Downwind trim in heavy air"
+              placeholder="e.g. a pattern, rule, or thing to remember"
               placeholderTextColor={IOS_COLORS.tertiaryLabel}
               style={styles.input}
             />
