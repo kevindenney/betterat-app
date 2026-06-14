@@ -6,8 +6,10 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   CrewThreadService,
@@ -200,76 +202,84 @@ export function useCrewThreadMessages({
     const targetThreadId = threadId;
     const canCommit = () => isMountedRef.current && runId === realtimeRunIdRef.current;
 
-    const channel = supabase
-      .channel(`crew-thread-messages:${threadId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'crew_thread_messages',
-          filter: `thread_id=eq.${threadId}`,
-        },
-          async (payload) => {
-            const row = payload.new as any;
-          let msg: CrewThreadMessage = {
-            id: row.id,
-            threadId: row.thread_id,
-            userId: row.user_id,
-            message: row.message,
-            messageType: row.message_type,
-            createdAt: row.created_at,
-            profile: null,
-          };
+    const channelName = `crew-thread-messages:${threadId}`;
+    const handleMessageChange = async (payload: RealtimePostgresChangesPayload<any>) => {
+      if (payload.eventType === 'DELETE') {
+        const deletedId = payload.old.id;
+        if (!canCommit() || activeThreadIdRef.current !== targetThreadId) return;
+        setMessages((prev) => prev.filter((m) => m.id !== deletedId));
+        return;
+      }
 
-          // Try cached profile first, then fetch
-          if (profileCacheRef.current[msg.userId]) {
-            msg.profile = profileCacheRef.current[msg.userId];
-          } else {
-            msg = await enrichWithProfile(msg);
-            if (msg.profile) {
-              profileCacheRef.current[msg.userId] = msg.profile;
-            }
-          }
+      if (payload.eventType !== 'INSERT') return;
 
-          if (!canCommit() || activeThreadIdRef.current !== targetThreadId) return;
-          setMessages((prev) => {
-            // Avoid duplicates
-            if (prev.some((m) => m.id === msg.id)) return prev;
-            return [...prev, msg];
-          });
+      const row = payload.new as any;
+      let msg: CrewThreadMessage = {
+        id: row.id,
+        threadId: row.thread_id,
+        userId: row.user_id,
+        message: row.message,
+        messageType: row.message_type,
+        createdAt: row.created_at,
+        profile: null,
+      };
 
-          // Mark as read if it's not from current user
-          if (autoMarkRead && msg.userId !== user?.id) {
-            void CrewThreadService.markAsRead(targetThreadId);
-          }
+      // Try cached profile first, then fetch
+      if (profileCacheRef.current[msg.userId]) {
+        msg.profile = profileCacheRef.current[msg.userId];
+      } else {
+        msg = await enrichWithProfile(msg);
+        if (msg.profile) {
+          profileCacheRef.current[msg.userId] = msg.profile;
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'crew_thread_messages',
-          filter: `thread_id=eq.${threadId}`,
-        },
-        (payload) => {
-          const deletedId = payload.old.id;
-          if (!canCommit() || activeThreadIdRef.current !== targetThreadId) return;
-          setMessages((prev) => prev.filter((m) => m.id !== deletedId));
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          logger.error('Realtime channel error for crew thread messages');
-        }
+      }
+
+      if (!canCommit() || activeThreadIdRef.current !== targetThreadId) return;
+      setMessages((prev) => {
+        // Avoid duplicates
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
       });
+
+      // Mark as read if it's not from current user
+      if (autoMarkRead && msg.userId !== user?.id) {
+        void CrewThreadService.markAsRead(targetThreadId);
+      }
+    };
+    const handleRealtimeStatus = (status: string) => {
+      if (status === 'CHANNEL_ERROR') {
+        logger.error('Realtime channel error for crew thread messages');
+      }
+    };
+
+    realtimeService.subscribe(
+      channelName,
+      {
+        table: 'crew_thread_messages',
+        changes: [
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'crew_thread_messages',
+            filter: `thread_id=eq.${threadId}`,
+          },
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'crew_thread_messages',
+            filter: `thread_id=eq.${threadId}`,
+          },
+        ],
+        onStatus: handleRealtimeStatus,
+      },
+      handleMessageChange
+    );
 
     return () => {
       if (realtimeRunIdRef.current === runId) {
         realtimeRunIdRef.current += 1;
       }
-      void supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handleMessageChange, handleRealtimeStatus);
     };
   }, [threadId, realtime, user?.id, autoMarkRead]);
 
