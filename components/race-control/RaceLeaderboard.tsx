@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 
 type RaceResultsIdColumn = 'regatta_id' | 'race_id';
 
@@ -57,24 +58,23 @@ export default function RaceLeaderboard({
     loadResults();
 
     // Subscribe to real-time updates
-    const channel = supabase
-      .channel(`leaderboard-${regattaId}-${raceNumber}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'race_results',
-          filter: `regatta_id=eq.${regattaId}`,
-        },
-        () => {
-          loadResults();
-        }
-      )
-      .subscribe();
+    const channelName = `leaderboard-${regattaId}-${raceNumber}`;
+    const handler = () => {
+      loadResults();
+    };
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'race_results',
+        filter: `regatta_id=eq.${regattaId}`,
+      },
+      handler
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regattaId, raceNumber, sortBy]);
