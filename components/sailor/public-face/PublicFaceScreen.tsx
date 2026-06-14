@@ -29,7 +29,6 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -283,8 +282,17 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     return (
       <SafeAreaView style={styles.ground} edges={['top']}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.loadingFill}>
-          <ActivityIndicator size="large" color={IOS_REGISTER.label} />
+        <View style={styles.skeletonHero}>
+          <View style={styles.skeletonAvatar} />
+          <View style={styles.skeletonHeroBody}>
+            <View style={[styles.skeletonBar, styles.skeletonName]} />
+            <View style={[styles.skeletonBar, styles.skeletonDescriptor]} />
+            <View style={[styles.skeletonBar, styles.skeletonMeta]} />
+          </View>
+        </View>
+        <View style={styles.skeletonSections}>
+          <View style={[styles.skeletonBar, styles.skeletonCard]} />
+          <View style={[styles.skeletonBar, styles.skeletonCard]} />
         </View>
       </SafeAreaView>
     );
@@ -801,6 +809,28 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 24 },
   bottomPad: { height: 120 },
   loadingFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  skeletonHero: {
+    flexDirection: 'row',
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    gap: 16,
+  },
+  skeletonAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  skeletonHeroBody: { flex: 1, paddingTop: 6, gap: 10 },
+  skeletonBar: {
+    backgroundColor: IOS_REGISTER.fillPill,
+    borderRadius: 6,
+  },
+  skeletonName: { height: 24, width: '70%' },
+  skeletonDescriptor: { height: 15, width: '85%' },
+  skeletonMeta: { height: 13, width: '55%' },
+  skeletonSections: { paddingHorizontal: 22, paddingTop: 32, gap: 16 },
+  skeletonCard: { height: 92, width: '100%', borderRadius: 14 },
   errorFill: {
     flex: 1,
     alignItems: 'center',
