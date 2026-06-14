@@ -132,7 +132,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     return (sections?.trajectory ?? []).map((t) => ({
       title: t.title,
       settled: t.settled,
-      sub: undefined as string | undefined,
+      sub: t.interestName ?? undefined,
       when: formatPersonWhen(t.whenISO),
       trophyId: undefined as string | undefined,
     }));
@@ -334,6 +334,22 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     realMeta.push({
       icon: 'calendar-outline',
       text: `${d.seasonsActive} season${d.seasonsActive === 1 ? '' : 's'}`,
+    });
+  }
+  // "Should I follow?" signal — followers + depth of practice. Only when the
+  // viewer isn't looking at their own profile and the counts are non-zero.
+  const followerCount = profile.followerCount ?? 0;
+  const stepCount = sections?.stepCount ?? 0;
+  if (!isOwnProfile && followerCount > 0) {
+    realMeta.push({
+      icon: 'people-outline',
+      text: `${followerCount} follower${followerCount === 1 ? '' : 's'}`,
+    });
+  }
+  if (stepCount > 0) {
+    realMeta.push({
+      icon: 'footsteps-outline',
+      text: `${stepCount} step${stepCount === 1 ? '' : 's'}`,
     });
   }
   const meta = enrichment.meta ?? realMeta;

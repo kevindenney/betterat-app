@@ -21,6 +21,8 @@ export interface PersonTrajectoryItem {
   title: string;
   settled: boolean;
   whenISO: string | null;
+  interestName: string | null;
+  interestSlug: string | null;
 }
 
 export interface PersonInCommonOrg {
@@ -85,6 +87,8 @@ export interface PersonInterest {
 
 export interface PersonPublicSections {
   trajectory: PersonTrajectoryItem[];
+  /** Total settled/completed steps the viewer can see (trajectory is capped at 6). */
+  stepCount: number;
   inCommonOrgs: PersonInCommonOrg[];
   publicThreads: PersonPublicThread[];
   concept: PersonConcept | null;
@@ -108,13 +112,24 @@ export function usePersonPublicSections(userId: string | null | undefined) {
     queryFn: async (): Promise<PersonPublicSections> => {
       let stepsQuery = supabase
         .from('timeline_steps')
-        .select('id, title, status, completed_at, starts_at')
+        .select('id, title, status, completed_at, starts_at, interests(name, slug)')
         .eq('user_id', userId!)
         .in('status', ['settled', 'completed'])
         .order('completed_at', { ascending: false, nullsFirst: false })
         .limit(6);
       if (!isSelf) {
         stepsQuery = stepsQuery.in('visibility', ['crew', 'fleet', 'public']);
+      }
+
+      // Total visible settled/completed steps — a "depth of practice" signal
+      // for the follow decision. The trajectory list above is capped at 6.
+      let stepCountQuery = supabase
+        .from('timeline_steps')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId!)
+        .in('status', ['settled', 'completed']);
+      if (!isSelf) {
+        stepCountQuery = stepCountQuery.in('visibility', ['crew', 'fleet', 'public']);
       }
 
       const orgsPromise = isSelf
@@ -144,22 +159,31 @@ export function usePersonPublicSections(userId: string | null | undefined) {
         .eq('id', userId!)
         .maybeSingle();
 
-      const [stepsRes, orgsRes, threadsRes, faceRes, descriptorRes] = await Promise.all([
-        stepsQuery,
-        orgsPromise,
-        threadsPromise,
-        facePromise,
-        descriptorPromise,
-      ]);
+      const [stepsRes, stepCountRes, orgsRes, threadsRes, faceRes, descriptorRes] =
+        await Promise.all([
+          stepsQuery,
+          stepCountQuery,
+          orgsPromise,
+          threadsPromise,
+          facePromise,
+          descriptorPromise,
+        ]);
 
       const trajectory: PersonTrajectoryItem[] = (stepsRes.data ?? []).map(
-        (row: any) => ({
-          stepId: row.id,
-          title: (row.title ?? '').trim() || 'Untitled step',
-          settled: row.status === 'settled',
-          whenISO: row.completed_at ?? row.starts_at ?? null,
-        }),
+        (row: any) => {
+          // PostgREST returns an embedded to-one as an object (or null).
+          const interest = Array.isArray(row.interests) ? row.interests[0] : row.interests;
+          return {
+            stepId: row.id,
+            title: (row.title ?? '').trim() || 'Untitled step',
+            settled: row.status === 'settled',
+            whenISO: row.completed_at ?? row.starts_at ?? null,
+            interestName: interest?.name ?? null,
+            interestSlug: interest?.slug ?? null,
+          };
+        },
       );
+      const stepCount = stepCountRes.count ?? trajectory.length;
 
       // Intersect memberships client-side: keep orgs where BOTH ids appear.
       const byOrg = new Map<string, { name: string; slug: string | null; users: Set<string> }>();
@@ -223,6 +247,7 @@ export function usePersonPublicSections(userId: string | null | undefined) {
 
       return {
         trajectory,
+        stepCount,
         inCommonOrgs,
         publicThreads,
         concept: face.concept ?? null,
