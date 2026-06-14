@@ -2,7 +2,7 @@ import { useOrganization } from '@/providers/OrganizationProvider';
 import { fetchOrganizationInterestSlug } from '@/components/organizations/OrgContextPill';
 import { OrgAdminHeader } from '@/components/organizations/OrgAdminHeader';
 import { NotificationService } from '@/services/NotificationService';
-import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { isUuid } from '@/utils/uuid';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -217,24 +217,23 @@ export default function OrganizationAccessRequestsScreen() {
   useEffect(() => {
     if (!canViewAndAct || !resolvedActiveOrgId) return;
 
-    const channel = supabase
-      .channel(`access-requests:${resolvedActiveOrgId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'organization_memberships',
-          filter: `organization_id=eq.${resolvedActiveOrgId}`,
-        },
-        () => {
-          void loadPendingRequests();
-        }
-      )
-      .subscribe();
+    const channelName = `access-requests:${resolvedActiveOrgId}`;
+    const handler = () => {
+      void loadPendingRequests();
+    };
+    realtimeService.subscribe(
+      channelName,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'organization_memberships',
+        filter: `organization_id=eq.${resolvedActiveOrgId}`,
+      },
+      handler
+    );
 
     return () => {
-      void supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handler);
     };
   }, [canViewAndAct, loadPendingRequests, resolvedActiveOrgId]);
 
