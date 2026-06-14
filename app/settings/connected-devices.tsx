@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useInterest } from '@/hooks/useInterest';
 
 interface DeviceTypeProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -42,12 +43,28 @@ const DeviceType: React.FC<DeviceTypeProps> = ({
   </View>
 );
 
-const DEVICE_TYPES: DeviceTypeProps[] = [
+// Devices that make sense for any interest — kept persona-neutral.
+const UNIVERSAL_DEVICES: DeviceTypeProps[] = [
   {
     icon: 'navigate-outline',
     name: 'GPS Devices',
-    description: 'Connect GPS units for precise position tracking during races.',
+    description: 'Connect GPS units for precise location and route tracking.',
   },
+  {
+    icon: 'heart-outline',
+    name: 'Heart Rate Monitors',
+    description: 'Track physical exertion for performance analysis.',
+  },
+  {
+    icon: 'watch-outline',
+    name: 'Smart Watches',
+    description: 'Apple Watch, Garmin, and other wearables for activity tracking.',
+  },
+];
+
+// Sailing-specific instruments — only shown for the sail-racing interest so a
+// nurse or entrepreneur isn't offered "Boat speed and VMG".
+const SAILING_DEVICES: DeviceTypeProps[] = [
   {
     icon: 'speedometer-outline',
     name: 'Speed Sensors',
@@ -59,16 +76,6 @@ const DEVICE_TYPES: DeviceTypeProps[] = [
     description: 'Real-time wind speed and direction from masthead sensors.',
   },
   {
-    icon: 'heart-outline',
-    name: 'Heart Rate Monitors',
-    description: 'Track physical exertion during races for performance analysis.',
-  },
-  {
-    icon: 'watch-outline',
-    name: 'Smart Watches',
-    description: 'Apple Watch, Garmin, and other wearables for activity tracking.',
-  },
-  {
     icon: 'cellular-outline',
     name: 'AIS Transponders',
     description: 'Automatic Identification System data for fleet tracking.',
@@ -77,6 +84,14 @@ const DEVICE_TYPES: DeviceTypeProps[] = [
 
 export default function ConnectedDevicesScreen() {
   const router = useRouter();
+  const { currentInterest } = useInterest();
+  const isSailing = currentInterest?.slug === 'sail-racing';
+  const devices = isSailing
+    ? [...UNIVERSAL_DEVICES, ...SAILING_DEVICES]
+    : UNIVERSAL_DEVICES;
+  const heroDescription = isSailing
+    ? 'Connect external sensors and devices to enhance your sailing data. Track performance metrics, record race data, and gain deeper insights.'
+    : 'Connect external sensors and wearables to enrich your data. Track performance metrics and gain deeper insights.';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -97,10 +112,7 @@ export default function ConnectedDevicesScreen() {
             <Ionicons name="bluetooth" size={48} color="#3B82F6" />
           </View>
           <Text style={styles.heroTitle}>Device Integrations</Text>
-          <Text style={styles.heroDescription}>
-            Connect external sensors and devices to enhance your sailing data.
-            Track performance metrics, record race data, and gain deeper insights.
-          </Text>
+          <Text style={styles.heroDescription}>{heroDescription}</Text>
         </View>
 
         {/* Section Header */}
@@ -110,7 +122,7 @@ export default function ConnectedDevicesScreen() {
 
         {/* Device Types */}
         <View style={styles.devicesContainer}>
-          {DEVICE_TYPES.map((device, index) => (
+          {devices.map((device, index) => (
             <DeviceType key={index} {...device} />
           ))}
         </View>
