@@ -117,8 +117,8 @@ export default function UnitsScreen() {
         <View style={styles.infoBox}>
           <Ionicons name="information-circle-outline" size={20} color="#2563EB" />
           <Text style={styles.infoText}>
-            This setting affects how distances and speeds are displayed throughout the app,
-            including race data, weather forecasts, and venue information.
+            This setting affects how distances, speeds, and other measurements are
+            displayed throughout the app.
           </Text>
         </View>
       </ScrollView>
