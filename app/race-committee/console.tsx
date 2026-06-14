@@ -46,6 +46,7 @@ import {
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { Audio } from 'expo-av';
 import { isMissingIdColumn } from '@/lib/utils/supabaseSchemaFallback';
 import Animated, {
@@ -188,20 +189,23 @@ export default function RaceCommitteeConsole() {
   useEffect(() => {
     if (!regattaId) return;
 
-    const channel = supabase
-      .channel(`rc-console-${regattaId}-${raceNumber}`)
-      .on('postgres_changes', {
+    const channelName = `rc-console-${regattaId}-${raceNumber}`;
+    const handler = () => {
+      loadResults();
+    };
+    realtimeService.subscribe(
+      channelName,
+      {
         event: '*',
         schema: 'public',
         table: 'race_results',
         filter: `regatta_id=eq.${regattaId}`,
-      }, () => {
-        loadResults();
-      })
-      .subscribe();
+      },
+      handler
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      void realtimeService.unsubscribe(channelName, handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regattaId, raceNumber]);
