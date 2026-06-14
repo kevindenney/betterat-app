@@ -212,6 +212,10 @@ export interface AtlasNextEvent {
   label: string;
   /** Time/date snippet, e.g. "Sat 10am". */
   when?: string;
+  /** Eyebrow prefix for the amber map NEXT tag, in the persona's vocab
+   *  ("NEXT RACE" for sailing, "NEXT MARKET" for entrepreneur). Defaults to
+   *  "NEXT RACE" in the marker when unset. */
+  eyebrow?: string;
   /** Venue/area snippet, e.g. "Victoria Harbour, favoured end".
    *  Used in the bottom-sheet body — verbose is fine here. */
   where?: string;
@@ -5651,7 +5655,12 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     const sourceLabel =
       base.source_label ??
       (hasUserStep ? 'From: your timeline' : 'From: demo cohort schedule');
-    return { ...base, has_user_step: hasUserStep, source_label: sourceLabel };
+    return {
+      ...base,
+      eyebrow: base.eyebrow ?? 'NEXT SHIFT',
+      has_user_step: hasUserStep,
+      source_label: sourceLabel,
+    };
   }, [handlers.nextEvent, framePins]);
   // No walk-time annotations in the nursing frame: hospital-to-hospital
   // walking minutes are the sailor's distance/layline grammar misapplied —
@@ -6555,7 +6564,12 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     const sourceLabel =
       base.source_label ??
       (hasUserStep ? 'From: your timeline' : 'From: weekly market schedule (curated)');
-    return { ...base, has_user_step: hasUserStep, source_label: sourceLabel };
+    return {
+      ...base,
+      eyebrow: base.eyebrow ?? 'NEXT MARKET',
+      has_user_step: hasUserStep,
+      source_label: sourceLabel,
+    };
   }, [handlers.nextEvent, primaryHaat, rawPins]);
   // Pin tap state — supplier/haat/home/mentee/next-event all route
   // through here. Mirror of FrameF4's pattern. Opening any sheet

@@ -1591,6 +1591,7 @@ export function AtlasMapLibreCanvas({
                 <NextEventMarker
                   label={nextEvent.label}
                   when={nextEvent.when}
+                  eyebrow={nextEvent.eyebrow}
                 />
               </Pressable>
             ) : (
@@ -1601,6 +1602,7 @@ export function AtlasMapLibreCanvas({
                 <NextEventMarker
                   label={nextEvent.label}
                   when={nextEvent.when}
+                  eyebrow={nextEvent.eyebrow}
                 />
               </View>
             )}
@@ -3668,13 +3670,15 @@ function PinGlyph({
 function NextEventMarker({
   label,
   when,
+  eyebrow = 'NEXT RACE',
 }: {
   label: string;
   when?: string;
+  eyebrow?: string;
 }) {
   return (
     <View style={styles.nextTag}>
-      <Text style={styles.nextTagEyebrow}>NEXT RACE</Text>
+      <Text style={styles.nextTagEyebrow}>{eyebrow}</Text>
       <Text style={styles.nextTagLabel} numberOfLines={2}>
         {label}
         {when ? <Text style={styles.nextTagWhen}>{` · ${when}`}</Text> : null}
