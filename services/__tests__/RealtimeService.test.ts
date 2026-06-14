@@ -29,6 +29,11 @@ const createMockChannel = (name: string) => {
   const channel = {
     topic: `realtime:${name}`,
     on: jest.fn().mockReturnThis(),
+    presenceState: jest.fn().mockReturnValue({
+      'user-1': [{ userId: 'user-1', displayName: 'Kevin' }],
+    }),
+    track: jest.fn().mockResolvedValue(undefined),
+    untrack: jest.fn().mockResolvedValue(undefined),
     subscribe: jest.fn((statusCb?: StatusHandler) => {
       if (statusCb) {
         statusHandlers.set(name, statusCb);
@@ -161,6 +166,49 @@ describe('RealtimeService', () => {
       'communication_thread_reads',
       'communication_threads',
     ]);
+
+    await realtimeService.cleanup();
+  });
+
+  it('manages presence channels with sync, join, leave, and status handlers', async () => {
+    const syncCallback = jest.fn();
+    const joinCallback = jest.fn();
+    const leaveCallback = jest.fn();
+    const statusCallback = jest.fn();
+
+    realtimeService.subscribePresence(
+      'race-presence:race-1',
+      {
+        key: 'user-1',
+        onJoin: joinCallback,
+        onLeave: leaveCallback,
+        onStatus: statusCallback,
+      },
+      syncCallback
+    );
+
+    const channel = mockChannelFactory.mock.results[0]?.value;
+
+    expect(mockChannelFactory).toHaveBeenCalledWith('race-presence:race-1', {
+      config: { presence: { key: 'user-1' } },
+    });
+    expect(channel.on).toHaveBeenCalledTimes(3);
+
+    const syncHandler = channel.on.mock.calls[0][2];
+    const joinHandler = channel.on.mock.calls[1][2];
+    const leaveHandler = channel.on.mock.calls[2][2];
+
+    syncHandler();
+    joinHandler({ newPresences: [{ userId: 'user-2' }] });
+    leaveHandler({ leftPresences: [{ userId: 'user-3' }] });
+    statusHandlers.get('race-presence:race-1')?.('SUBSCRIBED');
+
+    expect(syncCallback).toHaveBeenCalledWith({
+      'user-1': [{ userId: 'user-1', displayName: 'Kevin' }],
+    });
+    expect(joinCallback).toHaveBeenCalledWith({ newPresences: [{ userId: 'user-2' }] });
+    expect(leaveCallback).toHaveBeenCalledWith({ leftPresences: [{ userId: 'user-3' }] });
+    expect(statusCallback).toHaveBeenCalledWith('SUBSCRIBED');
 
     await realtimeService.cleanup();
   });

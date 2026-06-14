@@ -18,10 +18,17 @@ export interface RealtimeSubscriptionConfig extends RealtimeChangeConfig {
   changes?: RealtimeChangeConfig[];
 }
 
+export interface RealtimePresenceConfig<TPresence extends Record<string, any> = Record<string, any>> {
+  key: string;
+  onJoin?: (payload: { newPresences?: TPresence[] }) => void;
+  onLeave?: (payload: { leftPresences?: TPresence[] }) => void;
+  onStatus?: (status: string) => void;
+}
+
 class RealtimeService {
   private channels: Map<string, {
     channel: RealtimeChannel;
-    callbacks: Set<(payload: RealtimePostgresChangesPayload<any>) => void>;
+    callbacks: Set<(payload: any) => void>;
     statusCallbacks: Set<(status: string) => void>;
     configSignature: string;
   }> = new Map();
@@ -43,12 +50,22 @@ class RealtimeService {
   }
 
   private getConfigSignature(config: RealtimeSubscriptionConfig): string {
-    return JSON.stringify(this.getChangeConfigs(config).map((change) => ({
-      table: change.table,
-      event: change.event || '*',
-      schema: change.schema || 'public',
-      filter: change.filter || '',
-    })));
+    return JSON.stringify({
+      kind: 'postgres_changes',
+      changes: this.getChangeConfigs(config).map((change) => ({
+        table: change.table,
+        event: change.event || '*',
+        schema: change.schema || 'public',
+        filter: change.filter || '',
+      })),
+    });
+  }
+
+  private getPresenceConfigSignature(config: RealtimePresenceConfig<any>): string {
+    return JSON.stringify({
+      kind: 'presence',
+      key: config.key,
+    });
   }
 
   private getChangeConfigs(config: RealtimeSubscriptionConfig): RealtimeChangeConfig[] {
@@ -184,6 +201,36 @@ class RealtimeService {
     return this.connectionStatus;
   }
 
+  private handleSubscriptionStatus(channelName: string, status: string): void {
+    logger.debug(`${channelName} subscription status: ${status}`);
+    const channelEntry = this.channels.get(channelName);
+    channelEntry?.statusCallbacks.forEach((cb) => {
+      try {
+        cb(status);
+      } catch (error) {
+        logger.error(`Error in ${channelName} status callback:`, error);
+      }
+    });
+    if (status === 'SUBSCRIBED') {
+      this.reconnectAttempts = 0;
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
+      this.setConnectionStatus('connected');
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      this.setConnectionStatus('reconnecting');
+      this.attemptReconnect();
+    } else if (status === 'CLOSED') {
+      if (this.channels.size > 0) {
+        this.setConnectionStatus('reconnecting');
+        this.attemptReconnect();
+      } else {
+        this.setConnectionStatus('disconnected');
+      }
+    }
+  }
+
   /**
    * Subscribe to database changes
    */
@@ -205,7 +252,7 @@ class RealtimeService {
         this.channels.delete(channelName);
       } else {
         logger.debug(`Reusing existing channel: ${channelName}`);
-        existingEntry.callbacks.add(callback as (payload: RealtimePostgresChangesPayload<any>) => void);
+        existingEntry.callbacks.add(callback as (payload: any) => void);
         if (config.onStatus) {
           existingEntry.statusCallbacks.add(config.onStatus);
         }
@@ -224,8 +271,8 @@ class RealtimeService {
 
     logger.debug(`Creating subscription: ${channelName}`);
 
-    const callbacks = new Set<(payload: RealtimePostgresChangesPayload<any>) => void>();
-    callbacks.add(callback as (payload: RealtimePostgresChangesPayload<any>) => void);
+    const callbacks = new Set<(payload: any) => void>();
+    callbacks.add(callback as (payload: any) => void);
     const statusCallbacks = new Set<(status: string) => void>();
     if (config.onStatus) {
       statusCallbacks.add(config.onStatus);
@@ -257,34 +304,87 @@ class RealtimeService {
     }
 
     channel.subscribe((status) => {
-      logger.debug(`${channelName} subscription status: ${status}`);
-      const channelEntry = this.channels.get(channelName);
-      channelEntry?.statusCallbacks.forEach((cb) => {
-        try {
-          cb(status);
-        } catch (error) {
-          logger.error(`Error in ${channelName} status callback:`, error);
-        }
-      });
-      if (status === 'SUBSCRIBED') {
-        this.reconnectAttempts = 0;
-        if (this.reconnectTimer) {
-          clearTimeout(this.reconnectTimer);
-          this.reconnectTimer = null;
-        }
-        this.setConnectionStatus('connected');
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        this.setConnectionStatus('reconnecting');
-        this.attemptReconnect();
-      } else if (status === 'CLOSED') {
-        if (this.channels.size > 0) {
-          this.setConnectionStatus('reconnecting');
-          this.attemptReconnect();
-        } else {
-          this.setConnectionStatus('disconnected');
-        }
-      }
+      this.handleSubscriptionStatus(channelName, status);
     });
+
+    this.channels.set(channelName, {
+      channel,
+      callbacks,
+      statusCallbacks,
+      configSignature,
+    });
+    return channel;
+  }
+
+  /**
+   * Subscribe to ephemeral presence state.
+   */
+  subscribePresence<TPresence extends Record<string, any> = Record<string, any>>(
+    channelName: string,
+    config: RealtimePresenceConfig<TPresence>,
+    onSync: (state: Record<string, TPresence[]>) => void
+  ): RealtimeChannel {
+    const configSignature = this.getPresenceConfigSignature(config);
+
+    const existingEntry = this.channels.get(channelName);
+    if (existingEntry) {
+      if (existingEntry.configSignature !== configSignature) {
+        logger.warn(`Presence channel config changed, recreating channel: ${channelName}`);
+        void this.safeRemoveChannel(existingEntry.channel, `Failed removing presence channel ${channelName} during config change`);
+        this.channels.delete(channelName);
+      } else {
+        logger.debug(`Reusing existing presence channel: ${channelName}`);
+        existingEntry.callbacks.add(onSync as (payload: any) => void);
+        if (config.onStatus) {
+          existingEntry.statusCallbacks.add(config.onStatus);
+        }
+        return existingEntry.channel;
+      }
+    }
+
+    const existingChannels = this.findSupabaseChannels(channelName);
+    if (existingChannels.length > 0) {
+      logger.debug(`Removing ${existingChannels.length} stale Supabase presence channel(s): ${channelName}`);
+      existingChannels.forEach((existingChannel) => {
+        void this.safeRemoveChannel(existingChannel, `Failed removing stale presence channel ${channelName}`);
+      });
+    }
+
+    logger.debug(`Creating presence subscription: ${channelName}`);
+
+    const callbacks = new Set<(payload: any) => void>();
+    callbacks.add(onSync as (payload: any) => void);
+    const statusCallbacks = new Set<(status: string) => void>();
+    if (config.onStatus) {
+      statusCallbacks.add(config.onStatus);
+    }
+
+    const channel = supabase.channel(channelName, {
+      config: { presence: { key: config.key } },
+    });
+
+    channel
+      .on('presence' as any, { event: 'sync' }, () => {
+        const channelEntry = this.channels.get(channelName);
+        if (!channelEntry) return;
+        const state = channel.presenceState() as Record<string, TPresence[]>;
+        channelEntry.callbacks.forEach((cb) => {
+          try {
+            cb(state);
+          } catch (error) {
+            logger.error(`Error in ${channelName} presence sync callback:`, error);
+          }
+        });
+      })
+      .on('presence' as any, { event: 'join' }, (payload) => {
+        config.onJoin?.(payload as unknown as { newPresences?: TPresence[] });
+      })
+      .on('presence' as any, { event: 'leave' }, (payload) => {
+        config.onLeave?.(payload as unknown as { leftPresences?: TPresence[] });
+      })
+      .subscribe((status) => {
+        this.handleSubscriptionStatus(channelName, status);
+      });
 
     this.channels.set(channelName, {
       channel,

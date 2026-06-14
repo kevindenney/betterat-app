@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { supabase } from '@/services/supabase';
+import { realtimeService } from '@/services/RealtimeService';
 import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('useRacePresence');
@@ -50,7 +50,7 @@ export function useRacePresence({
 }: UseRacePresenceOptions): UseRacePresenceReturn {
   const [presentUsers, setPresentUsers] = useState<PresenceUser[]>([]);
   const [isTracking, setIsTracking] = useState(false);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const channelRef = useRef<ReturnType<typeof realtimeService.subscribePresence<PresenceUser>> | null>(null);
   const isMountedRef = useRef(true);
   const effectRunIdRef = useRef(0);
 
@@ -91,29 +91,21 @@ export function useRacePresence({
     }
 
     const channelName = `race-presence:${regattaId}`;
-    const channel = supabase.channel(channelName, {
-      config: { presence: { key: userId } },
-    });
-
-    channelRef.current = channel;
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        if (!canCommit()) return;
-        const state = channel.presenceState();
-        syncPresence(state);
-      })
-      .on('presence', { event: 'join' }, ({ newPresences }) => {
-        if (!canCommit()) return;
-        logger.info('Presence join:', newPresences?.length);
-      })
-      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        if (!canCommit()) return;
-        logger.info('Presence leave:', leftPresences?.length);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
+    const channel = realtimeService.subscribePresence<PresenceUser>(
+      channelName,
+      {
+        key: userId,
+        onJoin: ({ newPresences }) => {
+          if (!canCommit()) return;
+          logger.info('Presence join:', newPresences?.length);
+        },
+        onLeave: ({ leftPresences }) => {
+          if (!canCommit()) return;
+          logger.info('Presence leave:', leftPresences?.length);
+        },
+        onStatus: (status) => {
+          if (status !== 'SUBSCRIBED') return;
+          void channelRef.current?.track({
             userId,
             displayName: displayName || 'Unknown',
             joinedAt: new Date().toISOString(),
@@ -121,8 +113,15 @@ export function useRacePresence({
           if (canCommit()) {
             setIsTracking(true);
           }
-        }
-      });
+        },
+      },
+      (state) => {
+        if (!canCommit()) return;
+        syncPresence(state);
+      }
+    );
+
+    channelRef.current = channel;
 
     // Handle app state changes — untrack when backgrounded
     const handleAppState = (state: AppStateStatus) => {
@@ -146,7 +145,7 @@ export function useRacePresence({
       }
       if (channelRef.current) {
         void channelRef.current.untrack();
-        void supabase.removeChannel(channelRef.current);
+        void realtimeService.unsubscribe(channelName);
         channelRef.current = null;
       }
       if (canCommit()) {
