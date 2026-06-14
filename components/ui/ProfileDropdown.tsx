@@ -1,16 +1,14 @@
 /**
  * ProfileDropdown
  *
- * Role-and-context switcher (Frames 1–3 of the Creator Studio & Org Admin
- * design pass). The popover descends from the avatar in every screen's top
- * header and shapes itself to who's looking at it:
+ * Role-and-context switcher. The popover descends from the avatar in every
+ * screen's top header and stays focused on fast identity/context actions:
  *
- *   - Solo subscriber (Felix): identity · plan card · Profile/Notifications/
- *     Subscribed/Start authoring · Help · Sign out
- *   - Faculty + author (Dr. Murphy at Hopkins): identity · roles · Creator
- *     Studio/Cohorts/Threads · standard utility · Sign out of Hopkins
- *   - Org admin (Dean Park): identity · roles · Hopkins admin/People/Billing/
- *     SSO · Creator Studio · standard utility · Sign out of Hopkins
+ *   - Tap avatar: identity, public profile front door, context switcher,
+ *     Practice, Inbox, Account & settings, Help, Sign out
+ *   - Tap unread badge: jump straight to Inbox without opening the menu
+ *   - Durable settings (units, notifications, subscription, connected
+ *     services, location, subscribed blueprints) live in Account & settings
  *
  * The variants share one component; section visibility is driven by
  * useProfileMenuData().
@@ -39,10 +37,8 @@ import { useProfileMenuData, OrgMembership } from '@/hooks/useProfileMenuData';
 import { useInterest } from '@/providers/InterestProvider';
 import { IOS_COLORS, IOS_ANIMATIONS, IOS_TOUCH } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
-import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useInboxCount } from '@/hooks/useInboxCount';
-import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 
@@ -79,7 +75,6 @@ export function ProfileDropdown({
   const { user, userProfile, isGuest, signOut } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [venuePickerOpen, setVenuePickerOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const scale = useSharedValue(1);
   const { width: windowWidth } = useWindowDimensions();
@@ -108,8 +103,16 @@ export function ProfileDropdown({
   };
   const menu = useProfileMenuData();
   const homeVenue = useUserHomeVenue();
-  const { switchInterest, userInterests } = useInterest();
+  const { currentInterest, switchInterest, userInterests } = useInterest();
   const { data: inboxCount = 0 } = useInboxCount();
+
+  // Boats only exist for the sailing interest (see AccountModalContent's
+  // isSailingInterest gate), so don't promise "boats" to other interests.
+  const interestSlug = String(currentInterest?.slug || '').toLowerCase();
+  const isSailingInterest = interestSlug === 'sail-racing' || interestSlug.includes('sail');
+  const accountSubtitle = isSailingInterest
+    ? 'Subscription · boats · notifications · privacy'
+    : 'Subscription · notifications · privacy';
 
   const isLoggedIn = !!user && !isGuest;
 
@@ -141,9 +144,10 @@ export function ProfileDropdown({
     setOpen(false);
     router.push(path as any);
   };
-  const openVenuePicker = () => {
+  const openInbox = () => {
+    triggerHaptic('selection');
     setOpen(false);
-    setVenuePickerOpen(true);
+    router.push('/(tabs)/inbox' as any);
   };
   const handleSignOut = () => {
     setOpen(false);
@@ -207,9 +211,11 @@ export function ProfileDropdown({
       safeAvatarUrl={safeAvatarUrl}
       menu={menu}
       inboxCount={inboxCount}
+      userId={user?.id ?? null}
+      accountSubtitle={accountSubtitle}
+      currentInterestName={currentInterest?.name ?? null}
       homeVenueName={homeVenue?.venue ?? null}
       onNavigate={navigate}
-      onOpenVenuePicker={openVenuePicker}
       onSignOut={handleSignOut}
       onHelp={handleHelp}
       onSwitchToOrg={handleSwitchToOrg}
@@ -311,15 +317,18 @@ export function ProfileDropdown({
         )}
       </AnimatedPressable>
 
-      {/* Inbox unread badge — folded onto the avatar so the standalone bell
-          can retire on every profile-bearing surface. Rendered as a sibling
-          of the pressable (not a child) because the logged-in avatar clips
-          overflow to round the image, which would otherwise crop the badge.
-          pointerEvents:none so the tap still falls through to the avatar. */}
+      {/* Inbox unread badge — separate press target. Tapping the avatar opens
+          this menu; tapping the red badge deep-links straight to Inbox. */}
       {isLoggedIn && inboxCount > 0 ? (
-        <View style={s.inboxBadge} pointerEvents="none">
+        <Pressable
+          style={s.inboxBadge}
+          onPress={openInbox}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`${formatBadgeCount(inboxCount)} unread inbox items`}
+        >
           <Text style={s.inboxBadgeText}>{formatBadgeCount(inboxCount)}</Text>
-        </View>
+        </Pressable>
       ) : null}
 
       {open &&
@@ -363,12 +372,6 @@ export function ProfileDropdown({
             </Pressable>
           </Modal>
         ))}
-
-      <HomeVenuePickerSheet
-        visible={venuePickerOpen}
-        onDismiss={() => setVenuePickerOpen(false)}
-        onSaved={() => setVenuePickerOpen(false)}
-      />
     </View>
   );
 }
@@ -385,9 +388,11 @@ function LoggedInMenu({
   safeAvatarUrl,
   menu,
   inboxCount,
+  userId,
+  accountSubtitle,
+  currentInterestName,
   homeVenueName,
   onNavigate,
-  onOpenVenuePicker,
   onSignOut,
   onHelp,
   onSwitchToOrg,
@@ -400,9 +405,11 @@ function LoggedInMenu({
   safeAvatarUrl: string | null;
   menu: ReturnType<typeof useProfileMenuData>;
   inboxCount: number;
+  userId: string | null;
+  accountSubtitle: string;
+  currentInterestName: string | null;
   homeVenueName: string | null;
   onNavigate: (path: string) => void;
-  onOpenVenuePicker: () => void;
   onSignOut: () => void;
   onHelp: () => void;
   onSwitchToOrg: (org: OrgMembership) => void;
@@ -421,20 +428,22 @@ function LoggedInMenu({
         initials={initials}
         showAvatarImage={showAvatarImage}
         safeAvatarUrl={safeAvatarUrl}
+      />
+
+      <PublicFaceStrip
+        currentInterestName={currentInterestName}
+        homeVenueName={homeVenueName}
+        onViewProfile={() => onNavigate(userId ? `/sailor/${userId}` : '/settings/edit-profile')}
         onEditProfile={() => onNavigate('/settings/edit-profile')}
       />
 
-      {menu.hasActiveOrg ? (
-        <RolesSection
-          memberships={menu.memberships}
-          activeOrg={menu.activeOrg}
-          onSwitchToOrg={onSwitchToOrg}
-          onSwitchToPersonal={onSwitchToPersonal}
-          onJoinOrg={() => onNavigate('/(tabs)/library?zone=orgs')}
-        />
-      ) : (
-        <PlanCardMini plan={menu.plan} />
-      )}
+      <RolesSection
+        memberships={menu.memberships}
+        activeOrg={menu.activeOrg}
+        onSwitchToOrg={onSwitchToOrg}
+        onSwitchToPersonal={onSwitchToPersonal}
+        onJoinOrg={() => onNavigate('/(tabs)/library?zone=orgs')}
+      />
 
       {(menu.isAdmin || menu.isAuthor) && (
         <RoleShortcuts menu={menu} onNavigate={onNavigate} />
@@ -442,80 +451,41 @@ function LoggedInMenu({
 
       <View style={s.linkSection}>
         <DropdownItem
-          icon="checkmark-circle-outline"
+          icon="checkmark-circle"
           label="My Practice"
           onPress={() => onNavigate('/(tabs)/practice')}
           trailing="chevron"
         />
         <ItemDivider />
         <DropdownItem
-          icon="mail-outline"
+          icon="mail"
           label="Inbox"
           onPress={() => onNavigate('/(tabs)/inbox')}
-          trailing="count"
+          trailing={inboxCount > 0 ? 'count' : 'none'}
           count={inboxCount}
           countTone={inboxCount > 0 ? 'coral' : 'neutral'}
         />
         <ItemDivider />
         <DropdownItem
-          icon="person-outline"
-          label="Profile & settings"
+          icon="settings"
+          label="Account & settings"
+          subtitle={accountSubtitle}
           onPress={() => onNavigate('/account')}
           trailing="chevron"
         />
-        <ItemDivider />
-        <DropdownItem
-          icon="location-outline"
-          label={homeVenueName ?? 'Set your location'}
-          onPress={onOpenVenuePicker}
-          trailing="chevron"
-        />
-        {!menu.isAuthor && !menu.isAdmin && (
-          <>
-            <ItemDivider />
-            <DropdownItem
-              icon="git-branch-outline"
-              label="Subscribed blueprints"
-              onPress={() => onNavigate('/library')}
-              trailing="count"
-              count={menu.counts.subscribedBlueprints}
-            />
-          </>
-        )}
-
-        {menu.isSolo && !menu.isAuthor && (
-          <>
-            <SectionDivider />
-            <DropdownItem
-              icon="create-outline"
-              label="Start authoring a blueprint"
-              onPress={() => onNavigate('/studio?empty=true')}
-              tone="author-mode"
-              trailing="chevron"
-            />
-          </>
-        )}
       </View>
 
       <SectionDivider />
 
       <View style={s.linkSection}>
-        {FEATURE_FLAGS.WHATSAPP_CONNECT_V3 ? (
-          <DropdownItem
-            icon="chatbubbles-outline"
-            label="Connected services"
-            onPress={() => onNavigate('/account/connected-services')}
-            trailing="chevron"
-          />
-        ) : null}
         <DropdownItem
-          icon="help-circle-outline"
+          icon="help-circle"
           label="Help & feedback"
           onPress={onHelp}
           trailing="chevron"
         />
         <DropdownItem
-          icon="log-out-outline"
+          icon="log-out"
           label={signOutLabel}
           onPress={onSignOut}
           destructive
@@ -531,14 +501,12 @@ function IdentityRow({
   initials,
   showAvatarImage,
   safeAvatarUrl,
-  onEditProfile,
 }: {
   displayName: string;
   email: string | null;
   initials: string;
   showAvatarImage: boolean;
   safeAvatarUrl: string | null;
-  onEditProfile: () => void;
 }) {
   return (
     <View style={s.who}>
@@ -559,43 +527,58 @@ function IdentityRow({
           </Text>
         )}
       </View>
-      <Pressable
-        onPress={onEditProfile}
-        accessibilityLabel="Edit profile"
-        accessibilityRole="button"
-        hitSlop={8}
-        style={({ hovered, pressed }: any) => [
-          s.whoEditButton,
-          (hovered || pressed) && s.whoEditButtonActive,
-        ]}
-      >
-        <Ionicons name="pencil-outline" size={16} color={IOS_COLORS.tertiaryLabel} />
-      </Pressable>
     </View>
   );
 }
 
-function PlanCardMini({
-  plan,
+function PublicFaceStrip({
+  currentInterestName,
+  homeVenueName,
+  onViewProfile,
+  onEditProfile,
 }: {
-  plan: ReturnType<typeof useProfileMenuData>['plan'];
+  currentInterestName: string | null;
+  homeVenueName: string | null;
+  onViewProfile: () => void;
+  onEditProfile: () => void;
 }) {
-  if (!plan) return null;
+  const descriptor = [currentInterestName, homeVenueName].filter(Boolean).join(' · ');
   return (
-    <View style={s.planCardMini}>
-      <View style={s.planBadge}>
-        <Text style={s.planBadgeText}>+</Text>
-      </View>
-      <View style={s.planCol}>
-        <Text style={s.planName}>{plan.label}</Text>
-        {!!plan.renewsAt && (
-          <Text style={s.planSub}>
-            Renews {plan.renewsAt}
-            {plan.pricePerYear != null ? ` · $${plan.pricePerYear} / yr` : ''}
-          </Text>
-        )}
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+    <View style={s.publicFaceStrip}>
+      <Text style={s.publicFaceKicker}>Your public face</Text>
+      <Text style={s.publicFaceDesc} numberOfLines={2}>
+        {descriptor ? `${descriptor} — what peers and orgs see.` : 'What peers and orgs see.'}
+      </Text>
+      <Pressable
+        onPress={onViewProfile}
+        accessibilityRole="button"
+        accessibilityLabel="View as others see you"
+        style={({ hovered, pressed }: any) => [
+          s.publicFaceRow,
+          (hovered || pressed) && s.publicFaceRowActive,
+        ]}
+      >
+        <Ionicons name="eye" size={18} color="#A67C52" style={{ marginRight: 12 }} />
+        <Text style={s.publicFaceTitle} numberOfLines={1}>
+          View as others see you
+        </Text>
+        <Pressable
+          onPress={(event) => {
+            event.stopPropagation?.();
+            onEditProfile();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Edit public profile"
+          hitSlop={8}
+          style={({ hovered, pressed }: any) => [
+            s.publicFaceEdit,
+            (hovered || pressed) && s.publicFaceEditActive,
+          ]}
+        >
+          <Text style={s.publicFaceEditText}>Edit</Text>
+        </Pressable>
+        <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+      </Pressable>
     </View>
   );
 }
@@ -803,6 +786,7 @@ type Trailing = 'chevron' | 'count' | 'none';
 function DropdownItem({
   icon,
   label,
+  subtitle,
   onPress,
   destructive,
   tone = 'neutral',
@@ -813,6 +797,7 @@ function DropdownItem({
 }: {
   icon: string;
   label: string;
+  subtitle?: string;
   onPress: () => void;
   destructive?: boolean;
   tone?: Tone;
@@ -845,9 +830,16 @@ function DropdownItem({
           color={labelColor}
           style={{ marginRight: 12 }}
         />
-        <Text style={[s.menuText, { color: labelColor }]} numberOfLines={1}>
-          {label}
-        </Text>
+        <View style={s.menuTextCol}>
+          <Text style={[s.menuText, { color: labelColor }]} numberOfLines={1}>
+            {label}
+          </Text>
+          {subtitle ? (
+            <Text style={s.menuSubtext} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
         {trailing === 'count' && typeof count === 'number' && count >= 0 ? (
           <View style={[s.countPill, countTone === 'coral' && s.countPillCoral]}>
             <Text style={[s.countPillText, countTone === 'coral' && s.countPillTextCoral]}>
@@ -967,6 +959,8 @@ const s = StyleSheet.create({
     borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
   },
   inboxBadgeText: {
     color: '#FFFFFF',
@@ -1053,40 +1047,71 @@ const s = StyleSheet.create({
     letterSpacing: -0.3,
   },
   whoEmail: { fontSize: 12, color: IOS_COLORS.secondaryLabel, marginTop: 2 },
-  whoEditButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({ web: { cursor: 'pointer' } as any }),
-  },
-  whoEditButtonActive: { backgroundColor: IOS_COLORS.tertiarySystemFill },
-
-  // Plan card mini (solo subscriber)
-  planCardMini: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  // Public profile strip
+  publicFaceStrip: {
     marginHorizontal: 12,
     marginBottom: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(0, 122, 255, 0.08)',
+    backgroundColor: '#FBF7F2',
+    borderWidth: 1,
+    borderColor: 'rgba(166, 124, 82, 0.18)',
+    overflow: 'hidden',
   },
-  planBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: IOS_COLORS.systemBlue,
+  publicFaceKicker: {
+    fontSize: 10,
+    fontFamily: fontFamily.mono,
+    fontWeight: '700',
+    color: '#A67C52',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    marginBottom: 2,
+  },
+  publicFaceDesc: {
+    fontSize: 12,
+    color: '#8A6D4F',
+    lineHeight: 16,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+  },
+  publicFaceRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    minHeight: IOS_TOUCH.minHeight,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(166, 124, 82, 0.16)',
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
   },
-  planBadgeText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 18 },
-  planCol: { flex: 1, minWidth: 0 },
-  planName: { fontSize: 13, fontWeight: '600', color: IOS_COLORS.label },
-  planSub: { fontSize: 11, color: IOS_COLORS.secondaryLabel, marginTop: 1 },
+  publicFaceRowActive: {
+    backgroundColor: 'rgba(166, 124, 82, 0.08)',
+  },
+  publicFaceTitle: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  publicFaceEdit: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0, 122, 255, 0.10)',
+    marginLeft: 8,
+    marginRight: 6,
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
+  },
+  publicFaceEditActive: {
+    backgroundColor: 'rgba(0, 122, 255, 0.18)',
+  },
+  publicFaceEditText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: IOS_COLORS.systemBlue,
+  },
 
   // Roles section (org member)
   roles: { paddingTop: 4, paddingBottom: 6 },
@@ -1166,7 +1191,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
   },
   menuItemHover: { backgroundColor: IOS_COLORS.tertiarySystemFill },
-  menuText: { fontSize: 14, fontWeight: '500', flex: 1, marginRight: 8 },
+  menuTextCol: { flex: 1, minWidth: 0, marginRight: 8 },
+  menuText: { fontSize: 14, fontWeight: '500' },
+  menuSubtext: { fontSize: 11.5, color: IOS_COLORS.secondaryLabel, marginTop: 2 },
 
   // Count badge
   countPill: {
@@ -1175,7 +1202,7 @@ const s = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(60, 60, 67, 0.08)',
   },
-  countPillCoral: { backgroundColor: 'rgba(255, 107, 107, 0.15)' },
+  countPillCoral: { backgroundColor: IOS_COLORS.systemRed },
   countPillText: {
     fontSize: 11,
     fontFamily: fontFamily.mono,
@@ -1183,7 +1210,7 @@ const s = StyleSheet.create({
     color: IOS_COLORS.secondaryLabel,
     fontVariant: ['tabular-nums'],
   },
-  countPillTextCoral: { color: '#FF6B6B' },
+  countPillTextCoral: { color: '#FFFFFF' },
 
   // Dividers
   itemDivider: {

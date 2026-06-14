@@ -107,11 +107,11 @@ function TabLayoutInner() {
   pathnameRef.current = pathname;
   const { isDrawerOpen, closeDrawer } = useWebDrawer();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  // On web: always use sidebar nav (no bottom tab bar).
-  // On narrow web (< 768px) the sidebar starts collapsed; on wide (>= 1024px) it's pinned open.
+  // Use the web sidebar only when the viewport can keep it available.
+  // Below this width the mobile-style floating tab bar remains the primary nav.
   const isWeb = Platform.OS === 'web';
-  const useWebSidebar = isWeb && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT;
-  const _isWideWeb = isWeb && windowWidth >= WEB_SIDEBAR_MIN_WIDTH;
+  const useWebSidebar =
+    isWeb && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT && windowWidth >= WEB_SIDEBAR_MIN_WIDTH;
   const hideGlobalNavigationHeader = !isWeb && ROUTES_WITH_CUSTOM_TOOLBAR.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );

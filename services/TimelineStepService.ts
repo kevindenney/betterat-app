@@ -632,6 +632,18 @@ export async function adoptStep(
     if (fetchErr) throw fetchErr;
     if (!source) throw new Error('Source step not found');
 
+    const { data: existing } = await supabase
+      .from('timeline_steps')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('interest_id', interestId)
+      .eq('source_id', sourceStepId)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      return existing as TimelineStepRecord;
+    }
+
     // Get the max sort_order for the adopter's timeline
     const { data: maxRow } = await supabase
       .from('timeline_steps')

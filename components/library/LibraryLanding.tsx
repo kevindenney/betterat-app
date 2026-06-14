@@ -175,6 +175,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
             toolbarOffset={toolbarHeight + 48}
             addedInterestSlugs={addedInterestSlugs}
             onAddInterest={onAddInterest}
+            showContextChrome={false}
           />
         )
       ) : (

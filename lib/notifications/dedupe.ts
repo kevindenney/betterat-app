@@ -43,6 +43,8 @@ function getNotificationEntityId(notification: SocialNotification): string {
     data.entityId,
     data.target_id,
     data.targetId,
+    data.thread_id,
+    data.threadId,
     data.blueprint_id,
     data.blueprintId,
     notification.regattaId,

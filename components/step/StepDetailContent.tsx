@@ -19,6 +19,7 @@ import { getVisibilityLabels } from '@/lib/vocabulary';
 import { resolveDoTabInterestKind } from '@/lib/interest-config';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import {
+  useAdoptStep,
   useDeleteStep,
   useMyTimeline,
   useRedoStepAsNewStep,
@@ -82,9 +83,11 @@ import { useLatestPeerReflection } from '@/hooks/useLatestPeerReflection';
 import { useStepCompleteCelebration } from '@/hooks/useStepCompleteCelebration';
 import { useContinueToNextBlueprintStep } from '@/hooks/useContinueToNextBlueprintStep';
 import { StepDiscussionInline } from './StepDiscussionInline';
+import { StepGearPicker } from './StepGearPicker';
 import { ZOOM_RAIL_RESERVED_WIDTH } from '@/components/ios-register/timeline-zoom/ZoomLevelPicker';
 import { FacultyAttestSheet } from '@/components/competency/FacultyAttestSheet';
 import { StepCompleteCelebration } from './StepCompleteCelebration';
+import { CrewThreadService } from '@/services/CrewThreadService';
 
 type TabValue = 'plan' | 'act' | 'review' | 'discussion';
 type TimingDraft = {
@@ -261,6 +264,7 @@ interface StepDetailContentProps {
 export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, onScroll, hideStatePill, onDeleted, bottomInset }: StepDetailContentProps) {
   const universalPlus = useUniversalPlus();
   const shareStep = useShareStep();
+  const adoptStep = useAdoptStep();
   const { user } = useAuth();
   const { currentInterest, allInterests } = useInterest();
   // Route param: /step/[id]?scope=cohort routes the Discussion tab
@@ -349,6 +353,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const deleteStep = useDeleteStep();
   const reopenStep = useReopenStepForWork();
   const redoStep = useRedoStepAsNewStep();
+  const invalidateAtlasStepQueries = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
+    queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+    queryClient.invalidateQueries({ queryKey: ['atlas-series-races'] });
+  }, [queryClient]);
 
   // Ownership detection — readOnlyProp forces read-only mode (e.g. blueprint author viewing subscriber step)
   const isOwner = readOnlyProp ? false : (!step || user?.id === step.user_id);
@@ -416,11 +425,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           // Clear local editing state — server is now the source of truth
           setEditingTitle(null);
           setLastSavedWithFlash(new Date());
+          invalidateAtlasStepQueries();
         },
       },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stepId, updateStep, queryClient]);
+  }, [stepId, updateStep, queryClient, invalidateAtlasStepQueries]);
 
   const handleTitleChange = useCallback((text: string) => {
     setEditingTitle(text);
@@ -942,12 +952,15 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         : old,
     );
     queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+    invalidateAtlasStepQueries();
     updateStep.mutate({
       stepId,
       input: { starts_at: startsAt, ends_at: endsAt, metadata: nextMetadata },
+    }, {
+      onSuccess: invalidateAtlasStepQueries,
     });
     setTimingSheetOpen(false);
-  }, [step, stepId, isOwner, timingDraft, metadata.timing, queryClient, updateStep]);
+  }, [step, stepId, isOwner, timingDraft, metadata.timing, queryClient, updateStep, invalidateAtlasStepQueries]);
 
   const handlePromptStepDate = useCallback(() => {
     if (!step || !isOwner) return;
@@ -975,6 +988,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         : old,
     );
     queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+    invalidateAtlasStepQueries();
     updateStep.mutate({
       stepId,
       input: {
@@ -988,8 +1002,10 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           },
         },
       },
+    }, {
+      onSuccess: invalidateAtlasStepQueries,
     });
-  }, [step, stepId, isOwner, metadata.timing, queryClient, updateStep]);
+  }, [step, stepId, isOwner, metadata.timing, queryClient, updateStep, invalidateAtlasStepQueries]);
 
   // Due date management
   const isOverdue = Boolean(
@@ -1091,6 +1107,95 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     });
   }, [isOwner, redoStep, step, stepId]);
 
+  const adoptedCopy = useMemo(() => {
+    if (!step || isOwner) return null;
+    return viewerInterestSteps.find((candidate) => candidate.source_id === step.id) ?? null;
+  }, [isOwner, step, viewerInterestSteps]);
+
+  const handleAdoptPeerStep = useCallback(() => {
+    if (!step || isOwner) return;
+    if (adoptedCopy) {
+      router.push(`/step/${adoptedCopy.id}` as any);
+      return;
+    }
+    const targetInterestId = step.interest_id ?? currentInterest?.id ?? null;
+    if (!targetInterestId) {
+      showAlert('Could not adopt step', 'No active interest is available for the copy.');
+      return;
+    }
+    adoptStep.mutate(
+      { sourceStepId: step.id, interestId: targetInterestId },
+      {
+        onSuccess: (created) => {
+          router.push(`/step/${created.id}` as any);
+        },
+        onError: (error) => {
+          const message =
+            error instanceof Error ? error.message : 'Could not add this step to your timeline.';
+          showAlert('Adopt failed', message);
+        },
+      },
+    );
+  }, [adoptStep, adoptedCopy, currentInterest?.id, isOwner, step]);
+
+  const handleMessageStepOwner = useCallback(() => {
+    if (!step || isOwner || !step.user_id || step.user_id === user?.id) return;
+    void (async () => {
+      const thread = await CrewThreadService.getOrCreateDirectThread(step.user_id);
+      if (thread?.id) {
+        router.push(`/crew-thread/${thread.id}` as any);
+        return;
+      }
+      showAlert('Could not open message', 'Try again in a moment.');
+    })();
+  }, [isOwner, step, user?.id]);
+
+  const peerActionFooter =
+    !isOwner && step ? (
+      <View style={styles.peerActionFooter}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={adoptedCopy ? 'Open adopted step' : 'Add step to timeline'}
+          onPress={handleAdoptPeerStep}
+          disabled={adoptStep.isPending}
+          style={({ pressed }) => [
+            styles.peerActionButton,
+            styles.peerActionButtonPrimary,
+            pressed && styles.peerActionButtonPressed,
+            adoptStep.isPending && styles.peerActionButtonDisabled,
+          ]}
+        >
+          <Ionicons
+            name={adoptedCopy ? 'checkmark-circle' : 'add-circle-outline'}
+            size={16}
+            color="#FFFFFF"
+          />
+          <Text style={styles.peerActionPrimaryText} numberOfLines={1}>
+            {adoptStep.isPending
+              ? 'Adding...'
+              : adoptedCopy
+                ? 'Open my copy'
+                : 'Add to timeline'}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Message step author"
+          onPress={handleMessageStepOwner}
+          style={({ pressed }) => [
+            styles.peerActionButton,
+            styles.peerActionButtonSecondary,
+            pressed && styles.peerActionButtonPressed,
+          ]}
+        >
+          <Ionicons name="chatbubble-outline" size={15} color={STEP_COLORS.label} />
+          <Text style={styles.peerActionSecondaryText} numberOfLines={1}>
+            Message
+          </Text>
+        </Pressable>
+      </View>
+    ) : null;
+
   const handleDeleteStep = useCallback(() => {
     if (!step || !isOwner) return;
     showConfirm(
@@ -1140,11 +1245,16 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       // Use refs to avoid stale closures in the timeout
       updateMetadataRef.current.mutate(
         { plan: { ...serverPlanDataRef.current, ...pending } },
-        { onSuccess: () => setLastSavedWithFlash(new Date()) },
+        {
+          onSuccess: () => {
+            setLastSavedWithFlash(new Date());
+            invalidateAtlasStepQueries();
+          },
+        },
       );
     }, 800);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [invalidateAtlasStepQueries]);
 
   // Flush any pending plan save on unmount only
   useEffect(() => {
@@ -1342,6 +1452,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           ) : null}
         </View>
       ) : null}
+      <StepGearPicker
+        stepId={stepId}
+        interestId={step.interest_id}
+        interestSlug={stepInterestSlug}
+        readOnly={!isOwner}
+      />
       {isCollaborator ? (() => {
         const planCollabs = serverPlanData.collaborators ?? [];
         const ownerCollab = planCollabs.find(
@@ -1439,7 +1555,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
                       ['timeline-steps', 'detail', stepId],
                       (prev: any) => (prev ? { ...prev, is_race: next } : prev),
                     );
-                    updateStep.mutate({ stepId, input: { is_race: next } });
+                    updateStep.mutate(
+                      { stepId, input: { is_race: next } },
+                      { onSuccess: invalidateAtlasStepQueries },
+                    );
+                    invalidateAtlasStepQueries();
                   }
                 : undefined
             }
@@ -1527,7 +1647,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
                     ? { ...prev, metadata: { ...(prev.metadata ?? {}), race_plan: next } }
                     : prev,
               );
-              updateMetadata.mutate({ race_plan: next });
+              updateMetadata.mutate(
+                { race_plan: next },
+                { onSuccess: invalidateAtlasStepQueries },
+              );
+              invalidateAtlasStepQueries();
             }}
           />
         </View>
@@ -1858,6 +1982,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           onMenuPress={() => setMenuOpen(true)}
           titleBlock={useIdentityDeck ? identityDeckEl : headerInner}
           belowTitle={useIdentityDeck ? peerQuoteEl : belowTitleRow}
+          footer={peerActionFooter}
           phaseTabs={
             <PhaseTabs
               plan={planPhase}
@@ -2436,6 +2561,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: STEP_COLORS.secondaryLabel,
+  },
+  peerActionFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 14,
+    backgroundColor: STEP_COLORS.cardBg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: STEP_COLORS.border,
+  },
+  peerActionButton: {
+    minHeight: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 12,
+  },
+  peerActionButtonPrimary: {
+    flex: 1.18,
+    backgroundColor: STEP_COLORS.accent,
+  },
+  peerActionButtonSecondary: {
+    flex: 1,
+    backgroundColor: STEP_COLORS.headerBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_COLORS.border,
+  },
+  peerActionButtonPressed: {
+    opacity: 0.82,
+  },
+  peerActionButtonDisabled: {
+    opacity: 0.62,
+  },
+  peerActionPrimaryText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  peerActionSecondaryText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: STEP_COLORS.label,
   },
   pinSheetBackdrop: {
     flex: 1,

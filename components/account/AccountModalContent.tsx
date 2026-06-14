@@ -11,6 +11,7 @@ import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Modal,
   ScrollView,
@@ -24,43 +25,27 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { TeamSeatManager } from '@/components/subscription/TeamSeatManager';
 import { useUserSettings, UNIT_SHORT_LABELS } from '@/hooks/useUserSettings';
+import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { getSafeImageUri } from '@/lib/utils/safeImageUri';
 import { useVocabulary } from '@/hooks/useVocabulary';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useOrganization } from '@/providers/OrganizationProvider';
-import { sailorBoatService } from '@/services/SailorBoatService';
 import { supabase } from '@/services/supabase';
 
 import { IOSListItem } from '@/components/ui/ios/IOSListItem';
 import { IOSListSection } from '@/components/ui/ios/IOSListSection';
 import { TourPricingCard } from '@/components/onboarding/TourPricingCard';
-import { TufteProfileHeader } from './TufteProfileHeader';
-import { accountStyles, ICON_BACKGROUNDS } from './accountStyles';
-
-// Types
-interface UserBoat {
-  id: string;
-  boat_name: string;
-  boat_class_name: string;
-  sail_number?: string;
-  status: 'active' | 'stored' | 'sold' | 'retired';
-  is_primary?: boolean;
-}
-
-interface ProfileUpdates {
-  full_name?: string;
-  home_club?: string;
-  home_venue?: string;
-  avatar_url?: string;
-}
+import { accountStyles, getInitials } from './accountStyles';
 
 export default function AccountModalContent() {
-  const { user, userProfile, signOut, updateUserProfile, isDemoSession, capabilities, coachProfile, removeCapability } = useAuth();
+  const { user, userProfile, updateUserProfile, isDemoSession, capabilities, coachProfile, removeCapability } = useAuth();
   const { currentInterest } = useInterest();
   const { activeDomain } = useOrganization();
   const { vocab } = useVocabulary();
+  const profileMenu = useProfileMenuData();
   // User settings (tips, learning links, units)
   const { settings: userSettings } = useUserSettings(currentInterest?.slug);
   const insets = useSafeAreaInsets();
@@ -70,8 +55,6 @@ export default function AccountModalContent() {
   const [claimPassword, setClaimPassword] = useState('');
   const [claimPasswordConfirm, setClaimPasswordConfirm] = useState('');
   const [claimLoading, setClaimLoading] = useState(false);
-  const [boats, setBoats] = useState<UserBoat[]>([]);
-  const [boatsLoading, setBoatsLoading] = useState(true);
 
   // Settings-related state
   const [pricingVisible, setPricingVisible] = useState(false);
@@ -97,35 +80,6 @@ export default function AccountModalContent() {
   const showOrganizationAccessSetting =
     activeDomain === 'nursing' || String(currentInterest?.slug || '').toLowerCase() === 'nursing';
 
-  const loadBoats = useCallback(async () => {
-    if (!user?.id) return;
-    setBoatsLoading(true);
-    try {
-      const userBoats = await sailorBoatService.listBoatsForSailor(user.id);
-      setBoats(
-        userBoats.map((b) => ({
-          id: b.id,
-          boat_name: b.name || b.boat_class?.name || 'Unnamed Boat',
-          boat_class_name: b.boat_class?.name || 'Unknown Class',
-          sail_number: b.sail_number,
-          status: (b.status as UserBoat['status']) || 'active',
-          is_primary: b.is_primary,
-        }))
-      );
-    } catch (error) {
-      console.error('[Account] Failed to load boats:', error);
-    } finally {
-      setBoatsLoading(false);
-    }
-  }, [user?.id]);
-
-  // Load boats on mount
-  useEffect(() => {
-    if (user?.id) {
-      void loadBoats();
-    }
-  }, [user?.id, loadBoats]);
-
   // Load Telegram link status
   useEffect(() => {
     if (!user?.id) return;
@@ -145,34 +99,7 @@ export default function AccountModalContent() {
       });
   }, [user?.id]);
 
-  // Inline profile save handler
-  const handleProfileSave = useCallback(async (updates: ProfileUpdates) => {
-    try {
-      await updateUserProfile(updates);
-    } catch (error) {
-      console.error('[Account] Failed to save profile:', error);
-      showAlert('Error', 'Failed to save changes. Please try again.');
-      throw error;
-    }
-  }, [updateUserProfile]);
-
   // Handlers
-  const handleSignOut = useCallback(() => {
-    showConfirm(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      async () => {
-        try {
-          await signOut();
-        } catch (error) {
-          console.error('[Account] Sign out error:', error);
-          showAlert('Error', 'Failed to sign out. Please try again.');
-        }
-      },
-      { destructive: true, confirmText: 'Sign Out' }
-    );
-  }, [signOut]);
-
   const handleClaimWorkspace = useCallback(async () => {
     if (claimPassword.length < 6) {
       showAlert('Weak password', 'Password must be at least 6 characters.');
@@ -319,81 +246,68 @@ export default function AccountModalContent() {
         style={{ flex: 1 }}
         contentContainerStyle={accountStyles.scrollContent}
       >
-        {/* ── Profile Card ─────────────────────────────────────── */}
-        <TufteProfileHeader
-          name={userProfile?.full_name || 'User'}
-          email={user?.email}
-          avatarUrl={userProfile?.avatar_url}
-          userId={user?.id}
-          homeClub={userProfile?.home_club}
-          homeVenue={userProfile?.home_venue}
-          memberSince={userProfile?.created_at}
-          onSave={handleProfileSave}
-        />
+        {/* ── Profile Pointer ──────────────────────────────────── */}
+        <IOSListSection>
+          <IOSListItem
+            title={userProfile?.full_name || 'User'}
+            subtitle="Public profile & photo — edit in one place"
+            leadingComponent={
+              <ProfileAvatar
+                name={userProfile?.full_name || user?.email || 'User'}
+                avatarUrl={userProfile?.avatar_url}
+              />
+            }
+            trailingAccessory="chevron"
+            onPress={() => router.push('/settings/edit-profile')}
+          />
+        </IOSListSection>
 
-        {/* ── Boats (sailing only) ─────────────────────────────── */}
-        {isSailingInterest && (
-          <IOSListSection header="Boats">
-            {boatsLoading ? (
-              <View style={accountStyles.emptyState}>
-                <ActivityIndicator size="small" color={IOS_COLORS.systemGray} />
-              </View>
-            ) : boats.length === 0 ? (
-              <View style={accountStyles.emptyState}>
-                <Text style={accountStyles.emptyText}>No boats added yet</Text>
-              </View>
-            ) : (
-              boats.map((boat) => (
-                <IOSListItem
-                  key={boat.id}
-                  title={`${boat.boat_name}${boat.is_primary ? ' \u00b7 Primary' : ''}`}
-                  subtitle={`${boat.boat_class_name}${boat.sail_number ? ` ${boat.sail_number}` : ''}`}
-                  leadingIcon="boat-outline"
-                  leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
-                  trailingAccessory="badge"
-                  badgeText={boat.status === 'active' ? 'active' : boat.status === 'stored' ? 'stored' : 'inactive'}
-                  badgeColor={
-                    boat.status === 'active'
-                      ? IOS_COLORS.systemGreen
-                      : boat.status === 'stored'
-                        ? IOS_COLORS.systemOrange
-                        : IOS_COLORS.systemGray
-                  }
-                  onPress={() => router.push(`/(tabs)/boat/${boat.id}`)}
-                />
-              ))
-            )}
+        {/* ── Practice ─────────────────────────────────────────── */}
+        <IOSListSection header="Practice">
+          {isSailingInterest && (
             <IOSListItem
-              title="Add Boat"
-              leadingIcon="add-circle-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
+              title="Boats & gear"
+              subtitle="Moved to your interest card"
+              leadingIcon="boat-outline"
+              leadingIconColor={IOS_COLORS.secondaryLabel}
               trailingAccessory="chevron"
-              onPress={() => router.push('/(tabs)/boat/add')}
+              onPress={() => router.push('/(tabs)/library?zone=interests')}
             />
-          </IOSListSection>
-        )}
+          )}
+          <IOSListItem
+            title="Location"
+            leadingIcon="location-outline"
+            leadingIconColor={IOS_COLORS.secondaryLabel}
+            trailingComponent={trailingValue(userProfile?.home_venue || userProfile?.home_club || 'Set')}
+            onPress={() => router.push('/settings/edit-profile')}
+          />
+          <IOSListItem
+            title="Subscribed blueprints"
+            leadingIcon="git-branch-outline"
+            leadingIconColor={IOS_COLORS.secondaryLabel}
+            trailingComponent={trailingValue(String(profileMenu.counts.subscribedBlueprints))}
+            onPress={() => router.push('/(tabs)/library?zone=plans')}
+          />
+        </IOSListSection>
 
         {/* ── Subscription ─────────────────────────────────────── */}
         <IOSListSection header="Subscription">
           <IOSListItem
             title="Plan"
+            leadingIcon="star-outline"
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingAccessory="none"
-            trailingComponent={trailingValue(`${subscriptionTier} Plan`)}
+            trailingComponent={trailingValue(
+              userProfile?.subscription_tier && userProfile.subscription_tier !== 'free'
+                ? `${subscriptionTier} · ${userProfile?.subscription_status === 'active' ? 'Active' : 'Expired'}`
+                : `${subscriptionTier} Plan`
+            )}
           />
-          {userProfile?.subscription_tier && userProfile.subscription_tier !== 'free' && (
-            <IOSListItem
-              title="Status"
-              trailingAccessory="none"
-              trailingComponent={trailingValue(
-                userProfile?.subscription_status === 'active' ? 'Active' : 'Expired'
-              )}
-            />
-          )}
           {userProfile?.subscription_tier === 'free' ? (
             <IOSListItem
               title="Plans & Pricing"
               leadingIcon="pricetags-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
+              leadingIconColor={IOS_COLORS.secondaryLabel}
               trailingAccessory="chevron"
               onPress={() => setPricingVisible(true)}
             />
@@ -401,7 +315,7 @@ export default function AccountModalContent() {
             <IOSListItem
               title="Manage Subscription"
               leadingIcon="arrow-up-circle-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
+              leadingIconColor={IOS_COLORS.secondaryLabel}
               trailingAccessory="chevron"
               onPress={() => router.push('/subscription')}
             />
@@ -413,21 +327,22 @@ export default function AccountModalContent() {
           <IOSListItem
             title="Units"
             leadingIcon="speedometer-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingComponent={trailingValue(UNIT_SHORT_LABELS[userSettings.units])}
             onPress={() => router.push('/settings/units')}
           />
           <IOSListItem
             title="Notification Preferences"
             leadingIcon="notifications-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.red}
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingAccessory="chevron"
             onPress={() => router.push('/settings/notifications')}
           />
           <IOSListItem
-            title="Telegram Assistant"
+            title="Connected services"
+            subtitle="Telegram assistant"
             leadingIcon="paper-plane-outline"
-            leadingIconBackgroundColor="#2AABEE"
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingAccessory={telegramLinked ? 'none' : 'chevron'}
             trailingComponent={
               telegramLinked
@@ -453,30 +368,26 @@ export default function AccountModalContent() {
             <IOSListItem
               title="Organization Access"
               leadingIcon="business-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
+              leadingIconColor={IOS_COLORS.secondaryLabel}
               trailingAccessory="chevron"
               onPress={() => router.push('/settings/organization-access')}
             />
           </IOSListSection>
         )}
 
-        {/* ── Privacy ─────────────────────────────────────────── */}
-        <IOSListSection header="Privacy">
+        {/* ── Privacy & Security ──────────────────────────────── */}
+        <IOSListSection header="Privacy & Security">
           <IOSListItem
             title="Privacy Settings"
             leadingIcon="shield-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.gray}
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingAccessory="chevron"
             onPress={() => router.push('/settings/privacy')}
           />
-        </IOSListSection>
-
-        {/* ── Security ─────────────────────────────────────────── */}
-        <IOSListSection header="Security">
           <IOSListItem
             title="Change Password"
             leadingIcon="lock-closed-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.gray}
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingAccessory="chevron"
             onPress={() => router.push('/settings/change-password')}
           />
@@ -484,7 +395,7 @@ export default function AccountModalContent() {
             <IOSListItem
               title="Manage Team"
               leadingIcon="people-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
+              leadingIconColor={IOS_COLORS.secondaryLabel}
               trailingAccessory="chevron"
               onPress={() => setTeamManagerVisible(true)}
             />
@@ -493,7 +404,7 @@ export default function AccountModalContent() {
             <IOSListItem
               title="Claim Workspace"
               leadingIcon="key-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.orange}
+              leadingIconColor={IOS_COLORS.secondaryLabel}
               trailingAccessory="chevron"
               onPress={() => setClaimVisible(true)}
             />
@@ -502,7 +413,7 @@ export default function AccountModalContent() {
             <IOSListItem
               title="Complete Onboarding"
               leadingIcon="checkmark-circle-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.green}
+              leadingIconColor={IOS_COLORS.secondaryLabel}
               trailingAccessory="chevron"
               onPress={() => router.push('/(auth)/sailor-onboarding-comprehensive')}
             />
@@ -517,14 +428,14 @@ export default function AccountModalContent() {
                 <IOSListItem
                   title="Coach Dashboard"
                   leadingIcon="easel-outline"
-                  leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
+                  leadingIconColor={IOS_COLORS.secondaryLabel}
                   trailingAccessory="chevron"
                   onPress={() => router.push('/(tabs)/coaching')}
                 />
                 <IOSListItem
                   title="Edit Coach Profile"
                   leadingIcon="person-circle-outline"
-                  leadingIconBackgroundColor={ICON_BACKGROUNDS.blue}
+                  leadingIconColor={IOS_COLORS.secondaryLabel}
                   trailingAccessory="chevron"
                   onPress={() => router.push('/coach/profile-edit')}
                 />
@@ -534,7 +445,7 @@ export default function AccountModalContent() {
               <IOSListItem
                 title="Complete Coach Setup"
                 leadingIcon="school-outline"
-                leadingIconBackgroundColor={ICON_BACKGROUNDS.orange}
+                leadingIconColor={IOS_COLORS.secondaryLabel}
                 trailingAccessory="chevron"
                 onPress={() => router.push('/(auth)/coach-onboarding-profile-preview')}
               />
@@ -551,7 +462,7 @@ export default function AccountModalContent() {
             <IOSListItem
               title="Stop offering mentoring"
               leadingIcon="people-outline"
-              leadingIconBackgroundColor={ICON_BACKGROUNDS.purple}
+              leadingIconColor={IOS_COLORS.secondaryLabel}
               trailingAccessory="none"
               onPress={() => {
                 showConfirm(
@@ -576,21 +487,21 @@ export default function AccountModalContent() {
           <IOSListItem
             title="Help & Support"
             leadingIcon="help-circle-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.teal}
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingAccessory="chevron"
             onPress={() => showAlert('Support', 'Email us at info@better.at')}
           />
           <IOSListItem
             title="Privacy Policy"
             leadingIcon="document-text-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.gray}
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingAccessory="chevron"
             onPress={() => router.push('/privacy')}
           />
           <IOSListItem
             title="Terms of Service"
             leadingIcon="shield-checkmark-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.gray}
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingAccessory="chevron"
             onPress={() => router.push('/terms')}
           />
@@ -599,16 +510,9 @@ export default function AccountModalContent() {
         {/* ── Account ──────────────────────────────────────────── */}
         <IOSListSection header="Account">
           <IOSListItem
-            testID="account-sign-out-button"
-            title="Sign Out"
-            titleStyle={accountStyles.signOutText}
-            trailingAccessory="none"
-            onPress={handleSignOut}
-          />
-          <IOSListItem
             title="Delete Account"
             leadingIcon="trash-outline"
-            leadingIconBackgroundColor={ICON_BACKGROUNDS.red}
+            leadingIconColor={IOS_COLORS.secondaryLabel}
             titleStyle={accountStyles.signOutText}
             trailingAccessory="chevron"
             onPress={handleDeleteAccount}
@@ -730,6 +634,20 @@ export default function AccountModalContent() {
   );
 }
 
+function ProfileAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
+  const safeAvatarUrl = getSafeImageUri(avatarUrl);
+
+  if (safeAvatarUrl) {
+    return <Image source={{ uri: safeAvatarUrl }} style={styles.profilePointerAvatar} />;
+  }
+
+  return (
+    <View style={styles.profilePointerAvatar}>
+      <Text style={styles.profilePointerAvatarText}>{getInitials(name)}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -763,5 +681,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: IOS_COLORS.systemBlue,
+  },
+  profilePointerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: IOS_COLORS.systemBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profilePointerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

@@ -969,6 +969,11 @@ function routeNotificationTap(
           params: { selected: stepId, tab: 'discussion' },
         } as never);
       return;
+    case 'new_message': {
+      const threadId = n.data?.thread_id || n.data?.threadId;
+      if (threadId) router.push(`/crew-thread/${threadId}` as never);
+      return;
+    }
     case 'followed_user_step_completed':
     case 'step_reviewed':
       if (stepId) router.push(`/step/${stepId}` as never);
