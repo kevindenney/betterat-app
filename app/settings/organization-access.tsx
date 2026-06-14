@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, CheckCircle2, Circle } from 'lucide-react-native';
@@ -71,7 +72,7 @@ export default function OrganizationAccessSettingsScreen() {
   const [tokenLookupInput, setTokenLookupInput] = React.useState('');
   const [inviteRoleOptions, setInviteRoleOptions] = React.useState<InviteRolePreset[]>([]);
   const [showDebugInfo, setShowDebugInfo] = React.useState(false);
-  const showDevDebugPanel = __DEV__ || process.env.NODE_ENV !== 'production';
+  const showDevDebugPanel = __DEV__;
   const autoInviteHandledRef = React.useRef(false);
   const invalidParamAlertShownRef = React.useRef<string | null>(null);
   const displayMemberships = React.useMemo(() => {
@@ -103,6 +104,7 @@ export default function OrganizationAccessSettingsScreen() {
       membershipLoadError,
       hasDebugPayload: Boolean(membershipLoadDebug),
     };
+    // eslint-disable-next-line no-console
     console.log('[organization-access] context snapshot', JSON.stringify(snapshot));
   }, [
     showDevDebugPanel,
@@ -382,79 +384,72 @@ export default function OrganizationAccessSettingsScreen() {
   ]);
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <View className="bg-white px-4 pt-12 pb-4 border-b border-gray-200">
-        <View className="flex-row items-center">
-          <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))}
+          >
             <ArrowLeft size={24} color="#1F2937" />
           </Pressable>
-          <View className="ml-4">
-            <Text className="text-xl font-bold text-gray-800">Organization Access</Text>
-            <Text className="text-sm text-gray-500 mt-0.5">Workspace, role, and content visibility</Text>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle}>Organization Access</Text>
+            <Text style={styles.headerSubtitle}>Workspace, role, and content visibility</Text>
           </View>
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }}>
-        <View className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-gray-200">
-          <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Have an Invite Token?</Text>
-          <Text className="text-sm text-gray-500 mt-2">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.card}>
+          <Text style={styles.sectionLabel}>Have an Invite Token?</Text>
+          <Text style={styles.bodyText}>
             Open a link or paste your token here to review and respond to your invite.
           </Text>
           <TextInput
             value={tokenLookupInput}
             onChangeText={setTokenLookupInput}
             placeholder="Paste invite token"
+            placeholderTextColor="#9CA3AF"
             autoCapitalize="none"
             autoCorrect={false}
-            className="mt-3 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-800 bg-white"
+            style={styles.input}
           />
           <Pressable
             onPress={() => void handleLookupInviteToken()}
             disabled={tokenLookupLoading}
-            className={`mt-3 px-3 py-2 rounded-xl border ${
-              tokenLookupLoading ? 'border-gray-200 bg-gray-100' : 'border-blue-200 bg-blue-50'
-            }`}
+            style={[styles.pill, styles.pillBlock, tokenLookupLoading ? styles.pillDisabled : styles.pillBlue]}
           >
-            <Text className={tokenLookupLoading ? 'text-gray-400 text-sm font-medium' : 'text-blue-700 text-sm font-medium'}>
+            <Text style={tokenLookupLoading ? styles.pillDisabledText : styles.pillBlueText}>
               {tokenLookupLoading ? 'Checking token...' : 'Check Invite Token'}
             </Text>
           </Pressable>
         </View>
 
         {showDevDebugPanel ? (
-          <View className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-gray-200">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Dev Diagnostics</Text>
-              <Pressable
-                onPress={() => setShowDebugInfo((prev) => !prev)}
-                className="px-3 py-2 rounded-xl border border-gray-300 bg-gray-50"
-              >
-                <Text className="text-xs font-medium text-gray-700">
-                  {showDebugInfo ? 'Hide debug' : 'Show debug'}
-                </Text>
+          <View style={styles.card}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.sectionLabel}>Dev Diagnostics</Text>
+              <Pressable onPress={() => setShowDebugInfo((prev) => !prev)} style={[styles.pill, styles.pillGray]}>
+                <Text style={styles.pillGrayText}>{showDebugInfo ? 'Hide debug' : 'Show debug'}</Text>
               </Pressable>
             </View>
             {showDebugInfo ? (
               <>
-                <Text className="text-xs text-gray-600 mt-3">loading: {String(loading)}</Text>
-                <Text className="text-xs text-gray-600 mt-1">ready: {String(ready)}</Text>
-                <Text className="text-xs text-gray-600 mt-1">organizationProviderActive: {String(organizationProviderActive)}</Text>
-                <Text className="text-xs text-gray-600 mt-1">providerMountedAt: {providerMountedAt || 'null'}</Text>
-                <Text className="text-xs text-gray-600 mt-1">membershipLoadAttempt: {membershipLoadAttempt}</Text>
-                <Text className="text-xs text-gray-600 mt-1">
-                  membershipLoadError: {membershipLoadError || 'null'}
-                </Text>
-                <ScrollView className="mt-2 max-h-48 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                  <Text className="text-xs text-gray-700">
-                    {JSON.stringify(membershipLoadDebug, null, 2)}
-                  </Text>
+                <Text style={styles.debugText}>loading: {String(loading)}</Text>
+                <Text style={styles.debugTextTight}>ready: {String(ready)}</Text>
+                <Text style={styles.debugTextTight}>organizationProviderActive: {String(organizationProviderActive)}</Text>
+                <Text style={styles.debugTextTight}>providerMountedAt: {providerMountedAt || 'null'}</Text>
+                <Text style={styles.debugTextTight}>membershipLoadAttempt: {membershipLoadAttempt}</Text>
+                <Text style={styles.debugTextTight}>membershipLoadError: {membershipLoadError || 'null'}</Text>
+                <ScrollView style={styles.debugScroll}>
+                  <Text style={styles.debugMono}>{JSON.stringify(membershipLoadDebug, null, 2)}</Text>
                 </ScrollView>
                 <Pressable
                   onPress={() => void refreshMemberships()}
-                  className="mt-3 self-start px-3 py-2 rounded-xl border border-gray-300 bg-gray-50"
+                  style={[styles.pill, styles.pillSelfStart, styles.pillGray, styles.mt3]}
                 >
-                  <Text className="text-xs font-medium text-gray-700">Retry</Text>
+                  <Text style={styles.pillGrayText}>Retry</Text>
                 </Pressable>
               </>
             ) : null}
@@ -462,56 +457,44 @@ export default function OrganizationAccessSettingsScreen() {
         ) : null}
 
         {resolvedTokenInvite ? (
-          <View className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-gray-200">
-            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Invite Link</Text>
-            <Text className="text-base font-semibold text-gray-800 mt-2">
-              {resolvedTokenInvite.role_label || 'Organization Invite'}
-            </Text>
-            <Text className="text-sm text-gray-500 mt-1">
-              Status: {resolvedTokenInvite.status}
-            </Text>
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>Invite Link</Text>
+            <Text style={styles.valueTitle}>{resolvedTokenInvite.role_label || 'Organization Invite'}</Text>
+            <Text style={styles.bodyTextTight}>Status: {resolvedTokenInvite.status}</Text>
             {resolvedTokenInvite.invitee_email ? (
-              <Text className="text-xs text-gray-500 mt-1">Invited email: {resolvedTokenInvite.invitee_email}</Text>
+              <Text style={styles.metaText}>Invited email: {resolvedTokenInvite.invitee_email}</Text>
             ) : null}
             {resolvedTokenInvite.invite_token ? (
-              <Text className="text-xs text-gray-500 mt-1">Token: {resolvedTokenInvite.invite_token}</Text>
+              <Text style={styles.metaText}>Token: {resolvedTokenInvite.invite_token}</Text>
             ) : null}
 
             {!signedIn ? (
-              <Text className="text-xs text-amber-700 mt-3">
+              <Text style={styles.amberText}>
                 Sign in with the invited email to accept or decline this invite.
               </Text>
             ) : !canRespondToTokenInvite ? (
-              <Text className="text-xs text-amber-700 mt-3">
+              <Text style={styles.amberText}>
                 You are signed in as {user?.email || 'another account'}. Sign in with the invited email to respond.
               </Text>
             ) : canRespondToInviteStatus(resolvedTokenInvite.status) ? (
-              <View className="mt-3 flex-row">
+              <View style={[styles.row, styles.mt3]}>
                 <Pressable
                   onPress={() => void handleTokenInviteResponse('accepted')}
                   disabled={tokenActionLoading}
-                  className={`px-3 py-2 rounded-xl border mr-2 ${
-                    tokenActionLoading ? 'border-gray-200 bg-gray-100' : 'border-emerald-200 bg-emerald-50'
-                  }`}
+                  style={[styles.pill, styles.mr2, tokenActionLoading ? styles.pillDisabled : styles.pillEmerald]}
                 >
-                  <Text className={tokenActionLoading ? 'text-gray-400 text-sm font-medium' : 'text-emerald-700 text-sm font-medium'}>
-                    Accept
-                  </Text>
+                  <Text style={tokenActionLoading ? styles.pillDisabledText : styles.pillEmeraldText}>Accept</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => void handleTokenInviteResponse('declined')}
                   disabled={tokenActionLoading}
-                  className={`px-3 py-2 rounded-xl border ${
-                    tokenActionLoading ? 'border-gray-200 bg-gray-100' : 'border-rose-200 bg-rose-50'
-                  }`}
+                  style={[styles.pill, tokenActionLoading ? styles.pillDisabled : styles.pillRose]}
                 >
-                  <Text className={tokenActionLoading ? 'text-gray-400 text-sm font-medium' : 'text-rose-700 text-sm font-medium'}>
-                    Decline
-                  </Text>
+                  <Text style={tokenActionLoading ? styles.pillDisabledText : styles.pillRoseText}>Decline</Text>
                 </Pressable>
               </View>
             ) : isInviteDecisionTerminal(resolvedTokenInvite.status) ? (
-              <Text className="text-xs text-gray-500 mt-3">
+              <Text style={[styles.bodyTextTight, styles.mt3]}>
                 This invite has already been {String(resolvedTokenInvite.status).toLowerCase()}.
               </Text>
             ) : null}
@@ -519,41 +502,37 @@ export default function OrganizationAccessSettingsScreen() {
         ) : null}
 
         {!ready || loading ? (
-          <View className="py-20 items-center">
+          <View style={styles.loadingBlock}>
             <ActivityIndicator size="large" color="#2563EB" />
-            <Text className="text-gray-500 mt-3">Loading organization memberships...</Text>
+            <Text style={styles.loadingText}>Loading organization memberships...</Text>
           </View>
         ) : membershipLoadError ? (
-          <View className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-rose-200">
-            <Text className="text-base font-semibold text-rose-700">Could not load organizations</Text>
-            <Text className="text-sm text-rose-700 mt-2">{membershipLoadError}</Text>
+          <View style={[styles.card, styles.cardError]}>
+            <Text style={styles.errorTitle}>Could not load organizations</Text>
+            <Text style={styles.errorBody}>{membershipLoadError}</Text>
             <Pressable
               onPress={() => void refreshMemberships()}
-              className="mt-3 self-start px-3 py-2 rounded-xl border border-rose-200 bg-rose-50"
+              style={[styles.pill, styles.pillSelfStart, styles.pillRose, styles.mt3]}
             >
-              <Text className="text-sm font-medium text-rose-700">Retry</Text>
+              <Text style={styles.pillRoseText}>Retry</Text>
             </Pressable>
             {showDevDebugPanel && showDebugInfo && membershipLoadErrorPayload ? (
-              <View className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                <Text className="text-xs text-gray-700">
-                  {JSON.stringify(membershipLoadErrorPayload, null, 2)}
-                </Text>
+              <View style={[styles.debugScroll, styles.mt3]}>
+                <Text style={styles.debugMono}>{JSON.stringify(membershipLoadErrorPayload, null, 2)}</Text>
               </View>
             ) : null}
           </View>
         ) : displayMemberships.length === 0 ? (
-          <View className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-gray-200">
-            <Text className="text-base font-semibold text-gray-800">No organization memberships yet</Text>
-            <Text className="text-sm text-gray-500 mt-2">
+          <View style={styles.card}>
+            <Text style={styles.valueTitleFlush}>No organization memberships yet</Text>
+            <Text style={styles.bodyText}>
               You can still use BetterAt personally. Join a club or institution to unlock organization workspaces.
             </Text>
           </View>
         ) : (
           <>
-            <View className="mx-4 mt-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <Text className="px-4 pt-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Workspace Context
-              </Text>
+            <View style={[styles.card, styles.cardFlush]}>
+              <Text style={styles.sectionLabelFlush}>Workspace Context</Text>
               {displayMemberships.map((membership) => {
                 const isActive = activeOrganizationId === membership.organization_id;
                 const org = membership.organization;
@@ -565,17 +544,17 @@ export default function OrganizationAccessSettingsScreen() {
                         void setActiveOrganizationId(membership.organization_id);
                       }
                     }}
-                    className="px-4 py-3 border-t border-gray-100 flex-row items-center"
+                    style={styles.membershipRow}
                   >
-                    <View className="flex-1 pr-3">
-                      <Text className="text-gray-900 font-medium">{org?.name || 'Unnamed Organization'}</Text>
-                      <Text className="text-xs text-gray-500 mt-1">
+                    <View style={styles.membershipInfo}>
+                      <Text style={styles.membershipName}>{org?.name || 'Unnamed Organization'}</Text>
+                      <Text style={styles.metaText}>
                         {formatOrgType(org?.organization_type)} • Role: {membership.role} • Membership: {membership.membership_status || membership.status}
                       </Text>
                     </View>
                     {isActive ? (
-                      <View className="flex-row items-center">
-                        <Text className="text-xs font-semibold text-blue-700 mr-2">Current</Text>
+                      <View style={styles.row}>
+                        <Text style={styles.currentBadge}>Current</Text>
                         <CheckCircle2 size={20} color="#2563EB" />
                       </View>
                     ) : (
@@ -586,53 +565,51 @@ export default function OrganizationAccessSettingsScreen() {
               })}
             </View>
 
-            <View className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-gray-200">
-              <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Current Access</Text>
-              <Text className="text-base font-semibold text-gray-800 mt-2">
-                {activeOrganization?.name || 'No active organization'}
-              </Text>
-              <Text className="text-sm text-gray-500 mt-1">
+            <View style={styles.card}>
+              <Text style={styles.sectionLabel}>Current Access</Text>
+              <Text style={styles.valueTitle}>{activeOrganization?.name || 'No active organization'}</Text>
+              <Text style={styles.bodyTextTight}>
                 {activeMembership
                   ? `${formatOrgType(activeOrganization?.organization_type)} • ${activeMembership.role} • ${activeMembership.is_verified ? 'Verified member' : 'Not verified'}`
                   : 'Select an organization workspace above.'}
               </Text>
               {canManageActiveOrganization && (
                 <Pressable
-                  className="mt-3 py-2 px-4 bg-blue-600 rounded-lg self-start"
+                  style={styles.primaryButton}
                   onPress={() => router.push('/organization/members' as any)}
                 >
-                  <Text className="text-sm font-semibold text-white">Manage Members</Text>
+                  <Text style={styles.primaryButtonText}>Manage Members</Text>
                 </Pressable>
               )}
             </View>
 
-            <View className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-gray-200">
-              <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Invite People</Text>
-              <Text className="text-sm text-gray-500 mt-2">
+            <View style={styles.card}>
+              <Text style={styles.sectionLabel}>Invite People</Text>
+              <Text style={styles.bodyText}>
                 Invite the clinical educators and support staff who guide experiential learning.
               </Text>
 
               {(params.inviteRole || params.inviteName || params.inviteEmail) && (
-                <View className="mt-3 p-3 rounded-xl border border-blue-200 bg-blue-50">
-                  <Text className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Prefilled Invite</Text>
-                  <Text className="text-sm text-blue-800 mt-1">
+                <View style={styles.prefillBox}>
+                  <Text style={styles.prefillLabel}>Prefilled Invite</Text>
+                  <Text style={styles.prefillStrong}>
                     Role: {params.inviteRole ? String(params.inviteRole) : resolvedTokenInvite?.role_label || 'Not set'}
                   </Text>
                   {(params.inviteName || resolvedTokenInvite?.invitee_name) ? (
-                    <Text className="text-xs text-blue-700 mt-1">
+                    <Text style={styles.prefillMeta}>
                       Name: {params.inviteName ? String(params.inviteName) : String(resolvedTokenInvite?.invitee_name || '')}
                     </Text>
                   ) : null}
                   {(params.inviteEmail || resolvedTokenInvite?.invitee_email) ? (
-                    <Text className="text-xs text-blue-700 mt-1">
+                    <Text style={styles.prefillMeta}>
                       Email: {params.inviteEmail ? String(params.inviteEmail) : String(resolvedTokenInvite?.invitee_email || '')}
                     </Text>
                   ) : null}
                   {resolvedTokenInvite?.invite_token ? (
-                    <Text className="text-xs text-blue-700 mt-1">Token: {resolvedTokenInvite.invite_token}</Text>
+                    <Text style={styles.prefillMeta}>Token: {resolvedTokenInvite.invite_token}</Text>
                   ) : null}
                   {resolvedTokenInvite?.status ? (
-                    <Text className="text-xs text-blue-700 mt-1">Status: {resolvedTokenInvite.status}</Text>
+                    <Text style={styles.prefillMeta}>Status: {resolvedTokenInvite.status}</Text>
                   ) : null}
                   <Pressable
                     onPress={() =>
@@ -657,28 +634,24 @@ export default function OrganizationAccessSettingsScreen() {
                       )
                     }
                     disabled={!canManageActiveOrganization}
-                    className={`mt-3 px-3 py-2 rounded-xl border ${
-                      canManageActiveOrganization ? 'border-blue-300 bg-white' : 'border-gray-200 bg-gray-100'
-                    }`}
+                    style={[styles.pill, styles.pillBlock, canManageActiveOrganization ? styles.pillOutlineBlue : styles.pillDisabled]}
                   >
-                    <Text className={canManageActiveOrganization ? 'text-blue-700 text-sm font-medium' : 'text-gray-400 text-sm font-medium'}>
+                    <Text style={canManageActiveOrganization ? styles.pillBlueText : styles.pillDisabledText}>
                       Send this invite
                     </Text>
                   </Pressable>
                 </View>
               )}
 
-              <View className="mt-3 flex-row flex-wrap">
+              <View style={styles.roleWrap}>
                 {inviteRoleOptions.map((option) => (
                   <Pressable
                     key={option.key}
                     onPress={() => void handleInviteByRole(option.role, undefined, option.key)}
                     disabled={!canManageActiveOrganization}
-                    className={`mr-2 mb-2 px-3 py-2 rounded-xl border ${
-                      canManageActiveOrganization ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-100'
-                    }`}
+                    style={[styles.pill, styles.roleChip, canManageActiveOrganization ? styles.pillBlue : styles.pillDisabled]}
                   >
-                    <Text className={canManageActiveOrganization ? 'text-blue-700 text-sm font-medium' : 'text-gray-400 text-sm font-medium'}>
+                    <Text style={canManageActiveOrganization ? styles.pillBlueText : styles.pillDisabledText}>
                       {option.label}
                     </Text>
                   </Pressable>
@@ -686,40 +659,37 @@ export default function OrganizationAccessSettingsScreen() {
               </View>
 
               {!canManageActiveOrganization && (
-                <Text className="text-xs text-amber-700 mt-2">
+                <Text style={styles.amberTextTight}>
                   You need an admin/manager role in this workspace to send invites.
                 </Text>
               )}
             </View>
 
-            <View className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-gray-200">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recent Invite Activity</Text>
-                <Pressable
-                  onPress={() => void loadInviteHistory()}
-                  className="px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50"
-                >
-                  <Text className="text-xs font-medium text-blue-700">Refresh</Text>
+            <View style={styles.card}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.sectionLabel}>Recent Invite Activity</Text>
+                <Pressable onPress={() => void loadInviteHistory()} style={[styles.pillSmall, styles.pillBlue]}>
+                  <Text style={styles.pillBlueTextSmall}>Refresh</Text>
                 </Pressable>
               </View>
 
               {inviteHistoryLoading ? (
-                <View className="mt-3 flex-row items-center">
+                <View style={[styles.row, styles.mt3]}>
                   <ActivityIndicator size="small" color="#2563EB" />
-                  <Text className="text-xs text-gray-500 ml-2">Loading invite history...</Text>
+                  <Text style={styles.inlineLoadingText}>Loading invite history...</Text>
                 </View>
               ) : inviteHistory.length === 0 ? (
-                <Text className="text-sm text-gray-500 mt-3">No invite records yet.</Text>
+                <Text style={[styles.bodyText, styles.mt3]}>No invite records yet.</Text>
               ) : (
-                <View className="mt-3">
+                <View style={styles.mt3}>
                   {inviteHistory.slice(0, 10).map((row) => (
-                    <View key={row.id} className="py-2 border-b border-gray-100">
-                      <Text className="text-sm text-gray-900 font-medium">
+                    <View key={row.id} style={styles.historyRow}>
+                      <Text style={styles.historyTitle}>
                         {row.role_label}
                         {row.invitee_name ? ` • ${row.invitee_name}` : ''}
                         {row.invitee_email ? ` • ${row.invitee_email}` : ''}
                       </Text>
-                      <Text className="text-xs text-gray-500 mt-1">
+                      <Text style={styles.metaText}>
                         Status: {row.status} • Sent: {row.sent_at ? new Date(row.sent_at).toLocaleString() : 'n/a'}
                       </Text>
                     </View>
@@ -728,68 +698,424 @@ export default function OrganizationAccessSettingsScreen() {
               )}
             </View>
 
-            <View className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-gray-200">
-              <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Default Content Visibility</Text>
-              <Text className="text-sm text-gray-500 mt-2">
+            <View style={styles.card}>
+              <Text style={styles.sectionLabel}>Default Content Visibility</Text>
+              <Text style={styles.bodyText}>
                 Set whether new organization content should default to public or members-only.
               </Text>
 
               <Pressable
-                className="mt-3 px-3 py-3 rounded-xl border border-gray-200 flex-row items-start"
+                style={styles.visibilityRow}
                 onPress={() => void handleChangeVisibility('public')}
                 disabled={!canManageActiveOrganization || savingVisibility}
               >
-                <View className="mr-3 mt-0.5">
+                <View style={styles.visibilityIcon}>
                   {defaultContentVisibility === 'public' ? (
                     <CheckCircle2 size={18} color="#2563EB" />
                   ) : (
                     <Circle size={18} color="#9CA3AF" />
                   )}
                 </View>
-                <View className="flex-1">
-                  <Text className="text-gray-900 font-medium">Public by default</Text>
-                  <Text className="text-xs text-gray-500 mt-1">
-                    Anyone can view published content from this organization.
-                  </Text>
+                <View style={styles.flex1}>
+                  <Text style={styles.optionTitle}>Public by default</Text>
+                  <Text style={styles.metaText}>Anyone can view published content from this organization.</Text>
                 </View>
               </Pressable>
 
               <Pressable
-                className="mt-2 px-3 py-3 rounded-xl border border-gray-200 flex-row items-start"
+                style={[styles.visibilityRow, styles.mt2]}
                 onPress={() => void handleChangeVisibility('org_members')}
                 disabled={!canManageActiveOrganization || savingVisibility}
               >
-                <View className="mr-3 mt-0.5">
+                <View style={styles.visibilityIcon}>
                   {defaultContentVisibility === 'org_members' ? (
                     <CheckCircle2 size={18} color="#2563EB" />
                   ) : (
                     <Circle size={18} color="#9CA3AF" />
                   )}
                 </View>
-                <View className="flex-1">
-                  <Text className="text-gray-900 font-medium">Members-only by default</Text>
-                  <Text className="text-xs text-gray-500 mt-1">
-                    Only active members can view published content from this organization.
-                  </Text>
+                <View style={styles.flex1}>
+                  <Text style={styles.optionTitle}>Members-only by default</Text>
+                  <Text style={styles.metaText}>Only active members can view published content from this organization.</Text>
                 </View>
               </Pressable>
 
               {!canManageActiveOrganization && (
-                <Text className="text-xs text-amber-700 mt-3">
+                <Text style={styles.amberText}>
                   You need an admin/manager role in this workspace to change visibility defaults.
                 </Text>
               )}
 
               {savingVisibility && (
-                <View className="flex-row items-center mt-3">
+                <View style={[styles.row, styles.mt3]}>
                   <ActivityIndicator size="small" color="#2563EB" />
-                  <Text className="text-xs text-gray-500 ml-2">Saving visibility setting...</Text>
+                  <Text style={styles.inlineLoadingText}>Saving visibility setting...</Text>
                 </View>
               )}
             </View>
           </>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 16,
+    padding: 4,
+  },
+  headerTextWrap: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+  card: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  cardFlush: {
+    padding: 0,
+    overflow: 'hidden',
+  },
+  cardError: {
+    borderColor: '#FECDD3',
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionLabelFlush: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  bodyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  bodyTextTight: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  metaText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  valueTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 8,
+  },
+  valueTitleFlush: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  input: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+  },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  pillSmall: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  pillBlock: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  pillSelfStart: {
+    alignSelf: 'flex-start',
+  },
+  pillBlue: {
+    borderColor: '#BFDBFE',
+    backgroundColor: '#EFF6FF',
+  },
+  pillBlueText: {
+    color: '#1D4ED8',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  pillBlueTextSmall: {
+    color: '#1D4ED8',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  pillOutlineBlue: {
+    borderColor: '#93C5FD',
+    backgroundColor: '#FFFFFF',
+  },
+  pillGray: {
+    borderColor: '#D1D5DB',
+    backgroundColor: '#F9FAFB',
+  },
+  pillGrayText: {
+    color: '#374151',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  pillDisabled: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
+  },
+  pillDisabledText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  pillEmerald: {
+    borderColor: '#A7F3D0',
+    backgroundColor: '#ECFDF5',
+  },
+  pillEmeraldText: {
+    color: '#047857',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  pillRose: {
+    borderColor: '#FECDD3',
+    backgroundColor: '#FFF1F2',
+  },
+  pillRoseText: {
+    color: '#BE123C',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  primaryButton: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#2563EB',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  primaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  flex1: {
+    flex: 1,
+  },
+  mt2: {
+    marginTop: 8,
+  },
+  mt3: {
+    marginTop: 12,
+  },
+  mr2: {
+    marginRight: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginTop: 12,
+  },
+  debugTextTight: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginTop: 4,
+  },
+  debugScroll: {
+    marginTop: 8,
+    maxHeight: 192,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+  },
+  debugMono: {
+    fontSize: 12,
+    color: '#374151',
+  },
+  amberText: {
+    fontSize: 12,
+    color: '#B45309',
+    marginTop: 12,
+  },
+  amberTextTight: {
+    fontSize: 12,
+    color: '#B45309',
+    marginTop: 8,
+  },
+  loadingBlock: {
+    paddingVertical: 80,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  inlineLoadingText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 8,
+  },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#BE123C',
+  },
+  errorBody: {
+    fontSize: 14,
+    color: '#BE123C',
+    marginTop: 8,
+  },
+  membershipRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  membershipInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  membershipName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  currentBadge: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1D4ED8',
+    marginRight: 8,
+  },
+  prefillBox: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    backgroundColor: '#EFF6FF',
+  },
+  prefillLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1D4ED8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  prefillStrong: {
+    fontSize: 14,
+    color: '#1E40AF',
+    marginTop: 4,
+  },
+  prefillMeta: {
+    fontSize: 12,
+    color: '#1D4ED8',
+    marginTop: 4,
+  },
+  roleWrap: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  roleChip: {
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  historyRow: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  historyTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  visibilityRow: {
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  visibilityIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  optionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+});
