@@ -700,7 +700,7 @@ export default function BlueprintPage() {
             </Pressable>
           ) : !isOwner && !isSubscribed && !hasPurchased ? (
             <Pressable style={styles.stickyCTA} onPress={handleSubscribe}>
-              <Text style={styles.stickyCTAText}>Start plan</Text>
+              <Text style={styles.stickyCTAText}>Subscribe</Text>
             </Pressable>
           ) : isOwner ? (
             <View style={styles.stickyOwnerBadge}>
@@ -867,7 +867,7 @@ export default function BlueprintPage() {
                     ) : (
                       <>
                         <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
-                        <Text style={styles.subscribeBtnText}>Start this plan</Text>
+                        <Text style={styles.subscribeBtnText}>Subscribe to this plan</Text>
                       </>
                     )}
                   </Pressable>

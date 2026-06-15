@@ -155,7 +155,7 @@ export function DiscoverPlansContent({ toolbarOffset }: DiscoverPlansContentProp
                 <Text style={styles.catalogMeta} numberOfLines={1}>
                   {p.orgName ?? p.authorName}
                   {p.activeSubscriberCount > 0
-                    ? ` · ${p.activeSubscriberCount} follower${p.activeSubscriberCount !== 1 ? 's' : ''}`
+                    ? ` · ${p.activeSubscriberCount} subscriber${p.activeSubscriberCount !== 1 ? 's' : ''}`
                     : ''}
                 </Text>
                 {p.description ? (
@@ -214,7 +214,7 @@ export function DiscoverPlansContent({ toolbarOffset }: DiscoverPlansContentProp
                     <Text style={styles.catalogMeta} numberOfLines={1}>
                       {author}
                       {bp.subscriber_count > 0
-                        ? ` · ${bp.subscriber_count} follower${bp.subscriber_count !== 1 ? 's' : ''}`
+                        ? ` · ${bp.subscriber_count} subscriber${bp.subscriber_count !== 1 ? 's' : ''}`
                         : ''}
                     </Text>
                     {bp.description ? (
@@ -238,7 +238,7 @@ export function DiscoverPlansContent({ toolbarOffset }: DiscoverPlansContentProp
                   {subscribingId === bp.id ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.subscribeBtnText}>Follow plan</Text>
+                    <Text style={styles.subscribeBtnText}>Subscribe</Text>
                   )}
                 </Pressable>
               </Pressable>

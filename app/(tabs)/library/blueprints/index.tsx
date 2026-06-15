@@ -38,7 +38,7 @@ export default function PlaybookBlueprintsListRoute() {
 
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Playbook</Text>
-        <Text style={styles.title}>Blueprints you follow</Text>
+        <Text style={styles.title}>Blueprints you've subscribed to</Text>
         <Text style={styles.subtitle}>
           Subscribed timelines you can add into your own practice.
         </Text>
@@ -49,8 +49,8 @@ export default function PlaybookBlueprintsListRoute() {
           <Ionicons name="map-outline" size={28} color="#9CA3AF" />
           <Text style={styles.emptyTitle}>No blueprints yet</Text>
           <Text style={styles.emptyBody}>
-            Follow a coach- or org-published plan to see it here — then adopt its
-            steps one at a time into your own practice.
+            Subscribe to a coach- or org-published plan to see it here — then add
+            its steps one at a time into your own practice.
           </Text>
           <Pressable
             style={styles.emptyCta}
