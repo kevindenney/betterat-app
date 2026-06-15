@@ -5,13 +5,15 @@
 
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 
 export function PlaybookBackLink() {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + IOS_SPACING.xs }]}>
       <Pressable
         style={({ pressed }) => [styles.link, pressed && { opacity: 0.6 }]}
         onPress={() =>
@@ -28,7 +30,6 @@ export function PlaybookBackLink() {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: IOS_SPACING.lg,
-    paddingTop: IOS_SPACING.md,
     paddingBottom: IOS_SPACING.xs,
     backgroundColor: IOS_COLORS.systemGroupedBackground,
   },
