@@ -21,7 +21,7 @@ import {
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -124,6 +124,7 @@ export default function BlueprintPage() {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [peerTimelines, setPeerTimelines] = useState<PeerTimeline[]>([]);
   const { width: screenWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const _isDesktop = Platform.OS === 'web' && screenWidth > 640;
 
   // Fetch peer subscriber timelines for non-owners
@@ -678,7 +679,12 @@ export default function BlueprintPage() {
 
       {/* Sticky header — appears on scroll */}
       {showStickyHeader && (
-        <View style={styles.stickyHeader}>
+        <View
+          style={[
+            styles.stickyHeader,
+            Platform.OS !== 'web' && { paddingTop: insets.top + 10 },
+          ]}
+        >
           <Text style={styles.stickyTitle} numberOfLines={1}>{blueprint.title}</Text>
           {!isOwner && !isSubscribed && !hasPurchased && priceLabel ? (
             <Pressable style={styles.stickyCTA} onPress={handlePurchase}>
