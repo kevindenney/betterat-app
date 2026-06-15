@@ -59,12 +59,12 @@ export async function buildHinge(input: {
   const [{ data: prev, error: prevErr }, { data: next, error: nextErr }] = await Promise.all([
     supabase
       .from('timeline_steps')
-      .select('id, title, completed_at, starts_at, updated_at')
+      .select('id, title, completed_at, starts_at, updated_at, interest_id')
       .eq('id', input.previousStepId)
       .maybeSingle(),
     supabase
       .from('timeline_steps')
-      .select('id, title, starts_at, created_at')
+      .select('id, title, starts_at, created_at, interest_id')
       .eq('id', input.nextStepId)
       .maybeSingle(),
   ]);
@@ -72,6 +72,14 @@ export async function buildHinge(input: {
     logger.error('Failed to load hinge endpoints', { prevErr, nextErr });
     throw prevErr ?? nextErr ?? new Error('Hinge endpoints missing');
   }
+
+  // Scope gap entries to the beat's own interest. Without this the fillers
+  // would surface any reflection / on-deck note / flagged moment captured in
+  // the same date window — including ones from other interests.
+  const interestId =
+    ((prev as any).interest_id as string | null) ??
+    ((next as any).interest_id as string | null) ??
+    null;
 
   const gapStart = (prev as any).completed_at ?? (prev as any).updated_at;
   const gapEnd = (next as any).starts_at ?? (next as any).created_at ?? new Date().toISOString();
@@ -84,9 +92,9 @@ export async function buildHinge(input: {
   const days = buildDayShells(startDate, endDate);
 
   await Promise.all([
-    fillFlaggedMoments(input.userId, gapStart, gapEnd, days),
-    fillStepLessInsights(input.userId, gapStart, gapEnd, days),
-    fillDeckAdds(input.userId, gapStart, gapEnd, days),
+    fillFlaggedMoments(input.userId, interestId, gapStart, gapEnd, days),
+    fillStepLessInsights(input.userId, interestId, gapStart, gapEnd, days),
+    fillDeckAdds(input.userId, interestId, gapStart, gapEnd, days),
   ]);
 
   const built: BuiltHinge = {
@@ -190,16 +198,37 @@ function pushEntry(days: HingeDay[], at: string, entry: HingeDayEntry) {
 
 async function fillFlaggedMoments(
   userId: string,
+  interestId: string | null,
   gapStart: string,
   gapEnd: string,
   days: HingeDay[],
 ): Promise<void> {
-  const { data, error } = await supabase
+  // step_flag_events has no interest_id and no FK to timeline_steps, so a
+  // PostgREST embed can't scope it. Resolve the interest's step ids first,
+  // then filter flags to those steps (flags with no matching step can't be
+  // attributed to an interest anyway).
+  let stepIds: string[] | null = null;
+  if (interestId) {
+    const { data: steps, error: stepsErr } = await supabase
+      .from('timeline_steps')
+      .select('id')
+      .eq('interest_id', interestId);
+    if (stepsErr) {
+      logger.warn('Skipping flagged moments (could not resolve interest steps)', stepsErr);
+      return;
+    }
+    stepIds = (steps ?? []).map((s) => (s as { id: string }).id);
+    if (stepIds.length === 0) return;
+  }
+
+  let query = supabase
     .from('step_flag_events')
     .select('id, body, flagged_at, step_id')
     .eq('user_id', userId)
     .gte('flagged_at', gapStart)
     .lte('flagged_at', gapEnd);
+  if (stepIds) query = query.in('step_id', stepIds);
+  const { data, error } = await query;
   if (error) {
     logger.warn('Skipping flagged moments (table missing or RLS rejected)', error);
     return;
@@ -218,6 +247,7 @@ async function fillFlaggedMoments(
 
 async function fillStepLessInsights(
   userId: string,
+  interestId: string | null,
   gapStart: string,
   gapEnd: string,
   days: HingeDay[],
@@ -225,13 +255,15 @@ async function fillStepLessInsights(
   // playbook_insights doesn't carry a step_id today; "step-less insights" maps to
   // the unrefined rows captured during the interval (refined ones already became
   // concepts and live elsewhere in the timeline).
-  const { data, error } = await supabase
+  let query = supabase
     .from('playbook_insights')
     .select('id, content, created_at, kind, refined_to_concept_id')
     .eq('user_id', userId)
     .is('refined_to_concept_id', null)
     .gte('created_at', gapStart)
     .lte('created_at', gapEnd);
+  if (interestId) query = query.eq('interest_id', interestId);
+  const { data, error } = await query;
   if (error) {
     logger.warn('Skipping step-less insights', error);
     return;
@@ -250,16 +282,19 @@ async function fillStepLessInsights(
 
 async function fillDeckAdds(
   userId: string,
+  interestId: string | null,
   gapStart: string,
   gapEnd: string,
   days: HingeDay[],
 ): Promise<void> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('step_deck')
     .select('id, title, body, added_at, status, placed_at')
     .eq('user_id', userId)
     .gte('added_at', gapStart)
     .lte('added_at', gapEnd);
+  if (interestId) query = query.eq('interest_id', interestId);
+  const { data, error } = await query;
   if (error) {
     logger.warn('Skipping step_deck adds', error);
     return;
