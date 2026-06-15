@@ -19,6 +19,8 @@ import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { useToast } from '@/components/ui/AppToast';
+import { hapticSuccess } from '@/lib/haptics';
 import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
 import { useLibraryZonesData } from '@/hooks/useLibraryZonesData';
 import { useLibraryCounts } from '@/hooks/useLibraryCounts';
@@ -38,6 +40,7 @@ interface Props {
 export function ResourcesZone({ onOpenCapture }: Props) {
   const [captureOpen, setCaptureOpen] = useState(false);
   const { currentInterest } = useInterest();
+  const toast = useToast();
   const createLibraryItem = useCreateLibraryItem();
   const { data: zones } = useLibraryZonesData(currentInterest?.id);
   const { data: counts } = useLibraryCounts(currentInterest?.id);
@@ -182,6 +185,13 @@ export function ResourcesZone({ onOpenCapture }: Props) {
           );
           if (!input) return;
           createLibraryItem.mutate(input, {
+            onSuccess: () => {
+              hapticSuccess();
+              toast.show(
+                "Saved — your Librarian will surface this when it's relevant.",
+                'success',
+              );
+            },
             onError: (err) =>
               showAlert(
                 'Capture failed',

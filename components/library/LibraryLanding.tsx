@@ -47,6 +47,8 @@ import { useLibraryCounts } from '@/hooks/useLibraryCounts';
 import { usePlaybook } from '@/hooks/usePlaybook';
 import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { useToast } from '@/components/ui/AppToast';
+import { hapticSuccess } from '@/lib/haptics';
 import { StepAddSheet } from '@/components/ios-register/timeline-zoom/StepAddSheet';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
@@ -120,6 +122,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   const { data: counts } = useLibraryCounts(currentInterest?.id);
   const { data: playbook } = usePlaybook(currentInterest?.id);
   const createLibraryItem = useCreateLibraryItem();
+  const toast = useToast();
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [addChooserOpen, setAddChooserOpen] = useState(false);
   const [stepAddOpen, setStepAddOpen] = useState(false);
@@ -292,6 +295,13 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           );
           if (!input) return;
           createLibraryItem.mutate(input, {
+            onSuccess: () => {
+              hapticSuccess();
+              toast.show(
+                "Saved — your Librarian will surface this when it's relevant.",
+                'success',
+              );
+            },
             onError: (err) =>
               showAlert(
                 'Capture failed',
