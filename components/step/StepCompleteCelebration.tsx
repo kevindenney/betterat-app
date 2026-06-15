@@ -25,8 +25,13 @@
 
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ArrowRight, Trophy, Users } from 'lucide-react-native';
+import { ArrowRight, Sparkles, Trophy, Users } from 'lucide-react-native';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+
+export interface SettledCapabilityBeat {
+  name: string;
+  evidenceCount: number;
+}
 
 export interface StepCompleteCelebrationProps {
   /**
@@ -73,6 +78,12 @@ export interface StepCompleteCelebrationProps {
   onTakeABeat?: () => void;
   /** Dismiss the celebration back to the step's tabs. */
   onDismiss?: () => void;
+  /**
+   * Trophy-of-Becoming: capabilities that crossed into "settled" for the first
+   * time because of this step. When present, a distinct "becoming" band names
+   * them above the step-done details. Empty/undefined → no band.
+   */
+  settledCapabilities?: SettledCapabilityBeat[];
 }
 
 export function StepCompleteCelebration({
@@ -89,6 +100,7 @@ export function StepCompleteCelebration({
   groupLabel = 'group',
   onTakeABeat,
   onDismiss,
+  settledCapabilities,
 }: StepCompleteCelebrationProps) {
   const isSolo = variant === 'solo';
   const positionLabel =
@@ -124,6 +136,32 @@ export function StepCompleteCelebration({
           <Text style={styles.sessionLine}>{sessionLabel}</Text>
         ) : null}
       </View>
+
+      {settledCapabilities && settledCapabilities.length > 0 ? (
+        <View style={styles.becomingCard}>
+          <View style={styles.becomingHeader}>
+            <Sparkles size={14} color={C.becomingDeep} strokeWidth={2.2} />
+            <Text style={styles.becomingEyebrow}>A capability settled</Text>
+          </View>
+          {settledCapabilities.map((cap) => (
+            <View key={cap.name} style={styles.becomingRow}>
+              <Text style={styles.becomingName}>{cap.name}</Text>
+              {cap.evidenceCount > 0 ? (
+                <Text style={styles.becomingEvidence}>
+                  {cap.evidenceCount === 1
+                    ? '1 evidence capture'
+                    : `${cap.evidenceCount} evidence captures`}
+                </Text>
+              ) : null}
+            </View>
+          ))}
+          <Text style={styles.becomingFootnote}>
+            {settledCapabilities.length === 1
+              ? 'This is now part of how you work.'
+              : 'These are now part of how you work.'}
+          </Text>
+        </View>
+      ) : null}
 
       {isSolo ? (
         onTakeABeat ? (
@@ -256,6 +294,10 @@ const C = {
   greenSoft: '#B7E8C2',
   greenTint: '#E8F8EC',
   card: '#FFFFFF',
+  becomingDeep: '#7A4FB5',
+  becoming: '#9B6DD6',
+  becomingSoft: '#DCC8F0',
+  becomingTint: '#F4EDFB',
 };
 
 const styles = StyleSheet.create({
@@ -327,6 +369,49 @@ const styles = StyleSheet.create({
     color: C.label2,
     textAlign: 'center',
     letterSpacing: -0.1,
+  },
+  becomingCard: {
+    backgroundColor: C.becomingTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.becomingSoft,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  becomingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  becomingEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: C.becomingDeep,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+  },
+  becomingRow: {
+    gap: 1,
+  },
+  becomingName: {
+    fontFamily: fontFamily.serif,
+    fontSize: 18,
+    fontStyle: 'italic',
+    color: C.label,
+    letterSpacing: -0.2,
+    lineHeight: 24,
+  },
+  becomingEvidence: {
+    fontSize: 12.5,
+    color: C.becomingDeep,
+    letterSpacing: -0.05,
+  },
+  becomingFootnote: {
+    fontSize: 12.5,
+    color: C.label2,
+    letterSpacing: -0.05,
   },
   statsCard: {
     backgroundColor: C.card,

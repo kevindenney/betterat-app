@@ -145,6 +145,33 @@ export async function autoTagAndWriteStepCapabilityEvidence({
   return rows;
 }
 
+export interface NewlySettledCapability {
+  name: string;
+  evidenceCount: number;
+}
+
+/**
+ * Capabilities that crossed into "settled" (confirmed + strong) for the first
+ * time across the owner's timeline as a result of completing this step. Drives
+ * the Trophy-of-Becoming moment. Returns [] on any error — a missing trophy is
+ * never worth blocking step completion.
+ */
+export async function detectNewlySettledCapabilities(
+  stepId: string,
+): Promise<NewlySettledCapability[]> {
+  const { data, error } = await supabase.rpc('newly_settled_capabilities', {
+    p_step_id: stepId,
+  });
+  if (error) {
+    logger.warn('newly_settled_capabilities failed', error);
+    return [];
+  }
+  return (data ?? []).map((row: { capability_name: string; evidence_count: number }) => ({
+    name: row.capability_name,
+    evidenceCount: row.evidence_count ?? 0,
+  }));
+}
+
 export async function writeStepCapabilityEvidence({
   stepId,
   rows,

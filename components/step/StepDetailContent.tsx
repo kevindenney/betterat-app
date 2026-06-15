@@ -48,7 +48,11 @@ import { resolveEntities, buildEntityInput } from '@/services/ai/EntityResolutio
 import { enrichDateForSailing } from '@/services/ai/DateEnrichmentService';
 import { sailorBoatService } from '@/services/SailorBoatService';
 import { equipmentService } from '@/services/EquipmentService';
-import { autoTagAndWriteStepCapabilityEvidence } from '@/services/CapabilityEvidenceService';
+import {
+  autoTagAndWriteStepCapabilityEvidence,
+  detectNewlySettledCapabilities,
+  type NewlySettledCapability,
+} from '@/services/CapabilityEvidenceService';
 import { settleStepAndPlaceBeforeNow } from '@/services/TimelineStepService';
 import { StepPinInterests } from './StepPinInterests';
 import { RaceCoursePicker } from '@/components/capture/RaceCoursePicker';
@@ -345,6 +349,10 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   // step, not a persistent view of a settled one — re-opening a done step shows
   // its tabs, not the trophy. Set in handleToggleDone, cleared on dismiss/reopen.
   const [showCelebration, setShowCelebration] = useState(false);
+  // Trophy-of-Becoming: capabilities that crossed into "settled" because of
+  // this completion. Populated after the evidence write resolves; cleared
+  // alongside the celebration on dismiss/reopen.
+  const [settledCaps, setSettledCaps] = useState<NewlySettledCapability[]>([]);
 
   // Use the step's own interest for vocabulary so labels match the step's
   // domain (e.g. sail-racing labels for a sailing step, even when the viewer's
@@ -1062,6 +1070,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     if (!step || !isOwner) return;
     if (step.status === 'settled' || step.status === 'completed') {
       setShowCelebration(false);
+      setSettledCaps([]);
       reopenStep.mutate(stepId, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
@@ -1079,6 +1088,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     const completedAt = new Date().toISOString();
     hapticSuccess();
     setShowCelebration(true);
+    setSettledCaps([]);
     queryClient.setQueryData(
       ['timeline-steps', 'detail', stepId],
       (old: any) => old ? { ...old, status: 'settled', completed_at: completedAt } : old,
@@ -1086,6 +1096,13 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     void (async () => {
       await autoTagAndWriteStepCapabilityEvidence({ step });
       await settleStepAndPlaceBeforeNow(stepId);
+      // Surface the Trophy-of-Becoming only after evidence is written, so the
+      // "newly settled" check sees this step's strong rows.
+      const settled = await detectNewlySettledCapabilities(stepId);
+      if (settled.length > 0) {
+        setSettledCaps(settled);
+        hapticSuccess();
+      }
     })()
       .then(() => {
         queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
@@ -1515,7 +1532,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       onContinue={continueNext.handleContinue}
       isContinuing={continueNext.isContinuing}
       groupLabel={getVisibilityLabels(currentInterest?.slug).fleet.toLowerCase()}
-      onDismiss={() => setShowCelebration(false)}
+      settledCapabilities={settledCaps}
+      onDismiss={() => {
+        setShowCelebration(false);
+        setSettledCaps([]);
+      }}
     />
   ) : (
     <>
