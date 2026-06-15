@@ -21,8 +21,10 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useInterest, type Interest } from '@/providers/InterestProvider';
+import { useAuth } from '@/providers/AuthProvider';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -40,6 +42,8 @@ export interface InterestSelectionContentProps {
   title?: string;
   /** Subtitle line below the title */
   subtitle?: string;
+  /** When set, renders a warm "Welcome, {name}." eyebrow above the title. */
+  greetingName?: string;
   /** Called after an interest has been selected and persisted */
   onComplete: () => void;
   /** Optional back button rendered in the top-left */
@@ -82,8 +86,9 @@ const DEFAULT_ICON = 'sparkles';
  *   2. The `app/welcome/pick.tsx` screen in the first-launch flow.
  */
 export function InterestSelectionContent({
-  title = 'What are you working on?',
-  subtitle = 'Pick one to get started — you can change it later.',
+  title = 'What do you want to get better at?',
+  subtitle = 'Pick what matters most right now — you can add more anytime.',
+  greetingName,
   onComplete,
   onBack,
   applySafeArea = false,
@@ -257,10 +262,16 @@ export function InterestSelectionContent({
       )}
 
       {/* Header */}
-      <View style={[styles.header, onBack && styles.headerWithBack]}>
+      <Animated.View
+        entering={FadeInDown.duration(440)}
+        style={[styles.header, onBack && styles.headerWithBack]}
+      >
+        {greetingName ? (
+          <Text style={styles.greeting}>Welcome, {greetingName}.</Text>
+        ) : null}
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
-      </View>
+      </Animated.View>
 
         {/* Search */}
         {!interestsLoading && allInterests.length > 0 && (
@@ -373,6 +384,14 @@ export function InterestSelectionContent({
  * is missing.
  */
 export function InterestSelection({ visible, onComplete }: InterestSelectionProps) {
+  const { userProfile } = useAuth();
+
+  // First name for the warm greeting — skip if the stored name is just the
+  // email (common for OAuth/seed accounts that never set a display name).
+  const rawName = (userProfile?.full_name ?? '').trim();
+  const greetingName =
+    rawName && !rawName.includes('@') ? rawName.split(/\s+/)[0] : undefined;
+
   return (
     <Modal
       visible={visible}
@@ -385,6 +404,7 @@ export function InterestSelection({ visible, onComplete }: InterestSelectionProp
     >
       <InterestSelectionContent
         onComplete={onComplete}
+        greetingName={greetingName}
         applySafeArea
       />
     </Modal>
@@ -419,6 +439,18 @@ const styles = StyleSheet.create({
   },
   headerWithBack: {
     marginBottom: 24,
+  },
+  greeting: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2563EB',
+    letterSpacing: -0.1,
+    marginBottom: 8,
+    ...Platform.select({
+      ios: { fontFamily: 'Manrope-Bold' },
+      android: { fontFamily: 'Manrope-Bold' },
+      web: { fontFamily: 'Manrope, system-ui, sans-serif', fontWeight: '700' as const },
+    }),
   },
   footer: {
     paddingTop: 12,
