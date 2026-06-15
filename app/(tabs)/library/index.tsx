@@ -227,7 +227,7 @@ function Phase6PlaybookLanding() {
     return (
       <View style={styles.unavailableScreen}>
         <View style={styles.unavailableHero}>
-          <Text style={styles.unavailableEyebrow}>Playbook</Text>
+          <Text style={styles.unavailableEyebrow}>Library</Text>
           <Text style={styles.unavailableHeadline}>Phase 6 data is unavailable in this environment</Text>
           <Text style={styles.unavailableBody}>
             The Playbook tab UI is live, but this Supabase project does not have the

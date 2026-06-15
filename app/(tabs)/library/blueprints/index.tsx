@@ -37,7 +37,7 @@ export default function PlaybookBlueprintsListRoute() {
       </Pressable>
 
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>Playbook</Text>
+        <Text style={styles.eyebrow}>Library</Text>
         <Text style={styles.title}>Blueprints you've subscribed to</Text>
         <Text style={styles.subtitle}>
           Subscribed timelines you can add into your own practice.
