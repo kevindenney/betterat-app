@@ -390,7 +390,7 @@ export default function PlanDetailScreen() {
                 <SubscriberRow
                   key={s.id}
                   row={s}
-                  onPress={() => router.push(`/sailor/${s.id}` as never)}
+                  onPress={() => router.push(`/profile/${s.id}` as never)}
                 />
               ))
             )}

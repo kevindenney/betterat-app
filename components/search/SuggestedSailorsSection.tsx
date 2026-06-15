@@ -87,7 +87,7 @@ export function SuggestedSailorsSection({
     (userId: string) => {
       // Close modal first if provided
       onSailorPress?.();
-      router.push(`/sailor/${userId}`);
+      router.push(`/profile/${userId}`);
     },
     [router, onSailorPress]
   );
@@ -153,7 +153,7 @@ export function SuggestedSailorsSection({
 
       {/* Suggestions List */}
       <View style={styles.listContainer}>
-        {suggestions.map((sailor, index) => (
+        {suggestions.map((sailor) => (
           <SailorSuggestionCard
             key={sailor.userId}
             sailor={sailor}

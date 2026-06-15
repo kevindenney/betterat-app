@@ -337,7 +337,7 @@ export default function SocialNotificationsScreen() {
   // Navigate to sailor profile
   const handleSailorPress = useCallback(
     (userId: string) => {
-      router.push(`/sailor/${userId}`);
+      router.push(`/profile/${userId}`);
     },
     [router]
   );
@@ -399,7 +399,7 @@ export default function SocialNotificationsScreen() {
               // eslint-disable-next-line no-console
               console.log('[social-notifications] Tap:', { type: latest.type, data: latest.data, id: latest.id });
               if (latest.type === 'new_follower' && latest.actorId) {
-                router.push(`/sailor/${latest.actorId}`);
+                router.push(`/profile/${latest.actorId}`);
               } else if (latest.type === 'org_invite_received' && latest.data?.invite_token) {
                 // eslint-disable-next-line no-console
                 console.log('[social-notifications] Navigating to invite:', latest.data.invite_token);
@@ -467,7 +467,7 @@ export default function SocialNotificationsScreen() {
             onPress={() => {
               if (!item.isRead) markAsRead(item.id);
               if (item.type === 'new_follower' && item.actorId) {
-                router.push(`/sailor/${item.actorId}`);
+                router.push(`/profile/${item.actorId}`);
               } else if (item.type === 'org_invite_received' && item.data?.invite_token) {
                 router.push(`/invite/${item.data.invite_token}` as any);
               } else if (item.type === 'org_membership_approved') {

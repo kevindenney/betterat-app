@@ -661,7 +661,7 @@ function WatchCard({
           <View style={styles.wByline}>
             <Pressable
               style={styles.wBylineAvatar}
-              onPress={() => router.push(`/sailor/${item.personId}` as never)}
+              onPress={() => router.push(`/profile/${item.personId}` as never)}
               hitSlop={6}
             >
               {item.personAvatarUrl ? (

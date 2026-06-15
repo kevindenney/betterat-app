@@ -12,7 +12,6 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
   Pressable,
   ActivityIndicator,
   StyleSheet,
@@ -149,7 +148,7 @@ export function ClubLeaderboard({
   const handleMemberPress = useCallback(
     (userId: string) => {
       triggerHaptic('selection');
-      router.push(`/sailor/${userId}`);
+      router.push(`/profile/${userId}`);
     },
     [router]
   );

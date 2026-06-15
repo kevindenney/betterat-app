@@ -122,7 +122,7 @@ export function WatchFeed({ toolbarOffset = 0, onScroll, hideEmptySuggestions }:
 
   const handleSailorPress = useCallback(
     (userId: string) => {
-      router.push(`/sailor/${userId}`);
+      router.push(`/profile/${userId}`);
     },
     [router]
   );

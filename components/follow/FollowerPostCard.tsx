@@ -50,14 +50,14 @@ export function FollowerPostCard({ post, onSailorPress, onDelete }: FollowerPost
     if (onSailorPress) {
       onSailorPress(post.userId);
     } else {
-      router.push(`/sailor/${post.userId}`);
+      router.push(`/profile/${post.userId}`);
     }
   }, [onSailorPress, post.userId, router]);
 
   const handleLinkedRacePress = useCallback(() => {
     if (post.linkedRaceId) {
       triggerHaptic('selection');
-      router.push(`/sailor/${post.userId}/race/${post.linkedRaceId}`);
+      router.push(`/profile/${post.userId}/race/${post.linkedRaceId}`);
     }
   }, [post.linkedRaceId, post.userId, router]);
 

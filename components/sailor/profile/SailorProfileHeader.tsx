@@ -72,7 +72,7 @@ export function SailorProfileHeader({
   const handleShare = async () => {
     try {
       triggerHaptic('selection');
-      const profileUrl = `https://regattaflow.app/sailor/${profile.userId}`;
+      const profileUrl = `https://regattaflow.app/profile/${profile.userId}`;
       await Share.share({
         message: `Check out ${profile.displayName} on RegattaFlow! ${profileUrl}`,
         url: profileUrl,

@@ -48,7 +48,7 @@ export function PeopleZone() {
         <PersonRowCard
           key={person.userId}
           person={person}
-          onPress={() => router.push(`/sailor/${person.userId}` as never)}
+          onPress={() => router.push(`/profile/${person.userId}` as never)}
         />
       ))}
     </View>

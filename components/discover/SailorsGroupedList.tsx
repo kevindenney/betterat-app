@@ -236,7 +236,7 @@ export function SailorsGroupedList({ toolbarOffset = 0, onScroll }: SailorsGroup
   // Navigate to sailor profile when avatar is tapped
   const handleAvatarPress = useCallback(
     (userId: string) => {
-      router.push(`/sailor/${userId}`);
+      router.push(`/profile/${userId}`);
     },
     [router]
   );
@@ -410,7 +410,6 @@ export function SailorsGroupedList({ toolbarOffset = 0, onScroll }: SailorsGroup
   const renderSectionFooter = useCallback(
     ({ section }: { section: SectionData }) => {
       const collapsed = collapsedSections[section.key];
-      const meta = SECTION_META[section.key];
 
       // Show inline empty if expanded but no data
       if (!collapsed && section.data.length === 0 && section.emptyState) {
@@ -508,7 +507,7 @@ export function SailorsGroupedList({ toolbarOffset = 0, onScroll }: SailorsGroup
       // Bottom spacing between sections
       return <View style={styles.sectionSpacer} />;
     },
-    [collapsedSections, handleSectionHeaderPress, router]
+    [collapsedSections, handleSectionHeaderPress, router, className]
   );
 
   // Key extractor

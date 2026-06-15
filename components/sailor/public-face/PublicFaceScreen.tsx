@@ -497,7 +497,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                   ? {
                       primary: enrichment.concept.history.primary,
                       secondary: enrichment.concept.history.secondary,
-                      onPress: () => router.push(`/sailor/${userId}/concepts` as any),
+                      onPress: () => router.push(`/profile/${userId}/concepts` as any),
                     }
                   : undefined
               }
@@ -522,7 +522,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
             header="Practice timeline"
             seeAll={{
               label: 'See full timeline',
-              onPress: () => router.push(`/sailor/${userId}/timeline` as any),
+              onPress: () => router.push(`/profile/${userId}/timeline` as any),
             }}
           >
             {timeline.map((t, i) => (
@@ -534,7 +534,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 when={t.when}
                 onPress={
                   t.trophyId
-                    ? () => router.push(`/sailor/${userId}/trophy/${t.trophyId}` as any)
+                    ? () => router.push(`/profile/${userId}/trophy/${t.trophyId}` as any)
                     : undefined
                 }
                 isFirst={i === 0}
@@ -552,7 +552,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               enrichment.capabilitiesTotal
                 ? {
                     label: `All ${enrichment.capabilitiesTotal}`,
-                    onPress: () => router.push(`/sailor/${userId}/capabilities` as any),
+                    onPress: () => router.push(`/profile/${userId}/capabilities` as any),
                   }
                 : undefined
             }
@@ -575,7 +575,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               realCapabilitiesTotal > 4
                 ? {
                     label: `All ${realCapabilitiesTotal}`,
-                    onPress: () => router.push(`/sailor/${userId}/capabilities` as any),
+                    onPress: () => router.push(`/profile/${userId}/capabilities` as any),
                   }
                 : undefined
             }
@@ -602,7 +602,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               enrichment.circleTotal
                 ? {
                     label: `All ${enrichment.circleTotal}`,
-                    onPress: () => router.push(`/sailor/${userId}/circle` as any),
+                    onPress: () => router.push(`/profile/${userId}/circle` as any),
                   }
                 : undefined
             }
@@ -616,7 +616,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 markColor={p.markColor}
                 tail={p.tail}
                 onPress={
-                  p.userId ? () => router.push(`/sailor/${p.userId}` as any) : undefined
+                  p.userId ? () => router.push(`/profile/${p.userId}` as any) : undefined
                 }
                 isFirst={i === 0}
               />
@@ -629,7 +629,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               realCircleTotal > realCircle.length
                 ? {
                     label: `All ${realCircleTotal}`,
-                    onPress: () => router.push(`/sailor/${userId}/circle` as any),
+                    onPress: () => router.push(`/profile/${userId}/circle` as any),
                   }
                 : undefined
             }
@@ -642,7 +642,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 initials={p.initials}
                 tail={p.tail}
                 onPress={
-                  p.userId ? () => router.push(`/sailor/${p.userId}` as any) : undefined
+                  p.userId ? () => router.push(`/profile/${p.userId}` as any) : undefined
                 }
                 isFirst={i === 0}
               />
@@ -659,7 +659,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               enrichment.publishedTotal
                 ? {
                     label: `All ${enrichment.publishedTotal}`,
-                    onPress: () => router.push(`/sailor/${userId}/published` as any),
+                    onPress: () => router.push(`/profile/${userId}/published` as any),
                   }
                 : undefined
             }
@@ -725,7 +725,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               enrichment.eventsTotal
                 ? {
                     label: `All ${enrichment.eventsTotal}`,
-                    onPress: () => router.push(`/sailor/${userId}/events` as any),
+                    onPress: () => router.push(`/profile/${userId}/events` as any),
                   }
                 : undefined
             }

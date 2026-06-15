@@ -360,7 +360,7 @@ export function NotificationsList({
       switch (notification.type) {
         case 'new_follower':
           if (notification.actorId) {
-            router.push(`/sailor/${notification.actorId}`);
+            router.push(`/profile/${notification.actorId}`);
           }
           break;
         case 'race_like':

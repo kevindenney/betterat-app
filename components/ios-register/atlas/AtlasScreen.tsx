@@ -2328,7 +2328,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     // to the blueprint — none of those carry coords, so no camera
     // move. Place results still fly to their lat/lng.
     if (result.kind === 'person' && result.userId) {
-      router.push(`/sailor/${result.userId}` as never);
+      router.push(`/profile/${result.userId}` as never);
       return;
     }
     if (result.kind === 'step' && result.stepId) {
@@ -5690,7 +5690,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const handleSearchSelect = useCallback((result: AtlasSearchResult) => {
     setSearchOpen(false);
     if (result.kind === 'person' && result.userId) {
-      router.push(`/sailor/${result.userId}` as never);
+      router.push(`/profile/${result.userId}` as never);
       return;
     }
     if (result.kind === 'organization' && result.orgSlug) {

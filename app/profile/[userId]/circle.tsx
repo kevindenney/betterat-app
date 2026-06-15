@@ -31,7 +31,7 @@ export default function SailorCircleRoute() {
           markColor={p.markColor}
           tail={p.tail}
           onPress={
-            p.userId ? () => router.push(`/sailor/${p.userId}` as any) : undefined
+            p.userId ? () => router.push(`/profile/${p.userId}` as any) : undefined
           }
           isFirst={i === 0}
         />

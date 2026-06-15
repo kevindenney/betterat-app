@@ -32,7 +32,7 @@ export default function SailorTimelineRoute() {
           when={t.when}
           onPress={
             t.trophyId
-              ? () => router.push(`/sailor/${userId}/trophy/${t.trophyId}` as any)
+              ? () => router.push(`/profile/${userId}/trophy/${t.trophyId}` as any)
               : undefined
           }
           isFirst={i === 0}

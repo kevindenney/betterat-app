@@ -124,7 +124,7 @@ export default function EditProfileScreen() {
 
   const handleViewPublicFace = () => {
     if (!user?.id) return;
-    router.push(`/sailor/${user.id}` as any);
+    router.push(`/profile/${user.id}` as any);
   };
 
   const handleSave = async () => {

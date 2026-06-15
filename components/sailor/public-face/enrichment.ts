@@ -45,7 +45,7 @@ export interface PublicFaceEnrichment {
     settled?: boolean;
     sub: string;
     when: string;
-    /** Trophy id when settled — taps drill into /sailor/[userId]/trophy/[trophyId]. */
+    /** Trophy id when settled — taps drill into /profile/[userId]/trophy/[trophyId]. */
     trophyId?: string;
   }[];
   /** Trophies keyed by id — the settled-concept deep page reads from here. */

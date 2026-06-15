@@ -121,7 +121,7 @@ function SailorComparisonItem({
     if (onPress) {
       onPress();
     } else {
-      router.push(`/sailor/${sailor.sailorId}`);
+      router.push(`/profile/${sailor.sailorId}`);
     }
   };
 

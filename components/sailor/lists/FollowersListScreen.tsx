@@ -20,7 +20,6 @@ import {
   IOS_COLORS,
   IOS_TYPOGRAPHY,
   IOS_SPACING,
-  IOS_LIST_INSETS,
   IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
 
@@ -39,7 +38,6 @@ export function FollowersListScreen({
   const {
     users,
     isLoading,
-    hasMore,
     loadMore,
     isLoadingMore,
     toggleFollow,
@@ -54,7 +52,7 @@ export function FollowersListScreen({
 
   const handleUserPress = useCallback(
     (targetUserId: string) => {
-      router.push(`/sailor/${targetUserId}`);
+      router.push(`/profile/${targetUserId}`);
     },
     [router]
   );

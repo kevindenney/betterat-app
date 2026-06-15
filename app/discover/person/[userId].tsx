@@ -308,7 +308,7 @@ function PersonDetailScreenInner() {
               provenance={derivedProvenance(profile.updated_at)}
               link={{
                 label: 'View public face',
-                onPress: () => router.push(`/sailor/${userId}` as any),
+                onPress: () => router.push(`/profile/${userId}` as any),
               }}
             />
           </IOSDetailSection>

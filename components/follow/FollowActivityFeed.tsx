@@ -167,7 +167,7 @@ export function FollowActivityFeed({ toolbarOffset = 0, onScroll }: FollowActivi
 
   const handleSailorPress = useCallback(
     (userId: string) => {
-      router.push(`/sailor/${userId}`);
+      router.push(`/profile/${userId}`);
     },
     [router]
   );

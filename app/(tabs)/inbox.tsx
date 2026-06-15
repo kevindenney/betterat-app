@@ -983,7 +983,7 @@ function routeNotificationTap(
       if (stepId) router.push(`/step/${stepId}` as never);
       return;
     case 'new_follower':
-      if (n.actorId) router.push(`/sailor/${n.actorId}` as never);
+      if (n.actorId) router.push(`/profile/${n.actorId}` as never);
       return;
     case 'org_invite_received':
       if (n.data?.invite_token) router.push(`/invite/${n.data.invite_token}` as never);

@@ -59,11 +59,11 @@ export function SailorProfileScreen({ userId }: SailorProfileScreenProps) {
   }, [refetch, refetchMedia]);
 
   const handleFollowersPress = useCallback(() => {
-    router.push(`/sailor/${userId}/followers`);
+    router.push(`/profile/${userId}/followers`);
   }, [router, userId]);
 
   const handleFollowingPress = useCallback(() => {
-    router.push(`/sailor/${userId}/following`);
+    router.push(`/profile/${userId}/following`);
   }, [router, userId]);
 
   const handleRacePress = useCallback(

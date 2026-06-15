@@ -16,13 +16,14 @@ import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/components/ui/AppToast';
+import { logger } from '@/lib/logger';
 
 // BUG 29: Allowlist of valid route prefixes for deep link navigation
 const ALLOWED_ROUTE_PREFIXES = [
   '/coach/',
   '/(tabs)/',
   '/race/',
-  '/sailor/',
+  '/profile/',
   '/crew-thread/',
   '/social-notifications',
   '/learn/',
@@ -76,7 +77,7 @@ export function PushNotificationHandler({
 
       // Handle profile-related notifications
       if (data.actor_id && data.type === 'new_follower') {
-        router.push(`/sailor/${data.actor_id}`);
+        router.push(`/profile/${data.actor_id}`);
         return;
       }
 
@@ -120,12 +121,10 @@ export function PushNotificationHandler({
 
   // Log registration status (for debugging)
   useEffect(() => {
-    if (__DEV__) {
-      if (isEnabled) {
-        console.log('[Push] Notifications registered successfully');
-      } else if (error) {
-        console.log('[Push] Registration failed:', error);
-      }
+    if (isEnabled) {
+      logger.debug('[Push] Notifications registered successfully');
+    } else if (error) {
+      logger.debug('[Push] Registration failed:', error);
     }
   }, [isEnabled, error]);
 

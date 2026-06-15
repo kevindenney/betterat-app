@@ -619,7 +619,7 @@ export const FEATURE_FLAGS = {
   /**
    * v3 screen-designs Phase C — third-person timeline + Suggest verb.
    *
-   * When on: the public-face hero on /sailor/[userId] gains a dual-CTA row
+   * When on: the public-face hero on /profile/[userId] gains a dual-CTA row
    * — Suggest a step (filled, opens composer modal) + Reflect (outline,
    * opens a "coming soon" stub for v1). The composer is the verb-first
    * sheet from design screens 02–03: To (recipient, locked), re (optional

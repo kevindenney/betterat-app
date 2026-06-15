@@ -358,7 +358,7 @@ function ProfileView({ toolbarHeight, onScroll, isDesktop }: ProfileViewProps) {
     if (activity.relatedRegattaId) {
       router.push(`/(tabs)/race/${activity.relatedRegattaId}`);
     } else if (activity.relatedUserId) {
-      router.push(`/sailor/${activity.relatedUserId}`);
+      router.push(`/profile/${activity.relatedUserId}`);
     }
   };
 

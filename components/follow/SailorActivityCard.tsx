@@ -200,7 +200,7 @@ export function SailorActivityCard({
     if (onSailorPress) {
       onSailorPress(race.userId);
     } else {
-      router.push(`/sailor/${race.userId}`);
+      router.push(`/profile/${race.userId}`);
     }
   }, [onSailorPress, race.userId, router]);
 

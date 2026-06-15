@@ -142,7 +142,7 @@ function TrophyDetailInner() {
                 role={p.role}
                 initials={p.initials}
                 onPress={
-                  p.userId ? () => router.push(`/sailor/${p.userId}` as any) : undefined
+                  p.userId ? () => router.push(`/profile/${p.userId}` as any) : undefined
                 }
                 isFirst={i === 0}
               />

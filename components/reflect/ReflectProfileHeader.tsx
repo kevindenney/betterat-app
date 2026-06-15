@@ -29,11 +29,6 @@ function formatMemberSince(dateString: string | null): string {
   })}`;
 }
 
-function formatWinRate(rate: number | null): string {
-  if (rate === null) return '-';
-  return `${Math.round(rate * 100)}%`;
-}
-
 function formatHours(minutes: number): string {
   const hours = Math.round(minutes / 60);
   return `${hours}h`;
@@ -51,11 +46,11 @@ export function ReflectProfileHeader({
   const podiumsLabel = isSailing ? 'Podiums' : 'Top Marks';
   const timeLabel = vocab ? vocab('Do Phase') : 'On Water';
   const handleFollowersPress = () => {
-    router.push(`/sailor/${profile.userId}/followers`);
+    router.push(`/profile/${profile.userId}/followers`);
   };
 
   const handleFollowingPress = () => {
-    router.push(`/sailor/${profile.userId}/following`);
+    router.push(`/profile/${profile.userId}/following`);
   };
 
   return (

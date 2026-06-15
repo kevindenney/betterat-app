@@ -37,11 +37,11 @@ export function SocialStatsCard({
   const router = useRouter();
 
   const handleFollowersPress = () => {
-    router.push(`/sailor/${userId}/followers`);
+    router.push(`/profile/${userId}/followers`);
   };
 
   const handleFollowingPress = () => {
-    router.push(`/sailor/${userId}/following`);
+    router.push(`/profile/${userId}/following`);
   };
 
   return (
