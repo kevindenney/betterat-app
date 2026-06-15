@@ -891,7 +891,15 @@ export default function BlueprintPage() {
                     <>
                       <View style={styles.successBanner}>
                         <Ionicons name="checkmark-circle" size={20} color={C.green} />
-                        <Text style={styles.successText}>You're subscribed. Add steps when you're ready.</Text>
+                        <View style={styles.successTextCol}>
+                          <Text style={styles.successText}>You're subscribed. Add steps when you're ready.</Text>
+                          {blueprint.user_id && blueprint.user_id !== user?.id && blueprint.author_name ? (
+                            <View style={styles.followNoteRow}>
+                              <Ionicons name="person-add" size={13} color="#067647" />
+                              <Text style={styles.followNote}>Now following {blueprint.author_name}</Text>
+                            </View>
+                          ) : null}
+                        </View>
                       </View>
 
                       <Pressable
@@ -2014,11 +2022,25 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     width: '100%',
   },
+  successTextCol: {
+    flex: 1,
+    gap: 3,
+  },
   successText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#067647',
-    flex: 1,
+  },
+  followNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  followNote: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#067647',
+    opacity: 0.85,
   },
   nextStepLabel: {
     fontSize: 12,
