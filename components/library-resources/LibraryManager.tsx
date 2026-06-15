@@ -26,6 +26,7 @@ import { getResourceTypeLabel } from './ResourceTypeIcon';
 import { showConfirm, showAlert } from '@/lib/utils/crossPlatformAlert';
 import { ManifestoEditor } from '@/components/interest/ManifestoEditor';
 import { AIInsightsCard } from '@/components/interest/AIInsightsCard';
+import { LibrarianSavedToast } from '@/components/library/librarian/LibrarianSavedToast';
 import type { LibraryResourceRecord, ResourceType, CreateLibraryResourceInput } from '@/types/library';
 
 type GroupMode = 'type' | 'creator';
@@ -43,6 +44,7 @@ export function LibraryManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [groupMode, setGroupMode] = useState<GroupMode>('type');
   const [courseForTimeline, setCourseForTimeline] = useState<LibraryResourceRecord | null>(null);
+  const [savedToastVisible, setSavedToastVisible] = useState(false);
 
   const isLoading = libraryLoading || resourcesLoading;
 
@@ -98,7 +100,10 @@ export function LibraryManager() {
 
   const handleAddResource = useCallback((input: CreateLibraryResourceInput) => {
     addResource.mutate(input, {
-      onSuccess: () => setShowAddSheet(false),
+      onSuccess: () => {
+        setShowAddSheet(false);
+        setSavedToastVisible(true);
+      },
     });
   }, [addResource]);
 
@@ -283,6 +288,12 @@ export function LibraryManager() {
           onSuccess={handleCourseTimelineSuccess}
         />
       )}
+
+      <LibrarianSavedToast
+        visible={savedToastVisible}
+        interestName={currentInterest?.name}
+        onHide={() => setSavedToastVisible(false)}
+      />
     </View>
   );
 }
