@@ -155,6 +155,59 @@ export function getGearLabels(slug: string | null | undefined): GearLabels {
       ],
     };
   }
+  if (
+    normalized === 'fitness' ||
+    normalized === 'health-and-fitness' ||
+    slugIncludes(normalized, 'fitness')
+  ) {
+    return {
+      railLabel: 'Gear',
+      itemNoun: 'gear',
+      addLabel: 'Add gear',
+      pickerTitle: 'Which gear?',
+      pickerSubtitle: 'Saved to this step.',
+      primaryKind: 'gear',
+      stepRole: 'gear',
+      emptyLabel: 'No gear yet',
+      kindOptions: [
+        { value: 'equipment', label: 'Equipment' },
+        { value: 'wearable', label: 'Wearable' },
+        { value: 'apparel', label: 'Apparel' },
+        { value: 'gear', label: 'Other' },
+      ],
+      specFields: [
+        { key: 'model', label: 'Model', placeholder: 'Garmin Forerunner' },
+        { key: 'manufacturer', label: 'Brand', placeholder: '' },
+      ],
+    };
+  }
+  if (
+    slugIncludes(normalized, 'draw') ||
+    slugIncludes(normalized, 'sketch') ||
+    slugIncludes(normalized, 'paint') ||
+    slugIncludes(normalized, 'illustrat')
+  ) {
+    return {
+      railLabel: 'Tools & Materials',
+      itemNoun: 'item',
+      addLabel: 'Add item',
+      pickerTitle: 'Which item?',
+      pickerSubtitle: 'Saved to this step.',
+      primaryKind: 'tool',
+      stepRole: 'tool',
+      emptyLabel: 'No tools yet',
+      kindOptions: [
+        { value: 'tool', label: 'Tool' },
+        { value: 'material', label: 'Material' },
+        { value: 'device', label: 'Device' },
+        { value: 'gear', label: 'Other' },
+      ],
+      specFields: [
+        { key: 'model', label: 'Model', placeholder: 'iPad Pro · Procreate' },
+        { key: 'manufacturer', label: 'Maker', placeholder: '' },
+      ],
+    };
+  }
   return {
     railLabel: 'Equipment',
     itemNoun: 'equipment',
