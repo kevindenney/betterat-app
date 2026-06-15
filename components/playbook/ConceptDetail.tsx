@@ -36,6 +36,8 @@ import { showAlert, showConfirm, showAlertWithButtons } from '@/lib/utils/crossP
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type { PlaybookConceptLifecycleState } from '@/types/playbook';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { TrophyScreen, TROPHY_BG, type TrophyVariant } from '@/components/ios-register';
+import { hapticSuccess } from '@/lib/haptics';
 
 // ── palette (matches the concepts-redesign mock) ────────────────────
 const ACCENT = '#7C4DFF';
@@ -99,6 +101,7 @@ export function ConceptDetail({ conceptId }: { conceptId: string }) {
   const promote = usePromoteConceptToSettled(conceptId);
   const deleteConcept = useDeletePlaybookConcept();
   const [editing, setEditing] = useState(false);
+  const [trophyVisible, setTrophyVisible] = useState(false);
   const [linking, setLinking] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [loadingSteps, setLoadingSteps] = useState(false);
@@ -206,6 +209,23 @@ export function ConceptDetail({ conceptId }: { conceptId: string }) {
     goalText = 'A settled foundation — it now backs the steps you take.';
   }
 
+  // Trophy-of-Becoming beat shown the moment this concept crosses into settled.
+  const otherSettled = allConcepts.filter(
+    (c) => c.id !== concept.id && uiState(c.state) === 'settled',
+  ).length;
+  const trophyVariant: TrophyVariant = otherSettled === 0 ? 'first' : 'canonical';
+  const trophyQuote =
+    quotes[0]?.quote_text?.trim() ||
+    (concept.body ?? concept.body_md ?? '').trim() ||
+    concept.title;
+  const trophyAttribution = `From your practice · ${new Date(
+    concept.settled_at ?? Date.now(),
+  ).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`;
+  const trophyContext = [
+    `${evidenceCount} step${evidenceCount === 1 ? '' : 's'}`,
+    currentInterest?.name,
+  ].filter((s): s is string => Boolean(s));
+
   const handleDelete = () => {
     if (!playbook?.id) return;
     showConfirm(
@@ -266,7 +286,13 @@ export function ConceptDetail({ conceptId }: { conceptId: string }) {
   };
 
   const handlePromote = async () => {
-    await promote.mutateAsync();
+    try {
+      await promote.mutateAsync();
+      hapticSuccess();
+      setTrophyVisible(true);
+    } catch (err) {
+      showAlert('Promote failed', (err as Error).message);
+    }
   };
 
   const handleNewStep = () => {
@@ -331,8 +357,11 @@ export function ConceptDetail({ conceptId }: { conceptId: string }) {
       <View style={styles.lifecard}>
         <View style={styles.steps3}>
           {ORDER.map((s, i) => {
-            const done = i < curIdx;
-            const isCur = i === curIdx;
+            // The terminal stage (settled) is itself an achievement, so once
+            // reached it reads as done — otherwise `i < curIdx` never marks the
+            // last node complete and it stays stuck in the "current" style.
+            const done = i < curIdx || (state === 'settled' && i === curIdx);
+            const isCur = i === curIdx && !done;
             return (
               <React.Fragment key={s}>
                 <View style={styles.s3}>
@@ -711,6 +740,42 @@ export function ConceptDetail({ conceptId }: { conceptId: string }) {
           onClose={() => setEditing(false)}
         />
       ) : null}
+
+      {/* ── Trophy of Becoming — fires when the concept settles ── */}
+      <Modal
+        visible={trophyVisible}
+        animationType="fade"
+        onRequestClose={() => setTrophyVisible(false)}
+      >
+        <View
+          style={[
+            styles.trophyPage,
+            {
+              backgroundColor: TROPHY_BG,
+              paddingTop: insets.top,
+              paddingBottom: insets.bottom + 16,
+            },
+          ]}
+        >
+          <TrophyScreen
+            variant={trophyVariant}
+            content={{
+              quote: trophyQuote,
+              attribution: trophyAttribution,
+              capabilityLabel: concept.title,
+              contextSpans: trophyContext,
+            }}
+          />
+          <Pressable
+            style={styles.trophyDone}
+            onPress={() => setTrophyVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Done"
+          >
+            <Text style={styles.trophyDoneText}>Done</Text>
+          </Pressable>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -1394,5 +1459,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
     lineHeight: 17,
+  },
+  trophyPage: {
+    flex: 1,
+  },
+  trophyDone: {
+    alignSelf: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+  },
+  trophyDoneText: {
+    fontSize: 17,
+    color: BLUE,
   },
 });
