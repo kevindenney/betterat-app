@@ -60,6 +60,7 @@ export function HingeSurface({
                   day={day.dayLabel}
                   date={day.dateLabel}
                   entry={entry}
+                  extraCount={Math.max(0, day.entries.length - 1)}
                   onSaveToLibrary={
                     entry && onSaveEntryToLibrary
                       ? () => onSaveEntryToLibrary(entry)
