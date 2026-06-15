@@ -36,6 +36,7 @@ import { SAMPLE_INTERESTS } from '@/lib/landing/sampleData';
 import { useInterest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { useToast } from '@/components/ui/AppToast';
 import { supabase } from '@/services/supabase';
 import { IOS_SPACING } from '@/lib/design-tokens-ios';
 import { gearErrorMessage, getGearLabels, hasGearConcept, type GearItem, type GearStatus } from '@/services/GearService';
@@ -205,6 +206,7 @@ export function DiscoverInterestsContent({
   } = useInterest();
   const { user, isGuest } = useAuth();
   const isLoggedIn = !!user && !isGuest;
+  const toast = useToast();
 
   const [tab, setTab] = useState<'yours' | 'discover'>('yours');
   const [searchQuery, setSearchQuery] = useState('');
@@ -351,6 +353,10 @@ export function DiscoverInterestsContent({
     }
     if (busySlug) return;
     setBusySlug(slug);
+    // Decouple add from activate: only auto-switch when the user has no active
+    // interest yet (first add → the Practice tab needs one). Otherwise keep
+    // their current context and offer an inline "Switch" via toast.
+    const keepActive = !!currentInterest && currentInterest.slug !== slug;
     try {
       // The cached interest list can lag a freshly-created interest, so
       // confirm existence against the DB before deciding to propose a new one.
@@ -365,7 +371,7 @@ export function DiscoverInterestsContent({
       }
       if (existsInDb) {
         if (!userInterestSlugs.has(slug)) await addInterest(slug);
-        await switchInterest(slug);
+        if (!keepActive) await switchInterest(slug);
         await refreshInterests();
       } else {
         const sample = SAMPLE_INTERESTS.find((i) => i.slug === slug);
@@ -383,11 +389,21 @@ export function DiscoverInterestsContent({
           return;
         }
         await refreshInterests();
-        await switchInterest(slug).catch(() => {});
+        if (!keepActive) await switchInterest(slug).catch(() => {});
       }
       onAddInterest?.(slug);
       setTab('yours');
       setExpandedSlug(slug);
+      if (keepActive) {
+        toast.show(`Added ${name}`, 'success', {
+          action: {
+            label: 'Switch',
+            onPress: () => {
+              switchInterest(slug).catch(() => {});
+            },
+          },
+        });
+      }
     } catch {
       showAlert('Error', 'Could not add interest. Please try again.');
     } finally {
