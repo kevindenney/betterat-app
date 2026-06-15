@@ -7,9 +7,11 @@ export type HingeDayEntryKind = 'flagged' | 'reflection' | 'note';
 
 export interface HingeDayEntry {
   id: string;
+  sourceId: string;        // raw row id (a playbook_insights id when refinable)
   kind: HingeDayEntryKind;
   body: string;
   provenance: string;
+  refinable: boolean;      // true → can be saved to the library as a forming concept
 }
 
 export interface HingeDay {
@@ -205,9 +207,11 @@ async function fillFlaggedMoments(
   for (const row of (data ?? []) as { id: string; body: string | null; flagged_at: string; step_id: string | null }[]) {
     pushEntry(days, row.flagged_at, {
       id: `flag-${row.id}`,
+      sourceId: row.id,
       kind: 'flagged',
       body: row.body ?? 'Flagged moment',
       provenance: 'Flagged · returned to later',
+      refinable: false,
     });
   }
 }
@@ -235,9 +239,11 @@ async function fillStepLessInsights(
   for (const row of (data ?? []) as { id: string; content: string | null; created_at: string; kind: string | null }[]) {
     pushEntry(days, row.created_at, {
       id: `insight-${row.id}`,
+      sourceId: row.id,
       kind: 'reflection',
       body: row.content ?? 'Insight captured',
       provenance: row.kind ? `Playbook · ${row.kind}` : 'Playbook · insight',
+      refinable: true,
     });
   }
 }
@@ -268,9 +274,11 @@ async function fillDeckAdds(
   }[]) {
     pushEntry(days, row.added_at, {
       id: `deck-${row.id}`,
+      sourceId: row.id,
       kind: 'note',
       body: row.body ? `${row.title} — ${row.body}` : row.title,
       provenance: row.placed_at ? 'On-deck · placed' : 'On-deck · kept',
+      refinable: false,
     });
   }
 }

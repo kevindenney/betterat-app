@@ -3,13 +3,22 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
+import { useInterest } from '@/providers/InterestProvider';
+import { usePlaybook, useRefinePlaybookInsight } from '@/hooks/usePlaybook';
+import { useToast } from '@/components/ui/AppToast';
 import { HingeSurface } from '@/components/practice';
-import { buildHinge, decodeHingeId } from '@/services/HingeBuildService';
+import { buildHinge, decodeHingeId, type HingeDayEntry } from '@/services/HingeBuildService';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 export default function HingeRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const toast = useToast();
+  const { currentInterest } = useInterest();
+  const { data: playbook } = usePlaybook(currentInterest?.id);
+  const refineInsight = useRefinePlaybookInsight(currentInterest?.id, playbook?.id);
+  const [savingEntryId, setSavingEntryId] = React.useState<string | null>(null);
+  const [savedEntryIds, setSavedEntryIds] = React.useState<Set<string>>(new Set());
 
   const decoded = id ? decodeHingeId(id) : null;
   const flagOn = FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER;
@@ -25,6 +34,27 @@ export default function HingeRoute() {
       }),
     enabled,
   });
+
+  const handleSaveToLibrary = React.useCallback(
+    async (entry: HingeDayEntry) => {
+      if (!entry.refinable) return;
+      if (!currentInterest?.id || !playbook?.id) {
+        toast.show('Pick an interest before saving to your library', 'info');
+        return;
+      }
+      setSavingEntryId(entry.id);
+      try {
+        await refineInsight.mutateAsync({ insightId: entry.sourceId });
+        setSavedEntryIds((prev) => new Set(prev).add(entry.id));
+        toast.show('Saved to library', 'success');
+      } catch {
+        toast.show('Could not save to library', 'error');
+      } finally {
+        setSavingEntryId(null);
+      }
+    },
+    [currentInterest?.id, playbook?.id, refineInsight, toast],
+  );
 
   if (!flagOn) {
     return (
@@ -53,6 +83,9 @@ export default function HingeRoute() {
           onBack={() => router.back()}
           onPreviousStep={() => router.push(`/step/${hinge.previousStepId}` as any)}
           onNextStep={() => router.push(`/step/${hinge.nextStepId}` as any)}
+          onSaveEntryToLibrary={handleSaveToLibrary}
+          savingEntryId={savingEntryId}
+          savedEntryIds={savedEntryIds}
         />
       )}
     </View>

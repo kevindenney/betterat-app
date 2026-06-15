@@ -1,23 +1,38 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { StatePill } from '@/components/step-loop';
 import { DayTile } from './DayTile';
 import { HingeBookend } from './HingeBookend';
-import type { BuiltHinge, HingeDay } from '@/services/HingeBuildService';
+import type { BuiltHinge, HingeDay, HingeDayEntry } from '@/services/HingeBuildService';
 
 export interface HingeSurfaceProps {
   hinge: BuiltHinge;
   onBack: () => void;
   onPreviousStep: () => void;
   onNextStep: () => void;
+  onSaveEntryToLibrary?: (entry: HingeDayEntry) => void;
+  savingEntryId?: string | null;
+  savedEntryIds?: ReadonlySet<string>;
 }
 
-export function HingeSurface({ hinge, onBack, onPreviousStep, onNextStep }: HingeSurfaceProps) {
+export function HingeSurface({
+  hinge,
+  onBack,
+  onPreviousStep,
+  onNextStep,
+  onSaveEntryToLibrary,
+  savingEntryId,
+  savedEntryIds,
+}: HingeSurfaceProps) {
+  const insets = useSafeAreaInsets();
+  const hasEntries = hinge.days.some((day) => day.entries.length > 0);
+
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <Pressable onPress={onBack} hitSlop={8} style={styles.back}>
           <ChevronLeft size={20} color="#007AFF" />
           <Text style={styles.backText}>Back</Text>
@@ -27,25 +42,43 @@ export function HingeSurface({ hinge, onBack, onPreviousStep, onNextStep }: Hing
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.titleBlock}>
           <StatePill variant="between" label="Between · settling" />
-          <Text style={styles.eyebrow}>{hinge.eyebrowLabel}</Text>
           <Text style={styles.title}>{hinge.titlePhrase}</Text>
           <Text style={styles.dates}>{hinge.datesLabel}</Text>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filmstrip}
-        >
-          {hinge.days.map((day: HingeDay) => (
-            <DayTile
-              key={day.date}
-              day={day.dayLabel}
-              date={day.dateLabel}
-              entry={day.entries[0] ?? null}
-            />
-          ))}
-        </ScrollView>
+        {hasEntries ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filmstrip}
+          >
+            {hinge.days.map((day: HingeDay) => {
+              const entry = day.entries[0] ?? null;
+              return (
+                <DayTile
+                  key={day.date}
+                  day={day.dayLabel}
+                  date={day.dateLabel}
+                  entry={entry}
+                  onSaveToLibrary={
+                    entry && onSaveEntryToLibrary
+                      ? () => onSaveEntryToLibrary(entry)
+                      : undefined
+                  }
+                  saving={!!entry && savingEntryId === entry.id}
+                  saved={!!entry && !!savedEntryIds?.has(entry.id)}
+                />
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>Nothing captured in this beat yet</Text>
+            <Text style={styles.emptyBody}>
+              Flag a moment, jot a reflection, or add to your deck and it shows up here.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.bookendBlock}>
           <HingeBookend
@@ -73,7 +106,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 12,
-    paddingTop: 12,
     paddingBottom: 4,
   },
   back: {
@@ -98,14 +130,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     gap: 8,
   },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6B7280',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginTop: 6,
-  },
   title: {
     fontSize: 28,
     lineHeight: 34,
@@ -121,6 +145,27 @@ const styles = StyleSheet.create({
   filmstrip: {
     paddingHorizontal: 16,
     gap: 10,
+  },
+  emptyState: {
+    marginHorizontal: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#D1D5DB',
+    borderStyle: 'dashed',
+    backgroundColor: 'transparent',
+    gap: 4,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  emptyBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#9CA3AF',
   },
   bookendBlock: {
     paddingHorizontal: 16,

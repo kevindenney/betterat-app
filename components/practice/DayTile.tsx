@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BookmarkPlus, Check } from 'lucide-react-native';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { HingeDayEntryKind, HingeDayEntry } from '@/services/HingeBuildService';
 
@@ -8,6 +9,9 @@ export interface DayTileProps {
   date: string;
   entry: HingeDayEntry | null;
   onPress?: () => void;
+  onSaveToLibrary?: () => void;
+  saving?: boolean;
+  saved?: boolean;
 }
 
 const EYEBROW_COLOR: Record<HingeDayEntryKind, string> = {
@@ -22,9 +26,10 @@ const EYEBROW_LABEL: Record<HingeDayEntryKind, string> = {
   note: 'Note',
 };
 
-export function DayTile({ day, date, entry, onPress }: DayTileProps) {
+export function DayTile({ day, date, entry, onPress, onSaveToLibrary, saving, saved }: DayTileProps) {
   const empty = entry == null;
   const Container: any = onPress && !empty ? Pressable : View;
+  const canSave = !empty && entry!.refinable && !!onSaveToLibrary;
   return (
     <Container
       onPress={onPress}
@@ -40,13 +45,38 @@ export function DayTile({ day, date, entry, onPress }: DayTileProps) {
           <Text style={[styles.eyebrow, { color: EYEBROW_COLOR[entry!.kind] }]}>
             {EYEBROW_LABEL[entry!.kind]}
           </Text>
-          <Text style={styles.body} numberOfLines={4}>
+          <Text style={styles.body} numberOfLines={canSave ? 3 : 4}>
             {entry!.body}
           </Text>
           {entry!.provenance ? (
             <Text style={styles.provenance} numberOfLines={1}>
               {entry!.provenance}
             </Text>
+          ) : null}
+          {canSave ? (
+            saved ? (
+              <View style={styles.saveRow}>
+                <Check size={13} color="#16A34A" strokeWidth={2.6} />
+                <Text style={styles.savedText}>Saved to library</Text>
+              </View>
+            ) : (
+              <Pressable
+                onPress={onSaveToLibrary}
+                disabled={saving}
+                hitSlop={6}
+                accessibilityRole="button"
+                style={styles.saveRow}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#007AFF" />
+                ) : (
+                  <>
+                    <BookmarkPlus size={13} color="#007AFF" strokeWidth={2.2} />
+                    <Text style={styles.saveText}>Save to library</Text>
+                  </>
+                )}
+              </Pressable>
+            )
           ) : null}
         </>
       )}
@@ -111,5 +141,22 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 32,
+  },
+  saveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+    minHeight: 22,
+  },
+  saveText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  savedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#16A34A',
   },
 });
