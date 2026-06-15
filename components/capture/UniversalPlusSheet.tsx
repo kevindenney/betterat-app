@@ -173,13 +173,13 @@ export function UniversalPlusSheet({
                 />
               </View>
 
-              <Text style={styles.eyebrow}>Drop to Playbook</Text>
+              <Text style={styles.eyebrow}>Drop to Library</Text>
               <View style={styles.group}>
                 <MenuRow
                   icon="bulb"
                   tint="purple"
                   title="A concept to come back to"
-                  subtitle="Saved to your Playbook · Recent Insights"
+                  subtitle="Saved to your Library · Recent Insights"
                   onPress={() => onDropConcept({ kind: 'text', content: draftText })}
                 />
               </View>
