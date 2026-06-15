@@ -25,6 +25,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
+import { hapticSelection, hapticSuccess } from '@/lib/haptics';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -160,10 +161,14 @@ export function InterestSelectionContent({
   const handleSelect = useCallback(
     async (slug: string) => {
       if (committingSlug) return;
+      // The first declaration of "I want to get better at this" is the start of
+      // the practice loop — make the commit a felt beat, not a silent tap.
+      hapticSelection();
       setCommittingSlug(slug);
       try {
         await addInterest(slug);
         await switchInterest(slug);
+        hapticSuccess();
         onComplete();
       } catch (error) {
         console.warn('[InterestSelection] Failed to switch interest:', error);

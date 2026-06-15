@@ -33,8 +33,8 @@ export default function WelcomePickScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
       <InterestSelectionContent
-        title="Pick your first focus"
-        subtitle="You can add more later from your library."
+        title="What do you want to get better at?"
+        subtitle="Pick one to begin your practice — you can add more anytime."
         onBack={() => {
           if (router.canGoBack()) {
             router.back();
