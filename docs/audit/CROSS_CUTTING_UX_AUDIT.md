@@ -229,6 +229,31 @@ The native pass ran on a sailor; this web pass exists to catch where the app spe
 
 ---
 
+## 9. Visual consistency (cross-cutting register audit)
+
+_status: **code-grounded** — 2026-06-16. Counts are `grep -rl` file-hit counts across `app/` + `components/` (files touching a value, not occurrences). Method, not eyeball — corrects an earlier overstated "two apps stitched together" read._
+
+**Finding:** individual surfaces are well-crafted (the welcome picker, trial-activation, and capture sheet are genuinely good), but **there is no single source of truth for the primary accent or screen background**, so the same role is expressed with competing values depending on which surface you land on. A token system *does* exist (`lib/design-tokens-ios.ts` → `IOS_COLORS` / `IOS_BLUE`, used in ~657 files) but is routinely bypassed.
+
+| Role | Canonical | Competing value | Spread | Read |
+| --- | --- | --- | --- | --- |
+| **Primary accent / blue** | `IOS_COLORS.systemBlue` = `#007AFF` (token) | `#007AFF` hardcoded (272 files) **+** `#2563EB`, a visibly brighter blue with no token (193 files) | both blues scatter across onboarding **and** feature/admin surfaces (`crew`, `pricing`, `analytics`, `race-committee`, `review`…) | Two competing blues with no rule for which wins; even the "right" color is pasted as hex 272× so a theme change can't propagate. |
+| **Screen background** | `#F2F2F7` system grouped gray (188 files) | `#FAF8F5` warm cream (22 files) | `#FAF8F5` concentrated in the welcome/onboarding funnel | A warm "front-door" background that reads as intentional but is **undeclared** — hardcoded ad hoc, not a named register. |
+| **Typeface** | SF / system (dominant) | Manrope (10 files) | onboarding/welcome flow only | *Not* an app-wide split (earlier overstatement corrected) — Manrope is a deliberate, narrowly-scoped onboarding register. Low concern. |
+
+**Interpretation:** the real debt is the **accent + background fragmentation**, not fonts. The app effectively runs an undeclared warm "front-door" register (`#2563EB` + `#FAF8F5` + Manrope, the welcome/onboarding funnel) alongside the canonical iOS chrome register (`#007AFF` + `#F2F2F7` + SF). The warm register is reasonable *as a deliberate choice* — but because it's never declared as a token set, its colors have leaked into unrelated feature/admin surfaces, and the two blues now collide arbitrarily. This sits alongside the three already-acknowledged registers (`design-tokens-ios`, `design-tokens-editorial` [serif reflection, KEPT], `design-tokens-step-loop-ios`).
+
+**Token-unification punch list** (ordered; all P2 — polish, no functional impact):
+1. **Decide the blue.** Pick one primary accent. If the brighter `#2563EB` is the intended brand blue, make it `IOS_COLORS.systemBlue`'s value (or a sibling `BRAND_BLUE` token) and retire `#2563EB` literals; otherwise standardize on `#007AFF`. One value, one token.
+2. **Declare the warm register.** If the cream `#FAF8F5` front-door look is intended, give it a name (`design-tokens-welcome.ts` or a `WELCOME_BG` token) and scope it to the auth/onboarding funnel — so it stops leaking into feature surfaces.
+3. **Replace hardcoded `#007AFF` (272) and `#2563EB` (193) with the chosen accent token.** Mechanical codemod; verify by sight on a sample of high-traffic surfaces, not blind sed.
+4. **Replace hardcoded `#F2F2F7` (188) with `IOS_COLORS.systemGroupedBackground`** so background theming is single-sourced.
+5. **Leave Manrope as-is** — it's a narrow, deliberate onboarding register; no action.
+
+> This dovetails with the existing `project_spacing_token_consolidation` / iOS layout-sweep work — the register cutover is the natural home for items 3–4. Sequence: decide the values (1–2) before the mechanical replace (3–4), or the codemod just re-spreads the wrong choice.
+
+---
+
 ## Prioritized backlog
 
 Consolidated across all flows. P0 = blocks a flow / data loss / crash. P1 = real friction most users hit. P2 = polish/visual.
@@ -254,6 +279,7 @@ Consolidated across all flows. P0 = blocks a flow / data loss / crash. P1 = real
 12. ✅ **RESOLVED** (`e5e9cf04`, sim-verified) — `/sailor/[userId]` sailing-named route for a universal profile (§7). Route folder renamed `app/sailor/[userId]` → `app/profile/[userId]`; all `router.push` calls, the deep-link allowlist, and `suppressRoutes`/`publicSegments` repointed. `scan-qr` parser still accepts the legacy `sailor` prefix for previously shared URLs. Both `/profile/{id}` and `/profile/{id}/followers` verified on the native sim.
 13. ✅ **RESOLVED** — Inconsistent settings back-nav standardized to native `‹ Settings` header on Units/Connected Devices/Change Password/Delete Account (`66e864e9`); units info-note already generic (no race/venue framing). edit-profile now matches: its custom serif-title header was replaced with the same native `Stack.Screen` header (chevron-back "Settings" on the left, Save moved into `headerRight`). *Code-verified (typecheck + lint green); on-device unverified — sim logged out.*
 14. Dev-only network LogBoxes during Library load (§5) — QA noise, not a prod bug. **No action.**
+15. **Accent + background fragmentation** (§9) — two competing primary blues (`#007AFF` token vs `#2563EB` ad-hoc, ~465 files combined) and two screen backgrounds (`#F2F2F7` vs warm `#FAF8F5`) with no single source of truth. Token-unification punch list in §9; sequence the value decisions before the mechanical replace. Dovetails with `project_spacing_token_consolidation` / the iOS layout sweep.
 
 ## Signature-moment opportunities
 Ranked by leverage. Tagged **infra-exists** (delight primitives already wired) vs **net-new**.
