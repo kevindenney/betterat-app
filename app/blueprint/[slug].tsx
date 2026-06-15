@@ -636,17 +636,25 @@ export default function BlueprintPage() {
   const authorRole = blueprint.author_bio?.trim()
     || (stepsLocked ? 'Blueprint author' : `${totalCount} step${totalCount !== 1 ? 's' : ''}`);
   const isPaid = blueprint.access_level === 'paid' && !!blueprint.price_cents && blueprint.price_cents > 0;
-  const bigPrice = isPaid ? priceLabel : 'Free';
-  const accessLine = isPaid
-    ? (blueprint.pricing_type === 'recurring' ? `${priceLabel}/mo · cancel anytime` : 'Buy once, yours forever')
-    : blueprint.access_level === 'org_members'
-      ? (blueprint.organization_name ? `Members of ${blueprint.organization_name}` : 'Members only')
-      : blueprint.access_level === 'fleet'
-        ? 'Fleet members'
-        : 'Open to everyone';
-  const accessIcon: any = isPaid
-    ? 'cart-outline'
-    : blueprint.access_level === 'public' ? 'earth-outline' : 'lock-closed-outline';
+  const isRecurring = blueprint.pricing_type === 'recurring';
+  const owned = isSubscribed || hasPurchased;
+  const bigPrice = owned
+    ? (isPaid ? (isRecurring ? 'Subscribed' : 'Purchased') : 'Following')
+    : isPaid ? priceLabel : 'Free';
+  const accessLine = owned
+    ? (isPaid ? (isRecurring ? `${priceLabel}/mo · cancel anytime` : 'Yours forever') : 'On your timeline')
+    : isPaid
+      ? (isRecurring ? `${priceLabel}/mo · cancel anytime` : 'Buy once, yours forever')
+      : blueprint.access_level === 'org_members'
+        ? (blueprint.organization_name ? `Members of ${blueprint.organization_name}` : 'Members only')
+        : blueprint.access_level === 'fleet'
+          ? 'Fleet members'
+          : 'Open to everyone';
+  const accessIcon: any = owned
+    ? 'checkmark-circle-outline'
+    : isPaid
+      ? 'cart-outline'
+      : blueprint.access_level === 'public' ? 'earth-outline' : 'lock-closed-outline';
   // Share works for everyone — copy on web, native share sheet otherwise.
   const shareBlueprint = async () => {
     const url = `${Platform.OS === 'web' ? window.location.origin : 'https://better.at'}/blueprint/${blueprint.slug}`;

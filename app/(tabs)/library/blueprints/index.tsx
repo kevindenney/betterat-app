@@ -44,19 +44,39 @@ export default function PlaybookBlueprintsListRoute() {
         </Text>
       </View>
 
-      {blueprints.map((blueprint) => (
-        <Pressable
-          key={blueprint.blueprint_id}
-          style={styles.card}
-          onPress={() => router.push(`/(tabs)/library/blueprints/${blueprint.blueprint_id}` as any)}
-        >
-          <Text style={styles.cardTitle}>{blueprint.blueprint_title}</Text>
-          <Text style={styles.cardMeta}>
-            {blueprint.author_name ?? 'Author unknown'} · subscribed{' '}
-            {new Date(blueprint.subscribed_at).toLocaleDateString()}
+      {blueprints.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="map-outline" size={28} color="#9CA3AF" />
+          <Text style={styles.emptyTitle}>No blueprints yet</Text>
+          <Text style={styles.emptyBody}>
+            Follow a coach- or org-published plan to see it here — then adopt its
+            steps one at a time into your own practice.
           </Text>
-        </Pressable>
-      ))}
+          <Pressable
+            style={styles.emptyCta}
+            onPress={() => router.push('/(tabs)/library?zone=follow' as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Find a plan to follow"
+          >
+            <Ionicons name="search" size={16} color="#FFFFFF" />
+            <Text style={styles.emptyCtaText}>Find a plan</Text>
+          </Pressable>
+        </View>
+      ) : (
+        blueprints.map((blueprint) => (
+          <Pressable
+            key={blueprint.blueprint_id}
+            style={styles.card}
+            onPress={() => router.push(`/(tabs)/library/blueprints/${blueprint.blueprint_id}` as any)}
+          >
+            <Text style={styles.cardTitle}>{blueprint.blueprint_title}</Text>
+            <Text style={styles.cardMeta}>
+              {blueprint.author_name ?? 'Author unknown'} · subscribed{' '}
+              {new Date(blueprint.subscribed_at).toLocaleDateString()}
+            </Text>
+          </Pressable>
+        ))
+      )}
     </ScrollView>
   );
 }
@@ -117,5 +137,37 @@ const styles = StyleSheet.create({
   cardMeta: {
     fontSize: 13,
     color: '#6B7280',
+  },
+  empty: {
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  emptyBody: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: '#007AFF',
+  },
+  emptyCtaText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
