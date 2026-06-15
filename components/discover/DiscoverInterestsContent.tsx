@@ -596,7 +596,9 @@ export function DiscoverInterestsContent({
             {(mine.length > 0 || available.length > 0) && (
               <View style={styles.tier}>
                 <View style={styles.tierLblRow}>
-                  <Text style={styles.tierLbl}>Organizations · you</Text>
+                  <Text style={styles.tierLbl}>
+                    {mine.length > 0 ? 'Organizations · you' : 'Organizations · suggested'}
+                  </Text>
                   {available.length > 0 ? (
                     <TouchableOpacity onPress={() => browseInterest(slug)}>
                       <Text style={[styles.tierLink, { color: accent }]}>
@@ -640,6 +642,9 @@ export function DiscoverInterestsContent({
                     </TouchableOpacity>
                   );
                 })}
+                {mine.length > 0 && available.length > 0 ? (
+                  <Text style={styles.tierSubLbl}>Suggested</Text>
+                ) : null}
                 {available.slice(0, 3).map((o) => (
                   <TouchableOpacity
                     key={o.id}
@@ -774,7 +779,7 @@ export function DiscoverInterestsContent({
         <Text style={styles.dn}>{item.name}</Text>
         <Text style={styles.dm}>
           {item.orgCount === 0
-            ? 'no organizations yet'
+            ? 'No organizations yet'
             : `${item.orgCount} organization${item.orgCount !== 1 ? 's' : ''}`}
         </Text>
         {item.topOrg ? (
@@ -782,11 +787,11 @@ export function DiscoverInterestsContent({
             <Text style={{ color: item.accentColor }}>• </Text>
             {item.topOrg}
           </Text>
-        ) : (
+        ) : item.orgCount > 0 ? (
           <Text style={[styles.dorg, { color: C.ink3 }]} numberOfLines={1}>
             no orgs joined yet
           </Text>
-        )}
+        ) : null}
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.addBtn, { borderColor: item.accentColor + '55' }]}
@@ -805,7 +810,9 @@ export function DiscoverInterestsContent({
     <View style={[styles.section, compact && styles.discoverPeek]}>
       <View style={styles.secHead}>
         <Text style={styles.secTitle}>Discover more</Text>
-        <Text style={styles.secCount}>grouped by domain</Text>
+        {discoverGroups.length > 1 ? (
+          <Text style={styles.secCount}>grouped by domain</Text>
+        ) : null}
       </View>
       {discoverGroups.length > 0 ? (
         discoverGroups.map((group) => (
@@ -1593,6 +1600,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     color: C.ink3,
+  },
+  tierSubLbl: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: C.ink3,
+    marginTop: 4,
+    marginBottom: 4,
   },
   tierLink: { fontSize: 11.5, fontWeight: '800' },
   row: {
