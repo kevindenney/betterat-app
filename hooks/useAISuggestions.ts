@@ -125,7 +125,7 @@ interface UseAISuggestionsResult {
   hasSuggestions: boolean;
 }
 
-export function useAISuggestions(): UseAISuggestionsResult {
+export function useAISuggestions(active: boolean = true): UseAISuggestionsResult {
   const { currentInterest, userInterests } = useInterest();
   const { user } = useAuth();
   const otherInterestIds = userInterests
@@ -181,15 +181,18 @@ export function useAISuggestions(): UseAISuggestionsResult {
     userInterests,
   ]);
 
-  // Auto-fetch when interest changes
+  // Auto-fetch when interest changes. Gated on `active` so always-mounted
+  // consumers (e.g. the global + composer) don't trigger the suggestion
+  // edge-fn until they're actually opened.
   useEffect(() => {
+    if (!active) return;
     if (!currentInterest?.id) return;
     const key = `${currentInterest.id}:${allInterestSteps.length}`;
     if (lastInterestRef.current === key) return;
 
     lastInterestRef.current = key;
     fetchSuggestions();
-  }, [currentInterest?.id, allInterestSteps.length, fetchSuggestions]);
+  }, [active, currentInterest?.id, allInterestSteps.length, fetchSuggestions]);
 
   // Apply a suggestion
   const applySuggestion = useCallback(

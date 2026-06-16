@@ -47,6 +47,7 @@ import { useScrollHideChrome } from '@/hooks/useScrollHideChrome';
 import { InterestHeader } from './InterestHeader';
 import { StepTaskBar } from './StepTaskBar';
 import { StepAddSheet } from './StepAddSheet';
+import { useUniversalPlus } from '@/components/capture';
 import { NowFloat, type NowRelation } from './NowFloat';
 import { L1StepView } from './L1StepView';
 import { L3SeasonView } from './L3SeasonView';
@@ -206,6 +207,7 @@ export function TimelineZoomCanvas({
   onEditArc,
   onViewStateChange,
 }: TimelineZoomCanvasProps) {
+  const { submit: submitStep } = useUniversalPlus();
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [addOpen, setAddOpen] = useState(false);
   // Track the previous level so the keyed level stage knows whether this
@@ -672,6 +674,7 @@ export function TimelineZoomCanvas({
         <StepAddSheet
           visible={addOpen}
           onClose={() => setAddOpen(false)}
+          onSave={submitStep}
           onStepAdded={(id) => {
             setAddOpen(false);
             setFocusStepId(id);

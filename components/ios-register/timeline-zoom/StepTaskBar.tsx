@@ -42,8 +42,6 @@ interface StepTaskBarProps {
   /** Canonical "now" step id — anchors the done/now/queued split. */
   nowStepId: string;
   onJumpToStep: (stepId: string) => void;
-  /** Prominent ＋. Defaults to the universal-plus composer. */
-  onAdd?: () => void;
   /** Arc the user is viewing — threaded to StepAddSheet's creation stamp. */
   viewedSeasonId?: string | null;
 }
@@ -54,7 +52,6 @@ export function StepTaskBar({
   allSteps,
   nowStepId,
   onJumpToStep,
-  onAdd,
   viewedSeasonId = null,
 }: StepTaskBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -76,9 +73,6 @@ export function StepTaskBar({
   );
   const stepselLabel = focusedOrdinal >= 0 ? `Step ${focusedOrdinal + 1}` : '—';
   const canChoose = allSteps.length > 1;
-
-  // Blank-step path the Add sheet ejects to (full what/how/why composer).
-  const blankAction = onAdd ?? (universalPlus.isAvailable ? universalPlus.open : undefined);
 
   // The inline menu would be trapped in the chrome row's stacking context
   // (a 48px-tall, transformed parent), so on native it both paints under the
@@ -265,7 +259,7 @@ export function StepTaskBar({
       <StepAddSheet
         visible={addOpen}
         onClose={() => setAddOpen(false)}
-        onAddBlank={blankAction}
+        onSave={universalPlus.submit}
         onStepAdded={(id) => onJumpToStep(id)}
         showRaceSelector={isSailRacing}
         viewedSeasonId={viewedSeasonId}

@@ -28,14 +28,12 @@ import {
   buildQuickCaptureStepFields,
   buildRaceMetadata,
   createDraftStep,
-  dropInsight,
   type QuickCapturePayload,
 } from '@/services/QuickCaptureService';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useCurrentSeason } from '@/hooks/useSeason';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
-import { UniversalPlusSheet } from './UniversalPlusSheet';
-import { PlusComposerV3Sheet } from './PlusComposerV3Sheet';
+import { StepAddSheet } from '@/components/ios-register/timeline-zoom/StepAddSheet';
 import { InspirationWizard } from '@/components/inspiration/InspirationWizard';
 
 function insertOptimisticNextUpStep(
@@ -256,50 +254,6 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
     [user?.id, currentInterest?.id, currentSeason?.id, queryClient, toast, close],
   );
 
-  const handleDropConcept = useCallback(
-    async (payload: QuickCapturePayload) => {
-      if (!user?.id) {
-        toast.show('Sign in to save concepts.', 'info');
-        close();
-        return;
-      }
-      const isEmpty = payload.content.trim().length === 0 && !payload.audioUri;
-      if (isEmpty) {
-        // Empty-tap variant: the row was tapped before the user wrote
-        // anything. Surface a hint so they know what to do next.
-        toast.show('Type or speak a concept above first.', 'info');
-        return;
-      }
-      try {
-        await dropInsight({
-          userId: user.id,
-          interestId: currentInterest?.id ?? null,
-          payload,
-        });
-        if (currentInterest?.id) {
-          void queryClient.invalidateQueries({
-            queryKey: ['playbook-insights', user.id, currentInterest.id],
-          });
-        }
-        router.push('/(tabs)/library' as any);
-        toast.show('Concept saved to Playbook', 'success');
-      } catch (err) {
-        logger.error('Concept drop failed', err);
-        toast.show('Could not save concept. Try again.', 'error');
-      } finally {
-        close();
-      }
-    },
-    [user?.id, currentInterest?.id, toast, close, queryClient],
-  );
-
-  const handleNavigate = useCallback(
-    (path: string) => {
-      close();
-      router.push(path as any);
-    },
-    [close],
-  );
 
   const value = useMemo<UniversalPlusContextValue>(
     () => ({ open, close, submit: handleQuickCapture, isAvailable: enabled }),
@@ -310,30 +264,15 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
     <UniversalPlusContext.Provider value={value}>
       {children}
       {enabled ? (
-        FEATURE_FLAGS.PLUS_COMPOSER_V3 ? (
-          <PlusComposerV3Sheet
-            visible={visible}
-            onDismiss={close}
-            onSave={handleQuickCapture}
-            onStartFromLink={handleStartFromLink}
-            interestLabel={currentInterest?.name ?? null}
-            sessionLabel={null}
-            showRaceSelector={isSailRacing}
-            venueId={isSailRacing ? homeVenue?.id ?? null : null}
-            venueName={isSailRacing ? homeVenue?.venue ?? null : null}
-          />
-        ) : (
-          <UniversalPlusSheet
-            visible={visible}
-            onDismiss={close}
-            onQuickCapture={handleQuickCapture}
-            onStartFromLink={handleStartFromLink}
-            onAddFromBlueprint={() => handleNavigate('/library/blueprints')}
-            onAddFromFollow={() => handleNavigate('/discover/following')}
-            onDropConcept={handleDropConcept}
-            onShareIdea={() => handleNavigate('/share/idea')}
-          />
-        )
+        <StepAddSheet
+          visible={visible}
+          onClose={close}
+          onSave={handleQuickCapture}
+          onStartFromLink={handleStartFromLink}
+          showRaceSelector={isSailRacing}
+          venueId={isSailRacing ? homeVenue?.id ?? null : null}
+          venueName={isSailRacing ? homeVenue?.venue ?? null : null}
+        />
       ) : null}
       <InspirationWizard
         visible={inspirationVisible}

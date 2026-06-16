@@ -15,6 +15,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
+  Image,
   KeyboardAvoidingView,
   Modal,
   PanResponder,
@@ -28,22 +29,27 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useInterest } from '@/hooks/useInterest';
 import { useSuggestedNextSteps, useAdoptBlueprintStep } from '@/hooks/useBlueprint';
 import { useAISuggestions } from '@/hooks/useAISuggestions';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
-import { useUniversalPlus } from '@/components/capture';
 import { ComposerWhereField } from '@/components/capture/ComposerWhereField';
 import { ComposerWhenField } from '@/components/capture/ComposerWhenField';
+import { VoiceComposerV3Sheet } from '@/components/capture/VoiceComposerV3Sheet';
+import { RaceCoursePicker } from '@/components/capture/RaceCoursePicker';
 import { PlanStepRaceSelector } from '@/components/step/plan-tab/PlanStepRaceSelector';
 import { StepVisibilityChip } from '@/components/step/StepVisibilityChip';
 import { useDefaultStepVisibility } from '@/hooks/useDefaultStepVisibility';
+import type { QuickCapturePayload } from '@/services/QuickCaptureService';
 import type { BlueprintSuggestedNextStep } from '@/types/blueprint';
 import type { AISuggestion } from '@/services/ai/crossInterestSuggestions';
-import type { StepLocation } from '@/types/step-detail';
+import type { RacePlan, StepLocation } from '@/types/step-detail';
 import type { TimelineStepVisibility } from '@/types/timeline-steps';
 
 type BlankFieldKey = 'why' | 'how' | 'when' | 'where';
@@ -63,12 +69,23 @@ function emptyBlankValues(): Record<BlankFieldKey, string> {
 interface StepAddSheetProps {
   visible: boolean;
   onClose: () => void;
-  /** Blank-step path — defaults to ejecting to the universal-plus composer. */
-  onAddBlank?: () => void;
+  /**
+   * Writes the composed step. The single source of truth for saving — every
+   * entry point (global +, timeline +, library +) passes
+   * `useUniversalPlus().submit` so the optimistic-insert + toast + nav pipeline
+   * is shared. Keeping the composer presentational (no internal
+   * useUniversalPlus) avoids a capture-barrel import cycle.
+   */
+  onSave: (payload: QuickCapturePayload) => void | Promise<void>;
+  /** Rare secondary path: build a first plan from an external URL/text source. */
+  onStartFromLink?: () => void;
   /** Fired after a source row writes a real timeline step, with its id. */
   onStepAdded?: (stepId: string) => void;
   /** Sailing only — lets the user create either a plain step or a race step. */
   showRaceSelector?: boolean;
+  /** Home venue — keys the racing-area lookup in the race course reveal. */
+  venueId?: string | null;
+  venueName?: string | null;
   /**
    * The arc the user is viewing on the timeline. Stamped as metadata.season_id
    * on every step created from this sheet so it lands in the arc on screen
@@ -80,9 +97,12 @@ interface StepAddSheetProps {
 export function StepAddSheet({
   visible,
   onClose,
-  onAddBlank,
+  onSave,
+  onStartFromLink,
   onStepAdded,
   showRaceSelector = false,
+  venueId,
+  venueName,
   viewedSeasonId = null,
 }: StepAddSheetProps) {
   const router = useRouter();
@@ -92,19 +112,20 @@ export function StepAddSheet({
   const { data: nextSteps, isLoading: bpLoading } = useSuggestedNextSteps(currentInterest?.id);
   const { data: recentSteps = [] } = useMyTimeline(currentInterest?.id);
   const adoptStep = useAdoptBlueprintStep();
-  const { suggestions, isLoading: aiLoading, applySuggestion } = useAISuggestions();
-  const universalPlus = useUniversalPlus();
+  const { suggestions, isLoading: aiLoading, applySuggestion } = useAISuggestions(visible);
+  const voiceEnabled = FEATURE_FLAGS.VOICE_COMPOSER_V3;
 
-  // Inline blank-step composer state. Tapping "Add a blank step" expands the
-  // simple what/how/why/when/where entry right here instead of ejecting to the
-  // full-screen composer, so adding a step stays one surface.
-  const [composing, setComposing] = useState(true);
+  // Inline composer state. The what/why/how/when/where entry lives right here
+  // so adding a step stays one surface across every entry point.
   const [isRace, setIsRace] = useState(false);
+  const [racePlan, setRacePlan] = useState<RacePlan>({});
   const [whatText, setWhatText] = useState('');
   const [activeFields, setActiveFields] = useState<BlankFieldKey[]>([]);
   const [fieldValues, setFieldValues] = useState<Record<BlankFieldKey, string>>(emptyBlankValues());
   const [whereLocation, setWhereLocation] = useState<StepLocation | undefined>(undefined);
   const [whenISO, setWhenISO] = useState<string | null>(null);
+  const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
+  const [voiceVisible, setVoiceVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   // Visibility chip — shows the user's resolved default (per-interest →
   // profile → private) so new steps are never silently private; an
@@ -117,15 +138,31 @@ export function StepAddSheet({
   const sheetTranslateY = useRef(new Animated.Value(0)).current;
 
   const resetComposer = useCallback(() => {
-    setComposing(true);
     setIsRace(false);
+    setRacePlan({});
     setWhatText('');
     setActiveFields([]);
     setFieldValues(emptyBlankValues());
     setWhereLocation(undefined);
     setWhenISO(null);
+    setPhotoUri(undefined);
     setSaving(false);
     setVisibilityOverride(null);
+  }, []);
+
+  const handlePickPhoto = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      showAlert('Photo', 'Adding a photo is available on iOS and Android.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+      allowsMultipleSelection: false,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    setPhotoUri(result.assets[0].uri);
   }, []);
 
   const insertField = useCallback((key: BlankFieldKey) => {
@@ -188,8 +225,7 @@ export function StepAddSheet({
   };
 
   const handleApplyCrossSuggestion = async (suggestion: AISuggestion) => {
-    if (!universalPlus.isAvailable) return;
-    await universalPlus.submit({
+    await onSave({
       kind: 'text',
       content: suggestion.title,
       why: suggestion.body || undefined,
@@ -263,23 +299,10 @@ export function StepAddSheet({
   useEffect(() => {
     if (!visible) return;
     sheetTranslateY.setValue(0);
-    setComposing(true);
     setIsRace(false);
     setActiveFields([]);
     requestAnimationFrame(() => whatRef.current?.focus());
   }, [sheetTranslateY, visible]);
-
-  // Enter the inline composer. Falls back to ejecting to the full-screen
-  // composer if the universal-plus pipeline isn't available (flag off).
-  const handleBlank = () => {
-    if (!universalPlus.isAvailable) {
-      onClose();
-      onAddBlank?.();
-      return;
-    }
-    setComposing(true);
-    requestAnimationFrame(() => whatRef.current?.focus());
-  };
 
   const canSave = whatText.trim().length > 0 && !saving;
 
@@ -287,24 +310,26 @@ export function StepAddSheet({
     const trimmed = whatText.trim();
     if (!trimmed || saving) return;
     setSaving(true);
-    const payload = {
-      kind: 'text' as const,
+    const payload: QuickCapturePayload = {
+      kind: 'text',
       content: trimmed,
       why: fieldValues.why.trim() || undefined,
       how: fieldValues.how.trim() || undefined,
       scheduledAt: whenISO ?? undefined,
       location: whereLocation,
       isRace: showRaceSelector ? isRace : undefined,
+      racePlan: showRaceSelector && isRace ? racePlan : undefined,
+      imageUri: photoUri,
       viewedSeasonId,
       visibility,
     };
 
-    // submit() does the optimistic timeline insert before its first await.
+    // onSave() does the optimistic timeline insert before its first await.
     // Close this local modal immediately so its transparent layer cannot
     // keep intercepting touches while the network save finishes.
     closeSheet();
-    void universalPlus.submit(payload).catch(() => {
-      // submit() normally owns its toast/error handling; this catches any
+    void Promise.resolve(onSave(payload)).catch(() => {
+      // onSave normally owns its toast/error handling; this catches any
       // unexpected rejection so background save work never becomes unhandled.
     });
   };
@@ -485,48 +510,47 @@ export function StepAddSheet({
             <View style={styles.grab} />
           </View>
 
-          {composing ? (
-            <View style={styles.sheeth}>
-              <Pressable
-                testID="step-add-cancel"
-                onPress={closeSheet}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Cancel new step"
-                style={styles.backRow}
-              >
-                <Text style={[styles.cancel, { color: accent }]}>Cancel</Text>
-              </Pressable>
-              <Text style={styles.sheethTitle}>{showRaceSelector && isRace ? 'New race' : 'New step'}</Text>
-              <Pressable
-                testID="step-add-save"
-                onPress={handleSaveBlank}
-                disabled={!canSave}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Save step"
-              >
-                <Text style={[styles.save, { color: canSave ? accent : IOS_REGISTER.labelTertiary }]}>
-                  {saving ? 'Saving…' : 'Save'}
-                </Text>
-              </Pressable>
-            </View>
-          ) : (
-            <View style={styles.sheeth}>
-              <Text style={styles.sheethTitle}>Add step</Text>
-              <Pressable onPress={closeSheet} hitSlop={8} accessibilityRole="button">
-                <Text style={[styles.cancel, { color: accent }]}>Cancel</Text>
-              </Pressable>
-            </View>
-          )}
+          <View style={styles.sheeth}>
+            <Pressable
+              testID="step-add-cancel"
+              onPress={closeSheet}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel new step"
+              style={styles.backRow}
+            >
+              <Text style={[styles.cancel, { color: accent }]}>Cancel</Text>
+            </Pressable>
+            <Text style={styles.sheethTitle}>{showRaceSelector && isRace ? 'New race' : 'New step'}</Text>
+            <Pressable
+              testID="step-add-save"
+              onPress={handleSaveBlank}
+              disabled={!canSave}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Save step"
+            >
+              <Text style={[styles.save, { color: canSave ? accent : IOS_REGISTER.labelTertiary }]}>
+                {saving ? 'Saving…' : 'Save'}
+              </Text>
+            </Pressable>
+          </View>
 
-          {composing ? (
-            <ScrollView
+          <ScrollView
               style={styles.sbody}
               contentContainerStyle={styles.composeContent}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="interactive"
             >
+              {currentInterest?.name ? (
+                <View style={styles.laneRow}>
+                  <View style={styles.laneChip}>
+                    <Ionicons name="ellipse" size={8} color={IOS_REGISTER.label} />
+                    <Text style={styles.laneChipText}>{currentInterest.name}</Text>
+                  </View>
+                </View>
+              ) : null}
+
               {showRaceSelector ? (
                 <View style={styles.kindBlock}>
                   <Text style={styles.fieldEyebrow}>TYPE</Text>
@@ -535,6 +559,16 @@ export function StepAddSheet({
                     onChange={setIsRace}
                     hideCourseReveal
                   />
+                  {isRace ? (
+                    <View style={styles.raceCourseSlot}>
+                      <RaceCoursePicker
+                        venueId={venueId}
+                        venueName={venueName}
+                        value={racePlan}
+                        onChange={setRacePlan}
+                      />
+                    </View>
+                  ) : null}
                 </View>
               ) : null}
 
@@ -654,126 +688,74 @@ export function StepAddSheet({
               ) : null}
               <View style={styles.sourceStack}>{sourceSections}</View>
             </ScrollView>
-          ) : (
-          <ScrollView style={styles.sbody} contentContainerStyle={styles.sbodyContent}>
-            <Pressable
-              testID="step-add-blank"
-              style={[styles.blankrow, { backgroundColor: hexWithAlpha(accent, 0.08), borderColor: hexWithAlpha(accent, 0.24) }]}
-              onPress={handleBlank}
-              accessibilityRole="button"
-              accessibilityLabel="Add a blank step"
-            >
-              <View style={[styles.blankIcon, { backgroundColor: accent }]}>
-                <Ionicons name="add" size={22} color="#FFFFFF" />
-              </View>
-              <View style={styles.blankText}>
-                <Text style={styles.blankTitle}>Add a blank step</Text>
-                <Text style={styles.blankSub}>Start from scratch — name it, plan the how</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={IOS_REGISTER.labelTertiary} />
-            </Pressable>
 
-            <View style={styles.dsec}>
-              <View style={styles.dsecHead}>
-                <Text style={styles.dsecTitle}>From your blueprints</Text>
-              </View>
-              {bpLoading ? (
-                <ActivityIndicator style={styles.loading} color={accent} />
-              ) : blueprintGroups.length === 0 ? (
-                <Text style={styles.empty}>No blueprint steps waiting — you're all caught up.</Text>
-              ) : (
-                <>
-                {blueprintGroups.map((g) => (
-                  <View key={g.title} style={styles.bpgroup}>
-                    <View style={styles.bph}>
-                      <View style={styles.bpLogo}>
-                        <Text style={styles.bpLogoText}>{g.title.slice(0, 1).toUpperCase()}</Text>
-                      </View>
-                      <View style={styles.bpText}>
-                        <Text style={styles.bpName} numberOfLines={1}>
-                          {g.title}
-                        </Text>
-                        <Text style={styles.bpSub}>Subscribed blueprint</Text>
-                      </View>
-                      <Text style={styles.bpCount}>{g.steps.length}</Text>
-                    </View>
-                    {g.steps.map((s) => (
-                      <View key={s.next_step_id} style={styles.aitem}>
-                        <View style={styles.aitemText}>
-                          <Text style={styles.aitemTitle} numberOfLines={1}>
-                            {s.next_step_title}
-                          </Text>
-                          {s.next_step_description ? (
-                            <Text style={styles.aitemSub} numberOfLines={1}>
-                              {s.next_step_description}
-                            </Text>
-                          ) : null}
-                        </View>
-                        <Pressable
-                          style={[styles.addBtn, { borderColor: hexWithAlpha(accent, 0.4) }]}
-                          onPress={() => handleAdopt(s)}
-                          disabled={adoptStep.isPending}
-                          hitSlop={6}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Add ${s.next_step_title}`}
-                        >
-                          <Ionicons name="add" size={18} color={accent} />
-                        </Pressable>
-                      </View>
-                    ))}
-                  </View>
-                ))}
-                <Text style={styles.bpDisclosure}>
-                  The blueprint author can see your progress on these steps.
-                </Text>
-                </>
-              )}
-            </View>
-
-            <View style={styles.dsec}>
-              <View style={styles.dsecHead}>
-                <Text style={styles.dsecTitle}>⇄ From your other interests</Text>
-              </View>
-              {aiLoading ? (
-                <ActivityIndicator style={styles.loading} color={accent} />
-              ) : suggestions.length === 0 ? (
-                <Text style={styles.empty}>No cross-interest nudges right now.</Text>
-              ) : (
-                suggestions.map((s) => (
-                  <View key={s.id} style={styles.aitem}>
-                    <View style={styles.aitemText}>
-                      <View style={styles.crossTagRow}>
-                        <View style={styles.crossTag}>
-                          <Text style={styles.crossTagText}>CROSS</Text>
-                        </View>
-                        <Text style={styles.aitemTitle} numberOfLines={1}>
-                          {s.title}
-                        </Text>
-                      </View>
-                      {s.body ? (
-                        <Text style={styles.aitemSub} numberOfLines={2}>
-                          {s.body}
-                        </Text>
-                      ) : null}
-                    </View>
-                      <Pressable
-                        style={[styles.addBtn, { borderColor: hexWithAlpha(accent, 0.4) }]}
-                      onPress={() => handleApplyCrossSuggestion(s)}
-                      hitSlop={6}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Apply ${s.title}`}
+            <View style={styles.footerRow}>
+              <Pressable
+                style={styles.footerAffordance}
+                accessibilityLabel={photoUri ? 'Change photo' : 'Add a photo'}
+                onPress={handlePickPhoto}
+              >
+                {photoUri ? (
+                  <View style={styles.photoThumbWrap}>
+                    <Image source={{ uri: photoUri }} style={styles.photoThumb} />
+                    <Pressable
+                      style={styles.photoThumbRemove}
+                      accessibilityLabel="Remove photo"
+                      hitSlop={8}
+                      onPress={() => setPhotoUri(undefined)}
                     >
-                      <Ionicons name="add" size={18} color={accent} />
+                      <Ionicons name="close" size={12} color="#FFFFFF" />
                     </Pressable>
                   </View>
-                ))
-              )}
+                ) : (
+                  <View style={styles.footerIcon}>
+                    <Ionicons name="image-outline" size={20} color={IOS_REGISTER.labelSecondary} />
+                  </View>
+                )}
+                <Text style={styles.footerLabel}>{photoUri ? 'Photo added' : 'Photo'}</Text>
+              </Pressable>
+              {voiceEnabled ? (
+                <View style={styles.micWrap}>
+                  <View style={styles.footerAffordance}>
+                    <Pressable
+                      style={styles.mic}
+                      accessibilityLabel="Open voice composer"
+                      onPress={() => setVoiceVisible(true)}
+                    >
+                      <Ionicons name="mic" size={22} color="#FFFFFF" />
+                    </Pressable>
+                    <Text style={styles.footerLabel}>Voice</Text>
+                  </View>
+                </View>
+              ) : null}
+              {onStartFromLink ? (
+                <Pressable
+                  style={styles.footerAffordance}
+                  accessibilityLabel="Start from a link"
+                  onPress={() => {
+                    closeSheet();
+                    onStartFromLink();
+                  }}
+                >
+                  <View style={styles.footerIcon}>
+                    <Ionicons name="link-outline" size={20} color={IOS_REGISTER.labelSecondary} />
+                  </View>
+                  <Text style={styles.footerLabel}>Link</Text>
+                </Pressable>
+              ) : null}
             </View>
-          </ScrollView>
-          )}
           </KeyboardAvoidingView>
         </Animated.View>
       </View>
+
+      {voiceEnabled ? (
+        <VoiceComposerV3Sheet
+          visible={voiceVisible}
+          onDismiss={() => setVoiceVisible(false)}
+          onAcceptSingle={() => setVoiceVisible(false)}
+          onAcceptBlock={() => setVoiceVisible(false)}
+        />
+      ) : null}
     </Modal>
   );
 }
@@ -1205,6 +1187,83 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 0.5,
     color: '#7C3AED',
+  },
+  laneRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 14,
+  },
+  laneChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  laneChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: IOS_REGISTER.label,
+  },
+  raceCourseSlot: {
+    marginTop: 12,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-around',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: IOS_REGISTER.separator,
+  },
+  footerAffordance: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  footerIcon: {
+    padding: 10,
+  },
+  footerLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: IOS_REGISTER.labelSecondary,
+  },
+  photoThumbWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
+  photoThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  photoThumbRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: IOS_REGISTER.label,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  mic: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: IOS_REGISTER.label,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

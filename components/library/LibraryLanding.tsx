@@ -50,6 +50,7 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useToast } from '@/components/ui/AppToast';
 import { hapticSuccess } from '@/lib/haptics';
 import { StepAddSheet } from '@/components/ios-register/timeline-zoom/StepAddSheet';
+import { useUniversalPlus } from '@/components/capture';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 
 const VALID_ZONES: LibraryZone[] = [
@@ -109,6 +110,7 @@ interface Props {
 }
 
 export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
+  const { submit: submitStep } = useUniversalPlus();
   const insets = useSafeAreaInsets();
   const homeVenue = useUserHomeVenue();
   const params = useLocalSearchParams<{ zone?: string }>();
@@ -324,6 +326,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
       <StepAddSheet
         visible={stepAddOpen}
         onClose={() => setStepAddOpen(false)}
+        onSave={submitStep}
         showRaceSelector={isSailRacing}
       />
 
