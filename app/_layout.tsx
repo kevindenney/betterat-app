@@ -5,6 +5,7 @@ import { NetworkStatusBanner } from '@/components/ui/network';
 import { PushNotificationHandler } from '@/components/notifications/PushNotificationHandler';
 import '@/global.css';
 import { initializeImageCache } from '@/lib/imageConfig';
+import { hydrateLastViewState } from '@/lib/utils/lastViewState';
 import { initSentry } from '@/lib/sentry';
 import {
   extractSessionTokensFromUrl,
@@ -579,6 +580,10 @@ export default function RootLayout() {
     initializeCrewMutationHandlers();
     initializeBoatMutationHandlers();
     initializeRaceRegistrationMutationHandlers();
+
+    // Pre-warm the native last-view sync cache so the timeline canvas can
+    // restore the last zoom level/step on first paint without a jump.
+    void hydrateLastViewState();
 
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const style = document.createElement('style');

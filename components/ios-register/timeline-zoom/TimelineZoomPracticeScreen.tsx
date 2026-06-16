@@ -49,6 +49,7 @@ import { TagBulkSheet } from './TagBulkSheet';
 import { ScheduleBulkSheet } from './ScheduleBulkSheet';
 import { useStarterStepSeed } from '@/hooks/useStarterStepSeed';
 import { useUniversalPlus } from '@/components/capture/UniversalPlusProvider';
+import { getLastViewState, saveLastViewState, type LastViewState } from '@/lib/utils/lastViewState';
 
 // Below this many steps a user hasn't built up enough of an arc for the L3
 // summary view to be meaningful, so we land them at L2 (week timeline).
@@ -99,11 +100,32 @@ export function TimelineZoomPracticeScreen() {
   // the Step view (1) instead: their current card with prev/next peeks, where
   // the structure is self-evident. An explicit ?level= deep-link always wins —
   // except a stale level=1 with no resolvable step, which falls through.
+  // Native relaunch restore (g): when there's no deep-link, fall back to the
+  // last zoom level + focused step the user was on for THIS interest. Read
+  // once per interest slug (getLastViewState is non-reactive) so the user's
+  // in-session pinches don't feed back as a new "initial". On web the same
+  // store backs the existing last-view behavior.
+  const persistedView = useMemo<LastViewState | null>(() => {
+    const slug = currentInterest?.slug ?? null;
+    if (!slug) return null;
+    const saved = getLastViewState();
+    return saved && saved.interestSlug === slug ? saved : null;
+  }, [currentInterest?.slug]);
+  const restoredFocusStepId = useMemo(() => {
+    const id = persistedView?.selectedStepId;
+    if (!id) return undefined;
+    return steps.some((s) => s.id === id) ? id : undefined;
+  }, [persistedView, steps]);
+  const restoredLevel = useMemo<ZoomLevel | null>(() => {
+    const lvl = persistedView?.zoomLevel;
+    return lvl === 1 || lvl === 3 || lvl === 4 ? (lvl as ZoomLevel) : null;
+  }, [persistedView]);
   const initialLevelFromRoute = useMemo<ZoomLevel>(() => {
     if (routeLevel && routeLevel !== 1) return routeLevel;
     if (resolvedSelectedStepId) return 1;
+    if (restoredLevel) return restoredLevel;
     return steps.length < ARC_LANDING_MIN_STEPS ? 1 : 3;
-  }, [routeLevel, resolvedSelectedStepId, steps.length]);
+  }, [routeLevel, resolvedSelectedStepId, restoredLevel, steps.length]);
   const { data: currentSeason = null } = useCurrentSeason();
   const { data: allSeasons = [] } = useUserSeasons();
   const seasonRecords = useMemo(
@@ -281,7 +303,7 @@ export function TimelineZoomPracticeScreen() {
         currentSeason,
         allSeasons: seasonRecords,
         steps,
-        focusStepId: resolvedSelectedStepId,
+        focusStepId: resolvedSelectedStepId ?? restoredFocusStepId,
         blueprintsById,
         stepEvidenceMap,
         suggestionInputs,
@@ -300,6 +322,7 @@ export function TimelineZoomPracticeScreen() {
       seasonRecords,
       steps,
       resolvedSelectedStepId,
+      restoredFocusStepId,
       blueprintsById,
       stepEvidenceMap,
       suggestionInputs,
@@ -314,6 +337,17 @@ export function TimelineZoomPracticeScreen() {
   const handleOpenStepDetail = useCallback((stepId: string) => {
     router.push(`/step/${stepId}` as never);
   }, []);
+
+  // Persist the canvas's current zoom level + focused step (interest-scoped)
+  // so a native relaunch restores it instead of always landing on the ARC.
+  const handleViewStateChange = useCallback(
+    ({ level, focusStepId }: { level: ZoomLevel; focusStepId: string | null }) => {
+      const slug = currentInterest?.slug ?? null;
+      if (!slug) return;
+      saveLastViewState({ interestSlug: slug, zoomLevel: level, selectedStepId: focusStepId });
+    },
+    [currentInterest?.slug],
+  );
 
   // Librarian capture CTA — deep-link straight to the step's Reflect tab
   // so evidence + a reflection get written (the loop that lights up the
@@ -653,6 +687,7 @@ export function TimelineZoomPracticeScreen() {
         onUnsupportedBulkAction={handleUnsupportedBulkAction}
         onAddArc={handleAddArc}
         onEditArc={handleEditArc}
+        onViewStateChange={handleViewStateChange}
         hideInterestHeader
       />
       <SeasonEditSheet

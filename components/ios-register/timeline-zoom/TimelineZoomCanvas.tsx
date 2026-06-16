@@ -148,6 +148,12 @@ interface TimelineZoomCanvasProps {
   onAddArc?: () => void;
   /** Open the SeasonEditSheet pre-populated with this arc for editing. */
   onEditArc?: (arcId: string) => void;
+  /**
+   * Fires whenever the canvas's view state (zoom level or focused step)
+   * changes. The parent persists it (interest-scoped) so a native relaunch
+   * can restore the last level/step instead of always landing on the ARC.
+   */
+  onViewStateChange?: (state: { level: ZoomLevel; focusStepId: string | null }) => void;
 }
 
 // L2 (WEEK) is retired — merged into the L1 Step view. Pinch steps 1↔3↔4.
@@ -198,6 +204,7 @@ export function TimelineZoomCanvas({
   onUnsupportedBulkAction,
   onAddArc,
   onEditArc,
+  onViewStateChange,
 }: TimelineZoomCanvasProps) {
   const [level, setLevel] = useState<ZoomLevel>(initialLevel);
   const [addOpen, setAddOpen] = useState(false);
@@ -236,6 +243,11 @@ export function TimelineZoomCanvas({
     setFocusStepId(routeFocusStepId);
     setLevel(1);
   }, [routeFocusStepId]);
+  // Report view-state changes upward so the parent can persist the last
+  // zoom level + focused step (drives native relaunch restore).
+  React.useEffect(() => {
+    onViewStateChange?.({ level, focusStepId: focusStepId || null });
+  }, [level, focusStepId, onViewStateChange]);
   const select = useSelectMode();
   const { currentInterest } = useInterest();
   const interestAccent = currentInterest?.accent_color ?? IOS_REGISTER.labelTertiary;
