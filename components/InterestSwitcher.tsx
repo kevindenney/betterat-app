@@ -25,11 +25,16 @@ import { Ionicons } from '@expo/vector-icons'
 import { fontFamily } from '@/lib/design-tokens-editorial'
 
 // Imperative opener so other parts of the app (e.g. the guest sample banner)
-// can pop the same sheet without prop-drilling. The mounted InterestSwitcher
-// registers its setOpen on mount and clears it on unmount.
-let externalOpener: (() => void) | null = null
+// can pop the same sheet without prop-drilling. Multiple InterestSwitcher
+// instances can be mounted at once — a persistent headless host in the tabs
+// layout plus per-surface headless hosts (Atlas, Golf). A single shared slot
+// broke when a surface-level host unmounted and cleared the slot, leaving the
+// persistent host's opener un-restored (it only registers once). So keep a
+// stack: each instance pushes on mount and removes itself on unmount, and the
+// opener targets the topmost (most recently mounted, still-live) instance.
+const openerStack: (() => void)[] = []
 export function openInterestSwitcher() {
-  externalOpener?.()
+  openerStack[openerStack.length - 1]?.()
 }
 
 /** Group a list of interests by their parent domain, preserving domain order. */
@@ -62,12 +67,15 @@ export function InterestSwitcher({ headless = false }: { headless?: boolean } = 
   const { signedIn } = useAuth()
   const [open, setOpen] = useState(false)
 
-  // Register the imperative opener so callers anywhere in the tree can pop the sheet
+  // Register the imperative opener so callers anywhere in the tree can pop the
+  // sheet. Push onto the shared stack on mount, splice out on unmount — this
+  // keeps the persistent host's opener live after a surface-level host unmounts.
   useEffect(() => {
     const opener = () => setOpen(true)
-    externalOpener = opener
+    openerStack.push(opener)
     return () => {
-      if (externalOpener === opener) externalOpener = null
+      const idx = openerStack.indexOf(opener)
+      if (idx !== -1) openerStack.splice(idx, 1)
     }
   }, [])
 
