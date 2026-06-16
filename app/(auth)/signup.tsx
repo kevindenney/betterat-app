@@ -40,7 +40,7 @@ const getSignupErrorMessage = (error: any): string => {
 type SignupStep = 'interest' | 'persona';
 
 export default function SignUp() {
-  const { signUp, signInWithGoogle, signInWithApple, loading: authLoading } = useAuth();
+  const { signUp, signInWithGoogle, signInWithApple, loading: authLoading, signedIn } = useAuth();
   const params = useLocalSearchParams<{
     persona?: string;
     interest?: string;
@@ -62,6 +62,10 @@ export default function SignUp() {
   // Event/invite code — prefilled from ?code= but also editable in the form
   // for users who copy a code from a partner app and type it in manually.
   const [codeInput, setCodeInput] = useState(params.code ?? '');
+  // The event code is optional and rarely used — keep it collapsed behind a
+  // link so the form fits one screen, auto-expanding only when a code arrives
+  // prefilled via ?code=.
+  const [showCodeField, setShowCodeField] = useState(!!params.code);
   const codeGrant = resolveSignupCode(codeInput);
   const blueprintRef = params.blueprint || codeGrant?.blueprintRef;
   const blueprintName = params.blueprintName || codeGrant?.blueprintName;
@@ -78,6 +82,14 @@ export default function SignUp() {
     if (paramInterest) return;
     let cancelled = false;
     (async () => {
+      // The cached interest is only a valid pre-pick for a logged-out visitor
+      // arriving from the welcome flow. When a session is still active the cache
+      // reflects THAT account's interest, which would wrongly pre-fill this
+      // "create a new account" screen — so skip it and show the picker.
+      if (signedIn) {
+        if (!cancelled) setStep('interest');
+        return;
+      }
       try {
         const cachedSlug = await AsyncStorage.getItem(PREFERRED_INTEREST_KEY);
         if (cancelled) return;
@@ -94,7 +106,7 @@ export default function SignUp() {
     return () => {
       cancelled = true;
     };
-  }, [paramInterest]);
+  }, [paramInterest, signedIn]);
 
   const interestCtx = getOnboardingContext(selectedInterest);
 
@@ -548,23 +560,37 @@ export default function SignUp() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.sectionLabel}>Event code (optional)</Text>
-          <TextInput
-            testID="signup-code-input"
-            style={styles.input}
-            placeholder="Have a code? Enter it here"
-            value={codeInput}
-            onChangeText={setCodeInput}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            editable={!isLoading}
-          />
-          {codeInput.trim().length > 0 && (
-            <Text style={codeGrant ? styles.codeHintOk : styles.codeHintBad}>
-              {codeGrant
-                ? `Code applied — ${codeGrant.blueprintName} included free.`
-                : 'Code not recognized — check the spelling.'}
-            </Text>
+          {showCodeField ? (
+            <>
+              <Text style={styles.sectionLabel}>Event code (optional)</Text>
+              <TextInput
+                testID="signup-code-input"
+                style={styles.input}
+                placeholder="Have a code? Enter it here"
+                value={codeInput}
+                onChangeText={setCodeInput}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                editable={!isLoading}
+                autoFocus={!params.code}
+              />
+              {codeInput.trim().length > 0 && (
+                <Text style={codeGrant ? styles.codeHintOk : styles.codeHintBad}>
+                  {codeGrant
+                    ? `Code applied — ${codeGrant.blueprintName} included free.`
+                    : 'Code not recognized — check the spelling.'}
+                </Text>
+              )}
+            </>
+          ) : (
+            <TouchableOpacity
+              testID="signup-show-code"
+              style={styles.codeToggle}
+              onPress={() => setShowCodeField(true)}
+              disabled={isLoading}
+            >
+              <Text style={styles.codeToggleText}>Have an event code?</Text>
+            </TouchableOpacity>
           )}
 
           {/* Submit Button */}
@@ -582,8 +608,8 @@ export default function SignUp() {
           {/* Terms */}
           <Text style={styles.termsText}>
             By signing up, you agree to our{' '}
-            <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-            <Text style={styles.termsLink}>Privacy Policy</Text>
+            <Text style={styles.termsLink} onPress={() => router.push('/terms')}>Terms of Service</Text> and{' '}
+            <Text style={styles.termsLink} onPress={() => router.push('/privacy')}>Privacy Policy</Text>
           </Text>
 
           {/* Login Link */}
@@ -612,9 +638,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 36,
+    paddingVertical: 20,
   },
   content: {
     width: '100%',
@@ -641,17 +668,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: '#0F172A',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 15,
     color: '#475569',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 14,
     lineHeight: 22,
   },
 
@@ -751,8 +778,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 10,
     borderWidth: 1,
   },
   googleButton: {
@@ -792,8 +819,8 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 12,
   },
   divider: {
     flex: 1,
@@ -811,15 +838,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#0F172A',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginBottom: 12,
     fontSize: 16,
   },
   codeHintOk: {
@@ -834,6 +861,16 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 16,
   },
+  codeToggle: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  codeToggleText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -841,11 +878,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   passwordInput: {
     flex: 1,
-    padding: 16,
+    padding: 14,
     fontSize: 16,
   },
   eyeButton: {
@@ -875,7 +912,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: 10,
     lineHeight: 18,
   },
   termsLink: {
@@ -885,7 +922,7 @@ const styles = StyleSheet.create({
 
   // Link
   linkButton: {
-    marginTop: 20,
+    marginTop: 14,
     alignItems: 'center',
   },
   linkText: {

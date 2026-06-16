@@ -87,7 +87,7 @@ const getAuthErrorMessage = (error: any): string => {
 };
 
 export default function Login() {
-  const { signIn, signInWithGoogle, signInWithApple, loading, enterGuestMode, signedIn, ready, userProfile, user } = useAuth();
+  const { signIn, signInWithGoogle, signInWithApple, loading, signedIn, ready, userProfile, user } = useAuth();
   const { returnTo, inviteToken, blueprint } = useLocalSearchParams<{
     returnTo?: string;
     inviteToken?: string;
@@ -280,7 +280,7 @@ export default function Login() {
               testID="login-close-button"
               accessibilityRole="button"
               accessibilityLabel="Close sign in"
-              onPress={() => enterGuestMode()}
+              onPress={() => router.replace('/welcome')}
               style={styles.closeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
