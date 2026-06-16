@@ -20,7 +20,9 @@ export function useFleetInvites() {
     queryFn: () => fleetService.getMyFleetInvites(),
     // get_my_fleet_invites relies on auth.uid(); running it signed-out throws
     // and surfaces a "[FleetService] Error loading fleet invites" toast on the
-    // welcome screen.
+    // welcome screen. The service returns [] for the auth error, but keep the
+    // gate so we don't fire a pointless request, and don't retry auth gaps.
     enabled: Boolean(user?.id),
+    retry: false,
   });
 }

@@ -417,6 +417,11 @@ class FleetService {
   async getMyFleetInvites(): Promise<FleetInvite[]> {
     const { data, error } = await supabase.rpc('get_my_fleet_invites');
     if (error) {
+      // The RPC raises P0001 "authentication required" when auth.uid() is null
+      // (signed-out, or the brief sign-out window where a query is still in
+      // flight). That's benign — no session means no invites — so return empty
+      // without an error log that would trip the dev LogBox banner.
+      if (error.code === 'P0001') return [];
       logger.error('Error loading fleet invites:', error);
       throw error;
     }
