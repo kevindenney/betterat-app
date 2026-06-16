@@ -5882,13 +5882,40 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             onLogShift={openNursingLogShift}
           />
         ) : f4View === 'map' ? (
-          <NursingMapSurface
-            toolbarOffset={nursingChromeH}
-            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
-            onOpenSite={chooseNursingWhereSite}
-            onLogShift={openNursingLogShift}
-            onPlanGap={(site) => planNursingStepAtSite(site, 'Pediatric assessment and OR scrub')}
-          />
+          handlers.useMapLibre ? (
+            // Real Baltimore basemap (FRAME_CAMERA.f4 centers on the JHSON/JHH
+            // campus) with the institution + peer pins from useAtlasFramePins.
+            // Pin taps reuse the same selectedPin BottomSheet the Sites view
+            // uses; long-press drops a candidate → "PIN DROPPED" anchor sheet.
+            <AtlasMapLibreCanvas
+              frame="f4"
+              pins={framePins}
+              nextEvent={
+                nextNursing.lat != null && nextNursing.lng != null
+                  ? { ...nextNursing, lat: nextNursing.lat, lng: nextNursing.lng }
+                  : null
+              }
+              onPinPress={(pin) => {
+                setLayersOpen(false);
+                setSelectedPin(pin);
+              }}
+              onNextEventPress={handleNextEventTap}
+              onMapLongPress={(coords) => {
+                setLayersOpen(false);
+                setSelectedPin(null);
+                setCandidate(coords);
+              }}
+              candidate={candidate}
+            />
+          ) : (
+            <NursingMapSurface
+              toolbarOffset={nursingChromeH}
+              bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
+              onOpenSite={chooseNursingWhereSite}
+              onLogShift={openNursingLogShift}
+              onPlanGap={(site) => planNursingStepAtSite(site, 'Pediatric assessment and OR scrub')}
+            />
+          )
         ) : f4View === 'coverage' ? (
           // Competency constellation (N3) — framework coverage from logged shifts.
           <NursingCoverageSurface
@@ -6083,7 +6110,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           initialState="expanded"
         />
-      ) : selectedPin && f4View !== 'map' ? (
+      ) : selectedPin ? (
         selectedPin.kind === 'cohort-cell' ? (
           (() => {
             const [countStr, cluster] = (selectedPin.label ?? '0|general').split('|');
@@ -6199,7 +6226,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         )
       ) : null}
 
-      {!selectedNursingSite ? <MockTabBar activeTab="atlas" /> : null}
+      {!embedded && !selectedNursingSite ? <MockTabBar activeTab="atlas" /> : null}
 
       {layersOpen && (
         <LayersSheet
