@@ -517,6 +517,17 @@ export function InterestProvider({ children }: PropsWithChildren) {
     resolvedOnceRef.current = false
   }, [signedIn, user?.id, userProfile?.id, userProfile?.onboarding_completed, userProfile?.created_at])
 
+  // On a sign-in/out transition, hold `resolving` true until the new identity's
+  // interest resolves. Without this there is a one-commit window — after
+  // userInterests finish loading but before the main resolve effect re-runs —
+  // where loading is false and currentInterest is still null, which flashes (and
+  // can stick on) the InterestSelectionGate for users who already have an
+  // interest. Kept narrowly on [signedIn, user?.id] (NOT userProfile fields) so
+  // a later profile hydration can't strand `resolving` true with no resolve.
+  useEffect(() => {
+    setResolving(true)
+  }, [signedIn, user?.id])
+
   // ---------- Derived current interest ----------
 
   const currentInterest = useMemo(() => {
