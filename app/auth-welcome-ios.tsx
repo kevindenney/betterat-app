@@ -83,6 +83,7 @@ export default function AuthWelcomeIosPreview() {
             style={styles.ctaPrimary}
             accessibilityRole="button"
             accessibilityLabel="Continue with phone"
+            onPress={() => router.push('/(auth)/phone' as any)}
           >
             <Ionicons
               name="phone-portrait-outline"
@@ -95,6 +96,7 @@ export default function AuthWelcomeIosPreview() {
             style={styles.ctaSecondary}
             accessibilityRole="button"
             accessibilityLabel="Sign in"
+            onPress={() => router.push('/(auth)/login' as any)}
           >
             <Text style={styles.ctaSecondaryText}>Sign in</Text>
           </Pressable>
