@@ -97,9 +97,7 @@ export default function WelcomeHeroScreen() {
 
           <View style={styles.authLinksRow}>
             <Pressable
-              onPress={() =>
-                router.push('/(auth)/login?returnTo=/welcome/pick' as any)
-              }
+              onPress={() => router.push('/(auth)/login' as any)}
               hitSlop={12}
               style={styles.secondaryLink}
               accessibilityRole="button"
