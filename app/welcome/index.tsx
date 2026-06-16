@@ -20,7 +20,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-const ACCENT = '#2563EB';
+const ACCENT = '#007AFF';
 const BRAND_DARK = '#0B1A33';
 
 export default function WelcomeHeroScreen() {
@@ -202,9 +202,9 @@ const styles = StyleSheet.create({
     width: BRAND_RING_SIZE,
     height: BRAND_RING_SIZE,
     borderRadius: BRAND_RING_SIZE / 2,
-    backgroundColor: 'rgba(37, 99, 235, 0.06)',
+    backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.10)',
+    borderColor: 'rgba(0, 122, 255, 0.10)',
   },
   brandMark: {
     width: BRAND_MARK_SIZE,

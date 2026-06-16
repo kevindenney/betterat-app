@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#007AFF',
     letterSpacing: -0.1,
     marginBottom: 8,
     ...Platform.select({

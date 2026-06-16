@@ -66,9 +66,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.06)',
+    backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.10)',
+    borderColor: 'rgba(0, 122, 255, 0.10)',
   },
   brandPillMark: {
     width: 32,

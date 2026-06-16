@@ -110,7 +110,7 @@ export function WelcomeCard({ visible, onStartTour: _onStartTour, onSkip, onNavi
       <View style={[styles.card, { width: cardWidth }]}>
         {/* Brand icon */}
         <View style={styles.iconCircle}>
-          <Ionicons name="sparkles" size={24} color="#2563EB" />
+          <Ionicons name="sparkles" size={24} color="#007AFF" />
         </View>
 
         {/* Greeting */}
@@ -131,7 +131,7 @@ export function WelcomeCard({ visible, onStartTour: _onStartTour, onSkip, onNavi
               activeOpacity={0.7}
             >
               <View style={styles.actionIcon}>
-                <Ionicons name={action.icon} size={20} color="#2563EB" />
+                <Ionicons name={action.icon} size={20} color="#007AFF" />
               </View>
               <View style={styles.actionContent}>
                 <Text style={styles.actionTitle}>{action.title}</Text>
@@ -155,7 +155,7 @@ export function WelcomeCard({ visible, onStartTour: _onStartTour, onSkip, onNavi
   );
 }
 
-const ACCENT = '#2563EB';
+const ACCENT = '#007AFF';
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -182,9 +182,9 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.15)',
+    borderColor: 'rgba(0, 122, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

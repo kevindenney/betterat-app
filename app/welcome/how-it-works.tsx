@@ -20,7 +20,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-const ACCENT = '#2563EB';
+const ACCENT = '#007AFF';
 const BRAND_DARK = '#0B1A33';
 
 type Step = {
@@ -33,7 +33,7 @@ type Step = {
 const STEPS: Step[] = [
   {
     icon: 'sparkles',
-    iconColor: '#2563EB',
+    iconColor: '#007AFF',
     title: 'Capture',
     body: 'Drop notes, photos, and videos as you go — anything that helps you learn.',
   },
@@ -199,9 +199,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.06)',
+    backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.10)',
+    borderColor: 'rgba(0, 122, 255, 0.10)',
   },
   brandPillMark: {
     width: 32,
