@@ -15,6 +15,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import type { DescriptorValues } from '@/lib/profile-descriptors';
 
 export interface PersonTrajectoryItem {
   stepId: string;
@@ -72,14 +73,6 @@ export interface PersonCircle {
   crewCount: number;
 }
 
-export interface PersonDescriptorFields {
-  sailingPosition: string | null;
-  sailingClass: string | null;
-  sailingLocation: string | null;
-  sailingClub: string | null;
-  seasonsActive: number | null;
-}
-
 export interface PersonInterest {
   name: string;
   slug: string;
@@ -94,7 +87,8 @@ export interface PersonPublicSections {
   concept: PersonConcept | null;
   capabilities: PersonCapability[];
   circle: PersonCircle | null;
-  descriptor: PersonDescriptorFields | null;
+  /** Flat descriptor bag from profiles.descriptors (interest-aware fields). */
+  descriptorValues: DescriptorValues;
   interests: PersonInterest[];
 }
 
@@ -155,7 +149,7 @@ export function usePersonPublicSections(userId: string | null | undefined) {
 
       const descriptorPromise = supabase
         .from('profiles')
-        .select('sailing_position, sailing_class, sailing_location, sailing_club, seasons_active')
+        .select('descriptors, sailing_position, sailing_class, sailing_location, sailing_club, seasons_active')
         .eq('id', userId!)
         .maybeSingle();
 
@@ -231,12 +225,25 @@ export function usePersonPublicSections(userId: string | null | undefined) {
       };
 
       const d = descriptorRes.data as {
+        descriptors: DescriptorValues | null;
         sailing_position: string | null;
         sailing_class: string | null;
         sailing_location: string | null;
         sailing_club: string | null;
         seasons_active: number | null;
       } | null;
+
+      // Flat descriptor bag; hydrate from legacy sailing_* only when empty so
+      // pre-migration sailors still render until their first re-save.
+      const descriptorValues: DescriptorValues =
+        d?.descriptors && typeof d.descriptors === 'object' ? { ...d.descriptors } : {};
+      if (Object.keys(descriptorValues).length === 0 && d) {
+        if (d.sailing_class) descriptorValues.class = d.sailing_class;
+        if (d.sailing_position) descriptorValues.position = d.sailing_position;
+        if (d.sailing_location) descriptorValues.location = d.sailing_location;
+        if (d.sailing_club) descriptorValues.club = d.sailing_club;
+        if (d.seasons_active != null) descriptorValues.seasons = String(d.seasons_active);
+      }
 
       // Interests come from the SECURITY DEFINER public-face RPC, not a direct
       // user_interests read — RLS only lets a person read their own interest
@@ -253,15 +260,7 @@ export function usePersonPublicSections(userId: string | null | undefined) {
         concept: face.concept ?? null,
         capabilities: face.capabilities ?? [],
         circle: face.circle ?? null,
-        descriptor: d
-          ? {
-              sailingPosition: d.sailing_position,
-              sailingClass: d.sailing_class,
-              sailingLocation: d.sailing_location,
-              sailingClub: d.sailing_club,
-              seasonsActive: d.seasons_active,
-            }
-          : null,
+        descriptorValues,
         interests,
       };
     },

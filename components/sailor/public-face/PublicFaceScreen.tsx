@@ -76,6 +76,10 @@ import {
   type CapabilityStatus,
 } from './PublicFacePrimitives';
 import { ConceptCard } from '@/components/discover/detail';
+import {
+  getDescriptorIdentityForInterests,
+  getDescriptorWhereRowsForInterests,
+} from '@/lib/profile-descriptors';
 import { getPublicFaceEnrichment } from './enrichment';
 
 export interface PublicFaceScreenProps {
@@ -312,29 +316,26 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
 
   const initials = initialsForName(displayName);
 
-  // Descriptor + meta — pulled from the merged profiles/users row. The
-  // public-face hero mirrors the Discover Person descriptor pattern but
-  // scaled up: "Dragon Helm · Hong Kong". Meta-pellets carry club + seasons.
-  const d = sections?.descriptor;
+  // Descriptor + meta — interest-aware facts from profiles.descriptors. The
+  // hero subtitle is composed by the registry per craft ("Dragon Helm · Hong
+  // Kong" for a sailor, "Figure drawing · Brooklyn" for a drawer). Falls back
+  // to the person's primary interest + location so the identity layer always
+  // renders.
   const personInterests = sections?.interests ?? [];
-  const identity = [d?.sailingClass?.trim(), d?.sailingPosition?.trim()]
-    .filter(Boolean)
-    .join(' ');
-  const realDescriptor =
-    [identity, d?.sailingLocation?.trim()].filter(Boolean).join(' · ') || undefined;
-  // Non-sailing personas have no sailing_* columns; fall back to the person's
-  // primary interest + generic location so the identity layer still renders.
+  const interestSlugs = personInterests.map((i) => i.slug);
+  const descriptorValues = sections?.descriptorValues ?? {};
+  const realDescriptor = getDescriptorIdentityForInterests(interestSlugs, descriptorValues);
   const interestDescriptor =
     [personInterests[0]?.name, profile.location?.trim()].filter(Boolean).join(' · ') || undefined;
   const descriptor =
     enrichment.descriptor ?? realDescriptor ?? interestDescriptor ?? profile.location ?? undefined;
   const realMeta: { icon?: any; text: string }[] = [];
-  if (d?.sailingClub) realMeta.push({ icon: 'location-outline', text: d.sailingClub });
-  if (d?.seasonsActive) {
-    realMeta.push({
-      icon: 'calendar-outline',
-      text: `${d.seasonsActive} season${d.seasonsActive === 1 ? '' : 's'}`,
-    });
+  const seasonsRaw = descriptorValues.seasons?.trim();
+  if (seasonsRaw) {
+    const n = parseInt(seasonsRaw, 10);
+    if (Number.isFinite(n) && n > 0) {
+      realMeta.push({ icon: 'calendar-outline', text: `${n} season${n === 1 ? '' : 's'}` });
+    }
   }
   // "Should I follow?" signal — followers + depth of practice. Only when the
   // viewer isn't looking at their own profile and the counts are non-zero.
@@ -359,23 +360,10 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
   const framingText = enrichment.framing?.text ?? profile.bio ?? undefined;
   const framingProvenance =
     enrichment.framing?.provenance ?? (profile.bio ? 'Written when joining BetterAt' : undefined);
-  const realWhereRows = d
-    ? ([
-        d.sailingLocation ? { k: 'Home waters', v: d.sailingLocation } : null,
-        d.sailingClub ? { k: 'Club', v: d.sailingClub } : null,
-        d.sailingClass ? { k: 'Class', v: d.sailingClass } : null,
-        d.sailingPosition ? { k: 'Position', v: d.sailingPosition } : null,
-        d.seasonsActive
-          ? {
-              k: 'Seasons active',
-              v: `${d.seasonsActive} season${d.seasonsActive === 1 ? '' : 's'}`,
-            }
-          : null,
-      ].filter(Boolean) as { k: string; v: string }[])
-    : [];
-  // Generic identity rows for non-sailing personas — built from the real
-  // interest + location data, never invented. Used only when the sailing
-  // block is empty so the "where" section doesn't silently disappear.
+  const realWhereRows = getDescriptorWhereRowsForInterests(interestSlugs, descriptorValues);
+  // Generic identity rows when the descriptor bag is empty — built from the
+  // real interest + location data, never invented, so the "where" section
+  // doesn't silently disappear.
   const genericWhereRows: { k: string; v: string }[] = [];
   if (personInterests.length) {
     genericWhereRows.push({

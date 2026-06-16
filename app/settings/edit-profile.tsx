@@ -32,24 +32,24 @@ import { supabase } from '@/services/supabase';
 import { getSafeImageUri } from '@/lib/utils/safeImageUri';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useInterest } from '@/hooks/useInterest';
-import { isSailingInterest } from '@/hooks/useUserHomeVenue';
+import {
+  getDescriptorFields,
+  getDescriptorSectionTitle,
+  type DescriptorValues,
+} from '@/lib/profile-descriptors';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, userProfile, updateUserProfile } = useAuth();
   const { currentInterest } = useInterest();
-  const isSailing = isSailingInterest(currentInterest?.slug);
+  const descriptorFields = getDescriptorFields(currentInterest?.slug);
   const queryClient = useQueryClient();
   const [saving, setSaving] = React.useState(false);
   const [fullName, setFullName] = React.useState('');
   const [bio, setBio] = React.useState('');
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = React.useState(false);
-  const [position, setPosition] = React.useState('');
-  const [boatClass, setBoatClass] = React.useState('');
-  const [location, setLocation] = React.useState('');
-  const [club, setClub] = React.useState('');
-  const [seasons, setSeasons] = React.useState('');
+  const [descriptors, setDescriptors] = React.useState<DescriptorValues>({});
   const safePhotoUri = getSafeImageUri(photoUri);
 
   // Initialize from userProfile
@@ -61,22 +61,31 @@ export default function EditProfileScreen() {
     }
   }, [userProfile]);
 
-  // Descriptor fields live on profiles, not users
+  // Descriptor facts live on profiles.descriptors (flat jsonb bag). The whole
+  // bag loads so editing under one interest preserves another craft's values;
+  // legacy sailing_* columns hydrate the bag only when it's still empty.
   React.useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
     supabase
       .from('profiles')
-      .select('sailing_position, sailing_class, sailing_location, sailing_club, seasons_active')
+      .select('descriptors, sailing_position, sailing_class, sailing_location, sailing_club, seasons_active')
       .eq('id', user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) return;
-        setPosition(data.sailing_position || '');
-        setBoatClass(data.sailing_class || '');
-        setLocation(data.sailing_location || '');
-        setClub(data.sailing_club || '');
-        setSeasons(data.seasons_active != null ? String(data.seasons_active) : '');
+        const bag: DescriptorValues =
+          data.descriptors && typeof data.descriptors === 'object'
+            ? { ...(data.descriptors as DescriptorValues) }
+            : {};
+        if (Object.keys(bag).length === 0) {
+          if (data.sailing_class) bag.class = data.sailing_class;
+          if (data.sailing_position) bag.position = data.sailing_position;
+          if (data.sailing_location) bag.location = data.sailing_location;
+          if (data.sailing_club) bag.club = data.sailing_club;
+          if (data.seasons_active != null) bag.seasons = String(data.seasons_active);
+        }
+        setDescriptors(bag);
       });
     return () => {
       cancelled = true;
@@ -159,18 +168,20 @@ export default function EditProfileScreen() {
 
       await updateUserProfile(updates);
 
-      const seasonsNum = parseInt(seasons.trim(), 10);
+      // Trim values and drop empties so the bag stays clean; other crafts'
+      // keys survive because we started from the full loaded bag.
+      const cleanedDescriptors: DescriptorValues = {};
+      for (const [key, value] of Object.entries(descriptors)) {
+        const trimmed = (value ?? '').trim();
+        if (trimmed) cleanedDescriptors[key] = trimmed;
+      }
       const { error: profileError } = await supabase.from('profiles').upsert(
         {
           id: user.id,
           // profiles.email is NOT NULL with no default; upsert builds the
           // full insert tuple, so omitting it fails even on existing rows
           email: user.email ?? '',
-          sailing_position: position.trim() || null,
-          sailing_class: boatClass.trim() || null,
-          sailing_location: location.trim() || null,
-          sailing_club: club.trim() || null,
-          seasons_active: Number.isFinite(seasonsNum) ? seasonsNum : null,
+          descriptors: cleanedDescriptors,
         },
         { onConflict: 'id' },
       );
@@ -320,76 +331,34 @@ export default function EditProfileScreen() {
 
         </View>
 
-        {/* Sailing descriptor — shown on the public person card. These are
-            sailing-specific fields, so hidden for non-sailing interests. */}
-        {isSailing && (
+        {/* Descriptor facts — interest-aware. These power the public person
+            card's hero subtitle and "Where X practises" section. The field set
+            adapts to the active interest (lib/profile-descriptors.ts). */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sailing Profile</Text>
+          <Text style={styles.sectionTitle}>
+            {getDescriptorSectionTitle(currentInterest?.slug)}
+          </Text>
 
-          <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Position</Text>
-            <TextInput
-              value={position}
-              onChangeText={setPosition}
-              placeholder="e.g. Helm, Trimmer, Bow"
-              placeholderTextColor={IOS_COLORS.tertiaryLabel}
-              style={styles.input}
-              autoCapitalize="words"
-            />
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Class</Text>
-            <TextInput
-              value={boatClass}
-              onChangeText={setBoatClass}
-              placeholder="e.g. Dragon, Etchells, ILCA 7"
-              placeholderTextColor={IOS_COLORS.tertiaryLabel}
-              style={styles.input}
-              autoCapitalize="words"
-            />
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Location</Text>
-            <TextInput
-              value={location}
-              onChangeText={setLocation}
-              placeholder="e.g. Hong Kong"
-              placeholderTextColor={IOS_COLORS.tertiaryLabel}
-              style={styles.input}
-              autoCapitalize="words"
-            />
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Club</Text>
-            <TextInput
-              value={club}
-              onChangeText={setClub}
-              placeholder="e.g. RHKYC"
-              placeholderTextColor={IOS_COLORS.tertiaryLabel}
-              style={styles.input}
-              autoCapitalize="characters"
-            />
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Seasons Active</Text>
-            <TextInput
-              value={seasons}
-              onChangeText={(text) => setSeasons(text.replace(/[^0-9]/g, ''))}
-              placeholder="e.g. 3"
-              placeholderTextColor={IOS_COLORS.tertiaryLabel}
-              style={styles.input}
-              keyboardType="number-pad"
-            />
-            <Text style={styles.fieldHint}>
-              Shown as “N seasons” on your public profile
-            </Text>
-          </View>
+          {descriptorFields.map((field) => (
+            <View key={field.key} style={styles.fieldContainer}>
+              <Text style={styles.fieldLabel}>{field.label}</Text>
+              <TextInput
+                value={descriptors[field.key] ?? ''}
+                onChangeText={(text) =>
+                  setDescriptors((prev) => ({
+                    ...prev,
+                    [field.key]: field.type === 'number' ? text.replace(/[^0-9]/g, '') : text,
+                  }))
+                }
+                placeholder={field.placeholder}
+                placeholderTextColor={IOS_COLORS.tertiaryLabel}
+                style={styles.input}
+                autoCapitalize={field.autoCapitalize ?? 'sentences'}
+                keyboardType={field.type === 'number' ? 'number-pad' : 'default'}
+              />
+            </View>
+          ))}
         </View>
-        )}
 
       </ScrollView>
     </KeyboardAvoidingView>
