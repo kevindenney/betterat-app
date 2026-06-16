@@ -97,33 +97,30 @@ export default function WelcomeHowItWorksScreen() {
           <Text style={styles.subtitle}>Three simple ideas, one daily habit.</Text>
         </Animated.View>
 
-        {/* Steps */}
-        <View style={styles.stepsBlock}>
+        {/* Steps — grouped on a single card so the trio reads as one idea */}
+        <Animated.View entering={FadeInDown.delay(200).duration(420)} style={styles.stepsCard}>
           {STEPS.map((step, index) => (
-            <Animated.View
-              key={step.title}
-              entering={FadeInDown.delay(220 + index * 110).duration(420)}
-              style={styles.stepRow}
-            >
-              <View style={[styles.stepBadge, { backgroundColor: step.iconColor }]}>
-                <Ionicons name={step.icon} size={22} color="#FFFFFF" />
+            <View key={step.title}>
+              {index > 0 && <View style={styles.stepDivider} />}
+              <View style={styles.stepRow}>
+                <View style={[styles.stepBadge, { backgroundColor: step.iconColor }]}>
+                  <Ionicons name={step.icon} size={22} color="#FFFFFF" />
+                </View>
+                <View style={styles.stepText}>
+                  <Text style={styles.stepTitle}>{step.title}</Text>
+                  <Text style={styles.stepBody}>{step.body}</Text>
+                </View>
               </View>
-              <View style={styles.stepText}>
-                <Text style={styles.stepTitle}>{step.title}</Text>
-                <Text style={styles.stepBody}>{step.body}</Text>
-              </View>
-            </Animated.View>
+            </View>
           ))}
-        </View>
+        </Animated.View>
 
-        {/* Footer: CTA + progress */}
-        <Animated.View
-          entering={FadeInDown.delay(500).duration(420)}
-          style={styles.footer}
-        >
+        {/* Footer: CTA + progress. Static (no entering animation) so the
+            primary advance control is always painted and tappable. */}
+        <View style={styles.footer}>
           <Pressable
             onPress={() => router.push('/welcome/pick')}
-            style={({ pressed }) => [styles.primaryBtn, pressed && styles.primaryBtnPressed]}
+            style={styles.primaryBtn}
             accessibilityRole="button"
             accessibilityLabel="Continue"
           >
@@ -136,7 +133,7 @@ export default function WelcomeHowItWorksScreen() {
             <View style={[styles.dot, styles.dotActive]} />
             <View style={[styles.dot, styles.dotInactive]} />
           </View>
-        </Animated.View>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -152,7 +149,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 8,
     paddingBottom: 24,
-    justifyContent: 'space-between',
   },
 
   topBar: {
@@ -224,7 +220,7 @@ const styles = StyleSheet.create({
   // Header
   header: {
     paddingTop: 0,
-    paddingBottom: 16,
+    paddingBottom: 24,
   },
   title: {
     fontSize: 30,
@@ -251,14 +247,29 @@ const styles = StyleSheet.create({
   },
 
   // Steps
-  stepsBlock: {
-    gap: 24,
-    paddingVertical: 8,
+  stepsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(11, 26, 51, 0.06)',
+    shadowColor: BRAND_DARK,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 2,
+  },
+  stepDivider: {
+    height: 1,
+    backgroundColor: 'rgba(11, 26, 51, 0.06)',
+    marginLeft: 64,
   },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 16,
+    paddingVertical: 18,
   },
   stepBadge: {
     width: 48,
@@ -300,6 +311,8 @@ const styles = StyleSheet.create({
 
   // Footer
   footer: {
+    marginTop: 'auto',
+    paddingTop: 24,
     gap: 18,
   },
   primaryBtn: {
@@ -315,10 +328,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.32,
     shadowRadius: 16,
     elevation: 6,
-  },
-  primaryBtnPressed: {
-    transform: [{ scale: 0.98 }],
-    shadowOpacity: 0.22,
   },
   primaryBtnIcon: {
     marginLeft: 8,

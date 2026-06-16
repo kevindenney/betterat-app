@@ -9,12 +9,18 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { fleetService, type FleetInvite } from '@/services/fleetService';
+import { useAuth } from '@/providers/AuthProvider';
 
 export const FLEET_INVITES_QUERY_KEY = ['fleet-invites'] as const;
 
 export function useFleetInvites() {
+  const { user } = useAuth();
   return useQuery<FleetInvite[]>({
     queryKey: FLEET_INVITES_QUERY_KEY,
     queryFn: () => fleetService.getMyFleetInvites(),
+    // get_my_fleet_invites relies on auth.uid(); running it signed-out throws
+    // and surfaces a "[FleetService] Error loading fleet invites" toast on the
+    // welcome screen.
+    enabled: Boolean(user?.id),
   });
 }

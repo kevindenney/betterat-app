@@ -49,10 +49,8 @@ export default function WelcomeHeroScreen() {
             entering={FadeInDown.duration(450)}
             style={styles.brandBlock}
           >
-            {/* Soft accent ring behind the mark for visual anchor */}
-            <View style={styles.brandRing} />
             <Image
-              source={require('@/assets/images/brand-mark-large.png')}
+              source={require('@/assets/images/brand-mark.png')}
               style={styles.brandMark}
               resizeMode="contain"
             />
@@ -197,19 +195,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 18,
   },
-  brandRing: {
-    position: 'absolute',
-    width: BRAND_RING_SIZE,
-    height: BRAND_RING_SIZE,
-    borderRadius: BRAND_RING_SIZE / 2,
-    backgroundColor: 'rgba(0, 122, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 122, 255, 0.10)',
-  },
   brandMark: {
     width: BRAND_MARK_SIZE,
     height: BRAND_MARK_SIZE,
-    borderRadius: 24,
+    borderRadius: BRAND_MARK_SIZE / 2,
     // Lift the mark off the background
     shadowColor: BRAND_DARK,
     shadowOffset: { width: 0, height: 10 },
