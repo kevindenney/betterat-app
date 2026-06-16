@@ -73,24 +73,18 @@ export async function getUserTimeline(
       }
     }
 
-    // Fetch steps where user is a collaborator (shared with them)
-    let collabQuery = supabase
-      .from('timeline_steps')
-      .select('*')
-      .contains('collaborator_user_ids', [userId])
-      .neq('user_id', userId)
-      .eq('is_plan_template', false)
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true })
-      .limit(200);
-
-    if (interestId) {
-      if (Array.isArray(interestId)) {
-        collabQuery = collabQuery.in('interest_id', interestId);
-      } else {
-        collabQuery = collabQuery.eq('interest_id', interestId);
-      }
-    }
+    // Fetch steps where user is a collaborator (shared with them) via a
+    // SECURITY DEFINER RPC. A direct table read here forced a full Seq Scan:
+    // timeline_steps has 10 OR'd SELECT policies and RLS OR-expansion evaluates
+    // the expensive ones (org-faculty / blueprint co-subscriber joins) per row,
+    // ignoring the collaborator GIN index — which timed the read out. The RPC
+    // uses the index directly and enforces the same collaborator-visibility rule.
+    const collabInterestIds = interestId
+      ? (Array.isArray(interestId) ? interestId : [interestId])
+      : null;
+    const collabQuery = supabase.rpc('get_collaborator_timeline_steps', {
+      p_interest_ids: collabInterestIds,
+    });
 
     // Also fetch cross-interest pinned steps (only for single-interest queries on own timeline)
     const singleInterestId = interestId && !Array.isArray(interestId) ? interestId : null;
