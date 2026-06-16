@@ -25,6 +25,7 @@ export default function MyBookingsScreen() {
 
   useEffect(() => {
     loadBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const loadBookings = async () => {
@@ -514,7 +515,7 @@ const styles = StyleSheet.create({
   feedbackLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
     textTransform: 'uppercase',
     marginBottom: 4,
   },

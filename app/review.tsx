@@ -6,8 +6,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSailorOnboardingState } from '@/hooks/useSailorOnboardingState';
 import { 
-MapPin, Anchor, Users, Calendar, CheckCircle, Circle, ChevronRight, 
-Download, FileText, Clock, CheckCircle2, XCircle, Edit3, CalendarDays,
+MapPin, Anchor, Users, Calendar, Circle, ChevronRight,
+Download, Clock, CheckCircle2, XCircle, Edit3, CalendarDays,
 Wifi, WifiOff, RefreshCw, Trophy, User, Mail, Phone, MessageCircle, Shield
 } from 'lucide-react-native';
 
@@ -18,13 +18,13 @@ const { state, saveToSupabase } = useSailorOnboardingState();
 const [isCompleting, setIsCompleting] = useState(false);
 
 // Mock data from previous screens
-const [location, setLocation] = useState({
+const [location] = useState({
 name: 'Royal Hong Kong Yacht Club',
 address: 'Repulse Bay, Hong Kong Island',
 confidence: 92
 });
 
-const [boats, setBoats] = useState([
+const [boats] = useState([
 { id: 1, name: 'Dragon', status: 'confirmed' },
 { id: 2, name: 'International Dragon', status: 'confirmed' }
 ]);
@@ -62,7 +62,7 @@ const [raceCalendarStatus, setRaceCalendarStatus] = useState<'imported' | 'pendi
 const [isSyncing, setIsSyncing] = useState(false);
 
 // Mock data for selected races
-const [selectedRaces, setSelectedRaces] = useState([
+const [selectedRaces] = useState([
 { id: 'r1', name: 'Summer Series', club: 'Royal Ocean Sailing Club', date: '2023-07-15' },
 { id: 'r2', name: 'Friday Fleet Race', club: 'Marina Bay Sailing Association', date: '2023-07-21' }
 ]);
@@ -210,14 +210,14 @@ Confirm your choices before finalizing your profile
 className="flex-row items-center"
 onPress={handleEditLocation}
 >
-<Edit3 size={18} color="#2563EB" />
+<Edit3 size={18} color="#007AFF" />
 <Text className="text-blue-600 font-medium ml-1">Edit</Text>
 </TouchableOpacity>
 </View>
 
 <View className="flex-row items-start">
 <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-3">
-<MapPin size={24} color="#2563EB" />
+<MapPin size={24} color="#007AFF" />
 </View>
 <View className="flex-1">
 <Text className="text-gray-800 font-semibold text-lg">{location.name}</Text>
@@ -243,7 +243,7 @@ style={{ width: `${location.confidence}%` }}
 className="flex-row items-center"
 onPress={handleEditBoats}
 >
-<Edit3 size={18} color="#2563EB" />
+<Edit3 size={18} color="#007AFF" />
 <Text className="text-blue-600 font-medium ml-1">Edit</Text>
 </TouchableOpacity>
 </View>
@@ -268,7 +268,7 @@ onPress={handleEditBoats}
 className="flex-row items-center"
 onPress={handleEditFleets}
 >
-<Edit3 size={18} color="#2563EB" />
+<Edit3 size={18} color="#007AFF" />
 <Text className="text-blue-600 font-medium ml-1">Edit</Text>
 </TouchableOpacity>
 </View>
@@ -292,7 +292,7 @@ className="ml-2"
 onPress={() => toggleFleetNotification(fleet.id)}
 >
 {fleet.notifications ? (
-<Wifi size={20} color="#2563EB" />
+<Wifi size={20} color="#007AFF" />
 ) : (
 <WifiOff size={20} color="#9CA3AF" />
 )}
@@ -309,7 +309,7 @@ onPress={() => toggleFleetNotification(fleet.id)}
 className="flex-row items-center"
 onPress={handleEditClubs}
 >
-<Edit3 size={18} color="#2563EB" />
+<Edit3 size={18} color="#007AFF" />
 <Text className="text-blue-600 font-medium ml-1">Edit</Text>
 </TouchableOpacity>
 </View>
@@ -359,7 +359,7 @@ onPress={() => handleRemoveClub(club.id)}
 className="flex-row items-center"
 onPress={handleEditRaces}
 >
-<Edit3 size={18} color="#2563EB" />
+<Edit3 size={18} color="#007AFF" />
 <Text className="text-blue-600 font-medium ml-1">Edit</Text>
 </TouchableOpacity>
 </View>
@@ -406,7 +406,7 @@ onPress={handleEditRaces}
 className="flex-row items-center"
 onPress={handleEditCrew}
 >
-<Edit3 size={18} color="#2563EB" />
+<Edit3 size={18} color="#007AFF" />
 <Text className="text-blue-600 font-medium ml-1">Edit</Text>
 </TouchableOpacity>
 </View>
@@ -424,13 +424,13 @@ state.crew.crewMembers.map((member) => (
 <View className="flex-row flex-wrap gap-2">
 {member.email && (
 <View className="flex-row items-center bg-blue-50 rounded-full px-2 py-1">
-<Mail size={12} color="#2563EB" />
+<Mail size={12} color="#007AFF" />
 <Text className="text-blue-600 text-xs ml-1">{member.email}</Text>
 </View>
 )}
 {member.phone && (
 <View className="flex-row items-center bg-blue-50 rounded-full px-2 py-1">
-<Phone size={12} color="#2563EB" />
+<Phone size={12} color="#007AFF" />
 <Text className="text-blue-600 text-xs ml-1">{member.phone}</Text>
 </View>
 )}
@@ -485,7 +485,7 @@ onPress={handleEditCrew}
 className="flex-row items-center"
 onPress={handleEditRaceCalendar}
 >
-<Edit3 size={18} color="#2563EB" />
+<Edit3 size={18} color="#007AFF" />
 <Text className="text-blue-600 font-medium ml-1">Edit</Text>
 </TouchableOpacity>
 </View>
@@ -503,9 +503,9 @@ onPress={handleRetryImport}
 disabled={isSyncing}
 >
 {isSyncing ? (
-<RefreshCw size={16} color="#2563EB" className="mr-1 animate-spin" />
+<RefreshCw size={16} color="#007AFF" className="mr-1 animate-spin" />
 ) : (
-<RefreshCw size={16} color="#2563EB" className="mr-1" />
+<RefreshCw size={16} color="#007AFF" className="mr-1" />
 )}
 <Text className="text-blue-600 text-sm font-medium">Sync</Text>
 </TouchableOpacity>
@@ -523,9 +523,9 @@ onPress={handleRetryImport}
 disabled={isSyncing}
 >
 {isSyncing ? (
-<RefreshCw size={16} color="#2563EB" className="mr-1 animate-spin" />
+<RefreshCw size={16} color="#007AFF" className="mr-1 animate-spin" />
 ) : (
-<RefreshCw size={16} color="#2563EB" className="mr-1" />
+<RefreshCw size={16} color="#007AFF" className="mr-1" />
 )}
 <Text className="text-blue-600 text-sm font-medium">Retry</Text>
 </TouchableOpacity>

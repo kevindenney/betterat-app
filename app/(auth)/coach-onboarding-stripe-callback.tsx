@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { CheckCircle, XCircle } from 'lucide-react-native';
 import { StripeConnectService } from '@/services/StripeConnectService';
 import { useAuth } from '@/providers/AuthProvider';
@@ -16,6 +16,7 @@ export default function CoachOnboardingStripeCallback() {
     if (user) {
       handleCallback();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleCallback = async () => {
@@ -81,7 +82,7 @@ export default function CoachOnboardingStripeCallback() {
     <View className="flex-1 bg-white items-center justify-center px-6">
       {status === 'loading' && (
         <>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#007AFF" />
           <Text className="text-gray-800 text-lg font-medium mt-4 text-center">
             {message}
           </Text>

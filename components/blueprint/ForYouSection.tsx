@@ -4,7 +4,7 @@
  * into a single horizontal scrollable strip.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,17 +23,17 @@ const C = {
   labelMid: '#6D6C6A',
   labelLight: '#9C9B99',
   // Type accent colors
-  suggestion: '#2563EB',
+  suggestion: '#007AFF',
   suggestionBg: 'rgba(37,99,235,0.08)',
   blueprint: '#00897B',
   blueprintBg: 'rgba(0,137,123,0.08)',
-  orgBlueprint: '#2563EB',
+  orgBlueprint: '#007AFF',
   orgBlueprintBg: 'rgba(37,99,235,0.08)',
   joinOrg: '#D97706',
   joinOrgBg: 'rgba(217,119,6,0.08)',
-  headerAccent: '#2563EB',
+  headerAccent: '#007AFF',
   badgeBg: '#DBEAFE',
-  badgeText: '#2563EB',
+  badgeText: '#007AFF',
 } as const;
 
 const TYPE_CONFIG: Record<ForYouItemType, { color: string; bg: string; icon: string; actionLabel: string }> = {

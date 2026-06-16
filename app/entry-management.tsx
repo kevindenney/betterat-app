@@ -18,16 +18,13 @@ import {
   Calendar,
   CreditCard,
   Users,
-  Info,
-  Shield,
-  Clock,
-  Download
+  Shield
 } from 'lucide-react-native';
 
 const EntryManagementScreen = () => {
-  const [filter, setFilter] = useState('All Regattas');
+  const [filter] = useState('All Regattas');
   const [searchQuery, setSearchQuery] = useState('');
-  const [event, setEvent] = useState('Spring Series R1');
+  const [event] = useState('Spring Series R1');
   const [expandedEntries, setExpandedEntries] = useState<number[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
@@ -240,13 +237,13 @@ const EntryManagementScreen = () => {
                   onPress={() => openEntryDetail(item)}
                   className="p-2"
                 >
-                  <Eye color="#2563EB" size={18} />
+                  <Eye color="#007AFF" size={18} />
                 </TouchableOpacity>
                 <TouchableOpacity className="p-2">
-                  <Edit color="#2563EB" size={18} />
+                  <Edit color="#007AFF" size={18} />
                 </TouchableOpacity>
                 <TouchableOpacity className="p-2">
-                  <Mail color="#2563EB" size={18} />
+                  <Mail color="#007AFF" size={18} />
                 </TouchableOpacity>
                 <TouchableOpacity className="p-2">
                   <MoreHorizontal color="#6B7280" size={18} />
@@ -322,7 +319,7 @@ const EntryManagementScreen = () => {
                 <View className="bg-gray-50 rounded-xl p-4">
                   <View className="flex-row items-center mb-4">
                     <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-3">
-                      <User color="#2563EB" size={24} />
+                      <User color="#007AFF" size={24} />
                     </View>
                     <View>
                       <Text className="font-bold text-gray-800 text-lg">{selectedEntry.helmsman}</Text>
@@ -383,7 +380,7 @@ const EntryManagementScreen = () => {
                     {selectedEntry.crew.map((crewMember: string, index: number) => (
                       <View key={index} className="flex-row items-center mb-2">
                         <View className="w-8 h-8 rounded-full bg-blue-100 items-center justify-center mr-3">
-                          <User color="#2563EB" size={16} />
+                          <User color="#007AFF" size={16} />
                         </View>
                         <Text className="text-gray-800">{crewMember}</Text>
                         <Text className="text-gray-500 ml-auto">Crew</Text>

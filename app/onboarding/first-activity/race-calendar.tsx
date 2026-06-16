@@ -147,7 +147,6 @@ export default function RaceCalendarScreen() {
     ({ item, index }: { item: Race; index: number }) => {
       const isSelected = selectedRaces.includes(item.id);
       const raceDate = parseISO(item.startDate);
-      const dateStr = format(raceDate, 'EEE, MMM d');
       const timeStr = format(raceDate, 'h:mm a');
 
       return (
@@ -450,11 +449,11 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
   },
   continueButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 18,
     borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#2563EB',
+    shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

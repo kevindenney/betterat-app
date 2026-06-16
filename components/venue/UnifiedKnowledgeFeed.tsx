@@ -126,7 +126,7 @@ function FilterChips({
             <Ionicons
               name={filter.icon as any}
               size={14}
-              color={isSelected ? '#2563EB' : '#6B7280'}
+              color={isSelected ? '#007AFF' : '#6B7280'}
             />
             <Text style={[styles.filterChipText, isSelected && styles.filterChipTextSelected]}>
               {filter.label}
@@ -201,7 +201,7 @@ function DocumentItemRow({
   return (
     <Pressable style={styles.itemRow} onPress={onPress}>
       <View style={[styles.itemIcon, styles.itemIconDocument]}>
-        <Ionicons name={typeIcon} size={16} color="#2563EB" />
+        <Ionicons name={typeIcon} size={16} color="#007AFF" />
       </View>
       <View style={styles.itemContent}>
         <Text style={styles.itemTitle} numberOfLines={2}>
@@ -313,7 +313,7 @@ function InsightItemRow({
 // ============================================================================
 
 export function UnifiedKnowledgeFeed({
-  venueId,
+  venueId: _venueId,
   racingAreaId,
   items,
   isLoading = false,
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   filterChipTextSelected: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
 
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   },
   itemMetaProcessing: {
     ...TufteTokens.typography.micro,
-    color: '#2563EB',
+    color: '#007AFF',
   },
   itemAreaTag: {
     ...TufteTokens.typography.micro,

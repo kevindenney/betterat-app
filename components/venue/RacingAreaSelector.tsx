@@ -18,7 +18,6 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   useVenueRacingAreasAndRoutes,
   RacingAreaOrRoute,
-  getRacingAreaLabel,
   getRacingAreaIcon,
 } from '@/hooks/useVenueRacingAreas';
 
@@ -84,7 +83,7 @@ export function RacingAreaSelector({
             <Ionicons
               name={selectedItem ? (getRacingAreaIcon(selectedItem.type) as any) : 'location-outline'}
               size={compact ? 14 : 16}
-              color={selectedItem ? '#2563EB' : '#6B7280'}
+              color={selectedItem ? '#007AFF' : '#6B7280'}
             />
             <ThemedText
               style={[
@@ -139,7 +138,7 @@ export function RacingAreaSelector({
                 </ThemedText>
               </View>
               {!selectedAreaId && !selectedRouteId && (
-                <Ionicons name="checkmark-circle" size={22} color="#2563EB" />
+                <Ionicons name="checkmark-circle" size={22} color="#007AFF" />
               )}
             </TouchableOpacity>
 
@@ -165,7 +164,7 @@ export function RacingAreaSelector({
                       onPress={() => handleSelect(item)}
                     >
                       <View style={[styles.optionIcon, styles.optionIconBlue]}>
-                        <Ionicons name="water" size={18} color="#2563EB" />
+                        <Ionicons name="water" size={18} color="#007AFF" />
                       </View>
                       <View style={styles.optionContent}>
                         <ThemedText style={styles.optionTitle}>{area.areaName}</ThemedText>
@@ -190,7 +189,7 @@ export function RacingAreaSelector({
                         )}
                       </View>
                       {isSelected && (
-                        <Ionicons name="checkmark-circle" size={22} color="#2563EB" />
+                        <Ionicons name="checkmark-circle" size={22} color="#007AFF" />
                       )}
                     </TouchableOpacity>
                   );
@@ -301,7 +300,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   triggerTextSelected: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '500',
   },
   modalContainer: {
@@ -369,7 +368,7 @@ const styles = StyleSheet.create({
   },
   optionItemSelected: {
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#EFF6FF',
   },
   optionIcon: {

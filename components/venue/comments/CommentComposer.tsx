@@ -60,6 +60,7 @@ export function CommentComposer({
       const errorMessage = error?.message || 'Failed to post comment';
       toast.show(errorMessage, 'error');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, postId, replyingTo, createComment, onCancelReply]);
 
   return (
@@ -67,7 +68,7 @@ export function CommentComposer({
       {/* Replying to indicator */}
       {replyingTo && (
         <View style={styles.replyingTo}>
-          <Ionicons name="return-down-forward" size={12} color="#2563EB" />
+          <Ionicons name="return-down-forward" size={12} color="#007AFF" />
           <Text style={styles.replyingToText}>
             Replying to {replyingTo.authorName}
           </Text>
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
   },
   replyingToText: {
     ...TufteTokens.typography.micro,
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '500',
     flex: 1,
   },
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
   },

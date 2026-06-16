@@ -224,6 +224,7 @@ export default function ProgramAssignmentsScreen() {
     return () => {
       active = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDomain, programs, selectedProgramId]);
 
   const resolvedRoleOptions = useMemo(() => {
@@ -460,13 +461,13 @@ export default function ProgramAssignmentsScreen() {
                 void loadPrograms();
             }}
           >
-            <Ionicons name="refresh" size={18} color="#2563EB" />
+            <Ionicons name="refresh" size={18} color="#007AFF" />
           </TouchableOpacity>
         </View>
 
         {loading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="small" color="#2563EB" />
+            <ActivityIndicator size="small" color="#007AFF" />
             <ThemedText style={styles.loadingText}>Loading programs…</ThemedText>
           </View>
         ) : (
@@ -630,7 +631,7 @@ export default function ProgramAssignmentsScreen() {
                 <View style={styles.inlineGroup}>
                   <ThemedText style={styles.inlineLabel}>Status filter</ThemedText>
                   <View style={styles.chipRow}>
-                    {(['all', ...STATUS_OPTIONS] as Array<ParticipantStatus | 'all'>).map((option) => {
+                    {(['all', ...STATUS_OPTIONS] as (ParticipantStatus | 'all')[]).map((option) => {
                       const active = filterStatus === option;
                       return (
                         <TouchableOpacity
@@ -819,7 +820,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     backgroundColor: '#FFFFFF',
   },
-  chipActive: { borderColor: '#2563EB', backgroundColor: '#DBEAFE' },
+  chipActive: { borderColor: '#007AFF', backgroundColor: '#DBEAFE' },
   chipText: { fontSize: 12, color: '#475569', fontWeight: '600' },
   chipTextSmall: { fontSize: 11, color: '#475569', fontWeight: '600' },
   chipTextActive: { color: '#1D4ED8' },
@@ -836,7 +837,7 @@ const styles = StyleSheet.create({
   actionsRow: { flexDirection: 'row', justifyContent: 'flex-end' },
   primaryButton: {
     borderRadius: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
@@ -930,7 +931,7 @@ const styles = StyleSheet.create({
   gateStateAction: {
     marginTop: 4,
     borderRadius: 999,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 14,
     paddingVertical: 9,
   },

@@ -45,6 +45,7 @@ export default function ClientsScreen() {
     } else if (!personaLoading) {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coachId, personaLoading]);
 
   const loadData = async (targetCoachId: string) => {
@@ -527,7 +528,7 @@ const styles = StyleSheet.create({
   },
   markSeenText: {
     fontSize: 13,
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
   coachHomeLinksRow: {

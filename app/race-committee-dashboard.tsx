@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions, ProgressBarAndroid } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { Image } from '@/components/ui';
 import {
   Calendar,
@@ -14,11 +14,9 @@ import {
   X,
   ChevronRight,
   Play,
-  Pause,
   Flag,
   Download,
   Eye,
-  Send,
   FileText,
   Mail,
   BarChart2,
@@ -160,12 +158,12 @@ const RaceCommitteeDashboard = () => {
 
   // Quick actions data
   const quickActions = [
-    { id: 1, title: "Create New Race", icon: <Plus color="#2563EB" size={24} /> },
-    { id: 2, title: "Publish Documents", icon: <FileText color="#2563EB" size={24} /> },
-    { id: 3, title: "Score Results", icon: <Trophy color="#2563EB" size={24} /> },
-    { id: 4, title: "Email Fleet", icon: <Mail color="#2563EB" size={24} /> },
-    { id: 5, title: "Manage Entries", icon: <Users color="#2563EB" size={24} /> },
-    { id: 6, title: "View Analytics", icon: <BarChart2 color="#2563EB" size={24} /> }
+    { id: 1, title: "Create New Race", icon: <Plus color="#007AFF" size={24} /> },
+    { id: 2, title: "Publish Documents", icon: <FileText color="#007AFF" size={24} /> },
+    { id: 3, title: "Score Results", icon: <Trophy color="#007AFF" size={24} /> },
+    { id: 4, title: "Email Fleet", icon: <Mail color="#007AFF" size={24} /> },
+    { id: 5, title: "Manage Entries", icon: <Users color="#007AFF" size={24} /> },
+    { id: 6, title: "View Analytics", icon: <BarChart2 color="#007AFF" size={24} /> }
   ];
 
   // Helper function to get status icon
@@ -227,7 +225,7 @@ const RaceCommitteeDashboard = () => {
       <View className="flex-row px-4 py-3 bg-white">
         <View className="flex-1 items-center">
           <View className="w-8 h-8 rounded-full bg-blue-100 items-center justify-center mb-1">
-            <Flag color="#2563EB" size={16} />
+            <Flag color="#007AFF" size={16} />
           </View>
           <Text className="text-gray-900 font-bold">{quickStats.upcomingRaces}</Text>
           <Text className="text-gray-500 text-xs">Upcoming</Text>
@@ -344,7 +342,7 @@ const RaceCommitteeDashboard = () => {
             
             <TouchableOpacity className="flex-row items-center justify-center">
               <Text className="text-blue-600 font-bold">View Full Details</Text>
-              <ChevronRight color="#2563EB" size={16} />
+              <ChevronRight color="#007AFF" size={16} />
             </TouchableOpacity>
           </View>
         </View>

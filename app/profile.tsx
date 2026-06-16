@@ -24,6 +24,7 @@ export default function ProfileScreen() {
     if (user?.id) {
       fetchProfileData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const fetchProfileData = async () => {
@@ -114,7 +115,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-gray-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
@@ -135,7 +136,7 @@ export default function ProfileScreen() {
         {/* Avatar Section */}
         <View className="bg-white rounded-xl p-6 mb-4 items-center">
           <View className="w-24 h-24 rounded-full bg-blue-100 items-center justify-center mb-4">
-            <User size={48} color="#2563EB" />
+            <User size={48} color="#007AFF" />
           </View>
           <Text className="text-lg font-bold text-gray-800 mb-2">
             {profileData?.user?.full_name || 'Sailor'}

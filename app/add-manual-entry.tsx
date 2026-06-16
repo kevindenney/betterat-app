@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { Check, Plus, X, User, Mail, Phone, Hash, Navigation, CreditCard, MessageCircle } from 'lucide-react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { Plus, X, User, Mail, Phone, Hash, Navigation, CreditCard } from 'lucide-react-native';
 
 const AddManualEntryScreen = () => {
   // Form state
@@ -245,7 +245,7 @@ const AddManualEntryScreen = () => {
               className="flex-row items-center bg-blue-50 rounded-lg px-3 py-1"
               onPress={addCrewMember}
             >
-              <Plus size={16} color="#2563EB" />
+              <Plus size={16} color="#007AFF" />
               <Text className="text-blue-600 ml-1">Add Crew</Text>
             </TouchableOpacity>
           </View>
@@ -296,7 +296,7 @@ const AddManualEntryScreen = () => {
           <View className="mb-4">
             <Text className="text-gray-700 mb-2">Entry Fee: $75.00</Text>
             <View className="flex-row justify-between items-center bg-blue-50 rounded-lg p-3 mb-3">
-              <CreditCard size={20} color="#2563EB" />
+              <CreditCard size={20} color="#007AFF" />
               <Text className="text-blue-600 font-medium flex-1 ml-2">Entry fee will be charged upon confirmation</Text>
             </View>
           </View>

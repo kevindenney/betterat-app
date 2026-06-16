@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { Image } from '@/components/ui';
 import { createLogger } from '@/lib/utils/logger';
 import {
   MapPin,
@@ -15,7 +14,7 @@ const logger = createLogger('VenueVerification');
 
 export default function VenueVerificationReview() {
   // Mock data for venue verification
-  const [venueData, setVenueData] = useState({
+  const [venueData] = useState({
     name: "Royal Marina Sailing Club",
     address: "123 Harbor Drive, Marina Bay",
     status: "verified", // 'verified', 'pending', 'rejected'
@@ -95,14 +94,14 @@ export default function VenueVerificationReview() {
           <View className="flex-row items-center justify-between mb-4">
             <Text className="text-lg font-bold text-gray-800">Club Information</Text>
             <TouchableOpacity className="flex-row items-center">
-              <Edit3 size={18} color="#2563EB" />
+              <Edit3 size={18} color="#007AFF" />
               <Text className="text-blue-600 font-medium ml-1">Edit</Text>
             </TouchableOpacity>
           </View>
 
           <View className="flex-row items-start">
             <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-3">
-              <MapPin size={24} color="#2563EB" />
+              <MapPin size={24} color="#007AFF" />
             </View>
             <View className="flex-1">
               <Text className="text-gray-800 font-semibold text-lg">{venueData.name}</Text>
@@ -133,7 +132,7 @@ export default function VenueVerificationReview() {
                   className="flex-row items-center"
                   onPress={() => handleEditVenue(venue.id)}
                 >
-                  <Edit3 size={18} color="#2563EB" />
+                  <Edit3 size={18} color="#007AFF" />
                   <Text className="text-blue-600 font-medium ml-1">Edit</Text>
                 </TouchableOpacity>
               </View>
@@ -175,7 +174,7 @@ export default function VenueVerificationReview() {
         {/* Verification Info */}
         <View className="bg-blue-50 rounded-xl p-5 mb-6 border border-blue-100">
           <View className="flex-row items-start">
-            <AlertCircle size={20} color="#2563EB" className="mr-2 mt-0.5" />
+            <AlertCircle size={20} color="#007AFF" className="mr-2 mt-0.5" />
             <View className="flex-1">
               <Text className="text-blue-800 font-medium mb-1">Verification Complete</Text>
               <Text className="text-blue-700 text-sm">

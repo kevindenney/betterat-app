@@ -64,8 +64,6 @@ export function CommunityAreaBadge({
   }
 
   // Pending community areas - show confirmation progress
-  const remaining = confirmationThreshold - confirmationCount;
-
   if (compact) {
     return (
       <Pressable
@@ -90,7 +88,7 @@ export function CommunityAreaBadge({
       </View>
       {!userHasConfirmed && onConfirm && (
         <Pressable style={styles.confirmButton} onPress={onConfirm}>
-          <Ionicons name="checkmark" size={14} color="#2563EB" />
+          <Ionicons name="checkmark" size={14} color="#007AFF" />
           <Text style={styles.confirmButtonText}>Confirm</Text>
         </Pressable>
       )}
@@ -190,7 +188,7 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     ...TufteTokens.typography.micro,
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
 

@@ -55,11 +55,6 @@ export function ClassSelector({
 
   const currentSelection = selectedClassId ?? selectedClass ?? null;
 
-  const handleAllBoats = () => {
-    onClassChange?.(null);
-    // No onClassSelect call when clearing selection (kept for backward compatibility)
-  };
-
   const handleBoatPress = (classId: string) => {
     onClassChange?.(classId);
     onClassSelect?.(classId);
@@ -110,8 +105,6 @@ export function ClassSelector({
       </View>
     );
   }
-
-  const activeClass = currentSelection ? classes.find(c => c.id === currentSelection) : null;
 
   return (
     <View style={styles.container}>
@@ -322,7 +315,7 @@ const styles = StyleSheet.create({
   sailNumber: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
     marginTop: 2,
   },
   sailNumberActive: {

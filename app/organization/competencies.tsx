@@ -16,7 +16,6 @@ import {
   adoptTemplateCompetency,
   getSubCompetencies,
   createSubCompetency,
-  updateSubCompetency,
   deleteSubCompetency,
   reorderCompetencies,
 } from '@/services/competencyService';
@@ -426,7 +425,7 @@ export default function OrganizationCompetenciesScreen() {
 
       {!orgReady || orgLoading ? (
         <View style={styles.centerState}>
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color="#007AFF" />
         </View>
       ) : !hasValidActiveOrgId ? (
         <View style={styles.centerState}>
@@ -519,7 +518,7 @@ export default function OrganizationCompetenciesScreen() {
                 {competencyLabelPlural} ({competencies.length})
               </Text>
               <TouchableOpacity onPress={() => void loadCompetencies()}>
-                <Ionicons name="refresh-outline" size={18} color="#2563EB" />
+                <Ionicons name="refresh-outline" size={18} color="#007AFF" />
               </TouchableOpacity>
             </View>
 
@@ -528,7 +527,7 @@ export default function OrganizationCompetenciesScreen() {
 
             {loading ? (
               <View style={styles.centerStateCompact}>
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color="#007AFF" />
               </View>
             ) : competencies.length === 0 ? (
               <Text style={styles.stateText}>No {competencyLabelPlural.toLowerCase()} found.</Text>
@@ -647,7 +646,7 @@ export default function OrganizationCompetenciesScreen() {
                                 ) : (
                                   <>
                                     <TouchableOpacity onPress={() => handleStartEdit(comp)} style={styles.iconButton}>
-                                      <Ionicons name="pencil-outline" size={16} color="#2563EB" />
+                                      <Ionicons name="pencil-outline" size={16} color="#007AFF" />
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => handleDelete(comp)} style={styles.iconButton}>
                                       <Ionicons name="trash-outline" size={16} color="#DC2626" />
@@ -741,7 +740,7 @@ export default function OrganizationCompetenciesScreen() {
                                         style={styles.addSubButton}
                                         onPress={() => setAddingSubFor(comp.id)}
                                       >
-                                        <Ionicons name="add-outline" size={14} color="#2563EB" />
+                                        <Ionicons name="add-outline" size={14} color="#007AFF" />
                                         <Text style={styles.addSubButtonText}>Add sub-competency</Text>
                                       </TouchableOpacity>
                                     )}
@@ -801,7 +800,7 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 60, textAlignVertical: 'top' },
   primaryButton: {
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -898,7 +897,7 @@ const styles = StyleSheet.create({
   editActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   saveButton: {
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
@@ -924,7 +923,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 4,
   },
-  addSubButtonText: { fontSize: 12, color: '#2563EB', fontWeight: '600' },
+  addSubButtonText: { fontSize: 12, color: '#007AFF', fontWeight: '600' },
   errorText: { fontSize: 12, color: '#B42318' },
   successText: { fontSize: 12, color: '#067647', fontWeight: '600' },
   centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },

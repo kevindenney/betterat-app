@@ -10,10 +10,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
-  Alert,
-  Modal,
   Dimensions,
 } from 'react-native';
 import {
@@ -25,9 +22,6 @@ import {
   Hotel,
   FileText,
   Plus,
-  Trash2,
-  Edit2,
-  Save,
   Download,
   Share2,
   ChevronRight,
@@ -36,13 +30,10 @@ import {
   Package,
   Award,
   AlertCircle,
-  CheckCircle,
-  Info,
-  X,
 } from 'lucide-react-native';
 import { useSavedVenues } from '@/hooks/useSavedVenues';
 
-const { width } = Dimensions.get('window');
+const { width: _width } = Dimensions.get('window');
 
 // Types
 interface CircuitEvent {
@@ -103,20 +94,16 @@ interface Circuit {
 }
 
 export default function CircuitPlannerScreen() {
-  const { savedVenues, isLoading: venuesLoading } = useSavedVenues();
+  const { isLoading: venuesLoading } = useSavedVenues();
 
   // Circuit state
   const [circuits, setCircuits] = useState<Circuit[]>([]);
   const [currentCircuit, setCurrentCircuit] = useState<Circuit | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [, setIsEditing] = useState(false);
 
   // Event modal
-  const [showEventModal, setShowEventModal] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<CircuitEvent | null>(null);
-
-  // Form state
-  const [circuitName, setCircuitName] = useState('');
-  const [circuitDescription, setCircuitDescription] = useState('');
+  const [, setShowEventModal] = useState(false);
+  const [, setEditingEvent] = useState<CircuitEvent | null>(null);
 
   // Example circuits (would come from database)
   useEffect(() => {
@@ -544,7 +531,7 @@ export default function CircuitPlannerScreen() {
   if (venuesLoading) {
     return (
       <View className="flex-1 bg-gray-50 justify-center items-center">
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
         <Text className="text-gray-600 mt-4">Loading venues...</Text>
       </View>
     );
@@ -595,7 +582,7 @@ export default function CircuitPlannerScreen() {
               className="flex-row items-center mb-4"
               onPress={() => setCurrentCircuit(null)}
             >
-              <ChevronRight color="#2563EB" size={20} style={{ transform: [{ rotate: '180deg' }] }} />
+              <ChevronRight color="#007AFF" size={20} style={{ transform: [{ rotate: '180deg' }] }} />
               <Text className="text-blue-600 font-medium ml-1">Back to circuits</Text>
             </TouchableOpacity>
 
@@ -606,7 +593,7 @@ export default function CircuitPlannerScreen() {
 
               <View className="flex-row flex-wrap gap-3">
                 <View className="bg-blue-50 px-3 py-2 rounded-lg flex-row items-center">
-                  <Calendar color="#2563EB" size={16} />
+                  <Calendar color="#007AFF" size={16} />
                   <Text className="text-blue-800 ml-2 font-medium">{currentCircuit.totalDays} days</Text>
                 </View>
                 <View className="bg-orange-50 px-3 py-2 rounded-lg flex-row items-center">
@@ -651,7 +638,7 @@ export default function CircuitPlannerScreen() {
               </TouchableOpacity>
               <TouchableOpacity className="flex-1 border border-blue-600 py-4 rounded-lg items-center">
                 <View className="flex-row items-center">
-                  <Share2 color="#2563EB" size={20} />
+                  <Share2 color="#007AFF" size={20} />
                   <Text className="text-blue-600 font-bold ml-2">Share</Text>
                 </View>
               </TouchableOpacity>

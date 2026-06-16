@@ -10,7 +10,7 @@ import { isUuid } from '@/utils/uuid';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { InviteMemberSheet } from '@/components/organizations/InviteMemberSheet';
 
@@ -354,7 +354,7 @@ export default function OrganizationMembersScreen() {
         joined_at: null,
       };
 
-      const missingColumnMap: Array<[string, string]> = [
+      const missingColumnMap: [string, string][] = [
         ['membership_status', 'organization_memberships.membership_status'],
         ['status', 'organization_memberships.status'],
         ['is_verified', 'organization_memberships.is_verified'],
@@ -574,7 +574,7 @@ export default function OrganizationMembersScreen() {
 
       {!orgReady || orgLoading ? (
         <View style={styles.centerState}>
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color="#007AFF" />
         </View>
       ) : !hasValidActiveOrgId ? (
         <View style={styles.centerState}>
@@ -601,7 +601,7 @@ export default function OrganizationMembersScreen() {
             <View style={styles.listHeader}>
               <Text style={styles.sectionTitle}>Members</Text>
               <TouchableOpacity onPress={() => void loadMembers()}>
-                <Ionicons name="refresh-outline" size={18} color="#2563EB" />
+                <Ionicons name="refresh-outline" size={18} color="#007AFF" />
               </TouchableOpacity>
             </View>
 
@@ -700,7 +700,7 @@ export default function OrganizationMembersScreen() {
 
             {loading ? (
               <View style={styles.centerStateCompact}>
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color="#007AFF" />
               </View>
             ) : filteredRows.length === 0 ? (
               <Text style={styles.stateText}>No members match your filters.</Text>
@@ -840,7 +840,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1098,7 +1098,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 14,
     paddingVertical: 9,
   },

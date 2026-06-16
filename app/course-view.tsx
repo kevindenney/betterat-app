@@ -1,12 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import {
-  Map,
-  Upload,
-  Eye,
-  Download,
-  Share2,
-  MessageCircle,
   Edit,
   Trash2,
   Plus,
@@ -22,20 +16,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Play,
-  Pause,
   Square,
   ZoomIn,
   ZoomOut,
-  Move,
   RotateCw,
-  Layers,
-  Grid,
-  Compass,
   Info,
   Settings
 } from 'lucide-react-native';
-
-const { width, height } = Dimensions.get('window');
 
 const CourseViewScreen = () => {
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
@@ -46,11 +33,11 @@ const CourseViewScreen = () => {
   const [showTidalData, setShowTidalData] = useState(true);
   const [showDepthContours, setShowDepthContours] = useState(true);
   const [showWindData, setShowWindData] = useState(true);
-  const [animationProgress, setAnimationProgress] = useState(0);
+  const [animationProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   
   const panRef = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const scaleRef = useRef(new Animated.Value(1)).current;
+  const _scaleRef = useRef(new Animated.Value(1)).current;
   
   // Mock data for course visualization
   const courseDetails = {
@@ -82,13 +69,6 @@ const CourseViewScreen = () => {
     gusts: "18kt",
     temp: "22°C"
   };
-
-  const depthContours = [
-    { depth: 5, color: "#3B82F6" },
-    { depth: 10, color: "#60A5FA" },
-    { depth: 15, color: "#93C5FD" },
-    { depth: 20, color: "#BFDBFE" }
-  ];
 
   const landmarks = [
     { name: "Hong Kong Island", position: { x: 20, y: 20 } },
@@ -146,16 +126,16 @@ const CourseViewScreen = () => {
       
       <View className="flex-row">
         <TouchableOpacity className="p-2 bg-gray-100 rounded-full mx-1" onPress={handleZoomIn}>
-          <ZoomIn color="#2563EB" size={20} />
+          <ZoomIn color="#007AFF" size={20} />
         </TouchableOpacity>
         <TouchableOpacity className="p-2 bg-gray-100 rounded-full mx-1" onPress={handleZoomOut}>
-          <ZoomOut color="#2563EB" size={20} />
+          <ZoomOut color="#007AFF" size={20} />
         </TouchableOpacity>
         <TouchableOpacity className="p-2 bg-gray-100 rounded-full mx-1" onPress={handleRotate}>
-          <RotateCw color="#2563EB" size={20} />
+          <RotateCw color="#007AFF" size={20} />
         </TouchableOpacity>
         <TouchableOpacity className="p-2 bg-gray-100 rounded-full mx-1" onPress={handleResetView}>
-          <RotateCcw color="#2563EB" size={20} />
+          <RotateCcw color="#007AFF" size={20} />
         </TouchableOpacity>
       </View>
     </View>
@@ -169,7 +149,7 @@ const CourseViewScreen = () => {
           className="flex-row items-center bg-blue-100 px-3 py-1 rounded-full"
           onPress={() => setIsFullscreen(!isFullscreen)}
         >
-          {isFullscreen ? <Minimize2 color="#2563EB" size={16} /> : <Maximize2 color="#2563EB" size={16} />}
+          {isFullscreen ? <Minimize2 color="#007AFF" size={16} /> : <Maximize2 color="#007AFF" size={16} />}
           <Text className="text-blue-600 ml-1 font-medium">
             {isFullscreen ? 'Minimize' : 'Fullscreen'}
           </Text>
@@ -260,7 +240,7 @@ const CourseViewScreen = () => {
           
           {/* Wind direction indicator */}
           <View className="absolute top-2 right-2 flex-row items-center bg-white px-2 py-1 rounded-full shadow">
-            <Navigation color="#2563EB" size={20} className="transform rotate-45" />
+            <Navigation color="#007AFF" size={20} className="transform rotate-45" />
             <Text className="text-blue-600 ml-1 font-bold">NE</Text>
           </View>
           
@@ -296,7 +276,7 @@ const CourseViewScreen = () => {
             }`}
             onPress={() => setShowTidalData(!showTidalData)}
           >
-            <Waves color={showTidalData ? "#2563EB" : "#6B7280"} size={16} />
+            <Waves color={showTidalData ? "#007AFF" : "#6B7280"} size={16} />
             <Text className={`ml-1 ${showTidalData ? 'text-blue-600' : 'text-gray-600'}`}>Tidal</Text>
           </TouchableOpacity>
           
@@ -306,7 +286,7 @@ const CourseViewScreen = () => {
             }`}
             onPress={() => setShowDepthContours(!showDepthContours)}
           >
-            <Droplets color={showDepthContours ? "#2563EB" : "#6B7280"} size={16} />
+            <Droplets color={showDepthContours ? "#007AFF" : "#6B7280"} size={16} />
             <Text className={`ml-1 ${showDepthContours ? 'text-blue-600' : 'text-gray-600'}`}>Depth</Text>
           </TouchableOpacity>
           
@@ -316,7 +296,7 @@ const CourseViewScreen = () => {
             }`}
             onPress={() => setShowWindData(!showWindData)}
           >
-            <Wind color={showWindData ? "#2563EB" : "#6B7280"} size={16} />
+            <Wind color={showWindData ? "#007AFF" : "#6B7280"} size={16} />
             <Text className={`ml-1 ${showWindData ? 'text-blue-600' : 'text-gray-600'}`}>Wind</Text>
           </TouchableOpacity>
         </View>
@@ -329,7 +309,7 @@ const CourseViewScreen = () => {
       <View className="flex-row justify-between items-center mb-3">
         <Text className="text-lg font-bold">Tactical Notes</Text>
         <TouchableOpacity className="bg-blue-100 p-1 rounded-full">
-          <Plus color="#2563EB" size={20} />
+          <Plus color="#007AFF" size={20} />
         </TouchableOpacity>
       </View>
       
@@ -346,7 +326,7 @@ const CourseViewScreen = () => {
       ))}
       
       <TouchableOpacity className="flex-row items-center justify-center mt-2 py-2 bg-blue-50 rounded-lg">
-        <Edit color="#2563EB" size={16} />
+        <Edit color="#007AFF" size={16} />
         <Text className="text-blue-600 ml-2 font-medium">Add Note</Text>
       </TouchableOpacity>
     </View>
@@ -363,7 +343,7 @@ const CourseViewScreen = () => {
       
       <View className="flex-row justify-between mb-3">
         <View className="items-center">
-          <Wind color="#2563EB" size={24} />
+          <Wind color="#007AFF" size={24} />
           <Text className="text-gray-600 mt-1">{windData.speed}</Text>
           <Text className="text-gray-600 text-xs">{windData.direction}</Text>
         </View>
@@ -401,7 +381,7 @@ const CourseViewScreen = () => {
       
       <View className="flex-row items-center">
         <TouchableOpacity className="p-2 bg-gray-100 rounded-full">
-          <ChevronLeft color="#2563EB" size={20} />
+          <ChevronLeft color="#007AFF" size={20} />
         </TouchableOpacity>
         
         <View className="flex-1 mx-3">
@@ -414,7 +394,7 @@ const CourseViewScreen = () => {
         </View>
         
         <TouchableOpacity className="p-2 bg-gray-100 rounded-full">
-          <ChevronRight color="#2563EB" size={20} />
+          <ChevronRight color="#007AFF" size={20} />
         </TouchableOpacity>
       </View>
       

@@ -100,7 +100,7 @@ const MOCK_MAINTENANCE: MaintenanceItem[] = [
   },
 ];
 
-export function MaintenanceSchedule({ boatId }: MaintenanceScheduleProps) {
+export function MaintenanceSchedule({ boatId: _boatId }: MaintenanceScheduleProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
@@ -180,7 +180,7 @@ export function MaintenanceSchedule({ boatId }: MaintenanceScheduleProps) {
           </View>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: '#DBEAFE' }]}>
-          <Ionicons name="calendar" size={24} color="#2563EB" />
+          <Ionicons name="calendar" size={24} color="#007AFF" />
           <View style={styles.summaryContent}>
             <Text style={styles.summaryValue}>
               {MOCK_MAINTENANCE.filter(m => m.type === 'scheduled').length}

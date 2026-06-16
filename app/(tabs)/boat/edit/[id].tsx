@@ -6,7 +6,6 @@ import { DRAGON_HULL_MAKER_NAMES } from '@/constants/boatEquipment';
 import { useAuth } from '@/providers/AuthProvider';
 import {
     sailorBoatService,
-    type SailorBoat,
     type UpdateBoatInput,
 } from '@/services/SailorBoatService';
 import { supabase } from '@/services/supabase';
@@ -44,7 +43,6 @@ export default function EditBoatScreen() {
   const [loadingData, setLoadingData] = useState(true);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [boatClasses, setBoatClasses] = useState<BoatClass[]>([]);
-  const [boat, setBoat] = useState<SailorBoat | null>(null);
 
   // Form state
   const [name, setName] = useState('');
@@ -59,13 +57,13 @@ export default function EditBoatScreen() {
   const [ownershipType, setOwnershipType] = useState<'owned' | 'co_owned' | 'chartered' | 'club_boat' | 'crew'>('owned');
   const [notes, setNotes] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [showClassPicker, setShowClassPicker] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showManufacturerPicker, setShowManufacturerPicker] = useState(false);
 
   useEffect(() => {
     loadBoatClasses();
     loadBoatData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadBoatClasses = async () => {
@@ -891,7 +889,7 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' && { cursor: 'not-allowed' as any }),
   },
   saveFooterButtonPressed: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   saveFooterText: {
     fontSize: 16,

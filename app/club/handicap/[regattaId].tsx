@@ -3,7 +3,7 @@
  * Manage ratings and view corrected time results
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   ScrollView,
@@ -23,7 +23,6 @@ import {
   Calculator,
   Clock,
   Trophy,
-  Settings,
   X,
   Check,
   ChevronDown,
@@ -31,8 +30,6 @@ import {
   RefreshCw,
   Ship,
   Target,
-  TrendingUp,
-  Edit,
   Trash2,
 } from 'lucide-react-native';
 import {
@@ -61,7 +58,7 @@ export default function HandicapCalculatorDashboard() {
 
   // Race selection
   const [selectedRace, setSelectedRace] = useState<number>(1);
-  const [availableRaces, setAvailableRaces] = useState<number[]>([1, 2, 3]);
+  const [availableRaces] = useState<number[]>([1, 2, 3]);
 
   // Modals
   const [showSystemPicker, setShowSystemPicker] = useState(false);
@@ -85,6 +82,7 @@ export default function HandicapCalculatorDashboard() {
     if (selectedSystem && regattaId) {
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSystem, regattaId, selectedRace]);
 
   const loadSystems = async () => {
@@ -973,7 +971,7 @@ const styles = StyleSheet.create({
   ratingValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   ratingBoatName: {
     fontSize: 13,

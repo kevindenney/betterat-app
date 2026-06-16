@@ -3,9 +3,9 @@
  * Provides autocomplete suggestions for boat classes and equipment
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Platform } from 'react-native';
-import { searchBoatClasses, searchEquipmentMakers, getEquipmentSuggestions, getAllEquipmentMakers, searchBoatNames, searchSailNumbers } from '@/services/BoatEquipmentSuggestions';
+import { searchBoatClasses, searchEquipmentMakers, getAllEquipmentMakers, searchBoatNames, searchSailNumbers } from '@/services/BoatEquipmentSuggestions';
 
 interface AutocompleteInputProps {
   label: string;
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     borderRadius: 12,
     maxHeight: 280,
     zIndex: 99999,
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
         borderStyle: 'solid',
         borderWidth: 3,
-        borderColor: '#2563EB',
+        borderColor: '#007AFF',
         backdropFilter: 'none',
         isolation: 'isolate',
         willChange: 'transform',
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   suggestionItemHovered: {
     backgroundColor: '#DBEAFE',
     borderLeftWidth: 4,
-    borderLeftColor: '#2563EB',
+    borderLeftColor: '#007AFF',
     paddingLeft: 16,
     ...Platform.select({
       web: {

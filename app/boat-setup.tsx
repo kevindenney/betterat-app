@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { Image } from '@/components/ui';
-import { ChevronLeft, Plus, Check } from 'lucide-react-native';
+import { ChevronLeft, Plus } from 'lucide-react-native';
 
 const BoatSetupScreen = () => {
   const [boatName, setBoatName] = useState('');
   const [boatClass, setBoatClass] = useState('');
   const [sailNumber, setSailNumber] = useState('');
   const [crewMembers, setCrewMembers] = useState(1);
-  const [boatImage, setBoatImage] = useState('https://images.unsplash.com/photo-1627923316244-f4da80d8f281?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTh8fEJvYXQlMjBzaGlwJTIwc2FpbGluZyUyMHdhdGVyJTIwbWFyaW5lfGVufDB8fDB8fHww');
+  const [boatImage] = useState('https://images.unsplash.com/photo-1627923316244-f4da80d8f281?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTh8fEJvYXQlMjBzaGlwJTIwc2FpbGluZyUyMHdhdGVyJTIwbWFyaW5lfGVufDB8fDB8fHww');
 
   const boatClasses = [
     { id: 1, name: 'Laser', description: 'Single-handed dinghy' },
@@ -57,7 +57,7 @@ const BoatSetupScreen = () => {
             resizeMode="cover"
           />
           <TouchableOpacity className="mt-3 flex-row items-center">
-            <Plus color="#2563EB" size={16} />
+            <Plus color="#007AFF" size={16} />
             <Text className="text-blue-600 font-medium ml-1">Change Photo</Text>
           </TouchableOpacity>
         </View>

@@ -20,9 +20,10 @@ import {
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const { width: _width } = Dimensions.get('window');
 
 // Memoized Event Card Component
+// eslint-disable-next-line react/display-name
 const EventCard = React.memo(({ event, onPress }: { event: any; onPress: () => void }) => {
   const getEventColor = (type: string) => {
     switch (type) {
@@ -355,7 +356,7 @@ const CalendarScreen = () => {
       {groupedEvents.thisWeekend.length > 0 && (
         <View className="mb-6">
           <View className="flex-row items-center mb-3">
-            <Clock color="#2563EB" size={20} />
+            <Clock color="#007AFF" size={20} />
             <Text className="text-lg font-bold ml-2">This Weekend</Text>
             <Text className="text-gray-500 ml-2">({groupedEvents.thisWeekend.length})</Text>
           </View>
@@ -366,7 +367,7 @@ const CalendarScreen = () => {
       {groupedEvents.thisMonth.length > 0 && (
         <View className="mb-6">
           <View className="flex-row items-center mb-3">
-            <Calendar color="#2563EB" size={20} />
+            <Calendar color="#007AFF" size={20} />
             <Text className="text-lg font-bold ml-2">This Month</Text>
             <Text className="text-gray-500 ml-2">({groupedEvents.thisMonth.length})</Text>
           </View>
@@ -415,7 +416,7 @@ const CalendarScreen = () => {
             {/* Date & Time */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <Calendar color="#2563EB" size={20} />
+                <Calendar color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Date & Time</Text>
               </View>
               <Text className="text-gray-600 mb-1">
@@ -432,7 +433,7 @@ const CalendarScreen = () => {
             {/* Venue */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <MapPin color="#2563EB" size={20} />
+                <MapPin color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Venue</Text>
               </View>
               <Text className="text-gray-800 font-medium mb-2">{selectedEvent.venue}</Text>
@@ -446,7 +447,7 @@ const CalendarScreen = () => {
             {selectedEvent.registrationStatus && (
               <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
                 <View className="flex-row items-center mb-3">
-                  <CheckCircle color="#2563EB" size={20} />
+                  <CheckCircle color="#007AFF" size={20} />
                   <Text className="text-lg font-bold ml-2">Registration & Prep</Text>
                 </View>
                 <View className={`px-3 py-2 rounded-lg mb-3 ${
@@ -542,7 +543,7 @@ const CalendarScreen = () => {
   if (racesLoading || venuesLoading) {
     return (
       <View className="flex-1 bg-gray-50 justify-center items-center">
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
         <Text className="text-gray-600 mt-4">Loading calendar data...</Text>
       </View>
     );
@@ -708,11 +709,11 @@ const CalendarScreen = () => {
         <ScrollView className="flex-1 px-4 py-4">
           <View className="flex-row justify-between items-center mb-4">
             <TouchableOpacity onPress={prevMonth}>
-              <ChevronLeft color="#2563EB" size={24} />
+              <ChevronLeft color="#007AFF" size={24} />
             </TouchableOpacity>
             <Text className="text-lg font-bold">{formatMonthYear(currentDate)}</Text>
             <TouchableOpacity onPress={nextMonth}>
-              <ChevronRight color="#2563EB" size={24} />
+              <ChevronRight color="#007AFF" size={24} />
             </TouchableOpacity>
           </View>
 
@@ -769,7 +770,7 @@ const CalendarScreen = () => {
             setSelectedEvent(event);
             setShowEventModal(true);
           }}
-          onVenuePress={(venue) => {
+          onVenuePress={(_venue) => {
             // Handle venue press
           }}
         />

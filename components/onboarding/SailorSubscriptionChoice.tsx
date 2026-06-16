@@ -101,8 +101,8 @@ export function SailorSubscriptionChoice({
 }: SailorSubscriptionChoiceProps) {
   const [selectedPlan, setSelectedPlan] = useState<string>('sailor_pro');
   const [isProcessing, setIsProcessing] = useState(false);
-  const { purchaseProduct, loading: subscriptionLoading } = useSubscription();
-  const { user, updateUserProfile } = useAuth();
+  const { loading: subscriptionLoading } = useSubscription();
+  const { updateUserProfile } = useAuth();
 
   const handleSelectPlan = async () => {
     if (isProcessing) return;
@@ -356,14 +356,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   planCardSelected: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#EFF6FF',
   },
   planCardHighlighted: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     ...Platform.select({
       ios: {
-        shadowColor: '#2563EB',
+        shadowColor: '#007AFF',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 12,
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
         elevation: 8,
       },
       web: {
-        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+        boxShadow: '0 4px 12px rgba(0, 122, 255, 0.2)',
       } as any,
     }),
   },
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
   },
   badgeHighlighted: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   badgeNormal: {
     backgroundColor: '#64748B',
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   featureIconSelected: {
-    color: '#2563EB',
+    color: '#007AFF',
   },
   featureText: {
     fontSize: 14,
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     }),
   },
   ctaButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',

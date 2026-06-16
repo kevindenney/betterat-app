@@ -24,12 +24,6 @@ interface Fleet {
   };
 }
 
-interface UserFleetSelection {
-  class_id: string;
-  class_name: string;
-  club_id: string;
-}
-
 export default function FleetSelectionScreen() {
   const { user } = useAuth();
   const router = useRouter();
@@ -37,7 +31,6 @@ export default function FleetSelectionScreen() {
   const [saving, setSaving] = useState(false);
   const [hongKongFleets, setHongKongFleets] = useState<Fleet[]>([]);
   const [selectedFleets, setSelectedFleets] = useState<Set<string>>(new Set());
-  const [userSelections, setUserSelections] = useState<UserFleetSelection[]>([]);
 
   useEffect(() => {
     loadHongKongFleets();
@@ -48,6 +41,7 @@ export default function FleetSelectionScreen() {
     if (hongKongFleets.length > 0) {
       loadUserSelections();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hongKongFleets.length, user?.id]);
 
   const loadHongKongFleets = async () => {
@@ -120,19 +114,6 @@ export default function FleetSelectionScreen() {
       }
     } catch (error) {
       console.error('Error loading user selections:', error);
-    }
-  };
-
-  const getClubDisplayName = (clubId: string): string => {
-    switch (clubId) {
-      case 'rhkyc':
-        return 'Royal Hong Kong Yacht Club';
-      case 'abc-hk':
-        return 'Aberdeen Boat Club';
-      case 'hhyc':
-        return 'Hebe Haven Yacht Club';
-      default:
-        return clubId;
     }
   };
 
@@ -262,7 +243,7 @@ export default function FleetSelectionScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.loadingText}>Loading Hong Kong fleets...</Text>
       </View>
     );
@@ -302,7 +283,7 @@ export default function FleetSelectionScreen() {
                       <MaterialCommunityIcons
                         name="sail-boat"
                         size={20}
-                        color={selectedFleets.has(fleet.id) ? '#2563EB' : '#64748B'}
+                        color={selectedFleets.has(fleet.id) ? '#007AFF' : '#64748B'}
                       />
                       <Text
                         style={[
@@ -416,7 +397,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   fleetCardSelected: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#EFF6FF',
   },
   fleetCardHeader: {
@@ -469,8 +450,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxSelected: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
   },
   footer: {
     position: 'absolute',
@@ -483,7 +464,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E2E8F0',
   },
   saveButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 14,
     flexDirection: 'row',

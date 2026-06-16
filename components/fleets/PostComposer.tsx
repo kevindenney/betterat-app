@@ -22,7 +22,7 @@ interface PostComposerProps {
 
 const POST_TYPES: { type: PostType; label: string; icon: string; color: string }[] = [
   { type: 'discussion', label: 'Discussion', icon: 'message-text-outline', color: '#64748B' },
-  { type: 'tuning_guide', label: 'Tuning Guide', icon: 'file-document-outline', color: '#2563EB' },
+  { type: 'tuning_guide', label: 'Tuning Guide', icon: 'file-document-outline', color: '#007AFF' },
   { type: 'race_result', label: 'Race Result', icon: 'trophy-outline', color: '#059669' },
   { type: 'event', label: 'Event', icon: 'calendar-star', color: '#7C3AED' },
   { type: 'check_in', label: 'Check In', icon: 'map-marker-check', color: '#0891B2' },
@@ -54,8 +54,6 @@ export function PostComposer({ visible, onClose, onSubmit, defaultType = 'discus
     setPostType('discussion');
     onClose();
   };
-
-  const selectedType = POST_TYPES.find(t => t.type === postType) || POST_TYPES[0];
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
@@ -187,7 +185,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   postButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,

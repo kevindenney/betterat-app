@@ -38,7 +38,7 @@ export function TufteCoachRow({
   rating,
   totalSessions,
   hourlyRate,
-  currency = 'USD',
+  currency: _currency = 'USD',
   location,
   onPress,
   onContact,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   content: {
     flex: 1,

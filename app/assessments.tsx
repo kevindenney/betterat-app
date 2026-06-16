@@ -46,7 +46,7 @@ const emptySummary: OrganizationAssessmentSummary = {
   finalized: 0,
 };
 
-const STATUS_OPTIONS: Array<AssessmentStatus | 'all'> = ['all', 'draft', 'submitted', 'reviewed', 'finalized'];
+const STATUS_OPTIONS: (AssessmentStatus | 'all')[] = ['all', 'draft', 'submitted', 'reviewed', 'finalized'];
 
 function getAssessmentDueDate(row: AssessmentRecord): Date | null {
   const evidence = (row.evidence as Record<string, unknown> | null) || {};
@@ -105,6 +105,7 @@ export default function AssessmentsScreen() {
     setSelectedParticipantName(routeState.selectedParticipantName);
     setDateFromOverride(routeState.dateFromOverride);
     setDateToOverride(routeState.dateToOverride);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.competency_id,
     params.competency_title,
@@ -819,7 +820,7 @@ export default function AssessmentsScreen() {
 
         {loading ? (
           <View style={styles.emptyState}>
-            <ActivityIndicator size="small" color="#2563EB" />
+            <ActivityIndicator size="small" color="#007AFF" />
             <ThemedText style={styles.emptyText}>Loading assessments...</ThemedText>
           </View>
         ) : recentRecords.length === 0 ? (
@@ -889,7 +890,7 @@ const styles = StyleSheet.create({
   subtitle: { color: '#64748B', fontSize: 13 },
   createTopButton: {
     borderRadius: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 10,
     paddingVertical: 8,
     flexDirection: 'row',
@@ -920,7 +921,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   filterChipActive: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#DBEAFE',
   },
   filterChipText: { fontSize: 12, color: '#475569', fontWeight: '600' },
@@ -945,7 +946,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   optionChipActive: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#DBEAFE',
   },
   optionChipText: { fontSize: 12, color: '#475569', fontWeight: '600' },
@@ -965,7 +966,7 @@ const styles = StyleSheet.create({
   createActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   primaryButton: {
     borderRadius: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

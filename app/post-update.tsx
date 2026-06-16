@@ -3,25 +3,19 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Dimensions } from 
 import { Image } from '@/components/ui';
 import { createLogger } from '@/lib/utils/logger';
 import {
-  Camera,
   MapPin,
   Calendar,
   Users,
   Hash,
   Image as ImageIcon,
   X,
-  Send,
   Smile,
   Navigation,
   Trophy,
-  Wind,
-  Thermometer,
   MessageCircle,
   Heart,
   Share2,
   MoreHorizontal,
-  Plus,
-  ChevronRight,
 } from 'lucide-react-native';
 
 const logger = createLogger('post-update');
@@ -148,7 +142,7 @@ const PostUpdateScreen = () => {
               onPress={() => handleAddImage('https://images.unsplash.com/photo-1627923316244-f4da80d8f281?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTh8fEJvYXQlMjBzaGlwJTIwc2FpbGluZyUyMHdhdGVyJTIwbWFyaW5lfGVufDB8fDB8fHww')}
               className="flex-row items-center"
             >
-              <ImageIcon color="#2563EB" size={20} />
+              <ImageIcon color="#007AFF" size={20} />
               <Text className="text-blue-600 ml-2">Photo</Text>
             </TouchableOpacity>
 
@@ -173,19 +167,19 @@ const PostUpdateScreen = () => {
           <Text className="font-bold text-gray-800 mb-2">Add to your post</Text>
           <View className="flex-row flex-wrap">
             <TouchableOpacity className="flex-row items-center bg-blue-50 px-3 py-2 rounded-full mr-2 mb-2">
-              <Hash color="#2563EB" size={16} />
+              <Hash color="#007AFF" size={16} />
               <Text className="text-blue-600 ml-1 text-sm">Hashtag</Text>
             </TouchableOpacity>
             <TouchableOpacity className="flex-row items-center bg-blue-50 px-3 py-2 rounded-full mr-2 mb-2">
-              <Users color="#2563EB" size={16} />
+              <Users color="#007AFF" size={16} />
               <Text className="text-blue-600 ml-1 text-sm">Tag Crew</Text>
             </TouchableOpacity>
             <TouchableOpacity className="flex-row items-center bg-blue-50 px-3 py-2 rounded-full mr-2 mb-2">
-              <Calendar color="#2563EB" size={16} />
+              <Calendar color="#007AFF" size={16} />
               <Text className="text-blue-600 ml-1 text-sm">Event</Text>
             </TouchableOpacity>
             <TouchableOpacity className="flex-row items-center bg-blue-50 px-3 py-2 rounded-full mr-2 mb-2">
-              <Navigation color="#2563EB" size={16} />
+              <Navigation color="#007AFF" size={16} />
               <Text className="text-blue-600 ml-1 text-sm">Venue</Text>
             </TouchableOpacity>
           </View>

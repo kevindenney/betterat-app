@@ -3,7 +3,7 @@
  * Rolling start sequence management for multiple fleets
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -35,15 +35,12 @@ import {
   Pause,
   Users,
   Timer,
-  Volume2,
 } from 'lucide-react-native';
 import {
   startSchedulerService,
   StartSchedule,
   FleetStartEntry,
   TimelineEntry,
-  SequenceType,
-  FleetStartStatus,
 } from '@/services/StartSchedulerService';
 
 type ViewMode = 'timeline' | 'control';
@@ -68,7 +65,7 @@ export default function MultiClassStartScheduler() {
 
   // Modals
   const [showAddFleetModal, setShowAddFleetModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [, setShowSettingsModal] = useState(false);
   const [showRecallModal, setShowRecallModal] = useState(false);
   const [selectedFleetForRecall, setSelectedFleetForRecall] = useState<FleetStartEntry | null>(null);
 
@@ -87,6 +84,7 @@ export default function MultiClassStartScheduler() {
         clearInterval(countdownRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleId]);
 
   // Start countdown when active fleet changes
@@ -94,6 +92,7 @@ export default function MultiClassStartScheduler() {
     if (activeFleet && schedule) {
       startCountdown();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFleet?.id, activeFleet?.status]);
 
   const loadData = async () => {
@@ -154,7 +153,7 @@ export default function MultiClassStartScheduler() {
     }, 100);
   };
 
-  const playSound = (type: string) => {
+  const playSound = (_type: string) => {
     if (Platform.OS !== 'web') {
       Vibration.vibrate([0, 500]);
     }
@@ -451,7 +450,7 @@ export default function MultiClassStartScheduler() {
       );
     }
 
-    const statusDisplay = startSchedulerService.getStatusDisplay(activeFleet.status);
+    const _statusDisplay = startSchedulerService.getStatusDisplay(activeFleet.status);
 
     return (
       <View style={styles.controlContainer}>
@@ -1043,7 +1042,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   signalButtonPrep: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   signalButtonOneMin: {
     backgroundColor: '#DC2626',

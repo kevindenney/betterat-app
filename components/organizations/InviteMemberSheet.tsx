@@ -97,13 +97,11 @@ export function InviteMemberSheet({
       if (email.trim()) {
         try {
           const lookupEmail = email.trim().toLowerCase();
-          console.log('[InviteMemberSheet] Looking up invitee by email:', lookupEmail);
-          const { data: inviteeUser, error: lookupErr } = await supabase
+          const { data: inviteeUser } = await supabase
             .from('users')
             .select('id')
             .eq('email', lookupEmail)
             .single();
-          console.log('[InviteMemberSheet] Invitee lookup result:', { inviteeUser, lookupErr });
           if (inviteeUser?.id) {
             const { data: { user: currentUser } } = await supabase.auth.getUser();
             const { data: inviterProfile } = await supabase
@@ -111,7 +109,6 @@ export function InviteMemberSheet({
               .select('full_name')
               .eq('id', currentUser?.id || '')
               .single();
-            console.log('[InviteMemberSheet] Sending notification to', inviteeUser.id, 'from', currentUser?.id);
             await NotificationService.notifyOrgInviteReceived({
               targetUserId: inviteeUser.id,
               inviterName: inviterProfile?.full_name || 'Someone',
@@ -121,7 +118,6 @@ export function InviteMemberSheet({
               roleLabel: selectedRoleLabel,
               inviteToken: token,
             });
-            console.log('[InviteMemberSheet] Notification sent successfully');
           }
         } catch (notifErr) {
           console.error('[InviteMemberSheet] Notification error:', notifErr);
@@ -185,7 +181,7 @@ export function InviteMemberSheet({
                     <Ionicons
                       name={copied ? 'checkmark' : 'copy-outline'}
                       size={18}
-                      color={copied ? '#16A34A' : '#2563EB'}
+                      color={copied ? '#16A34A' : '#007AFF'}
                     />
                     <Text style={[styles.copyButtonText, copied && styles.copiedText]}>
                       {copied ? 'Copied' : 'Copy'}
@@ -374,7 +370,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sendButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -437,13 +433,13 @@ const styles = StyleSheet.create({
   copyButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   copiedText: {
     color: '#16A34A',
   },
   doneButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

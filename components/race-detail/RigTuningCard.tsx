@@ -26,7 +26,7 @@ type CardStatus = 'ready' | 'generating' | 'not_set';
 export function RigTuningCard({
   raceId,
   boatClassName,
-  boatName,
+  boatName: _boatName,
   recommendation,
   loading = false,
   errorMessage,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   },
   sourceText: {
     fontSize: 13,
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
   aiSourceText: {

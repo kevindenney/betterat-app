@@ -54,7 +54,7 @@ export default function RegattaVerificationScreen() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Regatta>>({});
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
 
   const handleEdit = (regatta: Regatta) => {
     setEditingId(regatta.id);
@@ -210,7 +210,7 @@ export default function RegattaVerificationScreen() {
           className="flex-row items-center self-start bg-blue-50 px-3 py-2 rounded-lg"
           onPress={() => handleEdit(item)}
         >
-          <Edit3 size={16} color="#2563EB" />
+          <Edit3 size={16} color="#007AFF" />
           <Text className="ml-1 text-blue-600 font-medium">Edit</Text>
         </TouchableOpacity>
       </View>
@@ -239,7 +239,7 @@ export default function RegattaVerificationScreen() {
       <View className="bg-white pt-4 pb-2 px-4 shadow-sm">
         <View className="flex-row items-center mb-4">
           <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mr-3">
-            <Trophy size={24} color="#2563EB" />
+            <Trophy size={24} color="#007AFF" />
           </View>
           <View>
             <Text className="text-2xl font-bold text-gray-800">Regatta Verification</Text>

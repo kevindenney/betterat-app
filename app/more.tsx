@@ -11,7 +11,6 @@ BarChart2,
 Settings,
 CreditCard,
 ChevronRight,
-Edit3,
 LogOut,
 HelpCircle,
 MapPin,
@@ -88,7 +87,7 @@ className={`flex-row items-center py-4 px-4 ${index < menuItems.length - 1 ? 'bo
 </TouchableOpacity>
 
 <TouchableOpacity className="flex-row items-center py-3 px-6">
-<HelpCircle size={20} color="#2563EB" className="mr-2" />
+<HelpCircle size={20} color="#007AFF" className="mr-2" />
 <Text className="text-blue-600 font-medium">Help & Support</Text>
 </TouchableOpacity>
 </View>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, FlatList } from 'react-native';
-import { Check, X, Edit3, MapPin, Plus, Search, Filter, ChevronLeft, Navigation } from 'lucide-react-native';
+import { Check, X, Edit3, MapPin, Plus, Search, ChevronLeft, Navigation } from 'lucide-react-native';
 
 type Venue = {
   id: string;
@@ -180,7 +180,7 @@ export default function VenueVerificationScreen() {
         <View className="flex-row justify-between items-start mb-3">
           <View className="flex-row items-center">
             <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-              <MapPin size={20} color="#2563EB" />
+              <MapPin size={20} color="#007AFF" />
             </View>
             <View>
               <Text className="text-lg font-bold text-gray-800">{item.name}</Text>
@@ -210,7 +210,7 @@ export default function VenueVerificationScreen() {
           className="flex-row items-center self-start bg-blue-50 px-3 py-2 rounded-lg"
           onPress={() => handleEdit(item)}
         >
-          <Edit3 size={16} color="#2563EB" />
+          <Edit3 size={16} color="#007AFF" />
           <Text className="ml-1 text-blue-600 font-medium">Edit</Text>
         </TouchableOpacity>
       </View>
@@ -239,7 +239,7 @@ export default function VenueVerificationScreen() {
       <View className="bg-white pt-4 pb-2 px-4 shadow-sm">
         <View className="flex-row justify-between items-center mb-2">
           <Text className="text-2xl font-bold text-gray-800">Venue Verification</Text>
-          <Navigation size={28} color="#2563EB" />
+          <Navigation size={28} color="#007AFF" />
         </View>
         <Text className="text-gray-600">
           Locate and verify all venues associated with your sailing club
@@ -383,7 +383,7 @@ export default function VenueVerificationScreen() {
           className="flex-row items-center self-start mx-4 mb-4 bg-blue-50 px-4 py-3 rounded-lg"
           onPress={() => setShowAddForm(true)}
         >
-          <Plus size={20} color="#2563EB" />
+          <Plus size={20} color="#007AFF" />
           <Text className="ml-1 text-blue-600 font-medium">Add New Venue</Text>
         </TouchableOpacity>
       )}

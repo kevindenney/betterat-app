@@ -1,26 +1,22 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
-import { Image } from '@/components/ui';
 import { createLogger } from '@/lib/utils/logger';
 import {
   CheckCircle2,
   Edit3,
   ChevronRight,
   MapPin,
-  Users,
   Calendar,
-  Trophy,
   Shield,
-  User,
-  ChevronLeft
+  User
 } from 'lucide-react-native';
 
 const logger = createLogger('ConfirmCrew');
 
 export default function ConfirmCrewScreen() {
   // Mock data representing all verified information
-  const [clubData, setClubData] = useState({
+  const [clubData] = useState({
     clubName: "Royal Marina Sailing Club",
     website: "www.royalmarina.com",
     status: "verified",
@@ -134,14 +130,14 @@ export default function ConfirmCrewScreen() {
               className="flex-row items-center"
               onPress={() => handleEditSection("club information")}
             >
-              <Edit3 size={18} color="#2563EB" />
+              <Edit3 size={18} color="#007AFF" />
               <Text className="text-blue-600 font-medium ml-1">Edit</Text>
             </TouchableOpacity>
           </View>
 
           <View className="flex-row items-start mb-4">
             <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-3">
-              <Shield size={24} color="#2563EB" />
+              <Shield size={24} color="#007AFF" />
             </View>
             <View className="flex-1">
               <Text className="text-gray-800 font-semibold text-xl">{clubData.clubName}</Text>
@@ -171,7 +167,7 @@ export default function ConfirmCrewScreen() {
               className="flex-row items-center"
               onPress={() => handleEditSection("venues")}
             >
-              <Edit3 size={18} color="#2563EB" />
+              <Edit3 size={18} color="#007AFF" />
               <Text className="text-blue-600 font-medium ml-1">Edit</Text>
             </TouchableOpacity>
           </View>
@@ -226,7 +222,7 @@ export default function ConfirmCrewScreen() {
               className="flex-row items-center"
               onPress={() => handleEditSection("fleets")}
             >
-              <Edit3 size={18} color="#2563EB" />
+              <Edit3 size={18} color="#007AFF" />
               <Text className="text-blue-600 font-medium ml-1">Edit</Text>
             </TouchableOpacity>
           </View>
@@ -259,7 +255,7 @@ export default function ConfirmCrewScreen() {
               className="flex-row items-center"
               onPress={() => handleEditSection("race series")}
             >
-              <Edit3 size={18} color="#2563EB" />
+              <Edit3 size={18} color="#007AFF" />
               <Text className="text-blue-600 font-medium ml-1">Edit</Text>
             </TouchableOpacity>
           </View>
@@ -291,7 +287,7 @@ export default function ConfirmCrewScreen() {
               className="flex-row items-center"
               onPress={() => handleEditSection("regattas")}
             >
-              <Edit3 size={18} color="#2563EB" />
+              <Edit3 size={18} color="#007AFF" />
               <Text className="text-blue-600 font-medium ml-1">Edit</Text>
             </TouchableOpacity>
           </View>
@@ -323,7 +319,7 @@ export default function ConfirmCrewScreen() {
               className="flex-row items-center"
               onPress={() => handleEditSection("admin users")}
             >
-              <Edit3 size={18} color="#2563EB" />
+              <Edit3 size={18} color="#007AFF" />
               <Text className="text-blue-600 font-medium ml-1">Edit</Text>
             </TouchableOpacity>
           </View>
@@ -335,7 +331,7 @@ export default function ConfirmCrewScreen() {
                 className="flex-row items-center py-3 border-b border-gray-100 last:border-0"
               >
                 <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-                  <User size={20} color="#2563EB" />
+                  <User size={20} color="#007AFF" />
                 </View>
                 <View className="flex-1">
                   <Text className="font-bold text-gray-800">{user.name}</Text>
