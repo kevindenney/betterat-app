@@ -5768,6 +5768,39 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       source_label: sourceLabel,
     };
   }, [handlers.nextEvent, framePins]);
+  // Map filter chips (You / Cohort / Program / Faculty) — each toggles a pin
+  // category on the live map. All default on so the map lands fully populated;
+  // tapping a chip narrows. NB: the Cohort chip uses id 'peers' because the
+  // shared FilterChipsRow treats a literal 'cohort' id as a single-select
+  // anchor (clears the others) — not what we want for an independent toggle.
+  const [showYouPins, setShowYouPins] = useState(true);
+  const [showCohortPins, setShowCohortPins] = useState(true);
+  const [showProgramPins, setShowProgramPins] = useState(true);
+  const [showFacultyPins, setShowFacultyPins] = useState(true);
+  const handleNursingChipsChange = useCallback((activeIds: string[]) => {
+    setShowYouPins(activeIds.includes('you'));
+    setShowCohortPins(activeIds.includes('peers'));
+    setShowProgramPins(activeIds.includes('program'));
+    setShowFacultyPins(activeIds.includes('faculty'));
+  }, []);
+  // Apply the chip lens to the frame pins. Institution geography (hospitals,
+  // sim labs) is never filtered — it's the orientation layer, not a lens
+  // target — so only person/step/faculty pins respond to the chips.
+  const nursingMapPins = useMemo(
+    () =>
+      framePins.filter((p) => {
+        if (p.kind === 'poi-preceptor') return showFacultyPins;
+        if (p.kind === 'org-event') return showProgramPins;
+        if (p.kind === 'following' || p.kind === 'crew' || p.kind === 'fleet') {
+          return showCohortPins;
+        }
+        if (typeof p.kind === 'string' && p.kind.startsWith('my-step')) {
+          return showYouPins;
+        }
+        return true;
+      }),
+    [framePins, showYouPins, showCohortPins, showProgramPins, showFacultyPins],
+  );
   // No walk-time annotations in the nursing frame: hospital-to-hospital
   // walking minutes are the sailor's distance/layline grammar misapplied —
   // no nurse optimizes a JHH↔Pinkard walk. (Kept for sailing if desired.)
@@ -5889,7 +5922,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             // uses; long-press drops a candidate → "PIN DROPPED" anchor sheet.
             <AtlasMapLibreCanvas
               frame="f4"
-              pins={framePins}
+              pins={nursingMapPins}
               nextEvent={
                 nextNursing.lat != null && nextNursing.lng != null
                   ? { ...nextNursing, lat: nextNursing.lat, lng: nextNursing.lng }
@@ -5999,10 +6032,11 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <FilterChipsRow
             chips={[
               { id: 'you', label: 'You', tone: 'you', active: true },
-              { id: 'cohort', label: 'Cohort', tone: 'cohort' },
-              { id: 'program', label: 'Program', tone: 'fleet' },
-              { id: 'faculty', label: 'Faculty', icon: 'school-outline' },
+              { id: 'peers', label: 'Cohort', tone: 'cohort', active: true },
+              { id: 'program', label: 'Program', tone: 'fleet', active: true },
+              { id: 'faculty', label: 'Faculty', icon: 'school-outline', active: true },
             ]}
+            onActiveIdsChange={handleNursingChipsChange}
           />
           ) : null}
           {/* Headless InterestSwitcher hosts the modal so TopChrome's
