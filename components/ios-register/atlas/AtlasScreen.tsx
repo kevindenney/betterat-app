@@ -579,7 +579,10 @@ function TopChrome({
   const displayInterest = interestOverride
     ? { name: interestOverride.name, accent_color: interestOverride.accentColor }
     : currentInterest;
-  const interestIsSwitchable = !interestOverride;
+  // The override sets the *displayed* lens (e.g. a persona demo frame), but the
+  // pill must still open the interest switcher — locking the tap left users with
+  // a dead dropdown on the Atlas tab.
+  const interestIsSwitchable = true;
 
   return (
     <>
@@ -5772,6 +5775,10 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // street map is near content-free for a nursing student, so it's demoted to
   // a secondary toggle (kept for cold first-run POI discovery + orientation).
   const [f4View, setF4View] = useState<'sites' | 'coverage' | 'map'>('sites');
+  // Measured floating-chrome height. The chrome grows on the Map view (it
+  // adds a FilterChipsRow), so a hardcoded toolbarOffset underlapped the
+  // surfaces; measure the actual chrome and feed it to each surface inset.
+  const [nursingChromeH, setNursingChromeH] = useState(132);
   const [selectedNursingSite, setSelectedNursingSite] = useState<NursingSiteDetailTarget | null>(null);
   // Log-a-shift (N2) — the located-evidence write path. Opening sets the
   // target site; null closes the sheet.
@@ -5876,7 +5883,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           />
         ) : f4View === 'map' ? (
           <NursingMapSurface
-            toolbarOffset={132}
+            toolbarOffset={nursingChromeH}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
             onOpenSite={chooseNursingWhereSite}
             onLogShift={openNursingLogShift}
@@ -5885,7 +5892,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         ) : f4View === 'coverage' ? (
           // Competency constellation (N3) — framework coverage from logged shifts.
           <NursingCoverageSurface
-            toolbarOffset={132}
+            toolbarOffset={nursingChromeH}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
             onPlanGap={(site, suggestedTitle) => planNursingStepAtSite(site, suggestedTitle)}
           />
@@ -5894,7 +5901,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           // chrome (title + segment); bottom inset clears the tab bar.
           <NursingSitesSurface
             nextEvent={nextNursing}
-            toolbarOffset={132}
+            toolbarOffset={nursingChromeH}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
             onSitePress={chooseNursingWhereSite}
             onLogShift={openNursingLogShift}
@@ -5910,7 +5917,10 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         )}
 
         {/* Floating glass chrome — title + chips. Same pattern as F1. */}
-        {!selectedNursingSite ? <View style={shellStyles.floatingChrome}>
+        {!selectedNursingSite ? <View
+          style={shellStyles.floatingChrome}
+          onLayout={(e) => setNursingChromeH(e.nativeEvent.layout.height)}
+        >
           <TopChrome
             title="Atlas"
             interestOverride={{ name: 'Nursing', accentColor: '#0097A7' }}

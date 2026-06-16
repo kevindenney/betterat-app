@@ -21,6 +21,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 
 import {
   AtlasScreen,
@@ -464,6 +465,7 @@ async function findExistingAtlasRaceStep(args: {
 export default function AtlasTab() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { currentInterest, userInterests, switchInterest } = useInterest();
   const homeVenue = useUserHomeVenue();
@@ -698,6 +700,28 @@ export default function AtlasTab() {
       router.push({ pathname: '/(tabs)/atlas', params: { orgSlug: slug } } as any);
     },
     [router],
+  );
+
+  // Seed a freshly-created step into the timeline + step-detail caches so a
+  // subsequent navigate to /(tabs)/practice?selected= resolves it on the
+  // canvas's single mount (the timeline query is often cold on the Atlas tab).
+  // The background invalidate then reconciles real sort order.
+  const primeTimelineWithStep = useCallback(
+    (interestId: string, step: TimelineStepRecord) => {
+      queryClient.setQueryData<TimelineStepRecord[]>(
+        ['timeline-steps', 'mine', interestId],
+        (prev) =>
+          prev
+            ? prev.some((s) => s.id === step.id)
+              ? prev
+              : [...prev, step]
+            : [step],
+      );
+      queryClient.setQueryData(['timeline-steps', 'detail', step.id], step);
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+    },
+    [queryClient],
   );
 
   const handlePrimary = useCallback(
@@ -954,14 +978,16 @@ export default function AtlasTab() {
           if (targetInterest.slug !== currentInterest?.slug) {
             await switchInterest(targetInterest.slug);
           }
+          // Land the new step on the timeline rather than the detail editor:
+          // "Plan a step" is an add-to-my-plan gesture, not an immediate edit.
+          // The timeline route resolves ?selected= only against the loaded
+          // timeline cache, so seed the just-created step into it first — the
+          // canvas reads initialLevel from cache on its single mount, and a
+          // cold cache would otherwise strand the user at the arc summary.
+          primeTimelineWithStep(targetInterest.id, createdClinicalStep);
           router.push({
-            pathname: '/step/[id]',
-            params: {
-              id: createdClinicalStep.id,
-              origin: 'atlas',
-              domain: 'nursing',
-              tab: 'plan',
-            },
+            pathname: '/(tabs)/practice',
+            params: { selected: createdClinicalStep.id, level: '1' },
           } as any);
           return;
         }
@@ -1049,6 +1075,7 @@ export default function AtlasTab() {
       frame,
       isFromPlan,
       nextEvent,
+      primeTimelineWithStep,
       router,
       switchInterest,
       user?.id,

@@ -1213,7 +1213,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         >
           <Ionicons name="chatbubble-outline" size={15} color={STEP_COLORS.label} />
           <Text style={styles.peerActionSecondaryText} numberOfLines={1}>
-            Message
+            Message author
           </Text>
         </Pressable>
       </View>

@@ -101,7 +101,7 @@ interface Pt { x: number; y: number }
 function useSnakeThread(
   count: number,
   perLane: number,
-  progressCount: number,
+  doneFlags: boolean[],
   pointYOffset: number,
   nowIndex: number,
 ) {
@@ -157,11 +157,18 @@ function useSnakeThread(
 
     let full = `M ${pts[0].x} ${pts[0].y}`;
     for (let i = 1; i < pts.length; i++) full += seg(pts[i - 1], pts[i]);
-    let pr = `M ${pts[0].x} ${pts[0].y}`;
-    for (let i = 1; i < Math.min(progressCount, pts.length); i++) pr += seg(pts[i - 1], pts[i]);
+    // Solid azure only where BOTH endpoints are done — so a done step that
+    // sorts after a planned one stays on the dashed track instead of getting
+    // bridged by a contiguous prefix. Each solid run is its own M-subpath.
+    let pr = '';
+    for (let i = 1; i < pts.length; i++) {
+      if (doneFlags[i - 1] && doneFlags[i]) {
+        pr += ` M ${pts[i - 1].x} ${pts[i - 1].y}` + seg(pts[i - 1], pts[i]);
+      }
+    }
     const np = nowIndex >= 0 && nowIndex < pts.length ? pts[nowIndex] : null;
-    return { track: full, prog: pr, nowPoint: np };
-  }, [version, count, perLane, progressCount, size.w, pointYOffset, nowIndex]);
+    return { track: full, prog: pr.trim(), nowPoint: np };
+  }, [version, count, perLane, doneFlags, size.w, pointYOffset, nowIndex]);
 
   return { size, onContainerLayout, onLaneLayout, onItemLayout, track, prog, nowPoint };
 }
@@ -211,11 +218,14 @@ export function SnakeStepTimeline({
 }: SnakeStepTimelineProps) {
   // NOW sits between the done run and the first planned step; the flag
   // rides the NEXT card and the solid thread covers only done steps.
+  // When every step is done there is no NEXT — NOW would otherwise park on
+  // the last (done) card, falsely flagging finished work as current, so we
+  // drop the flag entirely (the full solid thread already reads "all done").
   const nextIdx = nextStepIndex(steps.map((s) => s.status));
-  const progressCount = nextIdx === -1 ? steps.length : nextIdx;
-  const nowIndex = nextIdx === -1 ? steps.length - 1 : nextIdx;
+  const nowIndex = nextIdx;
+  const doneFlags = useMemo(() => steps.map((s) => isPastNow(s.status)), [steps]);
   const { size, onContainerLayout, onLaneLayout, onItemLayout, track, prog, nowPoint } =
-    useSnakeThread(steps.length, perLane, progressCount, -NODE_GAP, nowIndex);
+    useSnakeThread(steps.length, perLane, doneFlags, -NODE_GAP, nowIndex);
 
   const lanes = useMemo(() => chunk(steps, perLane), [steps, perLane]);
 
@@ -442,8 +452,12 @@ export function SnakeNodeRiver({
   onPressNode,
 }: SnakeNodeRiverProps) {
   const nowIndex = nodes.findIndex((n) => n.now);
+  const doneFlags = useMemo(
+    () => nodes.map((_, i) => i < progressCount),
+    [nodes, progressCount],
+  );
   const { size, onContainerLayout, onLaneLayout, onItemLayout, track, prog, nowPoint } =
-    useSnakeThread(nodes.length, perLane, progressCount, 6, nowIndex);
+    useSnakeThread(nodes.length, perLane, doneFlags, 6, nowIndex);
   const lanes = useMemo(() => chunk(nodes, perLane), [nodes, perLane]);
 
   return (

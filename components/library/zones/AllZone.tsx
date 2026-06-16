@@ -832,8 +832,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: IOS_COLORS.label,
-    lineHeight: 16,
-    height: 32,
+    lineHeight: 17,
+    minHeight: 34,
     marginBottom: 6,
   },
   tileFoot: {
