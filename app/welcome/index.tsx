@@ -8,7 +8,6 @@
 
 import React from 'react';
 import {
-  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -19,6 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+
+import { BrandMark } from '@/components/BrandMark';
 
 const ACCENT = '#007AFF';
 const BRAND_DARK = '#0B1A33';
@@ -49,11 +50,7 @@ export default function WelcomeHeroScreen() {
             entering={FadeInDown.duration(450)}
             style={styles.brandBlock}
           >
-            <Image
-              source={require('@/assets/images/brand-mark.png')}
-              style={styles.brandMark}
-              resizeMode="contain"
-            />
+            <BrandMark size={BRAND_MARK_SIZE} style={styles.brandMark} />
           </Animated.View>
 
           <Animated.Text

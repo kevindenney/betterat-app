@@ -20,7 +20,6 @@
 
 import React, { useState } from 'react';
 import {
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -31,6 +30,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+
+import { BrandMark } from '@/components/BrandMark';
 
 const ACCENT = '#007AFF';
 const BRAND_DARK = '#0B1A33';
@@ -225,7 +226,7 @@ function Hero({ onStart }: { onStart: () => void }) {
       <View style={styles.heroStack}>
         <Animated.View entering={enter(FadeInDown.duration(450))} style={styles.brandBlock}>
           <View style={styles.brandRing} />
-          <Image source={require('@/assets/images/brand-mark-large.png')} style={styles.brandMark} resizeMode="contain" />
+          <BrandMark size={96} style={styles.brandMark} />
         </Animated.View>
         <Animated.Text entering={enter(FadeInDown.delay(80).duration(450))} style={styles.wordmark}>BetterAt</Animated.Text>
         <Animated.Text entering={enter(FadeInDown.delay(180).duration(450))} style={styles.heroTitle}>
@@ -255,7 +256,7 @@ function How({ onContinue }: { onContinue: () => void }) {
     <View style={[styles.body, { justifyContent: 'space-between' }]}>
       <View>
         <Animated.View entering={enter(FadeInDown.duration(400))} style={styles.brandPill}>
-          <Image source={require('@/assets/images/brand-mark.png')} style={styles.brandPillMark} resizeMode="contain" />
+          <BrandMark size={32} />
           <Text style={styles.brandPillText}>BetterAt</Text>
         </Animated.View>
         <Animated.View entering={enter(FadeInDown.delay(80).duration(400))}>
@@ -445,7 +446,6 @@ const styles = StyleSheet.create({
     marginTop: 8, marginBottom: 18, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
     backgroundColor: 'rgba(37,99,235,0.06)', borderWidth: 1, borderColor: 'rgba(37,99,235,0.10)',
   },
-  brandPillMark: { width: 32, height: 32, borderRadius: 8 },
   brandPillText: { fontSize: 15, color: BRAND_DARK, letterSpacing: -0.1, marginRight: 4, ...sans('700') },
 
   // Section header (h2)

@@ -8,7 +8,6 @@
 
 import React from 'react';
 import {
-  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -19,6 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+
+import { BrandMark } from '@/components/BrandMark';
 
 const ACCENT = '#007AFF';
 const BRAND_DARK = '#0B1A33';
@@ -83,11 +84,7 @@ export default function WelcomeHowItWorksScreen() {
           entering={FadeInDown.duration(400)}
           style={styles.brandPill}
         >
-          <Image
-            source={require('@/assets/images/brand-mark.png')}
-            style={styles.brandPillMark}
-            resizeMode="contain"
-          />
+          <BrandMark size={32} />
           <Text style={styles.brandPillText}>BetterAt</Text>
         </Animated.View>
 
@@ -198,11 +195,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderWidth: 1,
     borderColor: 'rgba(0, 122, 255, 0.10)',
-  },
-  brandPillMark: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
   },
   brandPillText: {
     fontSize: 15,

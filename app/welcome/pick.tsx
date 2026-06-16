@@ -8,22 +8,19 @@
  */
 
 import React from 'react';
-import { Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { InterestSelectionContent } from '@/components/onboarding/InterestSelection';
+import { BrandMark } from '@/components/BrandMark';
 
 const BRAND_DARK = '#0B1A33';
 
 function BrandPill() {
   return (
     <View style={styles.brandPill}>
-      <Image
-        source={require('@/assets/images/brand-mark.png')}
-        style={styles.brandPillMark}
-        resizeMode="contain"
-      />
+      <BrandMark size={32} />
       <Text style={styles.brandPillText}>BetterAt</Text>
     </View>
   );
@@ -69,11 +66,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderWidth: 1,
     borderColor: 'rgba(0, 122, 255, 0.10)',
-  },
-  brandPillMark: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
   },
   brandPillText: {
     fontSize: 15,

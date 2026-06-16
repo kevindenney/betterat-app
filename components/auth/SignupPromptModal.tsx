@@ -12,7 +12,6 @@
 
 import React from 'react';
 import {
-  Image,
   Modal,
   Platform,
   Pressable,
@@ -21,6 +20,7 @@ import {
   View,
 } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
+import { BrandMark } from '@/components/BrandMark';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useVocabulary } from '@/hooks/useVocabulary';
@@ -169,11 +169,7 @@ export default function SignupPromptModal({
 
             {/* Brand pill — consistent with welcome flow */}
             <View style={styles.brandPill}>
-              <Image
-                source={require('@/assets/images/brand-mark.png')}
-                style={styles.brandPillMark}
-                resizeMode="contain"
-              />
+              <BrandMark size={24} />
               <ThemedText style={styles.brandPillText}>BetterAt</ThemedText>
             </View>
 
@@ -327,11 +323,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderWidth: 1,
     borderColor: 'rgba(0, 122, 255, 0.10)',
-  },
-  brandPillMark: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
   },
   brandPillText: {
     fontSize: 14,
