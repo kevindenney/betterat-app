@@ -553,10 +553,7 @@ function PublicFaceStrip({
         onPress={onViewProfile}
         accessibilityRole="button"
         accessibilityLabel="View as others see you"
-        style={({ hovered, pressed }: any) => [
-          s.publicFaceRow,
-          (hovered || pressed) && s.publicFaceRowActive,
-        ]}
+        style={s.publicFaceRow}
       >
         <Ionicons name="eye" size={18} color="#A67C52" style={{ marginRight: 12 }} />
         <Text style={s.publicFaceTitle} numberOfLines={1}>
@@ -570,10 +567,7 @@ function PublicFaceStrip({
           accessibilityRole="button"
           accessibilityLabel="Edit public profile"
           hitSlop={8}
-          style={({ hovered, pressed }: any) => [
-            s.publicFaceEdit,
-            (hovered || pressed) && s.publicFaceEditActive,
-          ]}
+          style={s.publicFaceEdit}
         >
           <Text style={s.publicFaceEditText}>Edit</Text>
         </Pressable>
@@ -1085,9 +1079,6 @@ const s = StyleSheet.create({
     borderTopColor: 'rgba(166, 124, 82, 0.16)',
     ...Platform.select({ web: { cursor: 'pointer' } as any }),
   },
-  publicFaceRowActive: {
-    backgroundColor: 'rgba(166, 124, 82, 0.08)',
-  },
   publicFaceTitle: {
     flex: 1,
     minWidth: 0,
@@ -1103,9 +1094,6 @@ const s = StyleSheet.create({
     marginLeft: 8,
     marginRight: 6,
     ...Platform.select({ web: { cursor: 'pointer' } as any }),
-  },
-  publicFaceEditActive: {
-    backgroundColor: 'rgba(0, 122, 255, 0.18)',
   },
   publicFaceEditText: {
     fontSize: 12,
