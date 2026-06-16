@@ -153,7 +153,7 @@ export function CommunityFeed({
         </Text>
         {onCreatePost && (
           <Pressable style={styles.emptyAction} onPress={onCreatePost}>
-            <Ionicons name="add" size={16} color="#2563EB" />
+            <Ionicons name="add" size={16} color="#007AFF" />
             <Text style={styles.emptyActionText}>Create Post</Text>
           </Pressable>
         )}
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   emptyActionText: {
     ...TufteTokens.typography.tertiary,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
 });
 

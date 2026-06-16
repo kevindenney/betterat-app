@@ -38,7 +38,7 @@ export const SeasonStatsCard: React.FC<SeasonStatsCardProps> = ({
         >
           <View className="flex-row items-center">
             <Text className="text-primary-600 text-sm mr-1">View Details</Text>
-            <ChevronRight color="#2563EB" size={16} />
+            <ChevronRight color="#007AFF" size={16} />
           </View>
         </TouchableOpacity>
       </View>
@@ -53,7 +53,7 @@ export const SeasonStatsCard: React.FC<SeasonStatsCardProps> = ({
           style={{ minHeight: 44 }}
         >
           <View className="mb-2">
-            <Flag color="#2563EB" size={20} />
+            <Flag color="#007AFF" size={20} />
           </View>
           <Text className="text-2xl font-bold text-typography-900">{races}</Text>
           <Text className="text-typography-500 text-xs mt-1">Races</Text>

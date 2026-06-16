@@ -32,7 +32,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
-const ACCENT = '#2563EB';
+const ACCENT = '#007AFF';
 const BRAND_DARK = '#0B1A33';
 const BG = '#FAF8F5';
 
@@ -154,7 +154,7 @@ const GENERIC_VALUE: ValueCopy = {
 };
 
 const HOW_STEPS = [
-  { icon: 'sparkles' as const, color: '#2563EB', title: 'Capture', body: 'Drop notes, photos, and videos as you go — anything that helps you learn.' },
+  { icon: 'sparkles' as const, color: '#007AFF', title: 'Capture', body: 'Drop notes, photos, and videos as you go — anything that helps you learn.' },
   { icon: 'compass' as const, color: '#16A34A', title: 'Plan', body: 'Build a routine that fits your life, with steps you actually want to do.' },
   { icon: 'sync' as const, color: '#DB2777', title: 'Reflect', body: 'Look back, learn, and adjust — your best ideas come from your own work.' },
 ];

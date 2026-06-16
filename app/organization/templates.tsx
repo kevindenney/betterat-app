@@ -291,7 +291,7 @@ Return ONLY a valid JSON object. No markdown fences, no backticks, no explanatio
           {/* AI Curriculum Generator */}
           <View style={[styles.card, { borderColor: '#DBEAFE', borderWidth: 1, backgroundColor: '#F8FAFF' }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <Ionicons name="sparkles" size={20} color="#2563EB" />
+              <Ionicons name="sparkles" size={20} color="#007AFF" />
               <Text style={[styles.sectionTitle, { marginLeft: 8 }]}>Generate blueprint from curriculum</Text>
             </View>
             <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 8 }}>
@@ -316,7 +316,7 @@ Return ONLY a valid JSON object. No markdown fences, no backticks, no explanatio
               editable={!aiGenerating}
             />
             <TouchableOpacity
-              style={[styles.primaryButton, (!aiPrompt.trim() || aiGenerating || !orgInterestSlug) && styles.disabledButton, { backgroundColor: '#2563EB' }]}
+              style={[styles.primaryButton, (!aiPrompt.trim() || aiGenerating || !orgInterestSlug) && styles.disabledButton, { backgroundColor: '#007AFF' }]}
               onPress={() => void handleAiGenerate()}
               disabled={!aiPrompt.trim() || aiGenerating || !orgInterestSlug}
             >
@@ -373,8 +373,8 @@ Return ONLY a valid JSON object. No markdown fences, no backticks, no explanatio
               style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}
               onPress={() => setShowCreateForm(true)}
             >
-              <Ionicons name="add-circle-outline" size={20} color="#2563EB" />
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#2563EB' }}>Create empty blueprint</Text>
+              <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#007AFF' }}>Create empty blueprint</Text>
             </TouchableOpacity>
           )}
 
@@ -383,13 +383,13 @@ Return ONLY a valid JSON object. No markdown fences, no backticks, no explanatio
             <View style={styles.listHeader}>
               <Text style={styles.sectionTitle}>Your blueprints</Text>
               <TouchableOpacity onPress={() => void loadBlueprints()}>
-                <Ionicons name="refresh-outline" size={18} color="#2563EB" />
+                <Ionicons name="refresh-outline" size={18} color="#007AFF" />
               </TouchableOpacity>
             </View>
 
             {loading ? (
               <View style={styles.centerStateCompact}>
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color="#007AFF" />
               </View>
             ) : blueprints.length === 0 ? (
               <Text style={styles.stateText}>No blueprints yet. Generate one from a curriculum or create an empty one to get started.</Text>
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     marginTop: 4,
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',

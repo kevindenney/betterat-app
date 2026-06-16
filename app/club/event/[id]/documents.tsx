@@ -345,7 +345,7 @@ export default function EventDocumentsScreen() {
 
           {aiLoading ? (
             <View style={styles.aiLoadingRow}>
-              <ActivityIndicator size="small" color="#2563EB" />
+              <ActivityIndicator size="small" color="#007AFF" />
               <ThemedText style={styles.aiLoadingText}>Loading drafts…</ThemedText>
             </View>
           ) : aiDrafts.length === 0 ? (
@@ -384,11 +384,11 @@ export default function EventDocumentsScreen() {
 
                 <View style={styles.aiDraftActions}>
                   <TouchableOpacity style={styles.aiActionButton} onPress={() => handlePreviewDraft(item)}>
-                    <Ionicons name="open-outline" size={16} color="#2563EB" />
+                    <Ionicons name="open-outline" size={16} color="#007AFF" />
                     <ThemedText style={styles.aiActionText}>Review</ThemedText>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.aiActionButton} onPress={() => handleCopyDraft(item)}>
-                    <Ionicons name="copy-outline" size={16} color="#2563EB" />
+                    <Ionicons name="copy-outline" size={16} color="#007AFF" />
                     <ThemedText style={styles.aiActionText}>Copy</ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: '#2563EB',
+        backgroundColor: '#007AFF',
         paddingHorizontal: 18,
         paddingVertical: 12,
         borderRadius: 12,
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     },
     aiLoadingText: {
         fontSize: 13,
-        color: '#2563EB',
+        color: '#007AFF',
     },
     aiEmptyState: {
         backgroundColor: '#FFFFFF',
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     aiActionText: {
-        color: '#2563EB',
+        color: '#007AFF',
         fontSize: 13,
         fontWeight: '600',
     },

@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   primaryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 13,
     alignItems: 'center',

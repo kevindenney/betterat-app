@@ -179,7 +179,7 @@ const bannerStyles = StyleSheet.create({
     marginBottom: IOS_SPACING.md,
   },
   ctaButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: IOS_RADIUS.sm,
     paddingHorizontal: IOS_SPACING.lg,
     paddingVertical: 10,

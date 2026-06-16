@@ -86,7 +86,7 @@ export function AnnouncementComposer({ visible, onClose, onSubmit, fleetName }: 
           {/* Pin Option */}
           <View style={styles.optionCard}>
             <View style={styles.optionContent}>
-              <MaterialCommunityIcons name="pin" size={22} color={isPinned ? '#2563EB' : '#64748B'} />
+              <MaterialCommunityIcons name="pin" size={22} color={isPinned ? '#007AFF' : '#64748B'} />
               <View style={styles.optionText}>
                 <Text style={styles.optionTitle}>Pin to top</Text>
                 <Text style={styles.optionDescription}>
@@ -98,7 +98,7 @@ export function AnnouncementComposer({ visible, onClose, onSubmit, fleetName }: 
               value={isPinned}
               onValueChange={setIsPinned}
               trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-              thumbColor={isPinned ? '#2563EB' : '#F1F5F9'}
+              thumbColor={isPinned ? '#007AFF' : '#F1F5F9'}
             />
           </View>
 

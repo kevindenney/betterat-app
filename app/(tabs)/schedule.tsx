@@ -305,7 +305,7 @@ export default function ScheduleScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.centeredFill}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#007AFF" />
           <ThemedText style={styles.loadingText}>Loading your schedule...</ThemedText>
         </View>
       </ThemedView>
@@ -351,7 +351,7 @@ export default function ScheduleScreen() {
         <View style={styles.statsRow}>
           <StatCard
             icon="calendar-outline"
-            color="#2563EB"
+            color="#007AFF"
             label="Upcoming"
             value={filteredSessions.length}
           />
@@ -1044,7 +1044,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   retryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 999,

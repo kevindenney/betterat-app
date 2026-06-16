@@ -4510,16 +4510,16 @@ function LegacyRacesScreen() {
                       paddingVertical: 12,
                       paddingHorizontal: 14,
                       borderRadius: 12,
-                      backgroundColor: 'rgba(37, 99, 235, 0.06)',
+                      backgroundColor: 'rgba(0, 122, 255, 0.06)',
                       borderWidth: 1,
-                      borderColor: 'rgba(37, 99, 235, 0.18)',
+                      borderColor: 'rgba(0, 122, 255, 0.18)',
                       flexDirection: 'row',
                       alignItems: 'center',
                       gap: 12,
                     }}>
                       <View style={{
                         width: 28, height: 28, borderRadius: 14,
-                        backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                        backgroundColor: 'rgba(0, 122, 255, 0.12)',
                         alignItems: 'center', justifyContent: 'center',
                       }}>
                         <Ionicons name="sparkles-outline" size={15} color="#007AFF" />
@@ -4572,9 +4572,9 @@ function LegacyRacesScreen() {
                           paddingVertical: 8,
                           paddingHorizontal: 12,
                           borderRadius: 999,
-                          backgroundColor: 'rgba(37, 99, 235, 0.10)',
+                          backgroundColor: 'rgba(0, 122, 255, 0.10)',
                           borderWidth: 1,
-                          borderColor: 'rgba(37, 99, 235, 0.25)',
+                          borderColor: 'rgba(0, 122, 255, 0.25)',
                           opacity: pressed ? 0.7 : 1,
                         })}
                         accessibilityRole="button"

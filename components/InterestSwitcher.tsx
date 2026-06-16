@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F0F4FF',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.15)',
+    borderColor: 'rgba(0, 122, 255, 0.15)',
   },
   guestCurrentLabel: {
     flex: 1,

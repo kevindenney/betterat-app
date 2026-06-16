@@ -416,7 +416,7 @@ export default function EarningsScreen() {
           <View>
             <ThemedText style={styles.payoutLabel}>Available for payout</ThemedText>
             {balanceLoading ? (
-              <ActivityIndicator size="small" color="#2563EB" style={{ marginTop: 8 }} />
+              <ActivityIndicator size="small" color="#007AFF" style={{ marginTop: 8 }} />
             ) : balanceUnavailable ? (
               <ThemedText style={styles.balanceUnavailableText}>
                 Balance temporarily unavailable
@@ -747,7 +747,7 @@ export default function EarningsScreen() {
                   return (
                     <View key={txn.id} style={styles.transactionRow}>
                       <View style={styles.transactionIcon}>
-                        <Ionicons name="receipt-outline" size={18} color="#2563EB" />
+                        <Ionicons name="receipt-outline" size={18} color="#007AFF" />
                       </View>
                       <View style={styles.transactionContent}>
                         <ThemedText style={styles.transactionTitle}>{txn.clientName}</ThemedText>
@@ -1171,7 +1171,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   stripeBannerButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
@@ -1220,7 +1220,7 @@ const styles = StyleSheet.create({
   },
   payoutButton: {
     flexDirection: 'row',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 999,

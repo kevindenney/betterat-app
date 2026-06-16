@@ -75,7 +75,7 @@ export default function TrialActivationScreen() {
   }, []);
 
   const features = (interestSlug && INTEREST_FEATURES[interestSlug]) || GENERIC_FEATURES;
-  const accentColor = '#2563EB';
+  const accentColor = '#007AFF';
   const pricing = getLocalizedPricing();
 
   const handleStart = useCallback(() => {
@@ -256,14 +256,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   startButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 18,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    shadowColor: '#2563EB',
+    shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

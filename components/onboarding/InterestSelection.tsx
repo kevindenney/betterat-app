@@ -183,7 +183,7 @@ export function InterestSelectionContent({
   const renderInterestCard = (interest: Interest) => {
     const isCommitting = committingSlug === interest.slug;
     const isDimmed = !!committingSlug && !isCommitting;
-    const accentColor = interest.accent_color || '#2563EB';
+    const accentColor = interest.accent_color || '#007AFF';
     const iconName =
       interest.icon_name || FALLBACK_ICONS[interest.slug] || DEFAULT_ICON;
 

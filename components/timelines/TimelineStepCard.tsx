@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
   },
   ctaText: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
   ctaTextDisabled: {

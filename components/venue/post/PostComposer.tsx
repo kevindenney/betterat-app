@@ -387,7 +387,7 @@ export function PostComposer({
               <Text style={styles.sectionLabel}>Place</Text>
               <View style={styles.tagGrid}>
                 <View style={[styles.scopeChip, styles.scopeChipSelected]}>
-                  <Ionicons name="location" size={12} color="#2563EB" />
+                  <Ionicons name="location" size={12} color="#007AFF" />
                   <Text style={[styles.scopeChipText, styles.scopeChipTextSelected]}>
                     {poiName || 'This place'}
                   </Text>
@@ -408,7 +408,7 @@ export function PostComposer({
                   <Ionicons
                     name="map-outline"
                     size={12}
-                    color={!selectedAreaId ? '#2563EB' : '#9CA3AF'}
+                    color={!selectedAreaId ? '#007AFF' : '#9CA3AF'}
                   />
                   <Text style={[styles.scopeChipText, !selectedAreaId && styles.scopeChipTextSelected]}>
                     Whole venue
@@ -425,7 +425,7 @@ export function PostComposer({
                       <Ionicons
                         name="location-outline"
                         size={12}
-                        color={isSelected ? '#2563EB' : '#9CA3AF'}
+                        color={isSelected ? '#007AFF' : '#9CA3AF'}
                       />
                       <Text style={[styles.scopeChipText, isSelected && styles.scopeChipTextSelected]}>
                         {area.areaName}
@@ -449,7 +449,7 @@ export function PostComposer({
                   <Ionicons
                     name="globe-outline"
                     size={12}
-                    color={scopeType === 'public' ? '#2563EB' : '#9CA3AF'}
+                    color={scopeType === 'public' ? '#007AFF' : '#9CA3AF'}
                   />
                   <Text style={[styles.scopeChipText, scopeType === 'public' && styles.scopeChipTextSelected]}>
                     Public
@@ -480,7 +480,7 @@ export function PostComposer({
                       <Ionicons
                         name={icon as any}
                         size={12}
-                        color={isSelected ? '#2563EB' : '#9CA3AF'}
+                        color={isSelected ? '#007AFF' : '#9CA3AF'}
                       />
                       <Text style={[styles.scopeChipText, isSelected && styles.scopeChipTextSelected]} numberOfLines={1}>
                         {prefix} · {audience.name}
@@ -547,7 +547,7 @@ export function PostComposer({
                             </Text>
                           )}
                         </View>
-                        <Ionicons name="add-circle-outline" size={18} color="#2563EB" />
+                        <Ionicons name="add-circle-outline" size={18} color="#007AFF" />
                       </Pressable>
                     ))}
                   </View>
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   submitButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: TufteTokens.spacing.section,
     paddingVertical: TufteTokens.spacing.compact,
     borderRadius: TufteTokens.borderRadius.subtle,
@@ -733,8 +733,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   scopeChipSelected: {
-    backgroundColor: '#2563EB12',
-    borderColor: '#2563EB40',
+    backgroundColor: '#007AFF12',
+    borderColor: '#007AFF40',
   },
   scopeChipText: {
     ...TufteTokens.typography.tertiary,
@@ -742,7 +742,7 @@ const styles = StyleSheet.create({
     maxWidth: 220,
   },
   scopeChipTextSelected: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
   // Race picker

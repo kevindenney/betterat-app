@@ -112,7 +112,7 @@ export default function CommunicationsScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingState}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#007AFF" />
           <ThemedText style={styles.loadingText}>Loading communications…</ThemedText>
         </View>
       </ThemedView>
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   filterChipActive: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#EFF6FF',
   },
   filterChipText: { color: '#334155', fontSize: 12, fontWeight: '600' },

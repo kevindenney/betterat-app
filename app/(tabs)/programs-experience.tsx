@@ -104,7 +104,7 @@ const QuickAction = ({
 }) => (
   <TouchableOpacity style={styles.quickAction} onPress={onPress}>
     <View style={styles.quickIcon}>
-      <Ionicons name={icon} size={18} color="#2563EB" />
+      <Ionicons name={icon} size={18} color="#007AFF" />
     </View>
     <View style={{ flex: 1 }}>
       <ThemedText style={styles.quickLabel}>{label}</ThemedText>
@@ -459,7 +459,7 @@ export default function RaceManagementScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingState}>
-          <Ionicons name="hourglass-outline" size={26} color="#2563EB" />
+          <Ionicons name="hourglass-outline" size={26} color="#007AFF" />
           <ThemedText style={styles.loadingStateTitle}>Loading workspace…</ThemedText>
           <ThemedText style={styles.loadingStateBody}>
             Resolving your organization context before loading operations.
@@ -473,7 +473,7 @@ export default function RaceManagementScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingState}>
-          <Ionicons name="business-outline" size={26} color="#2563EB" />
+          <Ionicons name="business-outline" size={26} color="#007AFF" />
           <ThemedText style={styles.loadingStateTitle}>No active organization</ThemedText>
           <ThemedText style={styles.loadingStateBody}>
             Select an active organization to load the Programs workspace.
@@ -507,7 +507,7 @@ export default function RaceManagementScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingState}>
-          <Ionicons name="compass-outline" size={26} color="#2563EB" />
+          <Ionicons name="compass-outline" size={26} color="#007AFF" />
           <ThemedText style={styles.loadingStateTitle}>Programs unavailable for this organization</ThemedText>
           <ThemedText style={styles.loadingStateBody}>
             Switch to an institution workspace to manage programs and assignments.
@@ -577,7 +577,7 @@ export default function RaceManagementScreen() {
           </View>
           <View style={styles.cardActions}>
             <TouchableOpacity style={styles.cardButton} onPress={() => router.push('/(tabs)/members')}>
-              <Ionicons name="people-circle-outline" size={18} color="#2563EB" />
+              <Ionicons name="people-circle-outline" size={18} color="#007AFF" />
               <ThemedText style={styles.cardButtonText}>{isInstitutionWorkspace ? 'Assign faculty' : 'Assign team'}</ThemedText>
             </TouchableOpacity>
             {isInstitutionWorkspace ? (
@@ -585,7 +585,7 @@ export default function RaceManagementScreen() {
                 style={styles.cardButton}
                 onPress={() => router.push((`/programs/assign?programId=${race.id}`) as any)}
               >
-                <Ionicons name="person-add-outline" size={18} color="#2563EB" />
+                <Ionicons name="person-add-outline" size={18} color="#007AFF" />
                 <ThemedText style={styles.cardButtonText}>Assign people</ThemedText>
               </TouchableOpacity>
             ) : null}
@@ -599,7 +599,7 @@ export default function RaceManagementScreen() {
                 )
               }
             >
-              <Ionicons name="document-outline" size={18} color="#2563EB" />
+              <Ionicons name="document-outline" size={18} color="#007AFF" />
               <ThemedText style={styles.cardButtonText}>{isInstitutionWorkspace ? 'Program docs' : 'Docs'}</ThemedText>
             </TouchableOpacity>
             {isInstitutionWorkspace ? (
@@ -625,7 +625,7 @@ export default function RaceManagementScreen() {
                   style={styles.cardButton}
                   onPress={() => (allowRaceWorkflows ? openCommsModal(race.id, race.name) : undefined)}
                 >
-                  <Ionicons name="sparkles-outline" size={18} color="#2563EB" />
+                  <Ionicons name="sparkles-outline" size={18} color="#007AFF" />
                   <ThemedText style={styles.cardButtonText}>Draft update</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -715,7 +715,7 @@ export default function RaceManagementScreen() {
                 router.push((isInstitutionWorkspace ? '/settings/organization-access' : `/club/race/control/${race.id}`) as any)
               }
             >
-              <Ionicons name="pause-outline" size={20} color="#2563EB" />
+              <Ionicons name="pause-outline" size={20} color="#007AFF" />
               <ThemedText style={styles.controlSecondaryText}>
                 {isInstitutionWorkspace ? 'Pause intake' : 'Pause'}
               </ThemedText>
@@ -735,7 +735,7 @@ export default function RaceManagementScreen() {
                 )
               }
             >
-              <Ionicons name="chatbubble-outline" size={20} color="#2563EB" />
+              <Ionicons name="chatbubble-outline" size={20} color="#007AFF" />
               <ThemedText style={styles.controlSecondaryText}>
                 Send update{isInstitutionWorkspace && getProgramUnreadCount(race.id) > 0 ? ` (${formatBadgeCount(getProgramUnreadCount(race.id))})` : ''}
               </ThemedText>
@@ -804,7 +804,7 @@ export default function RaceManagementScreen() {
                 )
               }
             >
-              <Ionicons name="cloud-upload-outline" size={18} color="#2563EB" />
+              <Ionicons name="cloud-upload-outline" size={18} color="#007AFF" />
               <ThemedText style={styles.cardButtonText}>{isInstitutionWorkspace ? 'Publish evaluations' : 'Publish'}</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
@@ -822,7 +822,7 @@ export default function RaceManagementScreen() {
                 )
               }
             >
-              <Ionicons name="mail-outline" size={18} color="#2563EB" />
+              <Ionicons name="mail-outline" size={18} color="#007AFF" />
               <ThemedText style={styles.cardButtonText}>
                 Send recap{isInstitutionWorkspace && getProgramUnreadCount(race.id) > 0 ? ` (${formatBadgeCount(getProgramUnreadCount(race.id))})` : ''}
               </ThemedText>
@@ -885,12 +885,12 @@ export default function RaceManagementScreen() {
         {isInstitutionWorkspace ? (
           <View style={styles.programRefreshRow}>
             <TouchableOpacity style={styles.inlineRefreshButton} onPress={() => void loadInstitutionPrograms()}>
-              <Ionicons name="refresh-outline" size={16} color="#2563EB" />
+              <Ionicons name="refresh-outline" size={16} color="#007AFF" />
               <ThemedText style={styles.inlineRefreshButtonText}>Refresh programs</ThemedText>
             </TouchableOpacity>
             {programsLoading ? (
               <View style={styles.inlineLoadingRow}>
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color="#007AFF" />
                 <ThemedText style={styles.inlineLoadingLabel}>Syncing latest data…</ThemedText>
               </View>
             ) : null}
@@ -916,7 +916,7 @@ export default function RaceManagementScreen() {
           {metrics.map((metric) => (
             <View key={metric.key} style={styles.metricCard}>
               <View style={styles.metricIcon}>
-                <Ionicons name={metric.icon as any} size={18} color="#2563EB" />
+                <Ionicons name={metric.icon as any} size={18} color="#007AFF" />
               </View>
               <ThemedText style={styles.metricLabel}>{metric.label}</ThemedText>
               <ThemedText style={styles.metricValue}>{metric.value}</ThemedText>
@@ -982,7 +982,7 @@ export default function RaceManagementScreen() {
                 )
               }
             >
-              <Ionicons name="medkit-outline" size={20} color="#2563EB" />
+              <Ionicons name="medkit-outline" size={20} color="#007AFF" />
               <ThemedText style={styles.operationLabel}>
                 {isInstitutionWorkspace
                   ? (isNursingPresentationDomain ? 'Patient safety checklist' : 'Session checklist')
@@ -997,7 +997,7 @@ export default function RaceManagementScreen() {
                 )
               }
             >
-              <Ionicons name="cloudy-outline" size={20} color="#2563EB" />
+              <Ionicons name="cloudy-outline" size={20} color="#007AFF" />
               <ThemedText style={styles.operationLabel}>
                 {isInstitutionWorkspace
                   ? (isNursingPresentationDomain ? 'Clinical partner notes' : 'Program notes')
@@ -1012,7 +1012,7 @@ export default function RaceManagementScreen() {
                 )
               }
             >
-              <Ionicons name="map-outline" size={20} color="#2563EB" />
+              <Ionicons name="map-outline" size={20} color="#007AFF" />
               <ThemedText style={styles.operationLabel}>
                 {isInstitutionWorkspace
                   ? (isNursingPresentationDomain ? 'Rotation templates' : 'Session templates')
@@ -1027,7 +1027,7 @@ export default function RaceManagementScreen() {
                 )
               }
             >
-              <Ionicons name="clipboard-outline" size={20} color="#2563EB" />
+              <Ionicons name="clipboard-outline" size={20} color="#007AFF" />
               <ThemedText style={styles.operationLabel}>
                 {isInstitutionWorkspace
                   ? (isNursingPresentationDomain ? 'Competency rubrics' : 'Assessment rubrics')
@@ -1114,7 +1114,7 @@ const styles = StyleSheet.create({
   stateActionButton: {
     marginTop: 6,
     borderRadius: 999,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 14,
     paddingVertical: 9,
   },
@@ -1165,7 +1165,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 999,
     paddingHorizontal: 18,
     paddingVertical: 10,
@@ -1376,14 +1376,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   highlightCard: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     borderWidth: 2,
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 10px rgba(37, 99, 235, 0.14)',
+        boxShadow: '0 4px 10px rgba(0, 122, 255, 0.14)',
       },
       default: {
-        shadowColor: '#2563EB',
+        shadowColor: '#007AFF',
         shadowOpacity: 0.14,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
@@ -1448,7 +1448,7 @@ const styles = StyleSheet.create({
   cardButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   cardButtonPrimary: {
     flexDirection: 'row',
@@ -1457,7 +1457,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   cardButtonPrimaryText: {
     fontSize: 12,
@@ -1523,7 +1523,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 18,
     paddingVertical: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   controlPrimaryText: {
     color: '#FFFFFF',
@@ -1541,7 +1541,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF6FF',
   },
   controlSecondaryText: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
   completedCard: {
@@ -1594,7 +1594,7 @@ const styles = StyleSheet.create({
   operationLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   operationTileSailwave: {
     borderColor: '#6EE7B7',

@@ -74,7 +74,7 @@ export function FacultyCohortDashboard({ cohortId, orgId }: FacultyCohortDashboa
   if (loading) {
     return (
       <View style={styles.centerState}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.loadingText}>Loading cohort data...</Text>
       </View>
     );
@@ -102,14 +102,14 @@ export function FacultyCohortDashboard({ cohortId, orgId }: FacultyCohortDashboa
           style={[styles.tab, activeTab === 'overview' && styles.tabActive]}
           onPress={() => setActiveTab('overview')}
         >
-          <Ionicons name="grid-outline" size={16} color={activeTab === 'overview' ? '#2563EB' : '#64748B'} />
+          <Ionicons name="grid-outline" size={16} color={activeTab === 'overview' ? '#007AFF' : '#64748B'} />
           <Text style={[styles.tabText, activeTab === 'overview' && styles.tabTextActive]}>Overview</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'nclex' && styles.tabActive]}
           onPress={() => setActiveTab('nclex')}
         >
-          <Ionicons name="shield-checkmark-outline" size={16} color={activeTab === 'nclex' ? '#2563EB' : '#64748B'} />
+          <Ionicons name="shield-checkmark-outline" size={16} color={activeTab === 'nclex' ? '#007AFF' : '#64748B'} />
           <Text style={[styles.tabText, activeTab === 'nclex' && styles.tabTextActive]}>NCLEX Readiness</Text>
           {atRiskStudents.length > 0 && (
             <View style={styles.badge}>
@@ -128,7 +128,7 @@ export function FacultyCohortDashboard({ cohortId, orgId }: FacultyCohortDashboa
                 title="Students"
                 value={summary.totalStudents}
                 icon="people"
-                iconColor="#2563EB"
+                iconColor="#007AFF"
               />
               <DashboardKPICard
                 title="Achievement"
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
   loadingText: { fontSize: 13, color: '#64748B' },
   errorText: { fontSize: 14, color: '#EF4444', textAlign: 'center' },
-  retryButton: { backgroundColor: '#2563EB', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 8 },
+  retryButton: { backgroundColor: '#007AFF', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 8 },
   retryButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
 
   // Tab bar
@@ -232,9 +232,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: '#2563EB' },
+  tabActive: { borderBottomColor: '#007AFF' },
   tabText: { fontSize: 13, fontWeight: '500', color: '#64748B' },
-  tabTextActive: { color: '#2563EB', fontWeight: '600' },
+  tabTextActive: { color: '#007AFF', fontWeight: '600' },
   badge: {
     minWidth: 18, height: 18, borderRadius: 9,
     backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center',

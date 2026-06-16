@@ -34,7 +34,7 @@ export default function AnalyticsScreen() {
 
             <View className="flex-1 bg-blue-50 rounded-lg p-3 ml-2">
               <View className="flex-row items-center mb-1">
-                <Award size={16} color="#2563EB" />
+                <Award size={16} color="#007AFF" />
                 <Text className="text-gray-600 text-sm ml-1">Avg Position</Text>
               </View>
               <Text className="text-2xl font-bold text-gray-800">4.2</Text>

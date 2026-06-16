@@ -412,7 +412,7 @@ export default function MembersScreen() {
           {metrics.map((metric) => (
             <View key={metric.key} style={styles.metricCard}>
               <View style={styles.metricIcon}>
-                <Ionicons name={metric.icon as any} size={18} color="#2563EB" />
+                <Ionicons name={metric.icon as any} size={18} color="#007AFF" />
               </View>
               <ThemedText style={styles.metricLabel}>{metric.label}</ThemedText>
               <ThemedText style={styles.metricValue}>{metric.value}</ThemedText>
@@ -429,7 +429,7 @@ export default function MembersScreen() {
               onPress={action.action}
             >
               <View style={styles.quickActionIcon}>
-                <Ionicons name={action.icon as any} size={20} color="#2563EB" />
+                <Ionicons name={action.icon as any} size={20} color="#007AFF" />
               </View>
               <ThemedText style={styles.quickActionLabel}>{formatLabel(action.label)}</ThemedText>
               {'badge' in action && action.badge ? (
@@ -454,7 +454,7 @@ export default function MembersScreen() {
             />
           </View>
           <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilters(true)}>
-            <Ionicons name="filter-outline" size={18} color="#2563EB" />
+            <Ionicons name="filter-outline" size={18} color="#007AFF" />
             <ThemedText style={styles.filterButtonText}>Filters</ThemedText>
             {(filters.membership_type?.length ||
               filters.status?.length ||
@@ -483,20 +483,20 @@ export default function MembersScreen() {
               </ThemedText>
             </View>
             <TouchableOpacity style={styles.sectionAction} onPress={handleExportMembers}>
-              <Ionicons name="download-outline" size={18} color="#2563EB" />
+              <Ionicons name="download-outline" size={18} color="#007AFF" />
               <ThemedText style={styles.sectionActionText}>Export CSV</ThemedText>
             </TouchableOpacity>
           </View>
 
           {loading ? (
             <View style={styles.loadingCard}>
-              <ActivityIndicator size="small" color="#2563EB" />
+              <ActivityIndicator size="small" color="#007AFF" />
               <ThemedText style={styles.loadingText}>Loading member roster…</ThemedText>
             </View>
           ) : members.length === 0 ? (
             <View style={styles.emptyCard}>
               <View style={styles.emptyIcon}>
-                <Ionicons name="people-outline" size={32} color="#2563EB" />
+                <Ionicons name="people-outline" size={32} color="#007AFF" />
               </View>
               <ThemedText style={styles.emptyTitle}>No members yet</ThemedText>
               <ThemedText style={styles.emptyBody}>
@@ -526,7 +526,7 @@ export default function MembersScreen() {
               ({ type, count }) => (
                 <View key={type} style={styles.breakdownCard}>
                   <View style={styles.breakdownIcon}>
-                    <Ionicons name="person-outline" size={18} color="#2563EB" />
+                    <Ionicons name="person-outline" size={18} color="#007AFF" />
                   </View>
                   <ThemedText style={styles.breakdownLabel}>{formatLabel(type)}</ThemedText>
                   <ThemedText style={styles.breakdownValue}>{formatNumber(count)}</ThemedText>
@@ -540,21 +540,21 @@ export default function MembersScreen() {
           <ThemedText style={styles.sectionTitle}>Operations</ThemedText>
           <View style={styles.operationsRow}>
             <TouchableOpacity style={styles.operationButton} onPress={handleExportMembers}>
-              <Ionicons name="cloud-download-outline" size={20} color="#2563EB" />
+              <Ionicons name="cloud-download-outline" size={20} color="#007AFF" />
               <ThemedText style={styles.operationButtonText}>Export roster</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.operationButton}
               onPress={handleSendGroupMessage}
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#2563EB" />
+              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#007AFF" />
               <ThemedText style={styles.operationButtonText}>Group message</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.operationButton}
               onPress={handleImportRoster}
             >
-              <Ionicons name="cloud-upload-outline" size={20} color="#2563EB" />
+              <Ionicons name="cloud-upload-outline" size={20} color="#007AFF" />
               <ThemedText style={styles.operationButtonText}>Import roster</ThemedText>
             </TouchableOpacity>
           </View>
@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.78)',
   },
   heroButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 999,
     paddingHorizontal: 18,
     paddingVertical: 10,
@@ -819,13 +819,13 @@ const styles = StyleSheet.create({
   filterButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   filterDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   alertBanner: {
     flexDirection: 'row',
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
   sectionActionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   loadingCard: {
     alignItems: 'center',
@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
   operationButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   filterOverlay: {
     flex: 1,
@@ -1076,7 +1076,7 @@ const styles = StyleSheet.create({
   filterReset: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   filterSection: {
     gap: 12,
@@ -1102,7 +1102,7 @@ const styles = StyleSheet.create({
   },
   filterChipActive: {
     backgroundColor: '#EFF6FF',
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
   },
   filterChipText: {
     fontSize: 12,
@@ -1110,13 +1110,13 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   filterChipTextActive: {
-    color: '#2563EB',
+    color: '#007AFF',
   },
   filterFooter: {
     paddingTop: 8,
   },
   filterApplyButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 999,
     paddingVertical: 14,
     alignItems: 'center',

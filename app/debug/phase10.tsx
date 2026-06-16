@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   btn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,

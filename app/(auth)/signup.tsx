@@ -282,7 +282,7 @@ export default function SignUp() {
   if (step === 'loading') {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
@@ -408,8 +408,8 @@ export default function SignUp() {
           {/* Interest badge */}
           {selectedInterest && (
             <View style={styles.interestBadgeRow}>
-              <View style={[styles.interestBadge, { backgroundColor: 'rgba(37, 99, 235, 0.08)', borderColor: 'rgba(37, 99, 235, 0.25)' }]}>
-                <Text style={[styles.interestBadgeText, { color: '#2563EB' }]}>
+              <View style={[styles.interestBadge, { backgroundColor: 'rgba(0, 122, 255, 0.08)', borderColor: 'rgba(0, 122, 255, 0.25)' }]}>
+                <Text style={[styles.interestBadgeText, { color: '#007AFF' }]}>
                   {interestCtx.interestName}
                 </Text>
               </View>
@@ -420,8 +420,8 @@ export default function SignUp() {
           {params.orgName && (
             <View style={styles.orgContextRow}>
               <View style={styles.orgContextBadge}>
-                <Ionicons name="business-outline" size={14} color="#2563EB" />
-                <Text style={[styles.orgContextText, { color: '#2563EB' }]}>
+                <Ionicons name="business-outline" size={14} color="#007AFF" />
+                <Text style={[styles.orgContextText, { color: '#007AFF' }]}>
                   Joining {params.orgName}
                 </Text>
               </View>
@@ -432,8 +432,8 @@ export default function SignUp() {
           {(blueprintName || blueprintRef) && (
             <View style={styles.orgContextRow}>
               <View style={styles.orgContextBadge}>
-                <Ionicons name="map-outline" size={14} color="#2563EB" />
-                <Text style={[styles.orgContextText, { color: '#2563EB' }]}>
+                <Ionicons name="map-outline" size={14} color="#007AFF" />
+                <Text style={[styles.orgContextText, { color: '#007AFF' }]}>
                   Subscribing to {blueprintName || 'this path'}
                 </Text>
               </View>
@@ -855,7 +855,7 @@ const styles = StyleSheet.create({
 
   // Buttons
   primaryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   termsLink: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '500',
   },
 
@@ -889,7 +889,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontSize: 14,
     fontWeight: '500',
   },

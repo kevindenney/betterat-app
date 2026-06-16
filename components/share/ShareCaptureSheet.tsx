@@ -261,6 +261,6 @@ const styles = StyleSheet.create({
   doneText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
 });

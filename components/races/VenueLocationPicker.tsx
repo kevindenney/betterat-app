@@ -921,7 +921,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   externalMapButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,

@@ -76,7 +76,7 @@ function usePersistedSet(storageKey: string) {
 const C = {
   bg: 'rgba(255,255,255,0.96)',
   border: '#E5E4E1',
-  accent: '#2563EB',
+  accent: '#007AFF',
   accentBg: 'rgba(37,99,235,0.06)',
   accentLight: '#DBEAFE',
   labelDark: '#1A1918',

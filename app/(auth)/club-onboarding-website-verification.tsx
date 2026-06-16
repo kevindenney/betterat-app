@@ -148,7 +148,7 @@ const ClubOnboardingWebsiteVerification = () => {
       <ScrollView className="flex-1 px-4 py-6" showsVerticalScrollIndicator={false}>
         <View className="items-center mb-6">
           <View className="w-16 h-16 bg-blue-100 rounded-full items-center justify-center mb-4">
-            <Globe size={32} color="#2563EB" />
+            <Globe size={32} color="#007AFF" />
           </View>
           <Text className="text-gray-800 text-2xl font-bold text-center mb-2">Club Website Verification</Text>
           <Text className="text-gray-600 text-center">Verify your club's website to automatically import racing management data</Text>
@@ -326,7 +326,7 @@ const ClubOnboardingWebsiteVerification = () => {
             <Text className="text-gray-800 font-bold text-lg mb-3">Racing Data Extraction</Text>
             
             <View className="flex-row items-start mb-4">
-              <Shield size={20} color="#2563EB" className="mt-1 mr-3" />
+              <Shield size={20} color="#007AFF" className="mt-1 mr-3" />
               <Text className="text-gray-700 flex-1">
                 <Text className="font-bold">Secure Data Access:</Text> We only extract publicly available 
                 racing management information from your website.
@@ -334,7 +334,7 @@ const ClubOnboardingWebsiteVerification = () => {
             </View>
             
             <View className="flex-row items-start mb-4">
-              <Download size={20} color="#2563EB" className="mt-1 mr-3" />
+              <Download size={20} color="#007AFF" className="mt-1 mr-3" />
               <Text className="text-gray-700 flex-1">
                 <Text className="font-bold">What We Extract:</Text> Race calendars, fleet details, 
                 event information, and sailing instructions.
@@ -342,7 +342,7 @@ const ClubOnboardingWebsiteVerification = () => {
             </View>
             
             <View className="flex-row items-start mb-4">
-              <Zap size={20} color="#2563EB" className="mt-1 mr-3" />
+              <Zap size={20} color="#007AFF" className="mt-1 mr-3" />
               <Text className="text-gray-700 flex-1">
                 <Text className="font-bold">How It Helps:</Text> Automatically populate your racing 
                 management system with existing data.

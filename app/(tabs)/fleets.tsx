@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   inviteButtonText: {
     fontSize: 13,
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   eventsActionPrimary: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,

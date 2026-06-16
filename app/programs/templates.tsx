@@ -264,12 +264,12 @@ export default function ProgramTemplatesScreen() {
         <View style={styles.listHeader}>
           <ThemedText style={styles.listTitle}>{formatLabel(templateType)} templates</ThemedText>
           <TouchableOpacity onPress={() => void loadTemplates()}>
-            <Ionicons name="refresh-outline" size={18} color="#2563EB" />
+            <Ionicons name="refresh-outline" size={18} color="#007AFF" />
           </TouchableOpacity>
         </View>
         {loading ? (
           <View style={styles.centerState}>
-            <ActivityIndicator size="small" color="#2563EB" />
+            <ActivityIndicator size="small" color="#007AFF" />
           </View>
         ) : templates.length === 0 ? (
           <View style={styles.centerState}>
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   chipActive: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#EFF6FF',
   },
   chipText: {
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderRadius: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

@@ -322,7 +322,7 @@ const RaceTimerProScreen = () => {
       {/* Wind Visualization */}
       <View className="w-full bg-white rounded-xl p-4 mb-6 shadow">
         <View className="flex-row items-center mb-3">
-          <Wind color="#2563EB" size={24} />
+          <Wind color="#007AFF" size={24} />
           <Text className="text-lg font-bold text-gray-800 ml-2">Wind Conditions</Text>
         </View>
         
@@ -336,7 +336,7 @@ const RaceTimerProScreen = () => {
             <Text className="text-gray-600">Direction</Text>
             <View className="flex-row items-center">
               <Navigation 
-                color="#2563EB" 
+                color="#007AFF" 
                 size={20} 
                 style={{ transform: [{ rotate: `${windData.direction}deg` }] }} 
               />
@@ -395,17 +395,17 @@ const RaceTimerProScreen = () => {
           <Text className="text-lg font-bold text-gray-800 mb-3">Current Performance</Text>
           <View className="flex-row justify-between">
             <View className="items-center">
-              <Activity color="#2563EB" size={24} />
+              <Activity color="#007AFF" size={24} />
               <Text className="text-gray-600 text-sm mt-1">Speed</Text>
               <Text className="font-bold text-lg">6.2 kn</Text>
             </View>
             <View className="items-center">
-              <Compass color="#2563EB" size={24} />
+              <Compass color="#007AFF" size={24} />
               <Text className="text-gray-600 text-sm mt-1">Heading</Text>
               <Text className="font-bold text-lg">142°</Text>
             </View>
             <View className="items-center">
-              <Navigation color="#2563EB" size={24} />
+              <Navigation color="#007AFF" size={24} />
               <Text className="text-gray-600 text-sm mt-1">Position</Text>
               <Text className="font-bold text-lg">3rd</Text>
             </View>
@@ -468,17 +468,17 @@ const RaceTimerProScreen = () => {
         
         <View className="flex-row justify-between mt-3 pt-3 border-t border-gray-100">
           <View className="items-center">
-            <Clock color="#2563EB" size={20} />
+            <Clock color="#007AFF" size={20} />
             <Text className="text-gray-600 text-sm mt-1">Starts</Text>
             <Text className="font-bold">14:00</Text>
           </View>
           <View className="items-center">
-            <Users color="#2563EB" size={20} />
+            <Users color="#007AFF" size={20} />
             <Text className="text-gray-600 text-sm mt-1">Fleet</Text>
             <Text className="font-bold">24 Boats</Text>
           </View>
           <View className="items-center">
-            <Flag color="#2563EB" size={20} />
+            <Flag color="#007AFF" size={20} />
             <Text className="text-gray-600 text-sm mt-1">Course</Text>
             <Text className="font-bold">Windward</Text>
           </View>
@@ -511,7 +511,7 @@ const RaceTimerProScreen = () => {
           {/* Performance Summary */}
           <View className="bg-white p-5 rounded-xl shadow mb-4">
             <View className="flex-row items-center mb-4">
-              <Trophy color="#2563EB" size={24} />
+              <Trophy color="#007AFF" size={24} />
               <Text className="text-lg font-bold text-gray-800 ml-2">Performance Summary</Text>
             </View>
             
@@ -532,7 +532,7 @@ const RaceTimerProScreen = () => {
           {/* Performance Metrics */}
           <View className="bg-white p-5 rounded-xl shadow mb-4">
             <View className="flex-row items-center mb-4">
-              <BarChart3 color="#2563EB" size={24} />
+              <BarChart3 color="#007AFF" size={24} />
               <Text className="text-lg font-bold text-gray-800 ml-2">Performance Metrics</Text>
             </View>
             
@@ -565,12 +565,12 @@ const RaceTimerProScreen = () => {
           {/* Conditions */}
           <View className="flex-row gap-4 mb-4">
             <View className="flex-1 bg-white p-4 rounded-xl shadow items-center">
-              <Wind color="#2563EB" size={28} />
+              <Wind color="#007AFF" size={28} />
               <Text className="text-xl font-bold mt-2">{raceData.conditions.windSpeed}</Text>
               <Text className="text-gray-600 text-center">Wind Speed</Text>
             </View>
             <View className="flex-1 bg-white p-4 rounded-xl shadow items-center">
-              <Thermometer color="#2563EB" size={28} />
+              <Thermometer color="#007AFF" size={28} />
               <Text className="text-xl font-bold mt-2">{raceData.conditions.temperature}</Text>
               <Text className="text-gray-600 text-center">Air Temp</Text>
             </View>
@@ -600,7 +600,7 @@ const RaceTimerProScreen = () => {
                   <View className="flex-row gap-3">
                     <TouchableOpacity className="flex-1 bg-blue-50 py-3 rounded-lg items-center border border-blue-200">
                       <View className="flex-row items-center">
-                        <Mic color="#2563EB" size={18} />
+                        <Mic color="#007AFF" size={18} />
                         <Text className="text-blue-600 ml-2">Record</Text>
                       </View>
                     </TouchableOpacity>
@@ -670,7 +670,7 @@ const RaceTimerProScreen = () => {
           <Text className="text-lg font-bold text-gray-800">Crew Communication</Text>
           <View className="flex-row">
             <TouchableOpacity className="mr-3">
-              <Bell color="#2563EB" size={24} />
+              <Bell color="#007AFF" size={24} />
             </TouchableOpacity>
             <TouchableOpacity>
               <Settings color="#6B7280" size={24} />
@@ -734,7 +734,7 @@ const RaceTimerProScreen = () => {
       <View className="bg-white rounded-xl shadow p-5 mb-5">
         <View className="flex-row items-center mb-4">
           <View className="w-14 h-14 rounded-full bg-blue-100 items-center justify-center mr-4">
-            <MessageCircle color="#2563EB" size={28} />
+            <MessageCircle color="#007AFF" size={28} />
           </View>
           <View>
             <Text className="font-bold text-xl text-gray-800">Race Analysis</Text>

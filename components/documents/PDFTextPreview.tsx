@@ -94,7 +94,7 @@ export const PDFTextPreview: React.FC<PDFTextPreviewProps> = ({
 
         {/* Quality Check Info */}
         <View className="flex-row items-start mt-3 bg-blue-50 p-3 rounded-lg">
-          <AlertCircle color="#2563EB" size={18} />
+          <AlertCircle color="#007AFF" size={18} />
           <Text className="text-blue-900 text-xs ml-2 flex-1">
             Please review the extracted text to ensure accuracy. You can edit it before AI processing if needed.
           </Text>
@@ -119,7 +119,7 @@ export const PDFTextPreview: React.FC<PDFTextPreviewProps> = ({
                 onEdit(text);
               }}
             >
-              <Edit color="#2563EB" size={18} />
+              <Edit color="#007AFF" size={18} />
               <Text className="text-blue-600 font-bold ml-2">Edit Text</Text>
             </TouchableOpacity>
           )}

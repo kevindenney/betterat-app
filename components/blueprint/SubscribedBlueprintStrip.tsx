@@ -15,7 +15,7 @@ import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 const C = {
   bg: 'rgba(37,99,235,0.04)',
   border: 'rgba(37,99,235,0.08)',
-  accent: '#2563EB',
+  accent: '#007AFF',
   accentLight: '#3B82F6',
   label: '#1A1918',
   labelMid: '#6D6C6A',

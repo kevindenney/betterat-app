@@ -328,12 +328,12 @@ export function PostDetailScreen({ postId, onBack }: PostDetailScreenProps) {
                 <Ionicons
                   name={post.user_vote === 1 ? 'arrow-up' : 'arrow-up-outline'}
                   size={18}
-                  color={post.user_vote === 1 ? '#2563EB' : '#6B7280'}
+                  color={post.user_vote === 1 ? '#007AFF' : '#6B7280'}
                 />
               </Pressable>
               <Text style={[
                 styles.voteScore,
-                post.user_vote === 1 && { color: '#2563EB' },
+                post.user_vote === 1 && { color: '#007AFF' },
                 post.user_vote === -1 && { color: '#EF4444' },
               ]}>
                 {(post.upvotes || 0) - (post.downvotes || 0)}

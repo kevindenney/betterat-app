@@ -427,7 +427,7 @@ export default function CatalogScreen() {
 
       {loading ? (
         <View style={styles.centerState}>
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color="#007AFF" />
           <Text style={styles.stateText}>Loading catalog…</Text>
         </View>
       ) : null}
@@ -451,7 +451,7 @@ export default function CatalogScreen() {
                 <View key={interest.id} style={styles.card}>
                   <View style={styles.rowBetween}>
                     <View style={styles.rowGrow}>
-                      <View style={[styles.dot, { backgroundColor: interest.accent_color || '#2563EB' }]} />
+                      <View style={[styles.dot, { backgroundColor: interest.accent_color || '#007AFF' }]} />
                       <View style={styles.rowGrow}>
                         <Text style={styles.cardTitle}>{interest.name}</Text>
                         <Text style={styles.cardMeta}>{interest.slug}</Text>
@@ -542,7 +542,7 @@ export default function CatalogScreen() {
               </ScrollView>
               {(catalogLoading || orgContentLoading) ? (
                 <View style={styles.centerState}>
-                  <ActivityIndicator size="small" color="#2563EB" />
+                  <ActivityIndicator size="small" color="#007AFF" />
                   <Text style={styles.stateText}>Loading content catalog…</Text>
                 </View>
               ) : null}
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   filterPillActive: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#EFF6FF',
   },
   filterPillText: {
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
   },
   retryBtn: {
     marginTop: 4,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,

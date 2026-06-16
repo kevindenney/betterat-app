@@ -136,7 +136,7 @@ export function RaceCommsModal({
                     <Text style={styles.channelTitle}>SMS</Text>
                   </View>
                   <TouchableOpacity onPress={() => copyContent(draft.sms)}>
-                    <Ionicons name="copy-outline" size={18} color="#2563EB" />
+                    <Ionicons name="copy-outline" size={18} color="#007AFF" />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.channelBody}>{draft.sms}</Text>
@@ -149,7 +149,7 @@ export function RaceCommsModal({
                     <Text style={styles.channelTitle}>Email</Text>
                   </View>
                   <TouchableOpacity onPress={() => copyContent(draft.email)}>
-                    <Ionicons name="copy-outline" size={18} color="#2563EB" />
+                    <Ionicons name="copy-outline" size={18} color="#007AFF" />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.channelBody}>{draft.email}</Text>
@@ -162,7 +162,7 @@ export function RaceCommsModal({
                     <Text style={styles.channelTitle}>Notice board</Text>
                   </View>
                   <TouchableOpacity onPress={() => copyContent(draft.notice_board)}>
-                    <Ionicons name="copy-outline" size={18} color="#2563EB" />
+                    <Ionicons name="copy-outline" size={18} color="#007AFF" />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.channelBody}>{draft.notice_board}</Text>
@@ -170,7 +170,7 @@ export function RaceCommsModal({
             </View>
           ) : (
             <View style={styles.placeholder}>
-              <Ionicons name="sparkles-outline" size={42} color="#2563EB" style={{ marginBottom: 12 }} />
+              <Ionicons name="sparkles-outline" size={42} color="#007AFF" style={{ marginBottom: 12 }} />
               <Text style={styles.placeholderTitle}>Draft race-day comms instantly</Text>
               <Text style={styles.placeholderText}>
                 Updates summarize weather, registrations, and schedule for SMS,

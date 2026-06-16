@@ -241,5 +241,5 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
 
-  showMore: { fontSize: 13, color: '#2563EB', fontWeight: '500', textAlign: 'center', paddingVertical: 8 },
+  showMore: { fontSize: 13, color: '#007AFF', fontWeight: '500', textAlign: 'center', paddingVertical: 8 },
 });

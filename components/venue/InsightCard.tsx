@@ -141,7 +141,7 @@ export function InsightCard({
           }}
           disabled={!insight.location_coords || !onShowOnMap}
         >
-          <Ionicons name="location" size={14} color="#2563EB" />
+          <Ionicons name="location" size={14} color="#007AFF" />
           <ThemedText style={styles.locationText}>{insight.location_name}</ThemedText>
           {insight.location_coords && onShowOnMap && (
             <ThemedText style={styles.showOnMapText}>Show on map</ThemedText>
@@ -300,12 +300,12 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 13,
-    color: '#2563EB',
+    color: '#007AFF',
     flex: 1,
   },
   showOnMapText: {
     fontSize: 12,
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '500',
   },
   verificationRow: {

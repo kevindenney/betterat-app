@@ -1151,7 +1151,7 @@ export function TimelineGridView({
         {reorderMode && showReorderIntro ? (
           <Pressable onPress={dismissReorderIntro} style={gridStyles.reorderIntroCallout}>
             <View style={gridStyles.reorderIntroIconWrap}>
-              <Ionicons name="hand-left" size={22} color="#2563EB" />
+              <Ionicons name="hand-left" size={22} color="#007AFF" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={gridStyles.reorderIntroTitle}>Reorder by tap, not drag</Text>
@@ -2004,7 +2004,7 @@ const gridStyles = StyleSheet.create({
     flex: 1,
   },
   reorderHelpTextActive: {
-    color: '#2563EB',
+    color: '#007AFF',
   },
   monthSection: {
     marginBottom: 20,

@@ -503,7 +503,7 @@ export default function OrganizationAccessSettingsScreen() {
 
         {!ready || loading ? (
           <View style={styles.loadingBlock}>
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color="#007AFF" />
             <Text style={styles.loadingText}>Loading organization memberships...</Text>
           </View>
         ) : membershipLoadError ? (
@@ -555,7 +555,7 @@ export default function OrganizationAccessSettingsScreen() {
                     {isActive ? (
                       <View style={styles.row}>
                         <Text style={styles.currentBadge}>Current</Text>
-                        <CheckCircle2 size={20} color="#2563EB" />
+                        <CheckCircle2 size={20} color="#007AFF" />
                       </View>
                     ) : (
                       <Circle size={20} color="#9CA3AF" />
@@ -675,7 +675,7 @@ export default function OrganizationAccessSettingsScreen() {
 
               {inviteHistoryLoading ? (
                 <View style={[styles.row, styles.mt3]}>
-                  <ActivityIndicator size="small" color="#2563EB" />
+                  <ActivityIndicator size="small" color="#007AFF" />
                   <Text style={styles.inlineLoadingText}>Loading invite history...</Text>
                 </View>
               ) : inviteHistory.length === 0 ? (
@@ -711,7 +711,7 @@ export default function OrganizationAccessSettingsScreen() {
               >
                 <View style={styles.visibilityIcon}>
                   {defaultContentVisibility === 'public' ? (
-                    <CheckCircle2 size={18} color="#2563EB" />
+                    <CheckCircle2 size={18} color="#007AFF" />
                   ) : (
                     <Circle size={18} color="#9CA3AF" />
                   )}
@@ -729,7 +729,7 @@ export default function OrganizationAccessSettingsScreen() {
               >
                 <View style={styles.visibilityIcon}>
                   {defaultContentVisibility === 'org_members' ? (
-                    <CheckCircle2 size={18} color="#2563EB" />
+                    <CheckCircle2 size={18} color="#007AFF" />
                   ) : (
                     <Circle size={18} color="#9CA3AF" />
                   )}
@@ -748,7 +748,7 @@ export default function OrganizationAccessSettingsScreen() {
 
               {savingVisibility && (
                 <View style={[styles.row, styles.mt3]}>
-                  <ActivityIndicator size="small" color="#2563EB" />
+                  <ActivityIndicator size="small" color="#007AFF" />
                   <Text style={styles.inlineLoadingText}>Saving visibility setting...</Text>
                 </View>
               )}
@@ -946,7 +946,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     alignSelf: 'flex-start',
   },

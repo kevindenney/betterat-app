@@ -122,7 +122,7 @@ function DemoRegulatoryDigestCard({ digest, acknowledgements, onToggle: _onToggl
             <MaterialCommunityIcons
               name={acknowledgements[item.key] ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
               size={20}
-              color={acknowledgements[item.key] ? '#2563EB' : '#CBD5F5'}
+              color={acknowledgements[item.key] ? '#007AFF' : '#CBD5F5'}
             />
             <View className="flex-1">
               <Text className="text-xs font-semibold text-slate-800">{item.label}</Text>
@@ -392,7 +392,7 @@ export function DemoRaceDetail({ race, onAddRace, onLogisticsSectionLayout, onRe
                     accessibilityRole="button"
                     className="flex-row items-center"
                   >
-                    <MaterialCommunityIcons name="chat-processing-outline" size={16} color="#2563EB" />
+                    <MaterialCommunityIcons name="chat-processing-outline" size={16} color="#007AFF" />
                     <Text className="text-xs font-semibold text-blue-600 ml-1">Review chat</Text>
                   </TouchableOpacity>
                 </View>

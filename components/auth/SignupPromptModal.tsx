@@ -41,7 +41,7 @@ interface SignupPromptModalProps {
   message?: string;
 }
 
-const ACCENT = '#2563EB';
+const ACCENT = '#007AFF';
 const BRAND_DARK = '#0B1A33';
 const CREAM = '#FAF8F5';
 
@@ -324,9 +324,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.06)',
+    backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.10)',
+    borderColor: 'rgba(0, 122, 255, 0.10)',
   },
   brandPillMark: {
     width: 24,
@@ -359,14 +359,14 @@ const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: 'rgba(37, 99, 235, 0.06)',
+    backgroundColor: 'rgba(0, 122, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.12)',
+    borderColor: 'rgba(0, 122, 255, 0.12)',
   },
   iconCircle: {
     width: 76,
     height: 76,
-    backgroundColor: 'rgba(37, 99, 235, 0.10)',
+    backgroundColor: 'rgba(0, 122, 255, 0.10)',
     borderRadius: 38,
     alignItems: 'center',
     justifyContent: 'center',
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.18)',
+    borderColor: 'rgba(0, 122, 255, 0.18)',
     borderRadius: 16,
     paddingVertical: 22,
     paddingHorizontal: 20,
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
       },
       android: { elevation: 2 },
-      web: { boxShadow: '0 4px 16px rgba(37, 99, 235, 0.08)' as any },
+      web: { boxShadow: '0 4px 16px rgba(0, 122, 255, 0.08)' as any },
     }),
   },
   freeBadge: {
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
         shadowRadius: 16,
       },
       android: { elevation: 6 },
-      web: { boxShadow: '0 8px 16px rgba(37, 99, 235, 0.32)' as any },
+      web: { boxShadow: '0 8px 16px rgba(0, 122, 255, 0.32)' as any },
     }),
   },
   primaryButtonPressed: {

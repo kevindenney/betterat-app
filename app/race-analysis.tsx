@@ -194,12 +194,12 @@ const RaceAnalysisScreen = () => {
         {conditions && (
           <View className="flex-row gap-4">
             <View className="flex-1 bg-white p-4 rounded-xl border border-gray-200 items-center">
-              <Wind color="#2563EB" size={24} />
+              <Wind color="#007AFF" size={24} />
               <Text className="text-lg font-bold mt-2">{conditions.windSpeed}</Text>
               <Text className="text-gray-600 text-center">Wind Speed</Text>
             </View>
             <View className="flex-1 bg-white p-4 rounded-xl border border-gray-200 items-center">
-              <Droplets color="#2563EB" size={24} />
+              <Droplets color="#007AFF" size={24} />
               <Text className="text-lg font-bold mt-2">{conditions.waveHeight}</Text>
               <Text className="text-gray-600 text-center">Wave Height</Text>
             </View>
@@ -218,17 +218,17 @@ const RaceAnalysisScreen = () => {
           <Text className="text-lg font-bold text-gray-800 mb-3">Race Conditions</Text>
           <View className="gap-3">
             <View className="flex-row items-center">
-              <Wind color="#2563EB" size={20} />
+              <Wind color="#007AFF" size={20} />
               <Text className="ml-2 text-gray-600 flex-1">Wind Speed</Text>
               <Text className="font-medium">{conditions.windSpeed}</Text>
             </View>
             <View className="flex-row items-center">
-              <MapPin color="#2563EB" size={20} />
+              <MapPin color="#007AFF" size={20} />
               <Text className="ml-2 text-gray-600 flex-1">Wind Direction</Text>
               <Text className="font-medium">{conditions.windDirection}</Text>
             </View>
             <View className="flex-row items-center">
-              <Droplets color="#2563EB" size={20} />
+              <Droplets color="#007AFF" size={20} />
               <Text className="ml-2 text-gray-600 flex-1">Wave Height</Text>
               <Text className="font-medium">{conditions.waveHeight}</Text>
             </View>
@@ -256,7 +256,7 @@ const RaceAnalysisScreen = () => {
   if (loading) {
     return (
       <View className="flex-1 bg-gray-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
         <Text className="text-gray-600 mt-3">Loading race analysis...</Text>
       </View>
     );

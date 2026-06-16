@@ -65,7 +65,7 @@ const MISSION_PLANS: MissionPlan[] = [
     ],
     cta: 'Request a pilot',
     emailSubject: 'BetterAt — Block pilot enquiry',
-    accentColor: '#2563EB',
+    accentColor: '#007AFF',
     iconName: 'leaf-outline',
   },
   {

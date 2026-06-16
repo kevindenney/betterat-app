@@ -119,7 +119,7 @@ onPress={() => toggleVerification(item.id)}
 className="p-2 rounded-full bg-blue-100"
 onPress={() => startEditing(item)}
 >
-<Edit3 color="#2563EB" size={20} />
+<Edit3 color="#007AFF" size={20} />
 </TouchableOpacity>
 
 <TouchableOpacity 
@@ -165,7 +165,7 @@ return (
 <View className="bg-white pt-4 pb-2 px-4 shadow-sm">
 <View className="flex-row items-center mb-4">
 <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mr-3">
-<Users size={24} color="#2563EB" />
+<Users size={24} color="#007AFF" />
 </View>
 <View>
 <Text className="text-2xl font-bold text-gray-800">Fleet Verification</Text>

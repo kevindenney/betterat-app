@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
   effectivenessText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   sailMetrics: {
     flexDirection: 'row',

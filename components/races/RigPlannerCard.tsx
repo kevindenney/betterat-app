@@ -61,7 +61,7 @@ export function RigPlannerCard({
             accessibilityRole="button"
             style={styles.chatButton}
           >
-            <MaterialCommunityIcons name="chat-processing-outline" size={16} color="#2563EB" />
+            <MaterialCommunityIcons name="chat-processing-outline" size={16} color="#007AFF" />
             <Text style={styles.chatButtonText}>Review chat</Text>
           </TouchableOpacity>
         )}
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   chatButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
     marginLeft: 4,
   },
   warningContainer: {
@@ -234,8 +234,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   presetButtonActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
   },
   presetButtonInactive: {
     backgroundColor: '#EFF6FF',

@@ -23,7 +23,7 @@ export default function OnboardingIndex() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#2563EB" />
+      <ActivityIndicator size="large" color="#007AFF" />
     </View>
   );
 }

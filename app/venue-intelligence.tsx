@@ -72,7 +72,7 @@ export default function VenueIntelligenceScreen() {
       {/* Header */}
       <View className="bg-white shadow-sm py-4 px-4">
         <View className="flex-row items-center">
-          <MapPin color="#2563EB" size={24} />
+          <MapPin color="#007AFF" size={24} />
           <Text className="text-2xl font-bold text-gray-800 ml-2">Venue Intelligence</Text>
         </View>
       </View>
@@ -100,7 +100,7 @@ export default function VenueIntelligenceScreen() {
           
           <View className="flex-row justify-between mb-4">
             <View className="flex-row items-center">
-              <Thermometer color="#2563EB" size={24} />
+              <Thermometer color="#007AFF" size={24} />
               <Text className="text-3xl font-bold text-gray-800 ml-2">{venueData.weather.temperature}°F</Text>
             </View>
             <Text className="text-lg text-gray-600 self-center">{venueData.weather.condition}</Text>
@@ -147,7 +147,7 @@ export default function VenueIntelligenceScreen() {
           
           <View className="flex-row justify-between mb-4">
             <View className="items-center">
-              <Navigation color="#2563EB" size={32} className="mb-1" />
+              <Navigation color="#007AFF" size={32} className="mb-1" />
               <Text className="text-gray-600 text-sm">Course Type</Text>
               <Text className="font-medium">{venueData.course.type}</Text>
             </View>

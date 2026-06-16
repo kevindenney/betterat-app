@@ -102,7 +102,7 @@ export default function ChooseStartScreen() {
   }, [orderedInterests, handleGo, isNavigating]);
 
   const selectedInterest = orderedInterests.find((i) => i.slug === selectedSlug);
-  const accentColor = selectedInterest?.accent_color || '#2563EB';
+  const accentColor = selectedInterest?.accent_color || '#007AFF';
 
   return (
     <View style={styles.container}>

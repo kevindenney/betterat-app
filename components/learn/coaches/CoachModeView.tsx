@@ -289,7 +289,7 @@ const localStyles = StyleSheet.create({
   clientAvatarText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   clientContent: {
     flex: 1,

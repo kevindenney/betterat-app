@@ -175,7 +175,7 @@ export default function SessionBuilderScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingState}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#007AFF" />
           <ThemedText style={styles.loadingText}>Loading session builder…</ThemedText>
         </View>
       </ThemedView>
@@ -186,7 +186,7 @@ export default function SessionBuilderScreen() {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
-          <Ionicons name="construct-outline" size={20} color="#2563EB" />
+          <Ionicons name="construct-outline" size={20} color="#007AFF" />
           <View>
             <ThemedText style={styles.title}>Session Builder</ThemedText>
             <ThemedText style={styles.subtitle}>Objectives, checklist, attendance, and quick notes.</ThemedText>
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     backgroundColor: '#FFFFFF',
   },
-  chipActive: { borderColor: '#2563EB', backgroundColor: '#DBEAFE' },
+  chipActive: { borderColor: '#007AFF', backgroundColor: '#DBEAFE' },
   chipText: { fontSize: 12, color: '#475569', fontWeight: '600' },
   chipTextActive: { color: '#1D4ED8' },
   input: {
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   saveButton: {
     marginTop: 4,
     borderRadius: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 11,
     paddingHorizontal: 12,
     flexDirection: 'row',

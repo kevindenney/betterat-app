@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   wrapperHighlight: {
     borderRadius: 10,
-    shadowColor: '#2563EB',
+    shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.36,
     shadowRadius: 14,
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     paddingHorizontal: 14,
     paddingVertical: 6,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 8,
   },
   dismissText: {

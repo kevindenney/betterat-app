@@ -47,7 +47,7 @@ const C = {
   labelLight: '#9C9B99',
   green: '#16A34A',
   greenBg: '#DCFCE7',
-  blue: '#2563EB',
+  blue: '#007AFF',
   blueBg: '#DBEAFE',
   yellow: '#CA8A04',
   yellowBg: '#FEF9C3',

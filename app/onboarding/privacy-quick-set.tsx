@@ -64,7 +64,7 @@ export default function PrivacyQuickSetScreen() {
   }, []);
 
   const ctx = getOnboardingContext(interestSlug || undefined);
-  const accentColor = ctx.color !== '#1A1A1A' ? ctx.color : '#2563EB';
+  const accentColor = ctx.color !== '#1A1A1A' ? ctx.color : '#007AFF';
 
   const navigateNext = useCallback(async () => {
     if (hasNavigatedRef.current) return;

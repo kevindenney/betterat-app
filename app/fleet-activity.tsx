@@ -87,7 +87,7 @@ export default function FleetActivityScreen() {
     <View className="flex-1 bg-gray-50">
       {/* Header */}
       <LinearGradient 
-        colors={['#2563EB', '#3b82f6']} 
+        colors={['#007AFF', '#3b82f6']} 
         className="pt-12 pb-6 px-4"
       >
         <View className="flex-row justify-between items-center mb-4">
@@ -155,7 +155,7 @@ export default function FleetActivityScreen() {
                 className="bg-white rounded-xl shadow-sm p-4 mb-4 flex-row"
               >
                 <View className="bg-blue-50 w-16 h-16 rounded-lg items-center justify-center mr-4">
-                  <Calendar color="#2563EB" size={24} />
+                  <Calendar color="#007AFF" size={24} />
                   <Text className="text-blue-600 font-bold mt-1">{new Date(event.date).getDate()}</Text>
                   <Text className="text-blue-600 text-xs">{new Date(event.date).toLocaleString('default', { month: 'short' })}</Text>
                 </View>
@@ -204,7 +204,7 @@ export default function FleetActivityScreen() {
                     )}
                   </View>
                 </View>
-                <Activity color="#2563EB" size={20} />
+                <Activity color="#007AFF" size={20} />
               </View>
             ))}
           </View>

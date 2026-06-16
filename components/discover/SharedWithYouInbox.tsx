@@ -68,7 +68,7 @@ export function SharedWithYouInbox({ items, isLoading, onView, onFork, onComment
 
           <View style={styles.actionRow}>
             <Pressable style={styles.action} onPress={() => onView(item)}>
-              <ExternalLink size={14} color="#2563EB" />
+              <ExternalLink size={14} color="#007AFF" />
               <Text style={styles.actionText}>View</Text>
             </Pressable>
             <Pressable
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardUnread: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#EFF6FF',
   },
   headerRow: {
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   title: {
     fontSize: 18,
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   actionTextDisabled: {
     color: '#9CA3AF',

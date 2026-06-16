@@ -24,7 +24,7 @@ const TIER_ORDER: SailorTier[] = ['free', 'plus', 'pro'];
 
 const TIER_COLORS: Partial<Record<SailorTier, string>> = {
   free: '#64748B',
-  plus: '#2563EB',
+  plus: '#007AFF',
   pro: '#7C3AED',
 };
 
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   trialButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,

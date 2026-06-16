@@ -120,13 +120,13 @@ export function ResourceUploadComposer({ visible, onClose, onSubmit, fleetName, 
 
             {!selectedFile ? (
               <TouchableOpacity style={styles.uploadButton} onPress={handlePickDocument}>
-                <MaterialCommunityIcons name="cloud-upload-outline" size={32} color="#2563EB" />
+                <MaterialCommunityIcons name="cloud-upload-outline" size={32} color="#007AFF" />
                 <Text style={styles.uploadButtonTitle}>Choose File</Text>
                 <Text style={styles.uploadButtonSubtitle}>PDF, images, or sailing documents</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.selectedFileCard}>
-                <MaterialCommunityIcons name="file-document-outline" size={40} color="#2563EB" />
+                <MaterialCommunityIcons name="file-document-outline" size={40} color="#007AFF" />
                 <View style={styles.selectedFileInfo}>
                   <Text style={styles.selectedFileName}>{selectedFile.name}</Text>
                   <Text style={styles.selectedFileStatus}>Ready to share</Text>
@@ -168,7 +168,7 @@ export function ResourceUploadComposer({ visible, onClose, onSubmit, fleetName, 
                 <MaterialCommunityIcons
                   name="bell-ring-outline"
                   size={22}
-                  color={notifyFollowers ? '#2563EB' : '#64748B'}
+                  color={notifyFollowers ? '#007AFF' : '#64748B'}
                 />
                 <View style={styles.optionText}>
                   <Text style={styles.optionTitle}>Notify fleet followers</Text>
@@ -184,7 +184,7 @@ export function ResourceUploadComposer({ visible, onClose, onSubmit, fleetName, 
                 <MaterialCommunityIcons
                   name={notifyFollowers ? 'checkbox-marked' : 'checkbox-blank-outline'}
                   size={24}
-                  color={notifyFollowers ? '#2563EB' : '#94A3B8'}
+                  color={notifyFollowers ? '#007AFF' : '#94A3B8'}
                 />
               </TouchableOpacity>
             </View>
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   submitButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,

@@ -210,7 +210,7 @@ export function FleetInviteSheet({ visible, onClose, fleetId, fleetName }: Props
               disabled={emailState[emailInput] === 'pending'}
             >
               <View style={styles.emailIcon}>
-                <Ionicons name="mail-outline" size={18} color="#2563EB" />
+                <Ionicons name="mail-outline" size={18} color="#007AFF" />
               </View>
               <View style={styles.rowText}>
                 <Text style={styles.rowName} numberOfLines={1}>{emailInput}</Text>
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
   },
   headerSide: { width: 56 },
-  headerLink: { fontSize: 15, color: '#2563EB' },
+  headerLink: { fontSize: 15, color: '#007AFF' },
   headerTitleWrap: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 16, fontWeight: '600', color: '#0F172A' },
   headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     minWidth: 72,
     justifyContent: 'center',
   },
-  ctaIdle: { backgroundColor: '#2563EB' },
+  ctaIdle: { backgroundColor: '#007AFF' },
   ctaIdleText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
   ctaPending: { backgroundColor: '#F1F5F9' },
   ctaSent: { backgroundColor: '#DCFCE7' },

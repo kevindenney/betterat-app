@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   ctaButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,

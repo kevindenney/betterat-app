@@ -332,7 +332,7 @@ export default function OrganizationAccessRequestsScreen() {
 
       {!orgReady || orgLoading ? (
         <View style={styles.centerState}>
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color="#007AFF" />
         </View>
       ) : !hasValidActiveOrgId ? (
         <View style={styles.centerState}>
@@ -355,7 +355,7 @@ export default function OrganizationAccessRequestsScreen() {
             <View style={styles.listHeader}>
               <Text style={styles.sectionTitle}>Pending requests</Text>
               <TouchableOpacity onPress={() => void loadPendingRequests()}>
-                <Ionicons name="refresh-outline" size={18} color="#2563EB" />
+                <Ionicons name="refresh-outline" size={18} color="#007AFF" />
               </TouchableOpacity>
             </View>
 
@@ -364,7 +364,7 @@ export default function OrganizationAccessRequestsScreen() {
 
             {loading ? (
               <View style={styles.centerStateCompact}>
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color="#007AFF" />
               </View>
             ) : requests.length === 0 ? (
               <Text style={styles.stateText}>No pending requests.</Text>
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   },
   requestBlueprintHint: {
     fontSize: 11,
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '500',
   },
   actionRow: {
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     marginTop: 4,
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',

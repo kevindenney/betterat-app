@@ -64,7 +64,7 @@ export function CommunityFeedHeader({
               <Ionicons
                 name={option.icon as any}
                 size={14}
-                color={isSelected ? '#2563EB' : '#6B7280'}
+                color={isSelected ? '#007AFF' : '#6B7280'}
               />
               <Text style={[styles.sortTabText, isSelected && styles.sortTabTextSelected]}>
                 {option.label}
@@ -107,7 +107,7 @@ export function CommunityFeedHeader({
                 style={[
                   styles.typeChipText,
                   isSelected && {
-                    color: isAll ? '#2563EB' : config?.color || '#374151',
+                    color: isAll ? '#007AFF' : config?.color || '#374151',
                     fontWeight: '600',
                   },
                 ]}
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   sortTabTextSelected: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
   // Post type filter

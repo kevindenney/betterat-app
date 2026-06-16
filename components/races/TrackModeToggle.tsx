@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   activeButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   disabledButton: {
     opacity: 0.4,

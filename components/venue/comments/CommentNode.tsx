@@ -128,13 +128,13 @@ export function CommentNode({ comment, depth, currentUserId, onReply, onVote, on
               <Ionicons
                 name={isUpvoted ? 'arrow-up' : 'arrow-up-outline'}
                 size={14}
-                color={isUpvoted ? '#2563EB' : '#9CA3AF'}
+                color={isUpvoted ? '#007AFF' : '#9CA3AF'}
               />
             </Pressable>
             {score !== 0 && (
               <Text style={[
                 styles.scoreText,
-                isUpvoted && { color: '#2563EB' },
+                isUpvoted && { color: '#007AFF' },
                 isDownvoted && { color: '#EF4444' },
               ]}>
                 {score}
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   editSaveButton: {
     paddingHorizontal: 12,
     paddingVertical: 4,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 4,
   },
   editSaveText: {

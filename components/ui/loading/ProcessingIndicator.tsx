@@ -25,7 +25,7 @@ export const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({
 
   return (
     <View className="items-center justify-center py-6">
-      <Spinner size={sizeMap[size]} color="#2563EB" />
+      <Spinner size={sizeMap[size]} color="#007AFF" />
       <Text className={`text-typography-600 mt-3 ${textSizeMap[size]}`}>
         {message}
       </Text>

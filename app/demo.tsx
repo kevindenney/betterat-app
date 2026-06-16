@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   ctaText: {
     fontSize: 12.5,

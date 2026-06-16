@@ -424,7 +424,7 @@ export function ClubOnboardingChat({ interestSlug, onSkipToManual }: ClubOnboard
               onPress={handleCreateOrg}
               disabled={creatingOrg}
               style={{
-                backgroundColor: creatingOrg ? '#93C5FD' : '#2563EB',
+                backgroundColor: creatingOrg ? '#93C5FD' : '#007AFF',
                 paddingVertical: 16,
                 borderRadius: 12,
                 alignItems: 'center',

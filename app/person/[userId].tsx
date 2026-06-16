@@ -485,7 +485,7 @@ function DbUserProfile({ userId }: { userId: string }) {
 
       {loading ? (
         <View style={[dbStyles.centerState, isOwner && { paddingTop: toolbarHeight }]}>
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color="#007AFF" />
           <Text style={dbStyles.stateText}>Loading profile…</Text>
         </View>
       ) : null}

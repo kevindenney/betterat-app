@@ -374,7 +374,7 @@ export default function EventsScreen() {
             onPress={() => router.push('/club/event/create')}
           >
             <LinearGradient
-              colors={['#3B82F6', '#2563EB']}
+              colors={['#3B82F6', '#007AFF']}
               style={styles.heroButtonGradient}
             >
               <Ionicons name="add" size={20} color="#FFF" />

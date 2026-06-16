@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nextButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

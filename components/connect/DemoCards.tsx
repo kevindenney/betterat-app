@@ -89,9 +89,9 @@ function DemoCommentRow({ comment }: { comment: DemoComment }) {
             <Ionicons
               name={upvoted ? 'arrow-up' : 'arrow-up-outline'}
               size={12}
-              color={upvoted ? '#2563EB' : IOS_COLORS.tertiaryLabel}
+              color={upvoted ? '#007AFF' : IOS_COLORS.tertiaryLabel}
             />
-            <Text style={[s.commentUpvotes, upvoted && { color: '#2563EB', fontWeight: '600' }]}>
+            <Text style={[s.commentUpvotes, upvoted && { color: '#007AFF', fontWeight: '600' }]}>
               {displayUpvotes}
             </Text>
           </Pressable>
@@ -186,9 +186,9 @@ export function DemoPostCard({ post }: { post: DemoPost }) {
           <Ionicons
             name={upvoted ? 'arrow-up' : 'arrow-up-outline'}
             size={15}
-            color={upvoted ? '#2563EB' : IOS_COLORS.secondaryLabel}
+            color={upvoted ? '#007AFF' : IOS_COLORS.secondaryLabel}
           />
-          <Text style={[s.postMetricText, upvoted && { color: '#2563EB', fontWeight: '600' }]}>
+          <Text style={[s.postMetricText, upvoted && { color: '#007AFF', fontWeight: '600' }]}>
             {displayUpvotes}
           </Text>
         </Pressable>
@@ -203,9 +203,9 @@ export function DemoPostCard({ post }: { post: DemoPost }) {
           <Ionicons
             name={expanded ? 'chatbubble' : 'chatbubble-outline'}
             size={13}
-            color={expanded ? '#2563EB' : IOS_COLORS.secondaryLabel}
+            color={expanded ? '#007AFF' : IOS_COLORS.secondaryLabel}
           />
-          <Text style={[s.postMetricText, expanded && { color: '#2563EB', fontWeight: '600' }]}>
+          <Text style={[s.postMetricText, expanded && { color: '#007AFF', fontWeight: '600' }]}>
             {displayCommentCount}
           </Text>
         </Pressable>
@@ -230,7 +230,7 @@ export function DemoPostCard({ post }: { post: DemoPost }) {
 
           {/* Comment input */}
           <View style={s.commentInputRow}>
-            <View style={[s.commentAvatar, { backgroundColor: '#2563EB' }]}>
+            <View style={[s.commentAvatar, { backgroundColor: '#007AFF' }]}>
               <Text style={s.commentAvatarText}>ME</Text>
             </View>
             <View style={s.commentInputWrapper}>
@@ -248,7 +248,7 @@ export function DemoPostCard({ post }: { post: DemoPost }) {
             </View>
             {commentText.trim().length > 0 && (
               <Pressable onPress={handleSubmitComment} style={s.commentSendButton}>
-                <Ionicons name="send" size={18} color="#2563EB" />
+                <Ionicons name="send" size={18} color="#007AFF" />
               </Pressable>
             )}
           </View>
@@ -378,7 +378,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 7,
     borderRadius: 18,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   followButtonActive: {
     backgroundColor: IOS_COLORS.tertiarySystemFill,
@@ -631,7 +631,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 7,
     borderRadius: 18,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   joinButtonActive: {
     backgroundColor: IOS_COLORS.tertiarySystemFill,
@@ -670,7 +670,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   emptyStateCtaText: {
     fontSize: 14,

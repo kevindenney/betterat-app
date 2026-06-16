@@ -120,7 +120,7 @@ export function ClubAiAssistant({
 
       {assistantMeta?.suggestedAction && (
         <View style={styles.metaCard}>
-          <Ionicons name="bulb-outline" size={18} color="#2563EB" style={{ marginRight: 8 }} />
+          <Ionicons name="bulb-outline" size={18} color="#007AFF" style={{ marginRight: 8 }} />
           <View style={{ flex: 1 }}>
             <Text style={styles.metaTitle}>Suggested action</Text>
             <Text style={styles.metaText}>{assistantMeta.suggestedAction}</Text>
@@ -161,7 +161,7 @@ export function ClubAiAssistant({
         ListFooterComponent={
           isSending ? (
             <View style={styles.typingIndicator}>
-              <ActivityIndicator size="small" color="#2563EB" />
+              <ActivityIndicator size="small" color="#007AFF" />
               <Text style={styles.typingText}>Drafting a reply…</Text>
             </View>
           ) : null
@@ -176,7 +176,7 @@ export function ClubAiAssistant({
             style={styles.suggestionChip}
             onPress={() => setInput(suggestion)}
           >
-            <Ionicons name="flash-outline" size={16} color="#2563EB" style={{ marginRight: 6 }} />
+            <Ionicons name="flash-outline" size={16} color="#007AFF" style={{ marginRight: 6 }} />
             <Text style={styles.suggestionText}>{suggestion}</Text>
           </TouchableOpacity>
         ))}
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     height: 28,
     width: 28,
     borderRadius: 14,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 4,
   },
   userBubble: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderTopRightRadius: 4,
   },
   messageText: {
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     height: 40,
     width: 40,
     borderRadius: 20,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
   },

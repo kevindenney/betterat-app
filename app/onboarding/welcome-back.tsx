@@ -71,7 +71,7 @@ function LogoAnimation() {
   return (
     <Animated.View style={[styles.logoContainer, logoStyle]}>
       <LinearGradient
-        colors={['#2563EB', '#1D4ED8']}
+        colors={['#007AFF', '#1D4ED8']}
         style={styles.logoCircle}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2563EB',
+    shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.15)',
+    borderColor: 'rgba(0, 122, 255, 0.15)',
   },
   ring1: {
     width: 120,
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     height: 140,
     top: 0,
     left: 0,
-    borderColor: 'rgba(37, 99, 235, 0.08)',
+    borderColor: 'rgba(0, 122, 255, 0.08)',
   },
   messageContainer: {
     alignItems: 'center',
@@ -271,11 +271,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 18,
     borderRadius: 16,
     gap: 10,
-    shadowColor: '#2563EB',
+    shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

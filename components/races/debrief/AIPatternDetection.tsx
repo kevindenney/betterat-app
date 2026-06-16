@@ -150,7 +150,7 @@ export const AIPatternDetection: React.FC = () => {
         <View style={styles.content}>
           <View style={styles.metaCard}>
             <View style={styles.metaRow}>
-              <Ionicons name="compass-outline" size={18} color="#2563EB" />
+              <Ionicons name="compass-outline" size={18} color="#007AFF" />
               <Text style={styles.metaLabel}>
                 {profile.racesAnalyzed} race{profile.racesAnalyzed === 1 ? '' : 's'} analyzed
               </Text>

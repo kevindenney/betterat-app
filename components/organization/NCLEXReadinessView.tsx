@@ -103,7 +103,7 @@ export function NCLEXReadinessView({ atRiskStudents, totalStudents, onStudentPre
 
             {/* Recommended action */}
             <View style={styles.recommendedAction}>
-              <Ionicons name="bulb-outline" size={14} color="#2563EB" />
+              <Ionicons name="bulb-outline" size={14} color="#007AFF" />
               <Text style={styles.recommendedText}>
                 Schedule 1:1 with faculty to review competency gaps and create remediation plan
               </Text>
@@ -186,5 +186,5 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
     alignItems: 'flex-start',
   },
-  recommendedText: { fontSize: 12, color: '#2563EB', flex: 1, lineHeight: 17 },
+  recommendedText: { fontSize: 12, color: '#007AFF', flex: 1, lineHeight: 17 },
 });

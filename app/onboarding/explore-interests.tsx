@@ -120,7 +120,7 @@ export default function ExploreInterestsScreen() {
   }, []);
 
   const ctx = getOnboardingContext(interestSlug || undefined);
-  const accentColor = ctx.color !== '#1A1A1A' ? ctx.color : '#2563EB';
+  const accentColor = ctx.color !== '#1A1A1A' ? ctx.color : '#007AFF';
 
   // Show public, active interests — exclude the domain-level parents
   const providerBrowsableInterests = useMemo(() => {

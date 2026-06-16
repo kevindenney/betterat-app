@@ -25,7 +25,7 @@ export const PDFExtractionProgress: React.FC<PDFExtractionProgressProps> = ({
       {/* Header */}
       <View className="flex-row items-center mb-4">
         <View className="bg-blue-100 p-3 rounded-full">
-          <FileText color="#2563EB" size={24} />
+          <FileText color="#007AFF" size={24} />
         </View>
         <View className="ml-3 flex-1">
           <Text className="text-gray-800 font-bold text-lg">Extracting PDF Text</Text>
@@ -57,7 +57,7 @@ export const PDFExtractionProgress: React.FC<PDFExtractionProgressProps> = ({
 
       {/* Loading Indicator */}
       <View className="flex-row items-center justify-center pt-2">
-        <ActivityIndicator size="small" color="#2563EB" />
+        <ActivityIndicator size="small" color="#007AFF" />
         <Text className="text-gray-600 text-sm ml-2">
           Processing page content...
         </Text>

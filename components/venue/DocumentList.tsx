@@ -205,7 +205,7 @@ export function DocumentList({
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
@@ -269,14 +269,14 @@ const styles = StyleSheet.create({
   },
   sortOptionActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#2563EB',
+    borderBottomColor: '#007AFF',
   },
   sortText: {
     fontSize: 14,
     color: '#6B7280',
   },
   sortTextActive: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
   documentCard: {
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
@@ -412,15 +412,15 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
+        boxShadow: '0 4px 12px rgba(0, 122, 255, 0.4)',
       },
       default: {
-        shadowColor: '#2563EB',
+        shadowColor: '#007AFF',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.4,
         shadowRadius: 12,

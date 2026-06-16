@@ -73,7 +73,7 @@ const PLANS: PlanTier[] = [
     cta: 'Go Plus',
     highlighted: true,
     badge: 'MOST POPULAR',
-    accentColor: '#2563EB',
+    accentColor: '#007AFF',
     iconName: 'flash-outline',
   },
   {
@@ -347,7 +347,7 @@ export default function PricingScreen() {
           onPress={() => router.push('/institutions/pricing' as any)}
           activeOpacity={0.7}
         >
-          <Ionicons name="business-outline" size={20} color="#2563EB" />
+          <Ionicons name="business-outline" size={20} color="#007AFF" />
           <Text style={styles.institutionalBannerText}>
             Looking for institutional or team plans?{' '}
             <Text style={styles.institutionalBannerLink}>
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     maxWidth: 380,
   },
   cardHighlighted: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     borderWidth: 2,
     ...Platform.select({
       web: {
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   institutionalBannerLink: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
 });

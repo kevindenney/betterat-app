@@ -65,7 +65,7 @@ const PHASE_CONFIG: Record<
     label: 'Running Leg',
     shortLabel: 'Running',
     icon: 'weather-windy',
-    accent: '#2563EB',
+    accent: '#007AFF',
   },
   'leeward-mark': {
     label: 'Leeward Mark',

@@ -109,7 +109,7 @@ export function AiDraftModal({
                   <Ionicons
                     name={selected ? 'document-text' : 'document-text-outline'}
                     size={16}
-                    color={selected ? '#2563EB' : '#475569'}
+                    color={selected ? '#007AFF' : '#475569'}
                     style={{ marginRight: 8 }}
                   />
                   <Text style={[styles.optionLabel, selected && styles.optionLabelActive]}>
@@ -164,7 +164,7 @@ export function AiDraftModal({
             </View>
           ) : (
             <View style={styles.placeholderCard}>
-              <Ionicons name="sparkles-outline" size={36} color="#2563EB" />
+              <Ionicons name="sparkles-outline" size={36} color="#007AFF" />
               <Text style={styles.placeholderTitle}>Generate a tailored document</Text>
               <Text style={styles.placeholderText}>
                 Drafts use your event data, recent registrations, and club profile to produce
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   optionChipActive: {
     backgroundColor: '#DBEAFE',
     borderWidth: 1,
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
   },
   optionLabel: {
     fontSize: 13,

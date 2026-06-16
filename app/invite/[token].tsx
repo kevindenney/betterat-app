@@ -240,7 +240,7 @@ export default function InviteTokenPage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.loadingText}>Loading invite...</Text>
         </View>
       </SafeAreaView>
@@ -348,7 +348,7 @@ export default function InviteTokenPage() {
             <ScrollView contentContainerStyle={styles.scrollContent}>
               <View style={styles.content}>
                 <View style={[styles.successIcon, orgInterestSlug ? { backgroundColor: ctx.color + '18' } : undefined]}>
-                  <Ionicons name="create-outline" size={48} color={orgInterestSlug ? ctx.color : '#2563EB'} />
+                  <Ionicons name="create-outline" size={48} color={orgInterestSlug ? ctx.color : '#007AFF'} />
                 </View>
                 <Text style={styles.successTitle}>
                   {programName ? `Create Your ${programName} Blueprint` : 'Create a Blueprint'}
@@ -360,8 +360,8 @@ export default function InviteTokenPage() {
                 {/* How it works explanation */}
                 <View style={styles.guidanceCard}>
                   <View style={styles.guidanceStep}>
-                    <View style={[styles.guidanceStepNumber, { backgroundColor: (orgInterestSlug ? ctx.color : '#2563EB') + '18' }]}>
-                      <Text style={[styles.guidanceStepNumberText, { color: orgInterestSlug ? ctx.color : '#2563EB' }]}>1</Text>
+                    <View style={[styles.guidanceStepNumber, { backgroundColor: (orgInterestSlug ? ctx.color : '#007AFF') + '18' }]}>
+                      <Text style={[styles.guidanceStepNumberText, { color: orgInterestSlug ? ctx.color : '#007AFF' }]}>1</Text>
                     </View>
                     <View style={styles.guidanceStepContent}>
                       <Text style={styles.guidanceStepTitle}>Build your timeline</Text>
@@ -369,8 +369,8 @@ export default function InviteTokenPage() {
                     </View>
                   </View>
                   <View style={styles.guidanceStep}>
-                    <View style={[styles.guidanceStepNumber, { backgroundColor: (orgInterestSlug ? ctx.color : '#2563EB') + '18' }]}>
-                      <Text style={[styles.guidanceStepNumberText, { color: orgInterestSlug ? ctx.color : '#2563EB' }]}>2</Text>
+                    <View style={[styles.guidanceStepNumber, { backgroundColor: (orgInterestSlug ? ctx.color : '#007AFF') + '18' }]}>
+                      <Text style={[styles.guidanceStepNumberText, { color: orgInterestSlug ? ctx.color : '#007AFF' }]}>2</Text>
                     </View>
                     <View style={styles.guidanceStepContent}>
                       <Text style={styles.guidanceStepTitle}>Publish as a blueprint</Text>
@@ -378,8 +378,8 @@ export default function InviteTokenPage() {
                     </View>
                   </View>
                   <View style={styles.guidanceStep}>
-                    <View style={[styles.guidanceStepNumber, { backgroundColor: (orgInterestSlug ? ctx.color : '#2563EB') + '18' }]}>
-                      <Text style={[styles.guidanceStepNumberText, { color: orgInterestSlug ? ctx.color : '#2563EB' }]}>3</Text>
+                    <View style={[styles.guidanceStepNumber, { backgroundColor: (orgInterestSlug ? ctx.color : '#007AFF') + '18' }]}>
+                      <Text style={[styles.guidanceStepNumberText, { color: orgInterestSlug ? ctx.color : '#007AFF' }]}>3</Text>
                     </View>
                     <View style={styles.guidanceStepContent}>
                       <Text style={styles.guidanceStepTitle}>Students subscribe &amp; follow</Text>
@@ -399,7 +399,7 @@ export default function InviteTokenPage() {
                         <BlueprintPickerCard
                           key={bp.id}
                           blueprint={bp}
-                          accentColor={orgInterestSlug ? ctx.color : '#2563EB'}
+                          accentColor={orgInterestSlug ? ctx.color : '#007AFF'}
                         />
                       ))}
                     </View>
@@ -408,7 +408,7 @@ export default function InviteTokenPage() {
 
                 <View style={styles.actions}>
                   <TouchableOpacity
-                    style={[styles.primaryButton, { backgroundColor: orgInterestSlug ? ctx.color : '#2563EB' }]}
+                    style={[styles.primaryButton, { backgroundColor: orgInterestSlug ? ctx.color : '#007AFF' }]}
                     onPress={handleGoToTimeline}
                   >
                     <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
@@ -432,7 +432,7 @@ export default function InviteTokenPage() {
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.content}>
               <View style={[styles.successIcon, orgInterestSlug ? { backgroundColor: ctx.color + '18' } : undefined]}>
-                <Ionicons name="layers-outline" size={48} color={orgInterestSlug ? ctx.color : '#2563EB'} />
+                <Ionicons name="layers-outline" size={48} color={orgInterestSlug ? ctx.color : '#007AFF'} />
               </View>
               <Text style={styles.successTitle}>Choose Your Pathways</Text>
               <Text style={styles.successText}>
@@ -444,13 +444,13 @@ export default function InviteTokenPage() {
                   <BlueprintPickerCard
                     key={bp.id}
                     blueprint={bp}
-                    accentColor={orgInterestSlug ? ctx.color : '#2563EB'}
+                    accentColor={orgInterestSlug ? ctx.color : '#007AFF'}
                   />
                 ))}
               </View>
 
               <View style={styles.actions}>
-                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: orgInterestSlug ? ctx.color : '#2563EB' }]} onPress={handleFinalNav}>
+                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: orgInterestSlug ? ctx.color : '#007AFF' }]} onPress={handleFinalNav}>
                   <Text style={styles.primaryButtonText}>Continue</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.secondaryButton} onPress={handleFinalNav}>
@@ -506,7 +506,7 @@ export default function InviteTokenPage() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           {/* Org Icon */}
-          <View style={[styles.orgIcon, { backgroundColor: orgInterestSlug ? ctx.color : '#2563EB' }]}>
+          <View style={[styles.orgIcon, { backgroundColor: orgInterestSlug ? ctx.color : '#007AFF' }]}>
             <Ionicons name="business" size={48} color="#FFFFFF" />
           </View>
 
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   orgName: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
   interestBadge: {
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -821,7 +821,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 15,
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '500',
   },
   declineButton: {

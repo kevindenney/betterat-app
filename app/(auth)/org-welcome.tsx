@@ -106,7 +106,7 @@ export default function OrgWelcomeScreen() {
                 onPress={() => handleAction(action.route)}
                 activeOpacity={0.7}
                 style={{
-                  backgroundColor: action.primary ? '#2563EB' : '#FFFFFF',
+                  backgroundColor: action.primary ? '#007AFF' : '#FFFFFF',
                   borderRadius: 16,
                   padding: 20,
                   ...(action.primary ? {} : {

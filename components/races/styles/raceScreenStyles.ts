@@ -473,7 +473,7 @@ export const rigPlannerStyles = StyleSheet.create({
   chatButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
     marginLeft: 4,
   },
   warningContainer: {
@@ -525,8 +525,8 @@ export const rigPlannerStyles = StyleSheet.create({
     borderWidth: 1,
   },
   presetButtonActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
   },
   presetButtonInactive: {
     backgroundColor: '#EFF6FF',

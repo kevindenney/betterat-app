@@ -232,7 +232,7 @@ export default function StudentDetailScreen() {
 
       {loading ? (
         <View style={styles.centerState}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.stateText}>Loading student data...</Text>
         </View>
       ) : error ? (
@@ -293,7 +293,7 @@ export default function StudentDetailScreen() {
               {/* Evidence section */}
               <Text style={modal.sectionLabel}>EVIDENCE FROM STEPS</Text>
               {evidenceLoading ? (
-                <ActivityIndicator size="small" color="#2563EB" style={{ marginVertical: 12 }} />
+                <ActivityIndicator size="small" color="#007AFF" style={{ marginVertical: 12 }} />
               ) : evidence.length === 0 ? (
                 <Text style={modal.emptyText}>No step evidence found for this competency.</Text>
               ) : (
@@ -381,7 +381,7 @@ export default function StudentDetailScreen() {
                       <Text style={modal.actionBtnText}>Remediate</Text>
                     </Pressable>
                   </View>
-                  {submitting && <ActivityIndicator size="small" color="#2563EB" style={{ marginTop: 8 }} />}
+                  {submitting && <ActivityIndicator size="small" color="#007AFF" style={{ marginTop: 8 }} />}
                 </View>
               )}
 
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
   stateText: { fontSize: 13, color: '#64748B' },
   errorText: { fontSize: 14, color: '#EF4444', textAlign: 'center' },
-  retryButton: { backgroundColor: '#2563EB', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 8 },
+  retryButton: { backgroundColor: '#007AFF', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 8 },
   retryButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
 });
 

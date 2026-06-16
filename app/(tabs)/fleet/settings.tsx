@@ -18,7 +18,7 @@ export default function FleetSettingsScreen() {
           onPress={() => router.push('/(tabs)/fleet/select')}
         >
           <View style={styles.actionIcon}>
-            <MaterialCommunityIcons name="sail-boat" size={24} color="#2563EB" />
+            <MaterialCommunityIcons name="sail-boat" size={24} color="#007AFF" />
           </View>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Select Your Fleets</Text>
@@ -39,7 +39,7 @@ export default function FleetSettingsScreen() {
           onPress={() => router.push('/(tabs)/fleet/resources')}
         >
           <View style={styles.actionIcon}>
-            <MaterialCommunityIcons name="file-document-edit-outline" size={24} color="#2563EB" />
+            <MaterialCommunityIcons name="file-document-edit-outline" size={24} color="#007AFF" />
           </View>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Manage Fleet Resources</Text>
@@ -54,7 +54,7 @@ export default function FleetSettingsScreen() {
           onPress={() => router.push('/(tabs)/members')}
         >
           <View style={styles.actionIcon}>
-            <MaterialCommunityIcons name="account-key-outline" size={24} color="#2563EB" />
+            <MaterialCommunityIcons name="account-key-outline" size={24} color="#007AFF" />
           </View>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Membership & Approvals</Text>

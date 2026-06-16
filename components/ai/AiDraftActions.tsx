@@ -59,7 +59,7 @@ export function AiDraftActions({
           onPress={onApprove}
           disabled={disabled}
         >
-          <Ionicons name="checkmark-circle-outline" size={18} color="#2563EB" style={styles.buttonIcon} />
+          <Ionicons name="checkmark-circle-outline" size={18} color="#007AFF" style={styles.buttonIcon} />
           <Text style={styles.secondaryButtonText}>Approve</Text>
         </TouchableOpacity>
       )}
@@ -70,7 +70,7 @@ export function AiDraftActions({
           onPress={onCopy}
           disabled={disabled}
         >
-          <Ionicons name="copy-outline" size={18} color="#2563EB" style={styles.buttonIcon} />
+          <Ionicons name="copy-outline" size={18} color="#007AFF" style={styles.buttonIcon} />
           <Text style={styles.secondaryButtonText}>Copy</Text>
         </TouchableOpacity>
       )}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   secondaryButtonText: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontSize: 14,
     fontWeight: '500',
   },

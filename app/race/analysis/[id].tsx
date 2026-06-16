@@ -379,7 +379,7 @@ export default function PostRaceAnalysisScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-gray-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
         <Text className="text-gray-600 mt-4">Loading race analysis...</Text>
       </View>
     );
@@ -417,7 +417,7 @@ export default function PostRaceAnalysisScreen() {
       <View className="bg-white mx-4 mt-4 rounded-xl p-4 shadow-sm">
         <View className="flex-row items-center justify-between mb-4">
           <View className="items-center">
-            <Trophy color="#2563EB" size={32} />
+            <Trophy color="#007AFF" size={32} />
             <Text className="text-3xl font-bold mt-2">{raceResult.position}</Text>
             <Text className="text-gray-600 text-sm">Position</Text>
           </View>

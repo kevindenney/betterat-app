@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   },
   toggle: {
     fontSize: 13,
-    color: '#2563EB',
+    color: '#007AFF',
     fontWeight: '600',
   },
   row: {

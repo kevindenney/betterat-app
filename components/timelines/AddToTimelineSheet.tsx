@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#007AFF',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   optionSelected: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#EFF6FF',
   },
   optionCopy: {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   optionTextSelected: {
-    color: '#2563EB',
+    color: '#007AFF',
   },
   optionHint: {
     fontSize: 12,
@@ -232,13 +232,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioSelected: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
   },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   primary: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',

@@ -66,7 +66,7 @@ export function TrackStatsPanel({
     <View style={styles.container}>
       {/* Current Speed - Primary stat */}
       <View style={[styles.statCard, styles.primaryCard]}>
-        <Activity size={20} color="#2563EB" style={styles.icon} />
+        <Activity size={20} color="#007AFF" style={styles.icon} />
         <View style={styles.statContent}>
           <Text style={styles.primaryValue}>{currentSpeed.toFixed(1)}</Text>
           <Text style={styles.primaryUnit}>kts</Text>

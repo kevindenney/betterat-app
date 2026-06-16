@@ -26,8 +26,8 @@ const C = {
   completed: '#16A34A',
   inProgress: '#0D9488',
   pending: '#D4D4D4',
-  sectionAccent: '#2563EB',
-  adopt: '#2563EB',
+  sectionAccent: '#007AFF',
+  adopt: '#007AFF',
 } as const;
 
 // =============================================================================

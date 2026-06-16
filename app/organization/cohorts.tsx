@@ -183,7 +183,7 @@ export default function OrganizationCohortsScreen() {
 
       {!orgReady || orgLoading ? (
         <View style={styles.centerState}>
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color="#007AFF" />
         </View>
       ) : !hasValidActiveOrgId ? (
         <View style={styles.centerState}>
@@ -239,7 +239,7 @@ export default function OrganizationCohortsScreen() {
             <View style={styles.listHeader}>
               <Text style={styles.sectionTitle}>Cohorts</Text>
               <TouchableOpacity onPress={() => void loadCohorts()}>
-                <Ionicons name="refresh-outline" size={18} color="#2563EB" />
+                <Ionicons name="refresh-outline" size={18} color="#007AFF" />
               </TouchableOpacity>
             </View>
 
@@ -247,7 +247,7 @@ export default function OrganizationCohortsScreen() {
 
             {loading ? (
               <View style={styles.centerStateCompact}>
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color="#007AFF" />
               </View>
             ) : rows.length === 0 ? (
               <Text style={styles.stateText}>No cohorts yet.</Text>
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 80, textAlignVertical: 'top' },
   primaryButton: {
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',

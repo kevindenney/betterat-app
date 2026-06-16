@@ -14,8 +14,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -112,6 +114,7 @@ export function StepAddSheet({
   const visibility = visibilityOverride ?? defaultVisibility ?? 'private';
   const whatRef = useRef<TextInput | null>(null);
   const fieldRefs = useRef<Partial<Record<BlankFieldKey, TextInput | null>>>({});
+  const sheetTranslateY = useRef(new Animated.Value(0)).current;
 
   const resetComposer = useCallback(() => {
     setComposing(true);
@@ -200,7 +203,42 @@ export function StepAddSheet({
   const closeSheet = useCallback(() => {
     resetComposer();
     onClose();
-  }, [resetComposer, onClose]);
+    requestAnimationFrame(() => sheetTranslateY.setValue(0));
+  }, [resetComposer, sheetTranslateY, onClose]);
+
+  const sheetPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_evt, gesture) =>
+          gesture.dy > 4 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+        onPanResponderMove: (_evt, gesture) => {
+          if (gesture.dy > 0) sheetTranslateY.setValue(gesture.dy);
+        },
+        onPanResponderRelease: (_evt, gesture) => {
+          if (gesture.dy > 96 || gesture.vy > 1.1) {
+            Animated.timing(sheetTranslateY, {
+              toValue: 700,
+              duration: 160,
+              useNativeDriver: true,
+            }).start(closeSheet);
+            return;
+          }
+          Animated.spring(sheetTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 0,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(sheetTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 0,
+          }).start();
+        },
+      }),
+    [closeSheet, sheetTranslateY],
+  );
 
   const goToBlueprints = useCallback(() => {
     closeSheet();
@@ -224,11 +262,12 @@ export function StepAddSheet({
 
   useEffect(() => {
     if (!visible) return;
+    sheetTranslateY.setValue(0);
     setComposing(true);
     setIsRace(false);
     setActiveFields([]);
     requestAnimationFrame(() => whatRef.current?.focus());
-  }, [visible]);
+  }, [sheetTranslateY, visible]);
 
   // Enter the inline composer. Falls back to ejecting to the full-screen
   // composer if the universal-plus pipeline isn't available (flag off).
@@ -248,25 +287,26 @@ export function StepAddSheet({
     const trimmed = whatText.trim();
     if (!trimmed || saving) return;
     setSaving(true);
-    try {
-      await universalPlus.submit({
-        kind: 'text',
-        content: trimmed,
-        why: fieldValues.why.trim() || undefined,
-        how: fieldValues.how.trim() || undefined,
-        scheduledAt: whenISO ?? undefined,
-        location: whereLocation,
-        isRace: showRaceSelector ? isRace : undefined,
-        viewedSeasonId,
-        visibility,
-      });
-      // submit() handles optimistic insert + navigation; just tidy up here.
-      resetComposer();
-      onClose();
-    } catch {
-      // submit() surfaces its own error toast; keep the composer open to retry.
-      setSaving(false);
-    }
+    const payload = {
+      kind: 'text' as const,
+      content: trimmed,
+      why: fieldValues.why.trim() || undefined,
+      how: fieldValues.how.trim() || undefined,
+      scheduledAt: whenISO ?? undefined,
+      location: whereLocation,
+      isRace: showRaceSelector ? isRace : undefined,
+      viewedSeasonId,
+      visibility,
+    };
+
+    // submit() does the optimistic timeline insert before its first await.
+    // Close this local modal immediately so its transparent layer cannot
+    // keep intercepting touches while the network save finishes.
+    closeSheet();
+    void universalPlus.submit(payload).catch(() => {
+      // submit() normally owns its toast/error handling; this catches any
+      // unexpected rejection so background save work never becomes unhandled.
+    });
   };
 
   const sourceSections = (
@@ -427,7 +467,7 @@ export function StepAddSheet({
       visible={visible}
       animationType="slide"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={closeSheet}
     >
       <View style={styles.dim}>
         <Pressable
@@ -435,13 +475,15 @@ export function StepAddSheet({
           onPress={closeSheet}
           accessibilityLabel="Dismiss add step"
         />
-        <View style={styles.sheet}>
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
           <KeyboardAvoidingView
             style={styles.flex}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={8}
           >
-          <View style={styles.grab} />
+          <View style={styles.dragRegion} {...sheetPanResponder.panHandlers}>
+            <View style={styles.grab} />
+          </View>
 
           {composing ? (
             <View style={styles.sheeth}>
@@ -730,7 +772,7 @@ export function StepAddSheet({
           </ScrollView>
           )}
           </KeyboardAvoidingView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -764,6 +806,10 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  dragRegion: {
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   composeContent: {
     padding: 16,
@@ -931,8 +977,6 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 3,
     backgroundColor: IOS_REGISTER.labelTertiary,
-    marginTop: 8,
-    marginBottom: 4,
   },
   sheeth: {
     flexDirection: 'row',

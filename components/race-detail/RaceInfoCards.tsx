@@ -153,7 +153,7 @@ export function RaceInfoCards({
         <View style={[styles.card, styles.vhfCard]}>
           <View style={styles.cardHeader}>
             <View style={[styles.iconCircle, styles.vhfIcon]}>
-              <MaterialCommunityIcons name="radio-handheld" size={20} color="#2563EB" />
+              <MaterialCommunityIcons name="radio-handheld" size={20} color="#007AFF" />
             </View>
             <Text style={styles.cardTitle}>VHF Channels</Text>
           </View>
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   vhfChannelBadge: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,

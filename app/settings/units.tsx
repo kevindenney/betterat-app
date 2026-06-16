@@ -123,7 +123,7 @@ export default function UnitsScreen() {
 
         {/* Info Box */}
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={20} color="#2563EB" />
+          <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
           <Text style={styles.infoText}>
             This setting affects how distances, speeds, and other measurements are
             displayed throughout the app.
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   optionLabelSelected: {
-    color: '#2563EB',
+    color: '#007AFF',
   },
   optionDescription: {
     fontSize: 14,
@@ -199,13 +199,13 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   radioOuterSelected: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   infoBox: {
     backgroundColor: '#EBF5FF',

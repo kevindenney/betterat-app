@@ -401,7 +401,7 @@ const CalendarScreen = () => {
             {/* Date and Time */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-2">
-                <Calendar color="#2563EB" size={20} />
+                <Calendar color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Date & Time</Text>
               </View>
               
@@ -425,7 +425,7 @@ const CalendarScreen = () => {
             {/* Classes and Divisions */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <Flag color="#2563EB" size={20} />
+                <Flag color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Classes & Divisions</Text>
               </View>
               
@@ -445,7 +445,7 @@ const CalendarScreen = () => {
             {/* Entry Statistics */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <Users color="#2563EB" size={20} />
+                <Users color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Entry Statistics</Text>
               </View>
               
@@ -468,7 +468,7 @@ const CalendarScreen = () => {
             {/* Course Details */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <Navigation color="#2563EB" size={20} />
+                <Navigation color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Course Details</Text>
               </View>
               
@@ -496,7 +496,7 @@ const CalendarScreen = () => {
             {/* Officials Roster */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <Users color="#2563EB" size={20} />
+                <Users color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Officials Roster</Text>
               </View>
               
@@ -522,7 +522,7 @@ const CalendarScreen = () => {
             {/* Documents */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <FileText color="#2563EB" size={20} />
+                <FileText color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Documents</Text>
               </View>
               
@@ -545,7 +545,7 @@ const CalendarScreen = () => {
             {/* Weather Forecast */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <Sun color="#2563EB" size={20} />
+                <Sun color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Weather Forecast</Text>
               </View>
               
@@ -568,7 +568,7 @@ const CalendarScreen = () => {
             {/* Communications History */}
             <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <Mail color="#2563EB" size={20} />
+                <Mail color="#007AFF" size={20} />
                 <Text className="text-lg font-bold ml-2">Communications</Text>
               </View>
               
@@ -656,12 +656,12 @@ const CalendarScreen = () => {
             {/* Additional Options */}
             <View className="mt-6">
               <TouchableOpacity className="flex-row items-center justify-center bg-white rounded-xl shadow-sm p-4 mb-3">
-                <Copy color="#2563EB" size={20} />
+                <Copy color="#007AFF" size={20} />
                 <Text className="text-blue-600 font-bold ml-2">Duplicate Last Regatta</Text>
               </TouchableOpacity>
               
               <TouchableOpacity className="flex-row items-center justify-center bg-white rounded-xl shadow-sm p-4">
-                <FileText color="#2563EB" size={20} />
+                <FileText color="#007AFF" size={20} />
                 <Text className="text-blue-600 font-bold ml-2">Copy from Template Library</Text>
               </TouchableOpacity>
             </View>
@@ -754,11 +754,11 @@ const CalendarScreen = () => {
           {/* Month Navigation */}
           <View className="flex-row justify-between items-center mb-4">
             <TouchableOpacity onPress={prevMonth}>
-              <ChevronLeft color="#2563EB" size={24} />
+              <ChevronLeft color="#007AFF" size={24} />
             </TouchableOpacity>
             <Text className="text-lg font-bold">{formatMonthYear(currentDate)}</Text>
             <TouchableOpacity onPress={nextMonth}>
-              <ChevronRight color="#2563EB" size={24} />
+              <ChevronRight color="#007AFF" size={24} />
             </TouchableOpacity>
           </View>
           

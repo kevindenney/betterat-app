@@ -339,7 +339,7 @@ export function SailorOverviewEnhanced({
                   <Text style={styles.fleetSubtitle}>{fleetOverview.fleet.region}</Text>
                 )}
               </View>
-              <MaterialCommunityIcons name="account-group" size={28} color="#2563EB" />
+              <MaterialCommunityIcons name="account-group" size={28} color="#007AFF" />
             </View>
 
             <View style={styles.fleetMetricsRow}>
@@ -375,7 +375,7 @@ export function SailorOverviewEnhanced({
                 {recentFleetActivity.map(entry => (
                   <View key={entry.id} style={styles.fleetActivityRow}>
                     <View style={styles.fleetActivityIcon}>
-                      <MaterialCommunityIcons name={getFleetActivityIcon(entry.activityType) as any} size={18} color="#2563EB" />
+                      <MaterialCommunityIcons name={getFleetActivityIcon(entry.activityType) as any} size={18} color="#007AFF" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.fleetActivityTitle}>{getFleetActivityLabel(entry)}</Text>
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
   contextBadgeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   emptyStateButton: {
     flexDirection: 'row',

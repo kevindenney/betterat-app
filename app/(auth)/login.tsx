@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   primaryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -624,9 +624,9 @@ const styles = StyleSheet.create({
     marginTop: 12
   },
   footerText: { color: '#64748B' },
-  linkText: { color: '#2563EB', fontWeight: '600', marginLeft: 6 },
+  linkText: { color: '#007AFF', fontWeight: '600', marginLeft: 6 },
   forgotPasswordText: {
-    color: '#2563EB',
+    color: '#007AFF',
     fontSize: 14,
     textAlign: 'right',
     marginBottom: 8,

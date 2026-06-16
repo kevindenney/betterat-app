@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   invalidCta: {
     marginTop: 12,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,

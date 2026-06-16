@@ -100,7 +100,7 @@ export function ShareStepSheet({
             }}
           >
             <View style={styles.modeIcon}>
-              <Send size={18} color="#2563EB" />
+              <Send size={18} color="#007AFF" />
             </View>
             <View style={styles.modeCopy}>
               <Text style={styles.modeName}>Direct to a person</Text>
@@ -447,6 +447,6 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
 });

@@ -43,7 +43,7 @@ function AcknowledgementRow({
       <MaterialCommunityIcons
         name={checked ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
         size={20}
-        color={checked ? '#2563EB' : '#CBD5F5'}
+        color={checked ? '#007AFF' : '#CBD5F5'}
       />
       <View className="flex-1">
         <Text className="text-xs font-semibold text-slate-800">{label}</Text>

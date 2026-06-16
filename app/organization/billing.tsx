@@ -103,7 +103,7 @@ export default function OrganizationBillingScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
@@ -325,7 +325,7 @@ export default function OrganizationBillingScreen() {
                 <Text style={styles.cardLabel}>Manage</Text>
 
                 <TouchableOpacity style={styles.actionRow}>
-                  <Ionicons name="card-outline" size={20} color="#2563EB" />
+                  <Ionicons name="card-outline" size={20} color="#007AFF" />
                   <Text style={styles.actionText}>Manage Payment Method</Text>
                   <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                 </TouchableOpacity>
@@ -333,7 +333,7 @@ export default function OrganizationBillingScreen() {
                 <View style={styles.actionDivider} />
 
                 <TouchableOpacity style={styles.actionRow}>
-                  <Ionicons name="receipt-outline" size={20} color="#2563EB" />
+                  <Ionicons name="receipt-outline" size={20} color="#007AFF" />
                   <Text style={styles.actionText}>View Invoices</Text>
                   <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                 </TouchableOpacity>
@@ -344,7 +344,7 @@ export default function OrganizationBillingScreen() {
                   style={styles.actionRow}
                   onPress={() => setShowPlans((v) => !v)}
                 >
-                  <Ionicons name="swap-horizontal" size={20} color="#2563EB" />
+                  <Ionicons name="swap-horizontal" size={20} color="#007AFF" />
                   <Text style={styles.actionText}>Change Plan</Text>
                   <Ionicons
                     name={showPlans ? 'chevron-up' : 'chevron-forward'}
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     marginTop: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 24,

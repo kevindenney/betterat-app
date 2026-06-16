@@ -121,7 +121,7 @@ const RecentRaceAnalysis = () => {
         {/* Performance Metrics */}
         <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
           <View className="flex-row items-center mb-4">
-            <TrendingUp size={20} color="#2563EB" />
+            <TrendingUp size={20} color="#007AFF" />
             <Text className="text-lg font-bold text-gray-900 ml-2">Performance Metrics</Text>
           </View>
           
@@ -141,7 +141,7 @@ const RecentRaceAnalysis = () => {
         {/* Race History */}
         <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
           <View className="flex-row items-center mb-4">
-            <BarChart3 size={20} color="#2563EB" />
+            <BarChart3 size={20} color="#007AFF" />
             <Text className="text-lg font-bold text-gray-900 ml-2">Race History</Text>
           </View>
           
@@ -168,7 +168,7 @@ const RecentRaceAnalysis = () => {
         {/* Actions */}
         <View className="flex-row justify-between mb-6">
           <TouchableOpacity className="flex-row items-center bg-white rounded-xl shadow-sm p-4 flex-1 mr-2">
-            <Download size={20} color="#2563EB" />
+            <Download size={20} color="#007AFF" />
             <Text className="text-blue-600 font-bold ml-2">Download Report</Text>
           </TouchableOpacity>
           

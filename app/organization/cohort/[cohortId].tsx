@@ -282,7 +282,7 @@ export default function CohortDetailScreen() {
       </View>
 
       {!orgReady || orgLoading ? (
-        <View style={styles.centerState}><ActivityIndicator size="small" color="#2563EB" /></View>
+        <View style={styles.centerState}><ActivityIndicator size="small" color="#007AFF" /></View>
       ) : !hasValidOrg ? (
         <View style={styles.centerState}>
           <Text style={styles.stateText}>Select an active organization first.</Text>
@@ -302,12 +302,12 @@ export default function CohortDetailScreen() {
             <View style={styles.listHeader}>
               <Text style={styles.sectionTitle}>Members in cohort</Text>
               <TouchableOpacity onPress={() => void loadData()}>
-                <Ionicons name="refresh-outline" size={18} color="#2563EB" />
+                <Ionicons name="refresh-outline" size={18} color="#007AFF" />
               </TouchableOpacity>
             </View>
 
             {loading ? (
-              <View style={styles.centerStateCompact}><ActivityIndicator size="small" color="#2563EB" /></View>
+              <View style={styles.centerStateCompact}><ActivityIndicator size="small" color="#007AFF" /></View>
             ) : cohortMembers.length === 0 ? (
               <Text style={styles.stateText}>No members in this cohort yet.</Text>
             ) : (
@@ -453,13 +453,13 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 14,
     paddingVertical: 9,
   },
   primaryButtonSmall: {
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 12,
     paddingVertical: 7,
   },

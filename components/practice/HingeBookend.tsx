@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#16A34A',
   },
   iconAfter: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   copy: {
     flex: 1,

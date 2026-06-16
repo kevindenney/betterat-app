@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     ...TufteTokens.shadows.subtle,

@@ -127,7 +127,7 @@ export default function CohortDashboardScreen() {
 
       {!orgReady || orgLoading ? (
         <View style={styles.centerState}>
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color="#007AFF" />
         </View>
       ) : !hasValidActiveOrgId ? (
         <View style={styles.centerState}>
@@ -142,7 +142,7 @@ export default function CohortDashboardScreen() {
         </View>
       ) : loading ? (
         <View style={styles.centerState}>
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color="#007AFF" />
           <Text style={styles.stateText}>Loading cohorts...</Text>
         </View>
       ) : cohorts.length === 0 ? (
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   stateText: { fontSize: 13, color: '#64748B', textAlign: 'center' },
   primaryButton: {
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingVertical: 10,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   selectorPillActive: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   selectorText: { fontSize: 13, fontWeight: '500', color: '#64748B' },
   selectorTextActive: { color: '#FFFFFF' },

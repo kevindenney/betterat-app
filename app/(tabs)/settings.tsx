@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
   subscriptionBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
   settingItem: {
     flexDirection: 'row',
@@ -843,7 +843,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   modalButtonPrimary: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   modalButtonPrimaryText: {
     color: '#FFFFFF',

@@ -161,7 +161,7 @@ export default function CrewScreen() {
           {/* Educational tip about CrewHub */}
           <View className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
             <View className="flex-row items-center mb-2">
-              <Users size={18} color="#2563EB" />
+              <Users size={18} color="#007AFF" />
               <Text className="text-blue-800 font-semibold ml-2">Crew Hub Available Later</Text>
             </View>
             <Text className="text-blue-700 text-sm">
@@ -226,7 +226,7 @@ export default function CrewScreen() {
               activeOpacity={0.8}
               disabled={isAddingMember}
               style={{
-                backgroundColor: isAddingMember ? '#94A3B8' : '#2563EB',
+                backgroundColor: isAddingMember ? '#94A3B8' : '#007AFF',
                 borderRadius: 12,
                 paddingVertical: 12,
                 flexDirection: 'row',
@@ -259,7 +259,7 @@ export default function CrewScreen() {
             
             {loading ? (
               <View className="bg-gray-50 rounded-xl p-8 items-center justify-center">
-                <ActivityIndicator size="large" color="#2563EB" />
+                <ActivityIndicator size="large" color="#007AFF" />
                 <Text className="text-gray-500 mt-4">Loading crew preferences...</Text>
               </View>
             ) : crewMembers.length === 0 ? (
@@ -278,7 +278,7 @@ export default function CrewScreen() {
                   <View className="bg-white border border-gray-200 rounded-xl p-4 mb-3">
                     <View className="flex-row items-center">
                       <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-                        <User size={20} color="#2563EB" />
+                        <User size={20} color="#007AFF" />
                       </View>
                       <View className="flex-1">
                         <Text className="font-semibold text-gray-800">{item.name}</Text>

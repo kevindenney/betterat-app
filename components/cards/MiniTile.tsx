@@ -98,7 +98,7 @@ export function MiniTile({
           hitSlop={6}
         >
           {actionIcon ? (
-            <Ionicons name={actionIcon} size={12} color="#2563EB" />
+            <Ionicons name={actionIcon} size={12} color="#007AFF" />
           ) : null}
           <Text style={styles.actionText}>{actionLabel}</Text>
         </Pressable>
@@ -165,6 +165,6 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#007AFF',
   },
 });

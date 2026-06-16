@@ -284,7 +284,7 @@ export function BoatDetail({
 
         {performanceLoading && (
           <View style={styles.statsLoading}>
-            <ActivityIndicator size="small" color="#2563EB" />
+            <ActivityIndicator size="small" color="#007AFF" />
             <Text style={styles.statsLoadingText}>Syncing race results…</Text>
           </View>
         )}

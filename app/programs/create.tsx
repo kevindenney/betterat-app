@@ -248,7 +248,7 @@ export default function CreateProgramScreen() {
           <View style={styles.card}>
             {templatesLoading ? (
               <View style={styles.inlineLoading}>
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color="#007AFF" />
                 <ThemedText style={styles.inlineLoadingText}>Loading templates…</ThemedText>
               </View>
             ) : null}
@@ -358,7 +358,7 @@ export default function CreateProgramScreen() {
                 <Ionicons
                   name={createFirstSession ? 'checkbox' : 'square-outline'}
                   size={20}
-                  color={createFirstSession ? '#2563EB' : '#64748B'}
+                  color={createFirstSession ? '#007AFF' : '#64748B'}
                 />
                 <ThemedText style={styles.sessionToggleLabel}>Create first session now</ThemedText>
               </View>
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   chipActive: {
-    borderColor: '#2563EB',
+    borderColor: '#007AFF',
     backgroundColor: '#DBEAFE',
   },
   chipText: { fontSize: 12, color: '#475569', fontWeight: '600' },
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   primaryButton: {
     borderRadius: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   gateStateAction: {
     marginTop: 4,
     borderRadius: 999,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     paddingHorizontal: 14,
     paddingVertical: 9,
   },

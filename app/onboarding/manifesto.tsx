@@ -58,7 +58,7 @@ export default function ManifestoOnboardingScreen() {
   const activeInterest = orderedInterests[interestIndex] ?? null;
   const totalInterests = orderedInterests.length;
   const interestName = activeInterest?.name || 'your interest';
-  const accentColor = activeInterest?.accent_color || '#2563EB';
+  const accentColor = activeInterest?.accent_color || '#007AFF';
 
   // Load ordered interest slugs from AsyncStorage and match to Interest objects (set once).
   // Reads both the ordered list and the primary slug to guarantee primary is always first.

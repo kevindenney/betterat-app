@@ -90,7 +90,7 @@ export default function CommunicationThreadDetailScreen() {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.loadingState}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#007AFF" />
           <ThemedText style={styles.loadingText}>Loading thread…</ThemedText>
         </View>
       </ThemedView>
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   messageMine: {
     alignSelf: 'flex-end',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
   },
   messageOther: {
     alignSelf: 'flex-start',
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
   },

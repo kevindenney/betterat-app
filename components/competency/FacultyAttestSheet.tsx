@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   headerTitleWrap: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
   headerSubtitle: { fontSize: 11.5, color: '#64748B', marginTop: 2 },
-  headerLink: { fontSize: 15, color: '#2563EB' },
+  headerLink: { fontSize: 15, color: '#007AFF' },
   headerLinkStrong: { fontWeight: '600' },
   headerLinkDisabled: { color: '#94A3B8' },
   body: { padding: 16, paddingBottom: 40, gap: 12 },
