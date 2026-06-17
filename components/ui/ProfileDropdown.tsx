@@ -433,8 +433,8 @@ function LoggedInMenu({
       <PublicFaceStrip
         currentInterestName={currentInterestName}
         homeVenueName={homeVenueName}
-        onViewProfile={() => onNavigate(userId ? `/profile/${userId}` : '/settings/edit-profile')}
-        onEditProfile={() => onNavigate('/settings/edit-profile')}
+        onViewProfile={() => onNavigate(userId ? `/profile/${userId}?preview=1` : '/settings/public-face')}
+        onEditProfile={() => onNavigate('/settings/public-face')}
       />
 
       <RolesSection

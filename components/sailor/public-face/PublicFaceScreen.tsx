@@ -500,11 +500,15 @@ function PublicFaceScreenInner({
           name={displayName}
           descriptor={descriptor}
           meta={meta}
+          chips={personInterests.map((interest, index) => ({
+            name: interest.name,
+            isPrimary: interest.isPrimary ?? index === 0,
+          }))}
         >
           {viewedAsOwn ? (
             <RelationshipMinePill
               label="This is you · Edit profile"
-              onPress={() => router.push('/settings/edit-profile' as any)}
+              onPress={() => router.push('/settings/public-face' as any)}
             />
           ) : (
             <>

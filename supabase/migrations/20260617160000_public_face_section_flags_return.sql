@@ -252,7 +252,11 @@ BEGIN
   )
   INTO v_interests
   FROM (
-    SELECT jsonb_build_object('name', i.name, 'slug', i.slug) AS obj,
+    SELECT jsonb_build_object(
+             'name', i.name,
+             'slug', i.slug,
+             'isPrimary', COALESCE(ui.is_primary, false)
+           ) AS obj,
            COALESCE(ui.is_primary, false) AS is_primary,
            COALESCE(ui.sort_order, 2147483647) AS sort_order,
            i.name AS name

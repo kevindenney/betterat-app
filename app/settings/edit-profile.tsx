@@ -140,7 +140,7 @@ export default function EditProfileScreen() {
   };
 
   const handleVisibilityControls = () => {
-    router.push('/settings/privacy' as any);
+    router.push('/settings/public-face' as any);
   };
 
   const handleSave = async () => {

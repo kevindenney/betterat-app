@@ -80,6 +80,7 @@ export interface PersonCircle {
 export interface PersonInterest {
   name: string;
   slug: string;
+  isPrimary?: boolean;
 }
 
 /** Which public-face CTAs the viewed person allows. Null pre-auth / on error. */

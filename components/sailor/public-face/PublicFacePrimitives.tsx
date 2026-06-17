@@ -75,6 +75,8 @@ export interface PublicFaceHeroProps {
   descriptor?: string;
   /** Optional meta-pellet row — venue, seasons, programme year, etc. */
   meta?: { icon?: keyof typeof Ionicons.glyphMap; text: string }[];
+  /** Public interests in display order. Lead interest gets the coral chip. */
+  chips?: { name: string; isPrimary?: boolean }[];
   /** Relationship action — Follow / Following pill / Message. */
   children?: React.ReactNode;
 }
@@ -86,6 +88,7 @@ export function PublicFaceHero({
   name,
   descriptor,
   meta,
+  chips,
   children,
 }: PublicFaceHeroProps) {
   // avatar_url sometimes holds a device-local file:// ImagePicker path that
@@ -118,6 +121,20 @@ export function PublicFaceHero({
             <View key={i} style={heroStyles.metaItem}>
               {m.icon ? <Ionicons name={m.icon} size={13} color={LABEL_3} /> : null}
               <Text style={heroStyles.metaText}>{m.text}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+      {chips && chips.length > 0 ? (
+        <View style={heroStyles.chips}>
+          {chips.map((chip, index) => (
+            <View
+              key={`${chip.name}-${index}`}
+              style={[heroStyles.chip, chip.isPrimary && heroStyles.chipLead]}
+            >
+              <Text style={[heroStyles.chipText, chip.isPrimary && heroStyles.chipTextLead]}>
+                {chip.name}
+              </Text>
             </View>
           ))}
         </View>
@@ -560,6 +577,30 @@ const heroStyles = StyleSheet.create({
     fontSize: 12.5,
     letterSpacing: -0.05,
     color: LABEL_2,
+  },
+  chips: {
+    marginTop: 13,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  chip: {
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(120, 120, 128, 0.16)',
+  },
+  chipLead: {
+    backgroundColor: 'rgba(217, 119, 87, 0.16)',
+  },
+  chipText: {
+    fontSize: 12.5,
+    color: LABEL,
+    letterSpacing: -0.05,
+  },
+  chipTextLead: {
+    color: ACCENT_DISCOVER,
+    fontWeight: '600',
   },
   rel: {
     marginTop: 18,

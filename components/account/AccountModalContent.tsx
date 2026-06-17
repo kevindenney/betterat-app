@@ -24,7 +24,9 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TeamSeatManager } from '@/components/subscription/TeamSeatManager';
+import { HomeVenuePickerSheet } from '@/components/discover/HomeVenuePickerSheet';
 import { useUserSettings, UNIT_SHORT_LABELS } from '@/hooks/useUserSettings';
+import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
@@ -46,6 +48,7 @@ export default function AccountModalContent() {
   const { activeDomain } = useOrganization();
   const { vocab } = useVocabulary();
   const profileMenu = useProfileMenuData();
+  const homeVenue = useUserHomeVenue();
   // User settings (tips, learning links, units)
   const { settings: userSettings } = useUserSettings(currentInterest?.slug);
   const insets = useSafeAreaInsets();
@@ -59,6 +62,7 @@ export default function AccountModalContent() {
   // Settings-related state
   const [pricingVisible, setPricingVisible] = useState(false);
   const [teamManagerVisible, setTeamManagerVisible] = useState(false);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [telegramLinked, setTelegramLinked] = useState<boolean | null>(null);
   const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
 
@@ -258,7 +262,7 @@ export default function AccountModalContent() {
               />
             }
             trailingAccessory="chevron"
-            onPress={() => router.push('/settings/edit-profile')}
+            onPress={() => router.push('/settings/public-face')}
           />
         </IOSListSection>
 
@@ -278,8 +282,10 @@ export default function AccountModalContent() {
             title="Location"
             leadingIcon="location-outline"
             leadingIconColor={IOS_COLORS.secondaryLabel}
-            trailingComponent={trailingValue(userProfile?.home_venue || userProfile?.home_club || 'Set')}
-            onPress={() => router.push('/settings/edit-profile')}
+            trailingComponent={trailingValue(
+              homeVenue?.venue || userProfile?.home_venue || userProfile?.home_club || 'Not set',
+            )}
+            onPress={() => setLocationPickerVisible(true)}
           />
           <IOSListItem
             title="Subscribed blueprints"
@@ -378,11 +384,12 @@ export default function AccountModalContent() {
         {/* ── Privacy & Security ──────────────────────────────── */}
         <IOSListSection header="Privacy & Security">
           <IOSListItem
-            title="Privacy Settings"
+            title="Public Face"
+            subtitle="Profile, interests, visibility, and interactions"
             leadingIcon="shield-outline"
             leadingIconColor={IOS_COLORS.secondaryLabel}
             trailingAccessory="chevron"
-            onPress={() => router.push('/settings/privacy')}
+            onPress={() => router.push('/settings/public-face')}
           />
           <IOSListItem
             title="Change Password"
@@ -554,6 +561,11 @@ export default function AccountModalContent() {
       >
         <TeamSeatManager onClose={() => setTeamManagerVisible(false)} />
       </Modal>
+
+      <HomeVenuePickerSheet
+        visible={locationPickerVisible}
+        onDismiss={() => setLocationPickerVisible(false)}
+      />
 
       {/* Claim Workspace Modal */}
       <Modal
