@@ -185,8 +185,9 @@ export default function OrganizationPlaceholderPage() {
   const [orgLocations, setOrgLocations] = useState<OrgLocation[]>([]);
   const [orgBlueprints, setOrgBlueprints] = useState<OrgBlueprint[]>([]);
   const [joining, setJoining] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const { user: authUser } = useAuth();
-  const { setActiveOrganizationId } = useOrganization();
+  const { activeOrganizationId, setActiveOrganizationId } = useOrganization();
   const toast = useToast();
   const queryClient = useQueryClient();
   // Viewer's membership in this org. `null` once resolved means
@@ -234,6 +235,46 @@ export default function OrganizationPlaceholderPage() {
     },
     [authUser?.id, org?.id, joining, refetchMembership, toast, queryClient],
   );
+  // Self-serve leave: delete the viewer's own membership row. Mirrors
+  // runJoin's cache refresh so the org drops out of the profile-menu
+  // switcher + My Orgs immediately. If this was the active org, clear it
+  // so member-only surfaces don't keep resolving to it.
+  const runLeave = React.useCallback(async () => {
+    if (!authUser?.id || !org?.id || leaving) return;
+    setLeaving(true);
+    try {
+      await OrgJoinService.leave({ orgId: org.id, userId: authUser.id });
+      if (activeOrganizationId === org.id) {
+        await setActiveOrganizationId(null);
+      }
+      refetchMembership();
+      queryClient.invalidateQueries({ queryKey: ['profile-menu-orgs'] });
+      queryClient.invalidateQueries({ queryKey: ['my-orgs'] });
+      queryClient.invalidateQueries({ queryKey: ['org-viewer-membership', org.id] });
+      toast.show('You’ve left this organization', 'success');
+    } catch (err) {
+      toast.show((err as Error)?.message || 'Could not leave this organization', 'error');
+    } finally {
+      setLeaving(false);
+    }
+  }, [
+    authUser?.id,
+    org?.id,
+    leaving,
+    activeOrganizationId,
+    setActiveOrganizationId,
+    refetchMembership,
+    queryClient,
+    toast,
+  ]);
+  const handleLeavePress = React.useCallback(() => {
+    showConfirm(
+      `Leave ${org?.name ?? 'this organization'}?`,
+      'You’ll lose access to member surfaces. You can rejoin later if it’s open.',
+      () => void runLeave(),
+      { destructive: true, confirmText: 'Leave' },
+    );
+  }, [org?.name, runLeave]);
   // Member-surface link-hub. The /organization/* surfaces resolve which
   // org to show from the global active-org context (OrganizationProvider),
   // not a route param — so switch the active org to this one before
@@ -525,15 +566,29 @@ export default function OrganizationPlaceholderPage() {
                 />
               ) : null}
               {membership?.status === 'active' ? (
-                membership.isAdmin ? (
-                  <RelationshipButton
-                    label="Manage"
-                    icon="settings-outline"
-                    secondary
-                    fullWidth={false}
-                    onPress={() => router.push(`/admin/organizations/${slug}` as never)}
-                  />
-                ) : null
+                <>
+                  {membership.isAdmin ? (
+                    <RelationshipButton
+                      label="Manage"
+                      icon="settings-outline"
+                      secondary
+                      fullWidth={false}
+                      onPress={() => router.push(`/admin/organizations/${slug}` as never)}
+                    />
+                  ) : null}
+                  {/* Owners can't self-leave (would orphan the org) — they
+                      transfer or archive via Manage instead. */}
+                  {membership.role !== 'owner' ? (
+                    <RelationshipButton
+                      label="Leave"
+                      icon="exit-outline"
+                      secondary
+                      fullWidth={false}
+                      loading={leaving}
+                      onPress={handleLeavePress}
+                    />
+                  ) : null}
+                </>
               ) : membership?.status === 'pending' ? (
                 <RelationshipButton
                   label="Request pending"

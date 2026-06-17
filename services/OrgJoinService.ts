@@ -79,4 +79,28 @@ export class OrgJoinService {
     }
     return targetStatus;
   }
+
+  /**
+   * Self-serve "leave organization": delete the viewer's own membership
+   * row. The DELETE RLS policy (organization_memberships_delete_own_v1)
+   * restricts this to `user_id = auth.uid()`. We `.select()` so we can
+   * tell an actual removal apart from a no-op (already gone, or blocked
+   * by RLS — both return no error but zero rows) and surface a clear
+   * failure rather than a false success.
+   *
+   * Sole-owner orphan protection lives in the UI (the Leave control is
+   * hidden for owners); this method is role-agnostic.
+   */
+  static async leave({ orgId, userId }: { orgId: string; userId: string }): Promise<void> {
+    const { data, error } = await supabase
+      .from('organization_memberships')
+      .delete()
+      .eq('organization_id', orgId)
+      .eq('user_id', userId)
+      .select('user_id');
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('You are no longer a member of this organization.');
+    }
+  }
 }
