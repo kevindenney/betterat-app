@@ -39,6 +39,7 @@ import {
 } from '@/services/BlueprintService';
 import type { SubscriberAdoptedStep, DiscoveredBlueprint } from '@/services/BlueprintService';
 import { adoptStep } from '@/services/TimelineStepService';
+import { invalidateFollowQueries } from '@/hooks/followInvalidations';
 import { NotificationService } from '@/services/NotificationService';
 import type {
   BlueprintRecord,
@@ -419,6 +420,13 @@ export function useSubscribe() {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'], refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: keys.all, refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: ['for-you-suggestions'], refetchType: 'all' });
+      // The Library "Plans" zone count + list read blueprint_subscriptions.
+      queryClient.invalidateQueries({ queryKey: ['library-plans'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['library-counts'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['library-zones-data'], refetchType: 'all' });
+      // subscribe() auto-follows the blueprint author, so the follows-derived
+      // feeds + Library "Following" list must refresh too.
+      invalidateFollowQueries(queryClient, user?.id);
     },
   });
 }
@@ -440,6 +448,10 @@ export function useUnsubscribe() {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'], refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: keys.all, refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: ['for-you-suggestions'], refetchType: 'all' });
+      // The Library "Plans" zone count + list read blueprint_subscriptions.
+      queryClient.invalidateQueries({ queryKey: ['library-plans'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['library-counts'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['library-zones-data'], refetchType: 'all' });
     },
   });
 }
@@ -479,6 +491,10 @@ export function useAdoptBlueprintStep() {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
       queryClient.invalidateQueries({ queryKey: ['blueprint-new-steps'] });
       queryClient.invalidateQueries({ queryKey: ['blueprint-suggested-next'] });
+      // Same as the core adopt: the copy lands on the Atlas picker/pin set and
+      // a dated copy can become the next upcoming event.
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     },
   });
 }
