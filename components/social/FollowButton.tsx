@@ -120,14 +120,14 @@ export function FollowButton({
         {isLoading ? (
           <ActivityIndicator
             size="small"
-            color={isFollowing ? IOS_COLORS.systemBlue : IOS_COLORS.white}
+            color={isFollowing ? IOS_COLORS.systemBlue : '#FFFFFF'}
           />
         ) : (
           <>
             {showIcon && !isFollowing && (
               <UserPlus
                 size={iconSize}
-                color={IOS_COLORS.white}
+                color={'#FFFFFF'}
                 style={styles.icon}
               />
             )}
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   textMedium: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     fontWeight: '600',
   },
   textLarge: {
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   textNotFollowing: {
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
   },
   textFollowing: {
     color: IOS_COLORS.systemBlue,
