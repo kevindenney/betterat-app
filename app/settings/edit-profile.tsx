@@ -19,7 +19,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { Save, Camera, Eye } from 'lucide-react-native';
+import { Save, Camera, Eye, ShieldCheck } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useQueryClient } from '@tanstack/react-query';
@@ -134,6 +134,10 @@ export default function EditProfileScreen() {
   const handleViewPublicFace = () => {
     if (!user?.id) return;
     router.push(`/profile/${user.id}` as any);
+  };
+
+  const handleVisibilityControls = () => {
+    router.push('/settings/privacy' as any);
   };
 
   const handleSave = async () => {
@@ -272,15 +276,25 @@ export default function EditProfileScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.photoHint}>Tap to change photo</Text>
-          <TouchableOpacity
-            onPress={handleViewPublicFace}
-            disabled={!user?.id}
-            style={styles.publicFaceButton}
-            activeOpacity={0.8}
-          >
-            <Eye size={16} color={IOS_COLORS.systemBlue} />
-            <Text style={styles.publicFaceButtonText}>View public face</Text>
-          </TouchableOpacity>
+          <View style={styles.faceActionsRow}>
+            <TouchableOpacity
+              onPress={handleViewPublicFace}
+              disabled={!user?.id}
+              style={styles.publicFaceButton}
+              activeOpacity={0.8}
+            >
+              <Eye size={16} color={IOS_COLORS.systemBlue} />
+              <Text style={styles.publicFaceButtonText}>View public face</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleVisibilityControls}
+              style={styles.publicFaceButton}
+              activeOpacity={0.8}
+            >
+              <ShieldCheck size={16} color={IOS_COLORS.systemBlue} />
+              <Text style={styles.publicFaceButtonText}>Visibility & privacy</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Basic Information */}
@@ -420,8 +434,14 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.secondaryLabel,
     marginTop: 4,
   },
-  publicFaceButton: {
+  faceActionsRow: {
     marginTop: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  publicFaceButton: {
     minHeight: 36,
     paddingHorizontal: 14,
     borderRadius: 10,
