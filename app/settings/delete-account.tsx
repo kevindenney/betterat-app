@@ -35,13 +35,20 @@ export default function DeleteAccountScreen() {
   const [confirmText, setConfirmText] = React.useState('');
   const [password, setPassword] = React.useState('');
 
+  // OAuth users (Google/Apple) have no password, so we can't reauth with one.
+  // Gating deletion on a password would lock them out entirely — App Store
+  // 5.1.1(v) requires every account be deletable. They confirm via their
+  // signed-in session plus the typed DELETE + final confirmation instead.
+  const provider = user?.app_metadata?.provider as string | undefined;
+  const isOAuthUser = !!provider && provider !== 'email';
+
   const handleDeleteAccount = async () => {
     if (confirmText !== 'DELETE') {
       showAlert('Error', 'Please type DELETE to confirm');
       return;
     }
 
-    if (!password) {
+    if (!isOAuthUser && !password) {
       showAlert('Error', 'Please enter your password to confirm');
       return;
     }
@@ -52,15 +59,17 @@ export default function DeleteAccountScreen() {
       async () => {
         setLoading(true);
         try {
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: user?.email || '',
-            password: password,
-          });
+          if (!isOAuthUser) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email: user?.email || '',
+              password: password,
+            });
 
-          if (signInError) {
-            showAlert('Error', 'Password is incorrect');
-            setLoading(false);
-            return;
+            if (signInError) {
+              showAlert('Error', 'Password is incorrect');
+              setLoading(false);
+              return;
+            }
           }
 
           // Soft-delete: mark the account for deletion and anonymize the row.
@@ -100,7 +109,7 @@ export default function DeleteAccountScreen() {
     );
   };
 
-  const submitDisabled = loading || confirmText !== 'DELETE' || !password;
+  const submitDisabled = loading || confirmText !== 'DELETE' || (!isOAuthUser && !password);
 
   return (
     <KeyboardAvoidingView
@@ -173,18 +182,26 @@ export default function DeleteAccountScreen() {
             />
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Enter your password</Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter your password"
-              placeholderTextColor={IOS_COLORS.systemGray}
-              secureTextEntry
-              style={styles.input}
-              autoCapitalize="none"
-            />
-          </View>
+          {isOAuthUser ? (
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>
+                You're signed in with {provider === 'apple' ? 'Apple' : provider === 'google' ? 'Google' : provider}. Confirming below will delete your account using your current session.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Enter your password</Text>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter your password"
+                placeholderTextColor={IOS_COLORS.systemGray}
+                secureTextEntry
+                style={styles.input}
+                autoCapitalize="none"
+              />
+            </View>
+          )}
 
           <TouchableOpacity
             onPress={handleDeleteAccount}
