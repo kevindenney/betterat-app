@@ -72,7 +72,9 @@ import { useShoreSide } from '@/hooks/useShoreSide';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
 import { supabase } from '@/services/supabase';
-import { OpenStepPicker } from './OpenStepPicker';
+import { OpenStepPicker, type ClinicalSiteItem } from './OpenStepPicker';
+import { useNursingLoggedSites } from '@/hooks/useNursingLoggedSites';
+import { useAtlasPois } from '@/hooks/useAtlasPois';
 import { ManageRacingAreasSheet, type ManageAreasEditTarget } from './ManageRacingAreasSheet';
 import type { EditingRacingArea } from './CreateRacingAreaSheet';
 import { RepositionAreaBanner } from './RepositionAreaBanner';
@@ -5711,12 +5713,18 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, []);
   // Real institution POIs + peer step pins for Baltimore. F4 camera is
   // centered on JHSON campus (39.297, -76.591) — see FRAME_CAMERA.
-  const { pins: framePins, pickerSteps } = useAtlasFramePins({
+  const { pins: framePins, pickerSteps, archiveSteps } = useAtlasFramePins({
     lat: 39.297,
     lng: -76.591,
     interestSlug: 'nursing',
     radiusKm: 25,
   });
+  // Rotation arcs (= seasons) + logged clinical sites feed the step picker's
+  // ROTATION groups and YOUR CLINICAL SITES jump list.
+  const { data: f4AllSeasons = [] } = useUserSeasons();
+  const { data: f4CurrentSeason } = useCurrentSeason();
+  const { sites: f4LoggedSites } = useNursingLoggedSites();
+  const { pois: f4Pois } = useAtlasPois();
   // Next event — for the nursing demo we fall back to a fixture clinical
   // at JHH 4 South 7am tomorrow so the amber NEXT pill always reads.
   // When useAtlasNextEvent surfaces a real nursing event we'll prefer
@@ -5943,6 +5951,99 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     },
     [framePins],
   );
+  // Rotation arcs for the picker — every nursing step bucketed by its
+  // rotation (= season), current rotation first and expanded. Mirrors the
+  // sail-racing arc resolution: explicit metadata.season_id → date
+  // containment → season_id column → nearest rotation in time. Empty until
+  // the student has rotations seeded, in which case the picker stays flat.
+  const f4ArcGroups = useMemo<ArcStepGroup[]>(() => {
+    const entries: (ArchivePickerStep & ArcStepEntry)[] = [...pickerSteps, ...archiveSteps];
+    if (entries.length === 0 || f4AllSeasons.length === 0) return [];
+    const knownIds = new Set(f4AllSeasons.map((s) => s.id));
+    const DAY_MS = 24 * 3600 * 1000;
+    const windowSeasons = f4AllSeasons
+      .filter((s) => s.start_date && s.end_date)
+      .sort((a, b) => Date.parse(b.start_date) - Date.parse(a.start_date));
+    const resolveArc = (step: ArchivePickerStep): string | null => {
+      if (step.meta_season_id && knownIds.has(step.meta_season_id)) return step.meta_season_id;
+      const t = Date.parse(step.starts_at ?? step.created_at);
+      let nearest: { id: string; dist: number } | null = null;
+      if (!Number.isNaN(t)) {
+        for (const s of windowSeasons) {
+          const start = Date.parse(s.start_date);
+          const end = Date.parse(s.end_date) + DAY_MS;
+          if (t >= start && t < end) return s.id;
+          const dist = t < start ? start - t : t - end;
+          if (!nearest || dist < nearest.dist) nearest = { id: s.id, dist };
+        }
+      }
+      if (step.season_id && knownIds.has(step.season_id)) return step.season_id;
+      return nearest?.id ?? null;
+    };
+    const byArc = new Map<string, (ArchivePickerStep & ArcStepEntry)[]>();
+    for (const step of entries) {
+      const arcId = resolveArc(step) ?? 'earlier';
+      const bucket = byArc.get(arcId);
+      if (bucket) bucket.push(step);
+      else byArc.set(arcId, [step]);
+    }
+    for (const bucket of byArc.values()) {
+      bucket.sort((a, b) => {
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+        return Date.parse(a.created_at) - Date.parse(b.created_at);
+      });
+    }
+    const orderedSeasons = [...f4AllSeasons].sort(compareSeasonsByStartDate).reverse();
+    if (f4CurrentSeason?.id) {
+      const idx = orderedSeasons.findIndex((s) => s.id === f4CurrentSeason.id);
+      if (idx > 0) orderedSeasons.unshift(orderedSeasons.splice(idx, 1)[0]);
+    }
+    const groups: ArcStepGroup[] = [];
+    for (const season of orderedSeasons) {
+      const arcSteps = byArc.get(season.id);
+      if (!arcSteps || arcSteps.length === 0) continue;
+      const isCurrent = season.id === f4CurrentSeason?.id;
+      groups.push({
+        id: season.id,
+        label: isCurrent ? `${season.name} · current` : season.name,
+        isCurrent,
+        steps: arcSteps,
+      });
+    }
+    const earlier = byArc.get('earlier');
+    if (earlier && earlier.length > 0) {
+      groups.push({ id: 'earlier', label: 'Earlier', steps: earlier });
+    }
+    return groups;
+  }, [pickerSteps, archiveSteps, f4AllSeasons, f4CurrentSeason?.id]);
+  // Logged clinical sites for the picker's jump list — join the coverage
+  // counts to each site's POI coords so a tap can fly the map there.
+  const f4ClinicalSites = useMemo<ClinicalSiteItem[]>(() => {
+    const coordByPoi = new Map(f4Pois.map((p) => [p.id, { lat: p.lat, lng: p.lng }]));
+    return f4LoggedSites.map((s) => {
+      const coord = coordByPoi.get(s.poiId);
+      const parts = [
+        `${s.shifts} ${s.shifts === 1 ? 'shift' : 'shifts'}`,
+        s.evidenced > 0 ? `${s.evidenced} evidenced` : null,
+      ].filter(Boolean);
+      return {
+        id: s.poiId,
+        name: s.name,
+        lat: coord?.lat ?? null,
+        lng: coord?.lng ?? null,
+        subtitle: parts.join(' · '),
+      };
+    });
+  }, [f4LoggedSites, f4Pois]);
+  const handlePickF4Site = useCallback((site: ClinicalSiteItem) => {
+    setOpenStepPickerVisible(false);
+    setNextEventSheetOpen(false);
+    setSelectedNursingSite(null);
+    setF4View('map');
+    if (site.lat != null && site.lng != null) {
+      setF4FocusLocation({ lat: site.lat, lng: site.lng });
+    }
+  }, []);
   // Long-press → "PIN DROPPED · Plan a step here" sheet, mirroring F1.
   const [candidate, setCandidate] = useState<{ lng: number; lat: number } | null>(null);
   const { data: candidateNearest } = useNearestPlace({
@@ -6343,9 +6444,12 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       <OpenStepPicker
         visible={openStepPickerVisible}
         steps={pickerSteps}
+        arcGroups={f4ArcGroups}
+        clinicalSites={f4ClinicalSites}
         selectedStepId={f4TopStepPickerStepId}
         onDismiss={() => setOpenStepPickerVisible(false)}
         onPickStep={handlePickF4StepFromPicker}
+        onPickSite={handlePickF4Site}
       />
     </View>
   );

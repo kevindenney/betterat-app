@@ -616,12 +616,30 @@ export function useAtlasFramePins({
         raceStartAt: step.is_race === true ? step.starts_at : null,
       });
     };
-    // Several of the viewer's steps at the same spot (~100m via 3-decimal
-    // rounding — same venue grain as the Where-card suggestions) would
-    // stack invisibly, so they fold into one "+N" pin whose tap opens a
-    // steps-at-this-place list. The NEXT step never folds in: it backs
+    // Several of the viewer's steps at the same place would stack invisibly
+    // (and their wide label pills overlap into an unreadable pile), so they
+    // fold into one "+N" pin whose tap opens a steps-at-this-place list.
+    // Fold grain is the nearest mapped POI within ~300m — a pin is a PLACE,
+    // so two shifts at one hospital collapse to a single site pin even when
+    // their stored coords differ slightly. Steps with no nearby POI fall
+    // back to the ~110m coord grid. The NEXT step never folds in: it backs
     // the persistent cockpit HUD and must stay a hero pin.
+    const SITE_FOLD_KM = 0.3;
     const coLocated = new Map<string, UserAtlasStep[]>();
+    const poiByKey = new Map<string, AtlasPoi>();
+    const foldKeyFor = (step: UserAtlasStep): string => {
+      let best: { poi: AtlasPoi; d: number } | null = null;
+      for (const p of pois) {
+        const d = approxKm({ lat: step.lat, lng: step.lng }, { lat: p.lat, lng: p.lng });
+        if (d <= SITE_FOLD_KM && (!best || d < best.d)) best = { poi: p, d };
+      }
+      if (best) {
+        const key = `poi:${best.poi.id}`;
+        if (!poiByKey.has(key)) poiByKey.set(key, best.poi);
+        return key;
+      }
+      return `${step.lat.toFixed(3)}|${step.lng.toFixed(3)}`;
+    };
     for (const step of userSteps) {
       const kind = mapUserStepStatusToPinKind(step);
       if (!showOwnSteps) continue;
@@ -629,23 +647,25 @@ export function useAtlasFramePins({
         pushSingleUserStep(step);
         continue;
       }
-      const key = `${step.lat.toFixed(3)}|${step.lng.toFixed(3)}`;
+      const key = foldKeyFor(step);
       const group = coLocated.get(key);
       if (group) group.push(step);
       else coLocated.set(key, [step]);
     }
-    for (const members of coLocated.values()) {
+    for (const [key, members] of coLocated.entries()) {
       if (members.length === 1) {
         pushSingleUserStep(members[0]);
         continue;
       }
+      const foldPoi = poiByKey.get(key);
       const placeName =
+        foldPoi?.name ??
         members.find((m) => m.location_name?.trim())?.location_name?.trim() ??
         undefined;
       out.push({
         id: `mystep-stack:${members[0].step_id}`,
-        lat: members[0].lat,
-        lng: members[0].lng,
+        lat: foldPoi?.lat ?? members[0].lat,
+        lng: foldPoi?.lng ?? members[0].lng,
         kind: 'my-step-planned',
         clusterCount: members.length,
         clusterUnit: clusterLabels.noun.toLowerCase(),
