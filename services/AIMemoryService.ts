@@ -5,6 +5,8 @@
 import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 import type { AIInterestInsight, InsightType, AIConversation } from '@/types/manifesto';
+import type { StepActData, StepReviewData } from '@/types/step-detail';
+import type { TimelineStepRecord } from '@/types/timeline-steps';
 
 const logger = createLogger('AIMemoryService');
 
@@ -175,6 +177,81 @@ export async function dismissInsight(insightId: string): Promise<void> {
     .eq('id', insightId);
 
   if (error) throw error;
+}
+
+/**
+ * Extract durable insights from a completed step's own captures + reflection —
+ * even when the learner never opened a Train chat. The conversational extractor
+ * (StepCritiqueContent / useAIConversation) only fires when a chat exists, so a
+ * plain "write notes → mark done" flow otherwise leaves no memory behind. This
+ * wraps the step's notes as a single-turn conversation and runs the same path.
+ * Fire-and-forget; returns [] when there isn't enough signal to learn from.
+ */
+export async function extractInsightsFromStepReflection(
+  userId: string,
+  interestId: string,
+  step: TimelineStepRecord,
+): Promise<AIInterestInsight[]> {
+  const metadata = (step.metadata ?? {}) as { act?: StepActData; review?: StepReviewData };
+  const text = buildStepReflectionText(step, metadata.act ?? {}, metadata.review ?? {});
+  // Below ~40 chars there's nothing worth an AI round-trip (and noise produces
+  // low-value insights). Mirrors the capability-tagger's conservatism.
+  if (text.length < 40) return [];
+
+  const now = new Date().toISOString();
+  const conversation: AIConversation = {
+    id: step.id,
+    user_id: userId,
+    interest_id: interestId,
+    context_type: 'review',
+    context_id: step.id,
+    messages: [{ role: 'user', content: text, timestamp: now }],
+    summary: null,
+    status: 'completed',
+    created_at: step.completed_at ?? now,
+    updated_at: now,
+  };
+
+  return extractInsights(userId, interestId, conversation);
+}
+
+function buildStepReflectionText(
+  step: TimelineStepRecord,
+  act: StepActData,
+  review: StepReviewData,
+): string {
+  const parts: string[] = [];
+  const title = (step.title ?? '').trim();
+  if (title) parts.push(`Step: ${title}`);
+
+  for (const obs of act.observations ?? []) {
+    const t = obs.text?.trim();
+    if (t) parts.push(`Observation: ${t}`);
+  }
+  for (const upload of act.media_uploads ?? []) {
+    const c = upload.caption?.trim();
+    if (c) parts.push(`Note: ${c}`);
+  }
+
+  for (const section of review.sections ?? []) {
+    const c = section.content?.trim();
+    if (c) parts.push(c);
+  }
+  const flat = review as StepReviewData & { what_worked?: string; what_didnt?: string };
+  for (const value of [
+    flat.what_worked,
+    flat.what_didnt,
+    review.what_learned,
+    review.deviation_reason,
+    review.next_step_notes,
+    review.key_takeaway,
+    review.teaching_reflection,
+  ]) {
+    const t = value?.trim();
+    if (t) parts.push(t);
+  }
+
+  return parts.join('\n');
 }
 
 /**

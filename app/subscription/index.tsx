@@ -1,8 +1,8 @@
 /**
  * Subscription Page
  *
- * Updated: 2026-03-30
- * Pricing: Free / Plus $9/mo ($89/yr) / Pro $29/mo ($249/yr)
+ * Updated: 2026-06-17
+ * Pricing: Free / Plus $9/mo ($89/yr)
  */
 
 import React, { useState } from 'react';
@@ -18,7 +18,7 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Zap, Crown, Anchor } from 'lucide-react-native';
+import { Zap, Anchor } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { useAuth } from '@/providers/AuthProvider';
@@ -41,22 +41,37 @@ import { triggerHaptic } from '@/lib/haptics';
 interface Plan {
   id: string;
   name: string;
+  monthlyPrice: number;
   annualPrice: number;
-  monthlyEquivalent: string;
   description: string;
   icon: LucideIcon;
   color: string;
   popular?: boolean;
+  priceIds?: {
+    monthly: string;
+    yearly: string;
+  };
   features: string[];
   limitations?: string[];
 }
+
+type BillingPeriod = 'monthly' | 'yearly';
+
+const STRIPE_PRICE_IDS = {
+  plus_monthly:
+    process.env.EXPO_PUBLIC_STRIPE_INDIVIDUAL_MONTHLY_PRICE_ID ||
+    'price_1Tft79BbfEeOhHXbC6kMnpSI',
+  plus_yearly:
+    process.env.EXPO_PUBLIC_STRIPE_INDIVIDUAL_YEARLY_PRICE_ID ||
+    'price_1TjCcsBbfEeOhHXbSwJroOny',
+};
 
 const PLANS: Plan[] = [
   {
     id: 'free',
     name: 'Free',
+    monthlyPrice: 0,
     annualPrice: 0,
-    monthlyEquivalent: '$0',
     description: 'Get started',
     icon: Anchor,
     color: IOS_COLORS.systemGray,
@@ -74,35 +89,21 @@ const PLANS: Plan[] = [
   {
     id: 'plus',
     name: 'Plus',
+    monthlyPrice: 9,
     annualPrice: 89,
-    monthlyEquivalent: '$9/mo',
     description: 'AI-powered learning',
     icon: Zap,
     color: IOS_COLORS.systemBlue,
     popular: true,
+    priceIds: {
+      monthly: STRIPE_PRICE_IDS.plus_monthly,
+      yearly: STRIPE_PRICE_IDS.plus_yearly,
+    },
     features: [
       'Unlimited interests & steps',
-      '50,000 AI tokens per month',
-      'AI insights & suggestions',
+      'Unlimited AI insights & suggestions',
       'Telegram assistant',
       'Progress analytics',
-      'Offline mode',
-    ],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    annualPrice: 249,
-    monthlyEquivalent: '$29/mo',
-    description: 'Power user AI',
-    icon: Crown,
-    color: IOS_COLORS.systemPurple,
-    features: [
-      'Everything in Plus',
-      '500,000 AI tokens per month',
-      'Priority AI processing',
-      'MCP integrations',
-      'Priority support',
     ],
   },
 ];
@@ -129,23 +130,30 @@ export default function SubscriptionPage() {
   const trialStatus = useTrialStatus();
 
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
 
   // -- Handlers ----------------------------------------------------------------
 
-  const handleCheckout = async (planId: string) => {
+  const handleCheckout = async (plan: Plan) => {
     if (!user?.id) {
       showAlert('Error', 'Please log in to subscribe.');
       return;
     }
 
-    if (planId === 'free') return;
+    if (plan.id === 'free') return;
+
+    const priceId = plan.priceIds?.[billingPeriod];
+    if (!priceId) {
+      showAlert('Checkout Error', 'This plan is not available yet.');
+      return;
+    }
 
     triggerHaptic('selection');
-    setProcessingPlan(planId);
+    setProcessingPlan(`${plan.id}-${billingPeriod}`);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
-          planId,
+          priceId,
           userId: user.id,
           successUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/subscription/success`,
           cancelUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/subscription`,
@@ -184,8 +192,22 @@ export default function SubscriptionPage() {
   }
 
   const formatPrice = (plan: Plan) => {
-    if (plan.annualPrice === 0) return '$0/yr';
-    return `$${plan.annualPrice}/yr`;
+    if (plan.monthlyPrice === 0) return '$0';
+    return billingPeriod === 'monthly'
+      ? `$${plan.monthlyPrice}/mo`
+      : `$${plan.annualPrice}/yr`;
+  };
+
+  const formatPriceSubtext = (plan: Plan) => {
+    if (plan.monthlyPrice === 0) return null;
+    return billingPeriod === 'monthly'
+      ? `$${plan.annualPrice}/yr available`
+      : `$${(plan.annualPrice / 12).toFixed(2)}/mo`;
+  };
+
+  const formatCheckoutLabel = (plan: Plan) => {
+    if (billingPeriod === 'monthly') return `Subscribe - $${plan.monthlyPrice}/mo`;
+    return `Subscribe - $${plan.annualPrice}/yr`;
   };
 
   // -- Render ------------------------------------------------------------------
@@ -243,12 +265,48 @@ export default function SubscriptionPage() {
           </IOSListSection>
         )}
 
+        {/* -- Billing toggle ------------------------------------------------ */}
+        <View style={s.billingToggle}>
+          <Pressable
+            style={[
+              s.billingToggleOption,
+              billingPeriod === 'monthly' && s.billingToggleOptionActive,
+            ]}
+            onPress={() => setBillingPeriod('monthly')}
+          >
+            <Text
+              style={[
+                s.billingToggleText,
+                billingPeriod === 'monthly' && s.billingToggleTextActive,
+              ]}
+            >
+              Monthly
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              s.billingToggleOption,
+              billingPeriod === 'yearly' && s.billingToggleOptionActive,
+            ]}
+            onPress={() => setBillingPeriod('yearly')}
+          >
+            <Text
+              style={[
+                s.billingToggleText,
+                billingPeriod === 'yearly' && s.billingToggleTextActive,
+              ]}
+            >
+              Annual
+            </Text>
+          </Pressable>
+        </View>
+
         {/* -- Plan Sections -------------------------------------------------- */}
         {PLANS.map((plan) => {
           const isCurrent = currentPlan === plan.id;
-          const isFree = plan.annualPrice === 0;
-          const isPro = plan.id === 'pro';
-          const isProcessing = processingPlan === plan.id;
+          const isFree = plan.monthlyPrice === 0;
+          const isProcessing = processingPlan === `${plan.id}-${billingPeriod}`;
+          const priceSubtext = formatPriceSubtext(plan);
 
           const sectionHeader = plan.popular
             ? `${plan.name.toUpperCase()} \u00b7 MOST POPULAR`
@@ -272,24 +330,11 @@ export default function SubscriptionPage() {
                 trailingComponent={
                   <View style={s.priceContainer}>
                     <Text style={s.priceText}>{formatPrice(plan)}</Text>
-                    {plan.monthlyEquivalent !== '$0' && (
-                      <Text style={s.priceSubtext}>{plan.monthlyEquivalent}</Text>
-                    )}
+                    {priceSubtext && <Text style={s.priceSubtext}>{priceSubtext}</Text>}
                   </View>
                 }
                 trailingAccessory="none"
               />
-
-              {/* Team members highlight (Pro only) */}
-              {isPro && (
-                <IOSListItem
-                  title="Team Collaboration"
-                  subtitle="Invite up to 5 team members to share your subscription"
-                  leadingIcon="people-outline"
-                  leadingIconBackgroundColor={IOS_COLORS.systemPurple}
-                  trailingAccessory="none"
-                />
-              )}
 
               {/* Compact features row */}
               <IOSListItem
@@ -330,15 +375,13 @@ export default function SubscriptionPage() {
                       { backgroundColor: plan.color },
                       isProcessing && s.planButtonProcessing,
                     ]}
-                    onPress={() => handleCheckout(plan.id)}
+                    onPress={() => handleCheckout(plan)}
                     disabled={isProcessing}
                   >
                     {isProcessing ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
-                      <Text style={s.planButtonText}>
-                        Subscribe - ${plan.annualPrice}/yr
-                      </Text>
+                      <Text style={s.planButtonText}>{formatCheckoutLabel(plan)}</Text>
                     )}
                   </Pressable>
                 )}
@@ -402,6 +445,40 @@ const s = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: IOS_SPACING.lg,
+  },
+
+  // -- Billing toggle ----------------------------------------------------------
+  billingToggle: {
+    flexDirection: 'row',
+    marginHorizontal: IOS_SPACING.lg,
+    marginTop: IOS_SPACING.sm,
+    marginBottom: IOS_SPACING.md,
+    padding: 3,
+    borderRadius: IOS_RADIUS.md,
+    backgroundColor: IOS_COLORS.systemGray5,
+  },
+  billingToggleOption: {
+    flex: 1,
+    minHeight: 34,
+    borderRadius: IOS_RADIUS.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  billingToggleOptionActive: {
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+    shadowColor: IOS_COLORS.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  billingToggleText: {
+    ...IOS_TYPOGRAPHY.subhead,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  billingToggleTextActive: {
+    color: IOS_COLORS.label,
   },
 
   // -- Trial banner ------------------------------------------------------------

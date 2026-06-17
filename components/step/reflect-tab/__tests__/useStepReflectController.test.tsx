@@ -63,6 +63,21 @@ jest.mock('@/services/CapabilityTagService', () => ({
   suggestCapabilityTags: (...args: unknown[]) => mockSuggestCapabilities(...args),
 }));
 
+jest.mock('@/services/AIMemoryService', () => ({
+  extractInsightsFromStepReflection: jest.fn(() => Promise.resolve([])),
+}));
+
+jest.mock('@/hooks/useAIUsage', () => ({
+  useAIUsage: () => ({
+    isPaid: true,
+    counts: {},
+    limits: {},
+    canUse: () => true,
+    remaining: () => null,
+    refresh: () => {},
+  }),
+}));
+
 jest.mock('@/services/TimelineStepService', () => ({
   settleStepAndPlaceBeforeNow: (...args: unknown[]) => mockSettleStepAndPlaceBeforeNow(...args),
 }));

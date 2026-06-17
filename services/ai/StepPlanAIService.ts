@@ -13,6 +13,7 @@
  */
 
 import { supabase } from '@/services/supabase';
+import { AIUsageService } from '@/services/ai/AIUsageService';
 import type { LibraryResourceRecord } from '@/types/library';
 import { getCourseCompletionPercent } from '@/types/library';
 import type { StepPlanData, StepReviewData, StepActData, StepMetadata, CrossInterestSuggestion, ChatMessage, BrainDumpData, ExtractedUrl } from '@/types/step-detail';
@@ -634,7 +635,10 @@ Based on all of this, suggest what they should focus on in this session.`;
     const { data, error } = await supabase.functions.invoke('step-plan-suggest', {
       body: { system: systemPrompt, prompt: userMessage, max_tokens: 768 },
     });
-    if (!error && data?.text) return data.text;
+    if (!error && data?.text) {
+      void AIUsageService.recordUsage('plan_generation');
+      return data.text;
+    }
   } catch {
     // Fall through to fallback
   }
@@ -646,6 +650,7 @@ Based on all of this, suggest what they should focus on in this session.`;
   });
 
   if (error) throw error;
+  void AIUsageService.recordUsage('plan_generation');
   return data?.text || 'Unable to generate suggestion. Try again.';
 }
 
@@ -1429,6 +1434,7 @@ Organize this into a structured ${interestName} practice plan.`.trim();
 
     const parsed = JSON.parse(jsonMatch[0]) as BrainDumpPlanResult;
 
+    void AIUsageService.recordUsage('plan_generation');
     return {
       suggested_title: parsed.suggested_title || '',
       what_will_you_do: parsed.what_will_you_do || '',

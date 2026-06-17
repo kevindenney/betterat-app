@@ -11,6 +11,8 @@ import {
   getActiveConversation,
 } from '@/services/AIConversationService';
 import { extractInsights } from '@/services/AIMemoryService';
+import { useAIUsage } from '@/hooks/useAIUsage';
+import { AIUsageService } from '@/services/ai/AIUsageService';
 import { extractMeasurements } from '@/services/MeasurementExtractionService';
 import { extractNutritionToStep } from '@/services/ai/NutritionExtractionService';
 import { supabase } from '@/services/supabase';
@@ -58,6 +60,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 export function useAIConversation(options: UseAIConversationOptions) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const aiUsage = useAIUsage();
   const [conversation, setConversation] = useState<AIConversation | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -124,6 +127,22 @@ export function useAIConversation(options: UseAIConversationOptions) {
   const sendMessage = useCallback(
     async (text: string): Promise<string | null> => {
       if (!conversationIdRef.current || !text.trim()) return null;
+
+      // Soft paywall: free users get a monthly allowance of coach messages.
+      // Surface the cap as a display-only assistant turn (this hook already
+      // reports failures that way) rather than a modal, and keep the user's
+      // text in the box so they can decide whether to upgrade.
+      if (!aiUsage.canUse('coach_chat')) {
+        const limitMsg: ConversationMessage = {
+          role: 'assistant',
+          content:
+            "You've used all your free coaching messages this month. Upgrade for unlimited AI coaching.",
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, limitMsg]);
+        return null;
+      }
+
       setIsLoading(true);
 
       const userMsg: ConversationMessage = {
@@ -184,6 +203,9 @@ export function useAIConversation(options: UseAIConversationOptions) {
         setMessages((prev) => [...prev, assistantMsg]);
         await appendMessage(conversationIdRef.current!, assistantMsg).catch(() => {});
 
+        void AIUsageService.recordUsage('coach_chat');
+        aiUsage.refresh();
+
         return responseText;
       } catch (err) {
         console.error('sendMessage failed:', err);
@@ -204,7 +226,7 @@ export function useAIConversation(options: UseAIConversationOptions) {
         setIsLoading(false);
       }
     },
-    [messages, options.systemPrompt],
+    [messages, options.systemPrompt, aiUsage],
   );
 
   // Complete the conversation and trigger insight extraction

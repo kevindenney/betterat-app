@@ -25,6 +25,9 @@ export interface CapabilityEvidenceRow {
   evidenceCount: number;
   /** Where the row came from — 'ai' rows are model suggestions awaiting confirmation. */
   source?: 'plan' | 'ai' | 'manual';
+  /** Verbatim snippet from the learner's own notes that justifies the tag.
+      Surfaced on the public face; absent when no clean substring was found. */
+  evidenceQuote?: string;
 }
 
 export type CapabilitySuggestState = 'idle' | 'loading' | 'done';

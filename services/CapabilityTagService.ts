@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { logger } from '@/lib/logger';
+import { AIUsageService } from '@/services/ai/AIUsageService';
 import type {
   CapabilityEvidenceRow,
   EvidenceStrength,
@@ -64,12 +65,14 @@ export async function suggestCapabilityTags(
     : '';
 
   const shape = hasCatalog
-    ? '[{"competency_id":"<id from catalog>","strength":"worth-noting|material|strong"}]'
-    : '[{"capability_name":"<short skill name>","strength":"worth-noting|material|strong"}]';
+    ? '[{"competency_id":"<id from catalog>","strength":"worth-noting|material|strong","evidence_quote":"<exact verbatim phrase copied from the notes above, max ~140 chars>"}]'
+    : '[{"capability_name":"<short skill name>","strength":"worth-noting|material|strong","evidence_quote":"<exact verbatim phrase copied from the notes above, max ~140 chars>"}]';
 
   const prompt =
     `${catalogBlock}${notesBlock}${existingBlock}` +
     `Return up to 4 capabilities the learner clearly practiced, as JSON: ${shape}. ` +
+    `evidence_quote MUST be copied verbatim from the captures or reflection above — ` +
+    `never paraphrase or invent. Omit evidence_quote if no single phrase supports the tag. ` +
     `If nothing is clearly evidenced, return [].`;
 
   let text = '';
@@ -79,6 +82,7 @@ export async function suggestCapabilityTags(
     });
     if (error) throw error;
     text = typeof data?.text === 'string' ? data.text : '';
+    void AIUsageService.recordUsage('capability_tagging');
   } catch (err) {
     logger.warn('Capability tagger unavailable', err);
     return [];
@@ -90,6 +94,15 @@ export async function suggestCapabilityTags(
   const titleById = new Map(
     catalog.map((c) => [c.id, (c.title ?? '').trim()] as const),
   );
+  // Whitespace-collapsed haystack of the learner's own words — a quote only
+  // survives if it's a genuine substring, so the model can't slip in prose the
+  // learner never wrote (see capability-tagging-facade memory).
+  const notesHaystack = normalize([...captures, reflection].join(' '));
+  const verbatimQuote = (raw: unknown): string | undefined => {
+    const quote = String(raw ?? '').trim().replace(/^["“]|["”]$/g, '').trim();
+    if (!quote) return undefined;
+    return notesHaystack.includes(normalize(quote)) ? quote : undefined;
+  };
   const taken = new Set(input.existingNames.map(normalize));
   const rows: CapabilityEvidenceRow[] = [];
 
@@ -123,6 +136,7 @@ export async function suggestCapabilityTags(
       pipLevel: strength === 'strong' ? 5 : strength === 'material' ? 3 : 2,
       evidenceCount: input.capturesCount,
       source: 'ai',
+      evidenceQuote: verbatimQuote((item as Record<string, unknown>).evidence_quote),
     });
     if (rows.length >= 4) break;
   }

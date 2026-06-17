@@ -109,9 +109,16 @@ function mergeCapabilityRows(
 export async function autoTagAndWriteStepCapabilityEvidence({
   step,
   baseRows,
+  canUseAI = true,
 }: {
   step: TimelineStepRecord;
   baseRows?: CapabilityEvidenceRow[];
+  /**
+   * When false (free user over their monthly AI allowance), skip the model call
+   * and write only the deterministic base rows — never block step completion on
+   * a metered feature.
+   */
+  canUseAI?: boolean;
 }): Promise<CapabilityEvidenceRow[]> {
   const metadata = (step.metadata ?? {}) as {
     plan?: StepPlanData;
@@ -127,22 +134,41 @@ export async function autoTagAndWriteStepCapabilityEvidence({
   );
   const captures = captureSnippets(act);
   const reflection = reviewText(review);
-  const suggestions = await suggestCapabilityTags({
-    interestId: step.interest_id,
-    captures,
-    reflection,
-    existingNames: autoTagBase.map((row) => row.capabilityName),
-    capturesCount:
-      (act.observations?.length ?? 0) +
-      (act.media_uploads?.length ?? 0) +
-      (act.media_links?.length ?? 0),
-  });
+  const suggestions = canUseAI
+    ? await suggestCapabilityTags({
+        interestId: step.interest_id,
+        captures,
+        reflection,
+        existingNames: autoTagBase.map((row) => row.capabilityName),
+        capturesCount:
+          (act.observations?.length ?? 0) +
+          (act.media_uploads?.length ?? 0) +
+          (act.media_links?.length ?? 0),
+      })
+    : [];
   const rows = mergeCapabilityRows(
     autoTagBase,
     suggestions.map((row) => ({ ...row, confirmed: true })),
   );
-  await writeStepCapabilityEvidence({ stepId: step.id, rows });
+  await writeStepCapabilityEvidence({
+    stepId: step.id,
+    rows,
+    provenance: buildEvidenceProvenance(step),
+  });
   return rows;
+}
+
+/** "From “Two-boat testing” · May 2026" — provenance shown under a public
+ *  capability quote. Same for every row written from one step. */
+function buildEvidenceProvenance(step: TimelineStepRecord): string {
+  const iso = step.completed_at ?? step.starts_at ?? null;
+  const when = iso ? Date.parse(iso) : Date.now();
+  const monYear = new Date(Number.isFinite(when) ? when : Date.now()).toLocaleDateString(
+    'en-US',
+    { month: 'short', year: 'numeric' },
+  );
+  const title = (step.title ?? '').trim();
+  return title ? `From “${title}” · ${monYear}` : `From a practice session · ${monYear}`;
 }
 
 export interface NewlySettledCapability {
@@ -175,9 +201,12 @@ export async function detectNewlySettledCapabilities(
 export async function writeStepCapabilityEvidence({
   stepId,
   rows,
+  provenance,
 }: {
   stepId: string;
   rows: CapabilityEvidenceRow[];
+  /** Provenance label stored alongside any row that carries a quote. */
+  provenance?: string;
 }) {
   const confirmed = rows.filter((row) => row.confirmed);
   if (confirmed.length === 0) return;
@@ -191,6 +220,8 @@ export async function writeStepCapabilityEvidence({
     pip_level: row.pipLevel,
     evidence_count: row.evidenceCount,
     evidence_capture_ids: [],
+    evidence_quote: row.evidenceQuote ?? null,
+    evidence_provenance: row.evidenceQuote ? (provenance ?? null) : null,
   }));
 
   const { error } = await supabase

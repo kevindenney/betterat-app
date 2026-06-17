@@ -38,6 +38,8 @@ import { AIStructureReview } from './AIStructureReview';
 import type { StepPlanData, StepActData as _StepActData, StepReviewData as _StepReviewData, StepMetadata, BrainDumpData, StepCollaborator as _StepCollaborator, AnyExtractedEntity, DateEnrichment, ExtractedPersonEntity, RacePlan } from '@/types/step-detail';
 import type { TimelineStepStatus } from '@/types/timeline-steps';
 import { useAuth } from '@/providers/AuthProvider';
+import { useAIUsage } from '@/hooks/useAIUsage';
+import { extractInsightsFromStepReflection } from '@/services/AIMemoryService';
 import { useInterest } from '@/providers/InterestProvider';
 import { structureBrainDump } from '@/services/ai/StepPlanAIService';
 import { saveUrlsToLibrary } from '@/services/ai/BrainDumpAIService';
@@ -271,6 +273,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const shareStep = useShareStep();
   const adoptStep = useAdoptStep();
   const { user } = useAuth();
+  const aiUsage = useAIUsage();
   const { currentInterest, allInterests } = useInterest();
   // Route param: /step/[id]?scope=cohort routes the Discussion tab
   // straight to the Cohort scope (used by the Watch stream and
@@ -1093,8 +1096,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       ['timeline-steps', 'detail', stepId],
       (old: any) => old ? { ...old, status: 'settled', completed_at: completedAt } : old,
     );
+    const canTagWithAI = aiUsage.canUse('capability_tagging');
+    if (canTagWithAI) {
+      void extractInsightsFromStepReflection(step.user_id, step.interest_id, step);
+    }
     void (async () => {
-      await autoTagAndWriteStepCapabilityEvidence({ step });
+      await autoTagAndWriteStepCapabilityEvidence({ step, canUseAI: canTagWithAI });
       await settleStepAndPlaceBeforeNow(stepId);
       // Surface the Trophy-of-Becoming only after evidence is written, so the
       // "newly settled" check sees this step's strong rows.
@@ -1105,6 +1112,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       }
     })()
       .then(() => {
+        if (canTagWithAI) aiUsage.refresh();
         queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
         queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
         queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
@@ -1114,7 +1122,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           error instanceof Error ? error.message : 'Could not mark this step done.';
         showAlert('Mark done failed', message);
       });
-  }, [step, stepId, isOwner, reopenStep, queryClient]);
+  }, [step, stepId, isOwner, reopenStep, queryClient, aiUsage]);
 
   const handleRedoStep = useCallback(() => {
     if (!step || !isOwner) return;

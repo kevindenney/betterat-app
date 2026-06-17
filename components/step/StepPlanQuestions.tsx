@@ -51,6 +51,7 @@ import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { PlanTabInterior, PlanTabIOSRegisterInterior } from './plan-tab';
 import { buildSuggestions, crossInterestToMentorInput } from '@/services/SuggestionsService';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import { useAIUsage } from '@/hooks/useAIUsage';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { useStepLocationSuggestions } from '@/hooks/useStepLocationSuggestions';
 import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
@@ -101,6 +102,7 @@ export function StepPlanQuestions({
   const updateStep = useUpdateStep();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const aiUsage = useAIUsage();
   const { currentInterest, userInterests } = useInterest();
   const catLabels = getStepCategoryLabels(step?.category);
   const libraryBefore = useLibraryBeforeBinding(stepId, interestId);
@@ -738,6 +740,17 @@ export function StepPlanQuestions({
 
   const handleAISuggest = useCallback(async () => {
     if (aiLoading) return;
+    if (!aiUsage.canUse('plan_generation')) {
+      showAlertWithButtons(
+        'Monthly AI limit reached',
+        'You\'ve used all your free AI plan suggestions this month. Upgrade for unlimited AI coaching.',
+        [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => router.push('/subscription') },
+        ],
+      );
+      return;
+    }
     setAiLoading(true);
     setAiSuggestion('');
     setRefinementChat([]);
@@ -745,6 +758,7 @@ export function StepPlanQuestions({
       const ctx = await buildEnrichedCtx();
       if (!ctx) return;
       const text = await generateEnrichedPlanSuggestion(ctx);
+      aiUsage.refresh();
 
       // Parse title from first line (AI returns: title\n\nbody)
       const lines = text.split('\n');

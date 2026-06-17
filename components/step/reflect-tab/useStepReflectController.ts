@@ -20,8 +20,10 @@ import {
   buildCapabilityEvidenceRows,
 } from '@/services/CapabilityEvidenceService';
 import { suggestCapabilityTags } from '@/services/CapabilityTagService';
+import { extractInsightsFromStepReflection } from '@/services/AIMemoryService';
+import { useAIUsage } from '@/hooks/useAIUsage';
 import { dropInsight } from '@/services/QuickCaptureService';
-import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { addConceptTrailQuote, getStepConceptLinks } from '@/services/PlaybookService';
 import { supabase } from '@/services/supabase';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -297,6 +299,7 @@ export function useStepReflectController({
   const updateMetadata = useUpdateStepMetadata(stepId);
   const queryClient = useQueryClient();
   const { currentInterest, allInterests } = useInterest();
+  const aiUsage = useAIUsage();
   const [synthesisState, setSynthesisState] = useState<ReflectSynthesisState>('idle');
   const [activeFieldId, setActiveFieldId] = useState<ReflectFieldId | undefined>('what_worked');
   const [showAnythingElse, setShowAnythingElse] = useState(false);
@@ -574,6 +577,17 @@ export function useStepReflectController({
 
   const onSuggestCapabilities = useCallback(async () => {
     if (readOnly || capabilitySuggestState === 'loading') return;
+    if (!aiUsage.canUse('capability_tagging')) {
+      showAlertWithButtons(
+        'Monthly AI limit reached',
+        "You've used all your free AI capability suggestions this month. Upgrade for unlimited AI coaching.",
+        [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => router.push('/subscription') },
+        ],
+      );
+      return;
+    }
     setCapabilitySuggestState('loading');
     try {
       const base = localCapabilities ?? seededCapabilities;
@@ -584,6 +598,7 @@ export function useStepReflectController({
         existingNames: base.map((row) => row.capabilityName),
         capturesCount,
       });
+      aiUsage.refresh();
       if (suggestions.length > 0) {
         setLocalCapabilities(mergeCapabilityRows(base, suggestions));
       }
@@ -600,6 +615,7 @@ export function useStepReflectController({
     currentInterest?.id,
     actData,
     capturesCount,
+    aiUsage,
   ]);
 
   const onMarkFieldAsConceptSeed = useCallback(async (id: ReflectFieldId) => {
@@ -673,16 +689,27 @@ export function useStepReflectController({
       }
       const review = buildReviewFromFields(metadataRef.current, fields);
       const updatedStep = await updateMetadata.mutateAsync({ review });
-      const capabilityRowsToWrite = await autoTagAndWriteStepCapabilityEvidence({
-        step: {
-          ...updatedStep,
-          metadata: {
-            ...((updatedStep.metadata ?? {}) as StepMetadata),
-            review,
-          },
+      const canTagWithAI = aiUsage.canUse('capability_tagging');
+      const stepWithReview = {
+        ...updatedStep,
+        metadata: {
+          ...((updatedStep.metadata ?? {}) as StepMetadata),
+          review,
         },
+      };
+      if (canTagWithAI) {
+        void extractInsightsFromStepReflection(
+          stepWithReview.user_id,
+          stepWithReview.interest_id,
+          stepWithReview,
+        );
+      }
+      const capabilityRowsToWrite = await autoTagAndWriteStepCapabilityEvidence({
+        step: stepWithReview,
         baseRows: capabilities,
+        canUseAI: canTagWithAI,
       });
+      if (canTagWithAI) aiUsage.refresh();
       setLocalCapabilities(capabilityRowsToWrite);
       const observations = actData.observations ?? [];
       const uploads = actData.media_uploads ?? [];
@@ -735,7 +762,7 @@ export function useStepReflectController({
     } finally {
       setSettling(false);
     }
-  }, [step, readOnly, fields, stepId, updateMetadata, capabilities, actData.observations, actData.media_uploads, queryClient, conceptPrompts, onSettled]);
+  }, [step, readOnly, fields, stepId, updateMetadata, capabilities, actData.observations, actData.media_uploads, queryClient, conceptPrompts, onSettled, aiUsage]);
 
   return {
     loading: isLoading,
