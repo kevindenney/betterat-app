@@ -695,12 +695,15 @@ function TopChrome({
           ) : null}
           {universalPlus.isAvailable ? (
             <Pressable
-              style={shellStyles.capsuleAction}
+              style={[
+                shellStyles.capsuleAddButton,
+                { backgroundColor: displayInterest?.accent_color ?? '#007AFF' },
+              ]}
               hitSlop={6}
               onPress={universalPlus.open}
               accessibilityLabel="Add"
             >
-              <Ionicons name="add" size={18} color="rgba(60, 60, 67, 0.85)" />
+              <Ionicons name="add" size={19} color="#FFFFFF" />
             </Pressable>
           ) : null}
           <ProfileDropdown size={30} variant="light" menuAlign="right" />
@@ -6217,6 +6220,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   },
                 }}
                 secondary={{ label: 'Close', onPress: clearF4SelectedPin }}
+                onClose={clearF4SelectedPin}
                 bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
                 initialState="expanded"
               />
@@ -6303,6 +6307,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               },
             }}
             secondary={{ label: 'Close', onPress: clearF4SelectedPin }}
+            onClose={clearF4SelectedPin}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
@@ -10194,6 +10199,20 @@ const shellStyles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Accent-filled "+" — matches the Practice tab's add-step button
+  // (StepTaskBar.plusbtn) so the add affordance reads the same across tabs.
+  capsuleAddButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#007AFF',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   clusterBtn: {
     width: 30,
