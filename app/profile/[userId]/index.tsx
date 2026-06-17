@@ -15,11 +15,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { PublicFaceScreen } from '@/components/sailor/public-face/PublicFaceScreen';
 
 export default function SailorProfileRoute() {
-  const { userId } = useLocalSearchParams<{ userId: string }>();
+  const { userId, preview } = useLocalSearchParams<{ userId: string; preview?: string }>();
 
   if (!userId) {
     return null;
   }
 
-  return <PublicFaceScreen userId={userId} />;
+  return <PublicFaceScreen userId={userId} previewAsPublic={preview === '1'} />;
 }

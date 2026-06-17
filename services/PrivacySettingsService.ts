@@ -26,6 +26,21 @@ export interface ProfilePrivacySettings {
   // NULL means "use exact" via the RPC's COALESCE; stored explicitly only
   // when the user coarsens their default in privacy settings.
   default_location_precision: StepLocationPrecision | null;
+  // Per-section public-face visibility. AND-gates on top of per-step
+  // visibility — these decide whether a section appears at all.
+  show_framing: boolean;
+  show_working_on_now: boolean;
+  show_capabilities: boolean;
+  show_practice_timeline: boolean;
+  show_practice_circle: boolean;
+  show_orgs: boolean;
+  show_published_blueprints: boolean;
+  show_events: boolean;
+  // Per-interaction permissions — which public-face CTAs others can use.
+  allow_follow: boolean;
+  allow_message: boolean;
+  allow_suggest_step: boolean;
+  allow_reflect: boolean;
 }
 
 export interface PrivacySettings extends ProfilePrivacySettings {
@@ -39,8 +54,40 @@ export const DEFAULT_SETTINGS: PrivacySettings = {
   allow_peer_visibility: true,
   allow_follower_sharing: true,
   default_location_precision: null,
+  // Mirror the profiles table-level defaults. The two false defaults
+  // (practice circle, orgs) keep second-party / affiliation data opt-in.
+  show_framing: true,
+  show_working_on_now: true,
+  show_capabilities: true,
+  show_practice_timeline: true,
+  show_practice_circle: false,
+  show_orgs: false,
+  show_published_blueprints: true,
+  show_events: true,
+  allow_follow: true,
+  allow_message: true,
+  allow_suggest_step: true,
+  allow_reflect: true,
   interest_visibility_defaults: {},
 };
+
+// The section/interaction flag columns, read alongside the legacy privacy
+// columns. Boolean NOT NULL with table-level defaults, so `?? DEFAULT` only
+// fires for a missing profiles row.
+const SECTION_FLAG_KEYS = [
+  'show_framing',
+  'show_working_on_now',
+  'show_capabilities',
+  'show_practice_timeline',
+  'show_practice_circle',
+  'show_orgs',
+  'show_published_blueprints',
+  'show_events',
+  'allow_follow',
+  'allow_message',
+  'allow_suggest_step',
+  'allow_reflect',
+] as const;
 
 // ---------------------------------------------------------------------------
 // Read
@@ -54,7 +101,7 @@ export async function getPrivacySettings(
       supabase
         .from('profiles')
         .select(
-          'profile_public, default_step_visibility, allow_peer_visibility, allow_follower_sharing, default_location_precision',
+          `profile_public, default_step_visibility, allow_peer_visibility, allow_follower_sharing, default_location_precision, ${SECTION_FLAG_KEYS.join(', ')}`,
         )
         .eq('id', userId)
         .maybeSingle(),
@@ -69,21 +116,30 @@ export async function getPrivacySettings(
       logger.error('Failed to load profile privacy settings', profileRes.error);
     }
 
-    const profile = profileRes.data;
+    const profile = profileRes.data as Record<string, unknown> | null;
     const prefs = prefsRes.data;
 
+    const flags = {} as Record<(typeof SECTION_FLAG_KEYS)[number], boolean>;
+    for (const key of SECTION_FLAG_KEYS) {
+      flags[key] = (profile?.[key] as boolean | undefined) ?? DEFAULT_SETTINGS[key];
+    }
+
     return {
-      profile_public: profile?.profile_public ?? DEFAULT_SETTINGS.profile_public,
+      profile_public:
+        (profile?.profile_public as boolean | undefined) ?? DEFAULT_SETTINGS.profile_public,
       default_step_visibility:
         (profile?.default_step_visibility as TimelineStepVisibility) ??
         DEFAULT_SETTINGS.default_step_visibility,
       allow_peer_visibility:
-        profile?.allow_peer_visibility ?? DEFAULT_SETTINGS.allow_peer_visibility,
+        (profile?.allow_peer_visibility as boolean | undefined) ??
+        DEFAULT_SETTINGS.allow_peer_visibility,
       allow_follower_sharing:
-        profile?.allow_follower_sharing ?? DEFAULT_SETTINGS.allow_follower_sharing,
+        (profile?.allow_follower_sharing as boolean | undefined) ??
+        DEFAULT_SETTINGS.allow_follower_sharing,
       default_location_precision:
         (profile?.default_location_precision as StepLocationPrecision | null) ??
         DEFAULT_SETTINGS.default_location_precision,
+      ...flags,
       interest_visibility_defaults:
         (prefs?.interest_visibility_defaults as Record<string, TimelineStepVisibility>) ??
         DEFAULT_SETTINGS.interest_visibility_defaults,

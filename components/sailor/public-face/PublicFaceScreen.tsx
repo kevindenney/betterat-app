@@ -57,6 +57,7 @@ import { useSailorFullProfile } from '@/hooks/useSailorFullProfile';
 import {
   usePersonPublicSections,
   formatPersonWhen,
+  DEFAULT_SECTION_FLAGS,
 } from '@/hooks/usePersonPublicSections';
 import { CrewThreadService } from '@/services/CrewThreadService';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -80,17 +81,25 @@ import {
   getDescriptorIdentityForInterests,
   getDescriptorWhereRowsForInterests,
 } from '@/lib/profile-descriptors';
-import { getPublicFaceEnrichment } from './enrichment';
+import { getPublicFaceEnrichment, type PublicFaceEnrichment } from './enrichment';
 
 export interface PublicFaceScreenProps {
   userId: string;
+  /** Render the owner's own face as a stranger sees it (settings preview). */
+  previewAsPublic?: boolean;
 }
 
-export function PublicFaceScreen({ userId }: PublicFaceScreenProps) {
-  return <PublicFaceScreenInner userId={userId} />;
+export function PublicFaceScreen({ userId, previewAsPublic }: PublicFaceScreenProps) {
+  return <PublicFaceScreenInner userId={userId} previewAsPublic={Boolean(previewAsPublic)} />;
 }
 
-function PublicFaceScreenInner({ userId }: { userId: string }) {
+function PublicFaceScreenInner({
+  userId,
+  previewAsPublic,
+}: {
+  userId: string;
+  previewAsPublic: boolean;
+}) {
   const {
     profile,
     isLoading,
@@ -103,9 +112,24 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     toggleMute,
   } = useSailorFullProfile(userId);
   const [relOptionsOpen, setRelOptionsOpen] = useState(false);
-  const { data: sections } = usePersonPublicSections(userId);
+  const { data: sections } = usePersonPublicSections(userId, { previewAsPublic });
+  // In preview the owner is shown exactly what a stranger sees, so suppress the
+  // "this is you" affordances and render the visitor surface instead.
+  const viewedAsOwn = isOwnProfile && !previewAsPublic;
   const [docked, setDocked] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+
+  // Interaction permissions from the public-face RPC. Default-allow until the
+  // RPC resolves (interactions === null), matching the section data's
+  // "absent = allow" posture so CTAs don't flicker off on first paint.
+  const interactions = sections?.interactions ?? null;
+  // Effective per-section visibility from the RPC. Default-allow until it
+  // resolves, same posture as interactions so sections don't flicker off.
+  const sectionFlags = sections?.sectionFlags ?? DEFAULT_SECTION_FLAGS;
+  const allowFollow = interactions?.allowFollow ?? true;
+  const allowMessage = interactions?.allowMessage ?? true;
+  const allowSuggestStep = interactions?.allowSuggestStep ?? true;
+  const allowReflect = interactions?.allowReflect ?? true;
 
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setDocked(e.nativeEvent.contentOffset.y > 140);
@@ -125,7 +149,14 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     }
   }, [userId]);
 
-  const enrichment = useMemo(() => getPublicFaceEnrichment(userId), [userId]);
+  // "Preview as public" drops the hand-written demo enrichment so the owner
+  // sees their REAL gated sections. Otherwise the mock concept/circle/timeline
+  // would render over the gated data and defeat the very section-visibility
+  // flags the preview exists to demonstrate.
+  const enrichment = useMemo<PublicFaceEnrichment>(
+    () => (previewAsPublic ? {} : getPublicFaceEnrichment(userId)),
+    [userId, previewAsPublic],
+  );
 
   // Real-data fallbacks — when a seed sailor has hand-written enrichment it
   // wins; otherwise the practitioner's own settled steps and public thread
@@ -167,6 +198,10 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
       weekTail: `Week ${c.weekTail}`,
       text: c.body.trim() || c.title,
       stats: statBits.length ? statBits.join(' · ') : undefined,
+      history:
+        c.settledCount > 0
+          ? `${c.settledCount} concept${c.settledCount === 1 ? '' : 's'} settled before this one`
+          : undefined,
     };
   }, [enrichment.concept, sections?.concept]);
 
@@ -177,7 +212,10 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     return sections.capabilities.slice(0, 4).map((c) => ({
       name: c.name,
       status: statusFor(c.standing),
-      provenance: `${c.evidenceCount} evidence capture${c.evidenceCount === 1 ? '' : 's'} across practice steps`,
+      evidence: c.evidence ?? undefined,
+      provenance:
+        (c.evidence ? c.provenance : null) ??
+        `${c.evidenceCount} evidence capture${c.evidenceCount === 1 ? '' : 's'} across practice steps`,
     }));
   }, [enrichment.capabilities, sections?.capabilities]);
 
@@ -224,6 +262,39 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
     (sections?.circle?.mutualCount ?? 0) + (sections?.circle?.crewCount ?? 0);
 
   const realCapabilitiesTotal = sections?.capabilities?.length ?? 0;
+
+  const realEvents = useMemo(() => {
+    if (enrichment.events?.length || !sections?.events?.length) return null;
+    const ordinal = (n: number) => {
+      const s = ['th', 'st', 'nd', 'rd'];
+      const v = n % 100;
+      return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+    };
+    // A normal finish carries no extra story; only abnormal codes (OCS, DNF,
+    // DNS, RET…) earn the subtitle line.
+    const abnormal = (code: string | null) =>
+      code && code.trim().toLowerCase() !== 'finished' ? code.trim().toUpperCase() : null;
+    return sections.events.map((e) => {
+      const when = e.whenISO ? new Date(e.whenISO) : null;
+      const flag = abnormal(e.statusCode);
+      const place =
+        e.position != null
+          ? e.fleetSize != null
+            ? `${ordinal(e.position)} of ${e.fleetSize}`
+            : ordinal(e.position)
+          : (flag ?? '—');
+      return {
+        dateTop: when ? String(when.getDate()) : '—',
+        dateBottom: when ? when.toLocaleDateString('en-US', { month: 'short' }) : '',
+        name: e.raceNumber != null ? `${e.regattaName} · Race ${e.raceNumber}` : e.regattaName,
+        venue: e.venue ?? '',
+        resultTop: place,
+        resultBottom: e.position != null ? (flag ?? undefined) : undefined,
+      };
+    });
+  }, [enrichment.events, sections?.events]);
+
+  const realEventsTotal = sections?.eventCount ?? 0;
 
   const displayName = profile?.displayName || 'Practitioner';
 
@@ -341,7 +412,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
   // viewer isn't looking at their own profile and the counts are non-zero.
   const followerCount = profile.followerCount ?? 0;
   const stepCount = sections?.stepCount ?? 0;
-  if (!isOwnProfile && followerCount > 0) {
+  if (!viewedAsOwn && followerCount > 0) {
     realMeta.push({
       icon: 'people-outline',
       text: `${followerCount} follower${followerCount === 1 ? '' : 's'}`,
@@ -388,9 +459,9 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
           backLabel="Back"
           contextLabel="Public face"
           dockedName={displayName}
-          docked={docked && !isOwnProfile && !profile.isFollowing}
+          docked={docked && !viewedAsOwn && !profile.isFollowing}
           trailingAction={
-            docked && !isOwnProfile && !profile.isFollowing
+            docked && !viewedAsOwn && !profile.isFollowing && allowFollow
               ? { label: 'Follow', icon: 'add', onPress: handleFollow }
               : undefined
           }
@@ -406,6 +477,22 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
         showsVerticalScrollIndicator={false}
       >
         <WebDetailContainer>
+        {previewAsPublic ? (
+          <View style={previewBannerStyles.bar}>
+            <Ionicons name="eye-outline" size={15} color="#1D4ED8" />
+            <Text style={previewBannerStyles.label}>
+              Preview — this is what others see
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Exit preview"
+              onPress={onBack}
+              hitSlop={8}
+            >
+              <Text style={previewBannerStyles.done}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
         {/* 01 · HERO — bigger mark + name. Identity, descriptor, meta. */}
         <PublicFaceHero
           markText={initials}
@@ -414,7 +501,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
           descriptor={descriptor}
           meta={meta}
         >
-          {isOwnProfile ? (
+          {viewedAsOwn ? (
             <RelationshipMinePill
               label="This is you · Edit profile"
               onPress={() => router.push('/settings/edit-profile' as any)}
@@ -426,55 +513,67 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                   label="Following"
                   onPress={() => setRelOptionsOpen(true)}
                 />
-              ) : (
+              ) : allowFollow ? (
                 <RelationshipButton
                   label={isToggling ? 'Following…' : 'Follow'}
                   icon="add"
                   loading={isToggling}
                   onPress={handleFollow}
                 />
-              )}
-              <MessageIconButton onPress={onMessage} />
+              ) : null}
+              {allowMessage ? <MessageIconButton onPress={onMessage} /> : null}
             </>
           )}
         </PublicFaceHero>
 
-        {/* Public peer actions. Reflect is a stub until peer reflections land. */}
-        {!isOwnProfile ? (
+        {/* Public peer actions, each gated by the person's interaction flags.
+            Reflect = a peer note on *their* practice (distinct from Message's
+            1:1 DM and a step's Discuss thread); it carries its own write glyph,
+            not Message's chat bubble. Stub until peer reflections land. */}
+        {!viewedAsOwn && (allowSuggestStep || allowReflect) ? (
           <View style={dualCtaStyles.row}>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Suggest a step"
-              onPress={() => setComposerOpen(true)}
-              activeOpacity={0.7}
-              style={dualCtaStyles.primary}
-            >
-              <Ionicons name="bulb-outline" size={15} color="#FFFFFF" />
-              <Text style={dualCtaStyles.primaryText}>Suggest a step</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Reflect"
-              onPress={() => showAlert('Reflect', 'Peer reflections are coming soon.')}
-              activeOpacity={0.7}
-              style={dualCtaStyles.secondary}
-            >
-              <Ionicons name="chatbubble-outline" size={15} color={IOS_REGISTER.label} />
-              <Text style={dualCtaStyles.secondaryText}>Reflect</Text>
-            </TouchableOpacity>
+            {allowSuggestStep ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Suggest a step to ${displayName}`}
+                onPress={() => setComposerOpen(true)}
+                activeOpacity={0.7}
+                style={dualCtaStyles.primary}
+              >
+                <Ionicons name="bulb-outline" size={15} color="#FFFFFF" />
+                <Text style={dualCtaStyles.primaryText}>Suggest a step</Text>
+              </TouchableOpacity>
+            ) : null}
+            {allowReflect ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Reflect on ${displayName}'s practice`}
+                onPress={() =>
+                  showAlert(
+                    'Reflect',
+                    `Leave a reflection on ${displayName}'s practice — coming soon.`,
+                  )
+                }
+                activeOpacity={0.7}
+                style={dualCtaStyles.secondary}
+              >
+                <Ionicons name="create-outline" size={15} color={IOS_REGISTER.label} />
+                <Text style={dualCtaStyles.secondaryText}>Reflect</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         ) : null}
 
         {/* 02 · FRAMING — the practitioner's own sentence at attribution.
             Italic-serif-with-provenance, separated from hero by hairline.
             Absent if practitioner hasn't written one. */}
-        {framingText ? (
+        {sectionFlags.framing && framingText ? (
           <FramingLine text={framingText} provenance={framingProvenance ?? ''} />
         ) : null}
 
         {/* 03 · WORKING ON NOW — coral concept card. Same component as
             Discover, plus the concept-history affordance inside the card. */}
-        {enrichment.concept ? (
+        {sectionFlags.workingOnNow && enrichment.concept ? (
           <IOSDetailSection header="Working on now" bare>
             <ConceptCard
               tail={enrichment.concept.weekTail}
@@ -491,12 +590,20 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               }
             />
           </IOSDetailSection>
-        ) : realConcept ? (
+        ) : sectionFlags.workingOnNow && realConcept ? (
           <IOSDetailSection header="Working on now" bare>
             <ConceptCard
               tail={realConcept.weekTail}
               text={realConcept.text}
               stats={realConcept.stats}
+              history={
+                realConcept.history
+                  ? {
+                      primary: realConcept.history,
+                      onPress: () => router.push(`/profile/${userId}/concepts` as any),
+                    }
+                  : undefined
+              }
             />
           </IOSDetailSection>
         ) : null}
@@ -505,7 +612,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
             No medallions; italic-emphasis settled marker on title.
             Row-level taps reserved for a future trophy-detail surface — not
             wired here so the chevron doesn't promise something undelivered. */}
-        {timeline.length > 0 ? (
+        {sectionFlags.practiceTimeline && timeline.length > 0 ? (
           <IOSDetailSection
             header="Practice timeline"
             seeAll={{
@@ -533,7 +640,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
 
         {/* 05 · CAPABILITIES AT HAND — capability name + status pill +
             evidence quote + provenance. Four visible, all behind link. */}
-        {enrichment.capabilities && enrichment.capabilities.length > 0 ? (
+        {sectionFlags.capabilities && enrichment.capabilities && enrichment.capabilities.length > 0 ? (
           <IOSDetailSection
             header="Capabilities at hand"
             seeAll={
@@ -556,7 +663,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               />
             ))}
           </IOSDetailSection>
-        ) : realCapabilities ? (
+        ) : sectionFlags.capabilities && realCapabilities ? (
           <IOSDetailSection
             header="Capabilities at hand"
             seeAll={
@@ -573,6 +680,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
                 key={i}
                 name={c.name}
                 status={c.status}
+                evidence={c.evidence}
                 provenance={c.provenance}
                 isFirst={i === 0}
               />
@@ -583,7 +691,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
         {/* 06 · PRACTICE CIRCLE — single curated list, not a follow split.
             Coaches, crew, faculty, peers — each row's sub-line names their
             role in this practice. Mutual tag at right edge. */}
-        {enrichment.circle && enrichment.circle.length > 0 ? (
+        {sectionFlags.practiceCircle && enrichment.circle && enrichment.circle.length > 0 ? (
           <IOSDetailSection
             header="Practice circle"
             seeAll={
@@ -610,7 +718,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
               />
             ))}
           </IOSDetailSection>
-        ) : realCircle ? (
+        ) : sectionFlags.practiceCircle && realCircle ? (
           <IOSDetailSection
             header="Practice circle"
             seeAll={
@@ -706,7 +814,7 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
         ) : null}
 
         {/* 09 · EVENTS — plain-text result, no medal glyphs, no podium. */}
-        {enrichment.events && enrichment.events.length > 0 ? (
+        {sectionFlags.events && enrichment.events && enrichment.events.length > 0 ? (
           <IOSDetailSection
             header="Events"
             seeAll={
@@ -719,6 +827,31 @@ function PublicFaceScreenInner({ userId }: { userId: string }) {
             }
           >
             {enrichment.events.map((e, i) => (
+              <EventRow
+                key={i}
+                dateTop={e.dateTop}
+                dateBottom={e.dateBottom}
+                name={e.name}
+                venue={e.venue}
+                resultTop={e.resultTop}
+                resultBottom={e.resultBottom}
+                isFirst={i === 0}
+              />
+            ))}
+          </IOSDetailSection>
+        ) : sectionFlags.events && realEvents ? (
+          <IOSDetailSection
+            header="Events"
+            seeAll={
+              realEventsTotal > realEvents.length
+                ? {
+                    label: `All ${realEventsTotal}`,
+                    onPress: () => router.push(`/profile/${userId}/events` as any),
+                  }
+                : undefined
+            }
+          >
+            {realEvents.map((e, i) => (
               <EventRow
                 key={i}
                 dateTop={e.dateTop}
@@ -803,6 +936,36 @@ const dualCtaStyles = StyleSheet.create({
     color: IOS_REGISTER.label,
     fontSize: 14,
     fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+});
+
+const previewBannerStyles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#EFF4FF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#C7D7FE',
+  },
+  label: {
+    flex: 1,
+    color: '#1D4ED8',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+  done: {
+    color: '#1D4ED8',
+    fontSize: 14,
+    fontWeight: '700',
     letterSpacing: -0.1,
   },
 });

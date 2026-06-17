@@ -56,6 +56,10 @@ export interface PersonCapability {
   standing: 'settled' | 'working' | 'emerging';
   evidenceCount: number;
   pipLevel: number;
+  /** Verbatim quote from the strongest evidence row; null when none stored. */
+  evidence?: string | null;
+  /** Provenance label for that quote, e.g. "From “Two-boat testing” · May 2026". */
+  provenance?: string | null;
 }
 
 export interface PersonCircleMember {
@@ -78,6 +82,51 @@ export interface PersonInterest {
   slug: string;
 }
 
+/** Which public-face CTAs the viewed person allows. Null pre-auth / on error. */
+export interface PersonInteractions {
+  allowFollow: boolean;
+  allowMessage: boolean;
+  allowSuggestStep: boolean;
+  allowReflect: boolean;
+}
+
+/**
+ * Effective per-section visibility for the native public face, as resolved by
+ * the RPC (owner always sees everything; peers/preview see the stored flag).
+ * The screen gates each section render on these so toggles actually take effect.
+ */
+export interface PersonSectionFlags {
+  framing: boolean;
+  workingOnNow: boolean;
+  capabilities: boolean;
+  practiceTimeline: boolean;
+  practiceCircle: boolean;
+  events: boolean;
+}
+
+/** Default-allow section flags used before the RPC resolves / on error. */
+export const DEFAULT_SECTION_FLAGS: PersonSectionFlags = {
+  framing: true,
+  workingOnNow: true,
+  capabilities: true,
+  practiceTimeline: true,
+  practiceCircle: true,
+  events: true,
+};
+
+export interface PersonEvent {
+  resultId: string;
+  regattaName: string;
+  raceNumber: number | null;
+  venue: string | null;
+  whenISO: string | null;
+  position: number | null;
+  /** Boats in this race (same regatta + race_number); null when unknown. */
+  fleetSize: number | null;
+  /** OCS / DNF / DNS etc. — null for a clean finish. */
+  statusCode: string | null;
+}
+
 export interface PersonPublicSections {
   trajectory: PersonTrajectoryItem[];
   /** Total settled/completed steps the viewer can see (trajectory is capped at 6). */
@@ -87,20 +136,42 @@ export interface PersonPublicSections {
   concept: PersonConcept | null;
   capabilities: PersonCapability[];
   circle: PersonCircle | null;
+  events: PersonEvent[];
+  /** Total race results for the person (events list is capped). */
+  eventCount: number;
   /** Flat descriptor bag from profiles.descriptors (interest-aware fields). */
   descriptorValues: DescriptorValues;
   interests: PersonInterest[];
+  /** CTA permissions; null until the RPC resolves (default-allow when absent). */
+  interactions: PersonInteractions | null;
+  /** Effective per-section visibility; default-allow until the RPC resolves. */
+  sectionFlags: PersonSectionFlags;
 }
 
 const STALE_MS = 60_000;
 
-export function usePersonPublicSections(userId: string | null | undefined) {
+export interface UsePersonPublicSectionsOptions {
+  /**
+   * Render the person's own face as a stranger would see it: section flags
+   * apply and the owner's private steps stop counting. Only meaningful when the
+   * viewer IS the person (the "Preview as public" affordance in settings).
+   */
+  previewAsPublic?: boolean;
+}
+
+export function usePersonPublicSections(
+  userId: string | null | undefined,
+  options: UsePersonPublicSectionsOptions = {},
+) {
   const { user } = useAuth();
   const viewerId = user?.id ?? null;
-  const isSelf = Boolean(viewerId && viewerId === userId);
+  const previewAsPublic = Boolean(options.previewAsPublic);
+  // In preview, treat the owner as a non-self stranger for every direct query
+  // and for the RPC, so the preview matches what a real peer sees.
+  const isSelf = Boolean(viewerId && viewerId === userId) && !previewAsPublic;
 
   return useQuery({
-    queryKey: ['person-public-sections', viewerId, userId],
+    queryKey: ['person-public-sections', viewerId, userId, previewAsPublic],
     enabled: Boolean(userId && viewerId),
     staleTime: STALE_MS,
     queryFn: async (): Promise<PersonPublicSections> => {
@@ -145,6 +216,7 @@ export function usePersonPublicSections(userId: string | null | undefined) {
 
       const facePromise = supabase.rpc('get_person_public_face', {
         target_user_id: userId!,
+        preview_as_public: previewAsPublic,
       });
 
       const descriptorPromise = supabase
@@ -153,7 +225,22 @@ export function usePersonPublicSections(userId: string | null | undefined) {
         .eq('id', userId!)
         .maybeSingle();
 
-      const [stepsRes, stepCountRes, orgsRes, threadsRes, faceRes, descriptorRes] =
+      // Events: the person's race results. race_results is readable by any
+      // authenticated viewer (no per-row owner gate), so a direct query is
+      // fine — no SECURITY DEFINER hop needed.
+      const eventsPromise = supabase
+        .from('race_results')
+        .select('id, regatta_id, race_number, position, status_code, finish_time, regattas!inner(name, start_date, start_area_name)')
+        .eq('sailor_id', userId!)
+        .order('finish_time', { ascending: false, nullsFirst: false })
+        .limit(6);
+
+      const eventCountPromise = supabase
+        .from('race_results')
+        .select('id', { count: 'exact', head: true })
+        .eq('sailor_id', userId!);
+
+      const [stepsRes, stepCountRes, orgsRes, threadsRes, faceRes, descriptorRes, eventsRes, eventCountRes] =
         await Promise.all([
           stepsQuery,
           stepCountQuery,
@@ -161,6 +248,8 @@ export function usePersonPublicSections(userId: string | null | undefined) {
           threadsPromise,
           facePromise,
           descriptorPromise,
+          eventsPromise,
+          eventCountPromise,
         ]);
 
       const trajectory: PersonTrajectoryItem[] = (stepsRes.data ?? []).map(
@@ -217,11 +306,57 @@ export function usePersonPublicSections(userId: string | null | undefined) {
         replies: replyCounts.get(row.id) ?? 0,
       }));
 
+      // Fleet size per (regatta, race) — one extra read scoped to the
+      // regattas already in the events list, counted client-side.
+      const eventRows = (eventsRes.data ?? []) as any[];
+      const fleetSize = new Map<string, number>();
+      const regattaIds = [...new Set(eventRows.map((r) => r.regatta_id).filter(Boolean))];
+      if (regattaIds.length > 0) {
+        const { data: fleetRows } = await supabase
+          .from('race_results')
+          .select('regatta_id, race_number')
+          .in('regatta_id', regattaIds);
+        for (const r of (fleetRows ?? []) as { regatta_id: string; race_number: number | null }[]) {
+          const key = `${r.regatta_id}:${r.race_number ?? ''}`;
+          fleetSize.set(key, (fleetSize.get(key) ?? 0) + 1);
+        }
+      }
+
+      const events: PersonEvent[] = eventRows.map((row) => {
+        const regatta = Array.isArray(row.regattas) ? row.regattas[0] : row.regattas;
+        const key = `${row.regatta_id}:${row.race_number ?? ''}`;
+        return {
+          resultId: row.id,
+          regattaName: (regatta?.name ?? '').trim() || 'Regatta',
+          raceNumber: row.race_number ?? null,
+          venue: (regatta?.start_area_name ?? '').trim() || null,
+          whenISO: row.finish_time ?? regatta?.start_date ?? null,
+          position: row.position ?? null,
+          fleetSize: fleetSize.get(key) ?? null,
+          statusCode: (row.status_code ?? '').trim() || null,
+        };
+      });
+      const eventCount = eventCountRes.count ?? events.length;
+
       const face = (faceRes.data ?? {}) as {
         concept?: PersonConcept | null;
         capabilities?: PersonCapability[];
         circle?: PersonCircle | null;
         interests?: PersonInterest[];
+        interactions?: PersonInteractions | null;
+        sections?: Partial<PersonSectionFlags> | null;
+      };
+
+      // The RPC returns effective section flags (owner→all true, peer/preview→
+      // stored flag). Fall back to default-allow per field if the object is
+      // missing (pre-resolve cache, error, or an older RPC without `sections`).
+      const sectionFlags: PersonSectionFlags = {
+        framing: face.sections?.framing ?? DEFAULT_SECTION_FLAGS.framing,
+        workingOnNow: face.sections?.workingOnNow ?? DEFAULT_SECTION_FLAGS.workingOnNow,
+        capabilities: face.sections?.capabilities ?? DEFAULT_SECTION_FLAGS.capabilities,
+        practiceTimeline: face.sections?.practiceTimeline ?? DEFAULT_SECTION_FLAGS.practiceTimeline,
+        practiceCircle: face.sections?.practiceCircle ?? DEFAULT_SECTION_FLAGS.practiceCircle,
+        events: face.sections?.events ?? DEFAULT_SECTION_FLAGS.events,
       };
 
       const d = descriptorRes.data as {
@@ -260,8 +395,12 @@ export function usePersonPublicSections(userId: string | null | undefined) {
         concept: face.concept ?? null,
         capabilities: face.capabilities ?? [],
         circle: face.circle ?? null,
+        events,
+        eventCount,
         descriptorValues,
         interests,
+        interactions: face.interactions ?? null,
+        sectionFlags,
       };
     },
   });

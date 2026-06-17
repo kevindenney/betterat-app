@@ -7,7 +7,8 @@ import {
   Platform,
   ActionSheetIOS,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import type { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { IOSListSection } from '@/components/ui/ios/IOSListSection';
@@ -82,6 +83,37 @@ const PRECISION_OPTIONS: { value: StepLocationPrecision; label: string }[] = [
 function precisionLabel(value: StepLocationPrecision | null): string {
   return PRECISION_OPTIONS.find((o) => o.value === (value ?? 'exact'))?.label ?? 'Exact';
 }
+
+// Per-section public-face toggles. Each gates whether a whole section appears
+// on the public face (AND-ed with per-step visibility). Disabled while the
+// profile is private, since there's no public face to shape yet.
+type ToggleMeta = {
+  key: keyof ProfilePrivacySettings;
+  title: string;
+  subtitle: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  color: string;
+};
+
+const SECTION_TOGGLES: ToggleMeta[] = [
+  { key: 'show_framing', title: 'Framing', subtitle: 'Your intro and where you practice', icon: 'text-outline', color: ICON_BACKGROUNDS.blue },
+  { key: 'show_working_on_now', title: 'Working On Now', subtitle: "What you're working on right now", icon: 'flask-outline', color: ICON_BACKGROUNDS.orange },
+  { key: 'show_capabilities', title: 'Capabilities', subtitle: 'Skills backed by your evidence', icon: 'ribbon-outline', color: ICON_BACKGROUNDS.green },
+  { key: 'show_practice_timeline', title: 'Practice Timeline', subtitle: 'Your completed and settled steps', icon: 'footsteps-outline', color: ICON_BACKGROUNDS.purple },
+  { key: 'show_practice_circle', title: 'Practice Circle', subtitle: 'People you practice with', icon: 'people-circle-outline', color: ICON_BACKGROUNDS.blue },
+  { key: 'show_orgs', title: 'Organizations', subtitle: "Clubs, schools, and programs you've joined", icon: 'business-outline', color: ICON_BACKGROUNDS.gray },
+  { key: 'show_published_blueprints', title: 'Published Plans', subtitle: "Plans you've published for others", icon: 'documents-outline', color: ICON_BACKGROUNDS.orange },
+  { key: 'show_events', title: 'Events', subtitle: "Events you've competed in or attended", icon: 'trophy-outline', color: ICON_BACKGROUNDS.green },
+];
+
+// Per-interaction toggles. Each gates a public-face CTA others can use. These
+// stay live even on a private profile, since followers still see the face.
+const INTERACTION_TOGGLES: ToggleMeta[] = [
+  { key: 'allow_follow', title: 'Allow Follows', subtitle: 'Let others follow your practice', icon: 'person-add-outline', color: ICON_BACKGROUNDS.blue },
+  { key: 'allow_message', title: 'Allow Messages', subtitle: 'Let others message you directly', icon: 'chatbubble-outline', color: ICON_BACKGROUNDS.green },
+  { key: 'allow_suggest_step', title: 'Allow Step Suggestions', subtitle: 'Let others suggest a step', icon: 'bulb-outline', color: ICON_BACKGROUNDS.orange },
+  { key: 'allow_reflect', title: 'Allow Reflections', subtitle: 'Let others reflect on your practice', icon: 'create-outline', color: ICON_BACKGROUNDS.purple },
+];
 
 // =============================================================================
 // Screen
@@ -345,6 +377,61 @@ export default function PrivacyScreen(): React.ReactElement {
             switchValue={settings.allow_follower_sharing}
             onSwitchChange={(v) => updateSetting('allow_follower_sharing', v)}
           />
+        </IOSListSection>
+
+        {/* ── ON MY PUBLIC FACE ── */}
+        <IOSListSection
+          header="ON MY PUBLIC FACE"
+          footer={
+            settings.profile_public
+              ? 'Choose which sections appear on your public face. Per-step privacy still applies within each section.'
+              : 'Turn on Public Profile to choose which sections appear on your public face.'
+          }
+        >
+          {SECTION_TOGGLES.map((t) => (
+            <IOSListItem
+              key={t.key}
+              title={t.title}
+              subtitle={t.subtitle}
+              leadingIcon={t.icon}
+              leadingIconBackgroundColor={t.color}
+              trailingAccessory="switch"
+              switchValue={settings[t.key] as boolean}
+              disabled={!settings.profile_public}
+              onSwitchChange={
+                settings.profile_public ? (v) => updateSetting(t.key, v) : undefined
+              }
+            />
+          ))}
+          {user ? (
+            <IOSListItem
+              title="Preview as Public"
+              subtitle="See your face the way others do"
+              leadingIcon="eye-outline"
+              leadingIconBackgroundColor={ICON_BACKGROUNDS.gray}
+              trailingAccessory="chevron"
+              onPress={() => router.push(`/profile/${user.id}?preview=1` as any)}
+            />
+          ) : null}
+        </IOSListSection>
+
+        {/* ── WHO CAN INTERACT ── */}
+        <IOSListSection
+          header="WHO CAN INTERACT"
+          footer="Choose which actions others can take from your public face."
+        >
+          {INTERACTION_TOGGLES.map((t) => (
+            <IOSListItem
+              key={t.key}
+              title={t.title}
+              subtitle={t.subtitle}
+              leadingIcon={t.icon}
+              leadingIconBackgroundColor={t.color}
+              trailingAccessory="switch"
+              switchValue={settings[t.key] as boolean}
+              onSwitchChange={(v) => updateSetting(t.key, v)}
+            />
+          ))}
         </IOSListSection>
 
         {/* ── PROGRAMS ── */}

@@ -143,6 +143,10 @@ function DbUserProfile({ userId }: { userId: string }) {
   const [organizations, setOrganizations] = useState<Map<string, OrganizationRow>>(new Map());
   const [activities, setActivities] = useState<{ id: string; name: string; date: string | null; venue: string | null }[]>([]);
   const [blueprints, setBlueprints] = useState<BlueprintRecord[]>([]);
+  // Public-face section flags (owner always sees their own; peers gated). Both
+  // default true so the sections never flash-hide before the profile loads.
+  const [showOrgs, setShowOrgs] = useState(true);
+  const [showPublishedBlueprints, setShowPublishedBlueprints] = useState(true);
   const [libExpanded, setLibExpanded] = useState(false);
   const timelineQuery = useUserTimeline(userId);
   const { allInterests } = useInterest();
@@ -215,12 +219,20 @@ function DbUserProfile({ userId }: { userId: string }) {
         // `users` if RLS hides a private profile; that would leak name/email.
         const profileResult = await supabase
           .from('profiles')
-          .select('id,full_name,avatar_url,profile_public')
+          .select('id,full_name,avatar_url,profile_public,show_orgs,show_published_blueprints')
           .eq('id', userId)
           .maybeSingle();
 
         if (!profileResult.data && !isOwner) {
           throw new Error('This profile is private');
+        }
+
+        if (!cancelled) {
+          // Owner previews their full face; peers honor the section flags.
+          setShowOrgs(isOwner || ((profileResult.data as any)?.show_orgs ?? false));
+          setShowPublishedBlueprints(
+            isOwner || ((profileResult.data as any)?.show_published_blueprints ?? true),
+          );
         }
 
         const userResult = isOwner
@@ -378,8 +390,10 @@ function DbUserProfile({ userId }: { userId: string }) {
       });
   }, [inferredOrgs]);
 
-  // Combined org display: direct memberships or inferred from timelines
+  // Combined org display: direct memberships or inferred from timelines.
+  // Empty when the person hides orgs from their public face (owner exempt).
   const displayOrgs = useMemo(() => {
+    if (!showOrgs) return [];
     if (orgRows.length > 0) {
       return orgRows.map((row) => ({
         name: row.org?.name || row.organization_id,
@@ -398,7 +412,7 @@ function DbUserProfile({ userId }: { userId: string }) {
         interestSlug: detail?.interest_slug || interest?.slug || null,
       };
     });
-  }, [orgRows, inferredOrgs, inferredOrgDetails, allInterests]);
+  }, [showOrgs, orgRows, inferredOrgs, inferredOrgDetails, allInterests]);
 
   const initials = name
     .split(' ')
@@ -414,9 +428,15 @@ function DbUserProfile({ userId }: { userId: string }) {
   // Blueprints ranked by reach; the top one is featured, the rest split into
   // active coaching blueprints (have subscribers) vs zero-subscriber
   // curriculum-template library.
+  // Empty when the person hides published blueprints from their public face
+  // (owner exempt) — featured/coaching/library/subscriber rollups all derive
+  // from this, so they disappear together.
   const sortedBlueprints = useMemo(
-    () => [...blueprints].sort((a, b) => (b.subscriber_count ?? 0) - (a.subscriber_count ?? 0)),
-    [blueprints],
+    () =>
+      showPublishedBlueprints
+        ? [...blueprints].sort((a, b) => (b.subscriber_count ?? 0) - (a.subscriber_count ?? 0))
+        : [],
+    [showPublishedBlueprints, blueprints],
   );
   const featuredBlueprint = sortedBlueprints[0] ?? null;
   const coachingBlueprints = useMemo(
@@ -428,8 +448,8 @@ function DbUserProfile({ userId }: { userId: string }) {
     [sortedBlueprints],
   );
   const subscriberTotal = useMemo(
-    () => blueprints.reduce((sum, b) => sum + (b.subscriber_count ?? 0), 0),
-    [blueprints],
+    () => sortedBlueprints.reduce((sum, b) => sum + (b.subscriber_count ?? 0), 0),
+    [sortedBlueprints],
   );
 
   // "Working on now": active steps first, then what's queued up next.
@@ -556,7 +576,7 @@ function DbUserProfile({ userId }: { userId: string }) {
                 <Text style={dbStyles.statLabel}>Subscribers</Text>
               </View>
               <View style={dbStyles.statItem}>
-                <Text style={dbStyles.statValue}>{blueprints.length}</Text>
+                <Text style={dbStyles.statValue}>{sortedBlueprints.length}</Text>
                 <Text style={dbStyles.statLabel}>Blueprints</Text>
               </View>
               <View style={dbStyles.statItem}>
