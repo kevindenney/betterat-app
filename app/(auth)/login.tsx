@@ -457,8 +457,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   closeButton: {
-    padding: 8,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#F1F5F9',
   },
   scrollContent: {

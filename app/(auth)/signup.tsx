@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../providers/AuthProvider';
 import { isAppleSignInAvailable } from '@/lib/auth/nativeOAuth';
@@ -40,6 +41,7 @@ const getSignupErrorMessage = (error: any): string => {
 type SignupStep = 'interest' | 'persona';
 
 export default function SignUp() {
+  const insets = useSafeAreaInsets();
   const { signUp, signInWithGoogle, signInWithApple, loading: authLoading, signedIn } = useAuth();
   const params = useLocalSearchParams<{
     persona?: string;
@@ -304,7 +306,7 @@ export default function SignUp() {
     return (
       <View style={styles.container}>
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20 }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
@@ -386,7 +388,7 @@ export default function SignUp() {
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -658,13 +660,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   closeButton: {
-    padding: 8,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#F1F5F9',
   },
   backButton: {
-    padding: 8,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#F1F5F9',
   },
   title: {
