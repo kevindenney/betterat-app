@@ -400,13 +400,6 @@ export function TrophyRowPublic({
 }: TrophyRowPublicProps) {
   const body = (
     <View style={[troStyles.row, !isFirst && troStyles.rowBorder]}>
-      <View style={troStyles.lead}>
-        <Ionicons
-          name={settled ? 'checkmark-circle' : 'ellipse-outline'}
-          size={18}
-          color={settled ? '#3F8758' : LABEL_3}
-        />
-      </View>
       <View style={troStyles.body}>
         <View style={troStyles.titleRow}>
           <Text style={troStyles.title} numberOfLines={2}>
@@ -799,11 +792,6 @@ const troStyles = StyleSheet.create({
   rowBorder: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: SEP,
-  },
-  lead: {
-    width: 24,
-    alignItems: 'center',
-    paddingTop: 1,
   },
   body: { flex: 1, minWidth: 0 },
   titleRow: {
