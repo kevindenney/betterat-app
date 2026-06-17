@@ -24,6 +24,7 @@ import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useMyTimeline, useUpdateStep, useDeleteStep } from '@/hooks/useTimelineSteps';
+import type { UpdateTimelineStepInput } from '@/types/timeline-steps';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useCurrentSeason, useUserSeasons, useCreateSeason, useUpdateSeason, useArchiveSeason, useDeleteSeason } from '@/hooks/useSeason';
 import { useSubscribedBlueprints, useBlueprintWithAuthor } from '@/hooks/useBlueprint';
@@ -417,13 +418,36 @@ export function TimelineZoomPracticeScreen() {
   // route to a toast for now — they need single-row picker UI we
   // haven't built into the canvas surface yet.
   const deleteStep = useDeleteStep();
-  const handleBulkArchive = useCallback(
-    (stepIds: string[]) => {
-      stepIds.forEach((id) =>
-        updateStep.mutate({ stepId: id, input: { status: 'skipped' } }),
+
+  // Bulk edits fan out one mutation per step. Run them together and alert
+  // once if any fail, so a partial failure isn't silently lost (and we
+  // don't spam one alert per failed row).
+  const bulkUpdateSteps = useCallback(
+    async (updates: { stepId: string; input: UpdateTimelineStepInput }[]) => {
+      if (updates.length === 0) return;
+      const results = await Promise.allSettled(
+        updates.map((u) => updateStep.mutateAsync(u)),
       );
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) {
+        showAlert(
+          'Some Changes Not Saved',
+          failed === updates.length
+            ? 'None of the changes could be saved. Please try again.'
+            : `${failed} of ${updates.length} changes could not be saved. Please try again.`,
+        );
+      }
     },
     [updateStep],
+  );
+
+  const handleBulkArchive = useCallback(
+    (stepIds: string[]) => {
+      void bulkUpdateSteps(
+        stepIds.map((id) => ({ stepId: id, input: { status: 'skipped' } })),
+      );
+    },
+    [bulkUpdateSteps],
   );
   const handleBulkDelete = useCallback(
     (stepIds: string[]) => {
@@ -432,7 +456,22 @@ export function TimelineZoomPracticeScreen() {
       showConfirm(
         `Delete ${label}?`,
         'This removes them from your timeline. You can recreate any step from the source plan.',
-        () => stepIds.forEach((id) => deleteStep.mutate(id)),
+        () => {
+          void (async () => {
+            const results = await Promise.allSettled(
+              stepIds.map((id) => deleteStep.mutateAsync(id)),
+            );
+            const failed = results.filter((r) => r.status === 'rejected').length;
+            if (failed > 0) {
+              showAlert(
+                'Some Steps Not Deleted',
+                failed === stepIds.length
+                  ? 'None of the steps could be deleted. Please try again.'
+                  : `${failed} of ${stepIds.length} steps could not be deleted. Please try again.`,
+              );
+            }
+          })();
+        },
         { destructive: true, confirmText: 'Delete' },
       );
     },
@@ -521,17 +560,19 @@ export function TimelineZoomPracticeScreen() {
   const handlePickSeason = useCallback(
     (seasonId: string) => {
       const ids = moveTargetIds ?? [];
-      ids.forEach((id) => {
-        const existing = steps.find((s) => s.id === id);
-        const nextMeta = {
-          ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
-          season_id: seasonId,
-        };
-        updateStep.mutate({ stepId: id, input: { metadata: nextMeta } });
-      });
+      void bulkUpdateSteps(
+        ids.map((id) => {
+          const existing = steps.find((s) => s.id === id);
+          const nextMeta = {
+            ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
+            season_id: seasonId,
+          };
+          return { stepId: id, input: { metadata: nextMeta } };
+        }),
+      );
       setMoveTargetIds(null);
     },
-    [moveTargetIds, steps, updateStep],
+    [moveTargetIds, steps, bulkUpdateSteps],
   );
   const handleCreateSeason = useCallback(
     async (input: { name: string; start_date: string; end_date: string }) => {
@@ -562,12 +603,12 @@ export function TimelineZoomPracticeScreen() {
   const handlePickTag = useCallback(
     (tag: string) => {
       const ids = tagTargetIds ?? [];
-      ids.forEach((id) =>
-        updateStep.mutate({ stepId: id, input: { category: tag } }),
+      void bulkUpdateSteps(
+        ids.map((id) => ({ stepId: id, input: { category: tag } })),
       );
       setTagTargetIds(null);
     },
-    [tagTargetIds, updateStep],
+    [tagTargetIds, bulkUpdateSteps],
   );
 
   // Frame 12 — Schedule bulk picker entry. Shift mode preserves each
@@ -581,28 +622,29 @@ export function TimelineZoomPracticeScreen() {
     (days: number) => {
       const ids = scheduleTargetIds ?? [];
       const msPerDay = 24 * 60 * 60 * 1000;
-      ids.forEach((id) => {
+      const updates = ids.flatMap((id) => {
         const existing = steps.find((s) => s.id === id);
-        if (!existing?.starts_at) return; // skip undated steps
+        if (!existing?.starts_at) return []; // skip undated steps
         const next = new Date(
           new Date(existing.starts_at).getTime() + days * msPerDay,
         ).toISOString();
-        updateStep.mutate({ stepId: id, input: { starts_at: next } });
+        return [{ stepId: id, input: { starts_at: next } }];
       });
+      void bulkUpdateSteps(updates);
       setScheduleTargetIds(null);
     },
-    [scheduleTargetIds, steps, updateStep],
+    [scheduleTargetIds, steps, bulkUpdateSteps],
   );
   const handleApplyAbsolute = useCallback(
     (isoDate: string) => {
       const ids = scheduleTargetIds ?? [];
       const next = new Date(`${isoDate}T00:00:00`).toISOString();
-      ids.forEach((id) =>
-        updateStep.mutate({ stepId: id, input: { starts_at: next } }),
+      void bulkUpdateSteps(
+        ids.map((id) => ({ stepId: id, input: { starts_at: next } })),
       );
       setScheduleTargetIds(null);
     },
-    [scheduleTargetIds, updateStep],
+    [scheduleTargetIds, bulkUpdateSteps],
   );
 
   const hasContent = dataset.seasons.some((s) => s.bricks.length > 0);

@@ -70,6 +70,7 @@ import {
 } from '@/lib/design-tokens-ios';
 import { useStepDetail } from '@/hooks/useStepDetail';
 import { useUpdateStepMetadata } from '@/hooks/useStepDetail';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   LOCAL_KNOWLEDGE_TEMPLATES,
   appendAtlasRaceNote,
@@ -155,10 +156,19 @@ function DebriefBody({
         focus_label: atlasData?.next_event?.label ?? step.location_name ?? step.title,
       });
       const nextReview = appendReviewAnythingElseNote(metadata.review, text);
-      updateMetadata.mutate({
-        atlas: nextAtlas,
-        review: nextReview,
-      });
+      updateMetadata.mutate(
+        {
+          atlas: nextAtlas,
+          review: nextReview,
+        },
+        {
+          onError: (err: any) =>
+            showAlert(
+              'Could Not Save Note',
+              err?.message || 'Something went wrong. Please try again.',
+            ),
+        },
+      );
     },
     [atlasData, metadata.review, step.location_lat, step.location_lng, step.location_name, step.title, updateMetadata],
   );

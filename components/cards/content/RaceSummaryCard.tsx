@@ -26,7 +26,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { IOSSegmentedControl, PhaseTabsCanonical, type PhaseTabItem } from '@/components/ui/ios';
 import { text } from '@/lib/design-tokens-editorial';
 import { STEP_PALETTE } from '@/lib/step-theme';
-import { showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { AddToBlueprintSheet } from '@/components/blueprint/AddToBlueprintSheet';
 import { triggerHaptic } from '@/lib/haptics';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -674,6 +674,20 @@ function RaceSummaryCardImpl({
   // Inline title editing for timeline steps
   const updateStepMutation = useUpdateStep();
   const queryClient = useQueryClient();
+
+  // Shared failure handler for optimistic step edits (title, visibility):
+  // tell the user and re-fetch the truth so the optimistic cache edit
+  // doesn't linger as a save that never actually happened.
+  const handleStepUpdateError = useCallback(
+    (err: any) => {
+      showAlert(
+        'Could Not Save',
+        err?.message || 'Something went wrong. Please try again.',
+      );
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+    },
+    [queryClient],
+  );
   const [editTitle, setEditTitle] = useState(race.name || '');
   const titleInputRef = useRef<TextInput>(null);
   // Track the last title we saved locally so we don't revert on prop re-sync
@@ -730,13 +744,16 @@ function RaceSummaryCardImpl({
       },
     );
 
-    updateStepMutation.mutate({ stepId: race.id, input: { title: trimmed } });
+    updateStepMutation.mutate(
+      { stepId: race.id, input: { title: trimmed } },
+      { onError: handleStepUpdateError },
+    );
     // Clear the placeholder-title flag server-side so it doesn't reappear
     // after the row refetches.
     if (placeholderTitleFlagRef.current && updateStepMetadataRef.current) {
       updateStepMetadataRef.current({ _placeholder_title: null });
     }
-  }, [editTitle, race.name, race.id, updateStepMutation, queryClient]);
+  }, [editTitle, race.name, race.id, updateStepMutation, queryClient, handleStepUpdateError]);
 
   // Visibility change handler for timeline steps
   const currentVisibility = (race?.visibility as TimelineStepVisibility) ?? 'private';
@@ -759,7 +776,10 @@ function RaceSummaryCardImpl({
           if (buttonIndex < visibilityOptions.length) {
             const selected = visibilityOptions[buttonIndex].value;
             if (selected !== currentVisibility) {
-              updateStepMutation.mutate({ stepId: race.id, input: { visibility: selected } });
+              updateStepMutation.mutate(
+                { stepId: race.id, input: { visibility: selected } },
+                { onError: handleStepUpdateError },
+              );
             }
           }
         },
@@ -768,14 +788,17 @@ function RaceSummaryCardImpl({
       // Android / web — show inline picker
       setShowVisibilityPicker(true);
     }
-  }, [currentVisibility, race.id, updateStepMutation, visibilityOptions]);
+  }, [currentVisibility, race.id, updateStepMutation, visibilityOptions, handleStepUpdateError]);
 
   const handleSelectVisibility = useCallback((value: TimelineStepVisibility) => {
     setShowVisibilityPicker(false);
     if (value !== currentVisibility) {
-      updateStepMutation.mutate({ stepId: race.id, input: { visibility: value } });
+      updateStepMutation.mutate(
+        { stepId: race.id, input: { visibility: value } },
+        { onError: handleStepUpdateError },
+      );
     }
-  }, [currentVisibility, race.id, updateStepMutation]);
+  }, [currentVisibility, race.id, updateStepMutation, handleStepUpdateError]);
 
   // Brain dump state for timeline steps
   const metadata = race?.metadata as StepMetadata | undefined;
@@ -993,6 +1016,14 @@ function RaceSummaryCardImpl({
           setResolvedEntities([]);
           // Keep dateEnrichment in local state so it persists across tab switches
           // (race.metadata won't refresh until the list query re-fetches)
+        },
+        onError: (err: any) => {
+          // Leave the review sheet open so the user can retry without
+          // losing the structured plan they just confirmed.
+          showAlert(
+            'Could Not Save Plan',
+            err?.message || 'Something went wrong. Your plan is still here — try again.',
+          );
         },
       },
     );
