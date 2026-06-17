@@ -234,7 +234,7 @@ export default function MultiClassStartScheduler() {
           showAlert('Error', 'Failed to start sequence');
         }
       },
-      { confirmLabel: 'Start' }
+      { confirmText: 'Start' }
     );
   };
 
@@ -304,7 +304,7 @@ export default function MultiClassStartScheduler() {
           showAlert('Error', 'Failed to postpone');
         }
       },
-      { confirmLabel: 'Postpone' }
+      { confirmText: 'Postpone' }
     );
   };
 

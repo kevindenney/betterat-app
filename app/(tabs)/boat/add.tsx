@@ -181,7 +181,7 @@ export default function AddBoatScreen() {
         'Connection Required',
         'Unable to connect to server to load boat classes. Please check your internet connection and try again.',
         loadBoatClasses,
-        { confirmLabel: 'Retry' }
+        { confirmText: 'Retry' }
       );
       return;
     }

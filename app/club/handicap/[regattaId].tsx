@@ -201,7 +201,7 @@ export default function HandicapCalculatorDashboard() {
           showAlert('Error', error.message || 'Failed to calculate');
         }
       },
-      { confirmLabel: 'Calculate' }
+      { confirmText: 'Calculate' }
     );
   };
 

@@ -256,7 +256,7 @@ export default function ChangePasswordScreen() {
                   showAlert('Error', 'Failed to send reset link');
                 }
               },
-              { confirmLabel: 'Send Link' }
+              { confirmText: 'Send Link' }
             );
           }}
           style={styles.forgotButton}

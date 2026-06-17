@@ -65,7 +65,7 @@ export default function ConfirmCrewScreen() {
       "Edit Section",
       `Would you like to edit your ${section}?`,
       () => logger.debug(`Editing ${section}`),
-      { confirmLabel: 'Edit' }
+      { confirmText: 'Edit' }
     );
   };
 
