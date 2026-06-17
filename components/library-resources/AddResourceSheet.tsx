@@ -52,7 +52,7 @@ interface AddResourceSheetProps {
   visible: boolean;
   libraryId: string;
   interestName?: string;
-  onSubmit: (input: CreateLibraryResourceInput) => void;
+  onSubmit: (input: CreateLibraryResourceInput) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -70,6 +70,8 @@ export function AddResourceSheet({ visible, libraryId, interestName, onSubmit, o
   const [isUploading, setIsUploading] = useState(false);
   // Note content state
   const [noteContent, setNoteContent] = useState('');
+  // Submit state
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleUrlChange = useCallback((text: string) => {
     setUrl(text);
@@ -178,8 +180,8 @@ export function AddResourceSheet({ visible, libraryId, interestName, onSubmit, o
   const isCourse = resourceType === 'online_course';
   const isNote = resourceType === 'note';
 
-  const handleSubmit = useCallback(() => {
-    if (!title.trim()) return;
+  const handleSubmit = useCallback(async () => {
+    if (!title.trim() || isSaving) return;
 
     const metadata: Record<string, unknown> = {};
 
@@ -211,28 +213,38 @@ export function AddResourceSheet({ visible, libraryId, interestName, onSubmit, o
       metadata.note_content = noteContent.trim();
     }
 
-    onSubmit({
-      library_id: libraryId,
-      title: title.trim(),
-      url: fileUploadMeta?.public_url || url.trim() || null,
-      resource_type: resourceType,
-      source_platform: fileUploadMeta ? 'Upload' : detectedPlatform,
-      author_or_creator: author.trim() || null,
-      description: description.trim() || null,
-      metadata,
-    });
-    // Reset form
-    setTitle('');
-    setUrl('');
-    setResourceType('website');
-    setAuthor('');
-    setDescription('');
-    setDetectedPlatform(null);
-    setCourseModules([]);
-    setFileUploadMeta(null);
-    setNoteContent('');
+    setIsSaving(true);
+    try {
+      await onSubmit({
+        library_id: libraryId,
+        title: title.trim(),
+        url: fileUploadMeta?.public_url || url.trim() || null,
+        resource_type: resourceType,
+        source_platform: fileUploadMeta ? 'Upload' : detectedPlatform,
+        author_or_creator: author.trim() || null,
+        description: description.trim() || null,
+        metadata,
+      });
+      // Reset form only after a successful save so input survives errors
+      setTitle('');
+      setUrl('');
+      setResourceType('website');
+      setAuthor('');
+      setDescription('');
+      setDetectedPlatform(null);
+      setCourseModules([]);
+      setFileUploadMeta(null);
+      setNoteContent('');
+    } catch (err: any) {
+      showAlert(
+        'Could Not Save',
+        err?.message || 'Something went wrong. Your details are still here — try again.',
+      );
+    } finally {
+      setIsSaving(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, url, resourceType, author, description, libraryId, onSubmit, isCourse, courseModules, fileUploadMeta, isNote, noteContent]);
+  }, [title, url, resourceType, author, description, libraryId, onSubmit, isCourse, courseModules, fileUploadMeta, isNote, noteContent, isSaving]);
 
   const handleAIDecompose = useCallback(async () => {
     if (!title.trim()) return;
@@ -273,10 +285,14 @@ export function AddResourceSheet({ visible, libraryId, interestName, onSubmit, o
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
           <Text style={styles.headerTitle}>Add Resource</Text>
-          <Pressable onPress={handleSubmit} disabled={!title.trim()}>
-            <Text style={[styles.saveText, !title.trim() && styles.saveTextDisabled]}>
-              Save
-            </Text>
+          <Pressable onPress={handleSubmit} disabled={!title.trim() || isSaving}>
+            {isSaving ? (
+              <ActivityIndicator size="small" color={IOS_COLORS.systemBlue} />
+            ) : (
+              <Text style={[styles.saveText, !title.trim() && styles.saveTextDisabled]}>
+                Save
+              </Text>
+            )}
           </Pressable>
         </View>
 

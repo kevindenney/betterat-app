@@ -65,18 +65,16 @@ export function ResourcePicker({
     setSelectedIds(new Set());
   };
 
-  const handleAddResource = (input: CreateLibraryResourceInput) => {
-    addResource.mutate(input, {
-      onSuccess: (newResource) => {
-        // Auto-select the newly added resource
-        setSelectedIds((prev) => {
-          const next = new Set(prev);
-          next.add(newResource.id);
-          return next;
-        });
-        setShowAddSheet(false);
-      },
+  const handleAddResource = async (input: CreateLibraryResourceInput) => {
+    // mutateAsync rethrows on failure so AddResourceSheet keeps the form + shows an error
+    const newResource = await addResource.mutateAsync(input);
+    // Auto-select the newly added resource
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.add(newResource.id);
+      return next;
     });
+    setShowAddSheet(false);
   };
 
   return (

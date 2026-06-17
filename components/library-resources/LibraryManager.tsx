@@ -98,13 +98,11 @@ export function LibraryManager() {
 
   const grouped = groupMode === 'type' ? groupedByType : groupedByCreator;
 
-  const handleAddResource = useCallback((input: CreateLibraryResourceInput) => {
-    addResource.mutate(input, {
-      onSuccess: () => {
-        setShowAddSheet(false);
-        setSavedToastVisible(true);
-      },
-    });
+  const handleAddResource = useCallback(async (input: CreateLibraryResourceInput) => {
+    // mutateAsync rethrows on failure so AddResourceSheet keeps the form + shows an error
+    await addResource.mutateAsync(input);
+    setShowAddSheet(false);
+    setSavedToastVisible(true);
   }, [addResource]);
 
   const handleDeleteResource = useCallback((resourceId: string, title: string) => {
