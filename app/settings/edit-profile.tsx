@@ -133,7 +133,10 @@ export default function EditProfileScreen() {
 
   const handleViewPublicFace = () => {
     if (!user?.id) return;
-    router.push(`/profile/${user.id}` as any);
+    // Preview-as-public so the button honors its name: show the owner what a
+    // stranger sees (section flags enforced), not the owner view that exposes
+    // hidden sections behind the "This is you" pill.
+    router.push(`/profile/${user.id}?preview=1` as any);
   };
 
   const handleVisibilityControls = () => {
