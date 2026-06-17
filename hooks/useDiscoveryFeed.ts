@@ -13,6 +13,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { CrewFinderService, PublicRacePreview } from '@/services/CrewFinderService';
 import { useUserBoatClass } from '@/hooks/useClassExperts';
 import { createLogger } from '@/lib/utils/logger';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 
 const logger = createLogger('useDiscoveryFeed');
 
@@ -348,6 +349,10 @@ export function useDiscoveryFeed(): UseDiscoveryFeedResult {
         });
       } catch (err: any) {
         logger.error('[useDiscoveryFeed] Error toggling follow:', err);
+        showAlert(
+          isCurrentlyFollowing ? 'Could Not Unfollow' : 'Could Not Follow',
+          err?.message || 'Something went wrong. Please try again.',
+        );
         // Revert local state on error by refreshing
         if (!isMountedRef.current || activeUserIdRef.current !== actorUserId) return;
         await refresh();

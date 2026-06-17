@@ -26,6 +26,7 @@ import { PersonTimelineRow } from '@/components/landing/PersonTimelineRow';
 import { InterestTimelineCard } from '@/components/profile/InterestTimelineCard';
 import { FollowButton } from '@/components/social/FollowButton';
 import { CrewFinderService } from '@/services/CrewFinderService';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useUserTimeline, useAdoptStep, useUpdateStep } from '@/hooks/useTimelineSteps';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type { TimelineStepVisibility } from '@/types/timeline-steps';
@@ -179,6 +180,8 @@ function DbUserProfile({ userId }: { userId: string }) {
     try {
       await CrewFinderService.followUser(user.id, userId);
       setFollowing(true);
+    } catch (err: any) {
+      showAlert('Could Not Follow', err?.message || 'Something went wrong. Please try again.');
     } finally {
       setFollowLoading(false);
     }
@@ -190,6 +193,8 @@ function DbUserProfile({ userId }: { userId: string }) {
     try {
       await CrewFinderService.unfollowUser(user.id, userId);
       setFollowing(false);
+    } catch (err: any) {
+      showAlert('Could Not Unfollow', err?.message || 'Something went wrong. Please try again.');
     } finally {
       setFollowLoading(false);
     }

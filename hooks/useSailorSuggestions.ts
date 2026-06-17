@@ -14,6 +14,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { CrewFinderService, type SimilarSailor, type SailorProfileSummary } from '@/services/CrewFinderService';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { SailorSuggestion } from '@/components/search/SailorSuggestionCard';
 
 interface UseSailorSuggestionsOptions {
@@ -156,10 +157,18 @@ export function useSailorSuggestions(
   // Toggle follow
   const toggleFollow = useCallback(
     async (targetUserId: string) => {
-      if (followedIds.has(targetUserId)) {
-        await unfollowMutation.mutateAsync(targetUserId);
-      } else {
-        await followMutation.mutateAsync(targetUserId);
+      const wasFollowing = followedIds.has(targetUserId);
+      try {
+        if (wasFollowing) {
+          await unfollowMutation.mutateAsync(targetUserId);
+        } else {
+          await followMutation.mutateAsync(targetUserId);
+        }
+      } catch (err: any) {
+        showAlert(
+          wasFollowing ? 'Could Not Unfollow' : 'Could Not Follow',
+          err?.message || 'Something went wrong. Please try again.',
+        );
       }
     },
     [followedIds, followMutation, unfollowMutation]

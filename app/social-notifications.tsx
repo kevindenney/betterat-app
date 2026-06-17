@@ -35,6 +35,7 @@ import { routeCohortDiscussionNotification } from '@/lib/notifications/routeDisc
 import { type NotificationGroup } from '@/lib/notifications/dedupe';
 import { getInitials } from '@/components/account/accountStyles';
 import { triggerHaptic } from '@/lib/haptics';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   IOS_COLORS,
   IOS_SPACING,
@@ -316,11 +317,23 @@ export default function SocialNotificationsScreen() {
       queryClient.invalidateQueries({ queryKey: ['following-status'] });
       queryClient.invalidateQueries({ queryKey: ['sailor-suggestions'] });
     },
+    onError: (err: any, { currentlyFollowing }) => {
+      showAlert(
+        currentlyFollowing ? 'Could Not Unfollow' : 'Could Not Follow',
+        err?.message || 'Something went wrong. Please try again.',
+      );
+    },
   });
 
   const handleToggleFollow = useCallback(
     async (actorId: string, currentlyFollowing: boolean) => {
-      await toggleFollowMutation.mutateAsync({ actorId, currentlyFollowing });
+      // onError surfaces the failure; swallow the rejection so this
+      // fire-and-forget onPress handler doesn't raise an unhandled rejection.
+      try {
+        await toggleFollowMutation.mutateAsync({ actorId, currentlyFollowing });
+      } catch {
+        /* handled by mutation onError */
+      }
     },
     [toggleFollowMutation]
   );
