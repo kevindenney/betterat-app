@@ -411,17 +411,19 @@ export default function RaceCommitteeConsole() {
       );
       if (error) throw error;
 
-      await supabase.from('race_start_sequences').upsert({
+      const { error: sequenceError } = await supabase.from('race_start_sequences').upsert({
         regatta_id: regattaId,
         race_number: raceNumber,
         start_time: now.toISOString(),
         sequence_type: `${sequenceMinutes}-minute`,
         status: 'completed',
       });
+      if (sequenceError) throw sequenceError;
 
       loadResults();
     } catch (error) {
       console.error('Error recording race start:', error);
+      showAlert('Start not recorded', 'The race start could not be saved. Check your connection and try again.');
     }
   };
 
@@ -441,15 +443,30 @@ export default function RaceCommitteeConsole() {
       async () => {
         stopSequence();
         setActiveFlags(prev => new Set([...prev, 'AP']));
-        await playHorn(1000, 2);
 
-        await supabase.from('race_flags').insert({
+        const { error } = await supabase.from('race_flags').insert({
           regatta_id: regattaId,
           race_number: raceNumber,
           flag_type: 'AP',
           action: 'display',
           recorded_by: user?.id,
         });
+
+        if (error) {
+          console.error('Error recording postponement flag:', error);
+          setActiveFlags(prev => {
+            const next = new Set(prev);
+            next.delete('AP');
+            return next;
+          });
+          showAlert(
+            'Postponement not recorded',
+            "The AP flag could not be saved — competitors won't see the postponement. Try again."
+          );
+          return;
+        }
+
+        await playHorn(1000, 2);
       }
     );
   };
@@ -461,15 +478,30 @@ export default function RaceCommitteeConsole() {
       async () => {
         stopSequence();
         setActiveFlags(prev => new Set([...prev, '1st Sub']));
-        await playHorn(1000, 2);
 
-        await supabase.from('race_flags').insert({
+        const { error } = await supabase.from('race_flags').insert({
           regatta_id: regattaId,
           race_number: raceNumber,
           flag_type: '1st Sub',
           action: 'display',
           recorded_by: user?.id,
         });
+
+        if (error) {
+          console.error('Error recording general recall flag:', error);
+          setActiveFlags(prev => {
+            const next = new Set(prev);
+            next.delete('1st Sub');
+            return next;
+          });
+          showAlert(
+            'Recall not recorded',
+            "The 1st Substitute flag could not be saved — competitors won't see the recall. Try again."
+          );
+          return;
+        }
+
+        await playHorn(1000, 2);
       }
     );
   };
@@ -537,23 +569,34 @@ export default function RaceCommitteeConsole() {
   // Signal functions
   const toggleFlag = async (flagCode: string) => {
     const isActive = activeFlags.has(flagCode);
+    const previousFlags = new Set(activeFlags);
     const newFlags = new Set(activeFlags);
-    
+
     if (isActive) {
       newFlags.delete(flagCode);
     } else {
       newFlags.add(flagCode);
     }
-    
+
     setActiveFlags(newFlags);
-    
-    await supabase.from('race_flags').insert({
+
+    const { error } = await supabase.from('race_flags').insert({
       regatta_id: regattaId,
       race_number: raceNumber,
       flag_type: flagCode,
       action: isActive ? 'lower' : 'display',
       recorded_by: user?.id,
     });
+
+    if (error) {
+      console.error('Error recording flag signal:', error);
+      setActiveFlags(previousFlags);
+      showAlert(
+        'Signal not recorded',
+        `The ${flagCode} flag could not be saved — competitors won't see it. Try again.`
+      );
+      return;
+    }
 
     if (!isActive) {
       await playHorn(500);
@@ -565,7 +608,7 @@ export default function RaceCommitteeConsole() {
     if (!announcementText.trim()) return;
 
     try {
-      await supabase.from('race_notices').insert({
+      const { error } = await supabase.from('race_notices').insert({
         regatta_id: regattaId,
         title: `Race ${raceNumber} Update`,
         content: announcementText,
@@ -574,6 +617,7 @@ export default function RaceCommitteeConsole() {
         published_at: new Date().toISOString(),
         created_by: user?.id,
       });
+      if (error) throw error;
 
       // TODO: Trigger push notifications to registered sailors
 
@@ -883,12 +927,17 @@ export default function RaceCommitteeConsole() {
           <TouchableOpacity
             style={styles.courseButton}
             onPress={async () => {
-              await supabase.from('race_course_signals').upsert({
+              const { error } = await supabase.from('race_course_signals').upsert({
                 regatta_id: regattaId,
                 race_number: raceNumber,
                 course_designation: courseDesignation,
                 signaled_at: new Date().toISOString(),
               });
+              if (error) {
+                console.error('Error signaling course:', error);
+                showAlert('Course not signaled', `Course ${courseDesignation} could not be saved — competitors won't see it. Try again.`);
+                return;
+              }
               showAlert('Course Set', `Course ${courseDesignation} signaled`);
             }}
           >

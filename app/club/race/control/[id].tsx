@@ -296,15 +296,16 @@ export default function RaceControlScreen() {
 
     // Create start sequence record
     try {
-      await supabase.from('race_start_sequences').upsert({
+      const { error: sequenceError } = await supabase.from('race_start_sequences').upsert({
         regatta_id: id,
         race_number: raceNumber,
         start_time: now.toISOString(),
         status: 'completed',
       });
+      if (sequenceError) throw sequenceError;
 
       // Initialize results for all entries as racing
-      await withRaceResultsColumnFallback((column) =>
+      const { error: resultsError } = await withRaceResultsColumnFallback((column) =>
         supabase.from('race_results').upsert(
           entries.map((entry) => ({
             [column]: id!,
@@ -315,9 +316,12 @@ export default function RaceControlScreen() {
           }))
         )
       );
+      if (resultsError) throw resultsError;
+
       loadResults();
     } catch (error) {
       console.error('Error recording start:', error);
+      showAlert('Start not recorded', 'The race start could not be saved. Check your connection and try again.');
     }
   };
 
@@ -350,13 +354,18 @@ export default function RaceControlScreen() {
         setSequenceStatus('idle');
 
         // Update all results to DNS
-        await withRaceResultsColumnFallback((column) =>
+        const { error } = await withRaceResultsColumnFallback((column) =>
           supabase
             .from('race_results')
             .update({ status: 'dnc' })
             .eq(column, id)
             .eq('race_number', raceNumber)
         );
+        if (error) {
+          console.error('Error abandoning race:', error);
+          showAlert('Abandonment not saved', 'The race could not be marked abandoned. Try again.');
+          return;
+        }
 
         loadResults();
       },
@@ -419,17 +428,22 @@ export default function RaceControlScreen() {
   // Flag Controls
   const recordFlag = async (flagType: string, description: string) => {
     try {
-      await supabase.from('race_flags').insert({
+      const { error } = await supabase.from('race_flags').insert({
         regatta_id: id,
         race_number: raceNumber,
         flag_type: flagType,
         flag_description: description,
         recorded_by: user?.id,
       });
+      if (error) throw error;
 
       await playHorn();
     } catch (error) {
       console.error('Error recording flag:', error);
+      showAlert(
+        'Signal not recorded',
+        `The ${description} flag could not be saved — competitors won't see it. Try again.`
+      );
     }
   };
 
