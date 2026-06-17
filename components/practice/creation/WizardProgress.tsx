@@ -10,7 +10,6 @@ import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   withSpring,
-  interpolateColor,
 } from 'react-native-reanimated';
 import { IOS_COLORS } from '@/components/cards/constants';
 import { WizardStep } from '@/hooks/usePracticeCreationWizard';
@@ -152,7 +151,7 @@ const styles = StyleSheet.create({
   stepNumber: {
     fontSize: 14,
     fontWeight: '700',
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
   },
   stepLabel: {
     fontSize: 10,

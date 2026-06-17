@@ -18,7 +18,7 @@ import {
   Platform,
   StyleSheet,
 } from 'react-native';
-import { X, Flag, Mail, User, MessageSquare, CheckCircle } from 'lucide-react-native';
+import { X, Flag, Mail, CheckCircle } from 'lucide-react-native';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
@@ -253,10 +253,10 @@ export function ClaimClubModal({
             disabled={!email || !selectedRole || claimMutation.isPending}
           >
             {claimMutation.isPending ? (
-              <ActivityIndicator size="small" color={IOS_COLORS.white} />
+              <ActivityIndicator size="small" color={'#FFFFFF'} />
             ) : (
               <>
-                <Flag size={18} color={IOS_COLORS.white} />
+                <Flag size={18} color={'#FFFFFF'} />
                 <Text style={styles.submitButtonText}>Claim {club.name}</Text>
               </>
             )}
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   clubLocation: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     color: IOS_COLORS.secondaryLabel,
     marginTop: IOS_SPACING.xs,
   },
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     borderColor: IOS_COLORS.systemBlue,
   },
   roleOptionText: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     color: IOS_COLORS.label,
   },
   roleOptionTextSelected: {
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     ...IOS_TYPOGRAPHY.body,
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
 });

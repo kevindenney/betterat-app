@@ -68,12 +68,10 @@ const ROLES: PracticeMemberRole[] = ['skipper', 'crew', 'coach', 'observer'];
 
 function MemberCard({
   member,
-  memberIndex,
   onUpdate,
   onRemove,
 }: {
   member: WhoStepMember;
-  memberIndex: number;
   onUpdate: (updates: Partial<WhoStepMember>) => void;
   onRemove: () => void;
 }) {
@@ -85,7 +83,7 @@ function MemberCard({
     <View style={styles.memberCard}>
       <View style={styles.memberHeader}>
         <View style={styles.memberAvatar}>
-          <RoleIcon size={16} color={IOS_COLORS.white} />
+          <RoleIcon size={16} color={'#FFFFFF'} />
         </View>
         <View style={styles.memberInfo}>
           <TextInput
@@ -169,7 +167,6 @@ function DrillTaskEditor({
   onSetTask: (memberIndex: number, task: string, isPrimary?: boolean) => void;
   onRemoveTask: (memberIndex: number) => void;
 }) {
-  const [expandedMember, setExpandedMember] = useState<number | null>(null);
   const categoryMeta = DRILL_CATEGORY_META[drill.category];
 
   const getMemberTask = (memberIndex: number) => {
@@ -270,7 +267,6 @@ export function WhoStep({
           <MemberCard
             key={index}
             member={member}
-            memberIndex={index}
             onUpdate={(updates) => onUpdateMember(index, updates)}
             onRemove={() => onRemoveMember(index)}
           />
@@ -517,7 +513,7 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.label,
   },
   miniRoleTextSelected: {
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
   },
   addMemberActions: {
     flexDirection: 'row',
@@ -545,7 +541,7 @@ const styles = StyleSheet.create({
   confirmText: {
     fontSize: 15,
     fontWeight: '600',
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
   },
   modalOverlay: {
     flex: 1,

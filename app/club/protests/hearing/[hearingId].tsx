@@ -28,10 +28,8 @@ import {
   AlertTriangle,
   Gavel,
   Plus,
-  ChevronDown,
   Image,
   MessageSquare,
-  UserPlus,
 } from 'lucide-react-native';
 import {
   protestService,
@@ -94,6 +92,7 @@ export default function HearingRoom() {
   // Load data
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hearingId]);
 
   // Timer for in-progress hearing
@@ -157,7 +156,7 @@ export default function HearingRoom() {
           showAlert('Error', 'Failed to end hearing');
         }
       },
-      { confirmLabel: 'End Hearing' }
+      { confirmText: 'End Hearing' }
     );
   };
 

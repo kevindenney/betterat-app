@@ -13,7 +13,6 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
-  FlatList,
 } from 'react-native';
 import {
   Target,
@@ -79,7 +78,7 @@ function SkillAreaChip({
       onPress={onPress}
       activeOpacity={0.7}
     >
-      {isSelected && <CheckCircle2 size={14} color={IOS_COLORS.white} />}
+      {isSelected && <CheckCircle2 size={14} color={'#FFFFFF'} />}
       <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
         {config?.label || area}
       </Text>
@@ -131,11 +130,9 @@ function TemplateCard({
 
 function DrillRow({
   drill,
-  orderIndex,
   onRemove,
 }: {
   drill: Drill;
-  orderIndex: number;
   onRemove: () => void;
 }) {
   const categoryMeta = DRILL_CATEGORY_META[drill.category];
@@ -165,7 +162,6 @@ export function WhatStep({
   onFocusAreasChange,
   onSelectTemplate,
   onClearTemplate,
-  onAddDrill,
   onRemoveDrill,
   onOpenCatalog,
 }: WhatStepProps) {
@@ -276,14 +272,13 @@ export function WhatStep({
             <Text style={styles.sectionCount}>{drills.length} drills</Text>
           </View>
 
-          {drills.map((drill, index) => {
+          {drills.map((drill) => {
             const fullDrill = availableDrills.find((d) => d.id === drill.drillId);
             if (!fullDrill) return null;
             return (
               <DrillRow
                 key={drill.drillId}
                 drill={fullDrill}
-                orderIndex={index}
                 onRemove={() => onRemoveDrill(drill.drillId)}
               />
             );
@@ -383,7 +378,7 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.label,
   },
   chipTextSelected: {
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
   },
   templateCard: {
     backgroundColor: IOS_COLORS.gray6,

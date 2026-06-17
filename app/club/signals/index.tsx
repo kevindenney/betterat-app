@@ -4,7 +4,7 @@
  * SAILTI-competitive feature
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -113,17 +113,16 @@ const STARTING_RULES = [
 export default function LiveSignalsScreen() {
   const router = useRouter();
   const { regattaId } = useLocalSearchParams<{ regattaId: string }>();
-  const { clubId, loading: clubLoading } = useClubWorkspace();
+  const { loading: clubLoading } = useClubWorkspace();
 
   const [raceState, setRaceState] = useState<LiveRaceState | null>(null);
   const [signals, setSignals] = useState<RaceSignal[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [regattaName, setRegattaName] = useState('');
-  
+
   // Current race selection
   const [currentRace, setCurrentRace] = useState(1);
-  const [currentFleet, setCurrentFleet] = useState<string | undefined>();
+  const [currentFleet] = useState<string | undefined>();
   const [startingRule, setStartingRule] = useState('none');
   
   // Announcement
@@ -142,6 +141,7 @@ export default function LiveSignalsScreen() {
 
       return () => unsubscribe();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regattaId, currentRace]);
 
   const loadData = async () => {
@@ -367,7 +367,7 @@ export default function LiveSignalsScreen() {
                     signal.label,
                     `Send ${signal.label} signal?`,
                     () => handleQuickSignal(signal.key),
-                    { confirmLabel: 'Send' }
+                    { confirmText: 'Send' }
                   );
                 }}
                 disabled={sending}

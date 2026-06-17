@@ -3,15 +3,13 @@
  * Configure scoring system, calculate standings, and publish results
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  Modal,
-  TextInput,
   Platform,
 } from 'react-native';
 import { Text } from '@/components/ui/text';
@@ -22,9 +20,7 @@ import {
   Calculator,
   Settings,
   Download,
-  Upload,
   Check,
-  X,
   ChevronLeft,
   ChevronDown,
   ChevronUp,
@@ -32,18 +28,15 @@ import {
   AlertTriangle,
   Eye,
   EyeOff,
-  RefreshCw,
   FileText,
   Share2,
 } from 'lucide-react-native';
-import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 import { 
   ScoringEngine, 
   DEFAULT_LOW_POINT_CONFIG,
   ScoringConfiguration,
   SeriesStanding,
-  DiscardRule,
   ScoreCode,
 } from '@/services/scoring/ScoringEngine';
 
@@ -117,7 +110,6 @@ const SCORING_PRESETS = [
 export default function ScoringDashboard() {
   const { regattaId } = useLocalSearchParams<{ regattaId: string }>();
   const router = useRouter();
-  const { user } = useAuth();
 
   // State
   const [regatta, setRegatta] = useState<RegattaInfo | null>(null);
@@ -130,7 +122,6 @@ export default function ScoringDashboard() {
   
   // Config state
   const [config, setConfig] = useState<ScoringConfiguration>(DEFAULT_LOW_POINT_CONFIG);
-  const [showConfigModal, setShowConfigModal] = useState(false);
   const [expandedStanding, setExpandedStanding] = useState<string | null>(null);
 
   // Load data
@@ -138,6 +129,7 @@ export default function ScoringDashboard() {
     if (regattaId) {
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regattaId]);
 
   const loadData = async () => {
@@ -286,7 +278,7 @@ export default function ScoringDashboard() {
           showAlert('Error', 'Failed to publish results');
         }
       },
-      { confirmLabel: 'Publish' }
+      { confirmText: 'Publish' }
     );
   };
 

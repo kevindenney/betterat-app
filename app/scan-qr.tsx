@@ -34,6 +34,7 @@ let CameraView: any = null;
 let useCameraPermissions: any = null;
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- guarded dynamic load; expo-camera native module may be absent
   const ExpoCamera = require('expo-camera');
   CameraView = ExpoCamera.CameraView;
   useCameraPermissions = ExpoCamera.useCameraPermissions;
@@ -615,7 +616,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   instructionsText: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     color: '#FFFFFF',
     textAlign: 'center',
   },
@@ -635,7 +636,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   processingText: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     color: '#FFFFFF',
     marginTop: 12,
   },

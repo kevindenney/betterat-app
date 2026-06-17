@@ -77,6 +77,7 @@ export default function BoatsScreen() {
     if (user?.id) {
       loadBoats();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // Load tuning guides
@@ -84,6 +85,7 @@ export default function BoatsScreen() {
     if (user) {
       loadGuides();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, sailorData.classes]);
 
   const loadBoats = useCallback(async () => {
@@ -126,11 +128,6 @@ export default function BoatsScreen() {
   }, [user, sailorData.classes]);
 
   // Derived data
-  const boatClasses = useMemo(() => {
-    const classes = new Set(boats.map((b) => b.boat_class_name));
-    return ['All', ...Array.from(classes)];
-  }, [boats]);
-
   const filteredBoats = useMemo(() => {
     let result = boats;
     if (statusFilter !== 'all') {
@@ -242,7 +239,7 @@ export default function BoatsScreen() {
           showAlert('Searching...', `Looking for ${className} tuning guides...`);
           setTimeout(() => loadGuides(), 2000);
         },
-        { confirmLabel: 'Fetch' }
+        { confirmText: 'Fetch' }
       );
     },
     [loadGuides]

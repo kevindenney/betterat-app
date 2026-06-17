@@ -18,14 +18,10 @@ import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import {
   ChevronLeft,
-  AlertTriangle,
   Clock,
   Check,
   Flag,
-  Users,
-  FileText,
   ChevronDown,
-  Info,
 } from 'lucide-react-native';
 import { supabase } from '@/services/supabase';
 import {
@@ -100,7 +96,7 @@ export default function FileProtest() {
   const [protestorEntryId, setProtestorEntryId] = useState<string | null>(null);
   const [protesteeEntryIds, setProtesteeEntryIds] = useState<string[]>([]);
   const [ruleInfringed, setRuleInfringed] = useState('');
-  const [incidentTime, setIncidentTime] = useState('');
+  const [incidentTime] = useState('');
   const [incidentLocation, setIncidentLocation] = useState('');
   const [description, setDescription] = useState('');
   const [hailGiven, setHailGiven] = useState(false);
@@ -115,11 +111,10 @@ export default function FileProtest() {
     isExpired: boolean;
     minutesRemaining: number | null;
   }>({ deadline: null, isExpired: false, minutesRemaining: null });
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   // UI state
-  const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [showRaceSelector, setShowRaceSelector] = useState(false);
   const [showProtestorSelector, setShowProtestorSelector] = useState(false);
   const [showRuleSelector, setShowRuleSelector] = useState(false);
@@ -128,6 +123,7 @@ export default function FileProtest() {
   // Load races and entries
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regattaId]);
 
   // Update deadline when race changes
@@ -135,6 +131,7 @@ export default function FileProtest() {
     if (raceNumber) {
       loadDeadline(raceNumber);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raceNumber]);
 
   const loadData = async () => {
@@ -189,7 +186,7 @@ export default function FileProtest() {
         'Time Limit Expired',
         'The protest time limit has passed. Your protest may be rejected unless the protest committee extends the time limit. Continue?',
         submitProtest,
-        { confirmLabel: 'File Anyway' }
+        { confirmText: 'File Anyway' }
       );
       return;
     }

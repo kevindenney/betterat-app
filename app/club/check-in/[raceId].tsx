@@ -3,7 +3,7 @@
  * Race-day check-in management with quick tap, QR codes, and fleet status
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   ScrollView,
@@ -27,16 +27,9 @@ import {
   Users,
   QrCode,
   Search,
-  Filter,
-  AlertTriangle,
-  RefreshCw,
   Sailboat,
-  Copy,
   Share2,
-  Settings,
-  Play,
 } from 'lucide-react-native';
-import { supabase } from '@/services/supabase';
 import {
   checkInService,
   CheckIn,
@@ -75,7 +68,6 @@ export default function CheckInDashboard() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [deadline, setDeadline] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
 
@@ -91,6 +83,7 @@ export default function CheckInDashboard() {
         checkInService.unsubscribeFromCheckIns(regattaId, raceNumber);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regattaId, raceNumber]);
 
   // Countdown timer
@@ -246,7 +239,7 @@ export default function CheckInDashboard() {
           showAlert('Error', 'Failed to check in entries');
         }
       },
-      { confirmLabel: 'Check In All' }
+      { confirmText: 'Check In All' }
     );
   };
 
