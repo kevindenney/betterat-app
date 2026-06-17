@@ -197,9 +197,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
                 alignItems: 'center',
               }}
             >
-              <View>
-                <IOSListItem title="Done" />
-              </View>
+              <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '600' }}>Done</Text>
             </Pressable>
           </View>
         </ScrollView>
