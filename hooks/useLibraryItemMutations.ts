@@ -32,6 +32,10 @@ export function useUpdateLibraryItem(itemId: string | undefined) {
       qc.invalidateQueries({ queryKey: ['library-zones-data'] });
       qc.invalidateQueries({ queryKey: ['library-items-for-picker'] });
       qc.invalidateQueries({ queryKey: ['library-resources-preview'] });
+      // step-library-before joins library_items(title, source_label, …), so a
+      // title/source edit must refresh any step that pinned this item or its
+      // before-shift label stays stale.
+      qc.invalidateQueries({ queryKey: ['step-library-before'] });
     },
   });
 }

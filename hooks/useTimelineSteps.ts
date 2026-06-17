@@ -161,6 +161,8 @@ export function useCreateStep() {
       // A new race step changes the fleet's planned-at-venue count.
       queryClient.invalidateQueries({ queryKey: ['fleet-venue-stats'] });
       queryClient.invalidateQueries({ queryKey: ['author-area-cred'] });
+      // A new future-dated step can become the next upcoming event.
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
       // Fire cross-interest suggestions for the new step (fire-and-forget)
       PlaybookAIService.crossInterest(data.id).catch(() => {});
     },
@@ -193,6 +195,10 @@ export function useUpdateStep() {
       queryClient.invalidateQueries({ queryKey: ['author-area-cred'] });
       // Settled/completed flips feed the person calling-card trajectory.
       queryClient.invalidateQueries({ queryKey: ['person-public-sections'] });
+      // The Atlas "next event" banner is computed from upcoming starts_at +
+      // status, so a date/status/title edit must refresh it or the banner
+      // shows a stale next step.
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     },
   });
 }
@@ -223,6 +229,9 @@ export function useRedoStepAsNewStep() {
       queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(sourceStepId) });
       queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(data.id) });
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      // A redo schedules a fresh, usually future-dated step that can become
+      // the next upcoming event.
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     },
   });
 }
@@ -246,6 +255,9 @@ export function useDeleteStep() {
       queryClient.invalidateQueries({ queryKey: ['venue-record'] });
       queryClient.invalidateQueries({ queryKey: ['fleet-venue-stats'] });
       queryClient.invalidateQueries({ queryKey: ['author-area-cred'] });
+      // Deleting the next upcoming step must refresh the Atlas banner or it
+      // keeps showing a step that no longer exists.
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     },
   });
 }
@@ -274,6 +286,8 @@ export function useAdoptStep() {
       // pin set goes stale ("saved but didn't appear" pattern from
       // feedback_query_cache_key_invalidation_audit).
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      // An adopted future-dated step can become the next upcoming event.
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     },
   });
 }
@@ -298,6 +312,7 @@ export function useAdoptQuotedStep() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     },
   });
 }
@@ -322,6 +337,8 @@ export function useCreateStepsFromCourse() {
       // pin set goes stale ("saved but didn't appear" pattern from
       // feedback_query_cache_key_invalidation_audit).
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      // Course-derived dated steps can become the next upcoming event.
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     },
   });
 }
