@@ -20,6 +20,7 @@ import { supabase } from '@/services/supabase';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { InterestProvider, useInterest } from '@/providers/InterestProvider';
 import { OrganizationProvider } from '@/providers/OrganizationProvider';
+import { SubscriptionProvider } from '@/lib/contexts/SubscriptionContext';
 import { InterestSelection } from '@/components/onboarding/InterestSelection';
 import { ContextualHintProvider } from '@/providers/ContextualHintProvider';
 import StripeProvider from '@/providers/StripeProvider';
@@ -722,6 +723,7 @@ export default function RootLayout() {
           <GluestackUIProvider mode="light">
             <StripeProvider>
               <AuthProvider>
+                <SubscriptionProvider>
                 <OrganizationProvider>
                   <InterestProvider>
                   <ContextualHintProvider>
@@ -737,6 +739,7 @@ export default function RootLayout() {
                   </ContextualHintProvider>
                 </InterestProvider>
                 </OrganizationProvider>
+                </SubscriptionProvider>
               </AuthProvider>
             </StripeProvider>
           </GluestackUIProvider>
