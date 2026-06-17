@@ -74,6 +74,7 @@ TasteHK_GourmetGuide_EN.pdf
 
 # claude code worktrees
 .claude/worktrees/
+.claude/scheduled_tasks.lock
 
 # Supabase CLI auto-managed temp files
 supabase/.temp/
