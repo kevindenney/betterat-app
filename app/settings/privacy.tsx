@@ -8,6 +8,7 @@ import {
   ActionSheetIOS,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest, type Interest } from '@/providers/InterestProvider';
@@ -122,6 +123,7 @@ const INTERACTION_TOGGLES: ToggleMeta[] = [
 export default function PrivacyScreen(): React.ReactElement {
   const { user, ready } = useAuth();
   const { userInterests } = useInterest();
+  const queryClient = useQueryClient();
 
   const [settings, setSettings] = useState<PrivacySettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -190,13 +192,20 @@ export default function PrivacyScreen(): React.ReactElement {
       try {
         await updateProfilePrivacy(user.id, { [key]: value });
         prevSettings.current = updated;
+        // The public face reads these flags through a React-Query-cached RPC
+        // (`person-public-sections`, 60s staleTime). Without an explicit
+        // invalidation, the Preview-as-Public surface keeps serving the old
+        // section/interaction values until the cache expires or the app is
+        // relaunched. Drop every viewer/preview permutation so the preview
+        // reflects the toggle immediately.
+        queryClient.invalidateQueries({ queryKey: ['person-public-sections'] });
       } catch (err) {
         logger.error('Failed to save privacy setting', { key, error: err });
         setSettings(prevSettings.current);
         showAlert('Error', 'Failed to save setting. Please try again.');
       }
     },
-    [user, settings],
+    [user, settings, queryClient],
   );
 
   const updateInterestDefault = useCallback(
@@ -215,13 +224,14 @@ export default function PrivacyScreen(): React.ReactElement {
       try {
         await setInterestDefaultApi(user.id, interestId, value);
         prevSettings.current = updated;
+        queryClient.invalidateQueries({ queryKey: ['person-public-sections'] });
       } catch (err) {
         logger.error('Failed to save interest default', { interestId, error: err });
         setSettings(prevSettings.current);
         showAlert('Error', 'Failed to save setting. Please try again.');
       }
     },
-    [user, settings],
+    [user, settings, queryClient],
   );
 
   // ---------------------------------------------------------------------------
