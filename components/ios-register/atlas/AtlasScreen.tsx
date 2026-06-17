@@ -5684,7 +5684,6 @@ function FrameF3({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
 // ---------------------------------------------------------------------------
 function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFrameHandlers }) {
   const { user: authUser } = useAuth();
-  const [layersOpen, setLayersOpen] = useState(false);
   // Search state — F4 inherited the shared TopChrome
   // pattern (which only renders a search glyph when onSearchPress is
   // wired) and had no headless InterestSwitcher mounted, so the
@@ -5819,7 +5818,6 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Map audience chips — nursing keeps the street map as a secondary node
   // surface, not a chart/heatmap layer.
   const openNursingSiteDetail = useCallback((site: NursingSiteDetailTarget) => {
-    setLayersOpen(false);
     setSelectedPin(null);
     setNextEventSheetOpen(false);
     setCandidate(null);
@@ -5897,7 +5895,6 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const clearF4SelectedPin = useCallback(() => setSelectedPin(null), []);
   const clearCandidate = useCallback(() => setCandidate(null), []);
   const handleNextEventTap = useCallback(() => {
-    setLayersOpen(false);
     setSelectedPin(null);
     setNextEventSheetOpen(true);
   }, []);
@@ -5928,13 +5925,9 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   ? { ...nextNursing, lat: nextNursing.lat, lng: nextNursing.lng }
                   : null
               }
-              onPinPress={(pin) => {
-                setLayersOpen(false);
-                setSelectedPin(pin);
-              }}
+              onPinPress={(pin) => setSelectedPin(pin)}
               onNextEventPress={handleNextEventTap}
               onMapLongPress={(coords) => {
-                setLayersOpen(false);
                 setSelectedPin(null);
                 setCandidate(coords);
               }}
@@ -6063,15 +6056,9 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           </>
         )}
 
-        {f4View === 'map' && !selectedNursingSite ? (
-          <LayersFab
-            onLayersPress={() => setLayersOpen(true)}
-            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-          />
-        ) : null}
       </View>
 
-      {f4View === 'coverage' ? null : layersOpen ? null : candidate ? (
+      {f4View === 'coverage' ? null : candidate ? (
         // Coverage view is a full-height read surface — no persistent CTA sheet
         // overlays it (it would hide the gap card). Otherwise:
         // Long-press → "PIN DROPPED" sheet. Mirrors F1: reverse-geocodes
@@ -6261,14 +6248,6 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       ) : null}
 
       {!embedded && !selectedNursingSite ? <MockTabBar activeTab="atlas" /> : null}
-
-      {layersOpen && (
-        <LayersSheet
-          frame="f4"
-          onClose={() => setLayersOpen(false)}
-          bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-        />
-      )}
 
       {/* Search sheet sits at the frame's top level so its
           position:absolute inset:0 covers the full screen. Mounted
