@@ -321,11 +321,9 @@ export default function OrganizationAccessSettingsScreen() {
       const webBase =
         typeof window !== 'undefined' && window.location?.origin
           ? window.location.origin
-          : '';
+          : process.env.EXPO_PUBLIC_APP_URL || 'https://better.at';
       const inviteLink = inviteToken
-        ? (webBase
-          ? `${webBase}/settings/organization-access?inviteToken=${encodeURIComponent(inviteToken)}&inviteRole=${encodeURIComponent(resolvedRole)}&inviteRoleKey=${encodeURIComponent(resolvedRoleKey)}`
-          : `regattaflow://org-invite?token=${encodeURIComponent(inviteToken)}&inviteRole=${encodeURIComponent(resolvedRole)}&inviteRoleKey=${encodeURIComponent(resolvedRoleKey)}`)
+        ? `${webBase}/settings/organization-access?inviteToken=${encodeURIComponent(inviteToken)}&inviteRole=${encodeURIComponent(resolvedRole)}&inviteRoleKey=${encodeURIComponent(resolvedRoleKey)}`
         : null;
       const tokenSection = inviteToken
         ? `Invite token: ${inviteToken}\n${inviteLink ? `Invite link: ${inviteLink}\n` : ''}\n`
