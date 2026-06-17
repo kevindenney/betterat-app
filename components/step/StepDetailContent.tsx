@@ -1116,6 +1116,9 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
         queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
         queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+        // The settle path just wrote step_capability_evidence via autoTag;
+        // refresh the timeline CapabilityMix "proven" layer that reads it.
+        queryClient.invalidateQueries({ queryKey: ['step-capability-evidence'] });
       })
       .catch((error) => {
         const message =

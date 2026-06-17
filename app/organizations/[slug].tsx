@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -187,6 +188,7 @@ export default function OrganizationPlaceholderPage() {
   const { user: authUser } = useAuth();
   const { setActiveOrganizationId } = useOrganization();
   const toast = useToast();
+  const queryClient = useQueryClient();
   // Viewer's membership in this org. `null` once resolved means
   // non-member; status='active' is a full member; pending/rejected are
   // shown distinctly so the join CTA can adapt.
@@ -213,6 +215,13 @@ export default function OrganizationPlaceholderPage() {
           joinMode,
         });
         refetchMembership();
+        // An active (open) join makes this org a real membership — refresh the
+        // viewer's own org lists (profile menu + My Orgs) so it appears without
+        // waiting out staleTime. A pending request doesn't change those lists.
+        if (result === 'active') {
+          queryClient.invalidateQueries({ queryKey: ['profile-menu-orgs'] });
+          queryClient.invalidateQueries({ queryKey: ['my-orgs'] });
+        }
         toast.show(
           result === 'active' ? 'You’re in — welcome!' : 'Request submitted',
           'success',
@@ -223,7 +232,7 @@ export default function OrganizationPlaceholderPage() {
         setJoining(false);
       }
     },
-    [authUser?.id, org?.id, joining, refetchMembership, toast],
+    [authUser?.id, org?.id, joining, refetchMembership, toast, queryClient],
   );
   // Member-surface link-hub. The /organization/* surfaces resolve which
   // org to show from the global active-org context (OrganizationProvider),
