@@ -336,12 +336,13 @@ export class FleetDiscoveryService {
       if (fleetError) throw fleetError;
 
       // Add creator as owner
-      await supabase.from('fleet_members').insert({
+      const { error: ownerError } = await supabase.from('fleet_members').insert({
         fleet_id: newFleet.id,
         user_id: creatorId,
         role: 'owner',
         status: 'active',
       });
+      if (ownerError) throw ownerError;
 
       return newFleet;
     } catch (error) {

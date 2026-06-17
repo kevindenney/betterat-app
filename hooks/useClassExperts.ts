@@ -326,16 +326,18 @@ export function useClassExperts(
       if (!expert) return;
 
       if (expert.isFollowing) {
-        await supabase
+        const { error: deleteError } = await supabase
           .from('user_follows')
           .delete()
           .eq('follower_id', userId)
           .eq('following_id', expertUserId);
+        if (deleteError) throw deleteError;
       } else {
-        await supabase.from('user_follows').insert({
+        const { error: insertError } = await supabase.from('user_follows').insert({
           follower_id: userId,
           following_id: expertUserId,
         });
+        if (insertError) throw insertError;
       }
 
       // Update local state

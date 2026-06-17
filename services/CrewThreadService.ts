@@ -336,7 +336,19 @@ export class CrewThreadService {
           }));
 
         if (additionalMembers.length > 0) {
-          await supabase.from('crew_thread_members').insert(additionalMembers);
+          // Non-fatal — the thread + owner are already committed. But these
+          // are members the creator explicitly picked, so a silent drop is a
+          // real "I added them but they're not here" bug; surface it in logs.
+          const { error: addMembersError } = await supabase
+            .from('crew_thread_members')
+            .insert(additionalMembers);
+          if (addMembersError) {
+            logger.error('Failed to add additional crew thread members', {
+              threadId: thread.id,
+              count: additionalMembers.length,
+              error: addMembersError,
+            });
+          }
         }
       }
 
