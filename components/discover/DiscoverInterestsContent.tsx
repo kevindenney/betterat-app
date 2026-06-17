@@ -421,6 +421,15 @@ export function DiscoverInterestsContent({
   };
 
   const handleRemove = (slug: string, name: string) => {
+    // The provider blocks removing the last interest by silently no-op'ing, so
+    // explain the guard here rather than letting the confirm dialog do nothing.
+    if (userInterests.length <= 1) {
+      showAlert(
+        'Keep one interest',
+        'You need at least one interest. Add another before removing this one.',
+      );
+      return;
+    }
     showConfirm(
       'Remove interest',
       `Remove ${name} from your interests? Your steps stay, but it leaves this list.`,
