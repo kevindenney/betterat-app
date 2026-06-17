@@ -236,7 +236,6 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       .from('users')
       .update({
         subscription_status: 'active',
-        subscription_updated_at: new Date().toISOString(),
       })
       .eq('id', metadata.user_id);
 
@@ -995,14 +994,40 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   const priceId = subscription.items.data[0]?.price.id;
   const tierMap: Record<string, string> = {
     'price_1Tft79BbfEeOhHXbC6kMnpSI': 'individual', // $9/mo
-    'price_1Tft7ABbfEeOhHXbeIzYLCce': 'individual', // $90/yr
+    'price_1TjCcsBbfEeOhHXbSwJroOny': 'individual', // $89/yr (current)
+    'price_1Tft7ABbfEeOhHXbeIzYLCce': 'individual', // $90/yr (legacy)
     'price_1Tft7BBbfEeOhHXbdaVhs9Js': 'pro',        // $29/mo
     'price_1Tft7CBbfEeOhHXb0tr4xNnO': 'pro',        // $290/yr
   };
 
   const tier = tierMap[priceId] || 'individual';
+  // subscriptions.plan_type is its own enum {basic, pro, enterprise} — distinct
+  // from the subscription_tier enum used by `tier`. Map across them.
+  const planTypeMap: Record<string, string> = {
+    individual: 'basic',
+    pro: 'pro',
+    team: 'enterprise',
+  };
+  const planType = planTypeMap[tier] || 'basic';
   const isTeamPlan = tier === 'pro';
   const isNewOrReactivated = subscription.status === 'active';
+
+  // Newer Stripe API versions moved current_period_* onto the subscription
+  // item; the top-level fields are null. These columns are NOT NULL, so read
+  // the item first, fall back to the (legacy) top level, then to now.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const item = subscription.items.data[0] as any;
+  const periodStartUnix =
+    item?.current_period_start ?? subscription.current_period_start;
+  const periodEndUnix =
+    item?.current_period_end ?? subscription.current_period_end;
+  const nowIso = new Date().toISOString();
+  const periodStartIso = periodStartUnix
+    ? new Date(periodStartUnix * 1000).toISOString()
+    : nowIso;
+  const periodEndIso = periodEndUnix
+    ? new Date(periodEndUnix * 1000).toISOString()
+    : nowIso;
 
   const { error } = await supabase
     .from('subscriptions')
@@ -1012,11 +1037,11 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       stripe_customer_id: customerId,
       status: statusMap[subscription.status] || subscription.status,
       tier: tier,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      cancel_at: subscription.cancel_at
-        ? new Date(subscription.cancel_at * 1000).toISOString()
-        : null,
+      plan_type: planType,
+      price_id: priceId,
+      current_period_start: periodStartIso,
+      current_period_end: periodEndIso,
+      cancel_at_period_end: subscription.cancel_at_period_end ?? false,
       canceled_at: subscription.canceled_at
         ? new Date(subscription.canceled_at * 1000).toISOString()
         : null,
@@ -1038,7 +1063,6 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     .update({
       subscription_status: statusMap[subscription.status] || subscription.status,
       subscription_tier: tier,
-      subscription_updated_at: new Date().toISOString(),
     })
     .eq('id', user.id);
 
@@ -1218,7 +1242,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     .update({
       subscription_status: 'canceled',
       subscription_tier: 'free',
-      subscription_updated_at: new Date().toISOString(),
     })
     .eq('id', user.id);
 
@@ -1256,7 +1279,6 @@ async function handleSubscriptionTeamCleanup(userId: string) {
             .update({
               subscription_tier: 'free',
               subscription_status: 'canceled',
-              subscription_updated_at: new Date().toISOString(),
             })
             .eq('id', member.user_id);
 
@@ -1403,7 +1425,6 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     .from('users')
     .update({
       subscription_status: 'past_due',
-      subscription_updated_at: new Date().toISOString(),
     })
     .eq('id', user.id);
 
