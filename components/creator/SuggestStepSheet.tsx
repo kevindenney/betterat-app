@@ -82,13 +82,23 @@ export function SuggestStepSheet({
     );
   }, [mySteps, search]);
 
+  const resetAndClose = useCallback(() => {
+    setSelectedStep(null);
+    setMessage('');
+    setSearch('');
+    setNewTitle('');
+    setNewDescription('');
+    setTab('blueprint');
+    onClose();
+  }, [onClose]);
+
   const handleSend = useCallback(async () => {
     if (tab === 'create') {
       if (!newTitle.trim()) return;
       try {
         await suggestMutation.mutateAsync({
           targetUserId,
-          sourceStepId: 'custom', // no source step — custom suggestion
+          sourceStepId: null, // no source step — free-form coach suggestion
           stepTitle: newTitle.trim(),
           stepDescription: newDescription.trim() || undefined,
           interestId,
@@ -115,17 +125,7 @@ export function SuggestStepSheet({
     } catch {
       showAlert('Error', 'Failed to send suggestion. Please try again.');
     }
-  }, [tab, selectedStep, newTitle, newDescription, targetUserId, targetUserName, interestId, suggestMutation]);
-
-  const resetAndClose = useCallback(() => {
-    setSelectedStep(null);
-    setMessage('');
-    setSearch('');
-    setNewTitle('');
-    setNewDescription('');
-    setTab('blueprint');
-    onClose();
-  }, [onClose]);
+  }, [tab, selectedStep, newTitle, newDescription, targetUserId, targetUserName, interestId, suggestMutation, resetAndClose]);
 
   const handleTabChange = useCallback((t: Tab) => {
     setTab(t);

@@ -31,7 +31,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { supabase } from '@/services/supabase';
+import { SuggestStepService } from '@/services/SuggestStepService';
 import { useAuth } from '@/providers/AuthProvider';
 import { useToast } from '@/components/ui/AppToast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -104,18 +104,19 @@ export function SuggestStepComposer({
   const handleSend = useCallback(async () => {
     if (!user?.id) return;
     setSending(true);
-    const { error } = await supabase.from('step_suggestions').insert({
-      source_user_id: user.id,
-      target_user_id: recipientId,
-      source_step_id: selectedStep?.id ?? null,
-      message: body.trim() || null,
-      status: 'pending',
-    });
-    setSending(false);
-    if (error) {
-      toast.show('Could not send suggestion', 'error');
+    try {
+      await SuggestStepService.suggest({
+        sourceUserId: user.id,
+        targetUserId: recipientId,
+        sourceStepId: selectedStep?.id ?? null,
+        message: body.trim() || null,
+      });
+    } catch (e) {
+      setSending(false);
+      toast.show(e instanceof Error ? e.message : 'Could not send suggestion', 'error');
       return;
     }
+    setSending(false);
     qc.invalidateQueries({ queryKey: ['practice-inbox-items'] });
     qc.invalidateQueries({ queryKey: ['practice-inbox-count'] });
     toast.show(`Suggestion sent to ${recipientName.split(' ')[0]}`, 'success');

@@ -40,7 +40,7 @@ import {
 import type { SubscriberAdoptedStep, DiscoveredBlueprint } from '@/services/BlueprintService';
 import { adoptStep } from '@/services/TimelineStepService';
 import { invalidateFollowQueries } from '@/hooks/followInvalidations';
-import { NotificationService } from '@/services/NotificationService';
+import { SuggestStepService } from '@/services/SuggestStepService';
 import type {
   BlueprintRecord,
   CreateBlueprintInput,
@@ -536,22 +536,21 @@ export function useSuggestStepToSubscriber() {
     Error,
     {
       targetUserId: string;
-      sourceStepId: string;
+      /** Real timeline_steps id, or null for blueprint/free-form suggestions. */
+      sourceStepId: string | null;
       stepTitle: string;
       stepDescription?: string;
       interestId?: string;
     }
   >({
-    mutationFn: async ({ targetUserId, sourceStepId, stepTitle, stepDescription, interestId }) => {
+    mutationFn: async ({ targetUserId, sourceStepId, stepTitle, stepDescription }) => {
       if (!user?.id) throw new Error('Must be logged in');
-      return NotificationService.notifyStepSuggested({
+      return SuggestStepService.suggest({
+        sourceUserId: user.id,
         targetUserId,
-        actorId: user.id,
-        actorName: user.user_metadata?.full_name ?? 'Your coach',
-        sourceStepId,
-        stepTitle,
-        stepDescription,
-        interestId,
+        sourceStepId: sourceStepId ?? null,
+        suggestedTitle: sourceStepId ? null : stepTitle,
+        suggestedDescription: sourceStepId ? null : stepDescription ?? null,
       });
     },
   });

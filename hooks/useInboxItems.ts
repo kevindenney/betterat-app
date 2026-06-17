@@ -26,6 +26,8 @@ interface InboxRow {
   body: string | null;
   status: string;
   created_at: string;
+  suggested_title: string | null;
+  suggested_description: string | null;
 }
 
 interface ProfileRow {
@@ -96,7 +98,13 @@ function toInboxItem(
   const fromEmail = profile?.email?.trim() || undefined;
   const kind: InboxItemKind = row.kind;
   const stepTitle = step?.title?.trim() || 'Untitled step';
-  const blurb = row.body?.trim() || undefined;
+  // Blurb: a personal note wins, else the source step's description, else
+  // the suggestion's explicit description (source-less coach suggestions).
+  const blurb =
+    row.body?.trim() ||
+    step?.description?.trim() ||
+    row.suggested_description?.trim() ||
+    undefined;
   const raw = {
     interestId: kind === 'on_deck' ? deck?.interest_id ?? null : step?.interest_id ?? null,
     sourceStepId: row.step_id ?? '',
@@ -105,9 +113,13 @@ function toInboxItem(
   };
 
   if (kind === 'suggestion') {
-    // Free-form suggestions (post-2026-05-24 migration) carry no source step
-    // — the title surfaces a short preview of the body instead.
-    const title = step?.title?.trim() || blurb?.split(/[.!?]/)[0]?.trim() || 'Free-form suggestion';
+    // A real source step's title wins; then the explicit suggested_title
+    // (coach/blueprint/free-form); then a short preview of the body.
+    const title =
+      step?.title?.trim() ||
+      row.suggested_title?.trim() ||
+      blurb?.split(/[.!?]/)[0]?.trim() ||
+      'Free-form suggestion';
     return {
       id: row.id,
       kind,
@@ -169,7 +181,7 @@ export function useInboxItems() {
     queryFn: async () => {
       const { data: rows, error } = await supabase
         .from('inbox_items')
-        .select('id, kind, user_id, from_user_id, from_plan_id, step_id, body, status, created_at')
+        .select('id, kind, user_id, from_user_id, from_plan_id, step_id, body, status, created_at, suggested_title, suggested_description')
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;

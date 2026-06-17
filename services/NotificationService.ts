@@ -912,33 +912,6 @@ class NotificationServiceClass {
   }
 
   /**
-   * Suggest a step to another user. Creates a notification with step details
-   * so the recipient can adopt it to their own timeline.
-   */
-  async notifyStepSuggested(input: {
-    targetUserId: string;
-    actorId: string;
-    actorName: string;
-    sourceStepId: string;
-    stepTitle: string;
-    stepDescription?: string;
-    interestId?: string;
-  }): Promise<string> {
-    return this.createNotification(input.targetUserId, {
-      type: 'step_suggested',
-      title: 'Step suggestion',
-      body: `${input.actorName} suggested "${input.stepTitle}"`,
-      actorId: input.actorId,
-      data: {
-        source_step_id: input.sourceStepId,
-        step_title: input.stepTitle,
-        step_description: input.stepDescription || null,
-        interest_id: input.interestId || null,
-      },
-    });
-  }
-
-  /**
    * Notify a mentee that their step was reviewed by the blueprint author.
    * This triggers a cache invalidation on the mentee side so the feedback
    * appears in real time.

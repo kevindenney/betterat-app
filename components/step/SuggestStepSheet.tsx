@@ -23,7 +23,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { SailorProfileService } from '@/services/SailorProfileService';
 import { CrewFinderService } from '@/services/CrewFinderService';
-import { NotificationService } from '@/services/NotificationService';
+import { SuggestStepService } from '@/services/SuggestStepService';
 import { supabase } from '@/services/supabase';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 
@@ -32,8 +32,6 @@ interface SuggestStepSheetProps {
   onClose: () => void;
   stepId: string;
   stepTitle: string;
-  stepDescription?: string;
-  interestId?: string;
 }
 
 interface UserRow {
@@ -50,8 +48,6 @@ export function SuggestStepSheet({
   onClose,
   stepId,
   stepTitle,
-  stepDescription,
-  interestId,
 }: SuggestStepSheetProps) {
   const { user } = useAuth();
   const { activeOrganizationId } = useOrganization();
@@ -186,24 +182,20 @@ export function SuggestStepSheet({
       if (!user) return;
       setSendingTo(row.userId);
       try {
-        await NotificationService.notifyStepSuggested({
+        await SuggestStepService.suggest({
+          sourceUserId: user.id,
           targetUserId: row.userId,
-          actorId: user.id,
-          actorName: user.user_metadata?.full_name || user.email || 'Someone',
           sourceStepId: stepId,
-          stepTitle,
-          stepDescription,
-          interestId,
         });
         setSentTo((prev) => new Set(prev).add(row.userId));
         showAlert('Sent', `Suggested "${stepTitle}" to ${row.displayName}`);
-      } catch {
-        showAlert('Error', 'Failed to send suggestion. Please try again.');
+      } catch (e) {
+        showAlert('Error', e instanceof Error ? e.message : 'Failed to send suggestion. Please try again.');
       } finally {
         setSendingTo(null);
       }
     },
-    [user, stepId, stepTitle, stepDescription, interestId],
+    [user, stepId, stepTitle],
   );
 
   const handleClose = useCallback(() => {

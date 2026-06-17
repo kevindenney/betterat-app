@@ -10,6 +10,7 @@ import {
   shareStepDirect,
   shareStepToGroup,
 } from '@/services/SharedStepsService';
+import { SuggestStepService } from '@/services/SuggestStepService';
 import type {
   ShareStepSheetGroup,
   ShareStepSheetRecipient,
@@ -182,16 +183,15 @@ export function useShareStep(): UseShareStepResult {
   const suggestDirect = useCallback(
     async (recipientId: string, message?: string) => {
       if (!user?.id || !step) return;
-      const body = message?.trim() || step.body?.trim() || step.title;
-      const { error } = await supabase.from('step_suggestions').insert({
-        source_user_id: user.id,
-        target_user_id: recipientId,
-        source_step_id: step.id,
-        message: body,
-        status: 'pending',
-      });
-      if (error) {
-        toast.show('Could not send suggestion', 'error');
+      try {
+        await SuggestStepService.suggest({
+          sourceUserId: user.id,
+          targetUserId: recipientId,
+          sourceStepId: step.id,
+          message: message?.trim() || null,
+        });
+      } catch (e) {
+        toast.show(e instanceof Error ? e.message : 'Could not send suggestion', 'error');
         return;
       }
       toast.show('Suggestion sent', 'success');

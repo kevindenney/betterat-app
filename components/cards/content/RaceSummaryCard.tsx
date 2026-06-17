@@ -3195,8 +3195,6 @@ function RaceSummaryCardImpl({
           onClose={() => setShowSuggestSheet(false)}
           stepId={race.id}
           stepTitle={race.name || 'Untitled step'}
-          stepDescription={metadata?.plan?.what_will_you_do}
-          interestId={currentInterest?.id}
         />
       )}
 
