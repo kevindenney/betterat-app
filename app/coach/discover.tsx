@@ -3,6 +3,7 @@ import { useSailorUpcomingSessions } from '@/hooks/useSailorCoachingSessions';
 import { useAuth } from '@/providers/AuthProvider';
 import { CoachProfile } from '@/services/CoachingService';
 import { supabase } from '@/services/supabase';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { TufteCoachRow } from '@/components/coach/TufteCoachRow';
 import { TufteFiltersBar } from '@/components/coach/TufteFiltersBar';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
@@ -476,16 +477,21 @@ export default function CoachDiscoveryScreen() {
     if (!user || (selectedSkills.length === 0 && !freeText)) return;
 
     try {
-      await supabase.from('coach_waitlist').insert({
+      const { error } = await supabase.from('coach_waitlist').insert({
         user_id: user.id,
         skills_wanted: selectedSkills,
         free_text: freeText,
       });
+      if (error) throw error;
       setWaitlistSubmitted(true);
     } catch (error) {
       console.error('Error submitting waitlist:', error);
-      // Still show confirmation UX even if insert fails
-      setWaitlistSubmitted(true);
+      // Don't fake success — a confirmation the user can't act on is worse
+      // than an honest error, since they'll never know they aren't waitlisted.
+      showAlert(
+        'Could not join the waitlist',
+        'Something went wrong saving your request. Please try again.',
+      );
     }
   }, [user, selectedSkills, freeText]);
 

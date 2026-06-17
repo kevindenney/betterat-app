@@ -80,7 +80,7 @@ const ClubOnboardingWebsiteVerification = () => {
         const yachtClubId = await ClubVerificationService.findMatchingYachtClub(websiteUrl);
 
         // Update club profile with website URL and extracted data
-        await supabase.from('club_profiles').upsert({
+        const { error: profileError } = await supabase.from('club_profiles').upsert({
           user_id: userId,
           website_url: websiteUrl,
           club_name: data?.clubName || 'Unknown Club',
@@ -90,6 +90,7 @@ const ClubOnboardingWebsiteVerification = () => {
         }, {
           onConflict: 'user_id',
         });
+        if (profileError) throw profileError;
 
         showAlert(
           'Website Verified',
