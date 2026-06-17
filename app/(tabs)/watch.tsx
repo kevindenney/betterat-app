@@ -33,6 +33,7 @@ import {
   type FollowedPersonRow,
 } from '@/hooks/useFollowedPeopleForLibrary';
 import { useAdoptStep } from '@/hooks/useTimelineSteps';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { WatchNearbySection } from '@/components/watch/WatchNearbySection';
 import { WatchFilterRow, type WatchFilterChip } from '@/components/watch/WatchFilterRow';
 import { DiscoverPeopleContent } from '@/components/discover/DiscoverPeopleContent';
@@ -635,7 +636,14 @@ function WatchCard({
     if (adopted || adopt.isPending || !targetInterestId) return;
     adopt.mutate(
       { sourceStepId: item.id, interestId: targetInterestId },
-      { onSuccess: () => setAdopted(true) },
+      {
+        onSuccess: () => setAdopted(true),
+        onError: (err: any) =>
+          showAlert(
+            'Could Not Add Step',
+            err?.message || 'Something went wrong. Please try again.',
+          ),
+      },
     );
   };
 
