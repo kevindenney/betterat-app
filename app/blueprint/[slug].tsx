@@ -29,6 +29,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { getEventTabRoute } from '@/lib/navigation-config';
+import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import {
   useBlueprint,
   useBlueprintSteps,
@@ -363,10 +364,17 @@ export default function BlueprintPage() {
     if (!blueprint) return;
 
     if (isSubscribed) {
-      await unsubscribeMutation.mutateAsync(blueprint.id);
-      setJustSubscribed(false);
-      setRecentSubscriptionId(null);
-      setAdoptedFirstStepId(null);
+      showConfirm(
+        'Unsubscribe?',
+        `You'll stop receiving new steps from "${blueprint.title}". Steps already added to your timeline stay put.`,
+        async () => {
+          await unsubscribeMutation.mutateAsync(blueprint.id);
+          setJustSubscribed(false);
+          setRecentSubscriptionId(null);
+          setAdoptedFirstStepId(null);
+        },
+        { confirmText: 'Unsubscribe', destructive: true },
+      );
     } else {
       const sub = await subscribeMutation.mutateAsync(blueprint.id);
       setRecentSubscriptionId(sub.id);
