@@ -1,21 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/services/supabase';
+import { invokeAIEdgeFunction } from '@/services/ai/invokeAIEdgeFunction';
 import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('useAIChatSession');
-
-const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  process.env.EXPO_PUBLIC_BASE_URL ||
-  process.env.EXPO_PUBLIC_WEB_BASE_URL ||
-  '';
-
-const buildApiUrl = (path: string) => {
-  if (!API_BASE) {
-    return path;
-  }
-  return `${API_BASE.replace(/\/$/, '')}${path}`;
-};
 
 export type ChatRole = 'user' | 'assistant';
 
@@ -96,9 +84,10 @@ export function useAIChatSession(options: UseAIChatSessionOptions): UseAIChatSes
         }
 
         const { data, error: queryError } = await supabase
-          .from('ai_conversations')
+          .from('club_ai_messages')
           .select('id, role, message, metadata, created_at')
           .eq('club_id', clubId)
+          .eq('user_id', session.user.id)
           .order('created_at', { ascending: true })
           .limit(limit);
 
@@ -167,31 +156,17 @@ export function useAIChatSession(options: UseAIChatSessionOptions): UseAIChatSes
       setError(null);
 
       try {
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          throw new Error(sessionError.message);
-        }
-
-        if (!session?.access_token) {
-          throw new Error('You must be signed in to chat with the assistant.');
-        }
-
-        const response = await fetch(buildApiUrl('/api/ai/club/support'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ message: trimmed }),
+        const { data: payload, error: invokeError } = await invokeAIEdgeFunction<{
+          reply?: string;
+          suggested_action?: string | null;
+          needs_handoff?: boolean;
+          error?: string;
+        }>('ai-club-support', {
+          body: { message: trimmed, clubId },
         });
 
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload?.error || 'Unable to reach Claude assistant');
+        if (invokeError || payload?.error) {
+          throw new Error(invokeError?.message || payload?.error || 'Unable to reach the assistant');
         }
 
         setAssistantMeta({
@@ -208,7 +183,7 @@ export function useAIChatSession(options: UseAIChatSessionOptions): UseAIChatSes
         setIsSending(false);
       }
     },
-    [loadHistory, ready]
+    [clubId, loadHistory, ready]
   );
 
   return {

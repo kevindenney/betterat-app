@@ -1,16 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { supabase } from '@/services/supabase';
-
-const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  process.env.EXPO_PUBLIC_BASE_URL ||
-  process.env.EXPO_PUBLIC_WEB_BASE_URL ||
-  '';
-
-const buildApiUrl = (path: string) => {
-  if (!API_BASE) return path;
-  return `${API_BASE.replace(/\/$/, '')}${path}`;
-};
+import { invokeAIEdgeFunction } from '@/services/ai/invokeAIEdgeFunction';
 
 export type RaceCommsUrgency = 'low' | 'medium' | 'high';
 
@@ -61,33 +50,16 @@ export function useRaceCommsDraft(options: UseRaceCommsDraftOptions): UseRaceCom
     setError(null);
 
     try {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      const { data: payload, error: invokeError } = await invokeAIEdgeFunction<
+        RaceCommsDraft & { error?: string }
+      >('ai-race-comms-draft', {
+        body: { raceId },
+      });
 
-      if (sessionError) {
-        throw new Error(sessionError.message);
-      }
-
-      if (!session?.access_token) {
-        throw new Error('You must be signed in to request a race update.');
-      }
-
-      const response = await fetch(
-        buildApiUrl(`/api/ai/races/${raceId}/comms/draft`),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error || 'Unable to generate race communications');
+      if (invokeError || !payload || payload.error) {
+        throw new Error(
+          invokeError?.message || payload?.error || 'Unable to generate race communications',
+        );
       }
 
       const result: RaceCommsDraft = {

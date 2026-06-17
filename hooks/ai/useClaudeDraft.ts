@@ -1,18 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { supabase } from '@/services/supabase';
-
-const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  process.env.EXPO_PUBLIC_BASE_URL ||
-  process.env.EXPO_PUBLIC_WEB_BASE_URL ||
-  '';
-
-const buildApiUrl = (path: string) => {
-  if (!API_BASE) {
-    return path;
-  }
-  return `${API_BASE.replace(/\/$/, '')}${path}`;
-};
+import { invokeAIEdgeFunction } from '@/services/ai/invokeAIEdgeFunction';
 
 export type ClaudeDocumentType =
   | 'nor'
@@ -77,37 +64,14 @@ export function useClaudeDraft(options: UseClaudeDraftOptions): UseClaudeDraftRe
       setError(null);
 
       try {
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
+        const { data: payload, error: invokeError } = await invokeAIEdgeFunction<
+          ClaudeDocumentDraft & { error?: string }
+        >('ai-event-document-draft', {
+          body: { eventId, document_type: targetType },
+        });
 
-        if (sessionError) {
-          throw new Error(sessionError.message);
-        }
-
-        if (!session?.access_token) {
-          throw new Error('You must be signed in to request a draft.');
-        }
-
-        const response = await fetch(
-          buildApiUrl(`/api/ai/events/${eventId}/documents/draft`),
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              document_type: targetType,
-            }),
-          }
-        );
-
-        const payload = await response.json();
-
-        if (!response.ok) {
-          throw new Error(payload?.error || 'Unable to generate draft');
+        if (invokeError || !payload || payload.error) {
+          throw new Error(invokeError?.message || payload?.error || 'Unable to generate draft');
         }
 
         const nextDraft: ClaudeDocumentDraft = {
