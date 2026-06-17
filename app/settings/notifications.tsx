@@ -286,11 +286,14 @@ export default function NotificationsScreen(): React.ReactElement {
       try {
         const { error } = await supabase
           .from('user_preferences')
-          .upsert({
-            user_id: user.id,
-            notification_preferences: updated,
-            updated_at: new Date().toISOString(),
-          });
+          .upsert(
+            {
+              user_id: user.id,
+              notification_preferences: updated,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id' },
+          );
 
         if (error) throw error;
         prevUserPrefs.current = updated;
@@ -365,11 +368,14 @@ export default function NotificationsScreen(): React.ReactElement {
 
       try {
         await Promise.all([
-          supabase.from('user_preferences').upsert({
-            user_id: user.id,
-            notification_preferences: config.userPrefs,
-            updated_at: new Date().toISOString(),
-          }),
+          supabase.from('user_preferences').upsert(
+            {
+              user_id: user.id,
+              notification_preferences: config.userPrefs,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id' },
+          ),
           NotificationService.updatePreferences(user.id, config.notifPrefs),
         ]);
         prevUserPrefs.current = config.userPrefs;
