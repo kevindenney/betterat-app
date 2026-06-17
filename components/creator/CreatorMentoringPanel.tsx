@@ -20,6 +20,7 @@ import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useAuth } from '@/providers/AuthProvider';
 import { NotificationService } from '@/services/NotificationService';
 import { getReviewSections, getReviewSectionContent } from '@/lib/step/getReviewSections';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type { StepMetadata } from '@/types/step-detail';
 
 // ---------------------------------------------------------------------------
@@ -184,13 +185,21 @@ export function CreatorMentoringPanel({ stepId }: Props) {
 
   const handleSaveReview = useCallback(async () => {
     if (!selectedStatus) return;
-    await updateMetadata.mutateAsync({
-      review: {
-        instructor_review_status: selectedStatus,
-        instructor_review_note: reviewNote.trim() || undefined,
-        instructor_review_at: new Date().toISOString(),
-      },
-    } as Record<string, unknown>);
+    try {
+      await updateMetadata.mutateAsync({
+        review: {
+          instructor_review_status: selectedStatus,
+          instructor_review_note: reviewNote.trim() || undefined,
+          instructor_review_at: new Date().toISOString(),
+        },
+      } as Record<string, unknown>);
+    } catch (err: any) {
+      showAlert(
+        'Could Not Save Review',
+        err?.message || 'Something went wrong. Please try again.',
+      );
+      return;
+    }
     setReviewSaved(true);
     setSelectedStatus(null);
 
@@ -208,11 +217,19 @@ export function CreatorMentoringPanel({ stepId }: Props) {
   }, [selectedStatus, reviewNote, updateMetadata, step?.title, step?.user_id, stepId, user?.id, user?.user_metadata?.full_name]);
 
   const handleSaveSuggestion = useCallback(async () => {
-    await updateMetadata.mutateAsync({
-      review: {
-        instructor_suggested_next: suggestedNext.trim() || undefined,
-      },
-    } as Record<string, unknown>);
+    try {
+      await updateMetadata.mutateAsync({
+        review: {
+          instructor_suggested_next: suggestedNext.trim() || undefined,
+        },
+      } as Record<string, unknown>);
+    } catch (err: any) {
+      showAlert(
+        'Could Not Save Suggestion',
+        err?.message || 'Something went wrong. Please try again.',
+      );
+      return;
+    }
     setSuggestionSaved(true);
   }, [suggestedNext, updateMetadata]);
 
