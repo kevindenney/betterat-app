@@ -5708,7 +5708,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   }, []);
   // Real institution POIs + peer step pins for Baltimore. F4 camera is
   // centered on JHSON campus (39.297, -76.591) — see FRAME_CAMERA.
-  const { pins: framePins } = useAtlasFramePins({
+  const { pins: framePins, pickerSteps } = useAtlasFramePins({
     lat: 39.297,
     lng: -76.591,
     interestSlug: 'nursing',
@@ -5870,6 +5870,60 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // selectedPin so the sheet swap is one place. Mirror of FrameF1.
   const [selectedPin, setSelectedPin] = useState<AtlasPinSpec | null>(null);
   const [nextEventSheetOpen, setNextEventSheetOpen] = useState(false);
+  // Step-selector dropdown (mirrors F1/F7) — the chrome's second pill, to the
+  // right of the Nursing interest pill. Picking a step recenters the Map view
+  // on that step's pin and opens its sheet. Replaces the hardcoded "Atlas"
+  // title in the header.
+  const [openStepPickerVisible, setOpenStepPickerVisible] = useState(false);
+  const [f4FocusLocation, setF4FocusLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const selectedPickerStepId =
+    selectedPin && isUserStepPin(selectedPin) ? selectedPin.stepId ?? null : null;
+  const f4TopStepPickerStepId = useMemo(() => {
+    if (selectedPickerStepId) return selectedPickerStepId;
+    return (
+      pickerSteps.find((step) => step.status === 'planned-next')?.step_id ??
+      pickerSteps.find((step) => step.has_place)?.step_id ??
+      pickerSteps[0]?.step_id ??
+      null
+    );
+  }, [pickerSteps, selectedPickerStepId]);
+  const f4TopStepActionLabel = useMemo(() => {
+    const stepId = f4TopStepPickerStepId;
+    if (!stepId) return 'Pick step';
+    const index = pickerSteps.findIndex((step) => step.step_id === stepId);
+    if (index < 0) return 'Pick step';
+    const step = pickerSteps[index];
+    const ordinal = `${index + 1}/${pickerSteps.length}`;
+    const title = step?.title?.trim();
+    return title ? `${title} · ${ordinal}` : `Step ${ordinal}`;
+  }, [pickerSteps, f4TopStepPickerStepId]);
+  const handlePickF4StepFromPicker = useCallback(
+    (step: PickerStep) => {
+      setOpenStepPickerVisible(false);
+      setNextEventSheetOpen(false);
+      setSelectedNursingSite(null);
+      setF4View('map');
+      const pin = framePins.find((candidate) => candidate.stepId === step.step_id);
+      if (pin) {
+        setF4FocusLocation({ lat: pin.lat, lng: pin.lng });
+        setSelectedPin(pin);
+        return;
+      }
+      if (step.has_place && step.lat != null && step.lng != null) {
+        setF4FocusLocation({ lat: step.lat, lng: step.lng });
+        setSelectedPin({
+          id: `step-picker:${step.step_id}`,
+          kind: 'my-step-planned',
+          stepId: step.step_id,
+          label: step.title,
+          subtitle: step.location_name ?? undefined,
+          lat: step.lat,
+          lng: step.lng,
+        });
+      }
+    },
+    [framePins],
+  );
   // Long-press → "PIN DROPPED · Plan a step here" sheet, mirroring F1.
   const [candidate, setCandidate] = useState<{ lng: number; lat: number } | null>(null);
   const { data: candidateNearest } = useNearestPlace({
@@ -5921,6 +5975,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 setCandidate(coords);
               }}
               candidate={candidate}
+              focusLocation={f4FocusLocation}
             />
           ) : (
             <NursingMapSurface
@@ -5964,8 +6019,16 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           onLayout={(e) => setNursingChromeH(e.nativeEvent.layout.height)}
         >
           <TopChrome
-            title="Atlas"
+            title=""
             interestOverride={{ name: 'Nursing', accentColor: '#0097A7' }}
+            stepSwitcher={
+              pickerSteps.length > 0
+                ? {
+                    label: f4TopStepActionLabel,
+                    onPress: () => setOpenStepPickerVisible(true),
+                  }
+                : null
+            }
             subtitle={
               f4View === 'sites'
                 ? 'Your clinical sites & coverage'
@@ -6261,6 +6324,14 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           )
         }
         bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0}
+      />
+
+      <OpenStepPicker
+        visible={openStepPickerVisible}
+        steps={pickerSteps}
+        selectedStepId={f4TopStepPickerStepId}
+        onDismiss={() => setOpenStepPickerVisible(false)}
+        onPickStep={handlePickF4StepFromPicker}
       />
     </View>
   );
