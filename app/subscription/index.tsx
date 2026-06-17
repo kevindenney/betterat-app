@@ -13,7 +13,9 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
+  Platform,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -151,20 +153,31 @@ export default function SubscriptionPage() {
     triggerHaptic('selection');
     setProcessingPlan(`${plan.id}-${billingPeriod}`);
     try {
+      // Stripe Checkout requires absolute http(s) return URLs. On web we use the
+      // current origin; on native there's no window, so fall back to the web base.
+      const origin =
+        Platform.OS === 'web' && typeof window !== 'undefined'
+          ? window.location.origin
+          : process.env.EXPO_PUBLIC_WEB_BASE_URL ?? '';
+
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           priceId,
           userId: user.id,
-          successUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/subscription/success`,
-          cancelUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/subscription`,
+          successUrl: `${origin}/subscription/success`,
+          cancelUrl: `${origin}/subscription`,
         },
       });
 
       if (error) throw error;
 
       if (data?.url) {
-        if (typeof window !== 'undefined') {
+        // window.location is read-only on native (RN polyfills window but throws
+        // on assignment). Branch by platform: redirect on web, in-app browser on native.
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
           window.location.href = data.url;
+        } else {
+          await WebBrowser.openBrowserAsync(data.url);
         }
       } else {
         throw new Error('No checkout URL returned');
