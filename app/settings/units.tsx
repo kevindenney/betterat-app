@@ -123,7 +123,7 @@ export default function UnitsScreen() {
 
         {/* Info Box */}
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={20} color="#007AFF" />
+          <Ionicons name="information-circle-outline" size={20} color={IOS_COLORS.systemBlue} />
           <Text style={styles.infoText}>
             This setting affects how distances, speeds, and other measurements are
             displayed throughout the app.
@@ -137,7 +137,7 @@ export default function UnitsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: IOS_COLORS.systemGroupedBackground,
   },
   scrollView: {
     flex: 1,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   sectionHeader: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: IOS_COLORS.systemGroupedBackground,
     paddingVertical: 8,
     paddingHorizontal: 16,
     marginTop: 24,
@@ -154,11 +154,11 @@ const styles = StyleSheet.create({
   sectionHeaderText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: IOS_COLORS.secondaryLabel,
     letterSpacing: 0.5,
   },
   optionsContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
   },
   optionItem: {
     flexDirection: 'row',
@@ -166,8 +166,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: IOS_COLORS.separator,
   },
+  // Deliberate blue selection tint — the radio + blue label aren't enough
+  // signal on their own, so the row fills with a faint systemBlue wash.
   optionItemSelected: {
     backgroundColor: '#EBF5FF',
   },
@@ -177,15 +179,15 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1F2937',
+    color: IOS_COLORS.label,
     marginBottom: 4,
   },
   optionLabelSelected: {
-    color: '#007AFF',
+    color: IOS_COLORS.systemBlue,
   },
   optionDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: IOS_COLORS.secondaryLabel,
     lineHeight: 20,
   },
   radioOuter: {
@@ -193,20 +195,21 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: IOS_COLORS.systemGray3,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
   },
   radioOuterSelected: {
-    borderColor: '#007AFF',
+    borderColor: IOS_COLORS.systemBlue,
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#007AFF',
+    backgroundColor: IOS_COLORS.systemBlue,
   },
+  // Blue info card — decorative accent tints kept as raw hex by design.
   infoBox: {
     backgroundColor: '#EBF5FF',
     marginHorizontal: 16,
