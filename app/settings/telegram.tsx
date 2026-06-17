@@ -145,10 +145,11 @@ export default function TelegramSettingsScreen(): React.ReactElement {
       'You will no longer be able to interact with BetterAt via Telegram. You can reconnect at any time.',
       async () => {
         try {
-          await supabase
+          const { error } = await supabase
             .from('telegram_links')
             .update({ is_active: false })
             .eq('id', link.id);
+          if (error) throw error;
           setLink(null);
         } catch (err) {
           logger.error('Failed to disconnect telegram', err);
