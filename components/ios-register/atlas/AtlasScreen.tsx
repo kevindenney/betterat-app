@@ -5766,10 +5766,26 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showProgramPins, setShowProgramPins] = useState(true);
   const [showFacultyPins, setShowFacultyPins] = useState(true);
   const handleNursingChipsChange = useCallback((activeIds: string[]) => {
-    setShowYouPins(activeIds.includes('you'));
-    setShowCohortPins(activeIds.includes('peers'));
-    setShowProgramPins(activeIds.includes('program'));
-    setShowFacultyPins(activeIds.includes('faculty'));
+    const you = activeIds.includes('you');
+    const cohort = activeIds.includes('peers');
+    const program = activeIds.includes('program');
+    const faculty = activeIds.includes('faculty');
+    setShowYouPins(you);
+    setShowCohortPins(cohort);
+    setShowProgramPins(program);
+    setShowFacultyPins(faculty);
+    // If a chip is toggled OFF that hides the currently-selected pin's
+    // category, dismiss its detail sheet too — otherwise the card lingers
+    // over a pin that's no longer on the map.
+    setSelectedPin((prev) => {
+      if (!prev) return prev;
+      const k = prev.kind;
+      if (k === 'poi-preceptor') return faculty ? prev : null;
+      if (k === 'org-event') return program ? prev : null;
+      if (k === 'following' || k === 'crew' || k === 'fleet') return cohort ? prev : null;
+      if (typeof k === 'string' && k.startsWith('my-step')) return you ? prev : null;
+      return prev;
+    });
   }, []);
   // Apply the chip lens to the frame pins. Institution geography (hospitals,
   // sim labs) is never filtered — it's the orientation layer, not a lens
@@ -6028,13 +6044,6 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                     onPress: () => setOpenStepPickerVisible(true),
                   }
                 : null
-            }
-            subtitle={
-              f4View === 'sites'
-                ? 'Your clinical sites & coverage'
-                : f4View === 'coverage'
-                  ? 'Competency coverage · JHSON framework'
-                  : 'JHSON · Baltimore'
             }
             avatarInitial={handlers.avatarInitial ?? 'E'}
             onSearchPress={() => setSearchOpen(true)}
