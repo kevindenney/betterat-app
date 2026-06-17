@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   count: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     color: IOS_COLORS.secondaryLabel,
     fontWeight: '500',
   },

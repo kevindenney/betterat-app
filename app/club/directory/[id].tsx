@@ -161,7 +161,7 @@ export default function GlobalClubDetailScreen() {
               </View>
             ) : (
               <View style={[styles.logo, styles.logoPlaceholder]}>
-                <Building2 size={32} color={IOS_COLORS.white} />
+                <Building2 size={32} color={'#FFFFFF'} />
               </View>
             )}
           </View>
@@ -268,7 +268,7 @@ export default function GlobalClubDetailScreen() {
             disabled={joinMutation.isPending || leaveMutation.isPending}
           >
             {joinMutation.isPending || leaveMutation.isPending ? (
-              <ActivityIndicator size="small" color={isMember ? IOS_COLORS.systemBlue : IOS_COLORS.white} />
+              <ActivityIndicator size="small" color={isMember ? IOS_COLORS.systemBlue : '#FFFFFF'} />
             ) : (
               <Text
                 style={[
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     ...IOS_TYPOGRAPHY.body,
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   header: {
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     ...IOS_TYPOGRAPHY.title1,
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   clubName: {
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   shortName: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     color: IOS_COLORS.secondaryLabel,
     marginTop: IOS_SPACING.xs,
   },
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   infoText: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     color: IOS_COLORS.secondaryLabel,
   },
   section: {
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   actionButtonTextPrimary: {
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
   },
   actionButtonTextSecondary: {
     color: IOS_COLORS.systemBlue,
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     borderRadius: IOS_RADIUS.md,
   },
   claimExplanationTitle: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     color: IOS_COLORS.systemOrange,
     fontWeight: '600',
     marginBottom: IOS_SPACING.xs,

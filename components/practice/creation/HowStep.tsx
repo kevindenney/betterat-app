@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: IOS_COLORS.white,
+    color: '#FFFFFF',
   },
   summaryLabel: {
     fontSize: 12,

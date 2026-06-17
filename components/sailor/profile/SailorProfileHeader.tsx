@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   location: {
-    ...IOS_TYPOGRAPHY.subheadline,
+    ...IOS_TYPOGRAPHY.subhead,
     color: IOS_COLORS.secondaryLabel,
     marginTop: 2,
   },
