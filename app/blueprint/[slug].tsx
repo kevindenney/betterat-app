@@ -29,7 +29,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { getEventTabRoute } from '@/lib/navigation-config';
-import { showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import {
   useBlueprint,
   useBlueprintSteps,
@@ -368,29 +368,37 @@ export default function BlueprintPage() {
         'Unsubscribe?',
         `You'll stop receiving new steps from "${blueprint.title}". Steps already added to your timeline stay put.`,
         async () => {
-          await unsubscribeMutation.mutateAsync(blueprint.id);
-          setJustSubscribed(false);
-          setRecentSubscriptionId(null);
-          setAdoptedFirstStepId(null);
+          try {
+            await unsubscribeMutation.mutateAsync(blueprint.id);
+            setJustSubscribed(false);
+            setRecentSubscriptionId(null);
+            setAdoptedFirstStepId(null);
+          } catch (err: any) {
+            showAlert('Could Not Unsubscribe', err?.message || 'Something went wrong. Please try again.');
+          }
         },
         { confirmText: 'Unsubscribe', destructive: true },
       );
     } else {
-      const sub = await subscribeMutation.mutateAsync(blueprint.id);
-      setRecentSubscriptionId(sub.id);
-      setJustSubscribed(true);
+      try {
+        const sub = await subscribeMutation.mutateAsync(blueprint.id);
+        setRecentSubscriptionId(sub.id);
+        setJustSubscribed(true);
 
-      // Notify the blueprint owner (best-effort, don't block)
-      if (blueprint.user_id !== user.id) {
-        NotificationService
-          .notifyBlueprintSubscribed({
-            blueprintOwnerId: blueprint.user_id,
-            subscriberId: user.id,
-            subscriberName: user.user_metadata?.full_name || user.email || 'Someone',
-            blueprintId: blueprint.id,
-            blueprintTitle: blueprint.title,
-          })
-          .catch(() => {}); // non-blocking
+        // Notify the blueprint owner (best-effort, don't block)
+        if (blueprint.user_id !== user.id) {
+          NotificationService
+            .notifyBlueprintSubscribed({
+              blueprintOwnerId: blueprint.user_id,
+              subscriberId: user.id,
+              subscriberName: user.user_metadata?.full_name || user.email || 'Someone',
+              blueprintId: blueprint.id,
+              blueprintTitle: blueprint.title,
+            })
+            .catch(() => {}); // non-blocking
+        }
+      } catch (err: any) {
+        showAlert('Could Not Subscribe', err?.message || 'Something went wrong. Please try again.');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -475,6 +483,8 @@ export default function BlueprintPage() {
         blueprintId: blueprint.id,
       });
       setAdoptedFirstStepId(firstAdopted.id);
+    } catch (err: any) {
+      showAlert('Could Not Add Step', err?.message || 'Something went wrong. Please try again.');
     } finally {
       setAdoptingFirstStep(false);
     }
