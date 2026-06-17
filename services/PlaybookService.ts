@@ -411,6 +411,29 @@ export async function forkConcept(
 }
 
 /**
+ * Return this playbook's existing fork of a baseline concept, or create one if
+ * none exists. Idempotent on (playbook, source) — repeat links of the same
+ * baseline reuse the first fork instead of piling up duplicates.
+ */
+export async function forkOrGetConcept(
+  userId: string,
+  playbookId: string,
+  sourceConceptId: string,
+): Promise<PlaybookConceptRecord> {
+  const { data: existing, error } = await supabase
+    .from('playbook_concepts')
+    .select('*')
+    .eq('playbook_id', playbookId)
+    .eq('source_concept_id', sourceConceptId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (existing) return existing as PlaybookConceptRecord;
+  return forkConcept(userId, playbookId, sourceConceptId);
+}
+
+/**
  * Pull the latest body from the upstream source concept. Overwrites the
  * current body_md with the upstream version. Callers should only invoke this
  * after showing the user a three-way diff and confirming.

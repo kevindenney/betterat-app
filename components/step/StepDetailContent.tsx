@@ -59,6 +59,7 @@ import { settleStepAndPlaceBeforeNow } from '@/services/TimelineStepService';
 import { StepPinInterests } from './StepPinInterests';
 import { RaceCoursePicker } from '@/components/capture/RaceCoursePicker';
 import { LinkBlueprintStepSheet } from './LinkBlueprintStepSheet';
+import { ConceptLinkSheet } from './ConceptLinkSheet';
 import { StepProvenanceBanner } from './StepProvenanceBanner';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import {
@@ -498,6 +499,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const [attestSheetOpen, setAttestSheetOpen] = useState(false);
   const [pinInterestsOpen, setPinInterestsOpen] = useState(false);
   const [linkBlueprintStepOpen, setLinkBlueprintStepOpen] = useState(false);
+  const [linkConceptOpen, setLinkConceptOpen] = useState(false);
 
   // The step record often arrives after this component first renders. If
   // usePillTabs initializes while `step` is still undefined, the surface can
@@ -1830,6 +1832,15 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           setPinInterestsOpen(true);
         },
       });
+      menuActions.push({
+        label: 'Link to concept',
+        testID: 'step-action-link-concept',
+        icon: <Ionicons name="bulb-outline" size={20} color={STEP_COLORS.label} />,
+        onPress: () => {
+          setMenuOpen(false);
+          setLinkConceptOpen(true);
+        },
+      });
       // Only surface "Link to blueprint step" when this is an adopted
       // step that's missing the back-pointer — i.e. source_blueprint_id
       // is set but source_blueprint_step_id isn't. Otherwise the action
@@ -2074,6 +2085,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             onDismiss={() => setLinkBlueprintStepOpen(false)}
           />
         ) : null}
+        <ConceptLinkSheet
+          visible={linkConceptOpen}
+          stepId={step.id}
+          interestId={step.interest_id}
+          onDismiss={() => setLinkConceptOpen(false)}
+        />
         <Modal
           visible={timingSheetOpen}
           transparent

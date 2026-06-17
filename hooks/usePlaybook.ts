@@ -34,6 +34,7 @@ import {
   updateConcept,
   deleteConcept,
   forkConcept,
+  forkOrGetConcept,
   pullLatestConcept,
   getPatterns,
   updatePatternStatus,
@@ -54,6 +55,7 @@ import {
   getConceptTestedSteps,
   getConceptCapabilityChips,
   linkConceptToStep,
+  unlinkConceptFromStep,
   getStepConceptLinks,
   addConceptTrailQuote,
   promoteConceptToSettled,
@@ -440,6 +442,21 @@ export function useLinkConceptToStep() {
   });
 }
 
+export function useUnlinkConceptFromStep() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { stepId: string; conceptId: string; interestId?: string; userId?: string }>({
+    mutationFn: ({ stepId, conceptId }) => unlinkConceptFromStep(stepId, conceptId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: KEYS.stepConceptLinks(variables.stepId) });
+      if (variables.userId && variables.interestId) {
+        queryClient.invalidateQueries({
+          queryKey: KEYS.lifecycleConcepts(variables.userId, variables.interestId),
+        });
+      }
+    },
+  });
+}
+
 export function useAddConceptTrailQuote(conceptId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation<
@@ -490,6 +507,29 @@ export function useForkConcept() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: KEYS.concepts(variables.playbookId) });
+    },
+  });
+}
+
+export function useForkOrGetConcept() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation<
+    PlaybookConceptRecord,
+    Error,
+    { playbookId: string; sourceConceptId: string; interestId?: string }
+  >({
+    mutationFn: ({ playbookId, sourceConceptId }) => {
+      if (!user?.id) throw new Error('Must be logged in');
+      return forkOrGetConcept(user.id, playbookId, sourceConceptId);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: KEYS.concepts(variables.playbookId) });
+      if (user?.id && variables.interestId) {
+        queryClient.invalidateQueries({
+          queryKey: KEYS.lifecycleConcepts(user.id, variables.interestId),
+        });
+      }
     },
   });
 }
