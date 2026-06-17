@@ -5967,12 +5967,11 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             title="Atlas"
             interestOverride={{ name: 'Nursing', accentColor: '#0097A7' }}
             subtitle={
-              handlers.subtitleOverride ??
-              (f4View === 'sites'
+              f4View === 'sites'
                 ? 'Your clinical sites & coverage'
                 : f4View === 'coverage'
                   ? 'Competency coverage · JHSON framework'
-                  : 'Nursing · JHSON · Baltimore')
+                  : 'JHSON · Baltimore'
             }
             avatarInitial={handlers.avatarInitial ?? 'E'}
             onSearchPress={() => setSearchOpen(true)}
@@ -6011,15 +6010,17 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             })}
           </View>
           {f4View === 'map' ? (
-          <FilterChipsRow
-            chips={[
-              { id: 'you', label: 'You', tone: 'you', active: true },
-              { id: 'peers', label: 'Cohort', tone: 'cohort', active: true },
-              { id: 'program', label: 'Program', tone: 'fleet', active: true },
-              { id: 'faculty', label: 'Faculty', icon: 'school-outline', active: true },
-            ]}
-            onActiveIdsChange={handleNursingChipsChange}
-          />
+          <View style={shellStyles.f4ChipsRow}>
+            <FilterChipsRow
+              chips={[
+                { id: 'you', label: 'You', tone: 'you', active: true },
+                { id: 'peers', label: 'Cohort', tone: 'cohort', active: true },
+                { id: 'program', label: 'Program', tone: 'fleet', active: true },
+                { id: 'faculty', label: 'Faculty', icon: 'school-outline', active: true },
+              ]}
+              onActiveIdsChange={handleNursingChipsChange}
+            />
+          </View>
           ) : null}
           {/* Headless InterestSwitcher hosts the modal so TopChrome's
               capsule pill (which calls openInterestSwitcher imperatively)
@@ -10465,6 +10466,9 @@ const shellStyles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(60, 60, 67, 0.18)',
+  },
+  f4ChipsRow: {
+    marginTop: 12,
   },
   f4Segment: {
     flexDirection: 'row',
