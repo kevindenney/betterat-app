@@ -36,6 +36,7 @@ import { type NotificationGroup } from '@/lib/notifications/dedupe';
 import { getInitials } from '@/components/account/accountStyles';
 import { triggerHaptic } from '@/lib/haptics';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { invalidateFollowQueries } from '@/hooks/followInvalidations';
 import {
   IOS_COLORS,
   IOS_SPACING,
@@ -315,7 +316,7 @@ export default function SocialNotificationsScreen() {
         }
       );
       queryClient.invalidateQueries({ queryKey: ['following-status'] });
-      queryClient.invalidateQueries({ queryKey: ['sailor-suggestions'] });
+      invalidateFollowQueries(queryClient, user?.id);
     },
     onError: (err: any, { currentlyFollowing }) => {
       showAlert(

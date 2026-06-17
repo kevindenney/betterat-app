@@ -13,6 +13,7 @@ import {
   type FullSailorProfile,
 } from '@/services/SailorProfileService';
 import { CrewFinderService } from '@/services/CrewFinderService';
+import { invalidateFollowQueries } from '@/hooks/followInvalidations';
 import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('useSailorFullProfile');
@@ -84,7 +85,7 @@ export function useSailorFullProfile(userId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: profileQueryKey });
-      queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
+      invalidateFollowQueries(queryClient, user?.id);
     },
   });
 
@@ -112,7 +113,7 @@ export function useSailorFullProfile(userId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: profileQueryKey });
-      queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
+      invalidateFollowQueries(queryClient, user?.id);
     },
   });
 

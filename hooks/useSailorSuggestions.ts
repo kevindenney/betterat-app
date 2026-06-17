@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { CrewFinderService, type SimilarSailor, type SailorProfileSummary } from '@/services/CrewFinderService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { invalidateFollowQueries } from '@/hooks/followInvalidations';
 import type { SailorSuggestion } from '@/components/search/SailorSuggestionCard';
 
 interface UseSailorSuggestionsOptions {
@@ -125,11 +126,7 @@ export function useSailorSuggestions(
     },
     onSuccess: (targetUserId) => {
       setFollowedIds((prev) => new Set([...prev, targetUserId]));
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['discovery-feed'] });
-      queryClient.invalidateQueries({ queryKey: ['sailor-suggestions', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['watch-feed'] });
+      invalidateFollowQueries(queryClient, user?.id);
     },
   });
 
@@ -146,11 +143,7 @@ export function useSailorSuggestions(
         next.delete(targetUserId);
         return next;
       });
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['discovery-feed'] });
-      queryClient.invalidateQueries({ queryKey: ['sailor-suggestions', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['watch-feed'] });
+      invalidateFollowQueries(queryClient, user?.id);
     },
   });
 

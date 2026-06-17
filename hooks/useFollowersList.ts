@@ -7,6 +7,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { useAuth } from '@/providers/AuthProvider';
 import { SailorProfileService } from '@/services/SailorProfileService';
 import { CrewFinderService } from '@/services/CrewFinderService';
+import { invalidateFollowQueries } from '@/hooks/followInvalidations';
 
 const PAGE_SIZE = 50;
 
@@ -87,7 +88,7 @@ export function useFollowersList(
     },
     onSuccess: (targetUserId) => {
       setOverrides((prev) => new Map(prev).set(targetUserId, true));
-      queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
+      invalidateFollowQueries(queryClient, user?.id);
     },
   });
 
@@ -100,7 +101,7 @@ export function useFollowersList(
     },
     onSuccess: (targetUserId) => {
       setOverrides((prev) => new Map(prev).set(targetUserId, false));
-      queryClient.invalidateQueries({ queryKey: ['following', user?.id] });
+      invalidateFollowQueries(queryClient, user?.id);
     },
   });
 

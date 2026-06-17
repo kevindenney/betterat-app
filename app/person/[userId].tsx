@@ -26,7 +26,9 @@ import { PersonTimelineRow } from '@/components/landing/PersonTimelineRow';
 import { InterestTimelineCard } from '@/components/profile/InterestTimelineCard';
 import { FollowButton } from '@/components/social/FollowButton';
 import { CrewFinderService } from '@/services/CrewFinderService';
+import { invalidateFollowQueries } from '@/hooks/followInvalidations';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { useQueryClient } from '@tanstack/react-query';
 import { useUserTimeline, useAdoptStep, useUpdateStep } from '@/hooks/useTimelineSteps';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type { TimelineStepVisibility } from '@/types/timeline-steps';
@@ -152,6 +154,8 @@ function DbUserProfile({ userId }: { userId: string }) {
   const timelineQuery = useUserTimeline(userId);
   const { allInterests } = useInterest();
 
+  const queryClient = useQueryClient();
+
   // Follow state
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -180,12 +184,13 @@ function DbUserProfile({ userId }: { userId: string }) {
     try {
       await CrewFinderService.followUser(user.id, userId);
       setFollowing(true);
+      invalidateFollowQueries(queryClient, user.id);
     } catch (err: any) {
       showAlert('Could Not Follow', err?.message || 'Something went wrong. Please try again.');
     } finally {
       setFollowLoading(false);
     }
-  }, [user?.id, userId]);
+  }, [user?.id, userId, queryClient]);
 
   const handleUnfollow = useCallback(async () => {
     if (!user?.id) return;
@@ -193,12 +198,13 @@ function DbUserProfile({ userId }: { userId: string }) {
     try {
       await CrewFinderService.unfollowUser(user.id, userId);
       setFollowing(false);
+      invalidateFollowQueries(queryClient, user.id);
     } catch (err: any) {
       showAlert('Could Not Unfollow', err?.message || 'Something went wrong. Please try again.');
     } finally {
       setFollowLoading(false);
     }
-  }, [user?.id, userId]);
+  }, [user?.id, userId, queryClient]);
 
   // Adopt state
   const adoptMutation = useAdoptStep();
