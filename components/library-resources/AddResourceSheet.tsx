@@ -120,8 +120,8 @@ export function AddResourceSheet({ visible, libraryId, interestName, onSubmit, o
         });
         if (meta) {
           if (meta.title && !title.trim()) setTitle(meta.title);
-          if (meta.author) setAuthor(meta.author);
-          if (meta.description) setDescription(meta.description);
+          if (meta.author && !author.trim()) setAuthor(meta.author);
+          if (meta.description && !description.trim()) setDescription(meta.description);
         } else {
           showAlert('Could Not Extract', 'Unable to fetch video metadata. You can fill in the fields manually.');
         }
