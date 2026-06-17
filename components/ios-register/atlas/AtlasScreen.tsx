@@ -1350,14 +1350,6 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
     ];
   }
 
-  if (frame === 'f4') {
-    return [
-      { key: 'core.healthcare_pois', label: 'Healthcare sites', sub: 'Site-level floor — cannot sharpen', defaultOn: true, locked: true },
-      peerSteps,
-      ownSteps,
-    ];
-  }
-
   if (frame === 'f7') {
     return [
       { key: 'entrepreneur.markets', label: 'Haat · markets', sub: 'Day-of-week badges', defaultOn: true },
