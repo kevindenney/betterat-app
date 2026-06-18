@@ -4603,6 +4603,21 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 : 'Club place pin — not linked to a claimed BetterAt organization yet.',
               'Club lens should show this organization’s events, fleets, pins, and public activity from the club’s point of view.',
             ].join('\n')}
+            // Cross-link the viewer's own steps that sit at this club — the same
+            // "here's what you've done here" affordance the generic-pin callout
+            // carries. Club pins are the dominant sailing site type, so without
+            // this the cross-link silently no-ops on every yacht club.
+            expandedContent={
+              myStepsAtSelectedPoi.length > 0 ? (
+                <View style={shellStyles.stepsHereWrap}>
+                  <Text style={shellStyles.stepsHereLabel}>
+                    {myStepsAtSelectedPoi.length} of your step
+                    {myStepsAtSelectedPoi.length === 1 ? '' : 's'} here
+                  </Text>
+                  <StackedStepList steps={myStepsAtSelectedPoi} onOpenStep={openStepById} />
+                </View>
+              ) : null
+            }
             primary={{
               label: selectedPin.orgSlug ? 'Open organization' : 'Claim / link club',
               icon: selectedPin.orgSlug ? 'business-outline' : 'flag-outline',
