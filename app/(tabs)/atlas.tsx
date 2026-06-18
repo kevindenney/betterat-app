@@ -67,7 +67,6 @@ import {
 function pickFrameForInterest(slug: string | null): AtlasFrameId {
   const s = (slug ?? '').toLowerCase();
   if (s === 'nursing' || s === 'msn' || s === 'msn-nursing') return 'f4';
-  if (s === 'golf' || s === 'golf-performance' || s.includes('golf')) return 'f9';
   if (
     s === 'mentor' ||
     s === 'crp' ||
@@ -81,18 +80,12 @@ function pickFrameForInterest(slug: string | null): AtlasFrameId {
   ) {
     return 'f8';
   }
-  if (
-    s === 'entrepreneur' ||
-    s === 'micro-entrepreneur' ||
-    s === 'home-entrepreneur' ||
-    s === 'small-business' ||
-    s === 'lac-craft-business' ||
-    s.includes('craft') ||
-    s.includes('artisan')
-  ) {
-    return 'f7';
-  }
-  // Sailing, drawing, fitness, default → sailor first-run shape (F1)
+  // Golf, entrepreneur, drawing, fitness, sailing, default → the location-driven
+  // generic frame (F1). Atlas is global: these interests center on the user's
+  // location_focus and render their own interest-scoped steps + sites + the
+  // step↔site cross-link. The old f9 (Oakridge CC, California) and f7
+  // (Khunti/Jharkhand bilingual haat cockpit) frames were hardcoded to fixed
+  // geographies — demo/design scaffolding, now retired from routing.
   return 'f1';
 }
 
@@ -157,9 +150,6 @@ function nearbyAnchorForInterest(
 ): { lat: number; lng: number; label: string } | null {
   if (slug === 'nursing') {
     return { lat: 39.297, lng: -76.591, label: 'Baltimore' };
-  }
-  if (slug === 'golf') {
-    return { lat: 37.4178, lng: -122.1124, label: 'Oakridge CC' };
   }
   return null;
 }
