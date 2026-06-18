@@ -9,7 +9,7 @@
  * Pinch out → L2. Tap the right-rail pill → jump.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Dimensions,
   LayoutChangeEvent,
@@ -164,6 +164,19 @@ export function L1StepView({
   const translateX = useSharedValue(0);
   const passedThreshold = useSharedValue(false);
 
+  // Keep the lane's neutral geometry synchronized with the focused step. When
+  // the parent swaps `step` (after a committed swipe, a jump, or a picker
+  // selection), reset translateX to 0 *in the same render* that swaps in the
+  // new step — so the incoming card lands centered with no intermediate frame
+  // showing the previous card. The swipe worklet deliberately leaves the lane
+  // translated (neighbour centered) until this runs, which is what kills the
+  // old-title flash on landing.
+  const lastStepIdRef = useRef(step.id);
+  if (lastStepIdRef.current !== step.id) {
+    lastStepIdRef.current = step.id;
+    translateX.value = 0;
+  }
+
   const handleHostLayout = useCallback((event: LayoutChangeEvent) => {
     const width = event.nativeEvent.layout.width;
     if (width > 0) setHostWidth(width);
@@ -221,11 +234,15 @@ export function L1StepView({
         return;
       }
       const direction = dir > 0 ? 'prev' : 'next';
-      // Let the visible neighbor slide into the center, then commit the
-      // focus change and snap the lane back to its neutral geometry.
+      // Let the visible neighbor slide into the center, then commit the focus
+      // change. We do NOT reset translateX here: snapping the lane back to 0
+      // before the parent swaps in the new focusStepId leaves the stale (old)
+      // card centered at x=0 for the entire heavy re-render, which reads as the
+      // old title flashing back. Instead the lane holds with the neighbor
+      // centered, and translateX is reset to 0 in the same render that swaps in
+      // the new step (see the step.id guard above).
       translateX.value = withTiming(dir * swipeStridePx, { duration: 220 }, (finished) => {
         if (finished) {
-          translateX.value = 0;
           runOnJS(fireSwipe)(direction);
         }
       });
