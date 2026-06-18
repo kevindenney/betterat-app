@@ -57,3 +57,41 @@ export const STEP_SITE_LINK_KM = 0.4;
 export function stepStatusNote(status: PickerStep['status']): string {
   return status.startsWith('done') ? 'Done' : 'Planned';
 }
+
+/**
+ * The viewer's steps anchored at a single site anchor (a racing-area polygon
+ * or any POI not rendered as a framePin). A step matches when its where-anchor
+ * poi_id equals the anchor's id (exact site identity), or — for coord-only
+ * steps — when it sits within the fold grain of the anchor centroid.
+ *
+ * Unlike the framePin path there's no nearest-of-all-sites guard: the user has
+ * explicitly opened THIS site, and racing zones sit far enough apart that a
+ * lone proximity test doesn't cross-contaminate the way clustered campus POIs
+ * (~150m) do. Returns StackedStepList rows, deduped, in input order.
+ */
+export function stepsAtSiteAnchor(
+  steps: PickerStep[],
+  anchor: { id: string; lat: number | null; lng: number | null },
+): NonNullable<AtlasPinSpec['stackedSteps']> {
+  const seen = new Set<string>();
+  const out: NonNullable<AtlasPinSpec['stackedSteps']> = [];
+  for (const s of steps) {
+    if (seen.has(s.step_id)) continue;
+    const matches = s.poi_id
+      ? s.poi_id === anchor.id
+      : s.lat != null &&
+        s.lng != null &&
+        anchor.lat != null &&
+        anchor.lng != null &&
+        approxKmBetween({ lat: s.lat, lng: s.lng }, { lat: anchor.lat, lng: anchor.lng }) <=
+          STEP_SITE_LINK_KM;
+    if (!matches) continue;
+    seen.add(s.step_id);
+    out.push({
+      stepId: s.step_id,
+      title: s.title?.trim() || 'Untitled step',
+      statusNote: stepStatusNote(s.status),
+    });
+  }
+  return out;
+}

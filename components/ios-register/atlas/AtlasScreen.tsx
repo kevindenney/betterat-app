@@ -97,7 +97,7 @@ import {
 } from './SavedJumpSheet';
 import { shapeToPolygon } from '@/lib/atlas-racing-area-shape';
 import type { ArchivePickerStep, PickerStep } from '@/hooks/useUserAtlasSteps';
-import { isUserStepPin } from '@/components/ios-register/atlas/atlasStepSitePins';
+import { isUserStepPin, stepsAtSiteAnchor } from '@/components/ios-register/atlas/atlasStepSitePins';
 import { useFrameStepSiteLinks } from '@/hooks/useFrameStepSiteLinks';
 import { useUserSeasons, useCurrentSeason } from '@/hooks/useSeason';
 import { compareSeasonsByStartDate } from '@/components/ios-register/timeline-zoom/realDataAdapter';
@@ -2783,6 +2783,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     onFocusLocation: setSearchFocus,
     onStepPress: handlers.onStepPress,
   });
+  // Racing areas are first-class sites too (groups share knowledge + steps
+  // there), but they render as polygons selected into `knowledgeArea`, not as
+  // framePins — so the hook above can't see them. List the viewer's steps at
+  // the open area the same way, keyed on the area's poi_id / centroid.
+  const myStepsAtArea = useMemo<NonNullable<AtlasPinSpec['stackedSteps']>>(() => {
+    if (!knowledgeArea) return [];
+    return stepsAtSiteAnchor(crossLinkSteps, {
+      id: knowledgeArea.id,
+      lat: knowledgeArea.centerLat,
+      lng: knowledgeArea.centerLng,
+    });
+  }, [knowledgeArea, crossLinkSteps]);
   // When the Nearby list passes peer identity through the route params, break
   // that one peer out of the cluster the same way a drill-down tap does.
   React.useEffect(() => {
@@ -4448,6 +4460,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               raceWindow={knowledgeAreaRaceWeek}
               liveConditions={areaLiveConditions}
             >
+              {myStepsAtArea.length > 0 ? (
+                <View style={shellStyles.stepsHereWrap}>
+                  <Text style={shellStyles.stepsHereLabel}>
+                    {myStepsAtArea.length} of your step
+                    {myStepsAtArea.length === 1 ? '' : 's'} here
+                  </Text>
+                  <StackedStepList steps={myStepsAtArea} onOpenStep={openStepById} />
+                </View>
+              ) : null}
               <PlaceKnowledgeSection
                 anchor={{ poiId: knowledgeArea.id }}
                 interestSlug="sail-racing"
