@@ -3,7 +3,7 @@
  */
 
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Platform, Alert, Modal } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Platform, Alert, Modal, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -97,6 +97,11 @@ import { StepCompleteCelebration } from './StepCompleteCelebration';
 import { CrewThreadService } from '@/services/CrewThreadService';
 import { hapticSuccess } from '@/lib/haptics';
 
+// DateTimePicker is native-only; web keeps the text inputs in the timing sheet.
+type DateTimePickerType = typeof import('@react-native-community/datetimepicker').default;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const DateTimePicker: DateTimePickerType | null = Platform.OS === 'web' ? null : require('@react-native-community/datetimepicker').default;
+
 type TabValue = 'plan' | 'act' | 'review' | 'discussion';
 type TimingDraft = {
   date: string;
@@ -171,6 +176,33 @@ function parseLocalDateTime(dateText: string, timeText: string): Date | null {
     return null;
   }
   return d;
+}
+
+const RACE_DURATION_PRESETS = [45, 60, 90, 120, 180];
+const STEP_DURATION_PRESETS = [15, 30, 45, 60, 90];
+
+function formatDurationLabel(mins: number): string {
+  if (mins < 60) return `${mins}m`;
+  const hours = mins / 60;
+  const label = Number.isInteger(hours) ? `${hours}h` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  return label;
+}
+
+function formatPickedDate(dateText: string): string {
+  const d = parseLocalDateTime(dateText, '12:00');
+  if (!d) return dateText;
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatPickedTime(timeText: string): string {
+  const d = parseLocalDateTime('2000-01-01', timeText);
+  if (!d) return timeText;
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 function readDurationMinutes(step: { starts_at?: string | null; ends_at?: string | null; metadata?: Record<string, unknown> | null } | null | undefined): number | null {
@@ -390,6 +422,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   // course off the user's Atlas areas, persisted to metadata.race_plan.
   const [raceCourseOpen, setRaceCourseOpen] = useState(false);
   const [timingSheetOpen, setTimingSheetOpen] = useState(false);
+  const [showTimingDatePicker, setShowTimingDatePicker] = useState(false);
+  const [showTimingTimePicker, setShowTimingTimePicker] = useState(false);
   const [timingDraft, setTimingDraft] = useState<TimingDraft>({
     date: '',
     time: '',
@@ -977,6 +1011,29 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     });
     setTimingSheetOpen(false);
   }, [step, stepId, isOwner, timingDraft, metadata.timing, queryClient, updateStep, invalidateAtlasStepQueries]);
+
+  // Picker seed: the draft's date+time, or now if unset/invalid.
+  const timingPickerValue = useMemo(() => {
+    return parseLocalDateTime(timingDraft.date, timingDraft.time) ?? new Date();
+  }, [timingDraft.date, timingDraft.time]);
+
+  const handleTimingDateChange = useCallback((event: { type?: string }, picked?: Date) => {
+    if (Platform.OS !== 'ios') setShowTimingDatePicker(false);
+    if (event?.type === 'dismissed' || !picked) return;
+    setTimingDraft((prev) => ({
+      ...prev,
+      date: `${picked.getFullYear()}-${pad2(picked.getMonth() + 1)}-${pad2(picked.getDate())}`,
+    }));
+  }, []);
+
+  const handleTimingTimeChange = useCallback((event: { type?: string }, picked?: Date) => {
+    if (Platform.OS !== 'ios') setShowTimingTimePicker(false);
+    if (event?.type === 'dismissed' || !picked) return;
+    setTimingDraft((prev) => ({
+      ...prev,
+      time: `${pad2(picked.getHours())}:${pad2(picked.getMinutes())}`,
+    }));
+  }, []);
 
   const handlePromptStepDate = useCallback(() => {
     if (!step || !isOwner) return;
@@ -2103,82 +2160,167 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
               style={StyleSheet.absoluteFill}
               onPress={() => setTimingSheetOpen(false)}
             />
-            <View style={styles.timingSheet}>
-              <View style={styles.timingHeader}>
-                <View>
-                  <Text style={styles.timingEyebrow}>
-                    {step.is_race ? 'RACE WINDOW' : 'STEP WINDOW'}
-                  </Text>
-                  <Text style={styles.timingTitle}>
-                    {step.is_race ? 'Set race time' : 'Set step time'}
-                  </Text>
+            <KeyboardAvoidingView
+              style={styles.timingKav}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+              <View style={styles.timingSheet}>
+                <View style={styles.timingHeader}>
+                  <View>
+                    <Text style={styles.timingEyebrow}>
+                      {step.is_race ? 'RACE WINDOW' : 'STEP WINDOW'}
+                    </Text>
+                    <Text style={styles.timingTitle}>
+                      {step.is_race ? 'Set race time' : 'Set step time'}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setTimingSheetOpen(false)}
+                    hitSlop={8}
+                    style={styles.pinSheetClose}
+                  >
+                    <Ionicons name="close" size={18} color={STEP_COLORS.secondaryLabel} />
+                  </Pressable>
                 </View>
-                <Pressable
-                  onPress={() => setTimingSheetOpen(false)}
-                  hitSlop={8}
-                  style={styles.pinSheetClose}
+                <ScrollView
+                  style={styles.timingScroll}
+                  contentContainerStyle={styles.timingScrollContent}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="interactive"
                 >
-                  <Ionicons name="close" size={18} color={STEP_COLORS.secondaryLabel} />
-                </Pressable>
-              </View>
-              <View style={styles.timingFieldGrid}>
-                <View style={styles.timingField}>
-                  <Text style={styles.timingLabel}>Date</Text>
-                  <TextInput
-                    value={timingDraft.date}
-                    onChangeText={(value) => setTimingDraft((prev) => ({ ...prev, date: value }))}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={STEP_COLORS.tertiaryLabel}
-                    style={styles.timingInput}
-                    autoCapitalize="none"
-                  />
-                </View>
-                <View style={styles.timingField}>
-                  <Text style={styles.timingLabel}>Start time</Text>
-                  <TextInput
-                    value={timingDraft.time}
-                    onChangeText={(value) => setTimingDraft((prev) => ({ ...prev, time: value }))}
-                    placeholder="14:00"
-                    placeholderTextColor={STEP_COLORS.tertiaryLabel}
-                    style={styles.timingInput}
-                    autoCapitalize="none"
-                  />
-                </View>
-                <View style={styles.timingField}>
-                  <Text style={styles.timingLabel}>
-                    {step.is_race ? 'Race length' : 'Step length'}
+                  <View style={styles.timingFieldGrid}>
+                    <View style={styles.timingField}>
+                      <Text style={styles.timingLabel}>Date</Text>
+                      {DateTimePicker ? (
+                        <Pressable
+                          style={[styles.timingInput, styles.timingInputButton]}
+                          onPress={() => {
+                            setShowTimingTimePicker(false);
+                            setShowTimingDatePicker((v) => !v);
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Pick date"
+                        >
+                          <Text style={timingDraft.date ? styles.timingInputValue : styles.timingInputPlaceholder}>
+                            {timingDraft.date ? formatPickedDate(timingDraft.date) : 'Select date'}
+                          </Text>
+                          <Ionicons name="calendar-outline" size={16} color={STEP_COLORS.secondaryLabel} />
+                        </Pressable>
+                      ) : (
+                        <TextInput
+                          value={timingDraft.date}
+                          onChangeText={(value) => setTimingDraft((prev) => ({ ...prev, date: value }))}
+                          placeholder="YYYY-MM-DD"
+                          placeholderTextColor={STEP_COLORS.tertiaryLabel}
+                          style={styles.timingInput}
+                          autoCapitalize="none"
+                        />
+                      )}
+                      {showTimingDatePicker && DateTimePicker ? (
+                        <DateTimePicker
+                          value={timingPickerValue}
+                          mode="date"
+                          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                          onChange={handleTimingDateChange}
+                        />
+                      ) : null}
+                    </View>
+                    <View style={styles.timingField}>
+                      <Text style={styles.timingLabel}>Start time</Text>
+                      {DateTimePicker ? (
+                        <Pressable
+                          style={[styles.timingInput, styles.timingInputButton]}
+                          onPress={() => {
+                            setShowTimingDatePicker(false);
+                            setShowTimingTimePicker((v) => !v);
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Pick start time"
+                        >
+                          <Text style={timingDraft.time ? styles.timingInputValue : styles.timingInputPlaceholder}>
+                            {timingDraft.time ? formatPickedTime(timingDraft.time) : 'Select time'}
+                          </Text>
+                          <Ionicons name="time-outline" size={16} color={STEP_COLORS.secondaryLabel} />
+                        </Pressable>
+                      ) : (
+                        <TextInput
+                          value={timingDraft.time}
+                          onChangeText={(value) => setTimingDraft((prev) => ({ ...prev, time: value }))}
+                          placeholder="14:00"
+                          placeholderTextColor={STEP_COLORS.tertiaryLabel}
+                          style={styles.timingInput}
+                          autoCapitalize="none"
+                        />
+                      )}
+                      {showTimingTimePicker && DateTimePicker ? (
+                        <DateTimePicker
+                          value={timingPickerValue}
+                          mode="time"
+                          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                          onChange={handleTimingTimeChange}
+                        />
+                      ) : null}
+                    </View>
+                    <View style={styles.timingField}>
+                      <Text style={styles.timingLabel}>
+                        {step.is_race ? 'Race length' : 'Step length'}
+                      </Text>
+                      <View style={styles.durationChips}>
+                        {(step.is_race ? RACE_DURATION_PRESETS : STEP_DURATION_PRESETS).map((mins) => {
+                          const selected = timingDraft.durationMinutes === String(mins);
+                          return (
+                            <Pressable
+                              key={mins}
+                              style={[styles.durationChip, selected && styles.durationChipSelected]}
+                              onPress={() => setTimingDraft((prev) => ({ ...prev, durationMinutes: String(mins) }))}
+                              accessibilityRole="button"
+                              accessibilityState={{ selected }}
+                              accessibilityLabel={`${formatDurationLabel(mins)}`}
+                            >
+                              <Text style={[styles.durationChipText, selected && styles.durationChipTextSelected]}>
+                                {formatDurationLabel(mins)}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      <TextInput
+                        value={timingDraft.durationMinutes}
+                        onChangeText={(value) => setTimingDraft((prev) => ({ ...prev, durationMinutes: value.replace(/[^\d.]/g, '') }))}
+                        placeholder={step.is_race ? 'Custom — e.g. 90' : 'Custom — e.g. 45'}
+                        placeholderTextColor={STEP_COLORS.tertiaryLabel}
+                        style={styles.timingInput}
+                        keyboardType="numeric"
+                        onFocus={() => {
+                          setShowTimingDatePicker(false);
+                          setShowTimingTimePicker(false);
+                        }}
+                      />
+                    </View>
+                  </View>
+                  <Text style={styles.timingHint}>
+                    Atlas uses the start time for race-time conditions. Duration sets the window for wind, current, and sea trends.
                   </Text>
-                  <TextInput
-                    value={timingDraft.durationMinutes}
-                    onChangeText={(value) => setTimingDraft((prev) => ({ ...prev, durationMinutes: value.replace(/[^\d.]/g, '') }))}
-                    placeholder={step.is_race ? '90 min' : '45 min'}
-                    placeholderTextColor={STEP_COLORS.tertiaryLabel}
-                    style={styles.timingInput}
-                    keyboardType="numeric"
-                  />
+                </ScrollView>
+                <View style={styles.timingActions}>
+                  <Pressable
+                    style={styles.timingSecondaryButton}
+                    onPress={() => {
+                      handleClearStepDate();
+                      setTimingSheetOpen(false);
+                    }}
+                  >
+                    <Text style={styles.timingSecondaryText}>Clear</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.timingPrimaryButton}
+                    onPress={handleSaveStepTiming}
+                  >
+                    <Text style={styles.timingPrimaryText}>Save timing</Text>
+                  </Pressable>
                 </View>
               </View>
-              <Text style={styles.timingHint}>
-                Atlas uses the start time for race-time conditions. Duration sets the window for wind, current, and sea trends.
-              </Text>
-              <View style={styles.timingActions}>
-                <Pressable
-                  style={styles.timingSecondaryButton}
-                  onPress={() => {
-                    handleClearStepDate();
-                    setTimingSheetOpen(false);
-                  }}
-                >
-                  <Text style={styles.timingSecondaryText}>Clear</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.timingPrimaryButton}
-                  onPress={handleSaveStepTiming}
-                >
-                  <Text style={styles.timingPrimaryText}>Save timing</Text>
-                </Pressable>
-              </View>
-            </View>
+            </KeyboardAvoidingView>
           </View>
         </Modal>
         <Modal
@@ -2524,9 +2666,14 @@ const styles = StyleSheet.create({
     padding: 18,
     backgroundColor: 'rgba(0, 0, 0, 0.42)',
   },
+  timingKav: {
+    width: '100%',
+    alignItems: 'center',
+  },
   timingSheet: {
     width: '100%',
     maxWidth: 520,
+    maxHeight: '88%',
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     padding: 18,
@@ -2536,6 +2683,53 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
     elevation: 12,
+  },
+  timingScroll: {
+    flexShrink: 1,
+    alignSelf: 'stretch',
+  },
+  timingScrollContent: {
+    gap: 14,
+  },
+  timingInputButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  timingInputValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: STEP_COLORS.label,
+  },
+  timingInputPlaceholder: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: STEP_COLORS.tertiaryLabel,
+  },
+  durationChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  durationChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_COLORS.border,
+    backgroundColor: STEP_COLORS.headerBg,
+  },
+  durationChipSelected: {
+    backgroundColor: STEP_COLORS.accent,
+    borderColor: STEP_COLORS.accent,
+  },
+  durationChipText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: STEP_COLORS.label,
+  },
+  durationChipTextSelected: {
+    color: '#FFFFFF',
   },
   timingHeader: {
     flexDirection: 'row',

@@ -127,6 +127,7 @@ export function StepAddSheet({
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   // Visibility chip — shows the user's resolved default (per-interest →
   // profile → private) so new steps are never silently private; an
   // override applies to this step only.
@@ -395,30 +396,51 @@ export function StepAddSheet({
                 </View>
                 <Text style={styles.bpCount}>{g.steps.length}</Text>
               </View>
-              {g.steps.map((s) => (
-                <View key={s.next_step_id} style={styles.aitem}>
-                  <View style={styles.aitemText}>
-                    <Text style={styles.aitemTitle} numberOfLines={1}>
-                      {s.next_step_title}
-                    </Text>
-                    {s.next_step_description ? (
-                      <Text style={styles.aitemSub} numberOfLines={1}>
-                        {s.next_step_description}
+              {g.steps.map((s) => {
+                const expanded = expandedCardId === s.next_step_id;
+                return (
+                  <View key={s.next_step_id} style={styles.aitem}>
+                    <Pressable
+                      style={styles.aitemText}
+                      onPress={() => setExpandedCardId(expanded ? null : s.next_step_id)}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded }}
+                      accessibilityLabel={expanded ? `Collapse ${s.next_step_title}` : `Read more: ${s.next_step_title}`}
+                    >
+                      <Text style={styles.aitemTitle} numberOfLines={expanded ? undefined : 2}>
+                        {s.next_step_title}
                       </Text>
-                    ) : null}
+                      {s.next_step_description ? (
+                        <Text style={styles.aitemSub} numberOfLines={expanded ? undefined : 2}>
+                          {s.next_step_description}
+                        </Text>
+                      ) : null}
+                      {s.next_step_description ? (
+                        <View style={styles.aitemMoreRow}>
+                          <Text style={[styles.aitemMore, { color: accent }]}>
+                            {expanded ? 'Show less' : 'Read more'}
+                          </Text>
+                          <Ionicons
+                            name={expanded ? 'chevron-up' : 'chevron-down'}
+                            size={13}
+                            color={accent}
+                          />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                    <Pressable
+                      style={[styles.addBtn, { borderColor: hexWithAlpha(accent, 0.4) }]}
+                      onPress={() => handleAdopt(s)}
+                      disabled={adoptStep.isPending}
+                      hitSlop={6}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Add ${s.next_step_title}`}
+                    >
+                      <Ionicons name="add" size={18} color={accent} />
+                    </Pressable>
                   </View>
-                  <Pressable
-                    style={[styles.addBtn, { borderColor: hexWithAlpha(accent, 0.4) }]}
-                    onPress={() => handleAdopt(s)}
-                    disabled={adoptStep.isPending}
-                    hitSlop={6}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Add ${s.next_step_title}`}
-                  >
-                    <Ionicons name="add" size={18} color={accent} />
-                  </Pressable>
-                </View>
-              ))}
+                );
+              })}
             </View>
           ))}
           <Text style={styles.bpDisclosure}>
@@ -453,34 +475,53 @@ export function StepAddSheet({
             </Pressable>
           </View>
         ) : (
-          suggestions.map((s) => (
-            <View key={s.id} style={styles.aitem}>
-              <View style={styles.aitemText}>
-                <View style={styles.crossTagRow}>
-                  <View style={styles.crossTag}>
-                    <Text style={styles.crossTagText}>CROSS</Text>
+          suggestions.map((s) => {
+            const expanded = expandedCardId === s.id;
+            return (
+              <View key={s.id} style={styles.aitem}>
+                <Pressable
+                  style={styles.aitemText}
+                  onPress={() => setExpandedCardId(expanded ? null : s.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded }}
+                  accessibilityLabel={expanded ? `Collapse ${s.title}` : `Read more: ${s.title}`}
+                >
+                  <View style={styles.crossTagRow}>
+                    <View style={styles.crossTag}>
+                      <Text style={styles.crossTagText}>CROSS</Text>
+                    </View>
+                    <Text style={styles.aitemTitle} numberOfLines={expanded ? undefined : 2}>
+                      {s.title}
+                    </Text>
                   </View>
-                  <Text style={styles.aitemTitle} numberOfLines={1}>
-                    {s.title}
-                  </Text>
-                </View>
-                {s.body ? (
-                  <Text style={styles.aitemSub} numberOfLines={2}>
-                    {s.body}
-                  </Text>
-                ) : null}
+                  {s.body ? (
+                    <Text style={styles.aitemSub} numberOfLines={expanded ? undefined : 2}>
+                      {s.body}
+                    </Text>
+                  ) : null}
+                  <View style={styles.aitemMoreRow}>
+                    <Text style={[styles.aitemMore, { color: accent }]}>
+                      {expanded ? 'Show less' : 'Read more'}
+                    </Text>
+                    <Ionicons
+                      name={expanded ? 'chevron-up' : 'chevron-down'}
+                      size={13}
+                      color={accent}
+                    />
+                  </View>
+                </Pressable>
+                <Pressable
+                  style={[styles.addBtn, { borderColor: hexWithAlpha(accent, 0.4) }]}
+                  onPress={() => handleApplyCrossSuggestion(s)}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Apply ${s.title}`}
+                >
+                  <Ionicons name="add" size={18} color={accent} />
+                </Pressable>
               </View>
-              <Pressable
-                style={[styles.addBtn, { borderColor: hexWithAlpha(accent, 0.4) }]}
-                onPress={() => handleApplyCrossSuggestion(s)}
-                hitSlop={6}
-                accessibilityRole="button"
-                accessibilityLabel={`Apply ${s.title}`}
-              >
-                <Ionicons name="add" size={18} color={accent} />
-              </Pressable>
-            </View>
-          ))
+            );
+          })
         )}
       </View>
     </>
@@ -1161,6 +1202,16 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: IOS_REGISTER.labelSecondary,
     marginTop: 2,
+  },
+  aitemMoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 6,
+  },
+  aitemMore: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   addBtn: {
     width: 32,
