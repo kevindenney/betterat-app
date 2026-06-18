@@ -36,7 +36,26 @@ import { fontFamily } from '@/lib/design-tokens-editorial';
 import { resolveDoTabInterestKind } from '@/lib/interest-config';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
 import { PickerListSheet } from './PickerListSheet';
-import type { TimelineDataset, TimelineStep } from './types';
+import type { StepStatus, TimelineDataset, TimelineStep } from './types';
+
+// The embedded StepDetailContent loads its own step record async, so on first
+// render it has no status and defaults to the Plan tab — then snaps to the real
+// tab once data arrives. L1 already knows the step's phase, so we pass it down
+// as initialTab to land the card (and the peek neighbours, mid-swipe) on the
+// correct tab from the first frame. Mirrors StepDetailContent's getDefaultTab.
+function tabForStepStatus(status: StepStatus): 'plan' | 'act' | 'review' {
+  switch (status) {
+    case 'do':
+      return 'act';
+    case 'reflect':
+    case 'reflected':
+    case 'done':
+      return 'review';
+    case 'plan':
+    default:
+      return 'plan';
+  }
+}
 
 const SERIF_FAMILY = fontFamily.serif;
 
@@ -534,6 +553,7 @@ function EmbeddedStepCard({
             ellipsis here used to overlay and swallow that tap. */}
         <StepDetailContent
           stepId={step.id}
+          initialTab={tabForStepStatus(step.status)}
           onScroll={onScroll}
           hideStatePill
           onDeleted={onStepDeleted}
