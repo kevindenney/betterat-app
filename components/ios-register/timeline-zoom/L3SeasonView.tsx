@@ -73,6 +73,13 @@ import type {
   TimelineStep,
 } from './types';
 
+/** A step sits behind NOW once it's been acted on — done, reflected, or in
+ * review. Everything else (plan/do) is still queued ahead of NOW. Mirrors
+ * SnakeTimeline.isPastNow so the partition matches where the river draws NOW. */
+function isBehindNow(status: TimelineStep['status']): boolean {
+  return status === 'done' || status === 'reflected' || status === 'reflect';
+}
+
 interface CapabilityFamily {
   id: string;
   label: string;
@@ -289,13 +296,18 @@ export function L3SeasonView({
     return weeks;
   }, [season?.weeks, activeThread, activePerson]);
 
-  // THE WORK renders as a NOW-anchored snake river — steps in chronological
-  // order (oldest → newest) so the thread runs done → NOW → planned. The
-  // filtered `visibleWeeks` collapses to a flat step list for the river.
-  const snakeSteps = useMemo(
-    () => visibleWeeks.flatMap((w) => w.steps),
-    [visibleWeeks],
-  );
+  // THE WORK renders as a NOW-anchored snake river. The river assumes a clean
+  // done → NOW → planned ordering, but `sort_order` is a fluid working queue
+  // where completed prep can sit anywhere. Partition the flat list so every
+  // step you've already done sits behind NOW and everything still queued sits
+  // ahead, preserving each group's own sort_order — so the thread reads as a
+  // single behind/ahead sequence around NOW instead of a jumble of pills.
+  const snakeSteps = useMemo(() => {
+    const flat = visibleWeeks.flatMap((w) => w.steps);
+    const behindNow = flat.filter((s) => isBehindNow(s.status));
+    const ahead = flat.filter((s) => !isBehindNow(s.status));
+    return [...behindNow, ...ahead];
+  }, [visibleWeeks]);
 
   // Reorder commit. The drag hook reasons in flat index space; the canvas
   // owner writes sort_order between two neighbours. We replay the move on a
@@ -843,7 +855,7 @@ export function L3SeasonView({
           <Text style={styles.logCaption}>
             {(() => {
               const n = flatSteps.length;
-              return `${n} ${n === 1 ? 'step' : 'steps'} so far · newest first`;
+              return `${n} ${n === 1 ? 'step' : 'steps'} · done behind, queued ahead`;
             })()}
           </Text>
           <View style={styles.toolbarActions}>
