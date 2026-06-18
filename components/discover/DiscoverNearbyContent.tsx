@@ -166,6 +166,51 @@ export function DiscoverNearbyContent({
     );
   }
 
+  // Collapse the org-session firehose into one row per site. A flat list of
+  // every located org step reads as noise ("146 sessions"); grouping by place
+  // makes "what's near me" answerable — each site row flies the map there.
+  const orgSites = (() => {
+    const groups = new Map<
+      string,
+      {
+        key: string;
+        placeName: string | null;
+        orgName: string | null;
+        lat: number;
+        lng: number;
+        count: number;
+        sampleTitles: string[];
+      }
+    >();
+    for (const ev of orgSteps) {
+      const placeName = ev.place_name?.trim() || null;
+      const key =
+        placeName ??
+        (Number.isFinite(ev.lat) && Number.isFinite(ev.lng)
+          ? `${ev.lat.toFixed(3)},${ev.lng.toFixed(3)}`
+          : ev.org_id);
+      let group = groups.get(key);
+      if (!group) {
+        group = {
+          key,
+          placeName,
+          orgName: ev.org_name ?? null,
+          lat: ev.lat,
+          lng: ev.lng,
+          count: 0,
+          sampleTitles: [],
+        };
+        groups.set(key, group);
+      }
+      group.count += 1;
+      const title = ev.title?.trim();
+      if (title && group.sampleTitles.length < 3 && !group.sampleTitles.includes(title)) {
+        group.sampleTitles.push(title);
+      }
+    }
+    return Array.from(groups.values()).sort((a, b) => b.count - a.count);
+  })();
+
   return (
     <ScrollView
       style={styles.scrollView}
@@ -180,49 +225,45 @@ export function DiscoverNearbyContent({
         Within 25km · {homeVenueLabel ?? 'your area'}
       </Text>
 
-      {orgSteps.length > 0 ? (
+      {orgSites.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionEyebrow}>
-            {orgSteps.length === 1
-              ? '1 session from your organizations'
-              : `${orgSteps.length} sessions from your organizations`}
+            {`${orgSteps.length} ${orgSteps.length === 1 ? 'session' : 'sessions'} · ${orgSites.length} ${orgSites.length === 1 ? 'site' : 'sites'}`}
           </Text>
           <View style={styles.list}>
-            {orgSteps.slice(0, 12).map((ev) => {
-              const place = ev.place_name?.trim();
-              const provenance = ev.blueprint_title?.trim();
+            {orgSites.slice(0, 12).map((site) => {
+              const countLabel = `${site.count} ${site.count === 1 ? 'session' : 'sessions'}`;
+              const sample = site.sampleTitles.join(', ');
               return (
                 <Pressable
-                  key={ev.step_id}
+                  key={site.key}
                   style={styles.row}
                   onPress={() => {
-                    // An org event is attendable at an exact spot — on Atlas,
-                    // fly the map there; everywhere else, open the step detail.
+                    // A site is attendable at an exact spot — on Atlas, fly the
+                    // map there. Off Atlas (no onStepFocus) the row is inert.
                     if (
                       onStepFocus &&
-                      Number.isFinite(ev.lat) &&
-                      Number.isFinite(ev.lng)
+                      Number.isFinite(site.lat) &&
+                      Number.isFinite(site.lng)
                     ) {
-                      onStepFocus(ev.lat, ev.lng);
-                      return;
+                      onStepFocus(site.lat, site.lng);
                     }
-                    router.push(`/step/${ev.step_id}` as never);
                   }}
                 >
                   <View style={[styles.iconCircle, styles.iconCircleOrg]}>
-                    <Ionicons name="calendar" size={16} color="#FFFFFF" />
+                    <Ionicons name="business" size={16} color="#FFFFFF" />
                   </View>
                   <View style={styles.rowBody}>
                     <Text style={styles.rowTitle} numberOfLines={1}>
-                      {ev.title?.trim() || 'Organization session'}
+                      {site.placeName ?? site.orgName ?? 'Organization site'}
                     </Text>
                     <Text style={styles.rowMeta} numberOfLines={1}>
-                      {[place, provenance].filter(Boolean).join(' · ')}
+                      {[countLabel, sample].filter(Boolean).join(' · ')}
                     </Text>
                     <View style={styles.orgBadge}>
                       <Ionicons name="business" size={10} color="#1F6FEB" />
                       <Text style={styles.orgBadgeText} numberOfLines={1}>
-                        {ev.org_name ?? 'Organization'}
+                        {site.orgName ?? 'Organization'}
                       </Text>
                     </View>
                   </View>
