@@ -90,6 +90,19 @@ if (Platform.OS !== 'web' && __DEV__) {
     ) {
       return;
     }
+    // Sideloaded dev/debug builds can't fetch Play/App Store products, so
+    // RevenueCat reports a ConfigurationError on every offerings fetch.
+    // This is expected without a store-distributed build — keep it out of the
+    // red-box toast so real errors stay visible. Products resolve normally in
+    // a Play internal-testing / TestFlight build.
+    if (
+      (first.includes('[RevenueCat]') &&
+        (first.includes('Error fetching offerings') ||
+          first.includes('Could not find ProductDetails'))) ||
+      first.includes('[subscriptionService] Failed to load products')
+    ) {
+      return;
+    }
     originalConsoleError.apply(console, args);
   };
 
