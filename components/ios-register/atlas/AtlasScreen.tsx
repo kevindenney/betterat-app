@@ -1735,6 +1735,42 @@ function titleForUserStepPin(pin: AtlasPinSpec): string {
   return (pin.label ?? 'Step').split('|')[0]?.trim() || 'Step';
 }
 
+/** Cheap planar km between two lat/lng points — accurate enough at site scale. */
+function approxKmBetween(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const dLat = (a.lat - b.lat) * 111;
+  const dLng = (a.lng - b.lng) * 111 * Math.cos((a.lat * Math.PI) / 180);
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
+/** Person-kind POIs aren't "sites" a step can be anchored inside. */
+const PERSON_POI_KINDS = new Set<AtlasPinSpec['kind']>([
+  'poi-preceptor',
+  'poi-mentee',
+  'poi-home-anchor',
+]);
+
+/** A place pin a step can stand inside (hospital, sim lab, club…). */
+function isSitePoiPin(pin: AtlasPinSpec): boolean {
+  return pin.id.startsWith('poi:') && !PERSON_POI_KINDS.has(pin.kind);
+}
+
+/**
+ * A step's where-anchor and the site POI it sits at are two pins that read
+ * as dead ends without a bridge — the YOUR STEP callout offers "View site"
+ * and the site callout lists the viewer's steps there. Both ends fold by the
+ * same ~300m grain useAtlasFramePins uses, padded slightly so a coord that
+ * drifted off the POI centroid still resolves.
+ */
+const STEP_SITE_LINK_KM = 0.4;
+
+/** Picker-step status → the short note StackedStepList renders. */
+function stepStatusNote(status: PickerStep['status']): string {
+  return status.startsWith('done') ? 'Done' : 'Planned';
+}
+
 /** A tapped my-step pin that's flagged a race — gets the ⛵ course callout. */
 function isRaceStepPin(pin: AtlasPinSpec): boolean {
   return isUserStepPin(pin) && pin.isRace === true;
@@ -5951,6 +5987,95 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     },
     [framePins],
   );
+  // Open a step's YOUR STEP callout by id — prefers the real frame pin, falls
+  // back to a synthesized pin from the picker/archive coords, and last-resorts
+  // to the live step screen. Drives the site callout's "steps here" list.
+  const openStepById = useCallback(
+    (stepId: string) => {
+      const real = framePins.find(
+        (p) => p.stepId === stepId && isUserStepPin(p) && !p.stackedSteps,
+      );
+      if (real) {
+        setF4FocusLocation({ lat: real.lat, lng: real.lng });
+        setSelectedPin(real);
+        return;
+      }
+      const step = [...pickerSteps, ...archiveSteps].find((s) => s.step_id === stepId);
+      if (step && step.lat != null && step.lng != null) {
+        setF4FocusLocation({ lat: step.lat, lng: step.lng });
+        setSelectedPin({
+          id: `step-picker:${step.step_id}`,
+          kind: 'my-step-planned',
+          stepId: step.step_id,
+          label: step.title,
+          subtitle: step.location_name ?? undefined,
+          lat: step.lat,
+          lng: step.lng,
+        });
+        return;
+      }
+      handlers.onStepPress?.(stepId);
+    },
+    [framePins, pickerSteps, archiveSteps, handlers],
+  );
+  // CROSS-LINK A — the site POI the selected step sits inside, so the YOUR
+  // STEP callout can offer a "View site" jump. Matches by the step's anchored
+  // poi_id first (exact site identity); only steps with no poi_id fall back to
+  // the nearest place pin within the fold grain. poi_id beats geometry because
+  // adjacent campus POIs (JHH ↔ Harriet Lane ↔ Wald) sit within ~100m.
+  const siteForSelectedStep = useMemo<AtlasPinSpec | null>(() => {
+    if (!selectedPin || !isUserStepPin(selectedPin)) return null;
+    const step = [...pickerSteps, ...archiveSteps].find(
+      (s) => s.step_id === selectedPin.stepId,
+    );
+    if (step?.poi_id) {
+      return framePins.find((p) => isSitePoiPin(p) && p.id === `poi:${step.poi_id}`) ?? null;
+    }
+    let best: { pin: AtlasPinSpec; d: number } | null = null;
+    for (const p of framePins) {
+      if (!isSitePoiPin(p)) continue;
+      const d = approxKmBetween(selectedPin, p);
+      if (d <= STEP_SITE_LINK_KM && (!best || d < best.d)) best = { pin: p, d };
+    }
+    return best?.pin ?? null;
+  }, [selectedPin, framePins, pickerSteps, archiveSteps]);
+  // CROSS-LINK B — the viewer's steps anchored at the selected site POI, so the
+  // site callout lists them ("3 of your steps · NG tube, Cardiac, H2T"). Drawn
+  // from picker + archive (full located set, not the arc-scoped map pins) so
+  // older rotations still surface. A step with a poi_id only counts here when
+  // it points at THIS site; poi_id-less steps fall back to proximity.
+  const myStepsAtSelectedPoi = useMemo<NonNullable<AtlasPinSpec['stackedSteps']>>(() => {
+    if (!selectedPin || !isSitePoiPin(selectedPin)) return [];
+    const targetPoiId = selectedPin.id.slice('poi:'.length);
+    const sitePins = framePins.filter(isSitePoiPin);
+    // For a poi_id-less step, claim it only when THIS site is its nearest
+    // place pin — otherwise clustered campus POIs (~150m apart) each list the
+    // same coord-only step. Mirrors useAtlasFramePins' nearest-POI fold.
+    const nearestSiteIsSelected = (s: { lat: number; lng: number }): boolean => {
+      let best: { id: string; d: number } | null = null;
+      for (const p of sitePins) {
+        const d = approxKmBetween(s, p);
+        if (!best || d < best.d) best = { id: p.id, d };
+      }
+      return best != null && best.id === selectedPin.id && best.d <= STEP_SITE_LINK_KM;
+    };
+    const seen = new Set<string>();
+    const out: NonNullable<AtlasPinSpec['stackedSteps']> = [];
+    for (const s of [...pickerSteps, ...archiveSteps]) {
+      if (seen.has(s.step_id)) continue;
+      const matches = s.poi_id
+        ? s.poi_id === targetPoiId
+        : s.lat != null && s.lng != null && nearestSiteIsSelected({ lat: s.lat, lng: s.lng });
+      if (!matches) continue;
+      seen.add(s.step_id);
+      out.push({
+        stepId: s.step_id,
+        title: s.title?.trim() || 'Untitled step',
+        statusNote: stepStatusNote(s.status),
+      });
+    }
+    return out;
+  }, [selectedPin, framePins, pickerSteps, archiveSteps]);
   // Rotation arcs for the picker — every nursing step bucketed by its
   // rotation (= season), current rotation first and expanded. Mirrors the
   // sail-racing arc resolution: explicit metadata.season_id → date
@@ -6348,7 +6473,25 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 }
               },
             }}
-            secondary={{ label: 'Close', onPress: clearF4SelectedPin }}
+            // Cross-link to the place this step sits at — the header X already
+            // closes, so the secondary slot jumps to the site callout instead
+            // of a redundant "Close". Omitted when the step has no mapped site.
+            secondary={
+              siteForSelectedStep
+                ? {
+                    label: `View ${siteForSelectedStep.label ?? 'site'}`,
+                    icon: 'business-outline',
+                    onPress: () => {
+                      setF4FocusLocation({
+                        lat: siteForSelectedStep.lat,
+                        lng: siteForSelectedStep.lng,
+                      });
+                      setSelectedPin(siteForSelectedStep);
+                    },
+                  }
+                : { label: 'Close', onPress: clearF4SelectedPin }
+            }
+            showSecondaryInMid={siteForSelectedStep != null}
             onClose={clearF4SelectedPin}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="mid"
@@ -6364,21 +6507,40 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             }
             expandedContent={(() => {
               const poiId = knowledgePoiIdForPin(selectedPin);
-              if (!poiId) return undefined;
+              // Cross-link back to the viewer's own steps at this site — turns
+              // the location callout from a dead end into "here's what you've
+              // done here." Sits above the shared place-knowledge feed.
+              const stepsHere =
+                myStepsAtSelectedPoi.length > 0 ? (
+                  <View style={shellStyles.stepsHereWrap}>
+                    <Text style={shellStyles.stepsHereLabel}>
+                      {myStepsAtSelectedPoi.length} of your step
+                      {myStepsAtSelectedPoi.length === 1 ? '' : 's'} here
+                    </Text>
+                    <StackedStepList
+                      steps={myStepsAtSelectedPoi}
+                      onOpenStep={openStepById}
+                    />
+                  </View>
+                ) : null;
+              if (!poiId) return stepsHere ?? undefined;
               return (
-                <PlaceKnowledgeSection
-                  anchor={{ poiId }}
-                  conditions={null}
-                  interestSlug="nursing"
-                  onAddKnowledge={() => {
-                    const label = selectedPin.label;
-                    clearF4SelectedPin();
-                    router.push({
-                      pathname: '/venue/post/create',
-                      params: { poiId, interestSlug: 'nursing', ...(label ? { poiName: label } : {}) },
-                    } as never);
-                  }}
-                />
+                <>
+                  {stepsHere}
+                  <PlaceKnowledgeSection
+                    anchor={{ poiId }}
+                    conditions={null}
+                    interestSlug="nursing"
+                    onAddKnowledge={() => {
+                      const label = selectedPin.label;
+                      clearF4SelectedPin();
+                      router.push({
+                        pathname: '/venue/post/create',
+                        params: { poiId, interestSlug: 'nursing', ...(label ? { poiName: label } : {}) },
+                      } as never);
+                    }}
+                  />
+                </>
               );
             })()}
             primary={{
@@ -12253,6 +12415,17 @@ const shellStyles = StyleSheet.create({
   peerListWrap: {
     marginTop: 8,
     gap: 8,
+  },
+  stepsHereWrap: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  stepsHereLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: IOS_REGISTER.labelTertiary,
   },
   peerListRow: {
     flexDirection: 'row',

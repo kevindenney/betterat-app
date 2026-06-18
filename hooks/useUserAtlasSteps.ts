@@ -66,6 +66,8 @@ export interface PickerStep {
   lat: number | null;
   lng: number | null;
   location_name: string | null;
+  /** atlas_pois id this step is anchored at, when its where_location names one. */
+  poi_id: string | null;
 }
 
 /**
@@ -492,6 +494,7 @@ export function useUserAtlasSteps({
       in_current_arc: boolean;
       season_id: string | null;
       meta_season_id: string | null;
+      poi_id: string | null;
     };
     const rows: Row[] = [];
     for (const row of data) {
@@ -505,7 +508,7 @@ export function useUserAtlasSteps({
       const metadata = row.metadata as Record<string, unknown> | null;
       const plan = (row.metadata as { plan?: { where_location?: unknown } } | null)?.plan;
       const whereLocation = plan?.where_location as
-        | { lat?: unknown; lng?: unknown; name?: unknown }
+        | { lat?: unknown; lng?: unknown; name?: unknown; poi_id?: unknown }
         | undefined;
       const isRaceRow = (row as { is_race?: boolean | null }).is_race ?? false;
       const raceCenter = isRaceRow ? extractRacePlanCenter(metadata, raceAreaCenters) : null;
@@ -517,6 +520,7 @@ export function useUserAtlasSteps({
       const lng = raceCenter?.lng ?? fallbackLng ?? row.location_lng;
       const placed = stepMap.get(row.id);
       rows.push({
+        poi_id: typeof whereLocation?.poi_id === 'string' ? whereLocation.poi_id : null,
         step_id: row.id,
         title: row.title,
         // If this step also made it into the placed-steps array, the
@@ -574,6 +578,7 @@ export function useUserAtlasSteps({
       lat: r.lat,
       lng: r.lng,
       location_name: r.location_name,
+      poi_id: r.poi_id,
       starts_at: r.starts_at,
       created_at: r.created_at,
       season_id: r.season_id,
@@ -608,7 +613,7 @@ export function useUserAtlasSteps({
       }
       const plan = (row.metadata as { plan?: { where_location?: unknown } } | null)?.plan;
       const whereLocation = plan?.where_location as
-        | { lat?: unknown; lng?: unknown; name?: unknown }
+        | { lat?: unknown; lng?: unknown; name?: unknown; poi_id?: unknown }
         | undefined;
       const isRaceRow = (row as { is_race?: boolean | null }).is_race ?? false;
       const raceCenter = isRaceRow ? extractRacePlanCenter(metadata, raceAreaCenters) : null;
@@ -632,6 +637,7 @@ export function useUserAtlasSteps({
           (raceCenter ? extractRaceContext(metadata)?.areaName : null) ??
           row.location_name ??
           (typeof whereLocation?.name === 'string' ? whereLocation.name : null),
+        poi_id: typeof whereLocation?.poi_id === 'string' ? whereLocation.poi_id : null,
         starts_at: row.starts_at,
         created_at: row.created_at,
         season_id: (row as { season_id?: string | null }).season_id ?? null,
