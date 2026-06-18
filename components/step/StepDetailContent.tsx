@@ -529,6 +529,20 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const [activeTab, setActiveTab] = usePillTabs<TabValue>(defaultTab);
   const lastAppliedRouteTabRef = useRef<TabValue | undefined>(undefined);
   const didApplyLoadedStatusDefaultRef = useRef(false);
+
+  // The L1 swipe pager reuses ONE StepDetailContent instance across steps —
+  // only `stepId` changes, so usePillTabs (mount-only) would keep the previous
+  // step's tab and flash Plan→Review before any effect could correct it. Reset
+  // to this step's default tab the instant the step changes, during render, so
+  // the incoming step paints on the right tab from the very first frame.
+  const [tabStepId, setTabStepId] = useState(stepId);
+  if (stepId !== tabStepId) {
+    setTabStepId(stepId);
+    setActiveTab(defaultTab);
+    didApplyLoadedStatusDefaultRef.current = false;
+    lastAppliedRouteTabRef.current = undefined;
+  }
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [attestSheetOpen, setAttestSheetOpen] = useState(false);
   const [pinInterestsOpen, setPinInterestsOpen] = useState(false);
