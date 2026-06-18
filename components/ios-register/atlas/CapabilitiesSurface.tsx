@@ -29,9 +29,9 @@ export interface CapabilitiesSurfaceProps {
   toolbarOffset?: number;
   bottomOffset?: number;
   /** Route to plan a step that can close the named gap area. */
-  onPlanGap?: (category: string) => void;
+  onPlanGap?: (row: CapabilityCategoryCoverage | null) => void;
   /** Tap a "By area" row → plan a step for that capability area. */
-  onCategoryPress?: (category: string) => void;
+  onCategoryPress?: (row: CapabilityCategoryCoverage) => void;
   /** Tap an evidenced site → focus the map on it. */
   onSitePress?: (site: { poiId: string; name: string }) => void;
 }
@@ -166,7 +166,7 @@ export function CapabilitiesSurface({
             {i > 0 ? <View style={styles.sep} /> : null}
             <Pressable
               style={({ pressed }) => [styles.catCell, styles.tapRow, pressed && styles.rowPressed]}
-              onPress={() => (onCategoryPress ?? onPlanGap)?.(row.category)}
+              onPress={() => (onCategoryPress ?? onPlanGap)?.(row)}
               accessibilityRole="button"
               accessibilityLabel={`Plan a step for ${row.category}`}
             >
@@ -220,7 +220,7 @@ export function CapabilitiesSurface({
       {/* Gap card — routes the biggest unevidenced area to plan a step */}
       <Pressable
         style={styles.gapCard}
-        onPress={() => onPlanGap?.(topGap?.category ?? 'capability coverage')}
+        onPress={() => onPlanGap?.(topGap)}
         accessibilityRole="button"
         accessibilityLabel={`Plan a step for ${topGap?.category ?? 'capability coverage'}`}
         testID="atlas-capabilities-gap-card"

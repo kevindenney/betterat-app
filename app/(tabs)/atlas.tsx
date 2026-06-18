@@ -1080,6 +1080,55 @@ export default function AtlasTab() {
     ],
   );
 
+  // Capabilities segment — tapping a capability area plans a NEW step that is
+  // *about* that area. Unlike handlePrimary there's no map pin: the step is
+  // location-less and seeded with the area's competency ids as its "why", so it
+  // routes distinctly per area and actually evidences that capability when
+  // worked (instead of opening a generic, unrelated step on the current tab).
+  const handlePlanCapability = useCallback(
+    async (input: { category: string; competencyIds: string[] }) => {
+      if (!user?.id) {
+        showAlert('Sign in required', 'You need to be signed in to plan a step from Atlas.');
+        return;
+      }
+      const targetInterest = currentInterest;
+      if (!targetInterest?.id) {
+        showAlert('Choose an interest', 'Pick an interest before you plan a capability step.');
+        return;
+      }
+      try {
+        const isSailingAtlas =
+          frame === 'f1' || frame === 'f2' || frame === 'f3' || frame === 'f6';
+        const created = await createTimelineStep({
+          user_id: user.id,
+          interest_id: targetInterest.id,
+          title: `${input.category} practice`,
+          category: isSailingAtlas ? 'sailing' : 'general',
+          status: 'pending',
+          visibility: 'private',
+          source_type: 'manual',
+          starts_at: null,
+          metadata: {
+            atlas: {
+              origin: 'atlas_capability',
+              frame,
+              interest_slug: targetInterest.slug,
+              capability_area: input.category,
+            },
+            plan: {
+              competency_ids: input.competencyIds,
+            },
+          },
+        });
+        router.push({ pathname: '/step/[id]', params: { id: created.id, origin: 'atlas' } } as any);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Could not plan a capability step.';
+        showAlert('Step creation failed', message);
+      }
+    },
+    [currentInterest, frame, router, user?.id],
+  );
+
   const handleSecondary = useCallback(() => {
     // F1 "Open Race" is an in-tab frame change, not a tab switch. Updating
     // Atlas params in place avoids same-route push fallthrough.
@@ -1152,6 +1201,7 @@ export default function AtlasTab() {
           initialCommitMode={isFromPlan}
           initialCreateRacingArea={initialCreateRacingArea}
           onPrimaryAction={handlePrimary}
+          onPlanCapability={handlePlanCapability}
           onSecondaryAction={handleSecondary}
           onStepPress={handleStepPress}
           onOpenRaceCourse={handleOpenRaceCourse}

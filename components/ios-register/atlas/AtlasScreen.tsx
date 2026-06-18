@@ -316,6 +316,13 @@ export interface AtlasFrameHandlers {
     startsAtHint?: string;
     metadata?: Record<string, unknown>;
   }) => void;
+  /**
+   * Capabilities segment — plan a NEW step pre-attached to a capability area as
+   * its "why". Unlike onPrimaryAction this needs no map pin: the step is
+   * location-less and seeded with the area's competency ids so it actually
+   * evidences that capability when worked.
+   */
+  onPlanCapability?: (input: { category: string; competencyIds: string[] }) => void;
   /** Bottom-sheet secondary CTA — "Open <next event>" / "Skip" etc. */
   onSecondaryAction?: () => void;
   /** Open an existing timeline step surfaced as a my-step-* atlas pin. */
@@ -440,6 +447,7 @@ export function AtlasScreen({
   frame,
   embedded = false,
   onPrimaryAction,
+  onPlanCapability,
   onSecondaryAction,
   onStepPress,
   onOpenRaceCourse,
@@ -467,6 +475,7 @@ export function AtlasScreen({
     bottomSheetOffset?: number;
   } = {
     onPrimaryAction,
+    onPlanCapability,
     onSecondaryAction,
     onStepPress,
     onOpenRaceCourse,
@@ -3970,8 +3979,32 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               interestName={currentInterest?.name ?? 'your craft'}
               toolbarOffset={f1ChromeH}
               bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
-              onPlanGap={() => handlers.onPrimaryAction?.()}
-              onCategoryPress={() => handlers.onPrimaryAction?.()}
+              onPlanGap={(row) => {
+                if (row && handlers.onPlanCapability) {
+                  handlers.onPlanCapability({
+                    category: row.category,
+                    competencyIds:
+                      row.unevidencedCompetencyIds.length > 0
+                        ? row.unevidencedCompetencyIds
+                        : row.competencyIds,
+                  });
+                } else {
+                  handlers.onPrimaryAction?.();
+                }
+              }}
+              onCategoryPress={(row) => {
+                if (handlers.onPlanCapability) {
+                  handlers.onPlanCapability({
+                    category: row.category,
+                    competencyIds:
+                      row.unevidencedCompetencyIds.length > 0
+                        ? row.unevidencedCompetencyIds
+                        : row.competencyIds,
+                  });
+                } else {
+                  handlers.onPrimaryAction?.();
+                }
+              }}
               onSitePress={(site) => {
                 const pin = framePinsWithDemo.find((p) => p.id === `poi:${site.poiId}`);
                 if (pin) {

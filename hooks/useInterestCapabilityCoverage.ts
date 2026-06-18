@@ -39,6 +39,10 @@ export interface CapabilityCategoryCoverage {
   total: number;
   /** Distinct competencies the user has evidenced in this category. */
   evidenced: number;
+  /** Every competency id in this category (the framework rows). */
+  competencyIds: string[];
+  /** Competency ids in this category the user has NOT yet evidenced. */
+  unevidencedCompetencyIds: string[];
 }
 
 export interface CapabilityEvidencedSite {
@@ -89,6 +93,8 @@ function buildGeneralCoverage(): InterestCapabilityCoverage {
     category: c.category,
     total: c.titles.length,
     evidenced: 0,
+    competencyIds: [],
+    unevidencedCompetencyIds: [],
   }));
   const frameworkTotal = byCategory.reduce((sum, c) => sum + c.total, 0);
   return {
@@ -139,10 +145,14 @@ export function useInterestCapabilityCoverage(
 
       const categoryOfComp = new Map<string, string>();
       const categoryTotals = new Map<string, number>();
+      const idsByCategory = new Map<string, string[]>();
       for (const c of comps as CompetencyRow[]) {
         const cat = c.category ?? 'General';
         categoryOfComp.set(c.id, cat);
         categoryTotals.set(cat, (categoryTotals.get(cat) ?? 0) + 1);
+        const ids = idsByCategory.get(cat);
+        if (ids) ids.push(c.id);
+        else idsByCategory.set(cat, [c.id]);
       }
       const frameworkTotal = comps.length;
 
@@ -176,10 +186,16 @@ export function useInterestCapabilityCoverage(
         if (a.event_id) stepIds.add(a.event_id);
       }
 
-      const byCategory: CapabilityCategoryCoverage[] = orderedCategories.map((c) => ({
-        ...c,
-        evidenced: evidencedByCategory.get(c.category)?.size ?? 0,
-      }));
+      const byCategory: CapabilityCategoryCoverage[] = orderedCategories.map((c) => {
+        const ids = idsByCategory.get(c.category) ?? [];
+        const evidencedSet = evidencedByCategory.get(c.category);
+        return {
+          ...c,
+          evidenced: evidencedSet?.size ?? 0,
+          competencyIds: ids,
+          unevidencedCompetencyIds: ids.filter((id) => !evidencedSet?.has(id)),
+        };
+      });
 
       // 3. Resolve located attempts → step → POI for the "where evidenced" list.
       let sites: CapabilityEvidencedSite[] = [];
