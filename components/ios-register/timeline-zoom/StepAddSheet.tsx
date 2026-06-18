@@ -503,7 +503,7 @@ export function StepAddSheet({
         <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
           <KeyboardAvoidingView
             style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={8}
           >
           <View style={styles.dragRegion} {...sheetPanResponder.panHandlers}>
