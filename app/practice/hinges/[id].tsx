@@ -6,9 +6,12 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { usePlaybook, useRefinePlaybookInsight } from '@/hooks/usePlaybook';
 import { useToast } from '@/components/ui/AppToast';
-import { HingeSurface } from '@/components/practice';
+import { HingeSurface, type HingeSuggestionView } from '@/components/practice';
 import { buildHinge, decodeHingeId, type HingeDayEntry } from '@/services/HingeBuildService';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { useInboxItems } from '@/hooks/useInboxItems';
+import { useInboxActions } from '@/hooks/useInboxActions';
+import type { InboxItem } from '@/components/practice/types';
 
 export default function HingeRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,6 +22,10 @@ export default function HingeRoute() {
   const refineInsight = useRefinePlaybookInsight(currentInterest?.id, playbook?.id);
   const [savingEntryId, setSavingEntryId] = React.useState<string | null>(null);
   const [savedEntryIds, setSavedEntryIds] = React.useState<Set<string>>(new Set());
+  const [adoptingSuggestionId, setAdoptingSuggestionId] = React.useState<string | null>(null);
+
+  const { data: inboxItems } = useInboxItems();
+  const inboxActions = useInboxActions();
 
   const decoded = id ? decodeHingeId(id) : null;
   const flagOn = FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER;
@@ -56,6 +63,55 @@ export default function HingeRoute() {
     [currentInterest?.id, playbook?.id, refineInsight, toast],
   );
 
+  // Pending mentor/peer suggestions become adoptable "next step" cards. Scope
+  // to the current interest's timeline so they match the hinge we're in, and
+  // float mentor/coach suggestions to the top.
+  const suggestionItems = React.useMemo<InboxItem[]>(() => {
+    const rows = (inboxItems ?? []).filter(
+      (item) =>
+        item.kind === 'suggestion' &&
+        (!currentInterest?.id || item.raw.interestId === currentInterest.id),
+    );
+    return rows.sort((a, b) => {
+      const am = /mentor|coach/i.test(a.fromContext) ? 0 : 1;
+      const bm = /mentor|coach/i.test(b.fromContext) ? 0 : 1;
+      return am - bm;
+    });
+  }, [inboxItems, currentInterest?.id]);
+
+  const suggestions = React.useMemo<HingeSuggestionView[]>(
+    () =>
+      suggestionItems.map((item) => ({
+        id: item.id,
+        title: item.title,
+        fromLabel: item.fromContext,
+        blurb: item.blurb,
+        isMentor: /mentor|coach/i.test(item.fromContext),
+      })),
+    [suggestionItems],
+  );
+
+  const handleAdoptSuggestion = React.useCallback(
+    async (suggestionId: string) => {
+      const item = suggestionItems.find((s) => s.id === suggestionId);
+      if (!item) return;
+      setAdoptingSuggestionId(suggestionId);
+      try {
+        await inboxActions.accept(item);
+        router.replace(`/(tabs)/races?selected=${item.raw.sourceStepId}` as never);
+      } catch {
+        // accept() already surfaces a toast on failure.
+      } finally {
+        setAdoptingSuggestionId(null);
+      }
+    },
+    [suggestionItems, inboxActions],
+  );
+
+  const handleAddNextStep = React.useCallback(() => {
+    router.push('/practice/create-wizard' as never);
+  }, []);
+
   if (!flagOn) {
     return (
       <View style={styles.disabled}>
@@ -81,11 +137,19 @@ export default function HingeRoute() {
         <HingeSurface
           hinge={hinge}
           onBack={() => router.back()}
-          onPreviousStep={() => router.push(`/step/${hinge.previousStepId}` as any)}
-          onNextStep={() => router.push(`/step/${hinge.nextStepId}` as any)}
+          onPreviousStep={() =>
+            router.replace(`/(tabs)/races?selected=${hinge.previousStepId}` as never)
+          }
+          onNextStep={() =>
+            router.replace(`/(tabs)/races?selected=${hinge.nextStepId}` as never)
+          }
           onSaveEntryToLibrary={handleSaveToLibrary}
           savingEntryId={savingEntryId}
           savedEntryIds={savedEntryIds}
+          suggestions={suggestions}
+          onAdoptSuggestion={handleAdoptSuggestion}
+          adoptingSuggestionId={adoptingSuggestionId}
+          onAddNextStep={handleAddNextStep}
         />
       )}
     </View>

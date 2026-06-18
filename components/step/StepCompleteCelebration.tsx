@@ -27,6 +27,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ArrowRight, Sparkles, Trophy, Users } from 'lucide-react-native';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { hapticSuccess } from '@/lib/haptics';
 
 export interface SettledCapabilityBeat {
   name: string;
@@ -102,6 +103,13 @@ export function StepCompleteCelebration({
   onDismiss,
   settledCapabilities,
 }: StepCompleteCelebrationProps) {
+  // The trophy reveal is the "aha" beat — buzz once when it appears. This is
+  // the only haptic on the settle path; the checkbox-toggle path buzzes
+  // separately in StepDetailContent.
+  React.useEffect(() => {
+    hapticSuccess();
+  }, []);
+
   const isSolo = variant === 'solo';
   const positionLabel =
     stepNumber != null && totalSteps != null
@@ -175,6 +183,10 @@ export function StepCompleteCelebration({
               <Text style={styles.continueLbl}>Take a beat</Text>
               <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.2} />
             </Pressable>
+            <Text style={styles.beatHint}>
+              Pause before the next step — look back at what you just did, then choose what&rsquo;s
+              next.
+            </Text>
             {onDismiss ? (
               <Pressable
                 style={styles.dismissBtn}
@@ -512,6 +524,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: -0.1,
+  },
+  beatHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: C.label3,
+    textAlign: 'center',
+    paddingHorizontal: 16,
+    marginTop: 8,
   },
   dismissBtn: {
     alignItems: 'center',
