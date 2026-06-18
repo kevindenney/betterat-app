@@ -402,6 +402,8 @@ export interface AtlasPeerMember {
   lat: number;
   /** Server-jittered longitude. */
   lng: number;
+  /** Per-tap nonce so re-focusing the same peer still re-fires the effect. */
+  focusNonce?: string;
 }
 
 export interface AtlasPinSpec {

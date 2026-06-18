@@ -2801,6 +2801,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [focusedPeer, setFocusedPeer] = useState<AtlasPeerMember | null>(null);
   const focusPeerMember = useCallback((member: AtlasPeerMember) => {
     setLayersOpen(false);
+    // A peer tap must land on the map — on F1 the Sites/Capabilities segments
+    // render over the map, so without this the camera flies and the callout
+    // opens underneath the active surface (the tap looks like a no-op).
+    setF1View('map');
     // Clear any open area-sheet center — it outranks searchFocus in the
     // canvas's focusLocation, so a stale value would swallow the fly-to.
     setAreaSheetCenter(null);
@@ -3967,6 +3971,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               toolbarOffset={f1ChromeH}
               bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
               onPlanGap={() => handlers.onPrimaryAction?.()}
+              onCategoryPress={() => handlers.onPrimaryAction?.()}
+              onSitePress={(site) => {
+                const pin = framePinsWithDemo.find((p) => p.id === `poi:${site.poiId}`);
+                if (pin) {
+                  setF1View('map');
+                  setSearchFocus({ lat: pin.lat, lng: pin.lng });
+                }
+              }}
             />
           )
         ) : handlers.useMapLibre ? (
@@ -4721,6 +4733,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             secondary={
               next?.label ? { label: 'Close', onPress: clearSelectedPin } : undefined
             }
+            onClose={clearSelectedPin}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />
@@ -4766,6 +4779,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 openClubLens(selectedPin, handlers.onOrgLensPress);
               },
             }}
+            onClose={clearSelectedPin}
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
             initialState="expanded"
           />

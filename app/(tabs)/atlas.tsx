@@ -480,6 +480,7 @@ export default function AtlasTab() {
     focusPeerRel?: string;
     focusPeerName?: string;
     focusPeerSetAt?: string;
+    focusPeerNonce?: string;
   }>();
   const isFromPlan = params.fromPlan === '1';
   const initialCreateRacingArea = params.intent === 'new-racing-area';
@@ -536,12 +537,18 @@ export default function AtlasTab() {
       setAt: typeof params.focusPeerSetAt === 'string' ? params.focusPeerSetAt : null,
       lat,
       lng,
+      focusNonce:
+        typeof params.focusPeerNonce === 'string' ? params.focusPeerNonce : undefined,
     };
   }, [
     params.focusPeerStep,
     params.focusPeerRel,
     params.focusPeerName,
     params.focusPeerSetAt,
+    // Nonce changes every Nearby tap, so re-tapping the SAME peer still yields
+    // a fresh focus object — without it the consume-effect latches and a
+    // second tap (e.g. after switching to Sites/Capabilities) is a no-op.
+    params.focusPeerNonce,
     params.lat,
     params.lng,
   ]);
@@ -1208,6 +1215,7 @@ export default function AtlasTab() {
                         focusPeerRel: peer.relationship,
                         focusPeerName: peer.name ?? '',
                         focusPeerSetAt: peer.setAt ?? '',
+                        focusPeerNonce: String(Date.now()),
                       }
                     : {}),
                 } as never);

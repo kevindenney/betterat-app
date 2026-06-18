@@ -30,6 +30,10 @@ export interface CapabilitiesSurfaceProps {
   bottomOffset?: number;
   /** Route to plan a step that can close the named gap area. */
   onPlanGap?: (category: string) => void;
+  /** Tap a "By area" row → plan a step for that capability area. */
+  onCategoryPress?: (category: string) => void;
+  /** Tap an evidenced site → focus the map on it. */
+  onSitePress?: (site: { poiId: string; name: string }) => void;
 }
 
 const RING_SIZE = 88;
@@ -97,6 +101,8 @@ export function CapabilitiesSurface({
   toolbarOffset = 0,
   bottomOffset = 0,
   onPlanGap,
+  onCategoryPress,
+  onSitePress,
 }: CapabilitiesSurfaceProps) {
   const { coverage, isLoading } = useInterestCapabilityCoverage(interestId);
 
@@ -158,9 +164,17 @@ export function CapabilitiesSurface({
         {byCategory.map((row, i) => (
           <View key={row.category}>
             {i > 0 ? <View style={styles.sep} /> : null}
-            <View style={styles.catCell}>
-              <CategoryBar row={row} />
-            </View>
+            <Pressable
+              style={({ pressed }) => [styles.catCell, styles.tapRow, pressed && styles.rowPressed]}
+              onPress={() => (onCategoryPress ?? onPlanGap)?.(row.category)}
+              accessibilityRole="button"
+              accessibilityLabel={`Plan a step for ${row.category}`}
+            >
+              <View style={styles.catCellBody}>
+                <CategoryBar row={row} />
+              </View>
+              <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
+            </Pressable>
           </View>
         ))}
       </View>
@@ -171,7 +185,12 @@ export function CapabilitiesSurface({
           evidencedSites.map((row, i) => (
             <View key={row.poiId}>
               {i > 0 ? <View style={styles.sep} /> : null}
-              <View style={styles.evRow}>
+              <Pressable
+                style={({ pressed }) => [styles.evRow, pressed && styles.rowPressed]}
+                onPress={() => onSitePress?.({ poiId: row.poiId, name: row.name })}
+                accessibilityRole="button"
+                accessibilityLabel={`Show ${row.name} on the map`}
+              >
                 <View style={styles.evPin}>
                   <Ionicons name="location" size={15} color="#16A34A" />
                 </View>
@@ -184,7 +203,8 @@ export function CapabilitiesSurface({
                   </Text>
                 </View>
                 <Text style={styles.evCount}>×{row.competencies}</Text>
-              </View>
+                <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
+              </Pressable>
             </View>
           ))
         ) : (
@@ -289,6 +309,9 @@ const styles = StyleSheet.create({
     borderColor: IOS_COLORS.separator,
   },
   sep: { height: StyleSheet.hairlineWidth, backgroundColor: IOS_COLORS.separator },
+  tapRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rowPressed: { opacity: 0.55 },
+  catCellBody: { flex: 1 },
   catCell: { paddingVertical: 11 },
   catRow: { gap: 6 },
   catLab: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
