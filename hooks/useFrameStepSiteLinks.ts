@@ -26,7 +26,7 @@ import {
   isUserStepPin,
   STEP_SITE_LINK_KM,
   stepStatusNote,
-} from '@/components/ios-register/atlas/atlasPins';
+} from '@/components/ios-register/atlas/atlasStepSitePins';
 import type { PickerStep } from '@/hooks/useUserAtlasSteps';
 
 interface UseFrameStepSiteLinksArgs {

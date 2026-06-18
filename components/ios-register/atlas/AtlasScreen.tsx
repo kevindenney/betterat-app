@@ -97,7 +97,7 @@ import {
 } from './SavedJumpSheet';
 import { shapeToPolygon } from '@/lib/atlas-racing-area-shape';
 import type { ArchivePickerStep, PickerStep } from '@/hooks/useUserAtlasSteps';
-import { isUserStepPin } from '@/components/ios-register/atlas/atlasPins';
+import { isUserStepPin } from '@/components/ios-register/atlas/atlasStepSitePins';
 import { useFrameStepSiteLinks } from '@/hooks/useFrameStepSiteLinks';
 import { useUserSeasons, useCurrentSeason } from '@/hooks/useSeason';
 import { compareSeasonsByStartDate } from '@/components/ios-register/timeline-zoom/realDataAdapter';
@@ -2766,6 +2766,23 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     setSelectedPin(null);
     setFocusedPeer(null);
   }, []);
+  // The step↔site cross-link (STEP callout "View <venue>" jump + the venue
+  // callout's "N of your steps here" list + tap-to-open). Same hook nursing
+  // uses; sailing's "sites" are venues / racing areas / clubs. Drawn from the
+  // full located set so older seasons still resolve. Stays dark until steps
+  // carry a where_location.poi_id (or sit within the fold grain of a venue).
+  const crossLinkSteps = useMemo(
+    () => [...pickerSteps, ...archiveSteps],
+    [pickerSteps, archiveSteps],
+  );
+  const { openStepById, siteForSelectedStep, myStepsAtSelectedPoi } = useFrameStepSiteLinks({
+    framePins: framePinsWithDemo,
+    steps: crossLinkSteps,
+    selectedPin,
+    setSelectedPin,
+    onFocusLocation: setSearchFocus,
+    onStepPress: handlers.onStepPress,
+  });
   // When the Nearby list passes peer identity through the route params, break
   // that one peer out of the cluster the same way a drill-down tap does.
   React.useEffect(() => {
@@ -4808,7 +4825,24 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 );
               },
             }}
-            secondary={{ label: 'Close', onPress: clearSelectedPin }}
+            // Cross-link to the venue this step sits at — the header X already
+            // closes, so the secondary slot jumps to the site callout instead
+            // of a redundant "Close". Omitted when the step has no mapped venue.
+            secondary={
+              siteForSelectedStep
+                ? {
+                    label: `View ${siteForSelectedStep.label ?? 'site'}`,
+                    icon: 'location-outline',
+                    onPress: () => {
+                      setSearchFocus({
+                        lat: siteForSelectedStep.lat,
+                        lng: siteForSelectedStep.lng,
+                      });
+                      setSelectedPin(siteForSelectedStep);
+                    },
+                  }
+                : { label: 'Close', onPress: clearSelectedPin }
+            }
             onClose={clearSelectedPin}
             showSecondaryInMid
             bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
@@ -4824,21 +4858,37 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             body={detailBodyForPin(selectedPin)}
             expandedContent={(() => {
               const poiId = knowledgePoiIdForPin(selectedPin);
-              if (!poiId) return undefined;
+              // Cross-link back to the viewer's own steps at this venue — turns
+              // the location callout from a dead end into "here's what you've
+              // done here." Sits above the shared place-knowledge feed.
+              const stepsHere =
+                myStepsAtSelectedPoi.length > 0 ? (
+                  <View style={shellStyles.stepsHereWrap}>
+                    <Text style={shellStyles.stepsHereLabel}>
+                      {myStepsAtSelectedPoi.length} of your step
+                      {myStepsAtSelectedPoi.length === 1 ? '' : 's'} here
+                    </Text>
+                    <StackedStepList steps={myStepsAtSelectedPoi} onOpenStep={openStepById} />
+                  </View>
+                ) : null;
+              if (!poiId) return stepsHere ?? undefined;
               return (
-                <PlaceKnowledgeSection
-                  anchor={{ poiId }}
-                  conditions={null}
-                  interestSlug="sail-racing"
-                  onAddKnowledge={() => {
-                    const label = selectedPin.label;
-                    clearSelectedPin();
-                    router.push({
-                      pathname: '/venue/post/create',
-                      params: { poiId, ...(label ? { poiName: label } : {}) },
-                    } as never);
-                  }}
-                />
+                <>
+                  {stepsHere}
+                  <PlaceKnowledgeSection
+                    anchor={{ poiId }}
+                    conditions={null}
+                    interestSlug="sail-racing"
+                    onAddKnowledge={() => {
+                      const label = selectedPin.label;
+                      clearSelectedPin();
+                      router.push({
+                        pathname: '/venue/post/create',
+                        params: { poiId, ...(label ? { poiName: label } : {}) },
+                      } as never);
+                    }}
+                  />
+                </>
               );
             })()}
             primary={{

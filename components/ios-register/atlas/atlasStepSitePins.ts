@@ -1,5 +1,7 @@
 /**
- * atlasPins — frame-agnostic predicates over Atlas pins and located steps.
+ * atlasStepSitePins — frame-agnostic predicates over Atlas pins and located
+ * steps. (Named distinctly from the AtlasPins.tsx visual-component module so
+ * the two don't collide on case-insensitive filesystems.)
  *
  * Pure (no React, no frame state) so both AtlasScreen and the step↔site
  * cross-link hook can share one definition of "is this a my-step pin", "is
