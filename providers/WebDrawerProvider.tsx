@@ -12,8 +12,12 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 
-/** Sidebar starts pinned open at this width; below it starts collapsed */
-const SIDEBAR_PIN_BREAKPOINT = 1024;
+/**
+ * Sidebar starts pinned open at this width; below it starts collapsed.
+ * Also the floor below which the sidebar cannot render at all, so the
+ * sidebar toggle must be hidden under it (the control would be dead).
+ */
+export const SIDEBAR_PIN_BREAKPOINT = 1024;
 
 interface WebDrawerContextValue {
   isDrawerOpen: boolean;

@@ -24,6 +24,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   View,
   type StyleProp,
   type ViewStyle,
@@ -36,7 +37,7 @@ import { NotificationBell } from '@/components/social/NotificationBell';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { useUniversalPlus } from '@/components/capture';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
-import { useWebDrawer } from '@/providers/WebDrawerProvider';
+import { SIDEBAR_PIN_BREAKPOINT, useWebDrawer } from '@/providers/WebDrawerProvider';
 
 export interface AppChromeRowProps {
   /** Middle slot — title section, scope row, etc. */
@@ -86,9 +87,15 @@ export function AppChromeRow({
 }: AppChromeRowProps) {
   const universalPlus = useUniversalPlus();
   const { isDrawerOpen, openDrawer } = useWebDrawer();
+  const { width: windowWidth } = useWindowDimensions();
   const canShowPlus = showPlus && (Boolean(onPlusPress) || universalPlus.isAvailable);
+  // Only offer the toggle where a sidebar can actually render — below the
+  // breakpoint it's a dead control sitting next to the floating tab bar.
   const showWebSidebarToggle =
-    Platform.OS === 'web' && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT && !isDrawerOpen;
+    Platform.OS === 'web'
+    && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT
+    && windowWidth >= SIDEBAR_PIN_BREAKPOINT
+    && !isDrawerOpen;
 
   return (
     <View style={[styles.row, style]}>

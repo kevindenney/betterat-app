@@ -44,7 +44,7 @@ import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useAuth } from '@/providers/AuthProvider';
-import { useWebDrawer } from '@/providers/WebDrawerProvider';
+import { SIDEBAR_PIN_BREAKPOINT, useWebDrawer } from '@/providers/WebDrawerProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   HongKongOverviewMap,
@@ -574,8 +574,14 @@ function TopChrome({
   onAvatarPress?: () => void;
 }) {
   const { isDrawerOpen, openDrawer } = useWebDrawer();
+  const { width: windowWidth } = useWindowDimensions();
+  // Only offer the toggle where a sidebar can actually render — below the
+  // breakpoint it's a dead control sitting next to the floating tab bar.
   const showWebSidebarToggle =
-    Platform.OS === 'web' && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT && !isDrawerOpen;
+    Platform.OS === 'web'
+    && FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT
+    && windowWidth >= SIDEBAR_PIN_BREAKPOINT
+    && !isDrawerOpen;
   const { currentInterest } = useInterest();
   const universalPlus = useUniversalPlus();
   const displayInterest = interestOverride
