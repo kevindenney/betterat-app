@@ -104,7 +104,7 @@ import { compareSeasonsByStartDate } from '@/components/ios-register/timeline-zo
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 import { useInterest } from '@/providers/InterestProvider';
-import { getAtlasNextEventLabel } from '@/lib/vocabulary';
+import { getAtlasNextEventLabel, getVisibilityLabels } from '@/lib/vocabulary';
 import { InterestSwitcher, openInterestSwitcher } from '@/components/InterestSwitcher';
 import { useUniversalPlus } from '@/components/capture';
 import { useUserAffinityGroups, affinityGroupTone, type UserAffinityGroup } from '@/hooks/useUserAffinityGroups';
@@ -1307,7 +1307,12 @@ interface LayerItem {
   locked?: boolean;
 }
 
-function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
+function isSailingInterestSlug(slug: string | null): boolean {
+  const s = (slug ?? '').toLowerCase();
+  return s === 'sailing' || s === 'sail-racing' || s === 'sail';
+}
+
+function getLayersForFrame(frame: AtlasFrameId, sailingChrome = true): LayerItem[] {
   const peerSteps: LayerItem = {
     key: 'core.peer_steps',
     label: 'Peer steps',
@@ -1323,6 +1328,12 @@ function getLayersForFrame(frame: AtlasFrameId): LayerItem[] {
   };
 
   if (frame === 'f1' || frame === 'f6') {
+    // Off the sailing frame (golf / entrepreneur / drawing / fitness on F1),
+    // the sailing environment + course + infrastructure layers are meaningless.
+    // Fall back to the universal step layers so the Layers sheet stays honest.
+    if (!sailingChrome) {
+      return [peerSteps, ownSteps];
+    }
     // Sailing-specific F1/F6 layer set. Chips own the social filter
     // (You/Crew/Fleet) so peer-steps and own-steps no longer appear here
     // as toggle rows — they're not in the same mental model. What
@@ -1399,6 +1410,7 @@ function LayersSheet({
   basemap,
   onBasemapChange,
   onOpenManageAreas,
+  sailingChrome = true,
   bottomOffset = 0,
 }: {
   frame: AtlasFrameId;
@@ -1422,13 +1434,19 @@ function LayersSheet({
    */
   onOpenManageAreas?: () => void;
   /**
+   * When false (golf / entrepreneur / other non-sailing interests on F1), the
+   * sailing environment + course + infrastructure layers are dropped in favor
+   * of the universal step layers.
+   */
+  sailingChrome?: boolean;
+  /**
    * Lift the sheet above the floating tab bar so the last layer row + the
    * attribution footer aren't hidden under it. Same pattern as the
    * BottomSheet's bottomOffset prop.
    */
   bottomOffset?: number;
 }) {
-  const layers = getLayersForFrame(frame);
+  const layers = getLayersForFrame(frame, sailingChrome);
   const showBasemapControl = Boolean(
     basemap &&
       onBasemapChange &&
@@ -1942,6 +1960,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const { getCurrentLocation } = useCurrentLocation();
   const { user: authUser } = useAuth();
   const { currentInterest } = useInterest();
+  // F1 is the location-driven generic frame: sailing, plus golf / entrepreneur /
+  // drawing / fitness / default route here. Sailing-only chrome (race-time bar,
+  // Races filter, race-area/mark + marina/sail-service layers, the fleet lens,
+  // SVG demo boat pins) is gated behind this so a golf or entrepreneur user
+  // doesn't inherit regatta vocabulary. The relationship tiers stay but use
+  // interest-neutral labels (Collaborators / Group) off the sailing frame.
+  const isSailingFrame = isSailingInterestSlug(currentInterest?.slug ?? null);
+  const visibilityLabels = getVisibilityLabels(currentInterest?.slug ?? null);
   const queryClient = useQueryClient();
   const lastAtlasStepStorageKey = useMemo(
     () =>
@@ -4104,10 +4130,27 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <FilterChipsRow
             chips={[
               { id: 'you', label: 'My steps', tone: 'you', active: activeFilterIds.includes('you') },
-              { id: 'crew', label: 'Crew', tone: 'crew', active: activeFilterIds.includes('crew') },
-              { id: 'fleet', label: fleetChipLabel, tone: 'fleet', active: activeFilterIds.includes('fleet') },
+              { id: 'crew', label: visibilityLabels.crew, tone: 'crew', active: activeFilterIds.includes('crew') },
+              {
+                id: 'fleet',
+                label: isSailingFrame ? fleetChipLabel : visibilityLabels.fleet,
+                tone: 'fleet',
+                active: activeFilterIds.includes('fleet'),
+              },
               { id: 'following', label: 'Following', tone: 'following', active: activeFilterIds.includes('following') },
-              { id: 'races', label: 'Races', icon: 'boat', dotColor: RACE_FILTER_DOT, active: raceOnly },
+              // Races is sailing-only — a golf / entrepreneur user has no
+              // race steps and the boat icon would read wrong.
+              ...(isSailingFrame
+                ? [
+                    {
+                      id: 'races',
+                      label: 'Races',
+                      icon: 'boat' as const,
+                      dotColor: RACE_FILTER_DOT,
+                      active: raceOnly,
+                    },
+                  ]
+                : []),
               { id: 'history', label: 'History', icon: 'time-outline', active: showStepHistory },
             ]}
             onActiveIdsChange={handleChipsChange}
@@ -4119,7 +4162,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               opener inside the capsule can pop it. Atlas doesn't mount
               the global NavigationHeader, so the sheet lives here. */}
           <InterestSwitcher headless />
-          {subchipGroups.length > 0 ? (
+          {isSailingFrame && subchipGroups.length > 0 ? (
             <View style={shellStyles.groupSubchipRow}>
               {subchipGroups.map((g: UserAffinityGroup) => (
                 <GroupSubchip
@@ -4131,7 +4174,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               ))}
             </View>
           ) : null}
-          {raceTimeBarVisible && next ? (
+          {isSailingFrame && raceTimeBarVisible && next ? (
             <RaceTimeBar
               raceLabel={next.label}
               countdownLabel={raceCountdownLabel}
@@ -4158,7 +4201,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             these are percentage-positioned so they only render in the
             non-MapLibre fallback path. On the live MapLibre canvas the
             real RHKYC pin comes through useAtlasFramePins → MLMarker. */}
-        {hasNext && !commitMode && !handlers.useMapLibre && (
+        {isSailingFrame && hasNext && !commitMode && !handlers.useMapLibre && (
           <>
             <RacingAreaTag leftPct={84} topPct={20} text="Apr 14 · 3 from fleet" />
             <RacingAreaTag leftPct={65} topPct={61} text="Mar 28 · 4 from fleet" />
@@ -4182,7 +4225,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             placement once real lat/lng data lands via the
             atlas_peer_steps_near RPC. Until then the live MapLibre canvas
             shows the base map without phantom percentage-positioned pins. */}
-        {!handlers.useMapLibre && (
+        {isSailingFrame && !handlers.useMapLibre && (
           <>
             <AtlasPin kind="crew" leftPct={22} topPct={44} />
             <AtlasPin kind="fleet" leftPct={32} topPct={50} />
@@ -4201,7 +4244,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             (inside the canvas) is the authoritative tag, so we suppress this
             fallback or two amber pills render, one of which doesn't pan with
             the map. */}
-        {hasNext && !commitMode && !handlers.useMapLibre && (
+        {isSailingFrame && hasNext && !commitMode && !handlers.useMapLibre && (
           <NextEventTag
             leftPct={50}
             topPct={47}
@@ -5116,10 +5159,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           onToggle={handleLayerToggle}
           basemap={basemap}
           onBasemapChange={setBasemap}
-          onOpenManageAreas={() => {
-            setLayersOpen(false);
-            setManageAreasOpen(true);
-          }}
+          sailingChrome={isSailingFrame}
+          onOpenManageAreas={
+            isSailingFrame
+              ? () => {
+                  setLayersOpen(false);
+                  setManageAreasOpen(true);
+                }
+              : undefined
+          }
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       )}
