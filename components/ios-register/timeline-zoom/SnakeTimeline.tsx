@@ -36,7 +36,6 @@ const AZURE = '#007AFF';
 // stripe (mockup §race step). Takes priority over the azure provenance stripe.
 const ROSE = '#D9476B';
 const GREEN = '#1E9E6A';
-const DONE_GREEN = '#5BA46F';
 const LILAC = '#9D70C9';
 const THREAD_TRACK = 'rgba(60, 60, 67, 0.22)';
 
@@ -49,21 +48,6 @@ const GENERIC_CAP_LABELS = [
   'general', 'practice', 'planning', 'plan', 'do', 'done', 'reflect',
   'reflecting', 'review',
 ];
-
-type PhaseState = 'empty' | 'half' | 'full';
-
-function phaseTriad(status: StepStatus): [PhaseState, PhaseState, PhaseState] {
-  const plan: PhaseState = 'full';
-  const did: PhaseState =
-    status === 'do' ? 'half'
-    : status === 'reflect' || status === 'reflected' || status === 'done' ? 'full'
-    : 'empty';
-  const review: PhaseState =
-    status === 'reflect' ? 'half'
-    : status === 'reflected' || status === 'done' ? 'full'
-    : 'empty';
-  return [plan, did, review];
-}
 
 /** Past the NOW bar: the doing is finished even if review is pending. */
 function isPastNow(status: StepStatus): boolean {
@@ -306,7 +290,6 @@ function SnakeCard({
   const caps = (step.capabilities ?? []).filter(
     (c) => !GENERIC_CAP_LABELS.includes(c.label.trim().toLowerCase()),
   );
-  const triad = phaseTriad(step.status);
   const stripeColor = step.isRace ? ROSE : step.from ? AZURE : null;
   const nodeFilled = isDone || isNext;
   // Eyebrow — prefer the schedule pre-title (TODAY · MORNING); fall back to
@@ -324,6 +307,7 @@ function SnakeCard({
       delayLongPress={300}
       style={[
         styles.card,
+        isNext && styles.cardNext,
         isFocused && styles.cardNow,
         isDone && styles.cardDone,
         selected && styles.cardSelected,
@@ -359,35 +343,23 @@ function SnakeCard({
         <Text style={styles.metaLine} numberOfLines={1}>{meta}</Text>
       ) : null}
 
-      <View style={styles.metaRow}>
-        {caps.length > 0 ? (
+      {caps.length > 0 ? (
+        <View style={styles.metaRow}>
           <View style={styles.caps}>
             {caps.slice(0, 4).map((c) => (
               <View key={c.id} style={[styles.cdot, { backgroundColor: c.color }]} />
             ))}
           </View>
-        ) : null}
-        <View style={styles.dots}>
-          {triad.map((p, i) => (
-            <PhaseDot key={i} state={p} done={isDone} />
-          ))}
         </View>
-      </View>
+      ) : null}
     </Pressable>
   );
-}
-
-function PhaseDot({ state, done }: { state: PhaseState; done: boolean }) {
-  if (state === 'empty') return <View style={[styles.pdot, styles.pdotEmpty]} />;
-  if (state === 'half') return <View style={[styles.pdot, styles.pdotHalf]} />;
-  return <View style={[styles.pdot, done ? styles.pdotDone : styles.pdotFull]} />;
 }
 
 /* ───────────────────────── legend ───────────────────────── */
 
 /** Decodes the snake's visual grammar: the azure/dashed thread, the red
- *  NOW anchor, the rose race stripe, and the per-card Plan·Do·Review
- *  triad. Render once beneath the river. */
+ *  NOW anchor, and the rose race stripe. Render once beneath the river. */
 export function SnakeLegend() {
   return (
     <View style={styles.legend}>
@@ -410,14 +382,6 @@ export function SnakeLegend() {
       <View style={styles.legendKey}>
         <View style={[styles.legendSwatch, { backgroundColor: ROSE }]} />
         <Text style={styles.legendText}>race</Text>
-      </View>
-      <View style={styles.legendKey}>
-        <View style={styles.legendTriad}>
-          <View style={[styles.pdot, styles.pdotFull]} />
-          <View style={[styles.pdot, styles.pdotHalf]} />
-          <View style={[styles.pdot, styles.pdotEmpty]} />
-        </View>
-        <Text style={styles.legendText}>Plan · Do · Review</Text>
       </View>
     </View>
   );
@@ -766,10 +730,6 @@ const styles = StyleSheet.create({
     height: 9,
     borderRadius: 2,
   },
-  legendTriad: {
-    flexDirection: 'row',
-    gap: 3,
-  },
 
   /* card lanes */
   lane: {
@@ -810,6 +770,16 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 4,
+  },
+  cardNext: {
+    borderColor: AZURE,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(0,122,255,0.05)',
+    shadowColor: AZURE,
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   cardDone: {
     opacity: 0.82,
@@ -915,30 +885,6 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 2,
-  },
-  dots: {
-    flexDirection: 'row',
-    gap: 4,
-    marginLeft: 'auto',
-  },
-  pdot: {
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-  },
-  pdotEmpty: {
-    borderWidth: 1.25,
-    borderColor: 'rgba(60,60,67,0.28)',
-  },
-  pdotHalf: {
-    backgroundColor: AZURE,
-    opacity: 0.55,
-  },
-  pdotFull: {
-    backgroundColor: IOS_REGISTER.label,
-  },
-  pdotDone: {
-    backgroundColor: DONE_GREEN,
   },
 
   /* node lanes */
