@@ -35,7 +35,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
-import { SnakeStepTimeline, SnakeReorderList, SnakeLegend } from './SnakeTimeline';
+import { SnakeReorderList } from './SnakeTimeline';
+import { LinearWorkColumn, WorkColumnLegend } from './LinearWorkColumn';
 import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
@@ -500,7 +501,7 @@ export function L3SeasonView({
       contentContainerStyle={[
         styles.scrollContent,
         selectEnabled && styles.scrollContentSelecting,
-        { paddingBottom: bottomInset + (selectEnabled ? 160 : 32) },
+        { paddingBottom: bottomInset + (selectEnabled ? 160 : 96) },
       ]}
       showsVerticalScrollIndicator={false}
       scrollEnabled={!reorderDragging}
@@ -882,7 +883,7 @@ export function L3SeasonView({
           onDraggingChange={setReorderDragging}
         />
       ) : snakeSteps.length > 0 ? (
-        <SnakeStepTimeline
+        <LinearWorkColumn
           steps={snakeSteps}
           focusStepId={focusStepId}
           selectEnabled={selectEnabled}
@@ -893,7 +894,7 @@ export function L3SeasonView({
         />
       ) : null}
 
-      {!isReordering && snakeSteps.length > 0 ? <SnakeLegend /> : null}
+      {!isReordering && snakeSteps.length > 0 ? <WorkColumnLegend /> : null}
     </ScrollView>
 
       <PickerListSheet<TimelineSeason>
