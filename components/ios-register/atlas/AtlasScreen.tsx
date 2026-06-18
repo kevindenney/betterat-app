@@ -6962,7 +6962,7 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Entrepreneur POIs — supplier villages (white squares), haat markets
   // (green diamonds with day-of-week badges), Lakshmi's home anchor,
   // and any active mentees.
-  const { pins: rawPins, pickerSteps } = useAtlasFramePins({
+  const { pins: rawPins, pickerSteps, archiveSteps } = useAtlasFramePins({
     lat: 23.27,
     lng: 85.45,
     interestSlug: 'lac-craft-business',
@@ -7195,6 +7195,22 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       }),
     [rawPins, showHaats, showSuppliers, showMentees, showNetwork],
   );
+  // Step↔site cross-link — a YOUR STEP callout offers "View <village/haat>"
+  // and a supplier/haat/home callout lists "N of your steps here". Drawn from
+  // the unfiltered rawPins + full located set so chip visibility and arc scope
+  // don't hide the bridge. Frame-agnostic; mirrors F1/F4.
+  const crossLinkSteps = useMemo(
+    () => [...pickerSteps, ...archiveSteps],
+    [pickerSteps, archiveSteps],
+  );
+  const { openStepById, siteForSelectedStep, myStepsAtSelectedPoi } = useFrameStepSiteLinks({
+    framePins: rawPins,
+    steps: crossLinkSteps,
+    selectedPin,
+    setSelectedPin,
+    onFocusLocation: setF7FocusLocation,
+    onStepPress: handlers.onStepPress,
+  });
   return (
     <View style={shellStyles.frame}>
       {!embedded && <StatusBar />}
@@ -7353,27 +7369,92 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           initialState="expanded"
         />
       ) : selectedPin ? (
+        isUserStepPin(selectedPin) ? (
+          // Viewer's own step pin — open the step, don't offer "Anchor a step
+          // here" (that silently duplicates the step). The secondary slot jumps
+          // to the village/haat this step sits at; the header X already closes.
+          <BottomSheet
+            key="user-step"
+            eyebrow={lx(demoLanguage, 'आपका स्टेप', 'YOUR STEP')}
+            title={titleForUserStepPin(selectedPin)}
+            body={detailBodyForPin(selectedPin)}
+            primary={{
+              label: lx(demoLanguage, 'स्टेप खोलें', 'Open step'),
+              icon: 'open-outline',
+              onPress: () => {
+                if (selectedPin.stepId) {
+                  handlers.onStepPress?.(selectedPin.stepId);
+                  clearF7SelectedPin();
+                }
+              },
+            }}
+            secondary={
+              siteForSelectedStep
+                ? {
+                    label: lx(
+                      demoLanguage,
+                      `${(siteForSelectedStep.label ?? 'जगह').split('|')[0]} देखें`,
+                      `View ${(siteForSelectedStep.label ?? 'site').split('|')[0]}`,
+                    ),
+                    icon: 'business-outline',
+                    onPress: () => {
+                      setF7FocusLocation({
+                        lat: siteForSelectedStep.lat,
+                        lng: siteForSelectedStep.lng,
+                      });
+                      setSelectedPin(siteForSelectedStep);
+                    },
+                  }
+                : { label: lx(demoLanguage, 'बंद करें', 'Close'), onPress: clearF7SelectedPin }
+            }
+            showSecondaryInMid={siteForSelectedStep != null}
+            onClose={clearF7SelectedPin}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="mid"
+          />
+        ) : (
         <BottomSheet
           eyebrow={eyebrowForPin(selectedPin)}
           title={(selectedPin.label ?? 'Pin').split('|')[0]}
           body={detailBodyForPin(selectedPin, [atlasPinContextNote(selectedPin)])}
           expandedContent={(() => {
             const poiId = knowledgePoiIdForPin(selectedPin);
-            if (!poiId) return undefined;
+            // Cross-link back to the viewer's own steps at this village/haat —
+            // turns the location callout from a dead end into "here's what
+            // you've done here." Sits above the shared place-knowledge feed.
+            const stepsHere =
+              myStepsAtSelectedPoi.length > 0 ? (
+                <View style={shellStyles.stepsHereWrap}>
+                  <Text style={shellStyles.stepsHereLabel}>
+                    {lx(
+                      demoLanguage,
+                      `यहाँ आपके ${myStepsAtSelectedPoi.length} स्टेप`,
+                      `${myStepsAtSelectedPoi.length} of your step${
+                        myStepsAtSelectedPoi.length === 1 ? '' : 's'
+                      } here`,
+                    )}
+                  </Text>
+                  <StackedStepList steps={myStepsAtSelectedPoi} onOpenStep={openStepById} />
+                </View>
+              ) : null;
+            if (!poiId) return stepsHere ?? undefined;
             return (
-              <PlaceKnowledgeSection
-                anchor={{ poiId }}
-                conditions={null}
-                interestSlug="lac-craft-business"
-                onAddKnowledge={() => {
-                  const label = selectedPin.label;
-                  clearF7SelectedPin();
-                  router.push({
-                    pathname: '/venue/post/create',
-                    params: { poiId, interestSlug: 'lac-craft-business', ...(label ? { poiName: label.split('|')[0] } : {}) },
-                  } as never);
-                }}
-              />
+              <>
+                {stepsHere}
+                <PlaceKnowledgeSection
+                  anchor={{ poiId }}
+                  conditions={null}
+                  interestSlug="lac-craft-business"
+                  onAddKnowledge={() => {
+                    const label = selectedPin.label;
+                    clearF7SelectedPin();
+                    router.push({
+                      pathname: '/venue/post/create',
+                      params: { poiId, interestSlug: 'lac-craft-business', ...(label ? { poiName: label.split('|')[0] } : {}) },
+                    } as never);
+                  }}
+                />
+              </>
             );
           })()}
           primary={
@@ -7450,6 +7531,7 @@ function FrameF7({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           initialState="expanded"
         />
+        )
       ) : (
         <BottomSheet
           eyebrow={[
