@@ -120,6 +120,7 @@ export function InterestSitesSurface({
             <Text style={styles.heroTitle}>{nextStep.title}</Text>
             <Text style={styles.heroWhere}>
               {nextStep.location_name || 'Anchored to a site'}
+              {nextStep.level_label ? ` · ${nextStep.level_label}` : ''}
             </Text>
           </>
         ) : (

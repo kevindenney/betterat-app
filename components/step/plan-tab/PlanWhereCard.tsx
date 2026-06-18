@@ -13,7 +13,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -35,6 +35,13 @@ import {
   findSavedPlaceAt,
   type SavedPlaceKind,
 } from '@/hooks/useUserSavedPlaces';
+import {
+  subSiteConfigForInterest,
+  readSubSiteAnchor,
+  withSubSiteAnchor,
+  numericSubSiteAnchor,
+  type SubSiteAnchor,
+} from '@/lib/atlas/subSiteAnchor';
 
 /** Quick-pick chip (e.g. an org's known venues like "RHKYC Clubhouse"). */
 export interface PlanWhereQuickPick {
@@ -338,6 +345,23 @@ export function PlanWhereCard({
     [onChange, location],
   );
 
+  // Sub-site ("place within a place"): for interests whose sites have a
+  // meaningful internal unit (a golf hole, a market stall), let the user
+  // refine the chosen place down to that unit. Nursing keeps its richer
+  // clinical-site flow, so subSiteConfigForInterest returns null for it.
+  const subSiteConfig = useMemo(
+    () => subSiteConfigForInterest(interestSlug),
+    [interestSlug],
+  );
+  const subSiteAnchor = readSubSiteAnchor(location);
+  const handleSetSubSite = useCallback(
+    (anchor: SubSiteAnchor | null) => {
+      if (!location) return;
+      onChange(withSubSiteAnchor(location, anchor));
+    },
+    [onChange, location],
+  );
+
   const hasName = Boolean(location?.name?.trim());
   const hasCoords = location?.lat != null && location?.lng != null;
 
@@ -434,6 +458,73 @@ export function PlanWhereCard({
               );
             })}
           </View>
+        </View>
+      ) : null}
+
+      {hasName && subSiteConfig && !readOnly ? (
+        <View style={styles.subSiteBlock}>
+          <Text style={styles.subSiteEyebrow}>{subSiteConfig.prompt}</Text>
+          {subSiteConfig.mode === 'numeric' ? (
+            <View style={styles.subSiteGrid}>
+              <Pressable
+                style={[
+                  styles.subSiteChip,
+                  !subSiteAnchor && styles.subSiteChipActive,
+                ]}
+                onPress={() => handleSetSubSite(null)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: !subSiteAnchor }}
+              >
+                <Text
+                  style={[
+                    styles.subSiteChipText,
+                    !subSiteAnchor && styles.subSiteChipTextActive,
+                  ]}
+                >
+                  {subSiteConfig.wholeSiteLabel}
+                </Text>
+              </Pressable>
+              {Array.from({ length: subSiteConfig.count ?? 0 }, (_, i) => i + 1).map(
+                (n) => {
+                  const active = subSiteAnchor?.index === n;
+                  return (
+                    <Pressable
+                      key={n}
+                      style={[styles.subSiteChip, active && styles.subSiteChipActive]}
+                      onPress={() =>
+                        handleSetSubSite(
+                          active ? null : numericSubSiteAnchor(subSiteConfig, n),
+                        )
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`${subSiteConfig.unit} ${n}`}
+                      accessibilityState={{ selected: active }}
+                    >
+                      <Text
+                        style={[
+                          styles.subSiteChipText,
+                          active && styles.subSiteChipTextActive,
+                        ]}
+                      >
+                        {n}
+                      </Text>
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
+          ) : (
+            <TextInput
+              style={styles.subSiteInput}
+              value={subSiteAnchor?.label ?? ''}
+              onChangeText={(text) =>
+                handleSetSubSite(text.trim() ? { label: text } : null)
+              }
+              placeholder={`${subSiteConfig.unit} name or number`}
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              returnKeyType="done"
+            />
+          )}
         </View>
       ) : null}
 
@@ -778,6 +869,52 @@ const styles = StyleSheet.create({
   precisionLabelActive: {
     color: STEP_COLORS.accent,
     fontWeight: '600',
+  },
+  subSiteBlock: {
+    gap: 6,
+  },
+  subSiteEyebrow: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: STEP_COLORS.secondaryLabel,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  subSiteGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  subSiteChip: {
+    minWidth: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  subSiteChipActive: {
+    backgroundColor: STEP_COLORS.accentLight,
+    borderColor: STEP_COLORS.accent,
+  },
+  subSiteChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  subSiteChipTextActive: {
+    color: STEP_COLORS.accent,
+  },
+  subSiteInput: {
+    backgroundColor: IOS_COLORS.systemGray6,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: IOS_COLORS.label,
   },
   pickBtn: {
     flexDirection: 'row',

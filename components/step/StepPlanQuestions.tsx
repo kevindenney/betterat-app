@@ -1313,6 +1313,8 @@ RULES:
                 location={localWhereLocation}
                 readOnly={readOnly}
                 onChange={handleLocationChange}
+                interestSlug={normalizedSlug || undefined}
+                interestName={currentInterest?.name}
                 quickPicks={[
                   ...orgLocations.map((loc) => ({
                     id: loc.id,
