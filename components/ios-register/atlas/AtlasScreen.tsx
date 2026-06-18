@@ -6245,6 +6245,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             },
           }}
           secondary={{ label: 'Cancel', onPress: clearCandidate }}
+          onClose={clearCandidate}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
         />
       ) : nextEventSheetOpen ? (
@@ -6294,6 +6295,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 }
           }
           secondary={{ label: 'Close', onPress: closeNextEventSheet }}
+          onClose={closeNextEventSheet}
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           initialState="expanded"
         />
