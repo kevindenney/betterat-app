@@ -1119,11 +1119,18 @@ export default function AtlasTab() {
   // map + yacht clubs inside the nursing Atlas. DiscoverNearbyContent owns
   // the no-venue empty state.
   const interestAnchor = nearbyAnchorForInterest(atlasInterestSlug);
+  // The user's movable location_focus is a universal anchor — it's where they
+  // actually are, so it lights up Nearby for golf/entrepreneur/etc., not just
+  // sailing. The sailing home_venue snapshot stays sailing-only (it's a Hong
+  // Kong leak on any other frame). homeVenue.source distinguishes the two.
+  const focusAnchor = homeVenue?.source === 'focus' ? homeVenue : null;
   const sailingHome = isSailingInterestSlug(atlasInterestSlug) ? homeVenue : null;
-  const nearbyLat = initialFocus?.lat ?? interestAnchor?.lat ?? sailingHome?.lat ?? null;
-  const nearbyLng = initialFocus?.lng ?? interestAnchor?.lng ?? sailingHome?.lng ?? null;
+  const nearbyLat =
+    initialFocus?.lat ?? interestAnchor?.lat ?? focusAnchor?.lat ?? sailingHome?.lat ?? null;
+  const nearbyLng =
+    initialFocus?.lng ?? interestAnchor?.lng ?? focusAnchor?.lng ?? sailingHome?.lng ?? null;
   const nearbyLabel =
-    orgContext?.name ?? interestAnchor?.label ?? sailingHome?.venue ?? null;
+    orgContext?.name ?? interestAnchor?.label ?? focusAnchor?.venue ?? sailingHome?.venue ?? null;
 
   return (
     <SafeAreaView style={styles.page} edges={[]}>

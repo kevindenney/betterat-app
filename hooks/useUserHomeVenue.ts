@@ -44,6 +44,13 @@ export interface UserHomeVenue {
   /** Home venue coords — drive the Nearby bbox queries. */
   lat: number | null;
   lng: number | null;
+  /**
+   * Where the coords came from. `'focus'` is the user's movable
+   * location_focus (a universal anchor, safe on any interest); `'home_venue'`
+   * is the sailing-only snapshot fallback (leaks into non-sailing frames if
+   * used there). `null` when no anchor is set.
+   */
+  source: 'focus' | 'home_venue' | null;
 }
 
 interface SailorProfileRow {
@@ -86,11 +93,12 @@ async function fetchHomeVenue(userId: string): Promise<UserHomeVenue> {
       venue: focus.location_focus_label ?? sailor?.home_venue_name ?? null,
       lat: focus.location_focus_lat,
       lng: focus.location_focus_lng,
+      source: 'focus',
     };
   }
 
   if (!venueId) {
-    return { id: null, region: null, venue: null, lat: null, lng: null };
+    return { id: null, region: null, venue: null, lat: null, lng: null, source: null };
   }
 
   const lat = Number.isFinite(sailor!.home_venue_lat) ? (sailor!.home_venue_lat as number) : null;
@@ -101,6 +109,7 @@ async function fetchHomeVenue(userId: string): Promise<UserHomeVenue> {
     venue: sailor!.home_venue_name ?? null,
     lat,
     lng,
+    source: 'home_venue',
   };
 }
 

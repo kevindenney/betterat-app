@@ -2091,9 +2091,17 @@ function WebAtlasMapLibreCanvas({
     pinMarkersRef.current.forEach((marker) => marker.remove());
     pinMarkersRef.current = sortHeroPinsLast(pins).map((pin) => {
       const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
+      const showLabel = shouldShowLabel(pin, pins);
+      // POI pins carry a name label. Stack it BELOW the dot and anchor the
+      // marker at top-center so the DOT — not the middle of the label text —
+      // lands on the coordinate. Without this the default center anchor puts
+      // the geographic point mid-label, so any pin sharing the coordinate
+      // (e.g. a step-stack dot on the same POI) punches through the words.
+      const labelBelow = showLabel && Boolean(pin.label) && pin.kind.startsWith('poi-');
       const element = createWebPinElement({
         pin,
-        showLabel: shouldShowLabel(pin, pins),
+        showLabel,
+        labelBelow,
         isTappable,
         hideArrowChips,
         onPress: isTappable
@@ -2107,7 +2115,8 @@ function WebAtlasMapLibreCanvas({
             }
           : undefined,
       });
-      return new Marker({ element }).setLngLat([pin.lng, pin.lat]).addTo(map);
+      const marker = labelBelow ? new Marker({ element, anchor: 'top' }) : new Marker({ element });
+      return marker.setLngLat([pin.lng, pin.lat]).addTo(map);
     });
   }, [isLoaded, onPinPress, pins, hideArrowChips]);
 
@@ -2325,12 +2334,15 @@ function createWebAreaLabelElement(name: string, onPress?: () => void) {
 function createWebPinElement({
   pin,
   showLabel,
+  labelBelow = false,
   isTappable,
   onPress,
   hideArrowChips = false,
 }: {
   pin: AtlasPinSpec;
   showLabel: boolean;
+  /** Stack the label below the dot (column) instead of beside it (row). */
+  labelBelow?: boolean;
   isTappable: boolean;
   onPress?: () => void;
   hideArrowChips?: boolean;
@@ -2346,13 +2358,17 @@ function createWebPinElement({
   const tone = PIN_TONE[pin.kind];
   const root = document.createElement(isTappable ? 'button' : 'div');
   root.style.display = 'flex';
+  root.style.flexDirection = labelBelow ? 'column' : 'row';
   root.style.alignItems = 'center';
-  root.style.gap = '6px';
+  root.style.gap = labelBelow ? '3px' : '6px';
   root.style.border = '0';
   root.style.padding = '0';
   root.style.background = 'transparent';
   root.style.cursor = isTappable ? 'pointer' : 'default';
-  root.style.transform = 'translateY(-50%)';
+  // Row pins center on the point (default anchor); the -50% nudge keeps the
+  // dot on the coordinate. Label-below pins are anchored top-center by the
+  // caller, so the dot already sits on the point — no extra transform.
+  if (!labelBelow) root.style.transform = 'translateY(-50%)';
   root.style.font = '600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   root.style.color = 'rgba(28, 28, 30, 0.86)';
 
