@@ -282,9 +282,53 @@ const SELF_MASTERY_VOCABULARY: VocabularyMap = {
   'Peers': 'practitioners',
 };
 
+const GOLF_VOCABULARY: VocabularyMap = {
+  'Learning Event': 'Round',
+  'Plan Phase': 'Game Plan',
+  'Do Phase': 'On the Course',
+  'Review Phase': 'Debrief',
+  'Practice': 'Range Session',
+  'Institution': 'Golf Club',
+  'Coach': 'Golf Pro',
+  'Coaches': 'Golf Pros',
+  'Passport': 'Golf Record',
+  'Period': 'Season',
+  'Milestone': 'Personal Best',
+  'Skill': 'Golf Skill',
+  'Community': 'Club Forum',
+  'Equipment': 'Clubs / Bag',
+  'Competency': 'Skill',
+  'Step': 'session',
+  'Peer': 'golfer',
+  'Peers': 'golfers',
+};
+
+const ENTREPRENEUR_VOCABULARY: VocabularyMap = {
+  'Learning Event': 'Sprint',
+  'Plan Phase': 'Planning',
+  'Do Phase': 'Building',
+  'Review Phase': 'Retro',
+  'Practice': 'Working Session',
+  'Institution': 'Accelerator',
+  'Coach': 'Mentor',
+  'Coaches': 'Mentors',
+  'Passport': 'Founder Record',
+  'Period': 'Quarter',
+  'Milestone': 'Traction Milestone',
+  'Skill': 'Capability',
+  'Community': 'Founder Community',
+  'Equipment': 'Tools / Stack',
+  'Competency': 'Capability',
+  'Step': 'step',
+  'Peer': 'founder',
+  'Peers': 'founders',
+};
+
 /** Map of interest slug → client-side fallback vocabulary */
 export const INTEREST_FALLBACK_VOCABULARIES: Record<string, VocabularyMap> = {
   'sail-racing': FALLBACK_VOCABULARY,
+  golf: GOLF_VOCABULARY,
+  entrepreneur: ENTREPRENEUR_VOCABULARY,
   nursing: NURSING_VOCABULARY,
   drawing: DRAWING_VOCABULARY,
   design: DESIGN_VOCABULARY,

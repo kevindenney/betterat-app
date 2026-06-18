@@ -7,8 +7,8 @@
  *
  * Once a location is set, we surface the venue name bold with the
  * coordinates as a subtitle, plus a small change/clear affordance. The
- * social-proof tagline ("see what other sailors did here") sits under the
- * pick button as a hint — wiring the live count belongs to a follow-up
+ * social-proof tagline ("see what other {peers} did here", vocab-aware) sits
+ * under the pick button as a hint — wiring the live count belongs to a follow-up
  * once step_location has enough rows to be meaningful.
  */
 
@@ -624,7 +624,7 @@ export function PlanWhereCard({
           </Text>
           {!hasName ? (
             <Text style={styles.pickHint}>
-              {isNursing ? ' · choose from your clinical sites' : ' · see what other sailors did here'}
+              {isNursing ? ' · choose from your clinical sites' : ` · see what other ${peersPlural} did here`}
             </Text>
           ) : null}
         </Pressable>
