@@ -81,7 +81,7 @@ import { useVocabulary } from '@/hooks/useVocabulary';
 // for f1/f2/f6 without touching the canvas.
 const MAP_STYLE_POSITRON = 'https://tiles.openfreemap.org/styles/positron';
 
-export type AtlasBasemap = 'map' | 'satellite' | 'nautical';
+export type AtlasBasemap = 'map' | 'satellite' | 'nautical' | 'detailed';
 
 const SATELLITE_MAP_STYLE = {
   version: 8 as const,
@@ -144,9 +144,39 @@ const NAUTICAL_MAP_STYLE = {
   ],
 };
 
+// Detailed — full OpenStreetMap raster cartography, no seamark overlay. This
+// is the non-sailing analogue of Nautical: it surfaces the rich real-world
+// features our brand styles deliberately strip — golf hole numbers / greens /
+// fairways / bunkers, hospital buildings & wards, shops & marketplaces — so a
+// golfer/nurse/entrepreneur can see the structure inside a site. Sailing keeps
+// Nautical (same OSM base + OpenSeaMap seamarks); everyone else gets this.
+const DETAILED_MAP_STYLE = {
+  version: 8 as const,
+  name: 'BetterAt · Detailed',
+  sources: {
+    osm: {
+      type: 'raster' as const,
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '© OpenStreetMap',
+    },
+  },
+  layers: [
+    {
+      id: 'osm-base',
+      type: 'raster' as const,
+      source: 'osm',
+      minzoom: 0,
+      maxzoom: 22,
+      paint: { 'raster-opacity': 0.95 },
+    },
+  ],
+};
+
 function mapStyleForFrame(frame: AtlasFrameId, basemap: AtlasBasemap = 'map'): string | StyleSpecification {
   if (basemap === 'satellite') return SATELLITE_MAP_STYLE as StyleSpecification;
   if (basemap === 'nautical') return NAUTICAL_MAP_STYLE as StyleSpecification;
+  if (basemap === 'detailed') return DETAILED_MAP_STYLE as StyleSpecification;
   // Sailing — custom brand-palette: cream land + soft blue water, no
   // labels/roads. Lets race-marks + wind/tide arrows + POI pins dominate.
   if (frame === 'f1' || frame === 'f2' || frame === 'f3' || frame === 'f6') {

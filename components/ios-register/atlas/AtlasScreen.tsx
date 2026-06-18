@@ -139,6 +139,8 @@ import { useWaveOverlay } from '@/hooks/useWaveOverlay';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { NursingSitesSurface } from '@/components/ios-register/atlas/NursingSitesSurface';
 import { NursingCoverageSurface } from '@/components/ios-register/atlas/NursingCoverageSurface';
+import { InterestSitesSurface } from '@/components/ios-register/atlas/InterestSitesSurface';
+import { CapabilitiesSurface } from '@/components/ios-register/atlas/CapabilitiesSurface';
 import { NursingMapSurface } from '@/components/ios-register/atlas/NursingMapSurface';
 import {
   NursingSiteDetailSurface,
@@ -1516,11 +1518,18 @@ function LayersSheet({
           <View style={shellStyles.basemapSection}>
             <Text style={shellStyles.basemapLabel}>Basemap</Text>
             <View style={shellStyles.basemapSegmented}>
-              {([
-                ['map', 'Map'],
-                ['satellite', 'Satellite'],
-                ['nautical', 'Nautical'],
-              ] as const).map(([value, label]) => {
+              {(sailingChrome
+                ? ([
+                    ['map', 'Map'],
+                    ['satellite', 'Satellite'],
+                    ['nautical', 'Nautical'],
+                  ] as const)
+                : ([
+                    ['map', 'Map'],
+                    ['satellite', 'Satellite'],
+                    ['detailed', 'Detailed'],
+                  ] as const)
+              ).map(([value, label]) => {
                 const selected = basemap === value;
                 return (
                   <Pressable
@@ -2030,6 +2039,13 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     );
   }, []);
   const [layersOpen, setLayersOpen] = useState(false);
+  // Sites | Capabilities | Map segment (the nursing F4 three-tab reframe,
+  // generalized to every F1 interest). Lands on Sites so the frame leads with
+  // structure; Map keeps the full sailing/MapLibre experience byte-identical.
+  const [f1View, setF1View] = useState<'sites' | 'capabilities' | 'map'>('sites');
+  // Measured height of the floating chrome so the Sites/Capabilities surfaces
+  // inset their scroll content clear of it (the chrome floats on top).
+  const [f1ChromeH, setF1ChromeH] = useState(140);
   const [manageAreasOpen, setManageAreasOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<EditingRacingArea | null>(null);
   // Racing-area knowledge callout: tapping an area label opens a sheet with
@@ -2473,6 +2489,16 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   const [showRaceAreas, setShowRaceAreas] = useState(true);
   const [showCourse, setShowCourse] = useState(true);
   const [basemap, setBasemap] = useState<AtlasBasemap>('map');
+  // Nautical (seamarks) and Detailed (plain OSM) are the same raster base under
+  // two craft-appropriate names — Nautical for sailing, Detailed for everyone
+  // else. F1 stays mounted across an interest switch, so a stale cross-family
+  // pick (Nautical selected as a sailor, then switch to golf) is coerced to the
+  // sibling that the current interest actually offers.
+  const effectiveBasemap = useMemo<AtlasBasemap>(() => {
+    if (isSailingFrame && basemap === 'detailed') return 'nautical';
+    if (!isSailingFrame && basemap === 'nautical') return 'detailed';
+    return basemap;
+  }, [basemap, isSailingFrame]);
   // Default the relationship lens to the same set exposed in the top chip row:
   // your own steps plus crew, fleet, and people you follow. Public peer steps
   // use the same pin tone as Following, so keeping this on by default prevents
@@ -3889,6 +3915,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     const height = Math.round(event.nativeEvent.layout.height);
     if (lastChromeHeightRef.current === height) return;
     lastChromeHeightRef.current = height;
+    setF1ChromeH(height);
     logAtlasDebug('f1:floating-chrome', {
       embedded,
       insetTop: Math.round(insets.top),
@@ -3919,7 +3946,30 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           row + title pill no longer eat 100pt of vertical space — that
           was the design's "full-screen with floating boxes" intent. */}
       <View style={shellStyles.mapArea}>
-        {handlers.useMapLibre ? (
+        {f1View !== 'map' ? (
+          f1View === 'sites' ? (
+            <InterestSitesSurface
+              interestName={currentInterest?.name ?? 'your craft'}
+              framePins={framePinsWithDemo}
+              steps={pickerSteps}
+              toolbarOffset={f1ChromeH}
+              bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+              onSitePress={(site) => {
+                setF1View('map');
+                setSearchFocus({ lat: site.lat, lng: site.lng });
+              }}
+              onPlanStep={() => handlers.onPrimaryAction?.()}
+            />
+          ) : (
+            <CapabilitiesSurface
+              interestId={currentInterest?.id ?? null}
+              interestName={currentInterest?.name ?? 'your craft'}
+              toolbarOffset={f1ChromeH}
+              bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+              onPlanGap={() => handlers.onPrimaryAction?.()}
+            />
+          )
+        ) : handlers.useMapLibre ? (
           <AtlasMapLibreCanvas
             frame="f1"
             pins={pins}
@@ -4017,7 +4067,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             courseWindDirectionDeg={defaultCourseWindDeg}
             courseCurrentDirectionDeg={courseCurrent?.deg}
             courseCurrentSpeedKn={courseCurrent?.kn}
-            basemap={basemap}
+            basemap={effectiveBasemap}
           />
         ) : (
           <HongKongOverviewMap />
@@ -4123,10 +4173,46 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               <ProfileDropdown size={30} variant="light" menuAlign="right" />
             </View>
           </View>
+          {/* Sites | Capabilities | Map segment — the nursing F4 reframe,
+              generalized to every F1 interest. Sites/Capabilities lead with
+              structure; Map preserves the full chart + sailing chrome. */}
+          <View style={shellStyles.f4Segment}>
+            {(['sites', 'capabilities', 'map'] as const).map((mode) => {
+              const label = mode === 'sites' ? 'Sites' : mode === 'capabilities' ? 'Capabilities' : 'Map';
+              return (
+                <Pressable
+                  key={mode}
+                  style={[
+                    shellStyles.f4SegmentItem,
+                    f1View === mode && shellStyles.f4SegmentItemActive,
+                  ]}
+                  onPress={() => {
+                    setF1View(mode);
+                    if (mode !== 'map') setSelectedPin(null);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show ${label}`}
+                  accessibilityState={{ selected: f1View === mode }}
+                  testID={`atlas-f1-segment-${mode}`}
+                >
+                  <Text
+                    style={[
+                      shellStyles.f4SegmentText,
+                      f1View === mode && shellStyles.f4SegmentTextActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
           {/* Mockup #39 — one relationship-first lens strip. WHOSE leads (My
               steps on by default, then Crew/Fleet/Following), Races trails as
               the WHAT filter. Replaces the two stacked rows so the hero is
-              "your steps + the steps of people you follow & know," not search. */}
+              "your steps + the steps of people you follow & know," not search.
+              Map-only: Sites/Capabilities own their own structure. */}
+          {f1View === 'map' ? (
           <FilterChipsRow
             chips={[
               { id: 'you', label: 'My steps', tone: 'you', active: activeFilterIds.includes('you') },
@@ -4158,11 +4244,12 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             compact
             debugScope="f1"
           />
+          ) : null}
           {/* Headless InterestSwitcher hosts the modal so the imperative
               opener inside the capsule can pop it. Atlas doesn't mount
               the global NavigationHeader, so the sheet lives here. */}
           <InterestSwitcher headless />
-          {isSailingFrame && subchipGroups.length > 0 ? (
+          {f1View === 'map' && isSailingFrame && subchipGroups.length > 0 ? (
             <View style={shellStyles.groupSubchipRow}>
               {subchipGroups.map((g: UserAffinityGroup) => (
                 <GroupSubchip
@@ -4174,7 +4261,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               ))}
             </View>
           ) : null}
-          {isSailingFrame && raceTimeBarVisible && next ? (
+          {f1View === 'map' && isSailingFrame && raceTimeBarVisible && next ? (
             <RaceTimeBar
               raceLabel={next.label}
               countdownLabel={raceCountdownLabel}
@@ -4201,7 +4288,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             these are percentage-positioned so they only render in the
             non-MapLibre fallback path. On the live MapLibre canvas the
             real RHKYC pin comes through useAtlasFramePins → MLMarker. */}
-        {isSailingFrame && hasNext && !commitMode && !handlers.useMapLibre && (
+        {f1View === 'map' && isSailingFrame && hasNext && !commitMode && !handlers.useMapLibre && (
           <>
             <RacingAreaTag leftPct={84} topPct={20} text="Apr 14 · 3 from fleet" />
             <RacingAreaTag leftPct={65} topPct={61} text="Mar 28 · 4 from fleet" />
@@ -4225,7 +4312,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             placement once real lat/lng data lands via the
             atlas_peer_steps_near RPC. Until then the live MapLibre canvas
             shows the base map without phantom percentage-positioned pins. */}
-        {isSailingFrame && !handlers.useMapLibre && (
+        {f1View === 'map' && isSailingFrame && !handlers.useMapLibre && (
           <>
             <AtlasPin kind="crew" leftPct={22} topPct={44} />
             <AtlasPin kind="fleet" leftPct={32} topPct={50} />
@@ -4244,7 +4331,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             (inside the canvas) is the authoritative tag, so we suppress this
             fallback or two amber pills render, one of which doesn't pan with
             the map. */}
-        {isSailingFrame && hasNext && !commitMode && !handlers.useMapLibre && (
+        {f1View === 'map' && isSailingFrame && hasNext && !commitMode && !handlers.useMapLibre && (
           <NextEventTag
             leftPct={50}
             topPct={47}
@@ -4258,7 +4345,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             gone (entry is the Next Step sheet's "Drop a pin" button);
             this banner is the only commit-mode chrome remaining, so it
             absorbs the cancel affordance the FAB used to carry. */}
-        {commitMode && !candidate && (
+        {f1View === 'map' && commitMode && !candidate && (
           <View style={shellStyles.commitBannerInline}>
             <Ionicons name="location-outline" size={12} color="#FFFFFF" />
             <Text style={shellStyles.commitBannerInlineText}>
@@ -4275,6 +4362,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           </View>
         )}
 
+        {f1View === 'map' ? (
         <LayersFab
           bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
           onLayersPress={openLayersSheet}
@@ -4293,8 +4381,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             });
           }}
         />
+        ) : null}
 
-        {handlers.nearbyOverlayOpen ||
+        {f1View !== 'map' ? null : handlers.nearbyOverlayOpen ||
         repositionTarget ||
         retraceTarget ||
         reshapeTarget ? null : showAmbientNextStepCockpit &&
@@ -5157,7 +5246,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           onClose={() => setLayersOpen(false)}
           controlledActiveKeys={controlledLayerKeys}
           onToggle={handleLayerToggle}
-          basemap={basemap}
+          basemap={effectiveBasemap}
           onBasemapChange={setBasemap}
           sailingChrome={isSailingFrame}
           onOpenManageAreas={
