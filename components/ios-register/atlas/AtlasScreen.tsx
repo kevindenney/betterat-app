@@ -4123,7 +4123,14 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             names the screen); profile + layers + locate now float as a
             standalone top-right cluster, separate from the filter strip. */}
         <View
-          style={[shellStyles.floatingChrome, { paddingTop: chromePaddingTop }]}
+          style={[
+            shellStyles.floatingChrome,
+            { paddingTop: chromePaddingTop },
+            // Sites/Capabilities have no map behind them — without an opaque
+            // plate the scrolling surface content bleeds up through the
+            // transparent chrome and around the translucent segment pill.
+            f1View !== 'map' && shellStyles.floatingChromeSolid,
+          ]}
           onLayout={handleFloatingChromeLayout}
         >
           {/* Single floating capsule consolidating profile + search +
@@ -10482,6 +10489,15 @@ const shellStyles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 2,
     zIndex: 10,
+  },
+  /**
+   * Opaque variant for the Sites/Capabilities surfaces (no map behind the
+   * chrome). Matches the surface background (#F2F2F7) so the floating chrome
+   * reads as a solid pinned header that content scrolls cleanly under,
+   * instead of a transparent overlay the by-area bars bleed through.
+   */
+  floatingChromeSolid: {
+    backgroundColor: '#F2F2F7',
   },
   chromePlate: {
     marginHorizontal: 10,
