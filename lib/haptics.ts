@@ -20,8 +20,8 @@ export type HapticType =
  * Only works on iOS devices
  */
 export async function triggerHaptic(type: HapticType): Promise<void> {
-  // Haptics only work on iOS
-  if (Platform.OS !== 'ios') {
+  // Native haptics only — expo-haptics throws on web.
+  if (Platform.OS === 'web') {
     return;
   }
 
@@ -51,9 +51,8 @@ export async function triggerHaptic(type: HapticType): Promise<void> {
       default:
         break;
     }
-  } catch (error) {
-    // Silently fail if haptics aren't available
-    console.debug('Haptic feedback unavailable:', error);
+  } catch {
+    // Silently fail if haptics aren't available on this device.
   }
 }
 
