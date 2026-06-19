@@ -23,7 +23,7 @@ export default function FleetSettingsScreen() {
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Select Your Fleets</Text>
             <Text style={styles.actionDescription}>
-              Choose the Hong Kong sailing classes you participate in
+              Find and join fleets in your class and region
             </Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#94A3B8" />

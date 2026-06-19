@@ -11,10 +11,12 @@
  */
 
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useAuth } from '@/providers/AuthProvider';
+import { useInterest } from '@/providers/InterestProvider';
 import { useUserFleets } from '@/hooks/useFleetData';
 import {
   CanonicalList,
@@ -40,9 +42,12 @@ export function groupRoleDescriptor(m: FleetMembership): string {
 
 export function GroupsZone() {
   const { user } = useAuth();
+  const { currentInterest } = useInterest();
   const { fleets, loading } = useUserFleets(user?.id);
+  const isSailRacing = currentInterest?.slug === 'sail-racing';
+  const visibleFleets = isSailRacing ? fleets : [];
 
-  if (loading && fleets.length === 0) {
+  if (loading && visibleFleets.length === 0) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="small" color={IOS_COLORS.tertiaryLabel} />
@@ -50,13 +55,32 @@ export function GroupsZone() {
     );
   }
 
-  if (fleets.length === 0) {
+  if (visibleFleets.length === 0) {
     return (
       <View style={styles.empty}>
         <Text style={styles.emptyText}>
-          You're not in any groups yet. Join or create a fleet, club, or cohort
-          and it'll live here.
+          {isSailRacing
+            ? "You're not in any groups yet. Find one to join or start your own and it'll live here."
+            : `Groups for ${currentInterest?.name ?? 'this interest'} will live here once you join one.`}
         </Text>
+        {isSailRacing ? (
+          <View style={styles.emptyActions}>
+            <Pressable
+              style={styles.primaryButton}
+              onPress={() => router.push('/(tabs)/fleet/select' as never)}
+            >
+              <Ionicons name="search" size={16} color="#FFFFFF" />
+              <Text style={styles.primaryButtonText}>Find a group to join</Text>
+            </Pressable>
+            <Pressable
+              style={styles.secondaryButton}
+              onPress={() => router.push('/(tabs)/fleet/create' as never)}
+            >
+              <Ionicons name="add" size={16} color={IOS_COLORS.systemBlue} />
+              <Text style={styles.secondaryButtonText}>Create a group</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -64,7 +88,7 @@ export function GroupsZone() {
   return (
     <View style={styles.container}>
       <CanonicalList>
-        {fleets.map((m, idx) => (
+        {visibleFleets.map((m, idx) => (
           <CanonicalOrgRow
             key={m.fleet.id}
             first={idx === 0}
@@ -96,5 +120,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: IOS_COLORS.secondaryLabel,
+  },
+  emptyActions: {
+    marginTop: IOS_SPACING.lg,
+    gap: IOS_SPACING.sm,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  primaryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 122, 255, 0.10)',
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
   },
 });

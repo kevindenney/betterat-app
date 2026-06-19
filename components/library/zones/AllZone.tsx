@@ -281,10 +281,12 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
   const interestId = currentInterest?.id;
   const interestSlug = currentInterest?.slug;
 
-  // Groups are interest-agnostic — getFleetsForUser is global, not
-  // interest-scoped — so this preview is the same in every craft.
+  // Fleet memberships are sailing-specific today. Until the generic groups
+  // model feeds this zone, keep fleet rows scoped to Sail Racing so they don't
+  // leak into Nursing or other interests.
   const { fleets, loading: groupsLoading } = useUserFleets(user?.id);
-  const groupPreview = fleets.slice(0, PREVIEW_LIMIT);
+  const groupRows = interestSlug === 'sail-racing' ? fleets : [];
+  const groupPreview = groupRows.slice(0, PREVIEW_LIMIT);
 
   const { data: plans, isLoading: plansLoading } =
     useSubscribedPlansForLibrary(interestId);
@@ -564,14 +566,16 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
         <SectionHeader
           title="GROUPS"
           dotColor="#14B8A6"
-          count={fleets.length || undefined}
+          count={groupRows.length || undefined}
           onSeeAll={() => onJumpToZone('groups')}
         />
-        {groupsLoading && fleets.length === 0 ? (
+        {groupsLoading && groupRows.length === 0 ? (
           <LoadingRow />
         ) : groupPreview.length === 0 ? (
           <EmptyHint>
-            Fleets, clubs, and cohorts you belong to show up here.
+            {interestSlug === 'sail-racing'
+              ? 'Fleets, clubs, and cohorts you belong to show up here.'
+              : `Groups for ${currentInterest?.name ?? 'this interest'} will show up here once you join one.`}
           </EmptyHint>
         ) : (
           <CanonicalList>
