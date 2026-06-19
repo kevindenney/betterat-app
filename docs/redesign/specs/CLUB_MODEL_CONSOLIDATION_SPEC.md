@@ -1,6 +1,9 @@
 # Club-Model Consolidation Spec
 
-> Status: **In progress** — Phase 1 building 2026-06-19. Phases 2–6 sequenced, not started.
+> Status (2026-06-19): **Phases 1–3 shipped** (user-visible discovery-surface fragmentation
+> resolved). **Phase 6 orphan-UI cleanup done.** **Phases 4–5 RE-SCOPED + DEFERRED** — on audit
+> `clubs`/`yacht_clubs` are a parallel club+membership+race model fused into auth and race
+> machinery, not a quick stub-removal (see those sections). Table drops blocked behind that merge.
 > Owner: platform IA. Origin: user "what is going on?" audit of clubs/orgs/groups/fleets surfaces.
 
 ## Problem
@@ -63,20 +66,34 @@ Fold fleet discovery into the Library "Groups" zone (web + iOS) instead of the i
 `fleet/select.tsx`, or mount that route on web. **Result:** fixes "nowhere on web do I see the HK
 Dragon Fleet."
 
-### Phase 4 — Collapse the `clubs` 8-row stub. (medium)
-Repoint its ~18 readers (`app/(tabs)/members.tsx`, `AddPeoplePicker`, `AuthProvider`, onboarding,
-race services) to `organizations`; today's bridge already moved fleet ownership off it. Drop
-`fleets.club_id` and the table.
+### Phase 4 — Collapse the `clubs` model. (RE-SCOPED: large data-merge, DEFERRED)
+**Original estimate was wrong.** `clubs` is only 8 rows but has its own membership table
+`club_members` (10 rows), a dedicated `lib/clubs/clubService.ts`, and **~25 read sites** across the
+**login path** (`providers/AuthProvider.tsx` persona/club-membership context) and race machinery
+(`RaceRegistrationService`, `CrewFinderService`, `RaceSuggestionService`, `raceDataDistribution`,
+`OnboardingAgent`, `apiService`, `members.tsx`, `AddPeoplePicker`, venue sheets). It shares **no
+key** with `organizations` (`orgs.club_id` 0/155) and selects club-specific columns + venue/race
+linkages `organizations` does not have. So this is a genuine **data-model merge**, not a repoint:
+migrate `clubs`→`organizations` and `club_members`→`organization_memberships`, reconcile schemas,
+backfill venue/race linkages, then rewrite every reader. It touches auth and race features, so it
+must be planned and tested deliberately — **fold into Phase 5 / sailing-namespace-consolidation; do
+not force through in a discovery-cleanup pass.**
 
-### Phase 5 — Namespace the race-reference tables. (large, sailing-scoped)
-`yacht_clubs` / `global_clubs` / `sailor_clubs` / `class_associations` are sailing scraping/venue/
-crew internals, not club identity. Either (a) rename/relocate under a clear sailing-internal
-namespace and sever any "club discovery" labeling, or (b) fold genuine identity bits (city/country
-via `global_club_id`) into `organizations` and retire. Do this as part of the
-sailing-namespace-consolidation project, not standalone.
+### Phase 5 — Merge/namespace the race-club + reference tables. (large, sailing-scoped, DEFERRED)
+`clubs` (Phase 4), `yacht_clubs` (39, 24 readers), `global_clubs` (46), `sailor_clubs`,
+`class_associations` are sailing club-directory + scraping/venue/crew internals, not the canonical
+club-identity model. Either (a) merge the genuine club identity into `organizations`
+(+ `organization_memberships`) and retire, or (b) rename/relocate the pure race-reference bits under
+a clear sailing-internal namespace and sever any "club discovery" labeling. Do as part of the
+sailing-namespace-consolidation project; requires data migration + auth/race regression testing.
 
 ### Phase 6 — Delete dead tables + orphaned components once readers hit zero.
-`global_clubs`, `clubs`, then the Phase-5 set; plus `ClubSearchContent` / `useClubSearch`.
+**Done (orphaned UI from Phase 1):** deleted `ClubSearchContent`, `ClubSearchRow`, `useClubSearch`
+(+ barrel exports) — they had zero consumers after Phase 1. **Blocked:** table drops (`global_clubs`,
+`clubs`, the Phase-5 set) wait on the Phase 4/5 merge — `global_clubs` still has ~6 readers
+(`app/discover/org/[slug].tsx`, `atlas.tsx`, `ClubDiscoveryService`, `apiService`,
+`RaceSuggestionService`, `EntityResolutionService`, `useClubIntegrationSnapshots`); `ClubDiscoveryService`
+is still used by claim/onboarding/directory surfaces.
 
 ## Why this order
 Phases 1–3 are the ones the user felt in the screenshots — they remove the 4th world and unify

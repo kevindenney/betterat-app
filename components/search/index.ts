@@ -7,5 +7,3 @@ export { SuggestedSailorsSection } from './SuggestedSailorsSection';
 export { SailorSuggestionCard, type SailorSuggestion } from './SailorSuggestionCard';
 export { ProfileQRCodeSection } from './ProfileQRCodeSection';
 export { InviteFriendsBanner } from './InviteFriendsBanner';
-export { ClubSearchContent } from './ClubSearchContent';
-export { ClubSearchRow, type ClubSearchResult } from './ClubSearchRow';
