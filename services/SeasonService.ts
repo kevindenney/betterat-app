@@ -36,6 +36,7 @@ function mapSeasonRow(row: any): Season {
     year_end: row.year_end,
     user_id: row.user_id,
     club_id: row.club_id,
+    interest_id: row.interest_id ?? null,
     start_date: row.start_date,
     end_date: row.end_date,
     status: row.status as SeasonStatus,
@@ -124,6 +125,7 @@ class SeasonServiceClass {
         year_end: input.year_end,
         user_id: userId,
         club_id: input.club_id,
+        interest_id: input.interest_id ?? null,
         start_date: input.start_date,
         end_date: input.end_date,
         status: 'active',
@@ -225,12 +227,24 @@ class SeasonServiceClass {
   /**
    * Get current active season for a user
    */
-  async getCurrentSeason(userId: string): Promise<SeasonWithSummary | null> {
-    const { data, error } = await supabase
+  async getCurrentSeason(
+    userId: string,
+    interestId?: string | null,
+  ): Promise<SeasonWithSummary | null> {
+    let query = supabase
       .from('seasons')
       .select('*')
       .eq('user_id', userId)
-      .eq('status', 'active')
+      .eq('status', 'active');
+
+    // Scope to the active interest. Seasons with no interest (legacy / global)
+    // still surface under any interest, so we don't blank the header for the
+    // 72 of 75 pre-existing seasons that predate interest tagging.
+    if (interestId) {
+      query = query.or(`interest_id.eq.${interestId},interest_id.is.null`);
+    }
+
+    const { data, error } = await query
       .order('start_date', { ascending: false })
       // Tie-break same-day arcs by recency so a just-created arc becomes
       // current (the timeline auto-switches to it on create).
@@ -263,12 +277,18 @@ class SeasonServiceClass {
     status?: SeasonStatus | SeasonStatus[];
     limit?: number;
     offset?: number;
+    interestId?: string | null;
   }): Promise<SeasonListItem[]> {
     let query = supabase
       .from('seasons')
       .select('*')
       .eq('user_id', userId)
       .order('start_date', { ascending: false });
+
+    // Same lenient interest scoping as getCurrentSeason (null = legacy/global).
+    if (options?.interestId) {
+      query = query.or(`interest_id.eq.${options.interestId},interest_id.is.null`);
+    }
 
     if (options?.status) {
       if (Array.isArray(options.status)) {
@@ -323,8 +343,11 @@ class SeasonServiceClass {
   /**
    * Get archived seasons for a user
    */
-  async getArchivedSeasons(userId: string): Promise<SeasonListItem[]> {
-    return this.getUserSeasons(userId, { status: 'archived' });
+  async getArchivedSeasons(
+    userId: string,
+    interestId?: string | null,
+  ): Promise<SeasonListItem[]> {
+    return this.getUserSeasons(userId, { status: 'archived', interestId });
   }
 
   /**

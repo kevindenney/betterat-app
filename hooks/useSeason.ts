@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SeasonService } from '@/services/SeasonService';
 import { useAuth } from '@/providers/AuthProvider';
+import { useInterest } from '@/providers/InterestProvider';
 import type {
   CreateSeasonInput,
   UpdateSeasonInput,
@@ -20,9 +21,13 @@ import type {
 export const seasonKeys = {
   all: ['seasons'] as const,
   lists: () => [...seasonKeys.all, 'list'] as const,
-  list: (userId: string, status?: SeasonStatus | SeasonStatus[]) =>
-    [...seasonKeys.lists(), userId, status] as const,
-  current: (userId: string) => [...seasonKeys.all, 'current', userId] as const,
+  list: (
+    userId: string,
+    status?: SeasonStatus | SeasonStatus[],
+    interestId?: string | null,
+  ) => [...seasonKeys.lists(), userId, status, interestId ?? null] as const,
+  current: (userId: string, interestId?: string | null) =>
+    [...seasonKeys.all, 'current', userId, interestId ?? null] as const,
   details: () => [...seasonKeys.all, 'detail'] as const,
   detail: (id: string) => [...seasonKeys.details(), id] as const,
   standings: (seasonId: string) => [...seasonKeys.all, 'standings', seasonId] as const,
@@ -38,12 +43,14 @@ export const seasonKeys = {
  */
 export function useCurrentSeason() {
   const { user } = useAuth();
+  const { currentInterest } = useInterest();
+  const interestId = currentInterest?.id ?? null;
 
   return useQuery({
-    queryKey: seasonKeys.current(user?.id || ''),
+    queryKey: seasonKeys.current(user?.id || '', interestId),
     queryFn: async () => {
       if (!user?.id) return null;
-      return SeasonService.getCurrentSeason(user.id);
+      return SeasonService.getCurrentSeason(user.id, interestId);
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -62,12 +69,14 @@ export function useUserSeasons(options?: {
   limit?: number;
 }) {
   const { user } = useAuth();
+  const { currentInterest } = useInterest();
+  const interestId = currentInterest?.id ?? null;
 
   return useQuery({
-    queryKey: seasonKeys.list(user?.id || '', options?.status),
+    queryKey: seasonKeys.list(user?.id || '', options?.status, interestId),
     queryFn: async () => {
       if (!user?.id) return [];
-      return SeasonService.getUserSeasons(user.id, options);
+      return SeasonService.getUserSeasons(user.id, { ...options, interestId });
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
@@ -79,12 +88,14 @@ export function useUserSeasons(options?: {
  */
 export function useArchivedSeasons() {
   const { user } = useAuth();
+  const { currentInterest } = useInterest();
+  const interestId = currentInterest?.id ?? null;
 
   return useQuery({
-    queryKey: seasonKeys.list(user?.id || '', 'archived'),
+    queryKey: seasonKeys.list(user?.id || '', 'archived', interestId),
     queryFn: async () => {
       if (!user?.id) return [];
-      return SeasonService.getArchivedSeasons(user.id);
+      return SeasonService.getArchivedSeasons(user.id, interestId);
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
@@ -163,19 +174,28 @@ export function useSeasonRegattas(seasonId: string | undefined) {
 export function useCreateSeason() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { currentInterest } = useInterest();
 
   return useMutation({
     mutationFn: async (input: CreateSeasonInput) => {
       if (!user?.id) throw new Error('User not authenticated');
-      return SeasonService.createSeason(input, user.id);
+      // Stamp the active interest so the new arc is scoped to it (and doesn't
+      // bleed across interests like the legacy untagged ones did).
+      return SeasonService.createSeason(
+        { interest_id: currentInterest?.id ?? null, ...input },
+        user.id,
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: seasonKeys.lists() });
       // "Current" is the newest-start-date active season, so a freshly
       // created arc usually IS the new current one. Without this the
       // timeline keeps the old arc selected and renders the new arc as a
-      // dataless past lane ("archived · 0 weeks").
-      queryClient.invalidateQueries({ queryKey: seasonKeys.current(user?.id || '') });
+      // dataless past lane ("archived · 0 weeks"). Prefix-invalidate so
+      // every interest variant of the current-season query refetches.
+      queryClient.invalidateQueries({
+        queryKey: [...seasonKeys.all, 'current', user?.id || ''],
+      });
     },
   });
 }
@@ -193,7 +213,9 @@ export function useUpdateSeason() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: seasonKeys.lists() });
       queryClient.invalidateQueries({ queryKey: seasonKeys.detail(data.id) });
-      queryClient.invalidateQueries({ queryKey: seasonKeys.current(data.user_id || '') });
+      queryClient.invalidateQueries({
+        queryKey: [...seasonKeys.all, 'current', data.user_id || ''],
+      });
     },
   });
 }
@@ -211,7 +233,9 @@ export function useArchiveSeason() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: seasonKeys.lists() });
       queryClient.invalidateQueries({ queryKey: seasonKeys.detail(data.id) });
-      queryClient.invalidateQueries({ queryKey: seasonKeys.current(data.user_id || '') });
+      queryClient.invalidateQueries({
+        queryKey: [...seasonKeys.all, 'current', data.user_id || ''],
+      });
     },
   });
 }

@@ -24,6 +24,7 @@ export interface Season {
 
   user_id?: string | null;         // Personal season
   club_id?: string | null;         // Club season
+  interest_id?: string | null;     // Interest this season belongs to (null = legacy/global)
 
   start_date: string;              // ISO date
   end_date: string;                // ISO date
@@ -234,6 +235,7 @@ export interface CreateSeasonInput {
   start_date: string;
   end_date: string;
   club_id?: string;
+  interest_id?: string | null;
   description?: string;
   scoring_rules?: SeasonScoringRules;
   discard_rules?: DiscardRules;
