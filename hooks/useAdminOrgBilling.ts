@@ -66,9 +66,9 @@ export interface AdminOrgBillingData {
 
 /**
  * Project a real Stripe subscription onto the OrgBillingRow shape the surface
- * renders. Card-on-file is synced by stripe-webhooks (null until the first
- * invoice.paid/customer.updated lands); billing-contact fields stay null (not
- * synced), so the surface degrades to a partial card rather than fiction.
+ * renders. Card-on-file + billing contact are synced by stripe-webhooks (null
+ * until the first invoice.paid/customer.updated lands), so the surface degrades
+ * to a partial card rather than fiction.
  */
 function billingFromSubscription(sub: OrgSubscription, memberCount: number): OrgBillingRow {
   const plan = ORG_PLANS[sub.plan_id as OrgPlanId];
@@ -93,8 +93,8 @@ function billingFromSubscription(sub: OrgSubscription, memberCount: number): Org
     payment_method_last4: sub.payment_method_last4,
     payment_method_exp_month: sub.payment_method_exp_month,
     payment_method_exp_year: sub.payment_method_exp_year,
-    billing_contact_name: null,
-    billing_contact_email: null,
+    billing_contact_name: sub.billing_contact_name,
+    billing_contact_email: sub.billing_contact_email,
     pilot_locked_until: null,
     list_rate_monthly_cents: null,
     stripe_customer_id: sub.stripe_customer_id,

@@ -1367,10 +1367,11 @@ async function resolveOrgSubscription(
 }
 
 /**
- * Sync an org's card-on-file onto organization_subscriptions so the Studio
- * billing surface shows the real payment method. Reads the customer's default
- * payment method (set by checkout / the billing portal), falling back to the
- * most recent attached card. Best-effort — never throws into the caller.
+ * Sync an org's card-on-file + billing contact onto organization_subscriptions
+ * so the Studio billing surface shows the real payment method and "billed to".
+ * Reads the customer's default payment method (set by checkout / the billing
+ * portal), falling back to the most recent attached card, plus the customer's
+ * name + email. Best-effort — never throws into the caller.
  */
 async function syncOrgPaymentMethod(organizationId: string, customerId: string) {
   try {
@@ -1378,9 +1379,9 @@ async function syncOrgPaymentMethod(organizationId: string, customerId: string) 
       expand: ['invoice_settings.default_payment_method'],
     });
     if (!customer || (customer as Stripe.DeletedCustomer).deleted) return;
+    const cust = customer as Stripe.Customer;
 
-    let pm = (customer as Stripe.Customer).invoice_settings
-      ?.default_payment_method as Stripe.PaymentMethod | null;
+    let pm = cust.invoice_settings?.default_payment_method as Stripe.PaymentMethod | null;
     if (!pm) {
       const list = await stripe.paymentMethods.list({
         customer: customerId,
@@ -1390,16 +1391,21 @@ async function syncOrgPaymentMethod(organizationId: string, customerId: string) 
       pm = list.data[0] ?? null;
     }
     const card = pm?.card ?? null;
-    if (!card) return;
+
+    const update: Record<string, unknown> = {
+      billing_contact_name: cust.name ?? null,
+      billing_contact_email: cust.email ?? null,
+    };
+    if (card) {
+      update.payment_method_brand = card.brand ?? null;
+      update.payment_method_last4 = card.last4 ?? null;
+      update.payment_method_exp_month = card.exp_month ?? null;
+      update.payment_method_exp_year = card.exp_year ?? null;
+    }
 
     await supabase
       .from('organization_subscriptions')
-      .update({
-        payment_method_brand: card.brand ?? null,
-        payment_method_last4: card.last4 ?? null,
-        payment_method_exp_month: card.exp_month ?? null,
-        payment_method_exp_year: card.exp_year ?? null,
-      })
+      .update(update)
       .eq('organization_id', organizationId);
   } catch (e) {
     console.error('[syncOrgPaymentMethod] failed', e);

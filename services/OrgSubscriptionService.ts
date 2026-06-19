@@ -30,6 +30,8 @@ export interface OrgSubscription {
   payment_method_last4: string | null;
   payment_method_exp_month: number | null;
   payment_method_exp_year: number | null;
+  billing_contact_name: string | null;
+  billing_contact_email: string | null;
   created_at: string;
   updated_at: string;
 }
