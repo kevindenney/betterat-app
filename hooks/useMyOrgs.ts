@@ -4,7 +4,7 @@
  * active interest, so an org you own in one interest is reachable while you're
  * browsing another.
  *
- * Powers the "Yours" pin on Discover → Orgs and the My Orgs section on Profile.
+ * Powers the "Managed by you" pin on Discover → Orgs and the My Orgs section on Profile.
  * useMyVerifiedAdminOrgs (verified-only, admin-only) stays separate for the
  * propose-adoption parent picker.
  */
@@ -12,6 +12,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
 
 export type MyOrgRole = 'owner' | 'admin' | 'manager' | 'member' | string;
 
@@ -20,6 +21,7 @@ export interface MyOrg {
   name: string;
   slug: string | null;
   organization_type: string | null;
+  interest_slug: string | null;
   official: boolean;
   role: MyOrgRole;
 }
@@ -46,13 +48,26 @@ export function useMyOrgs() {
     queryFn: async () => {
       if (!userId) return [];
       // Two-step embed: orgs table is public-readable, so the join is safe.
-      const { data, error } = await supabase
+      let result = await supabase
         .from('organization_memberships')
         .select(
-          'organization_id, role, status, membership_status, organizations(id, name, slug, organization_type, official, is_active)',
+          'organization_id, role, status, membership_status, organizations(id, name, slug, organization_type, interest_slug, official, is_active)',
         )
         .eq('user_id', userId);
 
+      if (
+        result.error &&
+        isMissingSupabaseColumn(result.error, 'organizations.interest_slug')
+      ) {
+        result = await supabase
+          .from('organization_memberships')
+          .select(
+            'organization_id, role, status, membership_status, organizations(id, name, slug, organization_type, official, is_active)',
+          )
+          .eq('user_id', userId);
+      }
+
+      const { data, error } = result;
       if (error) return [];
 
       const rows: MyOrg[] = [];
@@ -69,6 +84,7 @@ export function useMyOrgs() {
           name: org.name,
           slug: org.slug,
           organization_type: org.organization_type ?? null,
+          interest_slug: org.interest_slug ?? null,
           official: org.official ?? false,
           role: (m as any).role || 'member',
         });

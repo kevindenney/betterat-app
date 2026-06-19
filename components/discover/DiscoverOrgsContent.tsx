@@ -35,6 +35,7 @@ import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { useMyOrgs, isAdminRole, type MyOrg } from '@/hooks/useMyOrgs';
+import { orgInterestLabel } from '@/lib/organizations/orgInterest';
 import {
   organizationDiscoveryService,
   type OrganizationJoinMode,
@@ -118,6 +119,24 @@ function roleLabel(role: string): string {
     default:
       return 'Member';
   }
+}
+
+function titleCaseFromSlug(value: string): string {
+  return value
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function orgDomainLabel(org: MyOrg): string | null {
+  if (org.interest_slug) return orgInterestLabel(org.interest_slug);
+  if (org.organization_type) return titleCaseFromSlug(org.organization_type);
+  return null;
+}
+
+function adminOrgDescriptor(org: MyOrg): string {
+  return [orgDomainLabel(org), roleLabel(org.role), 'manage'].filter(Boolean).join(' · ');
 }
 
 // =============================================================================
@@ -367,11 +386,12 @@ export function DiscoverOrgsContent({
           </View>
         )}
 
-        {/* Yours — orgs you own/admin, pinned above the interest browse list
-            and hidden while searching so search results stand alone. */}
+        {/* Managed by you — cross-interest admin orgs, pinned above the
+            active-interest browse list and hidden while searching so search
+            results stand alone. */}
         {!searchResults && adminOrgs.length > 0 && (
           <View style={styles.yoursBlock}>
-            <CanonicalListEyebrow plain="Yours" />
+            <CanonicalListEyebrow plain="Managed by you" />
             <CanonicalList>
               {adminOrgs.map((org, index) => (
                 <CanonicalOrgRow
@@ -380,7 +400,7 @@ export function DiscoverOrgsContent({
                   initials={initialsForName(org.name)}
                   markColor={pickSquareMarkColor(org.id || org.slug || org.name)}
                   name={org.name}
-                  descriptor={`${roleLabel(org.role)} · manage`}
+                  descriptor={adminOrgDescriptor(org)}
                   joinedLabel={roleLabel(org.role)}
                   onPress={() =>
                     router.push(`/discover/org/${org.slug}?from=orgs-yours` as any)
