@@ -47,6 +47,28 @@ export function GroupsZone() {
   const isSailRacing = currentInterest?.slug === 'sail-racing';
   const visibleFleets = isSailRacing ? fleets : [];
 
+  // Discovery affordance — kept available whether or not the user already
+  // belongs to groups, so "find more / start one" is reachable everywhere the
+  // zone renders (notably web, which has no other fleet-discovery surface).
+  const discoveryActions = isSailRacing ? (
+    <View style={styles.emptyActions}>
+      <Pressable
+        style={styles.primaryButton}
+        onPress={() => router.push('/(tabs)/fleet/select' as never)}
+      >
+        <Ionicons name="search" size={16} color="#FFFFFF" />
+        <Text style={styles.primaryButtonText}>Find a group to join</Text>
+      </Pressable>
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() => router.push('/(tabs)/fleet/create' as never)}
+      >
+        <Ionicons name="add" size={16} color={IOS_COLORS.systemBlue} />
+        <Text style={styles.secondaryButtonText}>Create a group</Text>
+      </Pressable>
+    </View>
+  ) : null;
+
   if (loading && visibleFleets.length === 0) {
     return (
       <View style={styles.loading}>
@@ -63,24 +85,7 @@ export function GroupsZone() {
             ? "You're not in any groups yet. Find one to join or start your own and it'll live here."
             : `Groups for ${currentInterest?.name ?? 'this interest'} will live here once you join one.`}
         </Text>
-        {isSailRacing ? (
-          <View style={styles.emptyActions}>
-            <Pressable
-              style={styles.primaryButton}
-              onPress={() => router.push('/(tabs)/fleet/select' as never)}
-            >
-              <Ionicons name="search" size={16} color="#FFFFFF" />
-              <Text style={styles.primaryButtonText}>Find a group to join</Text>
-            </Pressable>
-            <Pressable
-              style={styles.secondaryButton}
-              onPress={() => router.push('/(tabs)/fleet/create' as never)}
-            >
-              <Ionicons name="add" size={16} color={IOS_COLORS.systemBlue} />
-              <Text style={styles.secondaryButtonText}>Create a group</Text>
-            </Pressable>
-          </View>
-        ) : null}
+        {discoveryActions}
       </View>
     );
   }
@@ -102,6 +107,9 @@ export function GroupsZone() {
           />
         ))}
       </CanonicalList>
+      {discoveryActions ? (
+        <View style={styles.listActions}>{discoveryActions}</View>
+      ) : null}
     </View>
   );
 }
@@ -126,6 +134,9 @@ const styles = StyleSheet.create({
   emptyActions: {
     marginTop: IOS_SPACING.lg,
     gap: IOS_SPACING.sm,
+  },
+  listActions: {
+    marginTop: IOS_SPACING.md,
   },
   primaryButton: {
     flexDirection: 'row',
