@@ -282,15 +282,34 @@ export function useAdminPeople(orgId: string): AdminPeopleData {
     [rows],
   );
 
-  // Seats: derive used from active members. Total + renewal date come from
-  // org_billing if it exists; else fall back to a generous default while the
-  // billing row is being seeded.
+  // Seats: derive used from active members. Total + renewal date prefer the
+  // real Stripe-backed organization_subscriptions (authoritative, mirrors
+  // useAdminOrgBilling's precedence), fall back to demo org_billing, else a
+  // generous default while the billing row is being seeded.
   const usedSeats = rows.filter((r) => r.status === 'active').length;
   const { data: billingPlan } = useQuery({
     queryKey: ['admin-people-seats-plan', orgId],
     enabled: !!orgId,
     staleTime: 60_000,
     queryFn: async (): Promise<{ total: number; renewsAt: string } | null> => {
+      const fmtDate = (iso: string) =>
+        new Date(iso.slice(0, 10) + 'T00:00:00').toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+        });
+
+      const { data: sub } = await supabase
+        .from('organization_subscriptions')
+        .select('seat_count, current_period_end')
+        .eq('organization_id', orgId)
+        .maybeSingle();
+      if (sub) {
+        return {
+          total: sub.seat_count ?? 350,
+          renewsAt: sub.current_period_end ? fmtDate(sub.current_period_end) : 'TBD',
+        };
+      }
+
       const { data, error } = await supabase
         .from('org_billing')
         .select('seats_total, next_renewal_date')
@@ -303,12 +322,7 @@ export function useAdminPeople(orgId: string): AdminPeopleData {
       if (!data) return null;
       return {
         total: data.seats_total ?? 350,
-        renewsAt: data.next_renewal_date
-          ? new Date(data.next_renewal_date + 'T00:00:00').toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-            })
-          : 'TBD',
+        renewsAt: data.next_renewal_date ? fmtDate(data.next_renewal_date) : 'TBD',
       };
     },
   });
