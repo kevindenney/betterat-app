@@ -33,6 +33,8 @@ import {
   type FollowedPersonRow,
 } from '@/hooks/useFollowedPeopleForLibrary';
 import { useAdoptStep } from '@/hooks/useTimelineSteps';
+import { useInterestCapabilityCoverage } from '@/hooks/useInterestCapabilityCoverage';
+import { useFollowedStepGapTouch } from '@/hooks/useFollowedStepGapTouch';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { WatchNearbySection } from '@/components/watch/WatchNearbySection';
 import { WatchFilterRow, type WatchFilterChip } from '@/components/watch/WatchFilterRow';
@@ -99,7 +101,7 @@ function formatRelativeTime(iso: string): string {
 export default function WatchScreen() {
   const insets = useSafeAreaInsets();
   const homeVenue = useUserHomeVenue();
-  const { currentInterest } = useInterest();
+  const { currentInterest, allInterests, domainInterestIds } = useInterest();
   const { user } = useAuth();
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [grouping, setGrouping] = useState<GroupingId>('all');
@@ -119,10 +121,11 @@ export default function WatchScreen() {
     });
   };
 
-  const { data: feed = [], isLoading } = useFollowedStepsFeed(
-    user?.id ?? null,
-    currentInterest?.id,
-  );
+  const { data: feed = [], isLoading } = useFollowedStepsFeed(user?.id ?? null);
+
+  // The viewer's coverage for their *active* interest — drives the gap-aware
+  // "touches your {gap}" tagging on the active band below.
+  const { coverage } = useInterestCapabilityCoverage(currentInterest?.id ?? null);
 
   // "By group" feed — fleetmates' steps, scoped to the active fleet. Fleets
   // aren't org_memberships (separate fleet_members table), so resolve them
@@ -201,8 +204,60 @@ export default function WatchScreen() {
     return feed;
   }, [feed, peopleFilter]);
 
+  // Interest id → display name, so cross-interest cards can name their craft.
+  const interestNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const i of allInterests) m.set(i.id, i.name);
+    return m;
+  }, [allInterests]);
+
+  // "Related" = the active interest's domain siblings (shared parent). This
+  // is the same set the InterestProvider's domain view uses, so a sailor on
+  // Sail Racing sees a golfer they follow under "related crafts" without any
+  // new relatedness model.
+  const relatedInterestIds = useMemo(() => {
+    const set = new Set(domainInterestIds);
+    if (currentInterest?.id) set.delete(currentInterest.id);
+    return set;
+  }, [domainInterestIds, currentInterest?.id]);
+
+  // Band the (already person/blueprint-filtered) feed by interest: active +
+  // untagged first, then related crafts, then everyone else. Follows are
+  // global; the banding gives focus without hiding cross-interest activity.
+  const bands = useMemo(() => {
+    const active: FollowedStepItem[] = [];
+    const related: FollowedStepItem[] = [];
+    const other: FollowedStepItem[] = [];
+    for (const item of filteredFeed) {
+      const iid = item.interestId;
+      if (!iid || iid === currentInterest?.id) active.push(item);
+      else if (relatedInterestIds.has(iid)) related.push(item);
+      else other.push(item);
+    }
+    return { active, related, other };
+  }, [filteredFeed, currentInterest?.id, relatedInterestIds]);
+
+  // Which active-band steps touch one of the viewer's capability gaps, and
+  // sort those to the top — Watch should lead with "people working on what
+  // you're weakest at," not just the most recent thing.
+  const activeStepIds = useMemo(() => bands.active.map((i) => i.id), [bands.active]);
+  const gapTouch = useFollowedStepGapTouch(currentInterest?.id ?? null, coverage, activeStepIds);
+  const sortedActive = useMemo(() => {
+    return [...bands.active].sort((a, b) => {
+      const ag = (gapTouch.get(a.id)?.length ?? 0) > 0 ? 1 : 0;
+      const bg = (gapTouch.get(b.id)?.length ?? 0) > 0 ? 1 : 0;
+      if (ag !== bg) return bg - ag; // gap-touching first
+      return b.updatedAt.localeCompare(a.updatedAt); // then most recent
+    });
+  }, [bands.active, gapTouch]);
+
+  const [showAllOthers, setShowAllOthers] = useState(false);
+
   const hasFeed = feed.length > 0;
   const hasCohort = cohortStream.length > 0;
+  const activeBandEyebrow = currentInterest?.name
+    ? `Latest in ${currentInterest.name}`
+    : 'Latest from your people';
 
   return (
     <View style={styles.container}>
@@ -258,23 +313,89 @@ export default function WatchScreen() {
                   selectedId={peopleFilter}
                   onSelect={setPeopleFilter}
                 />
-                <Text style={styles.sectionEyebrow}>Latest from your people</Text>
-                {filteredFeed.length > 0 ? (
-                  <View style={styles.feed}>
-                    {filteredFeed.map((item) => (
-                      <WatchCard
-                        key={item.id}
-                        item={item}
-                        blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
-                        fallbackInterestId={currentInterest?.id ?? null}
-                        relationshipLabel="you follow"
-                      />
-                    ))}
-                  </View>
+                {filteredFeed.length === 0 ? (
+                  <Text style={styles.emptyCopy}>No steps match this filter yet.</Text>
                 ) : (
-                  <Text style={styles.emptyCopy}>
-                    No steps match this filter yet.
-                  </Text>
+                  <>
+                    {/* Band 1 — active interest (and untagged steps). */}
+                    <Text style={styles.sectionEyebrow}>{activeBandEyebrow}</Text>
+                    {sortedActive.length > 0 ? (
+                      <View style={styles.feed}>
+                        {sortedActive.map((item) => (
+                          <WatchCard
+                            key={item.id}
+                            item={item}
+                            blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
+                            fallbackInterestId={currentInterest?.id ?? null}
+                            relationshipLabel="you follow"
+                            gapCategories={gapTouch.get(item.id) ?? null}
+                          />
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={styles.bandEmptyCopy}>
+                        {currentInterest?.name
+                          ? `No ${currentInterest.name} activity yet — here’s what your people are working on elsewhere.`
+                          : 'Here’s what your people are working on.'}
+                      </Text>
+                    )}
+
+                    {/* Band 2 — related crafts (same domain). */}
+                    {bands.related.length > 0 ? (
+                      <View style={styles.bandBlock}>
+                        <Text style={styles.sectionEyebrow}>From related crafts</Text>
+                        <View style={styles.feed}>
+                          {bands.related.map((item) => (
+                            <WatchCard
+                              key={item.id}
+                              item={item}
+                              blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
+                              fallbackInterestId={currentInterest?.id ?? null}
+                              relationshipLabel="you follow"
+                              interestLabel={interestNameById.get(item.interestId ?? '') ?? null}
+                            />
+                          ))}
+                        </View>
+                      </View>
+                    ) : null}
+
+                    {/* Band 3 — everyone else you follow, collapsed. */}
+                    {bands.other.length > 0 ? (
+                      <View style={styles.bandBlock}>
+                        <Pressable
+                          style={styles.bandDisclosure}
+                          onPress={() => setShowAllOthers((s) => !s)}
+                          accessibilityRole="button"
+                          accessibilityState={{ expanded: showAllOthers }}
+                        >
+                          <Ionicons
+                            name={showAllOthers ? 'chevron-down' : 'chevron-forward'}
+                            size={15}
+                            color={IOS_COLORS.secondaryLabel}
+                          />
+                          <Text style={styles.bandDisclosureText}>
+                            {showAllOthers
+                              ? 'Hide other interests'
+                              : `${bands.other.length} more across everything you follow`}
+                          </Text>
+                        </Pressable>
+                        {showAllOthers ? (
+                          <View style={styles.feed}>
+                            {bands.other.map((item) => (
+                              <WatchCard
+                                key={item.id}
+                                item={item}
+                                blueprintTitle={blueprintTitleFor(item.sourceBlueprintId)}
+                                fallbackInterestId={currentInterest?.id ?? null}
+                                relationshipLabel="you follow"
+                                interestLabel={interestNameById.get(item.interestId ?? '') ?? null}
+                              />
+                            ))}
+                          </View>
+                        ) : null}
+                      </View>
+                    ) : null}
+                  </>
                 )}
               </View>
             ) : null}
@@ -612,6 +733,8 @@ function WatchCard({
   blueprintTitle,
   fallbackInterestId,
   relationshipLabel,
+  interestLabel,
+  gapCategories,
 }: {
   item: FollowedStepItem;
   blueprintTitle?: string | null;
@@ -619,6 +742,12 @@ function WatchCard({
   /** Viewer's relationship to the author ("you follow", "groupmate"),
    * shown in the byline. */
   relationshipLabel?: string | null;
+  /** Craft this step belongs to, shown only on cross-interest cards
+   * (related / other bands) so the viewer knows it isn't their active one. */
+  interestLabel?: string | null;
+  /** Viewer's gap categories this step evidences ("touches your X gap").
+   * Only set on active-interest cards. */
+  gapCategories?: string[] | null;
 }) {
   const statusMeta = STATUS_META[item.status];
   const adopt = useAdoptStep();
@@ -628,6 +757,14 @@ function WatchCard({
   // (Cohort provenance isn't carried on this feed shape yet.)
   const provenanceLabel = item.sourceBlueprintId ? 'Blueprint' : 'Step';
   const targetInterestId = item.interestId ?? fallbackInterestId ?? null;
+  // "This step exercises something you're weak at." Single gap → name it;
+  // multiple → count, so the chip stays one line.
+  const gapLabel =
+    gapCategories && gapCategories.length > 0
+      ? gapCategories.length === 1
+        ? `Touches your ${gapCategories[0]} gap`
+        : `Touches ${gapCategories.length} of your gaps`
+      : null;
 
   const openStep = () =>
     router.push(`/step/${item.id}?readOnly=true&origin=watch` as never);
@@ -681,10 +818,26 @@ function WatchCard({
             <Text style={styles.wBylineText} numberOfLines={1}>
               {byline}
             </Text>
+            {interestLabel ? (
+              <View style={styles.interestChip}>
+                <Text style={styles.interestChipText} numberOfLines={1}>
+                  {interestLabel}
+                </Text>
+              </View>
+            ) : null}
             <View style={styles.provChip}>
               <Text style={styles.provChipText}>{provenanceLabel}</Text>
             </View>
           </View>
+
+          {gapLabel ? (
+            <View style={styles.gapChip}>
+              <Ionicons name="flag-outline" size={12} color="#B25E00" />
+              <Text style={styles.gapChipText} numberOfLines={1}>
+                {gapLabel}
+              </Text>
+            </View>
+          ) : null}
 
           {item.locationName || blueprintTitle ? (
             <View style={styles.metaWrap}>
@@ -898,6 +1051,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: IOS_SPACING.lg,
     marginBottom: 8,
   },
+  bandBlock: {
+    marginTop: IOS_SPACING.lg,
+  },
+  bandEmptyCopy: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+    paddingHorizontal: IOS_SPACING.lg,
+  },
+  bandDisclosure: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: IOS_SPACING.lg,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  bandDisclosureText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: IOS_COLORS.secondaryLabel,
+  },
   card: {
     padding: 16,
     borderRadius: 20,
@@ -1080,6 +1258,39 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     color: IOS_COLORS.secondaryLabel,
+  },
+  interestChip: {
+    maxWidth: 120,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(0,122,255,0.10)',
+  },
+  interestChipText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: IOS_COLORS.systemBlue,
+  },
+  gapChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    marginTop: 8,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(255,149,0,0.12)',
+  },
+  gapChipText: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    color: '#B25E00',
   },
   wFoot: {
     flexDirection: 'row',

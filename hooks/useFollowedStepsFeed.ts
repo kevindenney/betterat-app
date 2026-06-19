@@ -47,11 +47,10 @@ const STATUS_MAP: Record<string, FollowedStepStatus> = {
 
 export function useFollowedStepsFeed(
   viewerId: string | null | undefined,
-  interestId?: string | null,
   limit = 50,
 ) {
   return useQuery({
-    queryKey: ['followed-steps-feed', viewerId, interestId ?? null, limit],
+    queryKey: ['followed-steps-feed', viewerId, limit],
     enabled: Boolean(viewerId),
     staleTime: 30_000,
     queryFn: async (): Promise<FollowedStepItem[]> => {
@@ -75,23 +74,17 @@ export function useFollowedStepsFeed(
       //    filtering ("Users can view followed users timeline steps");
       //    no need to repeat visibility/allow_follower_sharing here.
       //
-      //    Scope to the active interest when one is set: people are
-      //    followed globally, but the Watch tab is interest-scoped, so a
-      //    sailor's racing steps must not surface on a Nursing Watch tab.
-      //    Match the Library rule — "tagged for this interest OR untagged"
-      //    — so an uncategorised step still shows rather than vanishing.
-      let stepQuery = supabase
+      //    The feed is interest-agnostic: people are followed globally, so
+      //    we return every followed step (each row keeps its interest_id).
+      //    Watch bands the result by interest — active, related (same
+      //    domain), then everything else — rather than hard-filtering, so
+      //    an early interest never reads as an empty "nobody here" screen.
+      const { data: steps, error: stepsErr } = await supabase
         .from('timeline_steps')
         .select(
           'id, user_id, title, description, status, interest_id, organization_id, source_blueprint_id, location_name, updated_at',
         )
-        .in('user_id', followedIds);
-      if (interestId) {
-        stepQuery = stepQuery.or(
-          `interest_id.eq.${interestId},interest_id.is.null`,
-        );
-      }
-      const { data: steps, error: stepsErr } = await stepQuery
+        .in('user_id', followedIds)
         .order('updated_at', { ascending: false })
         .limit(limit);
       if (stepsErr) {
