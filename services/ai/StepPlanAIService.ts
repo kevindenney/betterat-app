@@ -24,7 +24,9 @@ import { getUserLibrary, getResources } from '@/services/LibraryService';
 import { getManifesto } from '@/services/ManifestoService';
 import { getActiveInsights, formatInsightsForPrompt } from '@/services/AIMemoryService';
 import { getMeasurementHistory, formatMeasurementsForPrompt, type MeasurementHistorySummary } from '@/services/MeasurementExtractionService';
+import { getPlaybookByUserInterest, getConcepts, getPatterns, getReviews } from '@/services/PlaybookService';
 import type { UserInterestManifesto, AIInterestInsight } from '@/types/manifesto';
+import type { PlaybookConceptRecord, PlaybookPatternRecord, PlaybookReviewRecord } from '@/types/playbook';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,6 +53,12 @@ export interface EnrichedPlanContext {
   aiInsights?: AIInterestInsight[];
   /** Measurement history from recent sessions */
   measurementHistory?: MeasurementHistorySummary;
+  /** User-authored distilled concepts from their playbook */
+  playbookConcepts?: PlaybookConceptRecord[];
+  /** AI-detected patterns across the user's own practice */
+  playbookPatterns?: PlaybookPatternRecord[];
+  /** Most recent weekly review (focus + knowledge health) */
+  latestPlaybookReview?: PlaybookReviewRecord | null;
 }
 
 /** Legacy interface kept for backward compat */
@@ -126,8 +134,11 @@ export async function gatherEnrichedContext(
   manifesto: UserInterestManifesto | null;
   aiInsights: AIInterestInsight[];
   measurementHistory: MeasurementHistorySummary;
+  playbookConcepts: PlaybookConceptRecord[];
+  playbookPatterns: PlaybookPatternRecord[];
+  latestPlaybookReview: PlaybookReviewRecord | null;
 }> {
-  const [stepHistory, orgCompetencies, followedUsersActivity, orgPrograms, userCapabilityProgress, libraryResources, manifesto, aiInsights, measurementHistory] =
+  const [stepHistory, orgCompetencies, followedUsersActivity, orgPrograms, userCapabilityProgress, libraryResources, manifesto, aiInsights, measurementHistory, playbookLayers] =
     await Promise.all([
       getFullStepHistory(userId, interestId),
       getOrgCompetencies(userId, interestId),
@@ -138,9 +149,54 @@ export async function gatherEnrichedContext(
       getManifesto(userId, interestId).catch(() => null),
       getActiveInsights(userId, interestId).catch(() => []),
       getMeasurementHistory(userId, interestId).catch(() => ({ hasData: false, recentSessions: [], exercisePRs: {} }) as MeasurementHistorySummary),
+      gatherPlaybookLayers(userId, interestId),
     ]);
 
-  return { stepHistory, orgCompetencies, followedUsersActivity, orgPrograms, userCapabilityProgress, libraryResources, manifesto, aiInsights, measurementHistory };
+  return {
+    stepHistory,
+    orgCompetencies,
+    followedUsersActivity,
+    orgPrograms,
+    userCapabilityProgress,
+    libraryResources,
+    manifesto,
+    aiInsights,
+    measurementHistory,
+    playbookConcepts: playbookLayers.concepts,
+    playbookPatterns: playbookLayers.patterns,
+    latestPlaybookReview: playbookLayers.latestReview,
+  };
+}
+
+/**
+ * Fetch the user's *synthesized* playbook layers (distilled concepts,
+ * AI-detected patterns, latest weekly review) for an interest. Read-only:
+ * returns empty results when the user has no playbook yet, and never creates
+ * one. Each sub-fetch is independently defensive so a single failure can't
+ * sink the planning context.
+ */
+async function gatherPlaybookLayers(
+  userId: string,
+  interestId: string,
+): Promise<{
+  concepts: PlaybookConceptRecord[];
+  patterns: PlaybookPatternRecord[];
+  latestReview: PlaybookReviewRecord | null;
+}> {
+  try {
+    const playbook = await getPlaybookByUserInterest(userId, interestId);
+    if (!playbook) return { concepts: [], patterns: [], latestReview: null };
+
+    const [concepts, patterns, reviews] = await Promise.all([
+      getConcepts(playbook.id, interestId).catch(() => [] as PlaybookConceptRecord[]),
+      getPatterns(playbook.id).catch(() => [] as PlaybookPatternRecord[]),
+      getReviews(playbook.id, 1).catch(() => [] as PlaybookReviewRecord[]),
+    ]);
+
+    return { concepts, patterns, latestReview: reviews[0] ?? null };
+  } catch {
+    return { concepts: [], patterns: [], latestReview: null };
+  }
 }
 
 /**
@@ -452,6 +508,79 @@ export function formatLibraryForPrompt(resources: LibraryResourceRecord[]): stri
   return lines.join('\n');
 }
 
+/** Collapse markdown/whitespace to a single trimmed line, capped to maxLen. */
+function oneLineExcerpt(text: string | null | undefined, maxLen = 160): string {
+  if (!text) return '';
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length > maxLen ? `${flat.slice(0, maxLen - 1)}…` : flat;
+}
+
+/**
+ * User-authored distilled concepts. Baselines (playbook_id null) are platform
+ * content, not the user's own knowledge, so we drop them. Settled concepts rank
+ * first, then most recently updated. Capped at 8, one line each.
+ */
+export function formatConceptsForPrompt(concepts: PlaybookConceptRecord[]): string {
+  const authored = concepts.filter((c) => c.playbook_id);
+  if (authored.length === 0) return '';
+
+  const ranked = [...authored].sort((a, b) => {
+    const aSettled = a.state === 'settled' ? 1 : 0;
+    const bSettled = b.state === 'settled' ? 1 : 0;
+    if (aSettled !== bSettled) return bSettled - aSettled;
+    return (b.updated_at ?? '').localeCompare(a.updated_at ?? '');
+  });
+
+  return ranked
+    .slice(0, 8)
+    .map((c) => {
+      const excerpt = oneLineExcerpt(c.ai_synthesis_text || c.body_md || c.body, 140);
+      return excerpt ? `- ${c.title}: ${excerpt}` : `- ${c.title}`;
+    })
+    .join('\n');
+}
+
+/**
+ * AI-detected patterns in the user's own practice. Pinned first, then most
+ * recent (input is already non-dismissed, sorted by created_at desc). Cap 5.
+ */
+export function formatPatternsForPrompt(patterns: PlaybookPatternRecord[]): string {
+  if (patterns.length === 0) return '';
+
+  const ranked = [...patterns].sort((a, b) => {
+    const aPinned = a.status === 'pinned' ? 1 : 0;
+    const bPinned = b.status === 'pinned' ? 1 : 0;
+    return bPinned - aPinned;
+  });
+
+  return ranked
+    .slice(0, 5)
+    .map((p) => {
+      const excerpt = oneLineExcerpt(p.body_md, 140);
+      return excerpt ? `- ${p.title}: ${excerpt}` : `- ${p.title}`;
+    })
+    .join('\n');
+}
+
+/** Latest weekly review — surface the focus suggestion and any flagged gaps. */
+export function formatLatestReviewForPrompt(review: PlaybookReviewRecord | null | undefined): string {
+  if (!review) return '';
+
+  const parts: string[] = [];
+  const focus = oneLineExcerpt(review.focus_suggestion_md, 240);
+  if (focus) parts.push(`Focus suggestion: ${focus}`);
+
+  const gaps = review.knowledge_health?.gaps ?? [];
+  if (gaps.length) {
+    const gapLines = gaps
+      .slice(0, 3)
+      .map((g) => `  - ${g.topic}${g.description ? `: ${oneLineExcerpt(g.description, 100)}` : ''}`);
+    parts.push(`Knowledge gaps to address:\n${gapLines.join('\n')}`);
+  }
+
+  return parts.join('\n');
+}
+
 // ---------------------------------------------------------------------------
 // Prompt Building
 // ---------------------------------------------------------------------------
@@ -480,6 +609,30 @@ function buildEnrichedPrompt(ctx: EnrichedPlanContext): string {
     const insightsBlock = formatInsightsForPrompt(ctx.aiInsights);
     if (insightsBlock) {
       sections.push(`AI INSIGHTS (learned patterns about this user):\n${insightsBlock}`);
+    }
+  }
+
+  // Playbook — the user's own distilled knowledge. Highest-signal context after
+  // their manifesto: concepts they wrote, patterns detected in their practice,
+  // and their latest weekly focus. Suggestions should build on these by name.
+  if (ctx.playbookConcepts?.length) {
+    const conceptsBlock = formatConceptsForPrompt(ctx.playbookConcepts);
+    if (conceptsBlock) {
+      sections.push(`YOUR DISTILLED KNOWLEDGE (concepts you've written):\n${conceptsBlock}`);
+    }
+  }
+
+  if (ctx.playbookPatterns?.length) {
+    const patternsBlock = formatPatternsForPrompt(ctx.playbookPatterns);
+    if (patternsBlock) {
+      sections.push(`PATTERNS IN YOUR OWN PRACTICE:\n${patternsBlock}`);
+    }
+  }
+
+  if (ctx.latestPlaybookReview) {
+    const reviewBlock = formatLatestReviewForPrompt(ctx.latestPlaybookReview);
+    if (reviewBlock) {
+      sections.push(`YOUR LATEST WEEKLY FOCUS:\n${reviewBlock}`);
     }
   }
 
@@ -599,14 +752,16 @@ export async function generateEnrichedPlanSuggestion(ctx: EnrichedPlanContext): 
   const systemPrompt = `You are an expert learning coach on the BetterAt platform. You help people deliberately practice and improve at "${ctx.interestName}".
 
 Your role is to suggest what the user should focus on in their next practice session, considering:
-1. Their full step history — what they've done, learned, and where they rated themselves low
-2. Organization-defined competencies — especially ones they haven't mastered yet
-3. What people they follow are working on — for social learning and inspiration
-4. Programs they're enrolled in — to align with structured learning paths
-5. Their linked resources — to suggest specific exercises from materials they have
-6. Their resource library — suggest specific resources they already own that are relevant to this session. For courses, note their progress and suggest the next unfinished lesson.
+1. Their own distilled knowledge — concepts they've written, patterns detected in their practice, and their latest weekly focus. This is what they've personally learned; build directly on it.
+2. Their full step history — what they've done, learned, and where they rated themselves low
+3. Organization-defined competencies — especially ones they haven't mastered yet
+4. What people they follow are working on — for social learning and inspiration
+5. Programs they're enrolled in — to align with structured learning paths
+6. Their linked resources — to suggest specific exercises from materials they have
+7. Their resource library — suggest specific resources they already own that are relevant to this session. For courses, note their progress and suggest the next unfinished lesson.
 
 Be specific and practical. Suggest 2-3 concrete activities or exercises. Prioritize:
+- Building on the user's own concepts, patterns, and weekly focus — reference them by name ("Building on your note about X…") so the suggestion visibly connects to what they've already learned
 - Competencies where they're still developing (not yet "competent")
 - Skills where they rated themselves low (1-2 out of 5)
 - Natural progressions from what they learned in recent steps
@@ -667,14 +822,15 @@ export async function generateChatPlanSuggestion(
   const systemPrompt = `You are an expert learning coach on the BetterAt platform. You help people deliberately practice and improve at "${ctx.interestName}".
 
 Your role is to have a conversation about what the user should focus on in their practice session. Consider:
-1. Their full step history — what they've done, learned, and where they rated themselves low
-2. Organization-defined competencies — especially ones they haven't mastered yet
-3. What people they follow are working on — for social learning and inspiration
-4. Programs they're enrolled in — to align with structured learning paths
-5. Their linked resources — to suggest specific exercises from materials they have
-6. Their resource library — reference specific resources they already own. For courses, note progress and suggest the next lesson.
+1. Their own distilled knowledge — concepts they've written, patterns detected in their practice, and their latest weekly focus. Build directly on it and reference it by name.
+2. Their full step history — what they've done, learned, and where they rated themselves low
+3. Organization-defined competencies — especially ones they haven't mastered yet
+4. What people they follow are working on — for social learning and inspiration
+5. Programs they're enrolled in — to align with structured learning paths
+6. Their linked resources — to suggest specific exercises from materials they have
+7. Their resource library — reference specific resources they already own. For courses, note progress and suggest the next lesson.
 
-Be specific and practical. When suggesting activities, give 2-3 concrete exercises. Reference specific resources from their library by name when relevant. Respond conversationally but concisely (under 200 words per response). Write in second person ("You could..."). Do not use markdown formatting.`;
+Be specific and practical. When suggesting activities, give 2-3 concrete exercises. Build on the user's own concepts, patterns, and weekly focus by name when relevant, and reference specific resources from their library by name when relevant. Respond conversationally but concisely (under 200 words per response). Write in second person ("You could..."). Do not use markdown formatting.`;
 
   // Build messages array: enriched context as first user message, then full chat history
   const contextMessage = `The user is planning a step titled "${ctx.stepTitle}".

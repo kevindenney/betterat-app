@@ -30,7 +30,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
@@ -43,6 +42,7 @@ import { CrewSparseList } from './CrewSparseList';
 import { ANALYSIS_MIN_STEPS, stepHasOwnerReflection } from './realDataAdapter';
 import { ReflectionSparkline } from './ReflectionSparkline';
 import { VisionBlock } from './VisionBlock';
+import { CollapsibleModule } from './CollapsibleModule';
 import { VisionEditSheet } from './VisionEditSheet';
 import { useUpdateInterestVision } from '@/hooks/useInterestVision';
 import { useUpdatePlan, useCreatePlan } from '@/hooks/usePlan';
@@ -125,6 +125,22 @@ interface L3SeasonViewProps {
     beforeStepId: string | null,
     afterStepId: string | null,
   ) => void;
+  /**
+   * Reorder-time status flip + placement. Fires when a step is dragged across
+   * the NOW divider in reorder mode — `toBehind` true means it was dropped
+   * into the done-behind zone (intent: mark done), false into the queued-ahead
+   * zone (intent: reopen). `beforeStepId`/`afterStepId` are the drop's
+   * neighbours WITHIN the target zone, so the owner can land the step where it
+   * was dropped (not auto-append). The owner confirms + writes status (and
+   * captures), since completion carries side effects a silent flip shouldn't
+   * trigger. When omitted, a cross-NOW drag stays on its own side.
+   */
+  onMoveAcrossNow?: (
+    stepId: string,
+    toBehind: boolean,
+    beforeStepId: string | null,
+    afterStepId: string | null,
+  ) => void;
   /** Frame 12 multi-select — when true, taps toggle selection instead of opening. */
   selectEnabled?: boolean;
   isSelected?: (stepId: string) => boolean;
@@ -154,6 +170,7 @@ export function L3SeasonView({
   onReflectOnStep,
   onEnterSelectMode,
   onReorderStep,
+  onMoveAcrossNow,
   selectEnabled = false,
   isSelected,
   onToggleSelect,
@@ -169,7 +186,6 @@ export function L3SeasonView({
   const season = dataset.seasons.find((s) => s.id === effectiveSeasonId)
     ?? dataset.seasons.find((s) => s.id === dataset.currentSeasonId);
 
-  const [chartWidth, setChartWidth] = useState(0);
   const [openPicker, setOpenPicker] = useState<
     'season' | 'step' | 'reflect' | null
   >(null);
@@ -217,20 +233,6 @@ export function L3SeasonView({
   // the drag, not the scroll.
   const [isReordering, setIsReordering] = useState(false);
   const [reorderDragging, setReorderDragging] = useState(false);
-
-  const onAnalysisLayout = useCallback((e: LayoutChangeEvent) => {
-    // Full block width — the floating zoom rail isn't reserved by the
-    // canvas (it hovers edge-to-edge), so charts subtract
-    // ZOOM_RAIL_RESERVED_WIDTH from this themselves (see riverWidth).
-    const w = Math.max(0, e.nativeEvent.layout.width);
-    if (w !== chartWidth) setChartWidth(w);
-  }, [chartWidth]);
-
-  // Full-bleed charts must stop short of the floating zoom rail's lane so
-  // their right edge (latest-week axis tick, rightmost bands) isn't
-  // occluded by it. The block is measured edge-to-edge; subtract the
-  // rail's reserved lane here.
-  const riverWidth = Math.max(0, chartWidth - ZOOM_RAIL_RESERVED_WIDTH);
 
   // Flatten the current season's steps into one ordered list. The drag
   // hook reasons in this flat coordinate space; the UI still renders
@@ -310,26 +312,68 @@ export function L3SeasonView({
     return [...behindNow, ...ahead];
   }, [visibleWeeks]);
 
-  // Reorder commit. The drag hook reasons in flat index space; the canvas
-  // owner writes sort_order between two neighbours. We replay the move on a
-  // copy of the season-ordered list, then hand the owner the resulting
-  // before/after neighbour ids (display order is oldest→newest = ascending
-  // sort_order, so prev = lower / next = higher, matching the owner's
-  // insertion contract).
+  // Reorder list order MUST match the work view (snakeSteps), or dragging
+  // reads as scrambled — the river shows done-behind then queued-ahead, but
+  // raw sort_order interleaves the two. Same partition as snakeSteps, off the
+  // unfiltered list (reorder is only offered unfiltered).
+  const orderedSteps = useMemo(() => {
+    const behindNow = flatSteps.filter((s) => isBehindNow(s.status));
+    const ahead = flatSteps.filter((s) => !isBehindNow(s.status));
+    return [...behindNow, ...ahead];
+  }, [flatSteps]);
+
+  // Reorder commit. The drag hook reasons in index space over the SAME list we
+  // render (orderedSteps). The canvas owner writes sort_order between two
+  // neighbours — but sort_order only orders WITHIN a partition (done-behind vs
+  // queued-ahead), never across NOW. So we resolve the moved step's nearest
+  // SAME-partition neighbours; a cross-partition neighbour would write an
+  // out-of-range position that the next render's partition would snap back.
   const handleReorder = useCallback(
     (stepId: string, fromIndex: number, toIndex: number) => {
       if (!onReorderStep || fromIndex === toIndex) return;
-      const next = [...flatSteps];
+      const next = [...orderedSteps];
       const [moved] = next.splice(fromIndex, 1);
       if (!moved) return;
       next.splice(toIndex, 0, moved);
       const pos = next.findIndex((s) => s.id === stepId);
       if (pos < 0) return;
-      const beforeStepId = pos > 0 ? next[pos - 1].id : null;
-      const afterStepId = pos < next.length - 1 ? next[pos + 1].id : null;
+      const movedBehind = isBehindNow(moved.status);
+
+      // Did the drop land on the OTHER side of NOW? orderedSteps is
+      // [behind…, ahead…]; after removing the moved step, the behind zone is
+      // [0 … remainingBehind-1] and the drop slot is "behind" when its index
+      // falls inside it. A side change is an intent to flip status (mark done
+      // / reopen) — but it's ALSO a placement: the step should land where it
+      // was dropped, in the NEW zone. So resolve neighbours in the target
+      // partition and hand both the flip and the drop position to the owner's
+      // guarded flow; skip the normal same-side sort_order write.
+      // Neighbours are resolved in the DROP zone (targetBehind) — which equals
+      // the step's own zone for a same-side reorder, or the new zone for a
+      // cross-NOW flip, so placement is correct either way.
+      const behindCount = orderedSteps.filter((s) => isBehindNow(s.status)).length;
+      const remainingBehind = behindCount - (movedBehind ? 1 : 0);
+      const targetBehind = toIndex < remainingBehind;
+      let beforeStepId: string | null = null;
+      for (let i = pos - 1; i >= 0; i -= 1) {
+        if (isBehindNow(next[i].status) === targetBehind) {
+          beforeStepId = next[i].id;
+          break;
+        }
+      }
+      let afterStepId: string | null = null;
+      for (let i = pos + 1; i < next.length; i += 1) {
+        if (isBehindNow(next[i].status) === targetBehind) {
+          afterStepId = next[i].id;
+          break;
+        }
+      }
+      if (targetBehind !== movedBehind && onMoveAcrossNow) {
+        onMoveAcrossNow(stepId, targetBehind, beforeStepId, afterStepId);
+        return;
+      }
       onReorderStep(stepId, beforeStepId, afterStepId);
     },
-    [onReorderStep, flatSteps],
+    [onReorderStep, onMoveAcrossNow, orderedSteps],
   );
 
   // Reorder is only offered on the unfiltered full-season list (a partial
@@ -561,227 +605,279 @@ export function L3SeasonView({
       ) : null}
 
       {hasAnalysis && analysis ? (
-        <View style={styles.analysisBlock} onLayout={onAnalysisLayout}>
-          {flatSteps.length >= ANALYSIS_MIN_STEPS ? (
-            <>
-              <Text style={styles.sectionEyebrow}>{interestVocab.capabilityHeader}</Text>
-              {capabilityHeadline ? (
-                <Text style={styles.sectionHeadline}>
-                  <Text
-                    style={[
-                      styles.sectionHeadlineAccent,
-                      { color: capabilityHeadline.color },
-                    ]}
-                  >
-                    {capabilityHeadline.label}
-                  </Text>
-                  {capabilityHeadline.elapsed > 1
-                    ? ` has anchored this ${interestVocab.periodNoun} — ${capabilityHeadline.weeksPresent} of ${capabilityHeadline.elapsed} weeks.`
-                    : ` is anchoring this ${interestVocab.periodNoun} so far.`}
-                </Text>
-              ) : null}
-              <CapabilityMix
-                weeklyCapabilities={analysis.weeklyCapabilities}
-                totalWeeks={totalWeeks}
-                currentWeekNumber={currentWeek}
-                reflections={analysis.reflections}
-                markers={analysis.markers?.map((m) => ({
-                  id: m.id,
-                  weekNumber: m.weekNumber,
-                  label: m.label,
-                  color: m.capabilityColor,
-                }))}
-                width={riverWidth}
-                height={188}
-                isolatedCapabilityId={activeThread?.id ?? null}
-                showBandLabels={false}
-                onCapabilityPress={(id, label, color) =>
-                  toggleThread({ id, label, color })
-                }
-              />
-            </>
-          ) : (
-            <View style={styles.riverEmpty}>
-              <Text style={styles.riverEmptyText}>
-                Add a few more steps to see how your work spreads across capabilities.
-              </Text>
-            </View>
-          )}
-
-          {/* CAPABILITIES pills — the river chart's legend AND its drill-in
-              filter. Docked directly under the chart (rather than bundled
-              with the people pills at the bottom) because the bands carry no
-              inline labels: these dot·name·count chips are the only thing that
-              tells a sailor or nursing student what each colour means. Tap to
-              isolate a thread (chart dims + THE WORK filters). */}
-          {capabilityFamilies.families.length > 0 &&
-          flatSteps.length >= ANALYSIS_MIN_STEPS ? (
-            <View style={styles.cluster}>
-              <View style={styles.capChipsWrap}>
-                {capabilityFamilies.families.slice(0, 6).map((f) => {
-                  const active = activeThread?.id === f.id;
-                  return (
-                    <Pressable
-                      key={f.id}
-                      style={[
-                        styles.capChip,
-                        active && [styles.capChipActive, { borderColor: f.color }],
-                      ]}
-                      onPress={() =>
-                        toggleThread({ id: f.id, label: f.label, color: f.color })
-                      }
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                      accessibilityLabel={`${f.label}, ${f.volume} ${
-                        f.volume === 1 ? 'step' : 'steps'
-                      } — ${active ? 'showing only this thread' : 'isolate this thread'}`}
-                    >
-                      <View style={[styles.capChipDot, { backgroundColor: f.color }]} />
-                      <Text style={styles.capChipLabel} numberOfLines={1}>
-                        {f.label}
-                      </Text>
-                      <Text style={styles.capChipCount}>{f.volume}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <Text style={styles.capChipsCaption}>
-                {activeThread
-                  ? 'Showing only this thread below — tap it again to clear'
-                  : 'Tap a capability to filter the log'}
-              </Text>
-            </View>
-          ) : null}
-
-          {analysis.reflectionDensity && analysis.reflectionDensity.length > 0 ? (
-            <Pressable
-              onPress={onReflectOnStep ? () => setOpenPicker('reflect') : undefined}
-              style={({ pressed }) => [
-                styles.reflectionSection,
-                pressed && onReflectOnStep ? styles.reflectionSectionPressed : null,
-              ]}
-            >
-              {/* Below the river's step threshold the arc has a single
-                  bucket-week, so the sparkline degenerates to one floating
-                  blob under the empty-state card — keep just the caption. */}
-              {flatSteps.length >= ANALYSIS_MIN_STEPS ? (
-                <View style={styles.sparklineWrap}>
-                  <ReflectionSparkline
-                    density={analysis.reflectionDensity}
-                    totalWeeks={totalWeeks}
-                    currentWeekNumber={currentWeek}
-                    width={riverWidth}
-                    height={16}
-                  />
-                </View>
-              ) : null}
-              <Text style={styles.reflectionCaption}>
-                <Text style={styles.reflectionCaptionAccent}>✷ Reflections</Text>
-                {pauseWeeks.length > 0
-                  ? ` — you paused ${pauseWeeks
-                      .map((w) => `wk ${w}`)
-                      .join(' · ')}`
-                  : ` — no reflection pauses yet this ${interestVocab.periodNoun}`}
-                {onReflectOnStep ? (
-                  <Text style={styles.reflectionCaptionAction}>{'  Reflect now →'}</Text>
-                ) : null}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {analysis.peers.length > 0 ? (
-            <>
-              <Text style={[styles.sectionEyebrow, styles.sectionEyebrowSpace]}>
-                {interestVocab.crewHeader}
-              </Text>
-              {analysis.cohortHeadline ? (
-                <Text style={styles.sectionHeadline}>
-                  <Text
-                    style={[
-                      styles.sectionHeadlineAccent,
-                      { color: analysis.cohortHeadline.color },
-                    ]}
-                  >
-                    {analysis.cohortHeadline.name}
-                  </Text>
-                  {analysis.cohortHeadline.elapsed > 1
-                    ? ` shaped this ${interestVocab.periodNoun} most — ${analysis.cohortHeadline.weeksPresent} of ${analysis.cohortHeadline.elapsed} weeks.`
-                    : ` is shaping this ${interestVocab.periodNoun} so far.`}
-                </Text>
-              ) : null}
-              {isSparseCrew(analysis.peers) ||
-              flatSteps.length < ANALYSIS_MIN_STEPS ? (
-                <CrewSparseList
-                  peers={analysis.peers}
-                  totalWeeks={totalWeeks}
-                  isolatedPeerId={activePerson?.id ?? null}
-                />
-              ) : (
-                <PeerJourneyChart
-                  peers={analysis.peers}
-                  totalWeeks={totalWeeks}
-                  currentWeekNumber={currentWeek}
-                  width={riverWidth}
-                  compact={analysis.peers.length <= 3}
-                  showLegend={false}
-                  peerSharedFleets={fleetCohort?.peerToFleets}
-                  viewerFleets={fleetCohort?.fleets}
-                  isolatedPeerId={activePerson?.id ?? null}
-                />
-              )}
-
-              {/* WHO SHAPED IT pills — docked under the cohort chart they
-                  legend, mirroring the capability pills under the river. Each
-                  isolates one person and filters THE WORK to their steps. */}
-              {peopleFamilies.length > 0 ? (
-                <View style={styles.cluster}>
-                  <View style={styles.capChipsWrap}>
-                    {peopleFamilies.slice(0, 8).map((p) => {
-                      const active = activePerson?.id === p.id;
-                      return (
-                        <Pressable
-                          key={p.id}
+        <View style={styles.analysisBlock}>
+          {/* CAPABILITIES — the band river + its legend/filter chips, folded
+              into one collapsible card so the arc rests calm. */}
+          <CollapsibleModule
+            icon="color-filter-outline"
+            label={interestVocab.capabilityHeader}
+            headline={
+              capabilityHeadline
+                ? `${capabilityHeadline.label}${
+                    capabilityHeadline.elapsed > 1
+                      ? ` · ${capabilityHeadline.weeksPresent}/${capabilityHeadline.elapsed} wks`
+                      : ''
+                  }`
+                : undefined
+            }
+          >
+            {(w) => (
+              <>
+                {flatSteps.length >= ANALYSIS_MIN_STEPS ? (
+                  <>
+                    {capabilityHeadline ? (
+                      <Text style={[styles.sectionHeadline, styles.moduleHeadline]}>
+                        <Text
                           style={[
-                            styles.personChip,
-                            active && [styles.capChipActive, { borderColor: p.color }],
+                            styles.sectionHeadlineAccent,
+                            { color: capabilityHeadline.color },
                           ]}
-                          onPress={() =>
-                            togglePerson({ id: p.id, name: p.name, color: p.color })
-                          }
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: active }}
-                          accessibilityLabel={`${p.name}${
-                            p.role ? `, ${p.role}` : ''
-                          }, ${p.count} ${p.count === 1 ? 'step' : 'steps'} — ${
-                            active ? 'showing only their steps' : 'isolate their steps'
-                          }`}
                         >
-                          <View
-                            style={[styles.personAvatar, { backgroundColor: p.color }]}
-                          >
-                            <Text style={styles.personAvatarText}>{p.initials}</Text>
-                          </View>
-                          <Text style={styles.personName} numberOfLines={1}>
-                            {p.name}
-                          </Text>
-                          {p.role ? (
-                            <Text style={styles.personRole} numberOfLines={1}>
-                              {p.role}
-                            </Text>
-                          ) : null}
-                          <Text style={styles.capChipCount}>{p.count}</Text>
-                        </Pressable>
-                      );
-                    })}
+                          {capabilityHeadline.label}
+                        </Text>
+                        {capabilityHeadline.elapsed > 1
+                          ? ` has anchored this ${interestVocab.periodNoun} — ${capabilityHeadline.weeksPresent} of ${capabilityHeadline.elapsed} weeks.`
+                          : ` is anchoring this ${interestVocab.periodNoun} so far.`}
+                      </Text>
+                    ) : null}
+                    <CapabilityMix
+                      weeklyCapabilities={analysis.weeklyCapabilities}
+                      totalWeeks={totalWeeks}
+                      currentWeekNumber={currentWeek}
+                      reflections={analysis.reflections}
+                      markers={analysis.markers?.map((m) => ({
+                        id: m.id,
+                        weekNumber: m.weekNumber,
+                        label: m.label,
+                        color: m.capabilityColor,
+                      }))}
+                      width={Math.max(0, w - (ZOOM_RAIL_RESERVED_WIDTH - 16))}
+                      height={188}
+                      isolatedCapabilityId={activeThread?.id ?? null}
+                      showBandLabels={false}
+                      onCapabilityPress={(id, label, color) =>
+                        toggleThread({ id, label, color })
+                      }
+                    />
+                  </>
+                ) : (
+                  <View style={styles.riverEmpty}>
+                    <Text style={styles.riverEmptyText}>
+                      Add a few more steps to see how your work spreads across capabilities.
+                    </Text>
                   </View>
-                  <Text style={styles.capChipsCaption}>
-                    {activePerson
-                      ? 'Showing only this person below — tap it again to clear'
-                      : 'Tap a person to filter the log'}
-                  </Text>
-                </View>
-              ) : null}
-            </>
+                )}
+
+                {/* CAPABILITIES pills — the river chart's legend AND its
+                    drill-in filter. The bands carry no inline labels: these
+                    dot·name·count chips are the only thing that tells a
+                    sailor or nursing student what each colour means. Tap to
+                    isolate a thread (chart dims + THE WORK filters). */}
+                {capabilityFamilies.families.length > 0 &&
+                flatSteps.length >= ANALYSIS_MIN_STEPS ? (
+                  <View style={styles.cluster}>
+                    <View style={styles.capChipsWrap}>
+                      {capabilityFamilies.families.slice(0, 6).map((f) => {
+                        const active = activeThread?.id === f.id;
+                        return (
+                          <Pressable
+                            key={f.id}
+                            style={[
+                              styles.capChip,
+                              active && [styles.capChipActive, { borderColor: f.color }],
+                            ]}
+                            onPress={() =>
+                              toggleThread({ id: f.id, label: f.label, color: f.color })
+                            }
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: active }}
+                            accessibilityLabel={`${f.label}, ${f.volume} ${
+                              f.volume === 1 ? 'step' : 'steps'
+                            } — ${active ? 'showing only this thread' : 'isolate this thread'}`}
+                          >
+                            <View style={[styles.capChipDot, { backgroundColor: f.color }]} />
+                            <Text style={styles.capChipLabel} numberOfLines={1}>
+                              {f.label}
+                            </Text>
+                            <Text style={styles.capChipCount}>{f.volume}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    <Text style={styles.capChipsCaption}>
+                      {activeThread
+                        ? 'Showing only this thread below — tap it again to clear'
+                        : 'Tap a capability to filter the log'}
+                    </Text>
+                  </View>
+                ) : null}
+              </>
+            )}
+          </CollapsibleModule>
+
+          {/* REFLECTIONS — pause sparkline + capture nudge. Capture the
+              density into a const so its non-undefined narrowing survives
+              into the render-prop closure below. */}
+          {(() => {
+            const density = analysis.reflectionDensity;
+            if (!density || density.length === 0) return null;
+            return (
+              <CollapsibleModule
+                icon="sparkles-outline"
+                label="Reflections"
+                headline={
+                  pauseWeeks.length > 0
+                    ? `Paused ${pauseWeeks.map((w) => `wk ${w}`).join(' · ')}`
+                    : `No pauses yet this ${interestVocab.periodNoun}`
+                }
+              >
+                {(w) => (
+                  <>
+                    {/* Below the river's step threshold the arc has a single
+                        bucket-week, so the sparkline degenerates to one floating
+                        blob — keep just the caption. */}
+                    {flatSteps.length >= ANALYSIS_MIN_STEPS ? (
+                      <View style={styles.sparklineWrap}>
+                        <ReflectionSparkline
+                          density={density}
+                          totalWeeks={totalWeeks}
+                          currentWeekNumber={currentWeek}
+                          width={Math.max(0, w - (ZOOM_RAIL_RESERVED_WIDTH - 16))}
+                          height={16}
+                        />
+                      </View>
+                    ) : null}
+                    <Text style={styles.reflectionCaption}>
+                      <Text style={styles.reflectionCaptionAccent}>✷ Reflections</Text>
+                      {pauseWeeks.length > 0
+                        ? ` — you paused ${pauseWeeks
+                            .map((wk) => `wk ${wk}`)
+                            .join(' · ')}`
+                        : ` — no reflection pauses yet this ${interestVocab.periodNoun}`}
+                    </Text>
+                    {onReflectOnStep ? (
+                      <Pressable
+                        onPress={() => setOpenPicker('reflect')}
+                        style={({ pressed }) => [
+                          styles.moduleCta,
+                          pressed && styles.moduleCtaPressed,
+                        ]}
+                      >
+                        <Text style={styles.moduleCtaText}>Reflect now →</Text>
+                      </Pressable>
+                    ) : null}
+                  </>
+                )}
+              </CollapsibleModule>
+            );
+          })()}
+
+          {/* CREW — cohort journey + the people who shaped the arc. */}
+          {analysis.peers.length > 0 ? (
+            <CollapsibleModule
+              icon="people-outline"
+              label={interestVocab.crewHeader}
+              headline={
+                analysis.cohortHeadline
+                  ? `${analysis.cohortHeadline.name}${
+                      analysis.cohortHeadline.elapsed > 1
+                        ? ` · ${analysis.cohortHeadline.weeksPresent}/${analysis.cohortHeadline.elapsed} wks`
+                        : ''
+                    }`
+                  : undefined
+              }
+            >
+              {(w) => (
+                <>
+                  {analysis.cohortHeadline ? (
+                    <Text style={[styles.sectionHeadline, styles.moduleHeadline]}>
+                      <Text
+                        style={[
+                          styles.sectionHeadlineAccent,
+                          { color: analysis.cohortHeadline.color },
+                        ]}
+                      >
+                        {analysis.cohortHeadline.name}
+                      </Text>
+                      {analysis.cohortHeadline.elapsed > 1
+                        ? ` shaped this ${interestVocab.periodNoun} most — ${analysis.cohortHeadline.weeksPresent} of ${analysis.cohortHeadline.elapsed} weeks.`
+                        : ` is shaping this ${interestVocab.periodNoun} so far.`}
+                    </Text>
+                  ) : null}
+                  {isSparseCrew(analysis.peers) ||
+                  flatSteps.length < ANALYSIS_MIN_STEPS ? (
+                    <CrewSparseList
+                      peers={analysis.peers}
+                      totalWeeks={totalWeeks}
+                      isolatedPeerId={activePerson?.id ?? null}
+                    />
+                  ) : (
+                    <PeerJourneyChart
+                      peers={analysis.peers}
+                      totalWeeks={totalWeeks}
+                      currentWeekNumber={currentWeek}
+                      width={Math.max(0, w - (ZOOM_RAIL_RESERVED_WIDTH - 16))}
+                      compact={analysis.peers.length <= 3}
+                      showLegend={false}
+                      peerSharedFleets={fleetCohort?.peerToFleets}
+                      viewerFleets={fleetCohort?.fleets}
+                      isolatedPeerId={activePerson?.id ?? null}
+                    />
+                  )}
+
+                  {/* WHO SHAPED IT pills — mirror the capability pills. Each
+                      isolates one person and filters THE WORK to their steps. */}
+                  {peopleFamilies.length > 0 ? (
+                    <View style={styles.cluster}>
+                      <View style={styles.capChipsWrap}>
+                        {peopleFamilies.slice(0, 8).map((p) => {
+                          const active = activePerson?.id === p.id;
+                          return (
+                            <Pressable
+                              key={p.id}
+                              style={[
+                                styles.personChip,
+                                active && [styles.capChipActive, { borderColor: p.color }],
+                              ]}
+                              onPress={() =>
+                                togglePerson({ id: p.id, name: p.name, color: p.color })
+                              }
+                              accessibilityRole="button"
+                              accessibilityState={{ selected: active }}
+                              accessibilityLabel={`${p.name}${
+                                p.role ? `, ${p.role}` : ''
+                              }, ${p.count} ${p.count === 1 ? 'step' : 'steps'} — ${
+                                active ? 'showing only their steps' : 'isolate their steps'
+                              }`}
+                            >
+                              <View
+                                style={[styles.personAvatar, { backgroundColor: p.color }]}
+                              >
+                                <Text style={styles.personAvatarText}>{p.initials}</Text>
+                              </View>
+                              <Text style={styles.personName} numberOfLines={1}>
+                                {p.name}
+                              </Text>
+                              {p.role ? (
+                                <Text style={styles.personRole} numberOfLines={1}>
+                                  {p.role}
+                                </Text>
+                              ) : null}
+                              <Text style={styles.capChipCount}>{p.count}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      <Text style={styles.capChipsCaption}>
+                        {activePerson
+                          ? 'Showing only this person below — tap it again to clear'
+                          : 'Tap a person to filter the log'}
+                      </Text>
+                    </View>
+                  ) : null}
+                </>
+              )}
+            </CollapsibleModule>
           ) : null}
 
           {analysis.librarianPrompt ? (
@@ -878,7 +974,7 @@ export function L3SeasonView({
 
       {isReordering ? (
         <SnakeReorderList
-          steps={flatSteps}
+          steps={orderedSteps}
           onReorder={handleReorder}
           onDraggingChange={setReorderDragging}
         />
@@ -1311,17 +1407,6 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 18,
   },
-  sectionEyebrow: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: IOS_REGISTER.labelSecondary,
-    marginLeft: 16,
-    marginBottom: 6,
-  },
-  sectionEyebrowSpace: {
-    marginTop: 18,
-  },
   sectionHeadline: {
     fontFamily: fontFamily.serif,
     fontSize: 16,
@@ -1334,6 +1419,29 @@ const styles = StyleSheet.create({
   },
   sectionHeadlineAccent: {
     fontWeight: '600',
+  },
+  // The styled headline sentence, when shown inside a module body the card
+  // padding already supplies the inset — drop the full-bleed side margins.
+  moduleHeadline: {
+    marginLeft: 0,
+    marginRight: 0,
+    marginTop: 0,
+    marginBottom: 12,
+  },
+  // Capture nudge inside the Reflections module.
+  moduleCta: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(157,112,201,0.12)',
+  },
+  moduleCtaPressed: { opacity: 0.6 },
+  moduleCtaText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#9D70C9',
   },
   // Pill cluster — wraps a row of filter chips + its caption. Used twice:
   // capability chips docked under the river chart, people chips under the
@@ -1348,7 +1456,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 7,
-    marginHorizontal: 16,
     marginTop: 12,
   },
   capChip: {
@@ -1426,20 +1533,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontStyle: 'italic',
     color: IOS_REGISTER.labelTertiary,
-    marginLeft: 16,
     marginTop: 8,
     letterSpacing: 0.1,
   },
-  sparklineWrap: {
-    marginHorizontal: 16,
-  },
-  reflectionSection: {
-    marginTop: 18,
-  },
+  sparklineWrap: {},
   reflectionCaption: {
     fontSize: 11,
     color: IOS_REGISTER.labelTertiary,
-    marginLeft: 16,
     marginTop: 5,
     letterSpacing: 0.1,
   },
@@ -1447,15 +1547,7 @@ const styles = StyleSheet.create({
     color: '#9D70C9',
     fontWeight: '600',
   },
-  reflectionCaptionAction: {
-    color: '#9D70C9',
-    fontWeight: '700',
-  },
-  reflectionSectionPressed: {
-    opacity: 0.55,
-  },
   riverEmpty: {
-    marginHorizontal: 16,
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderRadius: 10,

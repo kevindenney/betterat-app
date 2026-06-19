@@ -120,6 +120,20 @@ interface TimelineZoomCanvasProps {
     afterStepId: string | null,
   ) => void;
   /**
+   * Reorder-time status flip + placement (L3). Fires when a step is dragged
+   * across the NOW divider — `toBehind` true = dropped into done-behind (mark
+   * done), false = dropped into queued-ahead (reopen). `beforeStepId`/
+   * `afterStepId` are the drop's neighbours in the target zone so the parent
+   * can place the step where dropped. The parent confirms and writes status +
+   * position; a silent flip would skip the completion capture loop.
+   */
+  onStepCrossNow?: (
+    stepId: string,
+    toBehind: boolean,
+    beforeStepId: string | null,
+    afterStepId: string | null,
+  ) => void;
+  /**
    * Frame 12 bulk-edit hooks. The canvas owns select-mode state and the
    * bottom action bar; the parent wires the actual mutations. Archive
    * fires for every selected id with status='skipped'; Delete fires
@@ -197,6 +211,7 @@ export function TimelineZoomCanvas({
   hideInterestHeader = false,
   embedFullDetailAtL1 = false,
   onReorderStep,
+  onStepCrossNow,
   onBulkArchive,
   onBulkDelete,
   onBulkMove,
@@ -574,6 +589,7 @@ export function TimelineZoomCanvas({
                     onOpenStep={handleOpenStep}
                     onReflectOnStep={onReflectOnStep}
                     onReorderStep={select.enabled ? undefined : onReorderStep}
+                    onMoveAcrossNow={select.enabled ? undefined : onStepCrossNow}
                     onEnterSelectMode={select.enter}
                     selectEnabled={select.enabled}
                     isSelected={select.isSelected}

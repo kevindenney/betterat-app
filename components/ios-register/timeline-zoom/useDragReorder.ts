@@ -42,12 +42,12 @@ export interface UseDragReorderArgs<T extends { id: string }> {
   /** Disabled in non-owner mode (e.g. blueprint preview surfaces). */
   enabled?: boolean;
   /**
-   * Optional drop interceptor. Called at the start of every drop with the
-   * dropped item id. Return true to "consume" the drop — the hook then skips
-   * the reorder (onReorder is not called). Lets a caller repurpose a drop into
-   * a different action (e.g. L2 marks a step done when dropped left of NOW).
+   * Optional drop interceptor. Called on every drop with the dropped item id
+   * and its from/to indices. Return true to "consume" the drop — the hook then
+   * skips the reorder (onReorder is not called). Lets a caller repurpose a drop
+   * into a different action (e.g. dropping a step across NOW flips its status).
    */
-  onDrop?: (itemId: string) => boolean;
+  onDrop?: (itemId: string, fromIndex: number, toIndex: number) => boolean;
   /**
    * Axis the items are arranged along — 'vertical' for L3's two-up
    * weeks (default), 'horizontal' for L2's swiping carousel. Hit
@@ -88,6 +88,12 @@ export function useDragReorder<T extends { id: string }>({
   const rowRectsRef = useRef<Map<string, RowRect>>(new Map());
   const startIndexRef = useRef<number>(-1);
   const startCenterRef = useRef<number>(0);
+  // Mirror dropTargetIndex into a ref so handleDrop can resolve the target
+  // WITHOUT reading it inside a setState updater. Side effects a caller runs
+  // on drop (e.g. showing a confirm sheet for a cross-NOW status flip) must
+  // not fire from inside React's state-update phase, or the alert can swallow
+  // the gesture's next touch and freeze further drags.
+  const dropTargetIndexRef = useRef<number | null>(null);
   const itemsRef = useRef(items);
   itemsRef.current = items;
   const axisRef = useRef(axis);
@@ -118,6 +124,7 @@ export function useDragReorder<T extends { id: string }>({
     startCenterRef.current = rect.start + rect.length / 2;
     setLiftedId(itemId);
     setDropTargetIndex(index);
+    dropTargetIndexRef.current = index;
     setLiftedTranslate(0);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
   }, []);
@@ -127,6 +134,7 @@ export function useDragReorder<T extends { id: string }>({
       setLiftedTranslate(translation);
       const fingerCoord = startCenterRef.current + translation;
       const idx = computeIndexFromCoord(fingerCoord);
+      dropTargetIndexRef.current = idx;
       setDropTargetIndex((prev) => {
         if (prev !== idx) {
           Haptics.selectionAsync().catch(() => {});
@@ -139,17 +147,21 @@ export function useDragReorder<T extends { id: string }>({
 
   const handleDrop = useCallback(() => {
     const from = startIndexRef.current;
-    const consumed = liftedId ? onDrop?.(liftedId) === true : false;
-    setDropTargetIndex((to) => {
-      const target = to ?? from;
-      if (!consumed && liftedId && from !== target && from >= 0 && target >= 0) {
+    const target = dropTargetIndexRef.current ?? from;
+    // Resolve + dispatch OUTSIDE any setState updater (target comes from a
+    // ref, not the updater arg) so a caller's onDrop side effect — e.g. a
+    // confirm sheet — runs in a plain callback and doesn't wedge the gesture.
+    if (liftedId && from >= 0 && target >= 0) {
+      const consumed = onDrop?.(liftedId, from, target) === true;
+      if (!consumed && from !== target) {
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
         ).catch(() => {});
         onReorder(liftedId, from, target);
       }
-      return null;
-    });
+    }
+    setDropTargetIndex(null);
+    dropTargetIndexRef.current = null;
     setLiftedId(null);
     setLiftedTranslate(0);
     startIndexRef.current = -1;

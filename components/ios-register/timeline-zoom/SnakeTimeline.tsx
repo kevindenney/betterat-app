@@ -512,18 +512,26 @@ export function SnakeReorderList({
   return (
     <View style={styles.reorderList}>
       {steps.map((step, index) => (
-        <ReorderRow
-          key={step.id}
-          step={step}
-          index={index}
-          ordinal={index + 1}
-          isNext={index === nextIdx}
-          isLifted={drag.liftedId === step.id}
-          showDropBefore={drag.dropTargetIndex === index && drag.liftedId !== step.id}
-          liftedTranslateY={drag.liftedTranslate}
-          buildGesture={drag.buildItemGesture}
-          registerRowLayout={drag.registerRowLayout}
-        />
+        <React.Fragment key={step.id}>
+          {index === nextIdx && nextIdx > 0 ? (
+            <View style={styles.reorderNow}>
+              <View style={styles.reorderNowLine} />
+              <Text style={styles.reorderNowLabel}>NOW</Text>
+              <View style={styles.reorderNowLine} />
+            </View>
+          ) : null}
+          <ReorderRow
+            step={step}
+            index={index}
+            ordinal={index + 1}
+            isNext={index === nextIdx}
+            isLifted={drag.liftedId === step.id}
+            showDropBefore={drag.dropTargetIndex === index && drag.liftedId !== step.id}
+            liftedTranslateY={drag.liftedTranslate}
+            buildGesture={drag.buildItemGesture}
+            registerRowLayout={drag.registerRowLayout}
+          />
+        </React.Fragment>
       ))}
     </View>
   );
@@ -639,6 +647,26 @@ const styles = StyleSheet.create({
   reorderList: {
     marginHorizontal: 16,
     marginTop: 4,
+  },
+  reorderNow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  reorderNowLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: NOW,
+    opacity: 0.5,
+  },
+  reorderNowLabel: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    color: NOW,
   },
   reorderRow: {
     flexDirection: 'row',

@@ -119,6 +119,32 @@ export async function getPlaybookById(
   }
 }
 
+/**
+ * Read-only lookup of a user's playbook for an interest. Unlike
+ * getOrCreatePlaybook, this never creates a row — callers that merely read
+ * (e.g. enriching planning context) should use this so they don't spawn empty
+ * playbooks as a side effect. Returns null when the user has no playbook yet.
+ */
+export async function getPlaybookByUserInterest(
+  userId: string,
+  interestId: string,
+): Promise<PlaybookRecord | null> {
+  if (!userId?.trim() || !interestId?.trim()) return null;
+  try {
+    const { data, error } = await supabase
+      .from('playbooks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('interest_id', interestId)
+      .maybeSingle();
+    if (error) throw error;
+    return (data ?? null) as PlaybookRecord | null;
+  } catch (err) {
+    logger.error('Failed to fetch playbook by user+interest', err);
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 2. Resources — CRUD (ported from LibraryService)
 // ---------------------------------------------------------------------------

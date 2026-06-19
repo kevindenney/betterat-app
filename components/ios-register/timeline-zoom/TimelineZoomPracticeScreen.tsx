@@ -412,6 +412,57 @@ export function TimelineZoomPracticeScreen() {
     [steps, queryClient],
   );
 
+  // Reorder-time status flip + placement. The L3 reorder list reports a drag
+  // that crossed the NOW divider (toBehind = dropped into the done zone). We
+  // don't flip silently: completion fires the capture-what-happened loop that
+  // feeds Capabilities, and an accidental drag shouldn't trigger (or revert)
+  // that. So we confirm, then write the new status AND place the step where it
+  // was dropped (beforeStepId/afterStepId = its neighbours in the new zone) —
+  // dragging is placing, so it shouldn't snap to wherever its old sort_order
+  // lands. On "mark done" we also land the user in Reflect to capture.
+  const handleStepCrossNow = useCallback(
+    (
+      stepId: string,
+      toBehind: boolean,
+      beforeStepId: string | null,
+      afterStepId: string | null,
+    ) => {
+      const step = steps.find((s) => s.id === stepId);
+      if (!step) return;
+      const title = step.title?.trim() || 'this step';
+      const apply = (status: 'completed' | 'pending', thenReflect: boolean) => {
+        void updateStep
+          .mutateAsync({ stepId, input: { status } })
+          .then(() => {
+            if (thenReflect) handleReflectOnStep(stepId);
+          })
+          .catch(() =>
+            showAlert(
+              'Could not update',
+              'The step status could not be changed. Please try again.',
+            ),
+          );
+        handleReorderStep(stepId, beforeStepId, afterStepId);
+      };
+      if (toBehind) {
+        showConfirm(
+          `Mark "${title}" done?`,
+          'You did this prep — capture what happened next so it counts toward your capabilities.',
+          () => apply('completed', true),
+          { confirmText: 'Mark done' },
+        );
+      } else {
+        showConfirm(
+          `Reopen "${title}"?`,
+          'It moves back into your queue as planned work.',
+          () => apply('pending', false),
+          { confirmText: 'Reopen' },
+        );
+      }
+    },
+    [steps, updateStep, handleReflectOnStep, handleReorderStep],
+  );
+
   // Frame 12 bulk actions. Archive flips status to 'skipped' (the
   // schema's closest "off the active list" terminal state); delete is
   // the real destroy mutation behind a confirm. Move/Tag/Reschedule
@@ -721,6 +772,7 @@ export function TimelineZoomPracticeScreen() {
         onReflectOnStep={handleReflectOnStep}
         embedFullDetailAtL1
         onReorderStep={handleReorderStep}
+        onStepCrossNow={handleStepCrossNow}
         onBulkArchive={handleBulkArchive}
         onBulkDelete={handleBulkDelete}
         onBulkMove={handleBulkMove}

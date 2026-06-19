@@ -150,7 +150,9 @@ export function LinearWorkColumn({
 
       {groups.map((g) => (
         <View key={g.anchor.id} style={styles.group}>
-          <GroupHeader anchor={g.anchor} prepCount={g.prep.length} />
+          {g.prep.length > 1 ? (
+            <GroupHeader anchor={g.anchor} prepCount={g.prep.length} />
+          ) : null}
           {g.prep.length > 0 ? (
             <View style={styles.rail}>
               {g.prep.map((s) => (
@@ -192,37 +194,49 @@ function DoneLedger({ steps, ...shared }: { steps: TimelineStep[] } & SharedCard
         <Text style={styles.ledgerHeadText}>Done · {steps.length}</Text>
       </Pressable>
       {open
-        ? steps.map((s) => <DoneRow key={s.id} step={s} {...shared} />)
+        ? steps.map((s) => <DoneCard key={s.id} step={s} {...shared} />)
         : null}
     </View>
   );
 }
 
-function DoneRow({ step, selectEnabled, isSelected, onOpenStep, onToggleSelect, onLongPressStep }:
+// Done is the same card family as the runway ahead — just recessed and
+// green-keyed — so the whole sequence reads as one stack of step-cards
+// instead of a list that changes shape at NOW.
+function DoneCard({ step, total, ordById, selectEnabled, isSelected, onOpenStep, onToggleSelect, onLongPressStep }:
   { step: TimelineStep } & SharedCardProps) {
   const selected = isSelected?.(step.id) ?? false;
-  const cap = meaningfulCaps(step.capabilities)[0];
+  const caps = meaningfulCaps(step.capabilities).slice(0, 4);
+  const capLabels = caps.map((c) => c.label).join(' · ');
+  const eyebrow = eyebrowFor(step);
   return (
     <Pressable
-      style={styles.doneRow}
+      style={[styles.card, styles.cardDone, selected && styles.cardSelected]}
       onPress={selectEnabled ? () => onToggleSelect?.(step.id) : () => onOpenStep(step.id)}
       onLongPress={onLongPressStep}
       delayLongPress={300}
     >
-      {selectEnabled ? (
-        <View style={[styles.checkbox, selected && styles.checkboxOn]} />
-      ) : (
-        <View style={styles.doneCheck}>
-          <Ionicons name="checkmark" size={11} color={GREEN} />
-        </View>
-      )}
-      <View style={styles.doneBody}>
-        <Text style={styles.doneTitle} numberOfLines={1}>{step.title}</Text>
-        {step.locationName ?? step.metaLeft ? (
-          <Text style={styles.doneMeta} numberOfLines={1}>{step.locationName ?? step.metaLeft}</Text>
-        ) : null}
+      {eyebrow ? <Text style={styles.eyebrow} numberOfLines={1}>{eyebrow}</Text> : null}
+      <View style={styles.cardRow1}>
+        {selectEnabled ? (
+          <View style={[styles.checkbox, selected && styles.checkboxOn]} />
+        ) : (
+          <View style={[styles.pill, styles.pillDone]}>
+            <Ionicons name="checkmark" size={10} color={GREEN} />
+            <Text style={[styles.pillText, styles.pillDoneText]}>DONE</Text>
+          </View>
+        )}
+        <Text style={styles.ord}>{indexLabel(ordById.get(step.id), total)}</Text>
       </View>
-      {cap ? <View style={[styles.cdot, { backgroundColor: cap.color }]} /> : null}
+      <Text style={[styles.title, styles.titleDone]} numberOfLines={2}>{step.title}</Text>
+      {caps.length > 0 ? (
+        <View style={styles.capsRow}>
+          {caps.map((c) => (
+            <View key={c.id} style={[styles.cdot, { backgroundColor: c.color }]} />
+          ))}
+          {capLabels ? <Text style={styles.capLbl} numberOfLines={1}>{capLabels}</Text> : null}
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -401,11 +415,6 @@ const styles = StyleSheet.create({
   ledger: { marginBottom: 2 },
   ledgerHead: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 2 },
   ledgerHeadText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: IOS_REGISTER.labelTertiary, textTransform: 'uppercase' },
-  doneRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 8, paddingHorizontal: 8, borderRadius: 11 },
-  doneCheck: { width: 18, height: 18, borderRadius: 999, backgroundColor: 'rgba(52,199,89,0.16)', alignItems: 'center', justifyContent: 'center' },
-  doneBody: { flex: 1, minWidth: 0 },
-  doneTitle: { fontFamily: fontFamily.serif, fontStyle: 'italic', fontSize: 14, lineHeight: 17, color: '#54585f' },
-  doneMeta: { fontFamily: fontFamily.mono, fontSize: 10.5, color: IOS_REGISTER.labelTertiary, marginTop: 2 },
 
   /* NOW */
   now: { flexDirection: 'row', alignItems: 'center', gap: 9, marginVertical: 14, paddingHorizontal: 2 },
@@ -426,6 +435,7 @@ const styles = StyleSheet.create({
   /* cards */
   card: { backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: 'rgba(60,60,67,0.16)', borderRadius: 16, paddingHorizontal: 15, paddingVertical: 14, marginTop: 11, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   cardNext: { borderWidth: 1.5, borderColor: AZURE, backgroundColor: 'rgba(0,122,255,0.05)', shadowColor: AZURE, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  cardDone: { backgroundColor: '#F4F6F4', borderColor: 'rgba(31,134,54,0.20)', shadowOpacity: 0, elevation: 0, marginTop: 9 },
   cardFocused: { borderColor: AZURE, borderWidth: 1 },
   cardSelected: { borderColor: AZURE, backgroundColor: 'rgba(0,122,255,0.06)' },
   eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: IOS_REGISTER.labelTertiary, marginBottom: 6 },
@@ -434,14 +444,17 @@ const styles = StyleSheet.create({
   pillNext: { backgroundColor: 'rgba(0,122,255,0.14)' },
   pillPlanned: { backgroundColor: '#F0F0F4' },
   pillRace: { backgroundColor: 'rgba(217,71,107,0.14)' },
+  pillDone: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(52,199,89,0.16)' },
   pillText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  pillDoneText: { color: GREEN },
   ord: { fontFamily: fontFamily.mono, fontSize: 11, color: '#b6b8be', fontVariant: ['tabular-nums'] },
   title: { fontFamily: fontFamily.serif, fontStyle: 'italic', color: IOS_REGISTER.label, lineHeight: 21 },
   titleNext: { fontSize: 18 },
   titlePlanned: { fontSize: 15, lineHeight: 19 },
+  titleDone: { fontSize: 14, lineHeight: 18, color: '#565b56' },
   capsRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 11 },
   capLbl: { fontSize: 10.5, color: '#9a9ca2', marginLeft: 3, flex: 1 },
-  cdot: { width: 7, height: 7, borderRadius: 2 },
+  cdot: { width: 6, height: 14, borderRadius: 2 },
   startRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 13 },
   startText: { fontSize: 13, fontWeight: '700', color: AZURE },
 
