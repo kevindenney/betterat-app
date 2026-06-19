@@ -1326,6 +1326,38 @@ async function handleSubscriptionTeamCleanup(userId: string) {
   }
 }
 
+/** Unix seconds → YYYY-MM-DD, or null. */
+function unixToDate(unix?: number | null): string | null {
+  return unix ? new Date(unix * 1000).toISOString().slice(0, 10) : null;
+}
+
+/**
+ * Resolve the organization_subscriptions row an invoice belongs to — by its
+ * subscription id first, then its customer id. Returns null for invoices that
+ * aren't tied to a club subscription (e.g. consumer invoices).
+ */
+async function resolveOrgSubscription(
+  invoice: Stripe.Invoice,
+): Promise<{ organization_id: string; seat_count: number | null } | null> {
+  if (invoice.subscription) {
+    const { data } = await supabase
+      .from('organization_subscriptions')
+      .select('organization_id, seat_count')
+      .eq('stripe_subscription_id', invoice.subscription as string)
+      .maybeSingle();
+    if (data) return data;
+  }
+  if (invoice.customer) {
+    const { data } = await supabase
+      .from('organization_subscriptions')
+      .select('organization_id, seat_count')
+      .eq('stripe_customer_id', invoice.customer as string)
+      .maybeSingle();
+    if (data) return data;
+  }
+  return null;
+}
+
 /**
  * Handle paid invoice
  */
@@ -1385,29 +1417,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   // invoice's subscription first, then its customer. Returns early on a match —
   // an org invoice never belongs to a consumer (users) row below.
   {
-    const toDate = (unix?: number | null): string | null =>
-      unix ? new Date(unix * 1000).toISOString().slice(0, 10) : null;
-
-    let orgSub: { organization_id: string; seat_count: number | null } | null = null;
-    if (invoice.subscription) {
-      const { data } = await supabase
-        .from('organization_subscriptions')
-        .select('organization_id, seat_count')
-        .eq('stripe_subscription_id', invoice.subscription as string)
-        .maybeSingle();
-      orgSub = data;
-    }
-    if (!orgSub && invoice.customer) {
-      const { data } = await supabase
-        .from('organization_subscriptions')
-        .select('organization_id, seat_count')
-        .eq('stripe_customer_id', invoice.customer as string)
-        .maybeSingle();
-      orgSub = data;
-    }
-
+    const orgSub = await resolveOrgSubscription(invoice);
     if (orgSub) {
-      const createdDate = toDate(invoice.created)!;
+      const createdDate = unixToDate(invoice.created)!;
       const lineQty = invoice.lines?.data?.[0]?.quantity ?? null;
       const { error: invErr } = await supabase
         .from('org_invoices')
@@ -1416,15 +1428,15 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
             org_id: orgSub.organization_id,
             // invoice.number is the human-facing "ABCD-0001"; fall back to the id.
             invoice_number: invoice.number ?? invoice.id,
-            period_start: toDate(invoice.period_start) ?? createdDate,
-            period_end: toDate(invoice.period_end) ?? createdDate,
+            period_start: unixToDate(invoice.period_start) ?? createdDate,
+            period_end: unixToDate(invoice.period_end) ?? createdDate,
             // Flat Club tiers don't bill per seat; record the configured seat
             // allotment (or the line quantity) so the column stays meaningful.
             seats_billed: orgSub.seat_count ?? lineQty ?? 0,
             amount_cents: invoice.amount_paid ?? 0,
             status: 'paid',
-            paid_at: toDate(invoice.status_transitions?.paid_at) ?? createdDate,
-            due_at: toDate(invoice.due_date),
+            paid_at: unixToDate(invoice.status_transitions?.paid_at) ?? createdDate,
+            due_at: unixToDate(invoice.due_date),
             pdf_url: invoice.invoice_pdf ?? null,
             stripe_invoice_id: invoice.id,
           },
@@ -1472,8 +1484,46 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
  * Handle failed invoice payment
  */
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  // Organization (club) subscription invoice — record it as past_due so the
+  // Studio billing surface shows the open/overdue balance. Returns early; an
+  // org invoice never belongs to a consumer (users) row below.
+  {
+    const orgSub = await resolveOrgSubscription(invoice);
+    if (orgSub) {
+      const createdDate = unixToDate(invoice.created)!;
+      const lineQty = invoice.lines?.data?.[0]?.quantity ?? null;
+      const { error: invErr } = await supabase
+        .from('org_invoices')
+        .upsert(
+          {
+            org_id: orgSub.organization_id,
+            invoice_number: invoice.number ?? invoice.id,
+            period_start: unixToDate(invoice.period_start) ?? createdDate,
+            period_end: unixToDate(invoice.period_end) ?? createdDate,
+            seats_billed: orgSub.seat_count ?? lineQty ?? 0,
+            // Payment failed — record what's owed, not what cleared.
+            amount_cents: invoice.amount_due ?? 0,
+            status: 'past_due',
+            paid_at: null,
+            due_at: unixToDate(invoice.due_date),
+            pdf_url: invoice.invoice_pdf ?? null,
+            stripe_invoice_id: invoice.id,
+          },
+          { onConflict: 'org_id,invoice_number' },
+        );
+      if (invErr) {
+        console.error('[invoice.payment_failed] org_invoices upsert failed', invErr);
+      } else {
+        console.log(
+          `[invoice.payment_failed] Marked org invoice ${invoice.number ?? invoice.id} past_due for org ${orgSub.organization_id}`,
+        );
+      }
+      return;
+    }
+  }
+
   const customerId = invoice.customer as string;
-  
+
   const { data: user } = await supabase
     .from('users')
     .select('id, email')
