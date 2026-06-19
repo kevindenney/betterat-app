@@ -128,10 +128,11 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get org info
+    // Get org info. The Stripe customer id lives on organization_subscriptions
+    // (the organizations table has no stripe_customer_id column).
     const { data: org } = await supabase
       .from('organizations')
-      .select('id, name, stripe_customer_id')
+      .select('id, name')
       .eq('id', organizationId)
       .single();
 
@@ -141,6 +142,12 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const { data: existingSub } = await supabase
+      .from('organization_subscriptions')
+      .select('stripe_customer_id')
+      .eq('organization_id', organizationId)
+      .maybeSingle();
 
     // Get admin user email for the Stripe customer
     const { data: adminMembership } = await supabase
@@ -162,8 +169,9 @@ serve(async (req) => {
       adminEmail = adminUser?.email || '';
     }
 
-    // Get or create the Stripe customer for the org
-    let customerId = org.stripe_customer_id;
+    // Get or create the Stripe customer for the org. Persisted onto
+    // organization_subscriptions by the trailing upsert below.
+    let customerId = existingSub?.stripe_customer_id ?? null;
 
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -175,11 +183,6 @@ serve(async (req) => {
         },
       });
       customerId = customer.id;
-
-      await supabase
-        .from('organizations')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', organizationId);
     }
 
     const session = await stripe.checkout.sessions.create({
