@@ -14,7 +14,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -199,9 +199,9 @@ export function AdminBillingSurface() {
               </Text>
             </View>
           ) : null}
-          <Pressable style={s.ghostBtn}>
+          <Pressable style={s.ghostBtn} onPress={() => router.push('/organization/billing')}>
             <Ionicons name="arrow-down" size={13} color="#28406B" />
-            <Text style={s.ghostBtnText}>Downgrade plan</Text>
+            <Text style={s.ghostBtnText}>Change plan</Text>
           </Pressable>
         </View>
       </View>
