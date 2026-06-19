@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
 import { FleetDiscoveryService } from '@/services/FleetDiscoveryService';
+import { useMyVerifiedAdminOrgs } from '@/hooks/useMyVerifiedAdminOrgs';
 import { TUFTE_BACKGROUND } from '@/components/cards/constants';
 
 type Visibility = 'public' | 'private' | 'club';
@@ -53,12 +54,14 @@ export default function CreateFleetScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { data: adminOrgs = [] } = useMyVerifiedAdminOrgs();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [region, setRegion] = useState('');
   const [whatsappLink, setWhatsappLink] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('public');
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   const canSubmit = name.trim().length > 0 && !creating;
@@ -81,6 +84,7 @@ export default function CreateFleetScreen() {
         region: region.trim() || undefined,
         whatsapp_link: whatsappLink.trim() || undefined,
         visibility,
+        organization_id: organizationId || undefined,
       });
 
       if (!fleet) {
@@ -99,7 +103,7 @@ export default function CreateFleetScreen() {
     } finally {
       setCreating(false);
     }
-  }, [user?.id, name, description, region, whatsappLink, visibility, router]);
+  }, [user?.id, name, description, region, whatsappLink, visibility, organizationId, router]);
 
   return (
     <View style={styles.container}>
@@ -175,6 +179,48 @@ export default function CreateFleetScreen() {
             autoCorrect={false}
             keyboardType="url"
           />
+
+          {adminOrgs.length > 0 ? (
+            <>
+              <Text style={styles.fieldLabel}>CLUB</Text>
+              <View style={styles.visibilityGroup}>
+                <Pressable
+                  onPress={() => setOrganizationId(null)}
+                  style={[styles.visibilityRow, organizationId === null && styles.visibilityRowActive]}
+                >
+                  <View style={styles.visibilityText}>
+                    <Text style={[styles.visibilityLabel, organizationId === null && styles.visibilityLabelActive]}>
+                      No club
+                    </Text>
+                    <Text style={styles.visibilityHint}>A standalone fleet</Text>
+                  </View>
+                  <View style={[styles.radio, organizationId === null && styles.radioActive]}>
+                    {organizationId === null ? <View style={styles.radioDot} /> : null}
+                  </View>
+                </Pressable>
+                {adminOrgs.map((org) => {
+                  const active = organizationId === org.id;
+                  return (
+                    <Pressable
+                      key={org.id}
+                      onPress={() => setOrganizationId(org.id)}
+                      style={[styles.visibilityRow, active && styles.visibilityRowActive]}
+                    >
+                      <View style={styles.visibilityText}>
+                        <Text style={[styles.visibilityLabel, active && styles.visibilityLabelActive]}>
+                          {org.name}
+                        </Text>
+                        <Text style={styles.visibilityHint}>Members of this club can find it</Text>
+                      </View>
+                      <View style={[styles.radio, active && styles.radioActive]}>
+                        {active ? <View style={styles.radioDot} /> : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
 
           <Text style={styles.fieldLabel}>VISIBILITY</Text>
           <View style={styles.visibilityGroup}>

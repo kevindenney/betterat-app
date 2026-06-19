@@ -20,6 +20,7 @@ export interface Fleet {
   description?: string;
   class_id?: string;
   club_id?: string;
+  organization_id?: string;
   region?: string;
   whatsapp_link?: string;
   visibility: 'public' | 'private' | 'club';
@@ -34,6 +35,12 @@ export interface Fleet {
     name: string;
     venue_id?: string;
   };
+  /** The owning organization (yacht club), when the fleet is scoped to one. */
+  organizations?: {
+    id: string;
+    name: string;
+    slug: string | null;
+  } | null;
   member_count?: number;
 }
 
@@ -66,11 +73,16 @@ export class FleetDiscoveryService {
     limit: number = 10
   ): Promise<Fleet[]> {
     try {
+      // Left join boat_classes (not !inner): a fleet without a boat class is
+      // still a valid public fleet and must remain discoverable. An inner join
+      // silently dropped every class-less fleet (e.g. whole regions seeded
+      // without a class), so browse only ever showed classed fleets.
       let query = supabase
         .from('fleets')
         .select(`
           *,
-          boat_classes!inner(id, name)
+          boat_classes(id, name),
+          organizations(id, name, slug)
         `)
         .in('visibility', ['public', 'club'])
         .order('created_at', { ascending: false })
@@ -138,7 +150,8 @@ export class FleetDiscoveryService {
         .from('fleets')
         .select(`
           *,
-          boat_classes!inner(id, name)
+          boat_classes!inner(id, name),
+          organizations(id, name, slug)
         `)
         .in('class_id', classIds)
         .in('visibility', ['public', 'club'])
@@ -246,7 +259,8 @@ export class FleetDiscoveryService {
           fleet_id,
           fleets(
             *,
-            boat_classes(id, name)
+            boat_classes(id, name),
+            organizations(id, name, slug)
           )
         `)
         .eq('user_id', sailorId)
@@ -270,7 +284,8 @@ export class FleetDiscoveryService {
         .from('fleets')
         .select(`
           *,
-          boat_classes(id, name)
+          boat_classes(id, name),
+          organizations(id, name, slug)
         `)
         .or(`name.ilike.%${query}%,region.ilike.%${query}%,description.ilike.%${query}%`)
         .in('visibility', ['public', 'club'])
@@ -303,6 +318,55 @@ export class FleetDiscoveryService {
   }
 
   /**
+   * Fleets owned by an organization (yacht club). Returns whatever the viewer is
+   * allowed to see under RLS: public org fleets to anyone, plus club-visibility
+   * org fleets to that org's members. Used by the org page and the discovery
+   * screen's "Fleets at {your club}" section.
+   */
+  static async getFleetsByOrganization(
+    organizationId: string,
+    limit: number = 50
+  ): Promise<Fleet[]> {
+    if (!isUuid(organizationId)) return [];
+    try {
+      const { data: fleets, error } = await supabase
+        .from('fleets')
+        .select(`
+          *,
+          boat_classes(id, name),
+          organizations(id, name, slug)
+        `)
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+
+      const fleetsWithCounts = await Promise.all(
+        (fleets || []).map(async (fleet: any) => {
+          const { count } = await supabase
+            .from('fleet_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('fleet_id', fleet.id)
+            .eq('status', 'active');
+
+          return {
+            ...fleet,
+            member_count: count || 0,
+          };
+        })
+      );
+
+      return fleetsWithCounts.sort(
+        (a, b) => (b.member_count || 0) - (a.member_count || 0)
+      );
+    } catch (error) {
+      logger.error('Error getting fleets by organization:', error);
+      return [];
+    }
+  }
+
+  /**
    * Create a new fleet
    */
   static async createFleet(
@@ -312,6 +376,7 @@ export class FleetDiscoveryService {
       description?: string;
       class_id?: string;
       club_id?: string;
+      organization_id?: string;
       region?: string;
       whatsapp_link?: string;
       visibility?: 'public' | 'private' | 'club';

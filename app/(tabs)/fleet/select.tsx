@@ -1,361 +1,327 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, Link } from 'expo-router';
 import { DashboardSection } from '@/components/dashboard/shared';
 import { useAuth } from '@/providers/AuthProvider';
-import { supabase } from '@/services/supabase';
+import { useUserFleets } from '@/hooks/useFleetData';
+import { useMyOrgs, type MyOrg } from '@/hooks/useMyOrgs';
+import { FleetDiscoveryService, type Fleet } from '@/services/FleetDiscoveryService';
+import { fleetService } from '@/services/fleetService';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { createLogger } from '@/lib/utils/logger';
 
-interface Fleet {
-  id: string;
-  name: string;
-  slug: string;
-  class_id: string;
-  region: string;
-  metadata: {
-    fleet_size?: number;
-    primary_club?: string;
-    racing_schedule?: string;
-  };
-  boat_class?: {
-    name: string;
-    class_association: string | null;
-  };
-}
+const logger = createLogger('FleetSelect');
 
 export default function FleetSelectionScreen() {
   const { user } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [hongKongFleets, setHongKongFleets] = useState<Fleet[]>([]);
-  const [selectedFleets, setSelectedFleets] = useState<Set<string>>(new Set());
 
+  const { fleets: myFleets, refresh: refreshMyFleets } = useUserFleets(user?.id);
+  const { data: myOrgsData } = useMyOrgs();
+
+  const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
+  const [suggested, setSuggested] = useState<Fleet[]>([]);
+  const [browse, setBrowse] = useState<Fleet[]>([]);
+  const [searchResults, setSearchResults] = useState<Fleet[] | null>(null);
+  const [orgFleets, setOrgFleets] = useState<{ org: MyOrg; fleets: Fleet[] }[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Membership ids the viewer already belongs to, to seed the Join/Joined state.
+  const joinedIds = useMemo(
+    () => new Set(myFleets.map((m) => m.fleet.id)),
+    [myFleets],
+  );
+
+  // Default browse: suggested-for-you (by the sailor's boats) + all public fleets.
   useEffect(() => {
-    loadHongKongFleets();
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [browseFleets, suggestedFleets] = await Promise.all([
+          FleetDiscoveryService.discoverFleets(undefined, undefined, 50),
+          user?.id
+            ? FleetDiscoveryService.getSuggestedFleets(user.id)
+            : Promise.resolve([]),
+        ]);
+        if (cancelled) return;
+        setSuggested(suggestedFleets);
+        setBrowse(browseFleets);
+      } catch (error) {
+        logger.error('[FleetSelect] Error loading fleets', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
-  // Load user selections after Hong Kong fleets are loaded
+  // Fleets at the viewer's clubs — surfaced above the public browse list so a
+  // member who joins their yacht club lands on its fleets first. Includes the
+  // org's club-visibility fleets (readable here via the org-member RLS policy).
   useEffect(() => {
-    if (hongKongFleets.length > 0) {
-      loadUserSelections();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hongKongFleets.length, user?.id]);
-
-  const loadHongKongFleets = async () => {
-    logger.debug('[FleetSelect] loadHongKongFleets started');
-    try {
-      logger.debug('[FleetSelect] Fetching fleets from Supabase...');
-      const { data, error } = await supabase
-        .from('fleets')
-        .select(`
-          id,
-          name,
-          slug,
-          class_id,
-          region,
-          metadata,
-          boat_class:boat_classes(name, class_association)
-        `)
-        .eq('region', 'Hong Kong')
-        .order('name');
-
-      logger.debug('[FleetSelect] Query result:', { data, error, count: data?.length });
-
-      if (error) {
-        console.error('[FleetSelect] Query error:', error);
-        throw error;
-      }
-
-      logger.debug('[FleetSelect] Setting Hong Kong fleets:', data?.length);
-      // Transform data to ensure boat_class is a single object, not an array
-      const transformedData = (data || []).map(fleet => ({
-        ...fleet,
-        boat_class: Array.isArray(fleet.boat_class) ? fleet.boat_class[0] : fleet.boat_class
-      }));
-      setHongKongFleets(transformedData);
-    } catch (error) {
-      console.error('[FleetSelect] Error loading Hong Kong fleets:', error);
-    } finally {
-      logger.debug('[FleetSelect] Setting loading to false');
-      setLoading(false);
-    }
-  };
-
-  const loadUserSelections = async () => {
-    if (!user?.id || hongKongFleets.length === 0) return;
-
-    try {
-      // Get user's fleet memberships
-      const { data: memberships, error: memberError } = await supabase
-        .from('fleet_members')
-        .select('fleet_id')
-        .eq('user_id', user.id)
-        .eq('status', 'active');
-
-      if (memberError) throw memberError;
-
-      if (memberships && memberships.length > 0) {
-        const fleetIds = memberships.map(m => m.fleet_id);
-
-        // Select fleets that are in both user memberships and Hong Kong fleets list
-        const validSelections = new Set<string>();
-        const hongKongFleetIds = new Set(hongKongFleets.map(f => f.id));
-
-        fleetIds.forEach(fleetId => {
-          if (hongKongFleetIds.has(fleetId)) {
-            validSelections.add(fleetId);
-          }
-        });
-
-        setSelectedFleets(validSelections);
-      }
-    } catch (error) {
-      console.error('Error loading user selections:', error);
-    }
-  };
-
-  const toggleFleetSelection = (fleet: Fleet) => {
-    const newSelected = new Set(selectedFleets);
-    if (newSelected.has(fleet.id)) {
-      newSelected.delete(fleet.id);
-    } else {
-      newSelected.add(fleet.id);
-    }
-    setSelectedFleets(newSelected);
-  };
-
-  const saveSelections = async () => {
-    if (!user?.id) {
-      console.error('[FleetSelect] No user ID available');
+    let cancelled = false;
+    const orgs = myOrgsData ?? [];
+    if (orgs.length === 0) {
+      setOrgFleets([]);
       return;
     }
-
-    const saveStartTime = Date.now();
-    logger.debug(`[FleetSelect] ========== SAVE STARTED at ${new Date().toISOString()} ==========`);
-    logger.debug('[FleetSelect] User ID:', user.id);
-    logger.debug('[FleetSelect] Save start timestamp:', saveStartTime);
-
-    setSaving(true);
-    try {
-      const selectedFleetIds = Array.from(selectedFleets);
-      const selectedFleetsList = hongKongFleets.filter(f => selectedFleets.has(f.id));
-      logger.debug('[FleetSelect] Selected fleet count:', selectedFleetIds.length);
-      logger.debug('[FleetSelect] Selected fleet IDs:', selectedFleetIds);
-      logger.debug('[FleetSelect] Selected fleet names:', selectedFleetsList.map(f => f.name));
-
-      // Add user to selected fleets
-      logger.debug('[FleetSelect] Starting upsert operations...');
-      for (let i = 0; i < selectedFleetIds.length; i++) {
-        const fleetId = selectedFleetIds[i];
-        const upsertStartTime = Date.now();
-        logger.debug(`[FleetSelect] Upserting fleet ${i + 1}/${selectedFleetIds.length}: ${fleetId}`);
-
-        const { data, error } = await supabase
-          .from('fleet_members')
-          .upsert({
-            fleet_id: fleetId,
-            user_id: user.id,
-            role: 'member',
-            status: 'active',
-          }, {
-            onConflict: 'fleet_id,user_id',
-          })
-          .select();
-
-        const upsertEndTime = Date.now();
-        const upsertDuration = upsertEndTime - upsertStartTime;
-
-        if (error) {
-          logger.error(`[FleetSelect] Upsert error for fleet ${fleetId}:`, error);
-        } else {
-          logger.debug(`[FleetSelect] Upsert success for fleet ${fleetId} (took ${upsertDuration}ms):`, data);
-        }
+    const load = async () => {
+      try {
+        const results = await Promise.all(
+          orgs.map((org) => FleetDiscoveryService.getFleetsByOrganization(org.id, 50)),
+        );
+        if (cancelled) return;
+        const sections = orgs
+          .map((org, i) => ({ org, fleets: results[i] }))
+          .filter((s) => s.fleets.length > 0);
+        setOrgFleets(sections);
+      } catch (error) {
+        logger.error('[FleetSelect] Error loading org fleets', error);
       }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [myOrgsData]);
 
-      // Remove user from unselected fleets
-      const unselectedFleetIds = hongKongFleets
-        .filter(f => !selectedFleets.has(f.id))
-        .map(f => f.id);
+  // Debounce the search box.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
-      if (unselectedFleetIds.length > 0) {
-        logger.debug('[FleetSelect] Deleting unselected fleets:', unselectedFleetIds);
-        const deleteStartTime = Date.now();
-
-        const { error: deleteError } = await supabase
-          .from('fleet_members')
-          .delete()
-          .in('fleet_id', unselectedFleetIds)
-          .eq('user_id', user.id);
-
-        const deleteEndTime = Date.now();
-        const deleteDuration = deleteEndTime - deleteStartTime;
-
-        if (deleteError) {
-          logger.error('[FleetSelect] Delete error:', deleteError);
-        } else {
-          logger.debug(`[FleetSelect] Delete success (took ${deleteDuration}ms)`);
-        }
-      }
-
-      const saveEndTime = Date.now();
-      const totalDuration = saveEndTime - saveStartTime;
-      logger.debug('[FleetSelect] ========== SAVE COMPLETED ==========');
-      logger.debug('[FleetSelect] Save end timestamp:', saveEndTime);
-      logger.debug('[FleetSelect] Total save duration:', totalDuration, 'ms');
-      logger.debug('[FleetSelect] Selected fleets saved:', selectedFleetsList.map(f => f.name));
-
-      // Wait a moment for database to sync, then navigate back
-      logger.debug('[FleetSelect] Waiting 300ms before navigation...');
-      setTimeout(() => {
-        const navigateTime = Date.now();
-        logger.debug('[FleetSelect] ========== NAVIGATING BACK ==========');
-        logger.debug('[FleetSelect] Navigate timestamp:', navigateTime);
-        logger.debug('[FleetSelect] Time since save completed:', navigateTime - saveEndTime, 'ms');
-        logger.debug('[FleetSelect] Total time since save started:', navigateTime - saveStartTime, 'ms');
-        router.back();
-      }, 300);
-    } catch (error) {
-      const errorTime = Date.now();
-      logger.error('[FleetSelect] ========== SAVE FAILED ==========');
-      logger.error('[FleetSelect] Error timestamp:', errorTime);
-      logger.error('[FleetSelect] Error saving fleet selections:', error);
-      alert('Failed to save fleet selections. Check console for details.');
-    } finally {
-      setSaving(false);
+  // Run the search when the debounced query changes.
+  useEffect(() => {
+    let cancelled = false;
+    if (!debouncedQuery) {
+      setSearchResults(null);
+      setSearching(false);
+      return;
     }
-  };
+    setSearching(true);
+    FleetDiscoveryService.searchFleets(debouncedQuery, 50)
+      .then((results) => {
+        if (!cancelled) setSearchResults(results);
+      })
+      .catch((error) => {
+        logger.error('[FleetSelect] Search failed', error);
+        if (!cancelled) setSearchResults([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSearching(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQuery]);
 
-  const groupFleetsByClub = () => {
-    const grouped = new Map<string, Fleet[]>();
-    hongKongFleets.forEach(fleet => {
-      const clubName = fleet.metadata?.primary_club || 'Hong Kong';
-      if (!grouped.has(clubName)) {
-        grouped.set(clubName, []);
+  const handleToggleJoin = useCallback(
+    async (fleet: Fleet) => {
+      if (!user?.id) {
+        showAlert('Sign in required', 'Please sign in to join a fleet.');
+        return;
       }
-      grouped.get(clubName)!.push(fleet);
+      const isJoined = joinedIds.has(fleet.id);
+      setBusyId(fleet.id);
+      try {
+        if (isJoined) {
+          await fleetService.leaveFleet(user.id, fleet.id);
+        } else {
+          await fleetService.joinFleet(user.id, fleet.id);
+        }
+        await refreshMyFleets();
+      } catch (error: any) {
+        showAlert('Error', error?.message ?? 'Could not update fleet membership.');
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [user?.id, joinedIds, refreshMyFleets],
+  );
+
+  // Group a list of fleets by region for display.
+  const groupByRegion = useCallback((list: Fleet[]): [string, Fleet[]][] => {
+    const grouped = new Map<string, Fleet[]>();
+    list.forEach((fleet) => {
+      const region = fleet.region?.trim() || 'Other';
+      if (!grouped.has(region)) grouped.set(region, []);
+      grouped.get(region)!.push(fleet);
     });
     return Array.from(grouped.entries());
+  }, []);
+
+  const renderFleetCard = (fleet: Fleet) => {
+    const isJoined = joinedIds.has(fleet.id);
+    const isBusy = busyId === fleet.id;
+    return (
+      <View key={fleet.id} style={styles.fleetCard}>
+        <View style={styles.fleetCardMain}>
+          <View style={styles.fleetCardTitle}>
+            <MaterialCommunityIcons
+              name="sail-boat"
+              size={20}
+              color={isJoined ? '#007AFF' : '#64748B'}
+            />
+            <Text style={styles.fleetName}>{fleet.name}</Text>
+          </View>
+          <View style={styles.fleetMeta}>
+            {fleet.boat_classes?.name && (
+              <View style={styles.metaItem}>
+                <MaterialCommunityIcons name="tag-outline" size={14} color="#64748B" />
+                <Text style={styles.metaText}>{fleet.boat_classes.name}</Text>
+              </View>
+            )}
+            {typeof fleet.member_count === 'number' && (
+              <View style={styles.metaItem}>
+                <MaterialCommunityIcons name="account-group" size={14} color="#64748B" />
+                <Text style={styles.metaText}>
+                  {fleet.member_count} {fleet.member_count === 1 ? 'member' : 'members'}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+        <TouchableOpacity
+          style={[styles.joinButton, isJoined && styles.joinedButton]}
+          onPress={() => handleToggleJoin(fleet)}
+          disabled={isBusy}
+        >
+          {isBusy ? (
+            <ActivityIndicator size="small" color={isJoined ? '#64748B' : '#FFFFFF'} />
+          ) : (
+            <Text style={[styles.joinButtonText, isJoined && styles.joinedButtonText]}>
+              {isJoined ? 'Joined' : 'Join'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
   };
+
+  const renderRegionGroups = (list: Fleet[]) =>
+    groupByRegion(list).map(([region, fleets]) => (
+      <DashboardSection key={region} title={region} showBorder={false}>
+        <View style={styles.fleetList}>{fleets.map(renderFleetCard)}</View>
+      </DashboardSection>
+    ));
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading Hong Kong fleets...</Text>
+        <Text style={styles.loadingText}>Finding fleets…</Text>
       </View>
     );
   }
 
-  const groupedFleets = groupFleetsByClub();
+  const isSearchMode = debouncedQuery.length > 0;
+  // In browse mode, keep the lower sections from repeating cards already shown
+  // higher up: club fleets first, then suggested, then browse-all.
+  const orgFleetIds = new Set(orgFleets.flatMap((s) => s.fleets.map((f) => f.id)));
+  const suggestedOnly = suggested.filter((f) => !orgFleetIds.has(f.id));
+  const suggestedIds = new Set(suggestedOnly.map((f) => f.id));
+  const browseOnly = browse.filter((f) => !suggestedIds.has(f.id) && !orgFleetIds.has(f.id));
+  const hasResults = isSearchMode
+    ? (searchResults?.length ?? 0) > 0
+    : orgFleets.length + suggestedOnly.length + browseOnly.length > 0;
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <DashboardSection
-          title="Join Your Fleets"
-          subtitle="Fleets are groups of sailors in the same class (separate from your individual boats)"
+          title="Find Fleets"
+          subtitle="Join fleets of sailors in your class and region"
           showBorder={false}
         >
-          <Text style={styles.instructions}>
-            Join the fleets you race in. A fleet is a collection of sailors/boats in the same class at a location
-            (e.g., "Hong Kong Dragon Fleet"). This is separate from your individual boats
-            (e.g., your Dragon named "Dragonfly").
-          </Text>
+          <View style={styles.searchBox}>
+            <MaterialCommunityIcons name="magnify" size={18} color="#94A3B8" />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search by name, region, or class"
+              placeholderTextColor="#94A3B8"
+              style={styles.searchInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {searching && <ActivityIndicator size="small" color="#94A3B8" />}
+            {!searching && query.length > 0 && (
+              <TouchableOpacity onPress={() => setQuery('')} hitSlop={8}>
+                <MaterialCommunityIcons name="close-circle" size={18} color="#CBD5E1" />
+              </TouchableOpacity>
+            )}
+          </View>
         </DashboardSection>
 
-        {groupedFleets.map(([clubName, fleets]) => (
-          <DashboardSection key={clubName} title={clubName} showBorder={false}>
-            <View style={styles.fleetList}>
-              {fleets.map(fleet => (
-                <TouchableOpacity
-                  key={fleet.id}
-                  style={[
-                    styles.fleetCard,
-                    selectedFleets.has(fleet.id) && styles.fleetCardSelected,
-                  ]}
-                  onPress={() => toggleFleetSelection(fleet)}
-                >
-                  <View style={styles.fleetCardHeader}>
-                    <View style={styles.fleetCardTitle}>
-                      <MaterialCommunityIcons
-                        name="sail-boat"
-                        size={20}
-                        color={selectedFleets.has(fleet.id) ? '#007AFF' : '#64748B'}
-                      />
-                      <Text
-                        style={[
-                          styles.fleetName,
-                          selectedFleets.has(fleet.id) && styles.fleetNameSelected,
-                        ]}
-                      >
-                        {fleet.name}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.checkbox,
-                        selectedFleets.has(fleet.id) && styles.checkboxSelected,
-                      ]}
-                    >
-                      {selectedFleets.has(fleet.id) && (
-                        <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
-                      )}
-                    </View>
-                  </View>
+        {isSearchMode ? (
+          renderRegionGroups(searchResults ?? [])
+        ) : (
+          <>
+            {orgFleets.map(({ org, fleets }) => (
+              <DashboardSection key={org.id} title={`Fleets at ${org.name}`} showBorder={false}>
+                <View style={styles.fleetList}>{fleets.map(renderFleetCard)}</View>
+              </DashboardSection>
+            ))}
+            {suggestedOnly.length > 0 && (
+              <DashboardSection title="Suggested for you" showBorder={false}>
+                <View style={styles.fleetList}>{suggestedOnly.map(renderFleetCard)}</View>
+              </DashboardSection>
+            )}
+            {browseOnly.length > 0 && (
+              <>
+                <DashboardSection title="Browse all fleets" showBorder={false}>
+                  <View />
+                </DashboardSection>
+                {renderRegionGroups(browseOnly)}
+              </>
+            )}
+          </>
+        )}
 
-                  {fleet.boat_class?.class_association && (
-                    <Text style={styles.fleetAssociation}>{fleet.boat_class.class_association}</Text>
-                  )}
-
-                  <View style={styles.fleetMeta}>
-                    {fleet.metadata?.fleet_size && (
-                      <View style={styles.metaItem}>
-                        <MaterialCommunityIcons name="account-group" size={14} color="#64748B" />
-                        <Text style={styles.metaText}>{fleet.metadata.fleet_size} boats</Text>
-                      </View>
-                    )}
-                    {fleet.metadata?.racing_schedule && (
-                      <View style={styles.metaItem}>
-                        <MaterialCommunityIcons name="calendar" size={14} color="#64748B" />
-                        <Text style={styles.metaText} numberOfLines={1}>
-                          {fleet.metadata.racing_schedule}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </DashboardSection>
-        ))}
+        {!hasResults && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>No fleets match</Text>
+            <Text style={styles.emptySubtitle}>
+              {isSearchMode
+                ? 'Try a different name, region, or class — or start your own.'
+                : 'No public fleets yet. Start your own.'}
+            </Text>
+            <Link href="/(tabs)/fleet/create" asChild>
+              <TouchableOpacity style={styles.createButton}>
+                <Text style={styles.createButtonText}>Create a fleet</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-          onPress={saveSelections}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
-              <Text style={styles.saveButtonText}>
-                Save {selectedFleets.size} {selectedFleets.size === 1 ? 'Fleet' : 'Fleets'}
-              </Text>
-            </>
-          )}
+        <TouchableOpacity style={styles.doneButton} onPress={() => router.back()}>
+          <Text style={styles.doneButtonText}>Done</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-const logger = createLogger('select');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -377,59 +343,57 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
     gap: 16,
   },
-  instructions: {
-    fontSize: 14,
-    color: '#64748B',
-    lineHeight: 20,
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1E293B',
+    padding: 0,
   },
   fleetList: {
     gap: 12,
   },
   fleetCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  fleetCardMain: {
+    flex: 1,
     gap: 8,
-  },
-  fleetCardSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#EFF6FF',
-  },
-  fleetCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   fleetCardTitle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    flex: 1,
   },
   fleetName: {
+    flex: 1,
     fontSize: 16,
     fontWeight: '600',
     color: '#1E293B',
-  },
-  fleetNameSelected: {
-    color: '#1E40AF',
-  },
-  fleetAssociation: {
-    fontSize: 13,
-    color: '#64748B',
-    marginLeft: 30,
   },
   fleetMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
     marginLeft: 30,
-    marginTop: 4,
   },
   metaItem: {
     flexDirection: 'row',
@@ -440,18 +404,56 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
+  joinButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    minWidth: 76,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxSelected: {
+  joinButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  joinedButton: {
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  joinedButtonText: {
+    color: '#64748B',
+  },
+  emptyState: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 24,
+  },
+  createButton: {
     backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    borderRadius: 999,
+    marginTop: 4,
+  },
+  createButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   footer: {
     position: 'absolute',
@@ -463,19 +465,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
-  saveButton: {
+  doneButton: {
     backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 14,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
+  doneButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',

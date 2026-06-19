@@ -16,6 +16,7 @@ import { GroupKnowledgeSection } from '@/components/venue/GroupKnowledgeSection'
 import { useOrgViewerMembership } from '@/hooks/useOrgViewerMembership';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { OrgJoinService } from '@/services/OrgJoinService';
+import { FleetDiscoveryService, type Fleet } from '@/services/FleetDiscoveryService';
 import {
   YachtClubClaimService,
   type OrgJoinMode,
@@ -184,6 +185,7 @@ export default function OrganizationPlaceholderPage() {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [orgLocations, setOrgLocations] = useState<OrgLocation[]>([]);
   const [orgBlueprints, setOrgBlueprints] = useState<OrgBlueprint[]>([]);
+  const [orgFleets, setOrgFleets] = useState<Fleet[]>([]);
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const { user: authUser } = useAuth();
@@ -390,6 +392,28 @@ export default function OrganizationPlaceholderPage() {
     };
   }, [org?.id, isDemo]);
 
+  // Fleets this org owns (the club-native group primitive). RLS returns the
+  // org's public fleets to anyone and its club-visibility fleets to active
+  // org members, so this is the payoff of the fleets↔org bridge: a claimed
+  // club shows its real fleets here. Demo orgs render synthetic fleets below.
+  useEffect(() => {
+    let cancelled = false;
+    if (!org?.id || isDemo) {
+      setOrgFleets([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void (async () => {
+      const fleets = await FleetDiscoveryService.getFleetsByOrganization(org.id, 20);
+      if (cancelled) return;
+      setOrgFleets(fleets);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [org?.id, isDemo]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -441,6 +465,46 @@ export default function OrganizationPlaceholderPage() {
     ],
     [],
   );
+
+  // Shared Fleets card for both real-org render paths (redesigned + clubspot).
+  // Collapses to null when the org owns no readable fleets so it never shows
+  // an empty shell.
+  const fleetsCard =
+    orgFleets.length > 0 ? (
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Fleets</Text>
+        <View style={styles.surfaceList}>
+          {orgFleets.map((fleet) => (
+            <Pressable
+              key={fleet.id}
+              style={styles.surfaceRow}
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/fleet/members',
+                  params: { fleetId: fleet.id, fleetName: fleet.name },
+                } as never)
+              }
+            >
+              <Ionicons name="boat-outline" size={20} color={accent.base} />
+              <View style={styles.surfaceCopy}>
+                <Text style={styles.surfaceLabel}>{fleet.name}</Text>
+                <Text style={styles.surfaceDetail}>
+                  {[
+                    fleet.boat_classes?.name,
+                    typeof fleet.member_count === 'number'
+                      ? `${fleet.member_count} member${fleet.member_count === 1 ? '' : 's'}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || 'Fleet'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.muted} />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    ) : null;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -715,6 +779,8 @@ export default function OrganizationPlaceholderPage() {
                 </View>
               )}
             </View>
+
+            {fleetsCard}
 
             {orgLocations.length > 0 ? (
               <View style={styles.card}>
@@ -1220,6 +1286,8 @@ export default function OrganizationPlaceholderPage() {
                     </View>
                   </View>
                 ) : null}
+
+                {fleetsCard}
               </>
             )}
           </>
