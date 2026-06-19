@@ -240,7 +240,7 @@ export function AdminBillingSurface() {
                 <View style={s.cardGlyph}>
                   <Text style={s.cardGlyphText}>{billing.payment_method_brand.toUpperCase()}</Text>
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={s.payTextCol}>
                   <Text style={s.payName}>
                     {billing.payment_method_brand.replace(/^./, (c) => c.toUpperCase())} ending{' '}
                     {billing.payment_method_last4}
@@ -612,10 +612,12 @@ const s = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 7,
     backgroundColor: 'transparent',
+    flexShrink: 0,
   },
   btnSmGhostText: { fontSize: 11.5, fontWeight: '500', color: 'rgba(60, 60, 67, 0.85)' },
 
-  payRow: { flexDirection: 'row', gap: 14, alignItems: 'center' },
+  payRow: { flexDirection: 'row', gap: 14, alignItems: 'center', flexWrap: 'wrap' },
+  payTextCol: { flex: 1, minWidth: 180 },
   cardGlyph: {
     width: 56,
     height: 36,
@@ -623,6 +625,7 @@ const s = StyleSheet.create({
     backgroundColor: '#1C1C1E',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   cardGlyphText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
   payName: { fontSize: 13.5, color: '#1C1C1E', fontWeight: '600' },

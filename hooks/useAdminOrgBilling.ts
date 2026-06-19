@@ -177,8 +177,11 @@ export function formatPeriod(startIso: string, endIso: string): string {
   const end = new Date(endIso + 'T00:00:00');
   const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
   const startStr = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  // Within one month, drop the repeated month on the end ("May 1 – 31, 2026").
+  // Asking toLocaleDateString for only {day, year} yields a broken ICU fallback
+  // ("2026 (day: 31)"), so build the trailing day + year directly.
   const endStr = sameMonth
-    ? end.toLocaleDateString(undefined, { day: 'numeric', year: 'numeric' })
+    ? `${end.getDate()}, ${end.getFullYear()}`
     : end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   return `${startStr} – ${endStr}`;
 }
