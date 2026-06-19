@@ -244,7 +244,11 @@ function NowDivider() {
 
 function GroupHeader({ anchor, prepCount }: { anchor: TimelineStep; prepCount: number }) {
   const when = parseAnchorWhen(anchor.whenLabel);
-  const tint = anchor.isRace ? ROSE : AZURE;
+  // Anchors share one "destination" accent across every interest — rose is
+  // the dated thing the runway builds toward, whether it's a race, a market
+  // day, or a clinical shift. A race is just an anchor that also earns the
+  // RACE pill; the colour does not carry the sailing-only meaning.
+  const tint = ROSE;
   return (
     <View style={styles.groupHead}>
       <View style={[styles.groupFlag, { backgroundColor: tint }]} />
@@ -266,7 +270,7 @@ function GroupHeader({ anchor, prepCount }: { anchor: TimelineStep; prepCount: n
 function AnchorBanner({ step, total, ordById, focusStepId, selectEnabled, isSelected, onOpenStep, onToggleSelect, onLongPressStep, nextId }:
   { step: TimelineStep } & SharedCardProps) {
   const when = parseAnchorWhen(step.whenLabel);
-  const tint = step.isRace ? ROSE : AZURE;
+  const tint = ROSE;
   const selected = isSelected?.(step.id) ?? false;
   const isFocused = step.id === focusStepId;
   const isNext = step.id === nextId;
@@ -290,8 +294,10 @@ function AnchorBanner({ step, total, ordById, focusStepId, selectEnabled, isSele
       </View>
       <View style={styles.anchorBody}>
         <View style={styles.cardRow1}>
-          <View style={[styles.pill, { backgroundColor: step.isRace ? 'rgba(217,71,107,0.14)' : 'rgba(0,122,255,0.14)' }]}>
-            <Text style={[styles.pillText, { color: tint }]}>{step.isRace ? 'RACE' : (isNext ? 'NEXT' : 'PLANNED')}</Text>
+          <View style={[styles.pill, step.isRace ? styles.pillRace : isNext ? styles.pillNext : styles.pillPlanned]}>
+            <Text style={[styles.pillText, { color: step.isRace ? ROSE : isNext ? '#0046A8' : IOS_REGISTER.labelSecondary }]}>
+              {step.isRace ? 'RACE' : isNext ? 'NEXT' : 'PLANNED'}
+            </Text>
           </View>
           <Text style={styles.ord}>{indexLabel(ordById.get(step.id), total)}</Text>
         </View>
@@ -367,13 +373,14 @@ function indexLabel(ord: number | undefined, total: number): string {
 
 /* ───────────────────────── legend ───────────────────────── */
 
-export function WorkColumnLegend() {
+export function WorkColumnLegend({ steps, anchorNoun = 'anchor' }: { steps: TimelineStep[]; anchorNoun?: string }) {
+  const hasAnchor = steps.some(isAnchor);
   return (
     <View style={styles.legend}>
       <Legend color={GREEN} label="done" />
       <Legend color={AZURE} label="next" />
       <Legend color="#C7C7CC" label="planned" />
-      <Legend color={ROSE} label="anchor / race" />
+      {hasAnchor ? <Legend color={ROSE} label={anchorNoun} /> : null}
     </View>
   );
 }
@@ -426,6 +433,7 @@ const styles = StyleSheet.create({
   pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   pillNext: { backgroundColor: 'rgba(0,122,255,0.14)' },
   pillPlanned: { backgroundColor: '#F0F0F4' },
+  pillRace: { backgroundColor: 'rgba(217,71,107,0.14)' },
   pillText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
   ord: { fontFamily: fontFamily.mono, fontSize: 11, color: '#b6b8be', fontVariant: ['tabular-nums'] },
   title: { fontFamily: fontFamily.serif, fontStyle: 'italic', color: IOS_REGISTER.label, lineHeight: 21 },

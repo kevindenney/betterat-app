@@ -894,7 +894,9 @@ export function L3SeasonView({
         />
       ) : null}
 
-      {!isReordering && snakeSteps.length > 0 ? <WorkColumnLegend /> : null}
+      {!isReordering && snakeSteps.length > 0 ? (
+        <WorkColumnLegend steps={snakeSteps} anchorNoun={interestVocab.anchorNoun} />
+      ) : null}
     </ScrollView>
 
       <PickerListSheet<TimelineSeason>

@@ -44,6 +44,14 @@ export interface InterestVocab {
    */
   periodNoun: string;
   /**
+   * Persona-native noun for a dated anchor — the fixed point in time the
+   * runway builds toward. A sailor races, a nurse works a shift, an
+   * entrepreneur sells at a market day, a runner has a race. Used to label
+   * the dated-anchor key in THE WORK legend; sailing's "race" is NOT
+   * universal (see project_interest_vernacular_personas). Lower-case.
+   */
+  anchorNoun: string;
+  /**
    * Lifetime-vision placeholder shown on L4 — the question that prompts
    * the user to name what they're building toward. Phrased natively per
    * persona. NOT derived from `verb.mid`: the eyebrow verb ("SHIPPING",
@@ -130,6 +138,7 @@ const DEFAULT_VOCAB: InterestVocab = {
     late: 'REFLECTING',
   },
   periodNoun: 'arc',
+  anchorNoun: 'anchor',
   visionPrompt: 'What are you building toward, long-term?',
   librarianEyebrow: 'This arc · the librarian noticed',
   capabilityHeader: 'CAPABILITY MIX',
@@ -145,6 +154,7 @@ const SAILING_VOCAB: InterestVocab = {
     late: 'DEBRIEFING',
   },
   periodNoun: 'arc',
+  anchorNoun: 'race',
   visionPrompt: 'What are you racing toward, long-term?',
   librarianEyebrow: 'This arc · logbook noticed',
   capabilityHeader: 'PRACTICE LOG',
@@ -248,6 +258,7 @@ const NURSING_VOCAB: InterestVocab = {
     late: 'DEBRIEFING',
   },
   periodNoun: 'rotation',
+  anchorNoun: 'shift',
   visionPrompt: 'What kind of nurse are you becoming?',
   librarianEyebrow: "This rotation · preceptor's debrief",
   capabilityHeader: 'CAPABILITY MIX',
@@ -343,6 +354,7 @@ const ENTREPRENEUR_VOCAB: InterestVocab = {
     late: 'TALLYING',
   },
   periodNoun: 'season',
+  anchorNoun: 'market day',
   visionPrompt: 'What are you building toward, long-term?',
   librarianEyebrow: 'This season · what your books noticed',
   capabilityHeader: 'BUSINESS MIX',
@@ -403,6 +415,7 @@ const GOLF_VOCAB: InterestVocab = {
     late: 'SCORING',
   },
   periodNoun: 'season',
+  anchorNoun: 'tournament',
   visionPrompt: "What's the game you're building toward?",
   librarianEyebrow: "This season · coach's notebook",
   capabilityHeader: 'ROUND MIX',
@@ -429,6 +442,7 @@ const DRAWING_VOCAB: InterestVocab = {
     late: 'REVIEWING',
   },
   periodNoun: 'sketchbook',
+  anchorNoun: 'show',
   visionPrompt: 'What are you working toward as an artist?',
   librarianEyebrow: 'This sketchbook · studio notes',
   capabilityHeader: 'STUDIO LOG',
@@ -477,6 +491,7 @@ const KNITTING_VOCAB: InterestVocab = {
     late: 'BINDING OFF',
   },
   periodNoun: 'project',
+  anchorNoun: 'deadline',
   visionPrompt: 'What do you want to be able to make?',
   librarianEyebrow: 'This project · pattern notes',
   capabilityHeader: 'PROJECT LOG',
@@ -504,6 +519,7 @@ const RUNNING_VOCAB: InterestVocab = {
     late: 'RACING',
   },
   periodNoun: 'block',
+  anchorNoun: 'race',
   visionPrompt: 'What race or distance are you training toward?',
   librarianEyebrow: 'This block · the log noticed',
   capabilityHeader: 'TRAINING MIX',
