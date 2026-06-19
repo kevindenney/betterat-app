@@ -15,9 +15,14 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.10.0?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY') || '';
+const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
+
+// Pick the live price table when the function is configured with a live secret
+// key; otherwise use test prices. Lets the same code run in both modes.
+const IS_LIVE_MODE = STRIPE_SECRET_KEY.startsWith('sk_live_');
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -25,9 +30,11 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 type OrgPlanId = 'starter' | 'professional' | 'enterprise';
 type BillingPeriod = 'monthly' | 'annual';
 
-// Flat Club tier price IDs -> { monthly, annual }. Members of any paid tier
-// get the Pro member tier (set in subscription metadata, applied by webhook).
-const ORG_PLAN_PRICES: Record<OrgPlanId, { monthly: string; annual: string }> = {
+type PlanPriceTable = Record<OrgPlanId, { monthly: string; annual: string }>;
+
+// TEST-mode price IDs (live in the test Stripe account). Active whenever the
+// function runs with an sk_test key.
+const ORG_PLAN_PRICES_TEST: PlanPriceTable = {
   starter: {
     monthly: 'price_1Sl0oHBbfEeOhHXbWRBa81j7', // $249/mo
     annual: 'price_1Sl0oTBbfEeOhHXbAfA0x5gK', // $2,499/yr
@@ -41,6 +48,29 @@ const ORG_PLAN_PRICES: Record<OrgPlanId, { monthly: string; annual: string }> = 
     annual: 'price_1Sl0qRBbfEeOhHXbkVYk7YsW', // $8,999/yr
   },
 };
+
+// LIVE-mode price IDs. TODO(live): create the live products/prices in the live
+// Stripe account and paste the six `price_…` IDs below. Until then live
+// checkout is intentionally blocked (see the guard in serve()) so we never
+// charge against a placeholder. Swapping each value in is a one-line edit.
+const ORG_PLAN_PRICES_LIVE: PlanPriceTable = {
+  starter: {
+    monthly: '', // TODO(live): $249/mo live price ID
+    annual: '', // TODO(live): $2,499/yr live price ID
+  },
+  professional: {
+    monthly: '', // TODO(live): $499/mo live price ID
+    annual: '', // TODO(live): $4,999/yr live price ID
+  },
+  enterprise: {
+    monthly: '', // TODO(live): $899/mo live price ID
+    annual: '', // TODO(live): $8,999/yr live price ID
+  },
+};
+
+// Flat Club tier price IDs -> { monthly, annual }. Members of any paid tier
+// get the Pro member tier (set in subscription metadata, applied by webhook).
+const ORG_PLAN_PRICES: PlanPriceTable = IS_LIVE_MODE ? ORG_PLAN_PRICES_LIVE : ORG_PLAN_PRICES_TEST;
 
 const MEMBER_TIER = 'pro';
 
@@ -82,6 +112,19 @@ serve(async (req) => {
     }
 
     const priceId = billingPeriod === 'annual' ? planPrices.annual : planPrices.monthly;
+
+    // Live mode with unfilled price IDs -> fail loudly instead of calling Stripe
+    // with an empty price. Clears once ORG_PLAN_PRICES_LIVE is populated.
+    if (!priceId) {
+      return new Response(
+        JSON.stringify({
+          error: IS_LIVE_MODE
+            ? 'Live org pricing is not configured yet. Add the live Stripe price IDs to ORG_PLAN_PRICES_LIVE.'
+            : `No price configured for ${planId} (${billingPeriod}).`,
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
