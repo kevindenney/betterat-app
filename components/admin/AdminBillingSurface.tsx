@@ -246,10 +246,16 @@ export function AdminBillingSurface() {
                     {billing.payment_method_last4}
                   </Text>
                   <Text style={s.payMeta}>
-                    {billing.payment_method_exp_month && billing.payment_method_exp_year
-                      ? `Expires ${String(billing.payment_method_exp_month).padStart(2, '0')} / ${String(billing.payment_method_exp_year).slice(-2)} · `
-                      : ''}
-                    billed to {billing.billing_contact_name} · {billing.billing_contact_email}
+                    {[
+                      billing.payment_method_exp_month && billing.payment_method_exp_year
+                        ? `Expires ${String(billing.payment_method_exp_month).padStart(2, '0')} / ${String(billing.payment_method_exp_year).slice(-2)}`
+                        : null,
+                      billing.billing_contact_name || billing.billing_contact_email
+                        ? `billed to ${[billing.billing_contact_name, billing.billing_contact_email].filter(Boolean).join(' · ')}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </Text>
                 </View>
                 <Pressable style={s.btnSmGhost} onPress={() => openBillingPortal(orgId as string)}>

@@ -66,8 +66,9 @@ export interface AdminOrgBillingData {
 
 /**
  * Project a real Stripe subscription onto the OrgBillingRow shape the surface
- * renders. Payment-method + invoice fields stay null/empty — those aren't synced
- * from Stripe yet, so the cards honestly show empty-states rather than fiction.
+ * renders. Card-on-file is synced by stripe-webhooks (null until the first
+ * invoice.paid/customer.updated lands); billing-contact fields stay null (not
+ * synced), so the surface degrades to a partial card rather than fiction.
  */
 function billingFromSubscription(sub: OrgSubscription, memberCount: number): OrgBillingRow {
   const plan = ORG_PLANS[sub.plan_id as OrgPlanId];
@@ -88,10 +89,10 @@ function billingFromSubscription(sub: OrgSubscription, memberCount: number): Org
     // current_period_end is a full timestamptz; the formatters expect YYYY-MM-DD.
     next_renewal_date: sub.current_period_end ? sub.current_period_end.slice(0, 10) : null,
     auto_renew: sub.status === 'active' && !sub.cancelled_at,
-    payment_method_brand: null,
-    payment_method_last4: null,
-    payment_method_exp_month: null,
-    payment_method_exp_year: null,
+    payment_method_brand: sub.payment_method_brand,
+    payment_method_last4: sub.payment_method_last4,
+    payment_method_exp_month: sub.payment_method_exp_month,
+    payment_method_exp_year: sub.payment_method_exp_year,
     billing_contact_name: null,
     billing_contact_email: null,
     pilot_locked_until: null,

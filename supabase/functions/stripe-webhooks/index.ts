@@ -129,6 +129,11 @@ serve(async (req: Request) => {
         await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
         break;
 
+      // Card-on-file changes (e.g. via the billing portal) update the customer.
+      case 'customer.updated':
+        await handleCustomerUpdated(event.data.object as Stripe.Customer);
+        break;
+
       // Checkout Session Events
       case 'checkout.session.completed':
         await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
@@ -912,7 +917,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   {
     const { data: orgSub } = await supabase
       .from('organization_subscriptions')
-      .select('id')
+      .select('id, organization_id')
       .eq('stripe_subscription_id', subscription.id)
       .maybeSingle();
     if (orgSub) {
@@ -939,6 +944,9 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
         .from('organization_subscriptions')
         .update(update)
         .eq('id', orgSub.id);
+      if (customerId) {
+        await syncOrgPaymentMethod(orgSub.organization_id, customerId);
+      }
       console.log(
         `[handleSubscriptionUpdate] Org sub ${subscription.id} → ${mapOrgStatus(subscription.status)}`
       );
@@ -1359,6 +1367,61 @@ async function resolveOrgSubscription(
 }
 
 /**
+ * Sync an org's card-on-file onto organization_subscriptions so the Studio
+ * billing surface shows the real payment method. Reads the customer's default
+ * payment method (set by checkout / the billing portal), falling back to the
+ * most recent attached card. Best-effort — never throws into the caller.
+ */
+async function syncOrgPaymentMethod(organizationId: string, customerId: string) {
+  try {
+    const customer = await stripe.customers.retrieve(customerId, {
+      expand: ['invoice_settings.default_payment_method'],
+    });
+    if (!customer || (customer as Stripe.DeletedCustomer).deleted) return;
+
+    let pm = (customer as Stripe.Customer).invoice_settings
+      ?.default_payment_method as Stripe.PaymentMethod | null;
+    if (!pm) {
+      const list = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: 'card',
+        limit: 1,
+      });
+      pm = list.data[0] ?? null;
+    }
+    const card = pm?.card ?? null;
+    if (!card) return;
+
+    await supabase
+      .from('organization_subscriptions')
+      .update({
+        payment_method_brand: card.brand ?? null,
+        payment_method_last4: card.last4 ?? null,
+        payment_method_exp_month: card.exp_month ?? null,
+        payment_method_exp_year: card.exp_year ?? null,
+      })
+      .eq('organization_id', organizationId);
+  } catch (e) {
+    console.error('[syncOrgPaymentMethod] failed', e);
+  }
+}
+
+/**
+ * Handle a customer update — refresh the org's card-on-file when an admin
+ * changes the default payment method through the Stripe billing portal.
+ */
+async function handleCustomerUpdated(customer: Stripe.Customer) {
+  const { data: orgSub } = await supabase
+    .from('organization_subscriptions')
+    .select('organization_id')
+    .eq('stripe_customer_id', customer.id)
+    .maybeSingle();
+  if (orgSub) {
+    await syncOrgPaymentMethod(orgSub.organization_id, customer.id);
+  }
+}
+
+/**
  * Handle paid invoice
  */
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
@@ -1448,6 +1511,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
         console.log(
           `[invoice.paid] Recorded org invoice ${invoice.number ?? invoice.id} for org ${orgSub.organization_id}`,
         );
+      }
+      if (invoice.customer) {
+        await syncOrgPaymentMethod(orgSub.organization_id, invoice.customer as string);
       }
       return;
     }
