@@ -33,6 +33,7 @@ export interface OrgSubscription {
 export interface OrgSubscriptionResult {
   success: boolean;
   checkoutUrl?: string;
+  portalUrl?: string;
   error?: string;
 }
 
@@ -99,6 +100,38 @@ export class OrgSubscriptionService {
     } catch (error: any) {
       logger.error('Error creating org subscription:', error);
       return { success: false, error: error.message || 'Failed to create subscription' };
+    }
+  }
+
+  /**
+   * Open the Stripe Customer Billing Portal for an org so the admin can update
+   * the card on file, change the receipt email, and manage the subscription.
+   * Web-only (hosted Stripe page); returnUrl is built from the live origin.
+   */
+  static async createBillingPortalSession(orgId: string): Promise<OrgSubscriptionResult> {
+    try {
+      // Return the admin to the exact page they left (Studio admin billing or
+      // /organization/billing), falling back to origin off-web.
+      const returnUrl =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}${window.location.pathname}`
+          : '';
+      const { data, error } = await supabase.functions.invoke(
+        'create-org-billing-portal-session',
+        {
+          body: { organizationId: orgId, returnUrl },
+        }
+      );
+
+      if (error || !data?.url) {
+        logger.error('Error creating org billing portal session:', error);
+        return { success: false, error: 'Failed to open billing portal' };
+      }
+
+      return { success: true, portalUrl: data.url };
+    } catch (error: any) {
+      logger.error('Error creating org billing portal session:', error);
+      return { success: false, error: error.message || 'Failed to open billing portal' };
     }
   }
 

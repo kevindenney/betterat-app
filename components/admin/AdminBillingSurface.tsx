@@ -28,8 +28,23 @@ import {
   formatDate,
 } from '@/hooks/useAdminOrgBilling';
 import { ORG_PLANS, type OrgPlanId } from '@/lib/subscriptions/orgTiers';
+import { OrgSubscriptionService } from '@/services/OrgSubscriptionService';
 
 type InvoiceFilter = 'all' | 'paid' | 'open';
+
+/** Open the Stripe billing portal for card / receipt / subscription management. */
+async function openBillingPortal(orgId: string) {
+  if (Platform.OS !== 'web') {
+    showAlert('Manage billing on the web', 'Open Studio billing in a browser to update your card or receipt email.');
+    return;
+  }
+  const res = await OrgSubscriptionService.createBillingPortalSession(orgId);
+  if (res.success && res.portalUrl) {
+    window.location.href = res.portalUrl;
+  } else {
+    showAlert('Could not open billing portal', res.error ?? 'Please try again shortly.');
+  }
+}
 
 /** Open a Stripe-hosted invoice PDF, or explain when one isn't available yet. */
 function openInvoicePdf(inv: OrgInvoiceRow) {
@@ -214,7 +229,7 @@ export function AdminBillingSurface() {
               <Text style={s.cardEyebrow}>Payment method</Text>
               <Text style={s.cardH3}>Card on file</Text>
             </View>
-            <Pressable style={s.btnSm}>
+            <Pressable style={s.btnSm} onPress={() => openBillingPortal(orgId as string)}>
               <Ionicons name="create-outline" size={12} color="#28406B" />
               <Text style={s.btnSmText}>Update</Text>
             </Pressable>
@@ -237,7 +252,7 @@ export function AdminBillingSurface() {
                     billed to {billing.billing_contact_name} · {billing.billing_contact_email}
                   </Text>
                 </View>
-                <Pressable style={s.btnSmGhost}>
+                <Pressable style={s.btnSmGhost} onPress={() => openBillingPortal(orgId as string)}>
                   <Ionicons name="mail-outline" size={12} color="rgba(60, 60, 67, 0.6)" />
                   <Text style={s.btnSmGhostText}>Change receipt email</Text>
                 </Pressable>
