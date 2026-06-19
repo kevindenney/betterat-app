@@ -18,6 +18,8 @@ export interface Fleet {
   createdBy?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** The owning organization (yacht club), when the fleet is scoped to one. */
+  organization?: { id: string; name: string; slug: string | null } | null;
 }
 
 export interface FleetMembership {
@@ -175,6 +177,7 @@ class FleetService {
   }
 
   private mapFleet(row: any): Fleet {
+    const org = Array.isArray(row.organization) ? row.organization[0] : row.organization;
     return {
       id: row.id,
       name: row.name,
@@ -189,6 +192,9 @@ class FleetService {
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      organization: org
+        ? { id: org.id, name: org.name, slug: org.slug ?? null }
+        : null,
     };
   }
 
@@ -206,7 +212,8 @@ class FleetService {
         status,
         joined_at,
         fleet:fleet_id (
-          *
+          *,
+          organization:organization_id ( id, name, slug )
         )
         `,
       )

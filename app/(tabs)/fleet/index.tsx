@@ -234,6 +234,18 @@ export default function FleetOverviewScreen() {
                   summaryFleet.boat_classes?.name,
                 ].filter(Boolean).join(' · ')}
               </Text>
+              {activeFleet?.organization?.slug && (
+                <TouchableOpacity
+                  style={styles.fleetClubRow}
+                  onPress={() =>
+                    router.push(`/organizations/${activeFleet.organization!.slug}` as any)
+                  }
+                >
+                  <Text style={styles.fleetClubLink}>
+                    {activeFleet.organization.name} ›
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
             <View style={styles.roleChip}>
               <Text style={styles.roleChipText}>{formatRole(activeRole)}</Text>
@@ -650,6 +662,14 @@ const styles = StyleSheet.create({
   fleetSubtitle: {
     fontSize: 13,
     color: COLORS.secondaryText,
+  },
+  fleetClubRow: {
+    marginTop: 4,
+  },
+  fleetClubLink: {
+    fontSize: 13,
+    color: COLORS.activeBlue,
+    fontWeight: '500',
   },
   leaveText: {
     fontSize: 13,

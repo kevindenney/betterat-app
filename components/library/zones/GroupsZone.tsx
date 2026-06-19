@@ -95,7 +95,9 @@ export function GroupsZone() {
             initials={initialsForName(m.fleet.name)}
             markColor={pickSquareMarkColor(m.fleet.id)}
             name={m.fleet.name}
-            descriptor={groupRoleDescriptor(m)}
+            descriptor={[groupRoleDescriptor(m), m.fleet.organization?.name]
+              .filter(Boolean)
+              .join(' · ')}
             onPress={() => router.push('/(tabs)/fleet' as never)}
           />
         ))}
