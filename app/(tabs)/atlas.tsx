@@ -16,7 +16,7 @@
  * docs/redesign/ios-register/atlas-tab-brief.md.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -1085,6 +1085,9 @@ export default function AtlasTab() {
   // location-less and seeded with the area's competency ids as its "why", so it
   // routes distinctly per area and actually evidences that capability when
   // worked (instead of opening a generic, unrelated step on the current tab).
+  // Guards against a fast double-tap minting two (or three) steps before the
+  // first createTimelineStep resolves and the navigation away happens.
+  const planningCapabilityRef = useRef(false);
   const handlePlanCapability = useCallback(
     async (input: { category: string; competencyIds: string[] }) => {
       if (!user?.id) {
@@ -1096,6 +1099,8 @@ export default function AtlasTab() {
         showAlert('Choose an interest', 'Pick an interest before you plan a capability step.');
         return;
       }
+      if (planningCapabilityRef.current) return;
+      planningCapabilityRef.current = true;
       try {
         const isSailingAtlas =
           frame === 'f1' || frame === 'f2' || frame === 'f3' || frame === 'f6';
@@ -1124,6 +1129,8 @@ export default function AtlasTab() {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Could not plan a capability step.';
         showAlert('Step creation failed', message);
+      } finally {
+        planningCapabilityRef.current = false;
       }
     },
     [currentInterest, frame, router, user?.id],

@@ -11,7 +11,7 @@
  * state. With no active interest it falls back to a general capability set.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ import {
   useInterestCapabilityCoverage,
   type CapabilityCategoryCoverage,
 } from '@/hooks/useInterestCapabilityCoverage';
+import { CapabilityAreaSheet } from '@/components/ios-register/atlas/CapabilityAreaSheet';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 
@@ -30,7 +31,7 @@ export interface CapabilitiesSurfaceProps {
   bottomOffset?: number;
   /** Route to plan a step that can close the named gap area. */
   onPlanGap?: (row: CapabilityCategoryCoverage | null) => void;
-  /** Tap a "By area" row → plan a step for that capability area. */
+  /** Plan a step for a capability area (called from the area-detail sheet). */
   onCategoryPress?: (row: CapabilityCategoryCoverage) => void;
   /** Tap an evidenced site → focus the map on it. */
   onSitePress?: (site: { poiId: string; name: string }) => void;
@@ -76,25 +77,6 @@ function CoverageRing({ evidenced, total }: { evidenced: number; total: number }
   );
 }
 
-function CategoryBar({ row }: { row: CapabilityCategoryCoverage }) {
-  const pct = row.total > 0 ? Math.round((row.evidenced / row.total) * 100) : 0;
-  return (
-    <View style={styles.catRow}>
-      <View style={styles.catLab}>
-        <Text style={styles.catName} numberOfLines={1}>
-          {row.category}
-        </Text>
-        <Text style={styles.catCount}>
-          {row.evidenced}/{row.total}
-        </Text>
-      </View>
-      <View style={styles.catTrack}>
-        <View style={[styles.catFill, { width: `${pct}%`, backgroundColor: pct > 0 ? '#16A34A' : 'transparent' }]} />
-      </View>
-    </View>
-  );
-}
-
 export function CapabilitiesSurface({
   interestId,
   interestName,
@@ -105,6 +87,9 @@ export function CapabilitiesSurface({
   onSitePress,
 }: CapabilitiesSurfaceProps) {
   const { coverage, isLoading } = useInterestCapabilityCoverage(interestId);
+  // Tapping an area reveals its detail sheet first (#38/#39) — only the
+  // sheet's "Plan a step" button creates anything.
+  const [areaSheetRow, setAreaSheetRow] = useState<CapabilityCategoryCoverage | null>(null);
 
   if (isLoading || !coverage) {
     return (
@@ -140,6 +125,7 @@ export function CapabilitiesSurface({
         : `Log a step to start building evidence against the ${frameworkTotal} ${frameworkLabel}.`;
 
   return (
+    <>
     <ScrollView
       style={styles.root}
       contentContainerStyle={[
@@ -165,15 +151,33 @@ export function CapabilitiesSurface({
           <View key={row.category}>
             {i > 0 ? <View style={styles.sep} /> : null}
             <Pressable
-              style={({ pressed }) => [styles.catCell, styles.tapRow, pressed && styles.rowPressed]}
-              onPress={() => (onCategoryPress ?? onPlanGap)?.(row)}
+              style={({ pressed }) => [styles.catCell, pressed && styles.rowPressed]}
+              onPress={() => setAreaSheetRow(row)}
               accessibilityRole="button"
-              accessibilityLabel={`Plan a step for ${row.category}`}
+              accessibilityLabel={`Show ${row.category} capability detail`}
             >
-              <View style={styles.catCellBody}>
-                <CategoryBar row={row} />
+              <View style={styles.catLab}>
+                <Text style={styles.catName} numberOfLines={1}>
+                  {row.category}
+                </Text>
+                <View style={styles.catLabRight}>
+                  <Text style={styles.catCount}>
+                    {row.evidenced}/{row.total}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
+                </View>
               </View>
-              <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
+              <View style={styles.catTrack}>
+                <View
+                  style={[
+                    styles.catFill,
+                    {
+                      width: `${row.total > 0 ? Math.round((row.evidenced / row.total) * 100) : 0}%`,
+                      backgroundColor: row.evidenced > 0 ? '#16A34A' : 'transparent',
+                    },
+                  ]}
+                />
+              </View>
             </Pressable>
           </View>
         ))}
@@ -199,10 +203,10 @@ export function CapabilitiesSurface({
                     {row.name}
                   </Text>
                   <Text style={styles.evSub}>
-                    {row.steps} step{row.steps === 1 ? '' : 's'} logged
+                    {row.steps} step{row.steps === 1 ? '' : 's'} · {row.competencies} capabilit
+                    {row.competencies === 1 ? 'y' : 'ies'}
                   </Text>
                 </View>
-                <Text style={styles.evCount}>×{row.competencies}</Text>
                 <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
               </Pressable>
             </View>
@@ -249,6 +253,17 @@ export function CapabilitiesSurface({
         </Text>
       </View>
     </ScrollView>
+    <CapabilityAreaSheet
+      row={areaSheetRow}
+      interestName={interestName}
+      isGeneralFramework={isGeneralFramework}
+      onClose={() => setAreaSheetRow(null)}
+      onPlanStep={(planRow) => {
+        setAreaSheetRow(null);
+        (onCategoryPress ?? onPlanGap)?.(planRow);
+      }}
+    />
+    </>
   );
 }
 
@@ -309,12 +324,10 @@ const styles = StyleSheet.create({
     borderColor: IOS_COLORS.separator,
   },
   sep: { height: StyleSheet.hairlineWidth, backgroundColor: IOS_COLORS.separator },
-  tapRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rowPressed: { opacity: 0.55 },
-  catCellBody: { flex: 1 },
-  catCell: { paddingVertical: 11 },
-  catRow: { gap: 6 },
-  catLab: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  catCell: { paddingVertical: 11, gap: 7 },
+  catLab: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  catLabRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   catName: { fontSize: 14, fontWeight: '600', color: IOS_COLORS.label, letterSpacing: -0.2, flex: 1 },
   catCount: { fontFamily: fontFamily.mono, fontSize: 12, color: IOS_COLORS.secondaryLabel },
   catTrack: {
@@ -339,7 +352,6 @@ const styles = StyleSheet.create({
   evBody: { flex: 1, gap: 2 },
   evName: { fontSize: 14, fontWeight: '700', color: IOS_COLORS.label, letterSpacing: -0.2 },
   evSub: { fontSize: 12, color: IOS_COLORS.secondaryLabel },
-  evCount: { fontFamily: fontFamily.mono, fontSize: 12, fontWeight: '500', color: IOS_COLORS.secondaryLabel },
   gapCard: {
     backgroundColor: '#FFF7ED',
     borderWidth: StyleSheet.hairlineWidth,

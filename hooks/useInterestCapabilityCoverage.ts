@@ -33,6 +33,12 @@ import { supabase } from '@/services/supabase';
 
 export const INTEREST_CAPABILITY_COVERAGE_KEY = 'interest-capability-coverage';
 
+export interface CapabilityCompetency {
+  id: string;
+  title: string;
+  evidenced: boolean;
+}
+
 export interface CapabilityCategoryCoverage {
   category: string;
   /** Competencies in this framework category. */
@@ -43,6 +49,8 @@ export interface CapabilityCategoryCoverage {
   competencyIds: string[];
   /** Competency ids in this category the user has NOT yet evidenced. */
   unevidencedCompetencyIds: string[];
+  /** The individual competencies in this category, for the detail sheet. */
+  competencies: CapabilityCompetency[];
 }
 
 export interface CapabilityEvidencedSite {
@@ -83,7 +91,7 @@ const GENERAL_FRAMEWORK: { category: string; titles: string[] }[] = [
   { category: 'Feedback', titles: ['Seek outside input', 'Apply a correction', 'Close the loop'] },
 ];
 
-type CompetencyRow = { id: string; category: string | null };
+type CompetencyRow = { id: string; category: string | null; title: string | null };
 type AttemptRow = { competency_id: string; event_id: string | null };
 type StepRow = { id: string; metadata: unknown };
 type PoiRow = { id: string; name: string | null };
@@ -95,6 +103,11 @@ function buildGeneralCoverage(): InterestCapabilityCoverage {
     evidenced: 0,
     competencyIds: [],
     unevidencedCompetencyIds: [],
+    competencies: c.titles.map((title, i) => ({
+      id: `general:${c.category}:${i}`,
+      title,
+      evidenced: false,
+    })),
   }));
   const frameworkTotal = byCategory.reduce((sum, c) => sum + c.total, 0);
   return {
@@ -136,7 +149,7 @@ export function useInterestCapabilityCoverage(
       // the same interest-scoped table, so this already reflects a joined org.
       const { data: comps, error: compsErr } = await supabase
         .from('betterat_competencies')
-        .select('id, category')
+        .select('id, category, title')
         .eq('interest_id', interestId);
       if (compsErr) return null;
       // Interest with no framework yet → fall back to the general set so the
@@ -146,9 +159,11 @@ export function useInterestCapabilityCoverage(
       const categoryOfComp = new Map<string, string>();
       const categoryTotals = new Map<string, number>();
       const idsByCategory = new Map<string, string[]>();
+      const titleOfComp = new Map<string, string>();
       for (const c of comps as CompetencyRow[]) {
         const cat = c.category ?? 'General';
         categoryOfComp.set(c.id, cat);
+        titleOfComp.set(c.id, c.title ?? 'Capability');
         categoryTotals.set(cat, (categoryTotals.get(cat) ?? 0) + 1);
         const ids = idsByCategory.get(cat);
         if (ids) ids.push(c.id);
@@ -194,6 +209,11 @@ export function useInterestCapabilityCoverage(
           evidenced: evidencedSet?.size ?? 0,
           competencyIds: ids,
           unevidencedCompetencyIds: ids.filter((id) => !evidencedSet?.has(id)),
+          competencies: ids.map((id) => ({
+            id,
+            title: titleOfComp.get(id) ?? 'Capability',
+            evidenced: evidencedSet?.has(id) ?? false,
+          })),
         };
       });
 

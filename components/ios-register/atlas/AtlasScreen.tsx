@@ -3968,7 +3968,11 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               toolbarOffset={f1ChromeH}
               bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
               onSitePress={(site) => {
+                // Land ON the pin (open its callout + center) instead of a
+                // bare camera fly to an unselected map — #37.
+                const pin = framePinsWithDemo.find((p) => p.id === `poi:${site.id}`);
                 setF1View('map');
+                setSelectedPin(pin ?? null);
                 setSearchFocus({ lat: site.lat, lng: site.lng });
               }}
               onPlanStep={() => handlers.onPrimaryAction?.()}
@@ -4008,7 +4012,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               onSitePress={(site) => {
                 const pin = framePinsWithDemo.find((p) => p.id === `poi:${site.poiId}`);
                 if (pin) {
+                  // Center + select the pin so its callout opens — #37.
                   setF1View('map');
+                  setSelectedPin(pin);
                   setSearchFocus({ lat: pin.lat, lng: pin.lng });
                 }
               }}
@@ -4214,12 +4220,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               </Pressable>
               {universalPlus.isAvailable ? (
                 <Pressable
-                  style={shellStyles.capsuleAction}
+                  style={[
+                    shellStyles.capsuleAddButton,
+                    { backgroundColor: currentInterest?.accent_color ?? '#007AFF' },
+                  ]}
                   onPress={universalPlus.open}
                   hitSlop={6}
                   accessibilityLabel="Capture a step"
                 >
-                  <Ionicons name="add" size={18} color="rgba(60, 60, 67, 0.85)" />
+                  <Ionicons name="add" size={19} color="#FFFFFF" />
                 </Pressable>
               ) : null}
               <ProfileDropdown size={30} variant="light" menuAlign="right" />
@@ -4265,6 +4274,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               "your steps + the steps of people you follow & know," not search.
               Map-only: Sites/Capabilities own their own structure. */}
           {f1View === 'map' ? (
+          <View style={{ marginTop: 9 }}>
           <FilterChipsRow
             chips={[
               { id: 'you', label: 'My steps', tone: 'you', active: activeFilterIds.includes('you') },
@@ -4296,6 +4306,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             compact
             debugScope="f1"
           />
+          </View>
           ) : null}
           {/* Headless InterestSwitcher hosts the modal so the imperative
               opener inside the capsule can pop it. Atlas doesn't mount
@@ -5288,7 +5299,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           saving={updateStepLocationMutation.isPending}
           onCancel={handleCancelAnchorStep}
           onSave={handleSaveAnchorStep}
-          bottomOffset={((handlers as { bottomSheetOffset?: number }).bottomSheetOffset ?? 0) + 16}
+          // Clear the MockTabBar (~55pt) + home-indicator inset so the
+          // Cancel/Save action row isn't hidden behind the bottom tab bar.
+          bottomOffset={insets.bottom + 72}
         />
       ) : null}
 
@@ -11095,7 +11108,13 @@ const shellStyles = StyleSheet.create({
     marginTop: 8,
     padding: 2,
     borderRadius: 9,
-    backgroundColor: 'rgba(118, 118, 128, 0.18)',
+    // Opaque-ish backing + shadow so the control stays legible floating
+    // over the map (the translucent grey washed out against chart tiles).
+    backgroundColor: 'rgba(216, 216, 222, 0.95)',
+    shadowColor: '#000',
+    shadowOpacity: 0.16,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
   },
   f4SegmentItem: {
     paddingVertical: 5,
@@ -11112,7 +11131,7 @@ const shellStyles = StyleSheet.create({
   f4SegmentText: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(60, 60, 67, 0.6)',
+    color: 'rgba(60, 60, 67, 0.78)',
     letterSpacing: -0.1,
   },
   f4SegmentTextActive: {
