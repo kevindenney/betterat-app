@@ -1379,6 +1379,68 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     }
   }
 
+  // ── Organization (club) subscription invoice ──
+  // Record into org_invoices so the Studio admin billing surface shows real
+  // issued/paid invoices instead of an empty-state. Resolve the org via the
+  // invoice's subscription first, then its customer. Returns early on a match —
+  // an org invoice never belongs to a consumer (users) row below.
+  {
+    const toDate = (unix?: number | null): string | null =>
+      unix ? new Date(unix * 1000).toISOString().slice(0, 10) : null;
+
+    let orgSub: { organization_id: string; seat_count: number | null } | null = null;
+    if (invoice.subscription) {
+      const { data } = await supabase
+        .from('organization_subscriptions')
+        .select('organization_id, seat_count')
+        .eq('stripe_subscription_id', invoice.subscription as string)
+        .maybeSingle();
+      orgSub = data;
+    }
+    if (!orgSub && invoice.customer) {
+      const { data } = await supabase
+        .from('organization_subscriptions')
+        .select('organization_id, seat_count')
+        .eq('stripe_customer_id', invoice.customer as string)
+        .maybeSingle();
+      orgSub = data;
+    }
+
+    if (orgSub) {
+      const createdDate = toDate(invoice.created)!;
+      const lineQty = invoice.lines?.data?.[0]?.quantity ?? null;
+      const { error: invErr } = await supabase
+        .from('org_invoices')
+        .upsert(
+          {
+            org_id: orgSub.organization_id,
+            // invoice.number is the human-facing "ABCD-0001"; fall back to the id.
+            invoice_number: invoice.number ?? invoice.id,
+            period_start: toDate(invoice.period_start) ?? createdDate,
+            period_end: toDate(invoice.period_end) ?? createdDate,
+            // Flat Club tiers don't bill per seat; record the configured seat
+            // allotment (or the line quantity) so the column stays meaningful.
+            seats_billed: orgSub.seat_count ?? lineQty ?? 0,
+            amount_cents: invoice.amount_paid ?? 0,
+            status: 'paid',
+            paid_at: toDate(invoice.status_transitions?.paid_at) ?? createdDate,
+            due_at: toDate(invoice.due_date),
+            pdf_url: invoice.invoice_pdf ?? null,
+            stripe_invoice_id: invoice.id,
+          },
+          { onConflict: 'org_id,invoice_number' },
+        );
+      if (invErr) {
+        console.error('[invoice.paid] org_invoices upsert failed', invErr);
+      } else {
+        console.log(
+          `[invoice.paid] Recorded org invoice ${invoice.number ?? invoice.id} for org ${orgSub.organization_id}`,
+        );
+      }
+      return;
+    }
+  }
+
   const customerId = invoice.customer as string;
 
   const { data: user } = await supabase

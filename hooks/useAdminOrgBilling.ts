@@ -113,7 +113,14 @@ export function useAdminOrgBilling(orgId: string) {
         OrgSubscriptionService.getSubscription(orgId),
       ]);
 
-      // Real Stripe-backed subscription — authoritative.
+      const wrapped = (rpcRes.error
+        ? {}
+        : (rpcRes.data ?? {})) as { billing?: OrgBillingRow | null; invoices?: OrgInvoiceRow[] };
+      const rpcInvoices = wrapped.invoices ?? [];
+
+      // Real Stripe-backed subscription — authoritative. Invoices come from the
+      // RPC's org_invoices (written by the stripe-webhooks invoice.paid handler);
+      // an org with a subscription but no cleared invoices yet shows empty-state.
       if (subscription) {
         const { count } = await supabase
           .from('organization_memberships')
@@ -122,7 +129,7 @@ export function useAdminOrgBilling(orgId: string) {
           .in('status', ['active', 'verified']);
         return {
           billing: billingFromSubscription(subscription, count ?? 0),
-          invoices: [],
+          invoices: rpcInvoices,
           source: 'subscription',
         };
       }
@@ -132,7 +139,6 @@ export function useAdminOrgBilling(orgId: string) {
         console.warn('[useAdminOrgBilling] RPC failed', rpcRes.error);
         return { billing: null, invoices: [], source: null };
       }
-      const wrapped = (rpcRes.data ?? {}) as { billing?: OrgBillingRow | null; invoices?: OrgInvoiceRow[] };
       const demoBilling = wrapped.billing ?? null;
       return {
         billing: demoBilling,
