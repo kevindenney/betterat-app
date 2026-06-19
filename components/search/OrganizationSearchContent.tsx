@@ -19,6 +19,12 @@ import { IOS_COLORS, IOS_TYPOGRAPHY, IOS_SPACING, IOS_RADIUS } from '@/lib/desig
 interface OrganizationSearchContentProps {
   toolbarOffset?: number;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  /** Plural noun for the entity, used in placeholder/helper/empty copy. Defaults to "organizations". */
+  noun?: string;
+  /** Override the search-box placeholder. Defaults to `Search ${noun}`. */
+  placeholder?: string;
+  /** Override the helper line under the search box. */
+  helperText?: string;
 }
 
 function formatJoinModeLabel(joinMode: string): string {
@@ -38,6 +44,9 @@ function normalizeMembershipStatus(value: unknown): 'active' | 'pending' | 'reje
 export function OrganizationSearchContent({
   toolbarOffset = 0,
   onScroll,
+  noun = 'organizations',
+  placeholder,
+  helperText,
 }: OrganizationSearchContentProps) {
   const [query, setQuery] = useState('');
   const [joiningOrgId, setJoiningOrgId] = useState<string | null>(null);
@@ -183,7 +192,7 @@ export function OrganizationSearchContent({
             />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search organizations"
+              placeholder={placeholder ?? `Search ${noun}`}
               placeholderTextColor={IOS_COLORS.placeholderText}
               value={query}
               onChangeText={setQuery}
@@ -199,18 +208,18 @@ export function OrganizationSearchContent({
           </View>
 
           <Text style={styles.helperText}>
-            Search by organization name or slug.
+            {helperText ?? 'Search by organization name or slug.'}
           </Text>
         </View>
       )}
       ListEmptyComponent={(
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>
-            {loading ? 'Searching organizations...' : 'No organizations found'}
+            {loading ? `Searching ${noun}...` : `No ${noun} found`}
           </Text>
           <Text style={styles.emptyText}>
             {errorText || (normalizedQuery.length === 0
-              ? 'Start typing to find organizations.'
+              ? `Start typing to find ${noun}.`
               : 'Try a different search term.')}
           </Text>
         </View>

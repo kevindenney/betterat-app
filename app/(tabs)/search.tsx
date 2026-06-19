@@ -12,7 +12,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOSSegmentedControl } from '@/components/ui/ios/IOSSegmentedControl';
 import { TabScreenToolbar, type ToolbarAction } from '@/components/ui/TabScreenToolbar';
 import { SailorSearchContent } from '@/components/search/SailorSearchContent';
-import { ClubSearchContent } from '@/components/search/ClubSearchContent';
 import { OrganizationSearchContent } from '@/components/search/OrganizationSearchContent';
 import { PlanSearchContent } from '@/components/search/PlanSearchContent';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
@@ -61,17 +60,13 @@ export default function SearchTab() {
         />
       )}
       {activeSegment === 'clubs' && (
-        isSailing ? (
-          <ClubSearchContent
-            toolbarOffset={toolbarHeight}
-            onScroll={handleScroll}
-          />
-        ) : (
-          <OrganizationSearchContent
-            toolbarOffset={toolbarHeight}
-            onScroll={handleScroll}
-          />
-        )
+        <OrganizationSearchContent
+          toolbarOffset={toolbarHeight}
+          onScroll={handleScroll}
+          noun={isSailing ? 'clubs' : 'organizations'}
+          placeholder={isSailing ? 'Search clubs' : undefined}
+          helperText={isSailing ? 'Search by club name.' : undefined}
+        />
       )}
       {activeSegment === 'plans' && (
         <PlanSearchContent
