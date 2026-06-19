@@ -17,6 +17,7 @@ import { useAdminCohortDetail, CohortMember } from '@/hooks/useAdminCohortDetail
 import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
 import { CohortEditSheet } from '@/components/admin/CohortEditSheet';
+import { AssignMembersSheet } from '@/components/admin/AssignMembersSheet';
 
 export default function AdminCohortDetailPage() {
   const { orgId, cohortId } = useLocalSearchParams<{ orgId: string; cohortId: string }>();
@@ -25,6 +26,7 @@ export default function AdminCohortDetailPage() {
   const av = useAdminOrgVocab(orgId as string);
   const [search, setSearch] = useState('');
   const [editOpen, setEditOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const filtered = cohort
     ? search
@@ -73,6 +75,7 @@ export default function AdminCohortDetailPage() {
               accent="blue"
               icon="add"
               label={`Assign ${av.Members.toLowerCase()}`}
+              onPress={() => setAssignOpen(true)}
             />
           </>
         }
@@ -90,6 +93,17 @@ export default function AdminCohortDetailPage() {
         maxSeats={cohort?.maxSeats ?? null}
         program={cohort?.program ?? null}
         onClose={() => setEditOpen(false)}
+      />
+
+      <AssignMembersSheet
+        visible={assignOpen}
+        orgId={orgId as string}
+        cohortId={cohortId as string}
+        cohortName={cohort?.name ?? av.Cohort}
+        existingUserIds={cohort?.members.map((m) => m.userId) ?? []}
+        memberNoun={av.member}
+        membersNoun={av.members}
+        onClose={() => setAssignOpen(false)}
       />
 
       {cohort?.description ? (

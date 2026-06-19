@@ -14,6 +14,7 @@ import { AdminShell } from '@/components/admin/AdminShell';
 import { useAdminCohorts, AdminCohort } from '@/hooks/useAdminCohorts';
 import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { CohortCreateSheet } from '@/components/admin/CohortCreateSheet';
 
 export default function AdminCohortsListPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
@@ -21,6 +22,7 @@ export default function AdminCohortsListPage() {
   const data = useAdminCohorts(orgId as string);
   const av = useAdminOrgVocab(orgId as string);
   const [search, setSearch] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
 
   const filtered = search
     ? data.cohorts.filter(
@@ -56,6 +58,7 @@ export default function AdminCohortsListPage() {
               accent="blue"
               icon="add"
               label={`New ${av.Cohort.toLowerCase()}`}
+              onPress={() => setCreateOpen(true)}
             />
           </>
         }
@@ -101,6 +104,15 @@ export default function AdminCohortsListPage() {
           ))
         )}
       </ScrollView>
+
+      <CohortCreateSheet
+        visible={createOpen}
+        orgId={orgId as string}
+        cohortNoun={av.Cohort}
+        programNoun={av.Program}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(id) => router.push(`/admin/${orgId}/cohorts/${id}` as any)}
+      />
     </AdminShell>
   );
 }

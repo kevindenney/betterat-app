@@ -39,6 +39,7 @@ import {
 } from '@/hooks/useStudioBlueprint';
 import { useCreateBlueprint, useUpdateBlueprintMeta } from '@/hooks/useBlueprintEditor';
 import { useBlueprintPricing } from '@/hooks/useBlueprintPricing';
+import { BlueprintCohortLinkSheet } from '@/components/admin/BlueprintCohortLinkSheet';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   StudioShell,
@@ -472,7 +473,15 @@ function OverviewBody({
       authors={blueprint.authors}
     />
   );
-  const cohortsCard = <CohortsCard cohorts={blueprint.cohorts} />;
+  const cohortsCard = (
+    <CohortsCard
+      cohorts={blueprint.cohorts}
+      blueprintId={blueprint.id}
+      orgId={blueprint.orgId}
+      isNew={blueprint.isNew}
+      blueprintTitle={title || blueprint.title || 'this blueprint'}
+    />
+  );
 
   // Below the Studio compact breakpoint the two-column row crushes each
   // column to ~135pt, which wraps the access-mode cards one char per line.
@@ -797,9 +806,21 @@ function PricingCard({
 
 function CohortsCard({
   cohorts,
+  blueprintId,
+  orgId,
+  isNew,
+  blueprintTitle,
 }: {
   cohorts: ReturnType<typeof useStudioBlueprint>['blueprint']['cohorts'];
+  blueprintId: string;
+  orgId: string | null;
+  isNew: boolean;
+  blueprintTitle: string;
 }) {
+  const [linkOpen, setLinkOpen] = useState(false);
+  // Linking needs a saved blueprint (real id) and an owning org.
+  const canLink = !isNew && !!orgId;
+
   return (
     <StudioPanel title="Cohorts & mentors" meta={<Text style={styles.panelMetaText}>Who's on this blueprint</Text>}>
       <View style={cohort.body}>
@@ -829,11 +850,28 @@ function CohortsCard({
             </View>
           ))
         )}
-        <Pressable style={cohort.addRow}>
-          <Ionicons name="add" size={14} color="#007AFF" />
-          <Text style={cohort.addText}>Add a cohort</Text>
+        <Pressable
+          style={[cohort.addRow, !canLink && cohort.addRowDisabled]}
+          disabled={!canLink}
+          onPress={() => setLinkOpen(true)}
+        >
+          <Ionicons name="add" size={14} color={canLink ? '#007AFF' : 'rgba(60, 60, 67, 0.4)'} />
+          <Text style={[cohort.addText, !canLink && cohort.addTextDisabled]}>
+            {isNew ? 'Save the blueprint to add a cohort' : 'Add a cohort'}
+          </Text>
         </Pressable>
       </View>
+
+      {canLink ? (
+        <BlueprintCohortLinkSheet
+          visible={linkOpen}
+          blueprintId={blueprintId}
+          orgId={orgId as string}
+          blueprintTitle={blueprintTitle}
+          linkedCohortIds={cohorts.map((c) => c.id)}
+          onClose={() => setLinkOpen(false)}
+        />
+      ) : null}
     </StudioPanel>
   );
 }
@@ -1177,4 +1215,6 @@ const cohort = StyleSheet.create({
     paddingVertical: 9,
   },
   addText: { fontSize: 13, color: '#007AFF', fontWeight: '500' },
+  addRowDisabled: { opacity: 0.6 },
+  addTextDisabled: { color: 'rgba(60, 60, 67, 0.4)' },
 });
