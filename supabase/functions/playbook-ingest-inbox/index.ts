@@ -25,7 +25,7 @@ import { complete } from '../_shared/ai/provider.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   assertPlaybookOwnership,
-  authenticate,
+  authenticateUserOrService,
   extractJson,
   insertSuggestions,
   jsonResponse,
@@ -39,7 +39,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const auth = await authenticate(req);
+    const auth = await authenticateUserOrService(req);
     if (auth instanceof Response) return auth;
     const { userId, supabase } = auth;
 

@@ -46,6 +46,51 @@ export async function authenticate(req: Request): Promise<AuthContext | Response
 }
 
 /**
+ * Authenticate EITHER a real user JWT (in-app callers via
+ * `supabase.functions.invoke`, which attaches the session token) OR a
+ * service-role bearer + `x-user-id` header (server-to-server callers like the
+ * Telegram bot).
+ *
+ * Two non-obvious traps this navigates:
+ *   1. `getUser()` rejects any service-role key ("missing sub claim"), so the
+ *      bot path can never resolve a user from the JWT — it must name the acting
+ *      user via `x-user-id`.
+ *   2. The platform now injects a NEW-format secret key as the function's
+ *      `SUPABASE_SERVICE_ROLE_KEY`, which differs from the legacy JWT service
+ *      key callers still hold — so we must NOT string-match the incoming bearer
+ *      against the env key. Instead we use the incoming bearer AS the client:
+ *      a genuine service key bypasses RLS and works; a forged/invalid one fails
+ *      every query, so this is self-securing (no escalation beyond what holding
+ *      a real service key already grants).
+ */
+export async function authenticateUserOrService(
+  req: Request,
+): Promise<AuthContext | Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return jsonResponse({ error: 'Missing authorization' }, 401);
+  const bearer = authHeader.replace('Bearer ', '').trim();
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  if (!supabaseUrl) throw new Error('Missing required environment variable: SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!serviceKey) throw new Error('Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY');
+
+  // Path 1 — user JWT (in-app). Resolve the user with a service-role client.
+  const serviceClient = createClient(supabaseUrl, serviceKey);
+  const { data: { user } } = await serviceClient.auth.getUser(bearer);
+  if (user) return { userId: user.id, supabase: serviceClient };
+
+  // Path 2 — service-role bearer + x-user-id (bot / server-to-server). Use the
+  // incoming bearer as the client key so only a genuine service key works.
+  const xUserId = req.headers.get('x-user-id');
+  if (xUserId) {
+    return { userId: xUserId, supabase: createClient(supabaseUrl, bearer) };
+  }
+
+  return jsonResponse({ error: 'Unauthorized' }, 401);
+}
+
+/**
  * Extract a JSON object/array from a Gemini text response.
  * Tolerates ```json fences and leading/trailing prose.
  */
