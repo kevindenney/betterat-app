@@ -175,7 +175,7 @@ export async function gatherEnrichedContext(
  * one. Each sub-fetch is independently defensive so a single failure can't
  * sink the planning context.
  */
-async function gatherPlaybookLayers(
+export async function gatherPlaybookLayers(
   userId: string,
   interestId: string,
 ): Promise<{

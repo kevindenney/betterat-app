@@ -28,6 +28,12 @@ import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 import { getStepCategoryLabels } from '@/lib/step-category-config';
 import { getUserLibrary, getResources } from '@/services/LibraryService';
+import {
+  gatherPlaybookLayers,
+  formatConceptsForPrompt,
+  formatPatternsForPrompt,
+  formatLatestReviewForPrompt,
+} from '@/services/ai/StepPlanAIService';
 import type { StepPlanData, SubStep } from '@/types/step-detail';
 import {
   PlanDraftPreviewCard,
@@ -138,16 +144,22 @@ export function ConversationalCapture({
       let insightsBlock = '';
       let measurementBlock = '';
       let libraryBlock = '';
+      let playbookBlock = '';
       let loadedInsights: Awaited<ReturnType<typeof getActiveInsights>> = [];
 
       try {
-        const [manifesto, insights, measurementHistory, libraryResources] = await Promise.all([
+        const [manifesto, insights, measurementHistory, libraryResources, playbookLayers] = await Promise.all([
           getManifesto(user.id, interestId),
           getActiveInsights(user.id, interestId),
           getMeasurementHistory(user.id, interestId).catch(() => null),
           getUserLibrary(user.id, interestId)
             .then((lib) => getResources(lib.id))
             .catch(() => [] as any[]),
+          gatherPlaybookLayers(user.id, interestId).catch(() => ({
+            concepts: [],
+            patterns: [],
+            latestReview: null,
+          })),
         ]);
 
         loadedInsights = insights;
@@ -187,6 +199,23 @@ export function ConversationalCapture({
           });
           libraryBlock = `\n\nUSER'S LEARNING LIBRARY (resources they've curated for ${interestName}):\n${resourceLines.join('\n')}`;
         }
+
+        // Playbook — the user's own distilled knowledge. Highest-signal context
+        // after their manifesto: concepts they wrote, patterns detected in their
+        // practice, and their latest weekly focus. The coach should build on
+        // these by name so the knowledge bank feels like it compounds.
+        const conceptsBlock = formatConceptsForPrompt(playbookLayers.concepts);
+        if (conceptsBlock) {
+          playbookBlock += `\n\nYOUR DISTILLED KNOWLEDGE (concepts you've written):\n${conceptsBlock}`;
+        }
+        const patternsBlock = formatPatternsForPrompt(playbookLayers.patterns);
+        if (patternsBlock) {
+          playbookBlock += `\n\nPATTERNS IN YOUR OWN PRACTICE:\n${patternsBlock}`;
+        }
+        const reviewBlock = formatLatestReviewForPrompt(playbookLayers.latestReview);
+        if (reviewBlock) {
+          playbookBlock += `\n\nYOUR LATEST WEEKLY FOCUS:\n${reviewBlock}`;
+        }
       } catch {
         // Continue without manifesto/insights/measurements
       }
@@ -197,10 +226,11 @@ export function ConversationalCapture({
 
       const prompt = `You are an expert learning coach on BetterAt, helping someone plan their ${interestName} practice.
 
-Your role is to have a natural conversation to understand what they want to work on, then help them structure it into a clear plan. You know their history, philosophy, and patterns.${manifestoBlock}${insightsBlock}${measurementBlock}${libraryBlock}${categoryGuidance}
+Your role is to have a natural conversation to understand what they want to work on, then help them structure it into a clear plan. You know their history, philosophy, and patterns.${manifestoBlock}${insightsBlock}${playbookBlock}${measurementBlock}${libraryBlock}${categoryGuidance}
 
 Guidelines:
 - Be conversational and concise (under 150 words per response)
+- When the user's distilled knowledge, patterns, or weekly focus are relevant, build on them by name (e.g. "Building on your note about…")
 - Reference their manifesto, library resources, patterns, and insights when relevant
 - Ask clarifying questions to fill gaps (what specifically, how they'll approach it, why it matters, who's involved, where)
 - If they paste a wall of text, help organize it into a coherent plan

@@ -233,6 +233,88 @@ async function resolveInterestId(
   return null;
 }
 
+/** Collapse markdown/whitespace to a single trimmed line, capped to maxLen. */
+function oneLine(text: string | null | undefined, maxLen = 160): string {
+  if (!text) return '';
+  const flat = String(text).replace(/\s+/g, ' ').trim();
+  return flat.length > maxLen ? `${flat.slice(0, maxLen - 1)}…` : flat;
+}
+
+/**
+ * Fetch the user's *synthesized* playbook knowledge for an interest — the bot
+ * analog of the in-app planning enrichment (see StepPlanAIService). Read-only,
+ * service-role client filtered by user_id. Returns null when the user has no
+ * playbook for the interest so callers can omit the block entirely.
+ */
+async function fetchPlaybookKnowledge(
+  supabase: SupabaseClient,
+  userId: string,
+  interestId: string,
+): Promise<{
+  concepts: { title: string; summary: string }[];
+  patterns: { title: string; summary: string }[];
+  latest_focus: string | null;
+  knowledge_gaps: { topic: string; description: string }[];
+} | null> {
+  if (!userId || !interestId) return null;
+
+  const { data: playbook } = await supabase
+    .from('playbooks')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('interest_id', interestId)
+    .maybeSingle();
+  if (!playbook) return null;
+
+  const playbookId = (playbook as { id: string }).id;
+
+  const [conceptsRes, patternsRes, reviewRes] = await Promise.all([
+    supabase
+      .from('playbook_concepts')
+      .select('title, body_md, body, ai_synthesis_text, state, updated_at')
+      .eq('playbook_id', playbookId),
+    supabase
+      .from('playbook_patterns')
+      .select('title, body_md, status, created_at')
+      .eq('playbook_id', playbookId)
+      .neq('status', 'dismissed'),
+    supabase
+      .from('playbook_reviews')
+      .select('focus_suggestion_md, knowledge_health, period_end')
+      .eq('playbook_id', playbookId)
+      .order('period_end', { ascending: false })
+      .limit(1),
+  ]);
+
+  const conceptRows = (conceptsRes.data ?? []) as any[];
+  const concepts = [...conceptRows]
+    .sort((a, b) => {
+      const settled = (b.state === 'settled' ? 1 : 0) - (a.state === 'settled' ? 1 : 0);
+      if (settled !== 0) return settled;
+      return String(b.updated_at ?? '').localeCompare(String(a.updated_at ?? ''));
+    })
+    .slice(0, 8)
+    .map((c) => ({ title: c.title, summary: oneLine(c.ai_synthesis_text || c.body_md || c.body, 140) }));
+
+  const patternRows = (patternsRes.data ?? []) as any[];
+  const patterns = [...patternRows]
+    .sort((a, b) => (b.status === 'pinned' ? 1 : 0) - (a.status === 'pinned' ? 1 : 0))
+    .slice(0, 5)
+    .map((p) => ({ title: p.title, summary: oneLine(p.body_md, 140) }));
+
+  const review = (reviewRes.data ?? [])[0] as any | undefined;
+  const latest_focus = oneLine(review?.focus_suggestion_md, 240) || null;
+  const knowledge_gaps = ((review?.knowledge_health?.gaps ?? []) as any[])
+    .slice(0, 3)
+    .map((g) => ({ topic: g.topic, description: oneLine(g.description, 100) }));
+
+  if (!concepts.length && !patterns.length && !latest_focus && !knowledge_gaps.length) {
+    return null;
+  }
+
+  return { concepts, patterns, latest_focus, knowledge_gaps };
+}
+
 // ---------------------------------------------------------------------------
 // Tool registry
 // ---------------------------------------------------------------------------
@@ -1340,8 +1422,16 @@ const TOOLS: TelegramToolDef[] = [
           };
         });
 
+      // 5. Pull the user's synthesized playbook knowledge for this interest
+      const playbook = await fetchPlaybookKnowledge(supabase, auth.userId, comp.interest_id);
+
+      const baseInstruction = `Suggest a focused practice session for the competency "${comp.title}". Include a session title, 3-5 sub-steps, and a rationale. Consider the user's current level and past attempts. Be specific and actionable.`;
+      const playbookInstruction = playbook
+        ? ` Ground the suggestion in the user's own distilled knowledge below — reference their concepts, patterns, or weekly focus by name (e.g. "Building on your note about X…") so it feels like their knowledge bank compounding, not generic advice.`
+        : '';
+
       return {
-        instruction: `Suggest a focused practice session for the competency "${comp.title}". Include a session title, 3-5 sub-steps, and a rationale. Consider the user's current level and past attempts. Be specific and actionable.`,
+        instruction: baseInstruction + playbookInstruction,
         competency: {
           title: comp.title,
           category: comp.category,
@@ -1355,6 +1445,42 @@ const TOOLS: TelegramToolDef[] = [
           last_assessed: progress?.last_attempt_at ?? null,
         },
         related_past_steps: relatedSteps,
+        ...(playbook ? { your_distilled_knowledge: playbook } : {}),
+      };
+    },
+  },
+
+  {
+    name: 'get_playbook_knowledge',
+    description:
+      "Retrieve the user's own synthesized knowledge bank for an interest — the concepts " +
+      "they've distilled, the patterns AI detected across their debriefs, and their latest " +
+      'weekly focus + knowledge gaps. Use this BEFORE giving any coaching, planning, or ' +
+      "how-to-practice advice so suggestions build on what the user already knows, by name. " +
+      'Returns empty when the user has no playbook for the interest yet.',
+    schema: z.object({
+      interest: z.string().describe('Interest slug, name, or UUID to pull knowledge for'),
+    }),
+    handler: async (input, supabase, auth) => {
+      const interest = await resolveInterestId(supabase, input.interest as string);
+      if (!interest) return { error: `Interest not found: ${input.interest}` };
+
+      const playbook = await fetchPlaybookKnowledge(supabase, auth.userId, interest.id);
+      if (!playbook) {
+        return {
+          interest: interest.name,
+          has_knowledge: false,
+          message: 'No distilled playbook knowledge for this interest yet.',
+        };
+      }
+
+      return {
+        interest: interest.name,
+        has_knowledge: true,
+        instruction:
+          "Ground your coaching/planning in this knowledge. Reference the user's own " +
+          'concepts, patterns, or focus by name so it feels like their knowledge bank compounding.',
+        ...playbook,
       };
     },
   },
