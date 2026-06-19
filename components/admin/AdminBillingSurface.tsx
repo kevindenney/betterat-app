@@ -11,10 +11,14 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   useAdminOrgBilling,
   OrgInvoiceRow,
@@ -24,6 +28,61 @@ import {
   formatDate,
 } from '@/hooks/useAdminOrgBilling';
 import { ORG_PLANS, type OrgPlanId } from '@/lib/subscriptions/orgTiers';
+
+type InvoiceFilter = 'all' | 'paid' | 'open';
+
+/** Open a Stripe-hosted invoice PDF, or explain when one isn't available yet. */
+function openInvoicePdf(inv: OrgInvoiceRow) {
+  if (!inv.pdf_url) {
+    showAlert('PDF not ready', 'This invoice does not have a downloadable PDF yet.');
+    return;
+  }
+  WebBrowser.openBrowserAsync(inv.pdf_url).catch(() => {
+    showAlert('Could not open invoice', 'The invoice PDF failed to open. Try again shortly.');
+  });
+}
+
+/** Build a CSV from the loaded invoices and download (web) / share (native). */
+async function exportInvoicesCsv(invoices: OrgInvoiceRow[]) {
+  if (invoices.length === 0) {
+    showAlert('Nothing to export', 'There are no invoices to export yet.');
+    return;
+  }
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const header = ['Invoice', 'Period start', 'Period end', 'Seats', 'Amount (USD)', 'Status', 'Paid', 'Due'];
+  const rows = invoices.map((inv) =>
+    [
+      esc(inv.invoice_number),
+      inv.period_start,
+      inv.period_end,
+      String(inv.seats_billed),
+      (inv.amount_cents / 100).toFixed(2),
+      inv.status,
+      inv.paid_at ?? '',
+      inv.due_at ?? '',
+    ].join(','),
+  );
+  const csv = [header.join(','), ...rows].join('\n');
+  const fileName = `invoices_${new Date().toISOString().slice(0, 10)}.csv`;
+
+  if (Platform.OS === 'web') {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+  const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+  await FileSystem.writeAsStringAsync(fileUri, csv);
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(fileUri, { mimeType: 'text/csv' });
+  } else {
+    showAlert('Export complete', `Invoices saved to:\n${fileUri}`);
+  }
+}
 
 // Fallback feature list for demo/manually-seeded billing rows that don't map to
 // a known Club plan. Real subscriptions surface their own plan's features.
@@ -39,6 +98,7 @@ const PLAN_FEATURES: string[] = [
 export function AdminBillingSurface() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const { billing, invoices, loading } = useAdminOrgBilling(orgId as string);
+  const [filter, setFilter] = React.useState<InvoiceFilter>('all');
 
   if (loading || !billing) {
     return (
@@ -63,6 +123,12 @@ export function AdminBillingSurface() {
   const planFeatures = ORG_PLANS[billing.plan_tier as OrgPlanId]?.features ?? PLAN_FEATURES;
   const hasSeatBreakdown =
     billing.seats_students + billing.seats_mentors + billing.seats_faculty > 0;
+
+  const visibleInvoices = invoices.filter((inv) => {
+    if (filter === 'paid') return inv.status === 'paid';
+    if (filter === 'open') return inv.status === 'open' || inv.status === 'past_due';
+    return true;
+  });
 
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
@@ -233,17 +299,22 @@ export function AdminBillingSurface() {
           </View>
           <View style={s.cardHeadActions}>
             <View style={s.segControl}>
-              <View style={[s.segOpt, s.segOptOn]}>
-                <Text style={s.segOptTextOn}>All</Text>
-              </View>
-              <View style={s.segOpt}>
-                <Text style={s.segOptText}>Paid</Text>
-              </View>
-              <View style={s.segOpt}>
-                <Text style={s.segOptText}>Open</Text>
-              </View>
+              {(['all', 'paid', 'open'] as InvoiceFilter[]).map((opt) => {
+                const on = filter === opt;
+                return (
+                  <Pressable
+                    key={opt}
+                    style={[s.segOpt, on && s.segOptOn]}
+                    onPress={() => setFilter(opt)}
+                  >
+                    <Text style={on ? s.segOptTextOn : s.segOptText}>
+                      {opt === 'all' ? 'All' : opt === 'paid' ? 'Paid' : 'Open'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
-            <Pressable style={s.btnSm}>
+            <Pressable style={s.btnSm} onPress={() => exportInvoicesCsv(visibleInvoices)}>
               <Ionicons name="download-outline" size={12} color="#28406B" />
               <Text style={s.btnSmText}>Export CSV</Text>
             </Pressable>
@@ -259,17 +330,39 @@ export function AdminBillingSurface() {
             <Text style={[s.th, { flex: 1.3 }]}>Status</Text>
             <View style={{ width: 70 }} />
           </View>
-          {invoices.map((inv, idx) => (
-            <InvoiceRow key={inv.id} inv={inv} isLast={idx === invoices.length - 1} />
-          ))}
+          {visibleInvoices.length === 0 ? (
+            <View style={s.emptyRow}>
+              <Text style={s.payMeta}>
+                {invoices.length === 0 ? 'No invoices issued yet.' : 'No invoices match this filter.'}
+              </Text>
+            </View>
+          ) : (
+            visibleInvoices.map((inv, idx) => (
+              <InvoiceRow
+                key={inv.id}
+                inv={inv}
+                isLast={idx === visibleInvoices.length - 1}
+                onOpen={() => openInvoicePdf(inv)}
+              />
+            ))
+          )}
         </View>
       </View>
     </ScrollView>
   );
 }
 
-function InvoiceRow({ inv, isLast }: { inv: OrgInvoiceRow; isLast: boolean }) {
+function InvoiceRow({
+  inv,
+  isLast,
+  onOpen,
+}: {
+  inv: OrgInvoiceRow;
+  isLast: boolean;
+  onOpen: () => void;
+}) {
   const status = invoiceStatusDisplay(inv);
+  const hasPdf = !!inv.pdf_url;
   return (
     <View style={[s.tr, isLast && s.trLast]}>
       <Text style={[s.td, { flex: 1.3 }]}>{inv.invoice_number}</Text>
@@ -285,11 +378,27 @@ function InvoiceRow({ inv, isLast }: { inv: OrgInvoiceRow; isLast: boolean }) {
         </View>
       </View>
       <View style={[s.td, s.tdRight, { width: 70, flexDirection: 'row', gap: 4 }]}>
-        <Pressable style={s.iconBtn}>
-          <Ionicons name="eye-outline" size={13} color="rgba(60, 60, 67, 0.6)" />
+        <Pressable
+          style={[s.iconBtn, !hasPdf && s.iconBtnDisabled]}
+          onPress={onOpen}
+          disabled={!hasPdf}
+        >
+          <Ionicons
+            name="eye-outline"
+            size={13}
+            color={hasPdf ? 'rgba(60, 60, 67, 0.6)' : 'rgba(60, 60, 67, 0.25)'}
+          />
         </Pressable>
-        <Pressable style={s.iconBtn}>
-          <Ionicons name="download-outline" size={13} color="rgba(60, 60, 67, 0.6)" />
+        <Pressable
+          style={[s.iconBtn, !hasPdf && s.iconBtnDisabled]}
+          onPress={onOpen}
+          disabled={!hasPdf}
+        >
+          <Ionicons
+            name="download-outline"
+            size={13}
+            color={hasPdf ? 'rgba(60, 60, 67, 0.6)' : 'rgba(60, 60, 67, 0.25)'}
+          />
         </Pressable>
       </View>
     </View>
@@ -572,4 +681,6 @@ const s = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: 'rgba(60, 60, 67, 0.06)',
   },
+  iconBtnDisabled: { opacity: 0.5 },
+  emptyRow: { paddingHorizontal: 14, paddingVertical: 18 },
 });
