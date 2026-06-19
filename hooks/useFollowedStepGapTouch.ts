@@ -62,12 +62,14 @@ export function useFollowedStepGapTouch(
       // Which of the followed steps evidence one of those gap competencies?
       // event_id is the step id; a step's attempts belong to its author, so
       // filtering by event_id + gap competency yields exactly the gaps each
-      // followed step touches.
-      const { data, error } = await supabase
-        .from('betterat_competency_attempts')
-        .select('event_id, competency_id')
-        .in('event_id', stepIds)
-        .in('competency_id', Array.from(gapCompetencyIds));
+      // followed step touches. These are OTHER people's attempt rows, which the
+      // table's owner-only RLS hides — so go through the SECURITY DEFINER RPC
+      // that re-checks the same `can_view_peer_timeline_step` gate the feed
+      // uses and returns just the (event_id, competency_id) pairs.
+      const { data, error } = await supabase.rpc('followed_step_gap_attempts', {
+        p_step_ids: stepIds,
+        p_competency_ids: Array.from(gapCompetencyIds),
+      });
       if (error) {
         console.warn('[useFollowedStepGapTouch] attempts query failed', error);
         return result;
