@@ -1,4 +1,5 @@
 import 'react-native-url-polyfill/auto';
+import { Platform } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 import { createLogger } from '@/lib/utils/logger';
@@ -125,7 +126,15 @@ export const supabase = createClient(
         'x-client-info': 'regattaflow-app'
       },
       fetch: (url, options = {}) => {
-        // NOTE: do NOT set the fetch `cache` option here. React Native's
+        // On web, express no-cache via the standard fetch `cache` option. The
+        // browser honors it without adding Cache-Control/Pragma *request*
+        // headers — which would otherwise trip Edge Functions' CORS preflight
+        // (their Access-Control-Allow-Headers list doesn't include them),
+        // breaking every supabase.functions.invoke from the browser.
+        if (Platform.OS === 'web') {
+          return globalThis.fetch(url, { ...options, cache: 'no-store' });
+        }
+        // On native, do NOT set the fetch `cache` option: React Native's
         // whatwg-fetch implements `cache: 'no-store'`/`'no-cache'` by appending
         // a cache-busting `&_=<timestamp>` param to GET URLs. PostgREST then
         // parses that bare timestamp as a filter and 400s with PGRST100
