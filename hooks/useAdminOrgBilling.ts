@@ -1,12 +1,18 @@
 /**
  * useAdminOrgBilling — billing summary + invoice list for /admin/[orgId]/billing.
- * Wraps admin_org_billing RPC (SECURITY DEFINER + is_org_admin_member gate).
  *
- * Returns the org_billing row and ordered org_invoices rows in one round-trip.
+ * The org's REAL Stripe-backed subscription (organization_subscriptions, written
+ * by the stripe-webhooks function) is authoritative. When present, plan + period
+ * are derived from it and payment/invoice cards degrade to empty-states (Stripe
+ * invoice + payment-method sync isn't wired yet). When absent, we fall back to the
+ * demo/manually-seeded org_billing + org_invoices via the admin_org_billing RPC
+ * (SECURITY DEFINER + is_org_admin_member gate) so seeded demo orgs still render.
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { OrgSubscriptionService, type OrgSubscription } from '@/services/OrgSubscriptionService';
+import { ORG_PLANS, type OrgPlanId } from '@/lib/subscriptions/orgTiers';
 
 export interface OrgBillingRow {
   org_id: string;
@@ -49,9 +55,50 @@ export interface OrgInvoiceRow {
   stripe_invoice_id: string | null;
 }
 
+/** Where the rendered billing summary came from. */
+export type OrgBillingSource = 'subscription' | 'demo' | null;
+
 export interface AdminOrgBillingData {
   billing: OrgBillingRow | null;
   invoices: OrgInvoiceRow[];
+  source: OrgBillingSource;
+}
+
+/**
+ * Project a real Stripe subscription onto the OrgBillingRow shape the surface
+ * renders. Payment-method + invoice fields stay null/empty — those aren't synced
+ * from Stripe yet, so the cards honestly show empty-states rather than fiction.
+ */
+function billingFromSubscription(sub: OrgSubscription, memberCount: number): OrgBillingRow {
+  const plan = ORG_PLANS[sub.plan_id as OrgPlanId];
+  const cadence: 'monthly' | 'annual' = sub.billing_period === 'monthly' ? 'monthly' : 'annual';
+  const price = sub.amount ?? (plan ? (cadence === 'annual' ? plan.annualPrice : plan.monthlyPrice) : 0);
+  return {
+    org_id: sub.organization_id,
+    plan_tier: sub.plan_id,
+    plan_label: plan?.name ?? sub.plan_id,
+    price_monthly_cents: price,
+    billing_cadence: cadence,
+    net_terms: 0,
+    seats_total: sub.seat_count ?? 0,
+    seats_used: memberCount,
+    seats_students: 0,
+    seats_mentors: 0,
+    seats_faculty: 0,
+    // current_period_end is a full timestamptz; the formatters expect YYYY-MM-DD.
+    next_renewal_date: sub.current_period_end ? sub.current_period_end.slice(0, 10) : null,
+    auto_renew: sub.status === 'active' && !sub.cancelled_at,
+    payment_method_brand: null,
+    payment_method_last4: null,
+    payment_method_exp_month: null,
+    payment_method_exp_year: null,
+    billing_contact_name: null,
+    billing_contact_email: null,
+    pilot_locked_until: null,
+    list_rate_monthly_cents: null,
+    stripe_customer_id: sub.stripe_customer_id,
+    stripe_subscription_id: sub.stripe_subscription_id,
+  };
 }
 
 export function useAdminOrgBilling(orgId: string) {
@@ -60,17 +107,37 @@ export function useAdminOrgBilling(orgId: string) {
     enabled: !!orgId,
     staleTime: 60_000,
     queryFn: async (): Promise<AdminOrgBillingData> => {
-      const { data: payload, error: rpcErr } = await supabase.rpc('admin_org_billing', {
-        p_org_id: orgId,
-      });
-      if (rpcErr) {
-        console.warn('[useAdminOrgBilling] RPC failed', rpcErr);
-        return { billing: null, invoices: [] };
+      // Real subscription wins; demo RPC is the fallback. Fetch both in parallel.
+      const [rpcRes, subscription] = await Promise.all([
+        supabase.rpc('admin_org_billing', { p_org_id: orgId }),
+        OrgSubscriptionService.getSubscription(orgId),
+      ]);
+
+      // Real Stripe-backed subscription — authoritative.
+      if (subscription) {
+        const { count } = await supabase
+          .from('organization_memberships')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', orgId)
+          .in('status', ['active', 'verified']);
+        return {
+          billing: billingFromSubscription(subscription, count ?? 0),
+          invoices: [],
+          source: 'subscription',
+        };
       }
-      const wrapped = (payload ?? {}) as { billing?: OrgBillingRow | null; invoices?: OrgInvoiceRow[] };
+
+      // Demo / manually-seeded billing (e.g. JHSON demo org).
+      if (rpcRes.error) {
+        console.warn('[useAdminOrgBilling] RPC failed', rpcRes.error);
+        return { billing: null, invoices: [], source: null };
+      }
+      const wrapped = (rpcRes.data ?? {}) as { billing?: OrgBillingRow | null; invoices?: OrgInvoiceRow[] };
+      const demoBilling = wrapped.billing ?? null;
       return {
-        billing: wrapped.billing ?? null,
+        billing: demoBilling,
         invoices: wrapped.invoices ?? [],
+        source: demoBilling ? 'demo' : null,
       };
     },
   });
@@ -78,6 +145,7 @@ export function useAdminOrgBilling(orgId: string) {
   return {
     billing: data?.billing ?? null,
     invoices: data?.invoices ?? [],
+    source: data?.source ?? null,
     loading: isLoading,
     error,
   };

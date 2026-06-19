@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
 import { AdminBillingSurface } from '@/components/admin/AdminBillingSurface';
@@ -42,10 +42,12 @@ export default function AdminBillingPage() {
         title="Billing & invoices"
         subtitleParts={[subtitle]}
         actions={
-          <>
-            <StudioButton variant="ghost" icon="mail-outline" label="Email receipts" />
-            <StudioButton variant="ghost" icon="arrow-up-circle-outline" label="Upgrade plan" />
-          </>
+          <StudioButton
+            variant="ghost"
+            icon="arrow-up-circle-outline"
+            label="Upgrade plan"
+            onPress={() => router.push('/organization/billing')}
+          />
         }
       />
       <AdminBillingSurface />

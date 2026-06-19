@@ -23,7 +23,10 @@ import {
   formatPeriod,
   formatDate,
 } from '@/hooks/useAdminOrgBilling';
+import { ORG_PLANS, type OrgPlanId } from '@/lib/subscriptions/orgTiers';
 
+// Fallback feature list for demo/manually-seeded billing rows that don't map to
+// a known Club plan. Real subscriptions surface their own plan's features.
 const PLAN_FEATURES: string[] = [
   'Up to 50 student seats',
   'Unlimited mentor seats',
@@ -57,6 +60,10 @@ export function AdminBillingSurface() {
     : 0;
   const sparseSeats = billing.seats_total - billing.seats_used;
 
+  const planFeatures = ORG_PLANS[billing.plan_tier as OrgPlanId]?.features ?? PLAN_FEATURES;
+  const hasSeatBreakdown =
+    billing.seats_students + billing.seats_mentors + billing.seats_faculty > 0;
+
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
       {/* Plan hero */}
@@ -77,7 +84,7 @@ export function AdminBillingSurface() {
             </Text>
           </View>
           <View style={s.featGrid}>
-            {PLAN_FEATURES.map((f) => (
+            {planFeatures.map((f) => (
               <View key={f} style={s.featRow}>
                 <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.7)" />
                 <Text style={s.featText}>{f}</Text>
@@ -100,10 +107,16 @@ export function AdminBillingSurface() {
             <View style={s.bar}>
               <View style={[s.barFill, { width: `${seatsUtilPct}%` }]} />
             </View>
-            <Text style={s.seatsBreakdown}>
-              {billing.seats_students} students · {billing.seats_mentors} mentors ·{' '}
-              {billing.seats_faculty} faculty (faculty seats are free)
-            </Text>
+            {hasSeatBreakdown ? (
+              <Text style={s.seatsBreakdown}>
+                {billing.seats_students} students · {billing.seats_mentors} mentors ·{' '}
+                {billing.seats_faculty} faculty (faculty seats are free)
+              </Text>
+            ) : (
+              <Text style={s.seatsBreakdown}>
+                {billing.seats_used} active member{billing.seats_used === 1 ? '' : 's'} on this plan
+              </Text>
+            )}
           </View>
           {billing.next_renewal_date ? (
             <View style={s.renewalCard}>
