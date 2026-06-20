@@ -22,6 +22,7 @@ import {
 import { suggestCapabilityTags } from '@/services/CapabilityTagService';
 import { extractInsightsFromStepReflection } from '@/services/AIMemoryService';
 import { useAIUsage } from '@/hooks/useAIUsage';
+import { useCompetenciesForInterest } from '@/hooks/useCompetencies';
 import { dropInsight } from '@/services/QuickCaptureService';
 import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { addConceptTrailQuote, getStepConceptLinks } from '@/services/PlaybookService';
@@ -407,9 +408,24 @@ export function useStepReflectController({
     showAnythingElse,
   ]);
 
+  // competency_ids hold betterat_competencies UUIDs; resolve them to titles
+  // so the panel shows "Customer discovery & interviews", not a raw UUID.
+  const { data: interestCompetencies = [] } = useCompetenciesForInterest(
+    step?.interest_id ?? undefined,
+  );
+  const competencyNameById = useMemo(
+    () => new Map(interestCompetencies.map((c) => [c.id, c.title])),
+    [interestCompetencies],
+  );
   const seededCapabilities = useMemo(
-    () => buildCapabilityEvidenceRows({ plan: planData, act: actData, review: reviewData }),
-    [planData, actData, reviewData],
+    () =>
+      buildCapabilityEvidenceRows({
+        plan: planData,
+        act: actData,
+        review: reviewData,
+        competencyNameById,
+      }),
+    [planData, actData, reviewData, competencyNameById],
   );
   const capabilities = localCapabilities ?? seededCapabilities;
   const state: ReflectPhase4State =

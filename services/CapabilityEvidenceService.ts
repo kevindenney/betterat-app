@@ -8,16 +8,44 @@ import type {
   EvidenceStrength,
 } from '@/components/step/reflect-tab/CapabilitiesPracticed';
 
+/**
+ * Map of betterat_competencies.id → title for one interest. Drives the
+ * UUID→name resolve on both the Reflect panel and the persisted evidence
+ * rows. Returns an empty map (raw-UUID fallback) on any error — a missing
+ * title is never worth blocking step completion.
+ */
+async function competencyNameMapForInterest(
+  interestId: string | null | undefined,
+): Promise<Map<string, string>> {
+  if (!interestId) return new Map();
+  const { data, error } = await supabase
+    .from('betterat_competencies')
+    .select('id, title')
+    .eq('interest_id', interestId);
+  if (error) {
+    logger.warn('competencyNameMapForInterest failed', error);
+    return new Map();
+  }
+  return new Map((data ?? []).map((row: { id: string; title: string }) => [row.id, row.title]));
+}
+
 interface BuildEvidenceRowsInput {
   plan: StepPlanData;
   act: StepActData;
   review: StepReviewData;
+  /**
+   * Resolves a competency UUID (plan.competency_ids) to its display title.
+   * competency_ids reference betterat_competencies.id; without this map the
+   * rows render the raw UUID as the capability name.
+   */
+  competencyNameById?: Map<string, string>;
 }
 
 export function buildCapabilityEvidenceRows({
   plan,
   act,
   review,
+  competencyNameById,
 }: BuildEvidenceRowsInput): CapabilityEvidenceRow[] {
   const evidenceCount =
     (act.observations?.length ?? 0) +
@@ -38,7 +66,8 @@ export function buildCapabilityEvidenceRows({
     });
   };
 
-  for (const id of plan.competency_ids ?? []) addRow(id, id, 'material');
+  for (const id of plan.competency_ids ?? [])
+    addRow(id, competencyNameById?.get(id) ?? id, 'material');
   for (const goal of plan.capability_goals ?? []) addRow(goal, goal, 'worth-noting');
 
   const assessment = review.competency_assessment;
@@ -128,10 +157,16 @@ export async function autoTagAndWriteStepCapabilityEvidence({
   const plan = metadata.plan ?? {};
   const act = metadata.act ?? {};
   const review = metadata.review ?? {};
-  const base = baseRows ?? buildCapabilityEvidenceRows({ plan, act, review });
-  const autoTagBase = base.map((row) =>
-    row.source === 'ai' ? { ...row, confirmed: true } : row,
-  );
+  const competencyNameById = await competencyNameMapForInterest(step.interest_id);
+  const base = baseRows ?? buildCapabilityEvidenceRows({ plan, act, review, competencyNameById });
+  // Backstop the display-side resolve: any row whose id is a known
+  // competency UUID gets its canonical title, so the persisted
+  // capability_name is never a raw UUID even if a stale name was passed.
+  const autoTagBase = base.map((row) => {
+    const resolved = competencyNameById.get(row.capabilityId);
+    const named = resolved ? { ...row, capabilityName: resolved } : row;
+    return named.source === 'ai' ? { ...named, confirmed: true } : named;
+  });
   const captures = captureSnippets(act);
   const reflection = reviewText(review);
   const suggestions = canUseAI
