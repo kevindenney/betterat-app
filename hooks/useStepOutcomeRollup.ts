@@ -23,7 +23,7 @@ import { useActivePlan } from '@/hooks/usePlan';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type { BusinessOutcomeData, StepMetadata } from '@/types/step-detail';
 
-const DEFAULT_CURRENCY = 'INR';
+const DEFAULT_CURRENCY = 'USD';
 
 /** The step's effective date for week bucketing, most-specific first. */
 function effectiveDate(step: TimelineStepRecord): Date {
@@ -94,7 +94,7 @@ export function useStepOutcomeRollup(interestId: string | null | undefined) {
           revenue_minor: 0,
           customer_count: 0,
           repeat_count: 0,
-          currency: outcome.currency ?? DEFAULT_CURRENCY,
+          currency: outcome.currency ?? activePlan?.currency ?? DEFAULT_CURRENCY,
         },
       );
 

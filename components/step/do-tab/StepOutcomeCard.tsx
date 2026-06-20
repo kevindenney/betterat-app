@@ -19,9 +19,10 @@ import {
   LABEL_3,
 } from '@/lib/design-tokens-step-loop-ios';
 import { resolveInterestVocab } from '@/components/ios-register/timeline-zoom/interestVocab';
-import { resolveMoneyConfig } from '@/components/ios-register/timeline-zoom/interestMoney';
+import { moneyConfigForCurrency } from '@/components/ios-register/timeline-zoom/interestMoney';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useStepOutcomeRollup } from '@/hooks/useStepOutcomeRollup';
+import { useActivePlan } from '@/hooks/usePlan';
 import type { BusinessOutcomeData, StepMetadata } from '@/types/step-detail';
 
 const ACCENT = '#5BA46F';
@@ -46,10 +47,13 @@ export function StepOutcomeCard({ stepId, interestId, interestName, interestSlug
     [resolvedInterestId, interestName, interestSlug],
   );
   const isEntrepreneur = vocab.id === 'entrepreneur';
-  const moneyConfig = resolveMoneyConfig('entrepreneur');
-  const symbol = moneyConfig?.symbol ?? '₹';
+  const { data: activePlan } = useActivePlan(resolvedInterestId);
 
   const existing = (step?.metadata as StepMetadata | undefined)?.outcome;
+  // Currency is anchored on the plan (the business); a prior outcome on
+  // this step wins so an in-progress edit keeps its own currency.
+  const planCurrency = existing?.currency ?? activePlan?.currency ?? 'USD';
+  const symbol = moneyConfigForCurrency(planCurrency).symbol;
 
   const [units, setUnits] = useState(existing?.units_sold ? String(existing.units_sold) : '');
   const [revenue, setRevenue] = useState(
@@ -79,7 +83,7 @@ export function StepOutcomeCard({ stepId, interestId, interestName, interestSlug
     const outcome: BusinessOutcomeData = {
       units_sold: toInt(units),
       revenue_minor: Number.isFinite(revenueMajor) ? Math.round(revenueMajor * 100) : 0,
-      currency: existing?.currency ?? 'INR',
+      currency: planCurrency,
       customer_count: toInt(newCustomers),
       repeat_count: toInt(repeat),
       captured_at: new Date().toISOString(),

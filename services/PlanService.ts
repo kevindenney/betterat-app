@@ -28,6 +28,8 @@ export interface Plan {
   started_at: string;
   ended_at: string | null;
   status: PlanStatus;
+  /** ISO currency code for this plan's money (entrepreneur vocab). Defaults USD. */
+  currency: string;
   created_at: string;
   updated_at: string;
 }
@@ -40,6 +42,7 @@ export interface CreatePlanInput {
   vision_competency_ids?: string[];
   started_at?: string;
   status?: PlanStatus;
+  currency?: string;
 }
 
 export interface UpdatePlanInput {
@@ -48,6 +51,7 @@ export interface UpdatePlanInput {
   vision_competency_ids?: string[];
   status?: PlanStatus;
   ended_at?: string | null;
+  currency?: string;
 }
 
 function mapPlanRow(row: any): Plan {
@@ -64,6 +68,7 @@ function mapPlanRow(row: any): Plan {
     started_at: row.started_at,
     ended_at: row.ended_at ?? null,
     status: (row.status as PlanStatus) ?? 'active',
+    currency: row.currency ?? 'USD',
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -121,6 +126,7 @@ class PlanServiceClass {
         vision_competency_ids: input.vision_competency_ids ?? [],
         started_at: input.started_at ?? new Date().toISOString(),
         status: input.status ?? 'active',
+        ...(input.currency ? { currency: input.currency } : {}),
       })
       .select('*')
       .single();
@@ -142,6 +148,7 @@ class PlanServiceClass {
       updateData.vision_competency_ids = input.vision_competency_ids;
     if (input.status !== undefined) updateData.status = input.status;
     if (input.ended_at !== undefined) updateData.ended_at = input.ended_at;
+    if (input.currency !== undefined) updateData.currency = input.currency;
 
     const { data, error } = await supabase
       .from('plans')
