@@ -31,7 +31,7 @@ import {
   resolveInterestVocab,
   type InterestVocab,
 } from './interestVocab';
-import { formatMoney, resolveLoanTier, resolveMoneyConfig } from './interestMoney';
+import { formatMoney, resolveLoanTier, moneyConfigForCurrency } from './interestMoney';
 import type { HeadlineMetricValue } from './interestHeadline';
 import type {
   Capability,
@@ -2280,7 +2280,7 @@ export function mapToTimelineDataset({
   let seasonHeadline: HeadlineMetricValue | undefined;
   let lifetimeHeadline: HeadlineMetricValue | undefined;
   if (interestVocab.id === 'entrepreneur' && businessOutcomes && businessOutcomes.length > 0) {
-    const moneyConfig = resolveMoneyConfig('entrepreneur');
+    const moneyConfig = moneyConfigForCurrency(businessOutcomes[0]?.currency);
     if (moneyConfig) {
       const toMajor = (rows: BusinessOutcomeInput[]) =>
         rows.reduce((sum, r) => sum + r.revenueMinor / 100, 0);

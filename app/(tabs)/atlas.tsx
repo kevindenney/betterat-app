@@ -481,10 +481,12 @@ export default function AtlasTab() {
     focusPeerName?: string;
     focusPeerSetAt?: string;
     focusPeerNonce?: string;
+    view?: string;
   }>();
   const isFromPlan = params.fromPlan === '1';
   const initialCreateRacingArea = params.intent === 'new-racing-area';
   const orgSlug = typeof params.orgSlug === 'string' ? params.orgSlug.trim() : '';
+  const requestedView = typeof params.view === 'string' ? params.view.trim() : '';
   const requestedFrame =
     typeof params.frame === 'string' && ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9'].includes(params.frame)
       ? (params.frame as AtlasFrameId)
@@ -880,7 +882,7 @@ export default function AtlasTab() {
             interest_id: targetInterest.id,
             title: raceTitle,
             description: [nextEvent?.where, nextEvent?.when].filter(Boolean).join(' · ') || null,
-            category: 'sailing',
+            category: targetInterest.slug ?? 'sailing',
             status: 'pending',
             visibility: 'private',
             source_type: 'manual',
@@ -1102,13 +1104,11 @@ export default function AtlasTab() {
       if (planningCapabilityRef.current) return;
       planningCapabilityRef.current = true;
       try {
-        const isSailingAtlas =
-          frame === 'f1' || frame === 'f2' || frame === 'f3' || frame === 'f6';
         const created = await createTimelineStep({
           user_id: user.id,
           interest_id: targetInterest.id,
           title: `${input.category} practice`,
-          category: isSailingAtlas ? 'sailing' : 'general',
+          category: targetInterest.slug ?? 'general',
           status: 'pending',
           visibility: 'private',
           source_type: 'manual',
@@ -1220,6 +1220,7 @@ export default function AtlasTab() {
           initialFocusLabel={initialFocusLabel}
           initialFocusStepId={initialFocusStepId}
           initialPeerFocus={initialPeerFocus}
+          initialView={requestedView === 'map' ? 'map' : undefined}
           onNearbyPress={
             frame === 'f4' || frame === 'f1' ? () => setNearbyOpen(true) : undefined
           }

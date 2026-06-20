@@ -65,10 +65,38 @@ const ENTREPRENEUR_MONEY: MoneyConfig = {
   loanLadder: MUDRA_LADDER,
 };
 
+/**
+ * USD money config — a Baltimore DTC founder reads her season in dollars
+ * with western grouping and no MUDRA ladder (that's an India-only
+ * micro-finance arc).
+ */
+const USD_MONEY: MoneyConfig = {
+  symbol: '$',
+  grouping: 'western',
+  loanLadder: [],
+};
+
 /** Vocab id → money config. Absence = money lane off for that persona. */
 const MONEY_BY_VOCAB_ID: Record<string, MoneyConfig> = {
   entrepreneur: ENTREPRENEUR_MONEY,
 };
+
+/**
+ * Currency code → money config. The figures themselves carry a currency
+ * (business_outcomes.currency), so the same entrepreneur vocab renders ₹
+ * for a Jharkhand SHG seller and $ for a US DTC founder. Defaults to the
+ * ₹/MUDRA config when the code is unknown or missing.
+ */
+const MONEY_BY_CURRENCY: Record<string, MoneyConfig> = {
+  INR: ENTREPRENEUR_MONEY,
+  USD: USD_MONEY,
+};
+
+/** Money config for an explicit currency code (e.g. "USD", "INR"). */
+export function moneyConfigForCurrency(currency: string | null | undefined): MoneyConfig {
+  const code = (currency ?? '').trim().toUpperCase();
+  return MONEY_BY_CURRENCY[code] ?? ENTREPRENEUR_MONEY;
+}
 
 /** True when the persona's practice surface should show a money lane. */
 export function hasMoneyLane(vocabId: string): boolean {
