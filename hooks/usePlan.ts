@@ -13,6 +13,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
+import { isUuid } from '@/utils/uuid';
 import {
   PlanService,
   type Plan,
@@ -34,7 +35,7 @@ export function usePlans(interestId: string | null | undefined) {
   const { user } = useAuth();
   return useQuery({
     queryKey: planKeys.byInterest(user?.id, interestId ?? undefined),
-    enabled: Boolean(user?.id && interestId),
+    enabled: Boolean(user?.id) && isUuid(interestId),
     staleTime: STALE_MS,
     queryFn: () => PlanService.listByInterest(user!.id, interestId!),
   });
@@ -44,7 +45,7 @@ export function useActivePlan(interestId: string | null | undefined) {
   const { user } = useAuth();
   return useQuery<Plan | null>({
     queryKey: planKeys.activeByInterest(user?.id, interestId ?? undefined),
-    enabled: Boolean(user?.id && interestId),
+    enabled: Boolean(user?.id) && isUuid(interestId),
     staleTime: STALE_MS,
     queryFn: () => PlanService.getActiveForInterest(user!.id, interestId!),
   });
