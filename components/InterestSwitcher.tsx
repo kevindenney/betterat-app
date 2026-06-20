@@ -9,8 +9,9 @@
 import { useInterest } from '@/providers/InterestProvider'
 import type { Interest, DomainWithInterests } from '@/providers/InterestProvider'
 import { useAuth } from '@/providers/AuthProvider'
+import { useIsFocused } from '@react-navigation/native'
 import { router } from 'expo-router'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Modal,
   Platform,
@@ -30,11 +31,28 @@ import { fontFamily } from '@/lib/design-tokens-editorial'
 // layout plus per-surface headless hosts (Atlas, Golf). A single shared slot
 // broke when a surface-level host unmounted and cleared the slot, leaving the
 // persistent host's opener un-restored (it only registers once). So keep a
-// stack: each instance pushes on mount and removes itself on unmount, and the
-// opener targets the topmost (most recently mounted, still-live) instance.
-const openerStack: (() => void)[] = []
+// stack: each instance pushes on mount and removes itself on unmount.
+//
+// "Topmost wins" alone is wrong: React Navigation keeps inactive tab screens
+// mounted, so after you visit Atlas/Golf their host stays atop the stack even
+// once you're back on another tab. Tapping the interest pill there fired a
+// *backgrounded* host's setOpen — its Modal subtree isn't rendered, so nothing
+// appeared. So each entry carries its host's focus state and the opener prefers
+// the topmost focused host (the one on the visible surface), falling back to
+// the topmost so a single always-mounted host still works.
+interface OpenerEntry {
+  open: () => void
+  focused: boolean
+}
+const openerStack: OpenerEntry[] = []
 export function openInterestSwitcher() {
-  openerStack[openerStack.length - 1]?.()
+  for (let i = openerStack.length - 1; i >= 0; i--) {
+    if (openerStack[i]!.focused) {
+      openerStack[i]!.open()
+      return
+    }
+  }
+  openerStack[openerStack.length - 1]?.open()
 }
 
 /** Group a list of interests by their parent domain, preserving domain order. */
@@ -66,18 +84,25 @@ export function InterestSwitcher({ headless = false }: { headless?: boolean } = 
   const { currentInterest, userInterests, groupedInterests, switchInterest, loading } = useInterest()
   const { signedIn } = useAuth()
   const [open, setOpen] = useState(false)
+  const isFocused = useIsFocused()
 
   // Register the imperative opener so callers anywhere in the tree can pop the
   // sheet. Push onto the shared stack on mount, splice out on unmount — this
   // keeps the persistent host's opener live after a surface-level host unmounts.
+  // The entry carries this host's focus state so openInterestSwitcher can skip
+  // backgrounded-but-mounted surface hosts (see the stack comment above).
+  const entryRef = useRef<OpenerEntry>({ open: () => setOpen(true), focused: false })
   useEffect(() => {
-    const opener = () => setOpen(true)
-    openerStack.push(opener)
+    const entry = entryRef.current
+    openerStack.push(entry)
     return () => {
-      const idx = openerStack.indexOf(opener)
+      const idx = openerStack.indexOf(entry)
       if (idx !== -1) openerStack.splice(idx, 1)
     }
   }, [])
+  useEffect(() => {
+    entryRef.current.focused = isFocused
+  }, [isFocused])
 
   // Group user interests by domain
   const userGroups = useMemo(
