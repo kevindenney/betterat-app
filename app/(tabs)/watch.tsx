@@ -131,7 +131,12 @@ export default function WatchScreen() {
   // aren't org_memberships (separate fleet_members table), so resolve them
   // here rather than from the org switcher.
   const { fleets } = useUserFleets(user?.id ?? null);
-  const activeFleets = fleets.filter((f) => f.status === 'active');
+  // Fleets are a sailing-only construct, so don't surface a sailing fleet as a
+  // "group" under a non-sailing interest — a Dragon fleet was bleeding into the
+  // Nursing Groups lens (and dragging the viewer's nursing steps in with it).
+  const activeFleets = isSailingInterest(currentInterest?.slug)
+    ? fleets.filter((f) => f.status === 'active')
+    : [];
   const resolvedFleetId =
     selectedFleetId && activeFleets.some((f) => f.fleet.id === selectedFleetId)
       ? selectedFleetId
