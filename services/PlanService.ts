@@ -178,6 +178,23 @@ class PlanServiceClass {
       logger.error('update failed', { planId, error });
       throw error;
     }
+
+    // Keep the plan's money denomination and its weekly rollups in lockstep.
+    // The EARNINGS readout prefers plans.currency over business_outcomes.currency,
+    // so leaving the rows on the old code would silently relabel the same figures
+    // in two currencies. We relabel, NOT FX-convert: the recorded amounts are the
+    // founder's real turnover and stay put; only the denomination changes.
+    if (input.currency !== undefined) {
+      const { error: outcomeError } = await supabase
+        .from('business_outcomes')
+        .update({ currency: input.currency })
+        .eq('plan_id', planId);
+      if (outcomeError) {
+        logger.error('currency sync to business_outcomes failed', { planId, outcomeError });
+        throw outcomeError;
+      }
+    }
+
     return mapPlanRow(data);
   }
 

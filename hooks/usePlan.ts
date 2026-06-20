@@ -106,13 +106,19 @@ export function useUpdatePlan() {
   return useMutation({
     mutationFn: async ({ planId, input }: { planId: string; input: UpdatePlanInput }) =>
       PlanService.update(planId, input),
-    onSuccess: (plan) => {
+    onSuccess: (plan, { input }) => {
       queryClient.invalidateQueries({
         queryKey: planKeys.byInterest(user?.id, plan.interest_id),
       });
       queryClient.invalidateQueries({
         queryKey: planKeys.activeByInterest(user?.id, plan.interest_id),
       });
+      // A currency change also relabels the plan's weekly rollups, so refresh
+      // the EARNINGS readout and outcome reads.
+      if (input.currency !== undefined) {
+        queryClient.invalidateQueries({ queryKey: ['business-outcomes'] });
+        queryClient.invalidateQueries({ queryKey: ['business-outcomes-headline'] });
+      }
     },
   });
 }
