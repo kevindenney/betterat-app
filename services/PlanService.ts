@@ -137,6 +137,24 @@ class PlanServiceClass {
     return mapPlanRow(data);
   }
 
+  /**
+   * Resolve the interest's active plan, creating one only when none
+   * exists. The lookup happens server-side immediately before the
+   * insert, so a stale/loading client cache can't spawn a duplicate
+   * plan — the vision-edit save used to create a fresh plan whenever
+   * its captured activePlanId was momentarily null, orphaning the real
+   * seeded plan behind a pile of titleless copies.
+   */
+  async getOrCreateActiveForInterest(
+    userId: string,
+    interestId: string,
+    createInput: Omit<CreatePlanInput, 'interest_id'> = {},
+  ): Promise<Plan> {
+    const existing = await this.getActiveForInterest(userId, interestId);
+    if (existing) return existing;
+    return this.create(userId, { interest_id: interestId, ...createInput });
+  }
+
   async update(planId: string, input: UpdatePlanInput): Promise<Plan> {
     const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),

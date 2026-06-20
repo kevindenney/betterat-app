@@ -45,7 +45,7 @@ import { VisionBlock } from './VisionBlock';
 import { CollapsibleModule } from './CollapsibleModule';
 import { VisionEditSheet } from './VisionEditSheet';
 import { useUpdateInterestVision } from '@/hooks/useInterestVision';
-import { useUpdatePlan, useCreatePlan, useActivePlan } from '@/hooks/usePlan';
+import { useUpdatePlan, useEnsureActivePlan, useActivePlan } from '@/hooks/usePlan';
 import { useUserOrgCompetencies } from '@/hooks/useUserOrgCompetencies';
 import { useViewerFleetCohort } from '@/hooks/useViewerFleetCohort';
 import { LibrarianAnalysisCard } from './LibrarianAnalysisCard';
@@ -220,9 +220,15 @@ export function L3SeasonView({
   const [visionEditOpen, setVisionEditOpen] = useState(false);
   const updateInterestVision = useUpdateInterestVision();
   const updatePlan = useUpdatePlan();
-  const createPlan = useCreatePlan();
+  const ensureActivePlan = useEnsureActivePlan();
   const { data: activePlan } = useActivePlan(dataset.interest.id);
-  const showCurrency = hasMoneyLane(dataset.interest.slug ?? '');
+  // Gate on the resolved vocab id (e.g. "entrepreneur"), not the raw interest
+  // slug — hasMoneyLane is keyed by vocab id, the same key the EARNINGS lane
+  // and headline metric use below. Slug-gating hid the picker for every
+  // founder whose interest slug wasn't literally "entrepreneur".
+  const showCurrency = hasMoneyLane(
+    resolveInterestVocab(dataset.interest.id, dataset.interest.label).id,
+  );
   const { data: orgCompetencies = [] } = useUserOrgCompetencies(dataset.interest.slug);
   // FLEET section grouping — falls back to flat render when the
   // viewer has no fleets or no shared-fleet peers.
@@ -1119,27 +1125,28 @@ export function L3SeasonView({
         initialCurrency={activePlan?.currency}
         onSave={async (statement, competencyIds, currency) => {
           const visionStatement = statement.length > 0 ? statement : null;
-          const planId = dataset.activePlanId;
-          if (planId) {
-            await updatePlan.mutateAsync({
-              planId,
-              input: {
-                vision_statement: visionStatement,
-                vision_competency_ids: competencyIds,
-                ...(currency ? { currency } : {}),
-              },
-            });
-          } else {
-            // No plan yet for this interest — auto-create one so the
-            // vision has a home. Title stays null; the user can name
-            // the plan from a dedicated plan-management surface later.
-            await createPlan.mutateAsync({
-              interest_id: dataset.interest.id,
+          // Resolve (or, only if truly absent, create) the active plan
+          // server-side, then update it. Branching on a captured
+          // activePlanId spawned a duplicate plan whenever the cache was
+          // momentarily null, orphaning the seeded plan behind titleless
+          // copies. Title stays null on auto-create; the user names the
+          // plan from a dedicated plan-management surface later.
+          const plan = await ensureActivePlan.mutateAsync({
+            interestId: dataset.interest.id,
+            createInput: {
               vision_statement: visionStatement,
               vision_competency_ids: competencyIds,
               ...(currency ? { currency } : {}),
-            });
-          }
+            },
+          });
+          await updatePlan.mutateAsync({
+            planId: plan.id,
+            input: {
+              vision_statement: visionStatement,
+              vision_competency_ids: competencyIds,
+              ...(currency ? { currency } : {}),
+            },
+          });
           // Mirror the write to user_interests until the legacy
           // fallback path is dropped (slice C) — keeps cross-surface
           // reads consistent during the transition.

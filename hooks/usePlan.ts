@@ -69,6 +69,37 @@ export function useCreatePlan() {
   });
 }
 
+/**
+ * Resolve the interest's active plan, creating one only if absent.
+ * Use this for the vision-edit save instead of branching on a captured
+ * activePlanId — it re-checks server-side so a loading cache can't
+ * orphan the real plan behind duplicate copies.
+ */
+export function useEnsureActivePlan() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      interestId,
+      createInput,
+    }: {
+      interestId: string;
+      createInput?: Omit<CreatePlanInput, 'interest_id'>;
+    }) => {
+      if (!user?.id) throw new Error('not authenticated');
+      return PlanService.getOrCreateActiveForInterest(user.id, interestId, createInput);
+    },
+    onSuccess: (plan) => {
+      queryClient.invalidateQueries({
+        queryKey: planKeys.byInterest(user?.id, plan.interest_id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: planKeys.activeByInterest(user?.id, plan.interest_id),
+      });
+    },
+  });
+}
+
 export function useUpdatePlan() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
