@@ -27,6 +27,10 @@ import {
   type OrgCompetencyOption,
 } from '@/hooks/useUserOrgCompetencies';
 import { useViewerOrgCompetencyEvidence } from '@/hooks/useViewerOrgCompetencyEvidence';
+import {
+  SUPPORTED_CURRENCIES,
+  DEFAULT_CURRENCY_CODE,
+} from '@/components/ios-register/timeline-zoom/interestMoney';
 
 interface Props {
   visible: boolean;
@@ -38,7 +42,16 @@ interface Props {
    *  competencies. Null/undefined falls back to all orgs the viewer
    *  belongs to. */
   interestSlug?: string | null;
-  onSave: (statement: string, competencyIds: string[]) => Promise<void> | void;
+  /** Show the currency picker — true only for money-vocab interests
+   *  (entrepreneur), where the plan IS a business with a turnover lane. */
+  showCurrency?: boolean;
+  /** The plan's current currency code, seeded into the picker. */
+  initialCurrency?: string | null;
+  onSave: (
+    statement: string,
+    competencyIds: string[],
+    currency?: string,
+  ) => Promise<void> | void;
 }
 
 export function VisionEditSheet({
@@ -47,6 +60,8 @@ export function VisionEditSheet({
   initialStatement,
   initialCompetencyIds,
   interestSlug,
+  showCurrency,
+  initialCurrency,
   onSave,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -60,6 +75,9 @@ export function VisionEditSheet({
     new Set(initialCompetencyIds ?? []),
   );
   const [saving, setSaving] = useState(false);
+  const [currency, setCurrency] = useState(
+    (initialCurrency ?? DEFAULT_CURRENCY_CODE).toUpperCase(),
+  );
   // Drill-in target — when set, the sheet shows that competency's
   // evidence history instead of the form (push-style, same modal).
   const [detailComp, setDetailComp] = useState<OrgCompetencyOption | null>(null);
@@ -69,9 +87,10 @@ export function VisionEditSheet({
     if (visible) {
       setStatement(initialStatement ?? '');
       setSelected(new Set(initialCompetencyIds ?? []));
+      setCurrency((initialCurrency ?? DEFAULT_CURRENCY_CODE).toUpperCase());
       setDetailComp(null);
     }
-  }, [visible, initialStatement, initialCompetencyIds]);
+  }, [visible, initialStatement, initialCompetencyIds, initialCurrency]);
 
   const grouped = useMemo(() => {
     const byOrg = new Map<string, { orgName: string; rows: OrgCompetencyOption[] }>();
@@ -96,12 +115,16 @@ export function VisionEditSheet({
     if (saving) return;
     setSaving(true);
     try {
-      await onSave(statement.trim(), Array.from(selected));
+      await onSave(
+        statement.trim(),
+        Array.from(selected),
+        showCurrency ? currency : undefined,
+      );
       onClose();
     } finally {
       setSaving(false);
     }
-  }, [statement, selected, onSave, onClose, saving]);
+  }, [statement, selected, currency, showCurrency, onSave, onClose, saving]);
 
   return (
     <Modal
@@ -175,6 +198,43 @@ export function VisionEditSheet({
               textAlignVertical="top"
               autoFocus
             />
+
+            {showCurrency ? (
+              <>
+                <Text style={[styles.eyebrow, styles.eyebrowSpace]}>CURRENCY</Text>
+                <Text style={styles.help}>
+                  The currency your turnover, revenue, and earnings are tracked
+                  in across this business.
+                </Text>
+                <View style={styles.currencyRow}>
+                  {SUPPORTED_CURRENCIES.map((c) => {
+                    const active = c.code === currency;
+                    return (
+                      <Pressable
+                        key={c.code}
+                        onPress={() => setCurrency(c.code)}
+                        style={[
+                          styles.currencyPill,
+                          active && styles.currencyPillActive,
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        accessibilityLabel={`Track money in ${c.label}`}
+                      >
+                        <Text
+                          style={[
+                            styles.currencyPillText,
+                            active && styles.currencyPillTextActive,
+                          ]}
+                        >
+                          {c.symbol} {c.code}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
 
             {isLoading ? null : grouped.length > 0 ? (
               <>
@@ -377,6 +437,31 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: IOS_REGISTER.labelSecondary,
     marginBottom: 12,
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  currencyPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separator,
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  currencyPillActive: {
+    backgroundColor: IOS_COLORS.systemBlue,
+    borderColor: IOS_COLORS.systemBlue,
+  },
+  currencyPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  currencyPillTextActive: {
+    color: '#FFFFFF',
   },
   orgBlock: { marginBottom: 14 },
   orgLabel: {

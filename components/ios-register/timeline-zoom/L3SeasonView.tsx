@@ -45,7 +45,7 @@ import { VisionBlock } from './VisionBlock';
 import { CollapsibleModule } from './CollapsibleModule';
 import { VisionEditSheet } from './VisionEditSheet';
 import { useUpdateInterestVision } from '@/hooks/useInterestVision';
-import { useUpdatePlan, useCreatePlan } from '@/hooks/usePlan';
+import { useUpdatePlan, useCreatePlan, useActivePlan } from '@/hooks/usePlan';
 import { useUserOrgCompetencies } from '@/hooks/useUserOrgCompetencies';
 import { useViewerFleetCohort } from '@/hooks/useViewerFleetCohort';
 import { LibrarianAnalysisCard } from './LibrarianAnalysisCard';
@@ -221,6 +221,8 @@ export function L3SeasonView({
   const updateInterestVision = useUpdateInterestVision();
   const updatePlan = useUpdatePlan();
   const createPlan = useCreatePlan();
+  const { data: activePlan } = useActivePlan(dataset.interest.id);
+  const showCurrency = hasMoneyLane(dataset.interest.slug ?? '');
   const { data: orgCompetencies = [] } = useUserOrgCompetencies(dataset.interest.slug);
   // FLEET section grouping — falls back to flat render when the
   // viewer has no fleets or no shared-fleet peers.
@@ -1113,7 +1115,9 @@ export function L3SeasonView({
         initialStatement={season.visionStatement}
         initialCompetencyIds={season.visionCompetencyIds}
         interestSlug={dataset.interest.slug}
-        onSave={async (statement, competencyIds) => {
+        showCurrency={showCurrency}
+        initialCurrency={activePlan?.currency}
+        onSave={async (statement, competencyIds, currency) => {
           const visionStatement = statement.length > 0 ? statement : null;
           const planId = dataset.activePlanId;
           if (planId) {
@@ -1122,6 +1126,7 @@ export function L3SeasonView({
               input: {
                 vision_statement: visionStatement,
                 vision_competency_ids: competencyIds,
+                ...(currency ? { currency } : {}),
               },
             });
           } else {
@@ -1132,6 +1137,7 @@ export function L3SeasonView({
               interest_id: dataset.interest.id,
               vision_statement: visionStatement,
               vision_competency_ids: competencyIds,
+              ...(currency ? { currency } : {}),
             });
           }
           // Mirror the write to user_interests until the legacy

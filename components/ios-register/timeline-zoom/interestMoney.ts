@@ -66,15 +66,13 @@ const ENTREPRENEUR_MONEY: MoneyConfig = {
 };
 
 /**
- * USD money config — a Baltimore DTC founder reads her season in dollars
- * with western grouping and no MUDRA ladder (that's an India-only
+ * A non-Indian founder reads her season in her own currency with western
+ * grouping (100,000) and no MUDRA ladder (that's an India-only
  * micro-finance arc).
  */
-const USD_MONEY: MoneyConfig = {
-  symbol: '$',
-  grouping: 'western',
-  loanLadder: [],
-};
+function westernMoney(symbol: string): MoneyConfig {
+  return { symbol, grouping: 'western', loanLadder: [] };
+}
 
 /** Vocab id → money config. Absence = money lane off for that persona. */
 const MONEY_BY_VOCAB_ID: Record<string, MoneyConfig> = {
@@ -82,20 +80,41 @@ const MONEY_BY_VOCAB_ID: Record<string, MoneyConfig> = {
 };
 
 /**
+ * Currencies a founder can pick from, in display order. The first entry
+ * (USD) is the default for new businesses. `business_outcomes.currency` /
+ * `plans.currency` store the `code`; the picker renders `code` + `symbol`.
+ */
+export const SUPPORTED_CURRENCIES: { code: string; symbol: string; label: string }[] = [
+  { code: 'USD', symbol: '$', label: 'US Dollar' },
+  { code: 'EUR', symbol: '€', label: 'Euro' },
+  { code: 'GBP', symbol: '£', label: 'British Pound' },
+  { code: 'CAD', symbol: 'C$', label: 'Canadian Dollar' },
+  { code: 'AUD', symbol: 'A$', label: 'Australian Dollar' },
+  { code: 'INR', symbol: '₹', label: 'Indian Rupee' },
+];
+
+export const DEFAULT_CURRENCY_CODE = 'USD';
+
+/**
  * Currency code → money config. The figures themselves carry a currency
- * (business_outcomes.currency), so the same entrepreneur vocab renders ₹
- * for a Jharkhand SHG seller and $ for a US DTC founder. Defaults to the
- * ₹/MUDRA config when the code is unknown or missing.
+ * (plans.currency / business_outcomes.currency), so the same entrepreneur
+ * vocab renders ₹ for a Jharkhand SHG seller and $ for a US DTC founder.
+ * INR keeps Indian grouping + the MUDRA ladder; everyone else is western
+ * grouping with their own symbol. Unknown/missing falls back to USD.
  */
 const MONEY_BY_CURRENCY: Record<string, MoneyConfig> = {
   INR: ENTREPRENEUR_MONEY,
-  USD: USD_MONEY,
+  USD: westernMoney('$'),
+  EUR: westernMoney('€'),
+  GBP: westernMoney('£'),
+  CAD: westernMoney('C$'),
+  AUD: westernMoney('A$'),
 };
 
 /** Money config for an explicit currency code (e.g. "USD", "INR"). */
 export function moneyConfigForCurrency(currency: string | null | undefined): MoneyConfig {
   const code = (currency ?? '').trim().toUpperCase();
-  return MONEY_BY_CURRENCY[code] ?? ENTREPRENEUR_MONEY;
+  return MONEY_BY_CURRENCY[code] ?? MONEY_BY_CURRENCY[DEFAULT_CURRENCY_CODE]!;
 }
 
 /** True when the persona's practice surface should show a money lane. */
