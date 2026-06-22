@@ -425,7 +425,7 @@ async function getUserOrgPrograms(userId: string, interestId: string): Promise<O
 /**
  * User's competency progress across all orgs for this interest.
  */
-async function getUserCapabilityProgress(
+export async function getUserCapabilityProgress(
   userId: string,
   interestId: string,
 ): Promise<CapabilityProgressEntry[]> {

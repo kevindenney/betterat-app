@@ -71,6 +71,13 @@ export interface QuickCapturePayload {
    * sheet pre-resolves the user's default, so absence means legacy callers).
    */
   visibility?: TimelineStepVisibility;
+  /**
+   * Clock-anchored "Run-through" beats from a worked example. Unlike `how`
+   * (the atemporal recipe stored in plan.how_sub_steps), these are the timed
+   * performance and live in the `step_beats` table — so they're inserted
+   * after the step row exists, in createDraftStep.
+   */
+  runthroughBeats?: { time_label?: string | null; title: string; body?: string | null }[];
 }
 
 /**
@@ -292,7 +299,7 @@ export async function createDraftStep({
     }
   }
 
-  return createStep({
+  const created = await createStep({
     user_id: userId,
     interest_id: interestId,
     title: fields.title,
@@ -326,6 +333,28 @@ export async function createDraftStep({
       ...(mediaUpload ? { act: { media_uploads: [mediaUpload] } } : {}),
     },
   });
+
+  // Run-through beats from a worked example are the timed performance — they
+  // live in step_beats, not plan.how_sub_steps, so they're inserted now that
+  // the step row (and its id) exists. A failed insert shouldn't sink the step.
+  const beats = payload.runthroughBeats?.filter((b) => b.title?.trim());
+  if (beats && beats.length > 0) {
+    const { error: beatErr } = await supabase.from('step_beats').insert(
+      beats.map((b, index) => ({
+        step_id: created.id,
+        user_id: userId,
+        position: index + 1,
+        time_label: b.time_label?.trim() || null,
+        title: b.title.trim(),
+        body: b.body?.trim() || null,
+      })),
+    );
+    if (beatErr) {
+      logger.error('Worked-example beat insert failed; step saved without beats', beatErr);
+    }
+  }
+
+  return created;
 }
 
 export interface DropInsightArgs {

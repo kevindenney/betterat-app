@@ -36,6 +36,7 @@ import { fontFamily } from '@/lib/design-tokens-editorial';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useInterest } from '@/hooks/useInterest';
+import { useAuth } from '@/providers/AuthProvider';
 import { useSuggestedNextSteps, useAdoptBlueprintStep } from '@/hooks/useBlueprint';
 import { useAISuggestions } from '@/hooks/useAISuggestions';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
@@ -46,6 +47,12 @@ import { RaceCoursePicker } from '@/components/capture/RaceCoursePicker';
 import { PlanStepRaceSelector } from '@/components/step/plan-tab/PlanStepRaceSelector';
 import { StepVisibilityChip } from '@/components/step/StepVisibilityChip';
 import { useDefaultStepVisibility } from '@/hooks/useDefaultStepVisibility';
+import { useInterestVision } from '@/hooks/useInterestVision';
+import { getInterestBeatsConfig } from '@/lib/interest-config';
+import {
+  generateWorkedExample,
+  type WorkedExampleBeat,
+} from '@/services/ai/WorkedExampleService';
 import type { QuickCapturePayload } from '@/services/QuickCaptureService';
 import type { BlueprintSuggestedNextStep } from '@/types/blueprint';
 import type { AISuggestion } from '@/services/ai/crossInterestSuggestions';
@@ -106,11 +113,13 @@ export function StepAddSheet({
   viewedSeasonId = null,
 }: StepAddSheetProps) {
   const router = useRouter();
-  const { currentInterest } = useInterest();
+  const { currentInterest, userInterests } = useInterest();
+  const { user } = useAuth();
   const accent = currentInterest?.accent_color ?? IOS_REGISTER.accentUserAction;
 
   const { data: nextSteps, isLoading: bpLoading } = useSuggestedNextSteps(currentInterest?.id);
   const { data: recentSteps = [] } = useMyTimeline(currentInterest?.id);
+  const { data: interestVision } = useInterestVision(currentInterest?.id);
   const adoptStep = useAdoptBlueprintStep();
   const { suggestions, isLoading: aiLoading, applySuggestion } = useAISuggestions(visible);
   const voiceEnabled = FEATURE_FLAGS.VOICE_COMPOSER_V3;
@@ -134,6 +143,20 @@ export function StepAddSheet({
   const { data: defaultVisibility } = useDefaultStepVisibility(currentInterest?.id, visible);
   const [visibilityOverride, setVisibilityOverride] = useState<TimelineStepVisibility | null>(null);
   const visibility = visibilityOverride ?? defaultVisibility ?? 'private';
+  // Worked-example generator — turns the rough WHAT into a fully-populated step
+  // (polished title + why + how recipe + run-through beats), editable before
+  // save. `workedBeats` is the only net-new editable surface; title/why/how
+  // flow into the existing composer fields.
+  const [workedGenerating, setWorkedGenerating] = useState(false);
+  const [workedApplied, setWorkedApplied] = useState(false);
+  const [workedError, setWorkedError] = useState<string | null>(null);
+  const [workedBeats, setWorkedBeats] = useState<WorkedExampleBeat[]>([]);
+  // Phase 2 — the capability this generated example targets, shown as a chip.
+  const [workedBuildsCapability, setWorkedBuildsCapability] = useState<string | null>(null);
+  const runThroughLabel = getInterestBeatsConfig({
+    interestSlug: currentInterest?.slug,
+    interestName: currentInterest?.name,
+  }).sectionLabel;
   const whatRef = useRef<TextInput | null>(null);
   const fieldRefs = useRef<Partial<Record<BlankFieldKey, TextInput | null>>>({});
   const sheetTranslateY = useRef(new Animated.Value(0)).current;
@@ -149,7 +172,79 @@ export function StepAddSheet({
     setPhotoUri(undefined);
     setSaving(false);
     setVisibilityOverride(null);
+    setWorkedGenerating(false);
+    setWorkedApplied(false);
+    setWorkedError(null);
+    setWorkedBeats([]);
+    setWorkedBuildsCapability(null);
   }, []);
+
+  const handleGenerateWorkedExample = useCallback(async () => {
+    const intent = whatText.trim();
+    if (!intent || workedGenerating) return;
+    setWorkedGenerating(true);
+    setWorkedError(null);
+    try {
+      const recentStepTitles = recentSteps
+        .map((s) => s.title)
+        .filter((t): t is string => Boolean(t && t.trim()))
+        .slice(0, 8);
+      const otherInterests = userInterests
+        .filter((i) => i.id !== currentInterest?.id)
+        .map((i) => i.name)
+        .filter(Boolean)
+        .slice(0, 6);
+      const result = await generateWorkedExample({
+        intent,
+        interestName: currentInterest?.name ?? 'this practice',
+        interestSlug: currentInterest?.slug,
+        location: whereLocation?.name ?? null,
+        userId: user?.id ?? null,
+        interestId: currentInterest?.id ?? null,
+        personalContext: {
+          visionStatement: interestVision?.vision_statement ?? null,
+          lifetimeVision: interestVision?.lifetime_vision_statement ?? null,
+          recentStepTitles,
+          otherInterests,
+        },
+      });
+      if (result.title) setWhatText(result.title);
+      setWorkedBuildsCapability(result.buildsCapability);
+      // Push why/how into the existing composer fields so they edit in place.
+      const howText = result.how
+        .map((h) => (h.body ? `${h.title} — ${h.body}` : h.title))
+        .join('\n');
+      setFieldValues((prev) => ({
+        ...prev,
+        ...(result.why ? { why: result.why } : {}),
+        ...(howText ? { how: howText } : {}),
+      }));
+      setActiveFields((prev) => {
+        const next = new Set(prev);
+        if (result.why) next.add('why');
+        if (howText) next.add('how');
+        return BLANK_FIELD_ORDER.filter((k) => next.has(k));
+      });
+      setWorkedBeats(result.runthrough);
+      setWorkedApplied(true);
+    } catch {
+      setWorkedError('Could not build a worked example. Try again.');
+    } finally {
+      setWorkedGenerating(false);
+    }
+  }, [
+    whatText,
+    workedGenerating,
+    user?.id,
+    currentInterest?.id,
+    currentInterest?.name,
+    currentInterest?.slug,
+    whereLocation?.name,
+    recentSteps,
+    userInterests,
+    interestVision?.vision_statement,
+    interestVision?.lifetime_vision_statement,
+  ]);
 
   const handlePickPhoto = useCallback(async () => {
     if (Platform.OS === 'web') {
@@ -323,6 +418,7 @@ export function StepAddSheet({
       imageUri: photoUri,
       viewedSeasonId,
       visibility,
+      runthroughBeats: workedBeats.length > 0 ? workedBeats : undefined,
     };
 
     // onSave() does the optimistic timeline insert before its first await.
@@ -647,6 +743,104 @@ export function StepAddSheet({
                 </View>
               ) : null}
 
+              {whatText.trim() && !workedApplied ? (
+                <Pressable
+                  style={[styles.workedTrigger, { borderColor: hexWithAlpha(accent, 0.4) }]}
+                  onPress={handleGenerateWorkedExample}
+                  disabled={workedGenerating}
+                  accessibilityRole="button"
+                  accessibilityLabel="Build a worked example"
+                >
+                  {workedGenerating ? (
+                    <ActivityIndicator size="small" color={accent} />
+                  ) : (
+                    <Ionicons name="sparkles" size={15} color={accent} />
+                  )}
+                  <View style={styles.workedTriggerCopy}>
+                    <Text style={[styles.workedTriggerText, { color: accent }]}>
+                      {workedGenerating ? 'Building a worked example…' : 'Build a worked example'}
+                    </Text>
+                    {!workedGenerating ? (
+                      <Text style={styles.workedTriggerHint} numberOfLines={1}>
+                        Fill in the why, the how, and the run-through — editable before you save.
+                      </Text>
+                    ) : null}
+                  </View>
+                </Pressable>
+              ) : null}
+
+              {workedError ? (
+                <Text style={styles.workedError}>{workedError}</Text>
+              ) : null}
+
+              {workedApplied ? (
+                <View style={[styles.workedBar, { borderColor: hexWithAlpha(accent, 0.4) }]}>
+                  <Ionicons name="sparkles" size={13} color={accent} />
+                  <Text style={[styles.workedBarText, { color: accent }]} numberOfLines={1}>
+                    Worked example ·{' '}
+                    {fieldValues.how.split('\n').filter((l) => l.trim()).length} sub-steps
+                    {workedBeats.length > 0 ? ` · ${workedBeats.length} beats` : ''}
+                  </Text>
+                  <Pressable
+                    onPress={handleGenerateWorkedExample}
+                    disabled={workedGenerating}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Regenerate worked example"
+                  >
+                    <Text style={[styles.workedBarAction, { color: accent }]}>
+                      {workedGenerating ? '…' : 'Regenerate'}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {workedApplied && workedBuildsCapability ? (
+                <View style={[styles.workedBuildsChip, { backgroundColor: hexWithAlpha(accent, 0.1) }]}>
+                  <Ionicons name="trending-up" size={13} color={accent} />
+                  <Text style={[styles.workedBuildsText, { color: accent }]} numberOfLines={2}>
+                    This example builds: {workedBuildsCapability}
+                  </Text>
+                </View>
+              ) : null}
+
+              {workedApplied && workedBeats.length > 0 ? (
+                <View style={styles.fieldCard}>
+                  <View style={styles.fieldHead}>
+                    <Text style={styles.fieldLabel}>{runThroughLabel}</Text>
+                  </View>
+                  <View style={styles.beatList}>
+                    {workedBeats.map((beat, index) => (
+                      <View key={`${beat.title}-${index}`} style={styles.beatRow}>
+                        {beat.time_label ? (
+                          <View style={[styles.beatTimeChip, { backgroundColor: hexWithAlpha(accent, 0.12) }]}>
+                            <Text style={[styles.beatTimeText, { color: accent }]}>
+                              {beat.time_label}
+                            </Text>
+                          </View>
+                        ) : null}
+                        <View style={styles.beatCopy}>
+                          <Text style={styles.beatTitle}>{beat.title}</Text>
+                          {beat.body ? (
+                            <Text style={styles.beatBody}>{beat.body}</Text>
+                          ) : null}
+                        </View>
+                        <Pressable
+                          style={styles.fieldRemove}
+                          onPress={() =>
+                            setWorkedBeats((prev) => prev.filter((_, i) => i !== index))
+                          }
+                          accessibilityLabel={`Remove beat ${beat.title}`}
+                          hitSlop={6}
+                        >
+                          <Ionicons name="close" size={13} color={IOS_REGISTER.labelSecondary} />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
               <Text style={styles.optEyebrow}>DETAILS</Text>
               <View style={styles.chipRow}>
                 {BLANK_FIELDS.map((f) => {
@@ -912,6 +1106,105 @@ const styles = StyleSheet.create({
   whatNudgeBtnText: {
     fontSize: 12.5,
     fontWeight: '800',
+  },
+  workedTrigger: {
+    marginTop: 10,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  workedTriggerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  workedTriggerText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  workedTriggerHint: {
+    marginTop: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  workedError: {
+    marginTop: 8,
+    fontSize: 12.5,
+    color: '#FF3B30',
+  },
+  workedBar: {
+    marginTop: 10,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  workedBarText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  workedBarAction: {
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  workedBuildsChip: {
+    marginTop: 8,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  workedBuildsText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  beatList: {
+    gap: 10,
+  },
+  beatRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+  },
+  beatTimeChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 1,
+  },
+  beatTimeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    fontFamily: fontFamily.mono,
+  },
+  beatCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  beatTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_REGISTER.label,
+  },
+  beatBody: {
+    marginTop: 2,
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_REGISTER.labelSecondary,
   },
   optEyebrow: {
     fontSize: 10.5,

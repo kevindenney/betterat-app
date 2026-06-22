@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Worked Example — New Step mockup</title>
+<style>
+  :root{
+    --blue:#007AFF;
+    --bg:#F2F2F7;
+    --card:#FFFFFF;
+    --label:#1C1C1E;
+    --label2:#6E6E73;
+    --label3:#AEAEB2;
+    --hair:#E5E5EA;
+    --accentTint:rgba(0,122,255,0.12);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+    background:#1c1c1e;color:var(--label);
+    display:flex;min-height:100vh;justify-content:center;align-items:flex-start;gap:28px;padding:28px;flex-wrap:wrap;
+  }
+
+  /* ---------- control panel ---------- */
+  .panel{
+    width:280px;background:#2c2c2e;border-radius:16px;padding:18px 18px 22px;color:#fff;position:sticky;top:28px;
+  }
+  .panel h1{font-size:15px;margin:0 0 4px;}
+  .panel .sub{font-size:12px;color:#a1a1a6;margin:0 0 16px;line-height:1.4;}
+  .panel h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8e8e93;margin:18px 0 8px;}
+  .seg{display:flex;background:#3a3a3c;border-radius:9px;padding:3px;gap:3px;}
+  .seg button{flex:1;border:0;background:transparent;color:#fff;font-size:12px;padding:7px 4px;border-radius:7px;cursor:pointer;font-weight:500;}
+  .seg button.on{background:var(--blue);}
+  .selrow{display:flex;flex-direction:column;gap:6px;}
+  .selrow select{background:#3a3a3c;color:#fff;border:0;border-radius:8px;padding:8px;font-size:13px;}
+  .hint{font-size:11px;color:#8e8e93;margin-top:6px;line-height:1.4;}
+
+  /* ---------- phone ---------- */
+  .phone{
+    width:390px;background:var(--bg);border-radius:44px;padding:12px;box-shadow:0 30px 80px rgba(0,0,0,.5);
+  }
+  .screen{background:var(--bg);border-radius:34px;overflow:hidden;height:780px;position:relative;}
+
+  /* faint timeline behind sheet */
+  .behind{position:absolute;inset:0;padding:54px 20px;opacity:.5;}
+  .crumb{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--label2);margin-bottom:22px;}
+  .dot{width:10px;height:10px;border-radius:5px;background:var(--blue);}
+  .ghostcard{background:#fff;border-radius:16px;height:120px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  .ghosttitle{font-family:var(--serif);font-size:22px;padding:16px 16px 0;color:#c7c7cc;}
+
+  /* sheet */
+  .sheet{position:absolute;left:0;right:0;bottom:0;top:96px;background:var(--card);border-radius:18px 18px 0 0;
+    box-shadow:0 -8px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;}
+  .grab{width:38px;height:5px;border-radius:3px;background:var(--hair);margin:9px auto 0;}
+  .shead{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 12px;border-bottom:1px solid var(--hair);}
+  .shead .t{font-size:16px;font-weight:600;}
+  .shead .c{font-size:16px;color:var(--blue);}
+  .shead .s{font-size:16px;color:var(--blue);font-weight:600;}
+  .shead .s.off{color:var(--label3);font-weight:400;}
+  .body{padding:18px;overflow-y:auto;flex:1;}
+
+  .eyebrow{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--label2);font-weight:600;margin:0 0 8px;}
+  .eyebrow.sp{margin-top:20px;}
+
+  .typeRow{display:flex;gap:10px;margin-bottom:18px;}
+  .typeCard{flex:1;border:1.5px solid var(--hair);border-radius:14px;padding:12px;}
+  .typeCard.on{border-color:var(--blue);background:rgba(0,122,255,.04);}
+  .typeCard .ti{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px;}
+  .typeCard .td{font-size:11px;color:var(--label2);margin-top:3px;line-height:1.3;}
+
+  .whatWrap{position:relative;}
+  .whatInput{width:100%;border:1.5px solid var(--blue);border-radius:12px;padding:14px;font-size:17px;
+    font-family:var(--serif);min-height:54px;resize:none;color:var(--label);line-height:1.35;}
+  .whatInput::placeholder{color:var(--label3);}
+  .cornerBtn{position:absolute;right:8px;bottom:8px;width:30px;height:30px;border-radius:8px;border:0;
+    background:var(--accentTint);color:var(--blue);font-size:15px;cursor:pointer;display:none;}
+
+  /* worked-example card */
+  .weCard{margin-top:12px;border:1px solid var(--hair);border-radius:14px;padding:12px 14px;background:#FBFBFD;
+    display:flex;align-items:center;gap:12px;}
+  .weIcon{width:30px;height:30px;border-radius:9px;background:var(--accentTint);color:var(--blue);
+    display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .weCopy{flex:1;}
+  .weCopy .e{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--blue);font-weight:700;}
+  .weCopy .x{font-size:13px;color:var(--label2);line-height:1.35;margin-top:2px;}
+  .genBtn{border:0;background:var(--blue);color:#fff;font-size:13px;font-weight:600;border-radius:9px;
+    padding:9px 14px;cursor:pointer;white-space:nowrap;}
+  .spinner{width:16px;height:16px;border:2px solid var(--accentTint);border-top-color:var(--blue);
+    border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .resultBar{margin-top:10px;display:flex;align-items:center;justify-content:space-between;}
+  .resultBar .lhs{font-size:12px;color:var(--blue);font-weight:600;display:flex;align-items:center;gap:6px;}
+  .regen{display:flex;align-items:center;gap:8px;}
+  .regen input{border:1px solid var(--hair);border-radius:8px;padding:6px 9px;font-size:12px;width:120px;display:none;}
+  .regen button{border:0;background:transparent;color:var(--blue);font-size:13px;font-weight:600;cursor:pointer;}
+
+  .whyBox{margin-top:8px;border:1px solid var(--hair);border-radius:12px;padding:12px 14px;font-size:14px;
+    color:var(--label);line-height:1.4;background:#fff;}
+
+  .beatHead{display:flex;align-items:center;justify-content:space-between;margin-top:18px;}
+  .beatHead .lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--label2);font-weight:600;}
+  .beatHead .edit{font-size:13px;color:var(--blue);}
+  .beats{margin-top:8px;border:1px solid var(--hair);border-radius:14px;overflow:hidden;background:#fff;}
+  .beat{border-bottom:1px solid var(--hair);}
+  .beat:last-child{border-bottom:0;}
+  .beatTop{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;}
+  .beatNum{width:22px;height:22px;border-radius:11px;background:var(--accentTint);color:var(--blue);
+    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .beatTitle{flex:1;font-size:14px;font-weight:600;}
+  .beatHintTxt{font-size:12px;color:var(--label2);}
+  .chev{color:var(--label3);font-size:13px;transition:transform .2s;}
+  .beat.open .chev{transform:rotate(180deg);}
+  .beatBody{display:none;padding:0 14px 14px 48px;font-size:13px;color:var(--label2);line-height:1.5;}
+  .beat.open .beatBody{display:block;}
+  .beatActions{margin-top:8px;display:flex;gap:14px;}
+  .beatActions a{font-size:12px;color:var(--blue);text-decoration:none;font-weight:600;}
+  .beatActions a.rm{color:#FF3B30;}
+
+  .timeChip{min-width:56px;padding:4px 7px;border-radius:7px;background:var(--accentTint);color:var(--blue);
+    font-size:11px;font-weight:700;text-align:center;flex-shrink:0;line-height:1.2;}
+  .rtNote{margin-top:8px;border:1px dashed var(--hair);border-radius:12px;padding:12px 14px;font-size:12.5px;
+    color:var(--label2);line-height:1.45;background:#FBFBFD;}
+  .addBeat{display:inline-block;margin-top:10px;font-size:13px;color:var(--blue);font-weight:600;text-decoration:none;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{border:1px solid var(--hair);border-radius:16px;padding:6px 14px;font-size:13px;color:var(--label);}
+  .who{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--hair);border-radius:16px;
+    padding:6px 12px;font-size:13px;color:var(--label);}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>Worked Example · New Step</h1>
+  <p class="sub">One-tap generator under WHAT. Fills WHAT + WHY, the <b>How</b> recipe (sub-steps) and a <b>Run-through</b> (timing beats). Switch interest to see prep-only vs timed-event shapes.</p>
+
+  <h2>Walkthrough</h2>
+  <div class="seg" id="stateSeg">
+    <button data-state="empty" class="on">1 · Empty</button>
+    <button data-state="loading">2 · Gen</button>
+    <button data-state="result">3 · Result</button>
+  </div>
+  <p class="hint">In State 3, tap any beat to expand its full numbers (State 4).</p>
+
+  <h2>Option 1 · WHAT box</h2>
+  <div class="seg" id="whatSeg">
+    <button data-what="replace" class="on">Replace title</button>
+    <button data-what="keep">Keep typed</button>
+  </div>
+
+  <h2>Option 2 · Regenerate</h2>
+  <div class="seg" id="regenSeg">
+    <button data-regen="plain" class="on">Plain</button>
+    <button data-regen="tweak">+ tweak field</button>
+  </div>
+
+  <h2>Option 3 · Trigger</h2>
+  <div class="seg" id="trigSeg">
+    <button data-trig="card" class="on">Inline card</button>
+    <button data-trig="icon">✦ in field</button>
+  </div>
+
+  <h2>Interest vocab</h2>
+  <div class="selrow">
+    <select id="vocab">
+      <option value="sail">Sailing → RACE BEATS</option>
+      <option value="nursing">Nursing → SHIFT BEATS</option>
+      <option value="golf">Golf → ROUND BEATS</option>
+    </select>
+  </div>
+  <p class="hint">Switches the whole worked example — title, why &amp; beats — per interest. Beat label flips via lib/vocabulary.ts.</p>
+</div>
+
+<div class="phone">
+  <div class="screen">
+    <!-- faint timeline behind -->
+    <div class="behind">
+      <div class="crumb"><span class="dot"></span> Sail Racing &nbsp;›&nbsp; Step 2</div>
+      <div class="ghostcard"><div class="ghosttitle">Sketch key sections of the course…</div></div>
+      <div class="ghostcard"><div class="ghosttitle">Read about and ask AI…</div></div>
+    </div>
+
+    <!-- sheet -->
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="shead">
+        <span class="c">Cancel</span>
+        <span class="t">New step</span>
+        <span class="s off" id="saveBtn">Save</span>
+      </div>
+      <div class="body">
+        <div class="eyebrow">Type</div>
+        <div class="typeRow">
+          <div class="typeCard on"><div class="ti">📍 Step</div><div class="td">Anything you do — practice, boat work, a debrief.</div></div>
+          <div class="typeCard"><div class="ti">⛵ Race</div><div class="td">An event on a course. Gets Atlas course &amp; marks.</div></div>
+        </div>
+
+        <div class="eyebrow">What</div>
+        <div class="whatWrap">
+          <textarea class="whatInput" id="whatInput" rows="1">set up the rig before racing</textarea>
+          <button class="cornerBtn" id="cornerBtn">✦</button>
+        </div>
+
+        <!-- worked example card -->
+        <div class="weCard" id="weCard">
+          <div class="weIcon" id="weIcon">✦</div>
+          <div class="weCopy">
+            <div class="e" id="weEyebrow">Worked example</div>
+            <div class="x" id="weText">Build a full worked example — concrete beats with real numbers.</div>
+          </div>
+          <button class="genBtn" id="genBtn">Generate</button>
+        </div>
+
+        <!-- result bar -->
+        <div class="resultBar hidden" id="resultBar">
+          <span class="lhs">✦ Worked example · <span id="howCount">8</span> sub-steps · <span id="rtCount">0</span> beats</span>
+          <span class="regen">
+            <input id="tweakField" placeholder="make it heavy-air…" />
+            <button id="regenBtn">Regenerate</button>
+          </span>
+        </div>
+
+        <!-- WHY -->
+        <div class="hidden" id="whyWrap">
+          <div class="eyebrow sp">Why</div>
+          <div class="whyBox" id="whyBox">Arrive at the dock with a repeatable <b>medium setup</b> you can fine-tune on the water.</div>
+        </div>
+
+        <!-- HOW · sub-steps (the recipe, no clock) -->
+        <div class="hidden" id="howWrap">
+          <div class="beatHead">
+            <span class="lbl">How will you do it?</span>
+            <span class="edit">edit</span>
+          </div>
+          <div class="beats" id="howList"></div>
+          <a class="addBeat" href="#">＋ Add sub-step</a>
+        </div>
+
+        <!-- RUN-THROUGH · timing beats (clock-anchored moments) -->
+        <div class="hidden" id="rtWrap">
+          <div class="beatHead">
+            <span class="lbl" id="rtLabel">Race run-through</span>
+            <span class="edit">edit</span>
+          </div>
+          <div class="beats" id="rtList"></div>
+          <div class="rtNote hidden" id="rtNote"></div>
+          <a class="addBeat" href="#">＋ Add timing beat</a>
+        </div>
+
+        <div class="eyebrow sp">Details</div>
+        <div class="chips">
+          <span class="chip">Why</span><span class="chip">How</span><span class="chip">When</span><span class="chip">Where</span>
+        </div>
+
+        <div class="eyebrow sp">Who can see it</div>
+        <span class="who" id="whoChip">⚌ Crew ▾</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Each example has TWO dimensions:
+//  how        = the recipe / method (atemporal sub-steps, no clock)
+//  runthrough = clock-anchored timing beats of the live event (null for pure-prep steps)
+const EXAMPLES = {
+  sail: {
+    rtLabel: "Race run-through",
+    title: "Rig setup — medium base for 8–15kt",
+    why: "Arrive at the dock with a repeatable <b>medium setup</b> you can fine-tune on the water. Builds rig-tuning capability so small wind shifts become a few millimetres of runner, not guesswork.",
+    how: [
+      ["Level the mast","caps equal ~5.86m","Main halyard to tape: measure masthead → port & starboard chainplate. Shorten the longer cap until both read ~5.86m. Mast now centred."],
+      ["Set mast rake","target 6.28m","Measure halyard → transom/deck join. 6.24m = too upright; ease the forestay a touch and remeasure until 6.28m."],
+      ["Cap shroud tension","Loos 24 both","Build both caps evenly to 24 on the gauge. Medium base; you'll add for breeze on the water."],
+      ["Set lowers","sight + straighten","Sight up the groove. Tune lowers until straight side-to-side with slight fore-aft support."],
+      ["Check prebend","~55mm at spreaders","Tension the main halyard, measure mast aft-face → halyard at spreaders. If only 35mm, add lowers to reach ~55mm."],
+      ["Set spreaders","sweep 425mm","Measure spreader sweep, target 425mm each side — this sets much of the bend character."],
+      ["Runner baseline","+10mm, mark it","Apply normal upwind runner at the dock; you want ~10mm extra bend, firm headstay. Mark the position."],
+      ["Hoist genoa & mark everything","lead breaks even","Set the lead so top & bottom telltales break together. Mark runner, tracks, halyards, outhaul, cunningham — L/M/H. Now every change is repeatable."],
+    ],
+    runthrough: null,
+    rtNote: "This step is dock prep — there's no clock to rehearse, so it's all sub-steps. The <b>race</b> it feeds is a separate step that <i>would</i> get a run-through (off-dock −90, start −5, first beat, mark roundings…).",
+  },
+  nursing: {
+    rtLabel: "Shift run-through",
+    title: "Day shift — med-surg, 4 patients",
+    why: "Run the shift <b>proactively, not reactively</b> — report, assessments and meds land on time. Builds the time-management and prioritisation capability that separates a smooth shift from a chaotic one.",
+    how: [
+      ["Log in & get assignment","before report","Clock in, pull your 4-patient assignment and room numbers."],
+      ["Build your brain sheet","4 patients","One row per patient: dx, code status, lines, key meds, what to watch."],
+      ["Skim the charts","overnight + orders","Last VS, overnight events, new orders, allergies. Flag anything needing an early call."],
+      ["Stock your pockets","flushes · tape · pads","Saline flushes, alcohol pads, tape, pen. Avoid mid-task trips to the supply room."],
+    ],
+    runthrough: [
+      ["06:45","Get report","SBAR for each patient. Note the sickest first and any pending discharges."],
+      ["07:00","Safety rounds","Eyes on each patient: ID band, IV site & rate, O2, fall risk, call light in reach."],
+      ["08:00","First med pass","Pull due meds for the window, scan against the MAR, note holds (NPO, parameters)."],
+      ["09:00","Focused assessments","Priority patient first — baseline VS + pain score. Chart at the bedside in real time."],
+      ["hourly","Rounding — 4 Ps","Pain, potty, position, possessions. Cuts call lights, surfaces changes between assessments."],
+      ["12:00","Noon meds + reassess","Re-evaluate the priority patient against the morning trend; escalate early if drifting."],
+      ["15:00","Update SBAR sheet","Keep handoff current through the day so end-of-shift report is a 2-minute read."],
+      ["19:00","Handoff","Give clean SBAR to the next nurse; walk the lines and drips together."],
+    ],
+  },
+  golf: {
+    rtLabel: "Round run-through",
+    title: "Compete an 18-hole round",
+    why: "Reach the first tee loose, with tempo and a <b>committed game plan</b>, then manage the round so a bad hole stays a bad hole. Builds the routine-and-course-management capability that protects your score.",
+    how: [
+      ["Putting — speed","30/20/10 ft lag","Roll long lags to a tee, dial pace to today's green speed. Speed before line."],
+      ["Short putts","10-in-a-row · 3ft","Make ten straight from 3ft to leave the green confident over the ones that matter."],
+      ["Short game","3 lies","Chip from tight, rough and bunker. Pick a landing spot for each and commit."],
+      ["Wedge ladder","50/75/100 yd","Hit each carry number twice. Lock in your three stock wedge distances."],
+      ["Irons → driver","tempo + stock shape","Mid-iron for tempo, then 5–6 drivers committing to one trusted shape (small fade/draw)."],
+      ["Build the game plan","tees + no-go zones","Decide club off each tee, note hazards and the side you must miss. Write it on the card."],
+    ],
+    runthrough: [
+      ["−60min","Arrive · putting green","Start with speed work; settle the nerves before touching a club."],
+      ["−20min","Range — wedges to driver","Run the warmup ladder, finish on the shot you'll hit off tee 1."],
+      ["−5min","First-tee routine","Rehearse your full pre-shot routine so the first tee is the 51st rep, not the 1st."],
+      ["Holes 1–3","Ease in","Fairways and centres of greens. Make tempo, not heroics, the early goal."],
+      ["Turn (9)","Reset","Refuel, check the card, recommit to the plan for the back nine."],
+      ["Holes 10–15","Attack scoring holes","Take on the wedges and short par-4s where you can make birdies."],
+      ["Holes 16–18","Protect the score","Smart misses, two-putt par mindset, no double-bogeys."],
+      ["Post","Note today's miss","Log the pattern for next round's warmup and game plan."],
+    ],
+  },
+};
+
+let S = { state:"empty", what:"replace", regen:"plain", trig:"card", vocab:"sail" };
+
+function beatRow(leftHTML, title, hint, body, openFirst){
+  const el = document.createElement('div');
+  el.className = "beat" + (openFirst ? " open":"");
+  el.innerHTML = `
+    <div class="beatTop">
+      ${leftHTML}
+      <span class="beatTitle">${title}</span>
+      <span class="beatHintTxt">${hint}</span>
+      <span class="chev">⌄</span>
+    </div>
+    <div class="beatBody">${body}
+      <div class="beatActions"><a href="#">edit</a><a href="#" class="rm">remove</a></div>
+    </div>`;
+  el.querySelector('.beatTop').onclick = ()=> el.classList.toggle('open');
+  return el;
+}
+
+function renderLists(){
+  const ex = EXAMPLES[S.vocab];
+
+  // HOW · sub-steps (numbered, no clock)
+  const howList = document.getElementById('howList');
+  howList.innerHTML = "";
+  ex.how.forEach((b,i)=>{
+    howList.appendChild(beatRow(`<span class="beatNum">${i+1}</span>`, b[0], b[1], b[2], i===0));
+  });
+
+  // RUN-THROUGH · timing beats (time label on the left)
+  const rtList = document.getElementById('rtList');
+  rtList.innerHTML = "";
+  const rtNote = document.getElementById('rtNote');
+  if(ex.runthrough){
+    rtNote.classList.add('hidden');
+    rtList.classList.remove('hidden');
+    ex.runthrough.forEach((b,i)=>{
+      rtList.appendChild(beatRow(`<span class="timeChip">${b[0]}</span>`, b[1], "", b[2], i===0));
+    });
+  } else {
+    rtList.classList.add('hidden');
+    rtNote.classList.remove('hidden');
+    rtNote.innerHTML = ex.rtNote;
+  }
+}
+
+function apply(){
+  const isResult = S.state === "result";
+  const isLoading = S.state === "loading";
+
+  // trigger placement
+  const card = document.getElementById('weCard');
+  const corner = document.getElementById('cornerBtn');
+  if(S.trig === "icon"){
+    corner.style.display = "block";
+    card.classList.toggle('hidden', !isLoading); // icon mode: card only used to show loading
+    if(!isLoading) card.classList.add('hidden');
+  } else {
+    corner.style.display = "none";
+    card.classList.remove('hidden');
+  }
+
+  // loading vs idle inside card
+  const genBtn = document.getElementById('genBtn');
+  const weText = document.getElementById('weText');
+  const weEye = document.getElementById('weEyebrow');
+  const weIcon = document.getElementById('weIcon');
+  if(isLoading){
+    if(S.trig==="icon") card.classList.remove('hidden');
+    weEye.textContent = "Working…";
+    weText.textContent = "Reading your interest, drafting the method + run-through…";
+    weIcon.innerHTML = '<div class="spinner"></div>';
+    genBtn.style.display = "none";
+  } else {
+    weEye.textContent = "Worked example";
+    weText.textContent = "Build a worked example — sub-steps (the recipe) + a timed run-through.";
+    weIcon.textContent = "✦";
+    genBtn.style.display = isResult ? "none" : "block";
+    if(isResult && S.trig==="card") card.classList.add('hidden');
+    if(isResult && S.trig==="icon") card.classList.add('hidden');
+    if(!isResult && S.trig==="card") card.classList.remove('hidden');
+  }
+
+  const ex = EXAMPLES[S.vocab];
+
+  // WHAT text
+  const what = document.getElementById('whatInput');
+  if(isResult && S.what==="replace") what.value = ex.title;
+  else what.value = "set up the rig before racing";
+
+  // WHY + counts for the active example
+  document.getElementById('whyBox').innerHTML = ex.why;
+  document.getElementById('howCount').textContent = ex.how.length;
+  document.getElementById('rtCount').textContent = ex.runthrough ? ex.runthrough.length : 0;
+
+  // result blocks
+  document.getElementById('resultBar').classList.toggle('hidden', !isResult);
+  document.getElementById('whyWrap').classList.toggle('hidden', !isResult);
+  document.getElementById('howWrap').classList.toggle('hidden', !isResult);
+  document.getElementById('rtWrap').classList.toggle('hidden', !isResult);
+  document.getElementById('saveBtn').classList.toggle('off', !isResult);
+
+  // regen tweak field
+  document.getElementById('tweakField').style.display = (isResult && S.regen==="tweak") ? "inline-block":"none";
+
+  // run-through label per interest
+  document.getElementById('rtLabel').textContent = ex.rtLabel;
+
+  // segs reflect state
+  document.querySelectorAll('#stateSeg button').forEach(b=>b.classList.toggle('on', b.dataset.state===S.state));
+}
+
+function seg(id, key){
+  document.querySelectorAll('#'+id+' button').forEach(b=>{
+    b.onclick = ()=>{
+      const val = b.dataset[Object.keys(b.dataset)[0]];
+      S[key] = val;
+      apply();
+      // The loading frame is transient — auto-advance so it never looks stuck.
+      if(key==='state' && val==='loading'){
+        setTimeout(()=>{ if(S.state==='loading'){ S.state='result'; apply(); } }, 900);
+      }
+    };
+  });
+}
+seg('stateSeg','state'); seg('whatSeg','what'); seg('regenSeg','regen'); seg('trigSeg','trig');
+
+document.getElementById('genBtn').onclick = ()=>{
+  S.state = "loading"; apply();
+  setTimeout(()=>{ S.state = "result"; apply(); }, 900);
+};
+document.getElementById('cornerBtn').onclick = document.getElementById('genBtn').onclick;
+document.getElementById('regenBtn').onclick = ()=>{
+  S.state = "loading"; apply();
+  setTimeout(()=>{ S.state = "result"; apply(); }, 700);
+};
+document.getElementById('vocab').onchange = (e)=>{ S.vocab = e.target.value; renderLists(); apply(); };
+
+renderLists();
+apply();
+</script>
+</body>
+</html>
