@@ -313,7 +313,7 @@ async function getOrgCompetencies(userId: string, interestId: string): Promise<O
 /**
  * Recent completed steps from users this person follows.
  */
-async function getFollowedUsersActivity(
+export async function getFollowedUsersActivity(
   userId: string,
   interestId: string,
 ): Promise<FollowedUserActivity[]> {
@@ -376,7 +376,7 @@ async function getFollowedUsersActivity(
 /**
  * Organization programs the user participates in.
  */
-async function getUserOrgPrograms(userId: string, interestId: string): Promise<OrgProgramSummary[]> {
+export async function getUserOrgPrograms(userId: string, interestId: string): Promise<OrgProgramSummary[]> {
   try {
     // Get programs user participates in
     const { data: participations } = await supabase

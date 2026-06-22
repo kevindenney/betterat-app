@@ -26,6 +26,8 @@ import { getInterestBeatsConfig } from '@/lib/interest-config';
 import {
   gatherPlaybookLayers,
   getUserCapabilityProgress,
+  getUserOrgPrograms,
+  getFollowedUsersActivity,
 } from '@/services/ai/StepPlanAIService';
 
 export interface WorkedExampleHowStep {
@@ -93,6 +95,17 @@ export interface WorkedExamplePersonalContext {
   knowledgeConcepts?: string[];
   /** Phase 2 — the latest weekly review's focus suggestion, one line. */
   focusSuggestion?: string | null;
+  /**
+   * Phase 3 — the org programs / blueprints the user is enrolled in for this
+   * interest ("Org · Program"), so the example aligns with the curriculum
+   * they're actually being held to.
+   */
+  programContext?: string[];
+  /**
+   * Phase 3 — what people the user follows have recently worked on in this
+   * interest ("Name: step title"), a light peer signal.
+   */
+  peerActivity?: string[];
 }
 
 function buildSystemPrompt(params: {
@@ -121,6 +134,8 @@ Rules:
 - If an "ABOUT THIS PRACTITIONER" block is provided, use it to calibrate the example to this specific person — match their level, lean on their stated goal and trajectory, ground location/detail in their real situation, and reference their other interests for cross-domain framing only where it genuinely fits. Tailor the substance; never restate the context back verbatim.
 - If "Capabilities they're still building" are listed, design the example so that following it would genuinely build at least one of them, and set "builds_capability" to that capability's exact title. If no gaps are listed, set "builds_capability" to "".
 - If "Concepts from their own playbook" are listed, use that exact vocabulary and lean on those ideas rather than introducing generic synonyms.
+- If a "Program / curriculum" is listed, align the example with how that program would frame and sequence the work, so it dovetails with what they're already being taught.
+- If "People they follow recently worked on" is listed, you may nod to shared approaches, but keep the example squarely about THIS practitioner — never copy a peer's step.
 
 Respond with ONLY valid JSON, no markdown fences, in this exact shape:
 {
@@ -176,6 +191,20 @@ function buildPersonalContext(ctx: WorkedExamplePersonalContext | undefined): st
   }
   const focus = ctx.focusSuggestion?.trim();
   if (focus) lines.push(`- Their current focus: ${focus}`);
+  const programs = (ctx.programContext ?? [])
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  if (programs.length) {
+    lines.push(`- Program / curriculum they're enrolled in: ${programs.join('; ')}`);
+  }
+  const peers = (ctx.peerActivity ?? [])
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  if (peers.length) {
+    lines.push(`- People they follow recently worked on: ${peers.join('; ')}`);
+  }
   if (!lines.length) return '';
   return `\n\nABOUT THIS PRACTITIONER:\n${lines.join('\n')}`;
 }
@@ -224,11 +253,13 @@ function safeParse(responseText: string): WorkedExampleResult | null {
 }
 
 /**
- * Phase 2 — server-side gather of the user's growth edge for this interest:
- * capability gaps (weakest-practiced competencies) and the names of concepts
- * they've saved to their own playbook, plus the latest review's focus line.
- * Cherry-picks the existing StepPlanAIService gatherers rather than rebuilding
- * the queries; every fetch is defensive so a miss never blocks generation.
+ * Server-side gather of the signals that make the example compound over time.
+ * Phase 2 — the user's growth edge: capability gaps (weakest-practiced
+ * competencies), saved playbook concepts, and the latest review's focus line.
+ * Phase 3 — their membership graph: org programs/blueprints they're enrolled in
+ * and what people they follow have recently worked on. Cherry-picks the
+ * existing StepPlanAIService gatherers rather than rebuilding the queries;
+ * every fetch is defensive so a miss never blocks generation.
  */
 async function gatherGrowthContext(
   userId: string,
@@ -237,17 +268,36 @@ async function gatherGrowthContext(
   capabilityGaps: string[];
   knowledgeConcepts: string[];
   focusSuggestion: string | null;
+  programContext: string[];
+  peerActivity: string[];
 }> {
-  const empty = { capabilityGaps: [], knowledgeConcepts: [], focusSuggestion: null };
+  const empty = {
+    capabilityGaps: [],
+    knowledgeConcepts: [],
+    focusSuggestion: null,
+    programContext: [],
+    peerActivity: [],
+  };
   try {
-    const [progress, playbook] = await Promise.all([
-      getUserCapabilityProgress(userId, interestId).catch(() => []),
-      gatherPlaybookLayers(userId, interestId).catch(() => ({
-        concepts: [],
-        patterns: [],
-        latestReview: null,
-      })),
+    // Personalization is best-effort enrichment, never a gate: if the gather
+    // queries are slow (a degraded DB can leave them hanging rather than
+    // rejecting, which the per-fetch .catch() can't rescue), fall back to an
+    // unpersonalized example instead of blocking — or failing — generation.
+    const gathered = await Promise.race([
+      Promise.all([
+        getUserCapabilityProgress(userId, interestId).catch(() => []),
+        gatherPlaybookLayers(userId, interestId).catch(() => ({
+          concepts: [],
+          patterns: [],
+          latestReview: null,
+        })),
+        getUserOrgPrograms(userId, interestId).catch(() => []),
+        getFollowedUsersActivity(userId, interestId).catch(() => []),
+      ]),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
     ]);
+    if (!gathered) return empty;
+    const [progress, playbook, programs, followed] = gathered;
 
     // Weakest-practiced first; drop already-competent. attemptCount is the
     // trustworthy gap signal (the capability auto-tagging is otherwise a façade).
@@ -276,7 +326,28 @@ async function gatherGrowthContext(
         : rawFocus
       : null;
 
-    return { capabilityGaps, knowledgeConcepts, focusSuggestion };
+    const programContext = programs
+      .map((p) => {
+        const name = p.programName?.trim();
+        if (!name) return '';
+        return p.orgName?.trim() ? `${p.orgName.trim()} · ${name}` : name;
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+
+    // One recent step title per followed person, so peers don't crowd out
+    // the practitioner's own signal.
+    const peerActivity = followed
+      .map((u) => {
+        const name = u.userName?.trim();
+        const stepTitle = u.recentSteps.find((s) => s.title?.trim())?.title?.trim();
+        if (!name || !stepTitle) return '';
+        return `${name}: ${stepTitle}`;
+      })
+      .filter(Boolean)
+      .slice(0, 4);
+
+    return { capabilityGaps, knowledgeConcepts, focusSuggestion, programContext, peerActivity };
   } catch {
     return empty;
   }
@@ -295,8 +366,10 @@ export async function generateWorkedExample(
     interestName,
   }).sectionLabel;
 
-  // Phase 2 — fold the user's growth edge (capability gaps + saved concepts)
-  // into the practitioner block when we can key it to a real user + interest.
+  // Fold the user's compounding signals into the practitioner block when we can
+  // key them to a real user + interest: their growth edge (Phase 2 — capability
+  // gaps + saved concepts) and their membership graph (Phase 3 — enrolled
+  // programs + what people they follow are working on).
   let mergedContext = personalContext;
   if (userId && interestId) {
     const growth = await gatherGrowthContext(userId, interestId);
@@ -305,6 +378,8 @@ export async function generateWorkedExample(
       capabilityGaps: growth.capabilityGaps,
       knowledgeConcepts: growth.knowledgeConcepts,
       focusSuggestion: growth.focusSuggestion,
+      programContext: growth.programContext,
+      peerActivity: growth.peerActivity,
     };
   }
 
