@@ -1,5 +1,6 @@
 import { coachRoleLabel } from '@/lib/organizations/roleLabels';
 import { getActiveMembership, isActiveMembership, isOrgAdminRole, resolveActiveOrgId } from '@/lib/organizations/adminGate';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 import { fetchOrganizationInterestSlug, OrgContextPill } from '@/components/organizations/OrgContextPill';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { supabase } from '@/services/supabase';
@@ -32,13 +33,31 @@ type OrgActiveMember = {
   user_email: string | null;
 };
 
+function firstParam(value: string | string[] | undefined): string {
+  return (Array.isArray(value) ? value[0] : value || '').trim();
+}
+
 function normalize(value: unknown): string {
   return String(value || '').trim().toLowerCase();
 }
 
+async function withTimeout<T>(promise: Promise<T>, label: string, ms = 12000): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${label} timed out.`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 export default function CohortDetailScreen() {
-  const params = useLocalSearchParams<{ cohortId?: string }>();
-  const cohortId = String(params.cohortId || '').trim();
+  const params = useLocalSearchParams<{ cohortId?: string | string[] }>();
+  const cohortId = firstParam(params.cohortId);
 
   const {
     activeOrganizationId,
@@ -60,28 +79,28 @@ export default function CohortDetailScreen() {
     () => resolveActiveOrgId({ activeOrganizationId, memberships: memberships as any }),
     [activeOrganizationId, memberships]
   );
+  const membershipOrgId = cohort?.org_id ?? resolvedActiveOrgId;
   const activeOrgMembership = useMemo(
-    () => getActiveMembership({ memberships: memberships as any, activeOrgId: resolvedActiveOrgId }),
-    [memberships, resolvedActiveOrgId]
+    () => getActiveMembership({ memberships: memberships as any, activeOrgId: membershipOrgId }),
+    [memberships, membershipOrgId]
   );
 
-  const hasValidOrg = Boolean(resolvedActiveOrgId && isUuid(resolvedActiveOrgId));
+  const hasValidOrg = Boolean(membershipOrgId && isUuid(membershipOrgId));
   const membershipStatus = activeOrgMembership?.membershipStatus || null;
   const membershipRole = activeOrgMembership?.role || null;
   const hasActiveMembership = isActiveMembership(membershipStatus);
   const hasAdminRole = isOrgAdminRole(membershipRole);
   const canEdit = hasValidOrg && hasActiveMembership && hasAdminRole;
-  const canView = hasValidOrg && hasActiveMembership;
 
   useEffect(() => {
-    if (!resolvedActiveOrgId || !isUuid(resolvedActiveOrgId)) {
+    if (!membershipOrgId || !isUuid(membershipOrgId)) {
       setOrgInterestSlug(null);
       return;
     }
     let cancelled = false;
     void (async () => {
       try {
-        const interestSlug = await fetchOrganizationInterestSlug(resolvedActiveOrgId);
+        const interestSlug = await fetchOrganizationInterestSlug(membershipOrgId);
         if (cancelled) return;
         setOrgInterestSlug(interestSlug);
       } catch {
@@ -92,10 +111,10 @@ export default function CohortDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [resolvedActiveOrgId]);
+  }, [membershipOrgId]);
 
   const loadData = useCallback(async () => {
-    if (!canView || !resolvedActiveOrgId || !isUuid(cohortId)) {
+    if (!orgReady || orgLoading || !isUuid(cohortId)) {
       setLoading(false);
       setCohort(null);
       setCohortMembers([]);
@@ -111,32 +130,49 @@ export default function CohortDetailScreen() {
         .from('betterat_org_cohorts')
         .select('id,org_id,name,description,interest_slug')
         .eq('id', cohortId)
-        .eq('org_id', resolvedActiveOrgId)
         .maybeSingle();
 
       if (cohortError) throw cohortError;
       if (!cohortData) {
-        setErrorText('Cohort not found.');
+        setErrorText('Cohort not found, or you do not have access to it.');
         setCohort(null);
         setCohortMembers([]);
         setOrgMembers([]);
         return;
       }
-      setCohort(cohortData as CohortRow);
+      const nextCohort = cohortData as CohortRow;
+      setCohort(nextCohort);
 
-      const { data: cohortMemberRows, error: cohortMembersError } = await supabase
-        .from('betterat_org_cohort_members')
-        .select('id,user_id,role')
-        .eq('cohort_id', cohortId)
-        .order('created_at', { ascending: false });
+      const cohortOrgMembership = getActiveMembership({
+        memberships: memberships as any,
+        activeOrgId: nextCohort.org_id,
+      });
+      if (!isActiveMembership(cohortOrgMembership?.membershipStatus || null)) {
+        setErrorText('Active membership required.');
+        setCohortMembers([]);
+        setOrgMembers([]);
+        return;
+      }
+
+      const { data: cohortMemberRows, error: cohortMembersError } = await withTimeout(
+        supabase
+          .from('betterat_org_cohort_members')
+          .select('id,user_id,role')
+          .eq('cohort_id', cohortId)
+          .order('created_at', { ascending: false }),
+        'Loading cohort members',
+      );
 
       if (cohortMembersError) throw cohortMembersError;
 
-      const { data: orgMemberRows, error: orgMembersError } = await supabase
-        .from('organization_memberships')
-        .select('user_id,role,membership_status,status')
-        .eq('organization_id', resolvedActiveOrgId)
-        .order('created_at', { ascending: false });
+      const { data: orgMemberRows, error: orgMembersError } = await withTimeout(
+        supabase
+          .from('organization_memberships')
+          .select('user_id,role,membership_status,status')
+          .eq('organization_id', nextCohort.org_id)
+          .order('created_at', { ascending: false }),
+        'Loading organization members',
+      );
 
       if (orgMembersError) throw orgMembersError;
 
@@ -150,18 +186,26 @@ export default function CohortDetailScreen() {
 
       const usersById = new Map<string, { full_name?: string | null; email?: string | null }>();
       if (allUserIds.length > 0) {
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('id,full_name,email')
-          .in('id', allUserIds);
+        try {
+          const { data: usersData, error: usersError } = await withTimeout(
+            supabase
+              .from('users')
+              .select('id,full_name,email')
+              .in('id', allUserIds),
+            'Loading member profiles',
+            8000,
+          );
 
-        if (usersError) throw usersError;
+          if (usersError) throw usersError;
 
-        for (const row of usersData || []) {
-          usersById.set(String((row as any).id), {
-            full_name: (row as any).full_name ?? null,
-            email: (row as any).email ?? null,
-          });
+          for (const row of usersData || []) {
+            usersById.set(String((row as any).id), {
+              full_name: (row as any).full_name ?? null,
+              email: (row as any).email ?? null,
+            });
+          }
+        } catch (profileError) {
+          console.warn('[CohortDetailScreen] profile lookup failed', profileError);
         }
       }
 
@@ -179,7 +223,7 @@ export default function CohortDetailScreen() {
       });
 
       const nextOrgMembers: OrgActiveMember[] = (orgMemberRows || [])
-        .filter((row: any) => isActiveMembership(String(row.membership_status || row.status || '').trim() || null))
+        .filter((row: any) => isResolvedOrgMembershipActive(row))
         .map((row: any) => {
         const user = usersById.get(String(row.user_id));
         const email = user?.email || null;
@@ -202,15 +246,15 @@ export default function CohortDetailScreen() {
     } finally {
       setLoading(false);
     }
-  }, [canView, cohortId, resolvedActiveOrgId]);
+  }, [cohortId, memberships, orgLoading, orgReady]);
 
   useEffect(() => {
-    if (!orgReady || orgLoading || !canView) {
+    if (!orgReady || orgLoading) {
       setLoading(false);
       return;
     }
     void loadData();
-  }, [canView, loadData, orgLoading, orgReady]);
+  }, [loadData, orgLoading, orgReady]);
 
   const cohortMemberUserIds = useMemo(() => new Set(cohortMembers.map((row) => row.user_id)), [cohortMembers]);
 
@@ -235,11 +279,11 @@ export default function CohortDetailScreen() {
     try {
       const { error } = await supabase
         .from('betterat_org_cohort_members')
-        .insert({
+        .upsert({
           cohort_id: cohortId,
           user_id: userId,
           role: 'member',
-        });
+        }, { onConflict: 'cohort_id,user_id', ignoreDuplicates: true });
       if (error) throw error;
       await loadData();
     } catch (error: any) {
@@ -254,12 +298,17 @@ export default function CohortDetailScreen() {
     setActionBusyUserId(userId);
     setErrorText(null);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('betterat_org_cohort_members')
         .delete()
         .eq('cohort_id', cohortId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('user_id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) {
+        throw new Error('Cohort member not found or you do not have access to remove them.');
+      }
       await loadData();
     } catch (error: any) {
       setErrorText(error?.message || 'Could not remove member.');
@@ -283,15 +332,6 @@ export default function CohortDetailScreen() {
 
       {!orgReady || orgLoading ? (
         <View style={styles.centerState}><ActivityIndicator size="small" color="#007AFF" /></View>
-      ) : !hasValidOrg ? (
-        <View style={styles.centerState}>
-          <Text style={styles.stateText}>Select an active organization first.</Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/settings/organization-access')}>
-            <Text style={styles.primaryButtonText}>Open Organization Access</Text>
-          </TouchableOpacity>
-        </View>
-      ) : !hasActiveMembership ? (
-        <View style={styles.centerState}><Text style={styles.stateText}>Active membership required.</Text></View>
       ) : !isUuid(cohortId) ? (
         <View style={styles.centerState}><Text style={styles.stateText}>Invalid cohort id.</Text></View>
       ) : (

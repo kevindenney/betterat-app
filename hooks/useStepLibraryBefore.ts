@@ -166,11 +166,14 @@ export function useDetachLibraryItemFromStepBefore(stepId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ rowId }: { rowId: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('step_library_before')
         .delete()
-        .eq('id', rowId);
+        .eq('id', rowId)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Step library item not found.');
     },
     onMutate: async ({ rowId }) => {
       const key = ['step-library-before', stepId];

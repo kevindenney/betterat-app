@@ -389,6 +389,8 @@ export interface AtlasFrameHandlers {
    * something visible instead of the merged "+N" badge.
    */
   initialPeerFocus?: AtlasPeerMember | null;
+  /** Optional initial segment inside frames that support Sites/Coverage/Map. */
+  initialView?: 'map';
   /**
    * Opens the "people & sites nearby" overlay. F4 nursing passes this so
    * Nearby surfaces as a quiet TopChrome action; sailing frames keep the
@@ -462,6 +464,7 @@ export function AtlasScreen({
   initialFocusLabel,
   initialFocusStepId,
   initialPeerFocus,
+  initialView,
   onNearbyPress,
   nearbyOverlayOpen,
   useMapLibre = false,
@@ -490,6 +493,7 @@ export function AtlasScreen({
     initialFocusLabel,
     initialFocusStepId,
     initialPeerFocus,
+    initialView,
     onNearbyPress,
     nearbyOverlayOpen,
     useMapLibre,
@@ -2051,7 +2055,9 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Sites | Capabilities | Map segment (the nursing F4 three-tab reframe,
   // generalized to every F1 interest). Lands on Sites so the frame leads with
   // structure; Map keeps the full sailing/MapLibre experience byte-identical.
-  const [f1View, setF1View] = useState<'sites' | 'capabilities' | 'map'>('sites');
+  const [f1View, setF1View] = useState<'sites' | 'capabilities' | 'map'>(
+    handlers.initialView === 'map' ? 'map' : 'sites',
+  );
   // Measured height of the floating chrome so the Sites/Capabilities surfaces
   // inset their scroll content clear of it (the chrome floats on top).
   const [f1ChromeH, setF1ChromeH] = useState(140);
@@ -6110,7 +6116,9 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // Sites | Map segment — the N1 reframe. Sites is the default surface: the
   // street map is near content-free for a nursing student, so it's demoted to
   // a secondary toggle (kept for cold first-run POI discovery + orientation).
-  const [f4View, setF4View] = useState<'sites' | 'coverage' | 'map'>('sites');
+  const [f4View, setF4View] = useState<'sites' | 'coverage' | 'map'>(
+    handlers.initialView === 'map' ? 'map' : 'sites',
+  );
   // Measured floating-chrome height. The chrome grows on the Map view (it
   // adds a FilterChipsRow), so a hardcoded toolbarOffset underlapped the
   // surfaces; measure the actual chrome and feed it to each surface inset.

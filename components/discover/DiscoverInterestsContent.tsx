@@ -53,6 +53,10 @@ import {
   type OrgMembershipRawRow,
   type OrgMembershipEmbeddedOrg,
 } from '@/hooks/orgMembershipsQuery';
+import {
+  isResolvedOrgMembershipActive,
+  isResolvedOrgMembershipPending,
+} from '@/hooks/orgMembershipStatus';
 
 // =============================================================================
 // LOCAL PALETTE (iOS-clean, accent-tinted state pills)
@@ -106,11 +110,11 @@ function orgOf(m: OrgMembershipRawRow): OrgMembershipEmbeddedOrg | null {
 }
 
 function isActiveMembership(m: OrgMembershipRawRow): boolean {
-  return m.status === 'active' || m.membership_status === 'active';
+  return isResolvedOrgMembershipActive(m);
 }
 
 function isPendingMembership(m: OrgMembershipRawRow): boolean {
-  return !isActiveMembership(m) && (m.status === 'pending' || m.membership_status === 'pending');
+  return isResolvedOrgMembershipPending(m);
 }
 
 function joinModeLabel(mode: JoinMode): string {

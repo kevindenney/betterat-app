@@ -239,16 +239,109 @@ function buildPersonalContext(ctx: WorkedExamplePersonalContext | undefined): st
   return `\n\nABOUT THIS PRACTITIONER:\n${lines.join('\n')}`;
 }
 
-function safeParse(responseText: string): WorkedExampleResult | null {
+function findJsonObjectCandidate(responseText: string): string | null {
   const cleaned = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
-  let parsed: any;
+  const start = cleaned.indexOf('{');
+  if (start < 0) return null;
+  return cleaned.slice(start);
+}
+
+function readJsonStringProperty(text: string, key: string): string {
+  const match = new RegExp(`"${key}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`).exec(text);
+  if (!match) return '';
   try {
-    parsed = JSON.parse(jsonMatch[0]);
+    return JSON.parse(`"${match[1]}"`).trim();
   } catch {
-    return null;
+    return match[1].trim();
   }
+}
+
+function extractArrayText(text: string, key: string): string | null {
+  const keyIndex = text.indexOf(`"${key}"`);
+  if (keyIndex < 0) return null;
+  const start = text.indexOf('[', keyIndex);
+  if (start < 0) return null;
+
+  let inString = false;
+  let escaped = false;
+  let depth = 0;
+  for (let i = start; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === '[') {
+      depth += 1;
+    } else if (ch === ']') {
+      depth -= 1;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+
+  return text.slice(start);
+}
+
+function extractCompleteObjects(arrayText: string): any[] {
+  const objects: any[] = [];
+  let inString = false;
+  let escaped = false;
+  let depth = 0;
+  let objectStart = -1;
+
+  for (let i = 0; i < arrayText.length; i += 1) {
+    const ch = arrayText[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === '{') {
+      if (depth === 0) objectStart = i;
+      depth += 1;
+    } else if (ch === '}') {
+      depth -= 1;
+      if (depth === 0 && objectStart >= 0) {
+        try {
+          objects.push(JSON.parse(arrayText.slice(objectStart, i + 1)));
+        } catch {
+          // Ignore a malformed entry and keep any other complete entries.
+        }
+        objectStart = -1;
+      }
+    }
+  }
+
+  return objects;
+}
+
+function readJsonArrayProperty(text: string, key: string): any[] {
+  const arrayText = extractArrayText(text, key);
+  if (!arrayText) return [];
+  try {
+    const parsed = JSON.parse(arrayText);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return extractCompleteObjects(arrayText);
+  }
+}
+
+function normalizeParsedWorkedExample(parsed: any): WorkedExampleResult {
   const how: WorkedExampleHowStep[] = Array.isArray(parsed.how)
     ? parsed.how
         .map((h: any) => ({
@@ -280,6 +373,32 @@ function safeParse(responseText: string): WorkedExampleResult | null {
     runthrough,
     buildsCapability,
   };
+}
+
+function parsePartialWorkedExample(candidate: string): WorkedExampleResult {
+  return normalizeParsedWorkedExample({
+    title: readJsonStringProperty(candidate, 'title'),
+    why: readJsonStringProperty(candidate, 'why'),
+    how: readJsonArrayProperty(candidate, 'how'),
+    runthrough: readJsonArrayProperty(candidate, 'runthrough'),
+    builds_capability: readJsonStringProperty(candidate, 'builds_capability'),
+  });
+}
+
+export function parseWorkedExampleResponse(responseText: string): WorkedExampleResult | null {
+  const candidate = findJsonObjectCandidate(responseText);
+  if (!candidate) return null;
+
+  const lastBrace = candidate.lastIndexOf('}');
+  if (lastBrace >= 0) {
+    try {
+      return normalizeParsedWorkedExample(JSON.parse(candidate.slice(0, lastBrace + 1)));
+    } catch {
+      // Continue to the partial parser below.
+    }
+  }
+
+  return parsePartialWorkedExample(candidate);
 }
 
 /**
@@ -468,7 +587,7 @@ export async function generateWorkedExample(
   let responseText = '';
   try {
     const { data, error } = await supabase.functions.invoke('step-plan-suggest', {
-      body: { system: systemPrompt, prompt: userMessage, max_tokens: 1536 },
+      body: { system: systemPrompt, prompt: userMessage, max_tokens: 3072 },
     });
     if (!error && data?.text) responseText = data.text;
   } catch {
@@ -477,13 +596,13 @@ export async function generateWorkedExample(
 
   if (!responseText) {
     const { data, error } = await supabase.functions.invoke('race-coaching-chat', {
-      body: { prompt: `${systemPrompt}\n\n${userMessage}`, max_tokens: 1536 },
+      body: { prompt: `${systemPrompt}\n\n${userMessage}`, max_tokens: 3072 },
     });
     if (error || !data?.text) throw new Error('AI generation failed');
     responseText = data.text;
   }
 
-  const parsed = safeParse(responseText);
+  const parsed = parseWorkedExampleResponse(responseText);
   if (!parsed || (!parsed.how.length && !parsed.runthrough.length)) {
     throw new Error('Worked example came back empty.');
   }

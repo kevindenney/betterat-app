@@ -17,8 +17,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
  * Public strategy response interface
  */
 export interface PublicStrategyInfo {
-  id: string;
-  share_token: string;
   shared_at: string | null;
   
   // Race event info
@@ -355,8 +353,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Build public response
     const response: PublicStrategyInfo = {
-      id: preparation.id,
-      share_token: preparation.share_token,
       shared_at: preparation.public_shared_at,
       race: raceInfo,
       regatta: regattaInfo,

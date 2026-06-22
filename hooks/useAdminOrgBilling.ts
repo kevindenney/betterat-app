@@ -56,7 +56,7 @@ export interface OrgInvoiceRow {
 }
 
 /** Where the rendered billing summary came from. */
-export type OrgBillingSource = 'subscription' | 'demo' | null;
+export type OrgBillingSource = 'subscription' | 'test' | 'demo' | null;
 
 export interface AdminOrgBillingData {
   billing: OrgBillingRow | null;
@@ -102,6 +102,23 @@ function billingFromSubscription(sub: OrgSubscription, memberCount: number): Org
   };
 }
 
+const TEST_ORG_PRICE_IDS = new Set([
+  'price_1Sl0oHBbfEeOhHXbWRBa81j7',
+  'price_1Sl0oTBbfEeOhHXbAfA0x5gK',
+  'price_1Sl0pABbfEeOhHXbEaubR9jr',
+  'price_1Sl0pMBbfEeOhHXb9reoud5b',
+  'price_1Sl0q2BbfEeOhHXb89WAlrJC',
+  'price_1Sl0qRBbfEeOhHXbkVYk7YsW',
+]);
+
+function isTestSubscription(subscription: OrgSubscription, rpcInvoices: OrgInvoiceRow[]): boolean {
+  if (subscription.stripe_price_id && TEST_ORG_PRICE_IDS.has(subscription.stripe_price_id)) {
+    return true;
+  }
+
+  return rpcInvoices.some((invoice) => invoice.pdf_url?.includes('/test_'));
+}
+
 export function useAdminOrgBilling(orgId: string) {
   const { data, isLoading, error } = useQuery<AdminOrgBillingData>({
     queryKey: ['admin-org-billing', orgId],
@@ -128,10 +145,13 @@ export function useAdminOrgBilling(orgId: string) {
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', orgId)
           .in('status', ['active', 'verified']);
+        const source: OrgBillingSource = isTestSubscription(subscription, rpcInvoices)
+          ? 'test'
+          : 'subscription';
         return {
           billing: billingFromSubscription(subscription, count ?? 0),
           invoices: rpcInvoices,
-          source: 'subscription',
+          source,
         };
       }
 

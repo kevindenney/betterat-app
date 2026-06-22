@@ -14,7 +14,7 @@
  * Pricing: Individual $9/mo ($90/yr), Pro $29/mo ($290/yr)
  */
 
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import Purchases, {
   LOG_LEVEL,
   type CustomerInfo,
@@ -68,6 +68,9 @@ const REVENUECAT_API_KEY = Platform.select({
   android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY || '',
   default: '',
 }) as string;
+const IS_EXPO_GO =
+  (NativeModules as { ExponentConstants?: { appOwnership?: string } } | undefined)?.ExponentConstants
+    ?.appOwnership === 'expo';
 
 /**
  * RevenueCat entitlement identifiers (configured in the RevenueCat dashboard).
@@ -212,6 +215,12 @@ export class SubscriptionService {
    */
   async initialize(): Promise<void> {
     try {
+      if (IS_EXPO_GO) {
+        logger.warn('RevenueCat native store unavailable in Expo Go; using config-only products');
+        this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
+        return;
+      }
+
       if (!REVENUECAT_API_KEY) {
         logger.warn('RevenueCat API key missing; falling back to config-only products');
         this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
@@ -401,7 +410,7 @@ export class SubscriptionService {
 
       const { data, error } = await supabase
         .from('users')
-        .select('subscription_status, subscription_tier, subscription_expires_at, subscription_platform')
+        .select('subscription_status, subscription_tier, trial_ends_at')
         .eq('id', user.id)
         .single();
 
@@ -422,9 +431,9 @@ export class SubscriptionService {
         isActive: data.subscription_status === 'active',
         productId: data.subscription_tier || null,
         tier,
-        expiresAt: data.subscription_expires_at ? new Date(data.subscription_expires_at) : null,
+        expiresAt: data.trial_ends_at ? new Date(data.trial_ends_at) : null,
         willRenew: data.subscription_status === 'active',
-        platform: data.subscription_platform || (Platform.OS as 'ios' | 'android'),
+        platform: Platform.OS as 'ios' | 'android',
       };
     } catch (error) {
       logger.error('Failed to refresh subscription status', error);

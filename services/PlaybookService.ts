@@ -39,6 +39,10 @@ import type {
 
 const logger = createLogger('PlaybookService');
 
+function assertChangedRow(data: { id?: string } | null, message: string): void {
+  if (!data) throw new Error(message);
+}
+
 // ---------------------------------------------------------------------------
 // 1. Get or auto-create a playbook for (user, interest)
 // ---------------------------------------------------------------------------
@@ -229,12 +233,15 @@ export async function updateResource(
 
 export async function deleteResource(resourceId: string): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('playbook_resources')
       .delete()
-      .eq('id', resourceId);
+      .eq('id', resourceId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    assertChangedRow(data, 'Playbook resource not found.');
   } catch (err) {
     logger.error('Failed to delete playbook resource', err);
     throw err;
@@ -391,11 +398,14 @@ export async function updateConcept(
 
 export async function deleteConcept(conceptId: string): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('playbook_concepts')
       .delete()
-      .eq('id', conceptId);
+      .eq('id', conceptId)
+      .select('id')
+      .maybeSingle();
     if (error) throw error;
+    assertChangedRow(data, 'Playbook concept not found.');
   } catch (err) {
     logger.error('Failed to delete concept', err);
     throw err;
@@ -551,11 +561,14 @@ export async function updatePatternStatus(
   status: 'active' | 'pinned' | 'dismissed',
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('playbook_patterns')
       .update({ status })
-      .eq('id', patternId);
+      .eq('id', patternId)
+      .select('id')
+      .maybeSingle();
     if (error) throw error;
+    assertChangedRow(data, 'Playbook pattern not found.');
   } catch (err) {
     logger.error('Failed to update pattern status', err);
     throw err;
@@ -600,11 +613,14 @@ export async function setQAPinned(
   pinned: boolean,
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('playbook_qa')
       .update({ pinned })
-      .eq('id', qaId);
+      .eq('id', qaId)
+      .select('id')
+      .maybeSingle();
     if (error) throw error;
+    assertChangedRow(data, 'Playbook QA not found.');
   } catch (err) {
     logger.error('Failed to pin/unpin qa', err);
     throw err;
@@ -613,11 +629,14 @@ export async function setQAPinned(
 
 export async function deleteQA(qaId: string): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('playbook_qa')
       .delete()
-      .eq('id', qaId);
+      .eq('id', qaId)
+      .select('id')
+      .maybeSingle();
     if (error) throw error;
+    assertChangedRow(data, 'Playbook QA not found.');
   } catch (err) {
     logger.error('Failed to delete qa', err);
     throw err;
@@ -769,12 +788,15 @@ export async function addInboxItem(
 
 export async function dismissInboxItem(itemId: string): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('playbook_inbox_items')
       .update({ status: 'dismissed' })
-      .eq('id', itemId);
+      .eq('id', itemId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    assertChangedRow(data, 'Playbook inbox item not found.');
   } catch (err) {
     logger.error('Failed to dismiss inbox item', err);
     throw err;
@@ -832,12 +854,15 @@ export async function createShare(
 
 export async function revokeShare(shareId: string): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('playbook_shares')
       .update({ invite_status: 'revoked' })
-      .eq('id', shareId);
+      .eq('id', shareId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    assertChangedRow(data, 'Playbook share not found.');
   } catch (err) {
     logger.error('Failed to revoke share', err);
     throw err;
@@ -1274,11 +1299,14 @@ export async function getRecentInsights(
 }
 
 export async function discardInsight(insightId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('playbook_insights')
     .delete()
-    .eq('id', insightId);
+    .eq('id', insightId)
+    .select('id')
+    .maybeSingle();
   if (error) throw error;
+  assertChangedRow(data, 'Playbook insight not found.');
 }
 
 export async function refineInsightToConcept(args: {
@@ -1310,11 +1338,14 @@ export async function refineInsightToConcept(args: {
     state: 'forming',
   });
 
-  const { error: updateError } = await supabase
+  const { data: updatedInsight, error: updateError } = await supabase
     .from('playbook_insights')
     .update({ refined_to_concept_id: concept.id })
-    .eq('id', insightId);
+    .eq('id', insightId)
+    .select('id')
+    .maybeSingle();
   if (updateError) throw updateError;
+  assertChangedRow(updatedInsight, 'Playbook insight not found.');
 
   return concept;
 }

@@ -67,6 +67,33 @@ function getBrowserHeaders(url: string, minimal = false): Record<string, string>
 }
 
 /**
+ * Reject URLs that point to private/internal network ranges (SSRF prevention).
+ */
+function isPrivateUrl(urlString: string): boolean {
+  let hostname: string;
+  try {
+    hostname = new URL(urlString).hostname;
+  } catch {
+    return true;
+  }
+
+  if (hostname === 'localhost' || hostname === '::1') return true;
+
+  const ipv4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [, a, b] = ipv4.map(Number);
+    if (a === 127) return true;
+    if (a === 10) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 0) return true;
+  }
+
+  return false;
+}
+
+/**
  * Fetch PDF with retry logic and different header strategies
  */
 async function fetchPdfWithRetry(url: string): Promise<{
@@ -139,9 +166,33 @@ Deno.serve(async (req) => {
   try {
     const { url } = await req.json();
 
-    if (!url) {
+    if (!url || typeof url !== 'string') {
       return new Response(
         JSON.stringify({ success: false, error: 'No URL provided' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid URL' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (parsedUrl.protocol !== 'https:') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Only https:// URLs are allowed' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (isPrivateUrl(url)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'URL is disallowed' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

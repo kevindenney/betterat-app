@@ -346,13 +346,16 @@ export class ClubDiscoveryService {
    */
   static async removeClubMembership(sailorId: string, membershipId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('sailor_clubs')
         .delete()
         .eq('id', membershipId)
-        .eq('sailor_id', sailorId);
+        .eq('sailor_id', sailorId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Club membership not found.');
 
       return true;
     } catch (error) {
@@ -521,13 +524,16 @@ export class ClubDiscoveryService {
     autoImport: boolean
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('sailor_clubs')
         .update({ auto_import_races: autoImport })
         .eq('id', membershipId)
-        .eq('sailor_id', sailorId);
+        .eq('sailor_id', sailorId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Club membership not found.');
 
       return true;
     } catch (error) {
@@ -705,13 +711,16 @@ export class ClubDiscoveryService {
    */
   static async leaveClub(userId: string, clubId: string): Promise<void> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('global_club_members')
         .delete()
         .eq('user_id', userId)
-        .eq('global_club_id', clubId);
+        .eq('global_club_id', clubId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Global club membership not found.');
     } catch (error) {
       logger.error('Error leaving club:', error);
       throw error;
@@ -1067,13 +1076,16 @@ export class ClubDiscoveryService {
    */
   static async leaveGlobalClub(userId: string, globalClubId: string): Promise<void> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('global_club_members')
         .delete()
         .eq('user_id', userId)
-        .eq('global_club_id', globalClubId);
+        .eq('global_club_id', globalClubId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Global club membership not found.');
     } catch (error) {
       logger.error('Error leaving global club:', error);
       throw error;

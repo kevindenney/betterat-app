@@ -19,10 +19,12 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.10.0?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') || '';
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2023-10-16',
   httpClient: Stripe.createFetchHttpClient(),
 });
+const stripeEnvironment = stripeSecretKey.startsWith('sk_live_') ? 'production' : 'test';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -139,8 +141,19 @@ serve(async (req: Request) => {
 
     const cadence = (blueprint.billing_cadence ?? 'monthly') as Cadence;
     const interval = cadenceToInterval(cadence);
-    const productName = blueprint.title || 'Untitled blueprint';
+    const blueprintTitle = blueprint.title || 'Untitled blueprint';
+    const productName = blueprintTitle.startsWith('Blueprint:')
+      ? blueprintTitle
+      : `Blueprint: ${blueprintTitle}`;
     const productDescription = (blueprint.description ?? '').slice(0, 500) || undefined;
+    const stripeMetadata = {
+      type: 'blueprint',
+      source: 'betterat_studio',
+      environment: stripeEnvironment,
+      blueprint_id: blueprint.id,
+      org_id: blueprint.org_id ?? '',
+      author_user_id: blueprint.author_user_id ?? '',
+    };
 
     // 1) Product — create or update
     let productId = blueprint.stripe_product_id as string | null;
@@ -148,21 +161,13 @@ serve(async (req: Request) => {
       await stripe.products.update(productId, {
         name: productName,
         description: productDescription,
-        metadata: {
-          blueprint_id: blueprint.id,
-          org_id: blueprint.org_id ?? '',
-          author_user_id: blueprint.author_user_id ?? '',
-        },
+        metadata: stripeMetadata,
       });
     } else {
       const product = await stripe.products.create({
         name: productName,
         description: productDescription,
-        metadata: {
-          blueprint_id: blueprint.id,
-          org_id: blueprint.org_id ?? '',
-          author_user_id: blueprint.author_user_id ?? '',
-        },
+        metadata: stripeMetadata,
       });
       productId = product.id;
     }
@@ -194,7 +199,8 @@ serve(async (req: Request) => {
         currency: 'usd',
         unit_amount: blueprint.price_per_seat_cents,
         metadata: {
-          blueprint_id: blueprint.id,
+          ...stripeMetadata,
+          billing_cadence: cadence,
         },
       };
       if (interval.recurring) {

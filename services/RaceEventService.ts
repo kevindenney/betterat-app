@@ -273,12 +273,15 @@ export class RaceEventService {
    */
   static async deleteRaceEvent(raceEventId: string): Promise<{ error: Error | null }> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_events')
         .delete()
-        .eq('id', raceEventId);
+        .eq('id', raceEventId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Race event not found.');
 
       return { error: null };
     } catch (error) {
@@ -601,12 +604,15 @@ export class RaceEventService {
         updates.actual_finish_time = actualFinishTime;
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_events')
         .update(updates)
-        .eq('id', raceEventId);
+        .eq('id', raceEventId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Race event not found.');
 
       return { error: null };
     } catch (error) {

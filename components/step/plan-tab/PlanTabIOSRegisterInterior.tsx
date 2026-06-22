@@ -154,9 +154,11 @@ export interface PlanTabIOSRegisterInteriorProps {
   rightInset?: number;
 }
 
-const WHAT_PLACEHOLDER = 'Race 4, holding right-side discipline in shifty light air…';
+const SAILING_WHAT_PLACEHOLDER = 'Race 4, holding right-side discipline in shifty light air…';
 const NURSING_WHAT_PLACEHOLDER = 'Prep for clinical shift, assessments, meds, and competency goals…';
 const GOLF_WHAT_PLACEHOLDER = 'Practice the shot, drill, or round plan you want to execute next…';
+const ENTREPRENEUR_WHAT_PLACEHOLDER = 'Test the customer, price, or sales move you want to learn from next…';
+const GENERIC_WHAT_PLACEHOLDER = 'Describe the next thing you want to practice or ship…';
 const HOW_PLACEHOLDER = 'List 2–4 sub-steps…';
 const WHY_PLACEHOLDER = 'What makes this the right next step?';
 
@@ -211,22 +213,45 @@ export function PlanTabIOSRegisterInterior({
   const subSteps = planData.how_sub_steps ?? [];
   const hasWhat = Boolean(what.trim());
   const interestKind = resolveDoTabInterestKind({
+    interestSlug: interestSlug || currentInterest?.slug,
+    interestName: interestName || currentInterest?.name,
+    interestId: interestId || currentInterest?.id,
+  });
+  const interestHaystack = [
     interestSlug,
     interestName,
     interestId,
-  });
+    currentInterest?.slug,
+    currentInterest?.name,
+    currentInterest?.id,
+    stepCategory,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  const isSailingPlan = interestKind === 'sailing';
   const isNursingPlan =
     interestKind === 'nursing' ||
     stepCategory === 'clinical' ||
     planData.target_event_kind === 'clinical_shift';
   const isGolfPlan =
-    interestName?.toLowerCase().includes('golf') ||
+    interestHaystack.includes('golf') ||
     stepCategory?.toLowerCase().includes('golf');
+  const isEntrepreneurPlan =
+    interestHaystack.includes('entrepreneur') ||
+    interestHaystack.includes('business') ||
+    interestHaystack.includes('seller') ||
+    interestHaystack.includes('livelihood') ||
+    interestHaystack.includes('craft');
   const whatPlaceholder = isNursingPlan
     ? NURSING_WHAT_PLACEHOLDER
     : isGolfPlan
       ? GOLF_WHAT_PLACEHOLDER
-      : WHAT_PLACEHOLDER;
+      : isEntrepreneurPlan
+        ? ENTREPRENEUR_WHAT_PLACEHOLDER
+        : isSailingPlan
+          ? SAILING_WHAT_PLACEHOLDER
+          : GENERIC_WHAT_PLACEHOLDER;
 
   const showTimedToggle =
     FEATURE_FLAGS.PRACTICE_DO_TAB_PER_STEP_TIMING &&

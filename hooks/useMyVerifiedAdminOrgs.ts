@@ -7,6 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 export interface VerifiedAdminOrg {
   id: string;
@@ -42,8 +43,7 @@ export function useMyVerifiedAdminOrgs() {
 
       const rows: VerifiedAdminOrg[] = [];
       for (const m of memberships || []) {
-        const active = m.status === 'active' || m.membership_status === 'active';
-        if (!active) continue;
+        if (!isResolvedOrgMembershipActive(m)) continue;
         const org = Array.isArray((m as any).organizations)
           ? (m as any).organizations[0]
           : (m as any).organizations;

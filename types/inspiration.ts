@@ -9,11 +9,25 @@
 /** How the user provided the inspiring content */
 export type InspirationContentType = 'url' | 'text' | 'description';
 
+/** Uploaded file metadata sent to the extractor. V1 supports PDF only. */
+export interface InspirationAttachment {
+  filename: string;
+  mime: string;
+  storage_path: string;
+  public_url?: string | null;
+}
+
 /** Input to the inspiration-extract edge function */
 export interface InspirationExtractInput {
   content_type: InspirationContentType;
   content: string;
   user_existing_interest_slugs: string[];
+  attachments?: InspirationAttachment[];
+  interest_id?: string | null;
+  interest_slug?: string | null;
+  interest_label?: string | null;
+  persona_vocabulary?: Record<string, unknown> | null;
+  recurring_anchors?: Record<string, unknown>[] | null;
 }
 
 /** AI-proposed interest details */
@@ -46,6 +60,29 @@ export interface InspirationBlueprint {
   steps: InspirationBlueprintStep[];
 }
 
+export interface InspirationCalendarSeason {
+  name: string;
+  start_date: string;
+  end_date: string;
+}
+
+export interface InspirationCalendarStep {
+  title: string;
+  type_label: string;
+  tense: 'past' | 'future';
+  date: string | null;
+  recurrence: string | null;
+  is_anchor: boolean;
+  season_name: string | null;
+  confidence: number;
+  source_span?: string | null;
+}
+
+export interface InspirationCalendar {
+  seasons: InspirationCalendarSeason[];
+  steps: InspirationCalendarStep[];
+}
+
 /** Overlap between generated content and user's existing interests */
 export interface InterestOverlap {
   slug: string;
@@ -56,6 +93,7 @@ export interface InterestOverlap {
 export interface InspirationExtraction {
   proposed_interest: ProposedInterest;
   blueprint: InspirationBlueprint;
+  calendar?: InspirationCalendar | null;
   source_summary: string;
   existing_interest_overlaps: InterestOverlap[];
   /** 0–1 confidence in the extraction quality */
@@ -78,6 +116,8 @@ export interface ActivateInspirationInput {
   selectedExistingInterestId?: string | null;
   /** User edits to individual steps (removals, title changes, etc.) */
   editedSteps?: InspirationBlueprintStep[];
+  /** User-confirmed dated/seasonal work extracted from the dump. */
+  calendarReview?: InspirationCalendar | null;
   /** Original content for saving to playbook inbox */
   sourceContent: string;
   sourceContentType: InspirationContentType;

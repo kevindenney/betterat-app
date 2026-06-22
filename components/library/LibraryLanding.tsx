@@ -95,7 +95,7 @@ const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
   people: 'People shaping your practice.',
-  groups: 'Fleets, clubs, and cohorts you belong to.',
+  groups: 'The crews and cohorts you belong to.',
   follow: 'Published Plans you can follow and pull into your own.',
   orgs: 'Clubs, schools, and programs you can join.',
   interests: 'Adjacent crafts you could add.',
@@ -107,18 +107,22 @@ interface Props {
   /** Renders above AllZone — the Librarian ask-strip + noticed card.
    * Optional so non-Phase-6 builds still work. */
   librarianSlot?: React.ReactNode;
+  /** Opens the existing Get Inspired wizard from the Library add menu. */
+  onOpenInspiration?: () => void;
 }
 
-export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
+export function LibraryLanding({ conceptsBody, librarianSlot, onOpenInspiration }: Props) {
   const { submit: submitStep } = useUniversalPlus();
   const insets = useSafeAreaInsets();
   const homeVenue = useUserHomeVenue();
-  const params = useLocalSearchParams<{ zone?: string }>();
+  const params = useLocalSearchParams<{ zone?: string; segment?: string }>();
   const rawZone = Array.isArray(params.zone) ? params.zone[0] : params.zone;
+  const rawSegment = Array.isArray(params.segment) ? params.segment[0] : params.segment;
   const zone: LibraryZone =
     rawZone && (VALID_ZONES as string[]).includes(rawZone)
       ? (rawZone as LibraryZone)
       : 'all';
+  const initialAllSegment = rawSegment === 'stacks' ? 'stacks' : 'yours';
 
   const { currentInterest } = useInterest();
   const { data: counts } = useLibraryCounts(currentInterest?.id);
@@ -144,7 +148,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
   }, []);
 
   const handleZoneChange = useCallback((next: LibraryZone) => {
-    router.setParams({ zone: next === 'all' ? '' : next });
+    router.setParams({ zone: next === 'all' ? '' : next, segment: '' });
   }, []);
 
   const isFullBleed = (FULL_BLEED_ZONES as string[]).includes(zone);
@@ -219,6 +223,7 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
             counts={counts}
             onJumpToZone={handleZoneChange}
             librarianSlot={librarianSlot}
+            initialSegment={initialAllSegment}
           />
         ) : zone === 'plans' ? (
           <PlansZone />
@@ -350,6 +355,10 @@ export function LibraryLanding({ conceptsBody, librarianSlot }: Props) {
           setAddChooserOpen(false);
           handleZoneChange('follow');
         }}
+        onGetInspired={onOpenInspiration ? () => {
+          setAddChooserOpen(false);
+          onOpenInspiration();
+        } : undefined}
       />
     </View>
   );
@@ -363,6 +372,7 @@ function LibraryAddChooser({
   onNewConcept,
   onCaptureResource,
   onFindPlan,
+  onGetInspired,
 }: {
   visible: boolean;
   accent: string;
@@ -371,6 +381,7 @@ function LibraryAddChooser({
   onNewConcept: () => void;
   onCaptureResource: () => void;
   onFindPlan: () => void;
+  onGetInspired?: () => void;
 }) {
   return (
     <Modal
@@ -395,6 +406,15 @@ function LibraryAddChooser({
             </Pressable>
           </View>
           <View style={styles.addChooserRows}>
+            {onGetInspired ? (
+              <AddChoiceRow
+                icon="sparkles"
+                title="Get inspired"
+                subtitle="Paste a dump, link, or PDF and build a plan."
+                accent={accent}
+                onPress={onGetInspired}
+              />
+            ) : null}
             <AddChoiceRow
               icon="add-circle"
               title="New step"

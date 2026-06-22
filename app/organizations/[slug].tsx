@@ -70,6 +70,14 @@ function orgTypeLabels(type: string | null | undefined): {
   contextLabel: string;
   pricingLabel: string;
 } {
+  if (!type) {
+    return {
+      eyebrow: 'BetterAt Organizations',
+      contextLabel: 'Organization',
+      pricingLabel: 'Pricing',
+    };
+  }
+
   switch (type) {
     case 'yacht_club':
       return {
@@ -101,7 +109,6 @@ function orgTypeLabels(type: string | null | undefined): {
         contextLabel: 'Business',
         pricingLabel: 'Pricing',
       };
-    case 'club':
     default:
       return {
         eyebrow: 'BetterAt Clubs',
@@ -163,12 +170,12 @@ type OrgBlueprint = {
 // access_level enum is public | org_members | paid (see
 // timeline_blueprints_access_level_check). For anon visitors RLS only
 // returns public rows, so 'Open to all' is the common case here.
-function accessLabel(level: string | null): string {
+function accessLabel(level: string | null, viewerIsMember = false): string {
   switch (level) {
     case 'public':
       return 'Open to all';
     case 'org_members':
-      return 'Members only';
+      return viewerIsMember ? 'Member access' : 'Members only';
     case 'paid':
       return 'Paid';
     default:
@@ -202,8 +209,15 @@ export default function OrganizationPlaceholderPage() {
   }, []);
   const handleOpenAtlas = React.useCallback(() => {
     if (!slug) return;
-    router.push({ pathname: '/(tabs)/atlas', params: { orgSlug: slug } } as any);
-  }, [slug]);
+    router.push({
+      pathname: '/(tabs)/atlas',
+      params: {
+        orgSlug: slug,
+        frame: org?.interest_slug === 'nursing' ? 'f4' : 'f1',
+        view: 'map',
+      },
+    } as any);
+  }, [org?.interest_slug, slug]);
   // Self-serve join, branched by the org's join_mode. open_join lands
   // the viewer as an active member; request_to_join files a pending
   // request an admin approves later. invite_only never reaches here.
@@ -443,7 +457,12 @@ export default function OrganizationPlaceholderPage() {
   }, [isDemo, slug]);
 
   const isPlaceholder = org?.status === 'placeholder' || org?.official === false;
-  const visibleAliases = Array.from(new Set(org?.aliases ?? []));
+  // Drop any alias that just restates the org's own name — a chip reading
+  // identical to the title is noise, not a "also known as" signal.
+  const orgNameKey = (org?.name ?? '').trim().toLowerCase();
+  const visibleAliases = Array.from(new Set(org?.aliases ?? [])).filter(
+    (alias) => alias.trim().toLowerCase() !== orgNameKey,
+  );
   const demoTierCards = YACHT_CLUB_DEMO_TIERS;
   const typeLabels = orgTypeLabels(org?.organization_type);
   // ClubSpot-imported clubs (source='dragon_worlds_clubspot') are the
@@ -453,8 +472,10 @@ export default function OrganizationPlaceholderPage() {
   const isActiveMember = !isDemo && membership?.status === 'active';
   const accent = isPlaceholder ? PLACEHOLDER_ACCENT : orgAccent(org?.organization_type);
   const primarySiteName = orgLocations[0]?.name ?? null;
-  // Member surfaces, all admin-gated server-side via RLS regardless of
-  // what we show. Billing is admin-only in the UI (manage subscription).
+  // Admin surfaces. Regular members should not see these as a "Your
+  // organization" hub because most rows lead to admin-gated management
+  // screens. Member-facing content stays on the profile below (blueprints,
+  // sites, cohorts from Library groups).
   const memberLinks = React.useMemo(
     () => [
       { key: 'programs', label: 'Programs', detail: 'Templates and blueprints this org publishes', route: '/organization/templates', icon: 'albums-outline' as const, adminOnly: false },
@@ -704,9 +725,9 @@ export default function OrganizationPlaceholderPage() {
               </View>
             ) : null}
 
-            {isActiveMember ? (
+            {isActiveMember && membership?.isAdmin ? (
               <View style={styles.card}>
-                <Text style={styles.sectionTitle}>Your organization</Text>
+                <Text style={styles.sectionTitle}>Manage organization</Text>
                 <View style={styles.surfaceList}>
                   {memberLinks
                     .filter((link) => !link.adminOnly || membership?.isAdmin)
@@ -760,7 +781,7 @@ export default function OrganizationPlaceholderPage() {
                         <Text style={styles.rdBpTitle}>{bp.title}</Text>
                         <View style={[styles.rdBpAccess, { backgroundColor: accent.soft }]}>
                           <Text style={[styles.rdBpAccessText, { color: accent.ink }]}>
-                            {accessLabel(bp.access_level)}
+                            {accessLabel(bp.access_level, isActiveMember)}
                           </Text>
                         </View>
                       </View>
@@ -976,9 +997,9 @@ export default function OrganizationPlaceholderPage() {
                 org's working surfaces; admin-only rows (billing) are
                 hidden for non-admins. Each tap switches the active-org
                 context to this org first (see goToMemberSurface). */}
-            {isActiveMember ? (
+            {isActiveMember && membership?.isAdmin ? (
               <View style={styles.card}>
-                <Text style={styles.sectionTitle}>Your organization</Text>
+                <Text style={styles.sectionTitle}>Manage organization</Text>
                 <View style={styles.surfaceList}>
                   {memberLinks
                     .filter((link) => !link.adminOnly || membership?.isAdmin)
@@ -1268,10 +1289,15 @@ export default function OrganizationPlaceholderPage() {
                       <Text style={styles.statLabel}>Organization type</Text>
                     </View>
                   )}
-                  <View style={styles.stat}>
-                    <Text style={styles.statValue}>{tierLabel(org.pricing_tier)}</Text>
-                    <Text style={styles.statLabel}>{typeLabels.pricingLabel}</Text>
-                  </View>
+                  {/* Pricing tier is meaningless on an unclaimed placeholder —
+                      there's nothing to bill until someone claims it. Show it
+                      only once the org is real. */}
+                  {!isPlaceholder ? (
+                    <View style={styles.stat}>
+                      <Text style={styles.statValue}>{tierLabel(org.pricing_tier)}</Text>
+                      <Text style={styles.statLabel}>{typeLabels.pricingLabel}</Text>
+                    </View>
+                  ) : null}
                 </View>
 
                 {isClubspotImport && visibleAliases.length > 0 ? (

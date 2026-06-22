@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brand-blue decision — A vs B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --warm-bg: #FAF8F5;
+    --ios-bg: #F2F2F7;
+    --brand-dark: #0B1A33;
+    --ink: #1A1A1A;
+    --slate: #64748B;
+    --mute: #94A3B8;
+    --card: #FFFFFF;
+    --hair: #E5E7EB;
+    /* the two contenders */
+    --blue-a: #007AFF; /* canonical iOS / cutover-plan accentUserAction */
+    --blue-b: #2563EB; /* current welcome ACCENT, uncataloged */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Manrope', -apple-system, system-ui, sans-serif;
+    background: #E9EBEF;
+    color: var(--ink);
+    padding: 32px 20px 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page-head { max-width: 920px; margin: 0 auto 28px; text-align: center; }
+  .page-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .page-head p { font-size: 14.5px; color: var(--slate); margin-top: 8px; line-height: 1.5; }
+  .page-head code { background: #fff; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--hair); font-size: 13px; }
+
+  .cols { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; max-width: 1000px; margin: 0 auto; }
+  .col { width: 390px; }
+  .col-label { text-align: center; margin-bottom: 14px; }
+  .col-label .tag { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
+  .tag-a { background: rgba(0,122,255,0.12); color: var(--blue-a); }
+  .tag-b { background: rgba(37,99,235,0.12); color: var(--blue-b); }
+  .col-label h2 { font-size: 17px; font-weight: 700; margin-top: 8px; }
+  .col-label .sub { font-size: 12.5px; color: var(--slate); margin-top: 4px; line-height: 1.45; padding: 0 8px; }
+
+  /* phone frame */
+  .phone {
+    width: 390px; border-radius: 38px; background: #000; padding: 10px;
+    box-shadow: 0 24px 60px rgba(11,26,51,0.22); margin-bottom: 22px;
+  }
+  .screen { border-radius: 30px; overflow: hidden; height: 720px; position: relative; }
+  .warm { background: var(--warm-bg); }
+  .statusbar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; font-size: 14px; font-weight: 700; color: var(--ink); }
+  .statusbar .dots { font-size: 11px; color: var(--ink); letter-spacing: 2px; }
+
+  .hero { padding: 8px 28px 22px; display: flex; flex-direction: column; height: calc(100% - 44px); }
+  .skip { align-self: flex-end; font-size: 15px; font-weight: 600; color: var(--slate); padding: 6px 0; }
+  .spacer-top { flex-grow: 0.6; }
+  .spacer-bottom { flex-grow: 1; }
+  .herostack { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .brand-ring {
+    width: 156px; height: 156px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+  }
+  .brand-mark {
+    width: 96px; height: 96px; border-radius: 24px; background: var(--brand-dark);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 46px; font-weight: 800; letter-spacing: -2px;
+    box-shadow: 0 10px 22px rgba(11,26,51,0.30);
+  }
+  .wordmark { font-size: 22px; font-weight: 700; color: var(--brand-dark); letter-spacing: -0.3px; margin-bottom: 22px; }
+  .title { font-size: 34px; line-height: 40px; font-weight: 700; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 14px; }
+  .subtitle { font-size: 16px; line-height: 23px; color: var(--slate); padding: 0 6px; }
+
+  .cta { display: flex; flex-direction: column; gap: 12px; }
+  .primary-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 17px 24px; border-radius: 14px; color: #fff; font-size: 17px; font-weight: 700; letter-spacing: 0.2px;
+  }
+  .reassure { font-size: 13px; color: var(--mute); text-align: center; }
+  .authrow { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; color: var(--slate); }
+  .authrow b { font-weight: 600; }
+  .dot { color: var(--mute); }
+
+  /* feature-surface sampler */
+  .sampler-label { text-align: center; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--mute); margin: 6px 0 12px; }
+  .feature-card {
+    background: var(--ios-bg); border-radius: 22px; padding: 16px;
+    font-family: -apple-system, system-ui, sans-serif;
+  }
+  .fc-inner { background: #fff; border-radius: 16px; border: 1px solid var(--hair); padding: 16px; }
+  .fc-title { font-size: 17px; font-weight: 600; color: #111827; }
+  .fc-meta { font-size: 13px; color: #6B7280; margin: 4px 0 14px; }
+  .pill-btn { display: inline-flex; align-items: center; gap: 6px; color: #fff; font-size: 15px; font-weight: 600; padding: 9px 18px; border-radius: 12px; }
+  .fc-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .check { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 800; }
+  .fc-link { font-size: 15px; font-weight: 600; }
+  .seg { display: flex; background: #E9E9EB; border-radius: 10px; padding: 2px; margin-top: 14px; }
+  .seg span { flex: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 7px 0; border-radius: 8px; color: #3C3C43; }
+  .seg .on { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .seg .on.a { color: var(--blue-a); }
+  .seg .on.b { color: var(--blue-b); }
+
+  .note { max-width: 920px; margin: 30px auto 0; background: #fff; border: 1px solid var(--hair); border-radius: 14px; padding: 18px 22px; }
+  .note h3 { font-size: 14px; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; color: var(--slate); margin-bottom: 8px; }
+  .note p { font-size: 14px; line-height: 1.6; color: #374151; }
+  .note p + p { margin-top: 8px; }
+  .note b { color: var(--ink); }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>Brand-blue decision — same screen, two accents</h1>
+    <p>
+      Both keep the warm front-door (cream <code>#FAF8F5</code> background + Manrope type). The only variable is the <b>accent</b>.<br />
+      <b>A</b> = <code>#007AFF</code> (canonical / cutover-plan <code>accentUserAction</code>) &nbsp;·&nbsp; <b>B</b> = <code>#2563EB</code> (current welcome <code>ACCENT</code>).
+    </p>
+  </div>
+
+  <div class="cols">
+    <!-- OPTION A -->
+    <div class="col">
+      <div class="col-label">
+        <span class="tag tag-a">Option A · full unification</span>
+        <h2>Accent → #007AFF</h2>
+        <p class="sub">Warmth carried by the cream bg + Manrope; one blue across the whole app. Matches the marketing landings and the register-cutover doctrine.</p>
+      </div>
+
+      <div class="phone">
+        <div class="screen warm">
+          <div class="statusbar"><span>7:15</span><span class="dots">●●●  ▆ ▼ ▮</span></div>
+          <div class="hero">
+            <div class="skip">Skip intro</div>
+            <div class="spacer-top"></div>
+            <div class="herostack">
+              <div class="brand-ring" style="background:rgba(0,122,255,0.06); border:1px solid rgba(0,122,255,0.10);">
+                <div class="brand-mark">b</div>
+              </div>
+              <div class="wordmark">BetterAt</div>
+              <div class="title">Get better at the things you care about</div>
+              <div class="subtitle">A daily practice for the stuff you actually want to improve at.</div>
+            </div>
+            <div class="spacer-bottom"></div>
+            <div class="cta">
+              <div class="primary-btn" style="background:var(--blue-a); box-shadow:0 8px 16px rgba(0,122,255,0.32);">Get started →</div>
+              <div class="reassure">No account needed to start</div>
+              <div class="authrow">
+                <span>Have an account? <b style="color:var(--blue-a)">Log in</b></span>
+                <span class="dot">·</span>
+                <span><b style="color:var(--blue-a)">Create an account</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sampler-label">…and carried onto a feature surface</div>
+      <div class="feature-card">
+        <div class="fc-inner">
+          <div class="fc-title">Team Sail Racing Blueprint</div>
+          <div class="fc-meta">teamsailracing2 · 2 subscribers</div>
+          <span class="pill-btn" style="background:var(--blue-a)">Subscribe</span>
+          <div class="fc-row">
+            <span class="check" style="background:var(--blue-a)">✓</span>
+            <span class="fc-link" style="color:var(--blue-a)">Add to my practice</span>
+          </div>
+          <div class="seg"><span class="on a">Link</span><span>Upload</span><span>Paste</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPTION B -->
+    <div class="col">
+      <div class="col-label">
+        <span class="tag tag-b">Option B · declared front-door register</span>
+        <h2>Accent → #2563EB (formalized)</h2>
+        <p class="sub">Keep the brighter front-door blue, but as a <i>named</i> token scoped to auth/onboarding so it stops leaking into feature surfaces.</p>
+      </div>
+
+      <div class="phone">
+        <div class="screen warm">
+          <div class="statusbar"><span>7:15</span><span class="dots">●●●  ▆ ▼ ▮</span></div>
+          <div class="hero">
+            <div class="skip">Skip intro</div>
+            <div class="spacer-top"></div>
+            <div class="herostack">
+              <div class="brand-ring" style="background:rgba(37,99,235,0.06); border:1px solid rgba(37,99,235,0.10);">
+                <div class="brand-mark">b</div>
+              </div>
+              <div class="wordmark">BetterAt</div>
+              <div class="title">Get better at the things you care about</div>
+              <div class="subtitle">A daily practice for the stuff you actually want to improve at.</div>
+            </div>
+            <div class="spacer-bottom"></div>
+            <div class="cta">
+              <div class="primary-btn" style="background:var(--blue-b); box-shadow:0 8px 16px rgba(37,99,235,0.32);">Get started →</div>
+              <div class="reassure">No account needed to start</div>
+              <div class="authrow">
+                <span>Have an account? <b style="color:var(--blue-b)">Log in</b></span>
+                <span class="dot">·</span>
+                <span><b style="color:var(--blue-b)">Create an account</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sampler-label">…front-door blue spilling onto a feature surface (the leak)</div>
+      <div class="feature-card">
+        <div class="fc-inner">
+          <div class="fc-title">Team Sail Racing Blueprint</div>
+          <div class="fc-meta">teamsailracing2 · 2 subscribers</div>
+          <span class="pill-btn" style="background:var(--blue-b)">Subscribe</span>
+          <div class="fc-row">
+            <span class="check" style="background:var(--blue-b)">✓</span>
+            <span class="fc-link" style="color:var(--blue-b)">Add to my practice</span>
+          </div>
+          <div class="seg"><span class="on b">Link</span><span>Upload</span><span>Paste</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <h3>How to read this</h3>
+    <p><b>The hero rows look nearly identical</b> — at front-door scale the two blues are close, and the cream bg + Manrope do most of the "warm" work. That's the case <i>for</i> A: you lose almost nothing visually by unifying, and you gain one source of truth.</p>
+    <p><b>The feature-surface samplers are where it bites.</b> A feature card sits on the canonical iOS gray (<code>#F2F2F7</code>) in SF, next to other <code>#007AFF</code> controls. Today <code>#2563EB</code> buttons land here too (193 files), so two blues collide on the same screen. Option A removes the collision; Option B only fixes it <i>if</i> the brighter blue is strictly fenced to auth/onboarding.</p>
+    <p><b>Recommendation:</b> Option A — standardize on <code>#007AFF</code>, let the front-door's warmth come from the cream background + Manrope. Lower risk, matches the cutover doctrine and the marketing brand.</p>
+  </div>
+</body>
+</html>

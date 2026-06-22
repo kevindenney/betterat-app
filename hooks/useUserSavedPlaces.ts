@@ -74,8 +74,14 @@ export function useUserSavedPlaces() {
 
   const removeMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('user_saved_places').delete().eq('id', id);
+      const { data, error } = await supabase
+        .from('user_saved_places')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Saved place not found.');
     },
     onSuccess: invalidate,
   });

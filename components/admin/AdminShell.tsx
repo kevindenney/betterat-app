@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { getDashboardRoute } from '@/lib/utils/userTypeRouting';
 import { isOrgAdminRole } from '@/lib/organizations/roleLabels';
@@ -54,7 +54,8 @@ export interface AdminShellProps {
 export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellProps) {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
-  const { user, userProfile, signOut } = useAuth();
+  const pathname = usePathname();
+  const { user, userProfile, signOut, ready } = useAuth();
   const menu = useProfileMenuData();
   const people = useAdminPeople(orgId as string);
   const sites = useAdminOrgSites(orgId as string);
@@ -73,11 +74,18 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
   );
 
   React.useEffect(() => {
-    if (!user || menu.loading || isOrgAdmin) return;
+    if (!ready || menu.loading || isOrgAdmin) return;
+    if (!user) {
+      router.replace({
+        pathname: '/(auth)/login',
+        params: { returnTo: pathname || `/admin/${orgId}` },
+      } as any);
+      return;
+    }
     router.replace(getDashboardRoute(userProfile?.user_type ?? null));
-  }, [user, menu.loading, isOrgAdmin, userProfile?.user_type, router]);
+  }, [ready, user, menu.loading, isOrgAdmin, userProfile?.user_type, router, pathname, orgId]);
 
-  if (!user || menu.loading || !isOrgAdmin) {
+  if (!ready || !user || menu.loading || !isOrgAdmin) {
     return <StudioLoading />;
   }
 

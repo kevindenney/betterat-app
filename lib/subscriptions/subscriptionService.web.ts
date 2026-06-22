@@ -305,7 +305,10 @@ export class SubscriptionService {
       if (!user) return false;
 
       const { data, error } = await supabase.functions.invoke('create-portal-session', {
-        body: { userId: user.id },
+        body: {
+          userId: user.id,
+          returnUrl: `${window.location.origin}/subscription`,
+        },
       });
 
       if (error) throw error;

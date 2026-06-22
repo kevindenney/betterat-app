@@ -421,6 +421,14 @@ const GOLF_VOCAB: InterestVocab = {
   capabilityHeader: 'ROUND MIX',
   crewHeader: 'FOURSOME',
   inputSubtitle: 'who shaped your game',
+  palette: [
+    { pattern: /putt|green|lag|distance\s+ladder|speed/i, canonicalLabel: 'Putting', color: '#2F8FB0' },
+    { pattern: /short\s+game|chip|pitch|wedge|greenside|100.?yards?|inside\s+100/i, canonicalLabel: 'Short game', color: '#E2792E' },
+    { pattern: /driver|tee|full\s+swing|tempo|range|basket|bucket|takeaway|ball\s+position/i, canonicalLabel: 'Full swing', color: '#5BA46F' },
+    { pattern: /club\s+selection|club-selection|approach|fat\s+side|miss(es)?|game\s+plan|scorecard|bogey/i, canonicalLabel: 'Course strategy', color: '#C99632' },
+    { pattern: /round|front\s+nine|back\s+nine|18\s+holes?|9\s+holes?|play\s+18|played\s+9/i, canonicalLabel: 'Rounds', color: '#7E6FC8' },
+    { pattern: /lesson|coach|clinic|mechanics|posture|weight\s+transfer/i, canonicalLabel: 'Instruction', color: '#B86EAA' },
+  ],
   phasePatterns: [
     { pattern: /club\s+championship|club\s+champs/i, label: 'Club Champs' },
     { pattern: /championship|tourney|tournament/i, label: 'Tournament' },

@@ -153,15 +153,18 @@ class TeamRaceEntryServiceClass {
    * Delete a team entry (creator only)
    */
   async deleteTeamEntry(entryId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('team_race_entries')
       .delete()
-      .eq('id', entryId);
+      .eq('id', entryId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to delete team entry:', error);
       throw error;
     }
+    if (!data) throw new Error('Team race entry not found.');
 
     logger.info('Deleted team entry', { entryId });
   }
@@ -191,15 +194,18 @@ class TeamRaceEntryServiceClass {
    * Clear invite code (revoke invites)
    */
   async clearInviteCode(entryId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('team_race_entries')
       .update({ invite_code: null })
-      .eq('id', entryId);
+      .eq('id', entryId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to clear invite code:', error);
       throw error;
     }
+    if (!data) throw new Error('Team race entry not found.');
 
     logger.info('Cleared invite code', { entryId });
   }
@@ -281,16 +287,19 @@ class TeamRaceEntryServiceClass {
       throw new Error('Not authenticated');
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('team_race_entry_members')
       .delete()
       .eq('team_entry_id', entryId)
-      .eq('user_id', user.user.id);
+      .eq('user_id', user.user.id)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to leave team:', error);
       throw error;
     }
+    if (!data) throw new Error('Team race member not found.');
 
     logger.info('Left team', { entryId });
   }
@@ -302,34 +311,40 @@ class TeamRaceEntryServiceClass {
     memberId: string,
     updates: { displayName?: string; sailNumber?: string; role?: 'skipper' | 'crew' }
   ): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('team_race_entry_members')
       .update({
         display_name: updates.displayName,
         sail_number: updates.sailNumber,
         role: updates.role,
       })
-      .eq('id', memberId);
+      .eq('id', memberId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update member:', error);
       throw error;
     }
+    if (!data) throw new Error('Team race member not found.');
   }
 
   /**
    * Remove a member (team creator only)
    */
   async removeMember(memberId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('team_race_entry_members')
       .delete()
-      .eq('id', memberId);
+      .eq('id', memberId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to remove member:', error);
       throw error;
     }
+    if (!data) throw new Error('Team race member not found.');
 
     logger.info('Removed member', { memberId });
   }
@@ -390,15 +405,18 @@ class TeamRaceEntryServiceClass {
     }
 
     // Save updated state
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('team_race_checklists')
       .update({ checklist_state: currentState })
-      .eq('team_entry_id', entryId);
+      .eq('team_entry_id', entryId)
+      .select('id')
+      .maybeSingle();
 
     if (updateError) {
       logger.error('Failed to update checklist state:', updateError);
       throw updateError;
     }
+    if (!updated) throw new Error('Team race checklist not found.');
 
     logger.info('Updated checklist item', { entryId, itemId });
   }
@@ -407,15 +425,18 @@ class TeamRaceEntryServiceClass {
    * Reset all checklist items
    */
   async resetChecklist(entryId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('team_race_checklists')
       .update({ checklist_state: {} })
-      .eq('team_entry_id', entryId);
+      .eq('team_entry_id', entryId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to reset checklist:', error);
       throw error;
     }
+    if (!data) throw new Error('Team race checklist not found.');
 
     logger.info('Reset checklist', { entryId });
   }

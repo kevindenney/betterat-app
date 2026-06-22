@@ -21,6 +21,8 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/services/supabase';
 import {
+  isRequestJoinActive,
+  isRequestJoinPending,
   organizationDiscoveryService,
   type OrganizationJoinMode,
 } from '@/services/OrganizationDiscoveryService';
@@ -119,9 +121,9 @@ export default function OrgDiscoveryScreen() {
         mode: org.join_mode,
       });
 
-      if (result.status === 'active' || result.status === 'existing') {
+      if (isRequestJoinActive(result)) {
         setJoinStates((prev) => ({ ...prev, [org.id]: 'joined' }));
-      } else if (result.status === 'pending') {
+      } else if (isRequestJoinPending(result)) {
         setJoinStates((prev) => ({ ...prev, [org.id]: 'pending' }));
       } else {
         setJoinStates((prev) => ({ ...prev, [org.id]: 'blocked' }));

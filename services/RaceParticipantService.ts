@@ -144,15 +144,18 @@ class RaceParticipantService {
    */
   async withdrawFromRace(participantId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_participants')
         .update({ status: 'withdrawn' })
-        .eq('id', participantId);
+        .eq('id', participantId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Error withdrawing from race:', error);
         throw error;
       }
+      if (!data) throw new Error('Race participant not found.');
 
       return true;
     } catch (error) {

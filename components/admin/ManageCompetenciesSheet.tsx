@@ -110,21 +110,23 @@ export function ManageCompetenciesSheet({
         .single();
       if (error) throw error;
       // Audit · best-effort, don't block on it
-      await supabase.rpc('audit_log_event', {
-        p_org_id: orgId,
-        p_verb: 'config_change',
-        p_verb_label: 'Added competency',
-        p_description: `Added competency ${draftFull.trim()} (${draftCategory}) to the framework.`,
-        p_target_type: 'competency',
-        p_target_id: inserted?.id ?? null,
-        p_target_label: draftShort.trim(),
-        p_payload: {
-          action: 'org_competency.add',
-          short_label: draftShort.trim(),
-          full_label: draftFull.trim(),
-          category: draftCategory,
-        },
-      });
+      await supabase
+        .rpc('audit_log_event', {
+          p_org_id: orgId,
+          p_verb: 'config_change',
+          p_verb_label: 'Added competency',
+          p_description: `Added competency ${draftFull.trim()} (${draftCategory}) to the framework.`,
+          p_target_type: 'competency',
+          p_target_id: inserted?.id ?? null,
+          p_target_label: draftShort.trim(),
+          p_payload: {
+            action: 'org_competency.add',
+            short_label: draftShort.trim(),
+            full_label: draftFull.trim(),
+            category: draftCategory,
+          },
+        })
+        .then(undefined, () => undefined);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['manage-competencies', orgId] });
@@ -156,8 +158,15 @@ export function ManageCompetenciesSheet({
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('org_competencies').delete().eq('id', id);
+      const { data, error } = await supabase
+        .from('org_competencies')
+        .delete()
+        .eq('id', id)
+        .eq('org_id', orgId)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Competency not found or no longer belongs to this organization.');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['manage-competencies', orgId] });

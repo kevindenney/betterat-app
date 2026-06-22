@@ -1,0 +1,17 @@
+module.exports = {
+  AntDesign: 'AntDesign',
+  Entypo: 'Entypo',
+  EvilIcons: 'EvilIcons',
+  Feather: 'Feather',
+  FontAwesome: 'FontAwesome',
+  FontAwesome5: 'FontAwesome5',
+  FontAwesome6: 'FontAwesome6',
+  Fontisto: 'Fontisto',
+  Foundation: 'Foundation',
+  Ionicons: 'Ionicons',
+  MaterialCommunityIcons: 'MaterialCommunityIcons',
+  MaterialIcons: 'MaterialIcons',
+  Octicons: 'Octicons',
+  SimpleLineIcons: 'SimpleLineIcons',
+  Zocial: 'Zocial',
+};

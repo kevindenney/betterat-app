@@ -1,11 +1,11 @@
 /**
  * InspirationCaptureStep — Step 1 of the wizard.
  *
- * User provides inspiring content via URL, pasted text, or a description.
- * Calls the AI extraction edge function and passes results to the next step.
+ * One dump-in box for pasted text, URLs, and PDF attachments. The extractor
+ * decides what is useful; this screen only normalizes source metadata.
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { IOS_COLORS, IOS_SPACING, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { extractInspiration } from '@/services/InspirationService';
+import { documentStorageService } from '@/services/storage/DocumentStorageService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { isAbortError } from '@/lib/utils/fetchWithTimeout';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -25,24 +27,19 @@ import {
   GetInspiredRunningScreen,
   IOSRegisterErrorState,
 } from '@/components/ios-register';
+import { resolveInterestVocab } from '@/components/ios-register/timeline-zoom/interestVocab';
+import { getAnchorsForRange } from '@/components/ios-register/timeline-zoom/interestAnchors';
 import type {
+  InspirationAttachment,
   InspirationExtraction,
   InspirationContentType,
 } from '@/types/inspiration';
 
-// Classification of non-abort extraction failures into the three canonical
-// IOSRegisterErrorState variants. Keep the matchers loose because the
-// edge function surfaces user-shaped messages (not error codes), and
-// downstream services throw plain Error objects.
 type GetInspiredErrorKind = 'network' | 'input' | 'system';
 
 function classifyGetInspiredError(error: unknown): GetInspiredErrorKind {
   const message = String((error as { message?: unknown })?.message || error || '').toLowerCase();
-  if (
-    message.includes('network') ||
-    message.includes('fetch') ||
-    message.includes('timeout')
-  ) {
+  if (message.includes('network') || message.includes('fetch') || message.includes('timeout')) {
     return 'network';
   }
   if (
@@ -60,48 +57,8 @@ function classifyGetInspiredError(error: unknown): GetInspiredErrorKind {
 interface GetInspiredErrorViewState {
   kind: GetInspiredErrorKind;
   source: string;
-  sourceMode: CaptureMode;
 }
 
-type CaptureMode = 'url' | 'text' | 'description';
-type DescriptionPromptField = 'Why' | 'How' | 'When' | 'Where';
-
-const MODES: { key: CaptureMode; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
-  { key: 'url', label: 'Link', icon: 'link' },
-  { key: 'text', label: 'Paste text', icon: 'document-text' },
-  { key: 'description', label: 'Describe it', icon: 'chatbubble-ellipses' },
-];
-
-const HERO: Record<CaptureMode, { icon: React.ComponentProps<typeof Ionicons>['name']; title: string; subtitle: string }> = {
-  url: {
-    icon: 'sparkles',
-    title: 'Drop a link to something inspiring',
-    subtitle: 'An article, video, or social post about something you want to learn.',
-  },
-  text: {
-    icon: 'document-text',
-    title: 'Paste the content',
-    subtitle: 'Copy text from an article, newsletter, or post and paste it here.',
-  },
-  description: {
-    icon: 'chatbubble-ellipses',
-    title: 'Describe what you want to do',
-    subtitle: 'Tell us about the activity, competition, or skill you want to pursue.',
-  },
-};
-
-const URL_EXAMPLES = [
-  { label: 'Example article', value: 'https://sailingworld.com/leeward-mark-approaches' },
-  { label: 'Example YouTube', value: 'https://youtube.com/watch?v=heavy-air-starts' },
-  { label: 'Example Instagram', value: 'https://instagram.com/p/northsails-main-trim' },
-] as const;
-
-const DESCRIPTION_FIELDS: readonly DescriptionPromptField[] = ['Why', 'How', 'When', 'Where'] as const;
-
-// Canonical error-variant copy per GET_INSPIRED_COMMIT_3_ABORT_SEMANTICS.md.
-// Mirrors the three variants in app/error-state-ios.tsx; the only Get-
-// Inspired-specific bits are the variant-to-action wiring and the source-
-// reference card injected as children below.
 type ErrorVariantSpec = {
   glyph: React.ComponentProps<typeof Ionicons>['name'];
   headline: string;
@@ -110,7 +67,7 @@ type ErrorVariantSpec = {
   primaryIcon?: React.ComponentProps<typeof Ionicons>['name'];
   primaryAction: 'retry' | 'goBack';
   secondaryLabel: string;
-  secondaryAction: 'tryDifferent' | 'switchToText' | 'goBack';
+  secondaryAction: 'tryDifferent' | 'goBack';
 };
 
 const ERROR_VARIANTS: Record<GetInspiredErrorKind, ErrorVariantSpec> = {
@@ -122,19 +79,19 @@ const ERROR_VARIANTS: Record<GetInspiredErrorKind, ErrorVariantSpec> = {
     primaryLabel: 'Try again',
     primaryIcon: 'refresh',
     primaryAction: 'retry',
-    secondaryLabel: 'Use a different link',
+    secondaryLabel: 'Use a different source',
     secondaryAction: 'tryDifferent',
   },
   input: {
-    glyph: 'link-outline',
+    glyph: 'document-text-outline',
     headline: "This source doesn't have enough practice material.",
     supportingText:
-      "We need an article, a video, or a page with one of those inside it.",
-    primaryLabel: 'Try a different link',
-    primaryIcon: 'link',
+      'Paste text, drop a source URL, or attach a PDF with dates, milestones, or concrete work to unpack.',
+    primaryLabel: 'Try again',
+    primaryIcon: 'refresh',
     primaryAction: 'retry',
-    secondaryLabel: 'Paste the text instead',
-    secondaryAction: 'switchToText',
+    secondaryLabel: 'Clear source',
+    secondaryAction: 'tryDifferent',
   },
   system: {
     glyph: 'construct-outline',
@@ -149,39 +106,74 @@ const ERROR_VARIANTS: Record<GetInspiredErrorKind, ErrorVariantSpec> = {
   },
 };
 
+interface InspirationCaptureInterestContext {
+  id?: string | null;
+  slug?: string | null;
+  name?: string | null;
+}
+
 interface InspirationCaptureStepProps {
+  userId?: string | null;
   userInterestSlugs: string[];
+  currentInterest?: InspirationCaptureInterestContext | null;
   onComplete: (
     extraction: InspirationExtraction,
     content: string,
     contentType: InspirationContentType,
   ) => void;
-  /**
-   * Parent-child abort contract. When extraction is running, the capture
-   * step registers an abort handler; the wizard calls it on modal close
-   * so the network request is cancelled instead of completing silently
-   * and advancing past the closed UI. Passes null on unmount/cleanup.
-   */
   registerAbortHandler?: (handler: (() => void) | null) => void;
 }
 
+function detectContentType(value: string): InspirationContentType {
+  return /^https?:\/\/\S+$/i.test(value.trim()) ? 'url' : 'text';
+}
+
+function calendarAnchorWindow() {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear() - 1, 0, 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear() + 2, 11, 31));
+  return {
+    startISO: start.toISOString().slice(0, 10),
+    endISO: end.toISOString().slice(0, 10),
+    referenceISO: now.toISOString().slice(0, 10),
+  };
+}
+
 export function InspirationCaptureStep({
+  userId,
   userInterestSlugs,
+  currentInterest,
   onComplete,
   registerAbortHandler,
 }: InspirationCaptureStepProps) {
-  const [mode, setMode] = useState<CaptureMode>('url');
   const [inputValue, setInputValue] = useState('');
+  const [attachments, setAttachments] = useState<InspirationAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [errorState, setErrorState] = useState<GetInspiredErrorViewState | null>(null);
-
-  // Mutable handle to the active extraction's abort controller. Using a
-  // ref (not state) because aborting is a side-effect on the in-flight
-  // request, not a render-driving signal.
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Cleanup on unmount — abort any active extraction.
+  const detectedType = useMemo(() => detectContentType(inputValue), [inputValue]);
+  const hasSource = Boolean(inputValue.trim()) || attachments.length > 0;
+  const isDisabled = !hasSource || loading || uploading;
+
+  const personaPayload = useMemo(() => {
+    const vocab = resolveInterestVocab(currentInterest?.slug, currentInterest?.name);
+    const window = calendarAnchorWindow();
+    return {
+      vocab: {
+        id: vocab.id,
+        periodNoun: vocab.periodNoun,
+        anchorNoun: vocab.anchorNoun,
+        crewHeader: vocab.crewHeader,
+        capabilityHeader: vocab.capabilityHeader,
+        visionPrompt: vocab.visionPrompt,
+      },
+      anchors: getAnchorsForRange(vocab.id, window.startISO, window.endISO, window.referenceISO),
+    };
+  }, [currentInterest?.name, currentInterest?.slug]);
+
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
@@ -189,13 +181,59 @@ export function InspirationCaptureStep({
     };
   }, []);
 
-  const isDisabled = !inputValue.trim() || loading;
+  useEffect(() => {
+    if (!registerAbortHandler) return;
+    registerAbortHandler(() => {
+      abortControllerRef.current?.abort();
+    });
+    return () => {
+      registerAbortHandler(null);
+    };
+  }, [registerAbortHandler]);
+
+  const handleAttachPdf = useCallback(async () => {
+    if (!userId) {
+      showAlert('Sign in required', 'Please sign in before attaching a PDF.');
+      return;
+    }
+    setUploading(true);
+    try {
+      const picked = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+      if (picked.canceled || !picked.assets?.[0]) return;
+
+      const file = picked.assets[0];
+      const result = await documentStorageService.uploadDocument(userId, file);
+      if (!result.success || !result.document) {
+        throw new Error(result.error ?? 'Could not upload PDF.');
+      }
+
+      const stored = result.document as unknown as Record<string, unknown>;
+      setAttachments((prev) => [
+        ...prev,
+        {
+          filename: file.name,
+          mime: file.mimeType ?? 'application/pdf',
+          storage_path: String(stored.storage_path ?? stored.file_path ?? ''),
+          public_url: String(stored.public_url ?? stored.url ?? '') || null,
+        },
+      ]);
+    } catch (err) {
+      showAlert(
+        'Upload failed',
+        err instanceof Error ? err.message : 'Could not attach that PDF.',
+      );
+    } finally {
+      setUploading(false);
+    }
+  }, [userId]);
 
   const handleAnalyze = useCallback(async () => {
-    if (!inputValue.trim()) return;
+    if (!hasSource) return;
 
-    // If a previous extraction is still in flight (e.g. user retried fast),
-    // abort it before starting a new one.
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -203,8 +241,8 @@ export function InspirationCaptureStep({
     setErrorState(null);
     setLoading(true);
     const messages = [
-      'Reading content...',
-      'Extracting skills...',
+      'Reading your dump...',
+      'Finding dated anchors...',
       'Building your plan...',
     ];
     let msgIndex = 0;
@@ -215,29 +253,33 @@ export function InspirationCaptureStep({
       setLoadingMessage(messages[msgIndex]);
     }, 3000);
 
+    const content = inputValue.trim() || attachments.map((a) => a.filename).join(', ');
+    const contentType = inputValue.trim() ? detectedType : 'text';
+
     try {
       const extraction = await extractInspiration(
         {
-          content_type: mode === 'description' ? 'description' : mode,
-          content: inputValue.trim(),
+          content_type: contentType,
+          content,
           user_existing_interest_slugs: userInterestSlugs,
+          attachments,
+          interest_id: currentInterest?.id ?? null,
+          interest_slug: currentInterest?.slug ?? null,
+          interest_label: currentInterest?.name ?? null,
+          persona_vocabulary: personaPayload.vocab as unknown as Record<string, unknown>,
+          recurring_anchors: personaPayload.anchors as unknown as Record<string, unknown>[],
         },
         { signal: controller.signal },
       );
 
-      onComplete(extraction, inputValue.trim(), mode === 'description' ? 'description' : mode);
+      onComplete(extraction, content, contentType);
     } catch (err) {
-      // User-initiated abort: silent return to filled capture state.
-      // Preserve inputValue + mode so retry is a single tap away.
-      if (isAbortError(err) || controller.signal.aborted) {
-        return;
-      }
+      if (isAbortError(err) || controller.signal.aborted) return;
 
       if (FEATURE_FLAGS.GET_INSPIRED_IOS_REGISTER) {
         setErrorState({
           kind: classifyGetInspiredError(err),
-          source: inputValue.trim(),
-          sourceMode: mode,
+          source: content,
         });
       } else {
         showAlert(
@@ -249,30 +291,24 @@ export function InspirationCaptureStep({
       }
     } finally {
       clearInterval(interval);
-      // Only flip state if this is still the active controller. A newer
-      // request may have replaced us via the abortControllerRef.current?.abort()
-      // line above; in that case the newer request owns loading state.
       if (abortControllerRef.current === controller) {
         abortControllerRef.current = null;
         setLoading(false);
         setLoadingMessage('');
       }
     }
-  }, [inputValue, mode, userInterestSlugs, onComplete]);
-
-  // Register/unregister the abort handler with the wizard parent so modal
-  // close can cancel the running extraction. The handler aborts the active
-  // controller; the catch arm above treats that as user-cancel and returns
-  // silently.
-  useEffect(() => {
-    if (!registerAbortHandler) return;
-    registerAbortHandler(() => {
-      abortControllerRef.current?.abort();
-    });
-    return () => {
-      registerAbortHandler(null);
-    };
-  }, [registerAbortHandler]);
+  }, [
+    attachments,
+    currentInterest?.id,
+    currentInterest?.name,
+    currentInterest?.slug,
+    detectedType,
+    hasSource,
+    inputValue,
+    onComplete,
+    personaPayload,
+    userInterestSlugs,
+  ]);
 
   const handleErrorRetry = useCallback(() => {
     setErrorState(null);
@@ -282,29 +318,13 @@ export function InspirationCaptureStep({
   const handleErrorTryDifferent = useCallback(() => {
     setErrorState(null);
     setInputValue('');
-  }, []);
-
-  const handleErrorSwitchToText = useCallback(() => {
-    setErrorState(null);
-    setInputValue('');
-    setMode('text');
+    setAttachments([]);
   }, []);
 
   const handleErrorGoBack = useCallback(() => {
     setErrorState(null);
   }, []);
 
-  const insertDescriptionField = useCallback((field: DescriptionPromptField) => {
-    const template = `${field}: `;
-    setInputValue((prev) => {
-      if (!prev.trim()) return template;
-      if (prev.includes(template)) return prev;
-      return `${prev.trimEnd()}\n${template}`;
-    });
-  }, []);
-
-  // Error-state early return (highest priority). Flag-on only — flag-off
-  // errors still surface via showAlert in the catch arm above.
   if (errorState && FEATURE_FLAGS.GET_INSPIRED_IOS_REGISTER) {
     const variant = ERROR_VARIANTS[errorState.kind];
     return (
@@ -315,33 +335,21 @@ export function InspirationCaptureStep({
         primaryAction={{
           label: variant.primaryLabel,
           icon: variant.primaryIcon,
-          onPress:
-            variant.primaryAction === 'retry'
-              ? handleErrorRetry
-              : handleErrorGoBack,
+          onPress: variant.primaryAction === 'retry' ? handleErrorRetry : handleErrorGoBack,
         }}
         secondaryAction={{
           label: variant.secondaryLabel,
-          onPress:
-            variant.secondaryAction === 'switchToText'
-              ? handleErrorSwitchToText
-              : variant.secondaryAction === 'goBack'
-              ? handleErrorGoBack
-              : handleErrorTryDifferent,
+          onPress: variant.secondaryAction === 'goBack' ? handleErrorGoBack : handleErrorTryDifferent,
         }}
       >
         <View style={styles.errorRef}>
           <View style={styles.errorRefIco}>
-            <Ionicons
-              name={errorState.sourceMode === 'url' ? 'document-text-outline' : 'document-outline'}
-              size={16}
-              color={IOS_REGISTER.labelSecondary}
-            />
+            <Ionicons name="document-text-outline" size={16} color={IOS_REGISTER.labelSecondary} />
           </View>
           <View style={styles.errorRefMeta}>
             <Text style={styles.errorRefTop}>YOU SENT</Text>
             <Text style={styles.errorRefSource} numberOfLines={1}>
-              {errorState.source || '(empty)'}
+              {errorState.source || '(PDF attachment)'}
             </Text>
           </View>
         </View>
@@ -349,22 +357,17 @@ export function InspirationCaptureStep({
     );
   }
 
-  // Running-state early return. Flag-on only. Stop button now actually
-  // aborts the in-flight extraction (the catch arm above handles the
-  // resulting AbortError silently).
   if (loading && FEATURE_FLAGS.GET_INSPIRED_IOS_REGISTER) {
     return (
       <GetInspiredRunningScreen
         embedded
-        submittedUrl={inputValue.trim()}
+        submittedUrl={inputValue.trim() || attachments.map((a) => a.filename).join(', ')}
         onStop={() => {
           abortControllerRef.current?.abort();
         }}
       />
     );
   }
-
-  const hero = HERO[mode];
 
   return (
     <ScrollView
@@ -374,152 +377,93 @@ export function InspirationCaptureStep({
     >
       <View style={styles.heroCard}>
         <View style={styles.heroBadge}>
-          <Ionicons
-            name={hero.icon}
-            size={26}
-            color={IOS_COLORS.systemBlue}
-          />
+          <Ionicons name="sparkles" size={26} color={IOS_COLORS.systemBlue} />
         </View>
-        <Text style={styles.heroTitle}>{hero.title}</Text>
-        <Text style={styles.heroSubtitle}>{hero.subtitle}</Text>
+        <Text style={styles.heroTitle}>Drop in anything with a timeline</Text>
+        <Text style={styles.heroSubtitle}>
+          Paste a syllabus, notice of race, practice log, order list, URL, or PDF. BetterAt will look for dates, seasons, recurring anchors, and ordered work.
+        </Text>
       </View>
 
       <View style={styles.captureCard}>
-        <View style={styles.captureTop}>
-          <View style={styles.modeCard}>
-            <View style={styles.modeRow}>
-              {MODES.map((m) => (
-                <Pressable
-                  key={m.key}
-                  onPress={() => { setMode(m.key); setInputValue(''); }}
-                  style={[styles.modePill, mode === m.key && styles.modePillActive]}
-                >
-                  <Ionicons
-                    name={m.icon}
-                    size={14}
-                    color={mode === m.key ? IOS_COLORS.systemBlue : IOS_COLORS.secondaryLabel}
-                  />
-                  <Text
-                    style={[styles.modePillText, mode === m.key && styles.modePillTextActive]}
-                  >
-                    {m.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
+        <Text style={styles.label}>SOURCE</Text>
+        <Text style={styles.helperText}>
+          URLs are detected automatically. PDF is supported in this version; spreadsheets, slide decks, and Blackboard exports come later.
+        </Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          value={inputValue}
+          onChangeText={setInputValue}
+          placeholder="Paste text or a URL..."
+          placeholderTextColor={IOS_COLORS.tertiaryLabel}
+          multiline
+          textAlignVertical="top"
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!loading}
+        />
 
-          {mode === 'url' && (
-            <>
-              <Text style={styles.label}>LINK</Text>
-              <Text style={styles.helperText}>
-                Best for an article, video, or post with concrete material to learn from.
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={inputValue}
-                onChangeText={setInputValue}
-                placeholder="https://example.com/inspiring-article"
-                placeholderTextColor={IOS_COLORS.tertiaryLabel}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-                editable={!loading}
-              />
-              <Text style={styles.examplesLabel}>QUICK EXAMPLES</Text>
-              <Text style={styles.examplesHelperText}>
-                These just fill the field with sample links so you can test the flow or see what kind of source works best.
-              </Text>
-              <View style={styles.exampleRow}>
-                {URL_EXAMPLES.map((example) => (
-                  <Pressable
-                    key={example.label}
-                    onPress={() => setInputValue(example.value)}
-                    style={styles.exampleChip}
-                  >
-                    <Text style={styles.exampleChipText}>{example.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          )}
-
-          {mode === 'text' && (
-            <>
-              <Text style={styles.label}>PASTED CONTENT</Text>
-              <Text style={styles.helperText}>
-                Paste the exact excerpt you want BetterAt to unpack into a plan.
-              </Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={inputValue}
-                onChangeText={setInputValue}
-                placeholder="Paste the article, newsletter excerpt, or social post here..."
-                placeholderTextColor={IOS_COLORS.tertiaryLabel}
-                multiline
-                textAlignVertical="top"
-                editable={!loading}
-              />
-            </>
-          )}
-
-          {mode === 'description' && (
-            <>
-              <Text style={styles.label}>DESCRIBE IT</Text>
-              <Text style={styles.helperText}>
-                If you do not have a source yet, describe it using the same fields your steps already use.
-              </Text>
-              <View style={styles.exampleRow}>
-                {DESCRIPTION_FIELDS.map((field) => (
-                  <Pressable
-                    key={field}
-                    onPress={() => insertDescriptionField(field)}
-                    style={styles.exampleChip}
-                  >
-                    <Text style={styles.exampleChipText}>{field}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={inputValue}
-                onChangeText={setInputValue}
-                placeholder="Why: \nHow: \nWhen: \nWhere: "
-                placeholderTextColor={IOS_COLORS.tertiaryLabel}
-                multiline
-                textAlignVertical="top"
-                editable={!loading}
-              />
-            </>
-          )}
-        </View>
-
-        <View style={styles.captureBottom}>
-          <View style={styles.promiseCard}>
-            <Ionicons name="sparkles-outline" size={16} color={IOS_COLORS.systemBlue} />
-            <Text style={styles.promiseText}>
-              BetterAt will propose an interest, outline the first steps, and turn the source into a usable plan.
-            </Text>
-          </View>
-
+        <View style={styles.attachmentHeader}>
+          <Text style={styles.detectedText}>
+            {detectedType === 'url' ? 'Detected URL source' : 'Text dump source'}
+          </Text>
           <Pressable
-            onPress={handleAnalyze}
-            disabled={isDisabled}
-            style={[styles.analyzeButton, isDisabled && styles.analyzeButtonDisabled]}
+            onPress={handleAttachPdf}
+            disabled={uploading || loading}
+            style={[styles.attachButton, (uploading || loading) && styles.buttonDisabled]}
           >
-            {loading ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={styles.analyzeButtonText}>{loadingMessage}</Text>
-              </View>
+            {uploading ? (
+              <ActivityIndicator size="small" color={IOS_COLORS.systemBlue} />
             ) : (
-              <>
-                <Ionicons name="sparkles" size={18} color="#fff" />
-                <Text style={styles.analyzeButtonText}>Analyze &amp; Build Plan</Text>
-              </>
+              <Ionicons name="attach" size={16} color={IOS_COLORS.systemBlue} />
             )}
+            <Text style={styles.attachButtonText}>Attach PDF</Text>
           </Pressable>
         </View>
+
+        {attachments.length > 0 && (
+          <View style={styles.attachmentList}>
+            {attachments.map((attachment, index) => (
+              <View key={`${attachment.storage_path}-${index}`} style={styles.attachmentRow}>
+                <Ionicons name="document-text-outline" size={16} color={IOS_COLORS.systemBlue} />
+                <Text style={styles.attachmentName} numberOfLines={1}>
+                  {attachment.filename}
+                </Text>
+                <Pressable
+                  onPress={() => setAttachments((prev) => prev.filter((_, i) => i !== index))}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close-circle" size={18} color={IOS_COLORS.systemGray3} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.promiseCard}>
+          <Ionicons name="calendar-outline" size={16} color={IOS_COLORS.systemBlue} />
+          <Text style={styles.promiseText}>
+            You will review the proposed interest, blueprint, and calendar before anything is written.
+          </Text>
+        </View>
+
+        <Pressable
+          onPress={handleAnalyze}
+          disabled={isDisabled}
+          style={[styles.analyzeButton, isDisabled && styles.analyzeButtonDisabled]}
+        >
+          {loading ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator size="small" color="#fff" />
+              <Text style={styles.analyzeButtonText}>{loadingMessage}</Text>
+            </View>
+          ) : (
+            <>
+              <Ionicons name="sparkles" size={18} color="#fff" />
+              <Text style={styles.analyzeButtonText}>Analyze &amp; Build Plan</Text>
+            </>
+          )}
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -557,7 +501,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: IOS_COLORS.label,
     textAlign: 'center',
-    letterSpacing: -0.3,
   },
   heroSubtitle: {
     fontSize: 14,
@@ -565,56 +508,14 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: 'center',
     lineHeight: 19,
-    maxWidth: 420,
-  },
-  modeRow: {
-    flexDirection: 'row',
-    gap: IOS_SPACING.xs,
-  },
-  modeCard: {
-    marginBottom: IOS_SPACING.md,
-    backgroundColor: IOS_COLORS.systemGray6,
-    borderRadius: 16,
-    padding: 5,
-  },
-  modePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: IOS_COLORS.systemGray6,
-  },
-  modePillActive: {
-    backgroundColor: `${IOS_COLORS.systemBlue}15`,
-    borderWidth: 1,
-    borderColor: `${IOS_COLORS.systemBlue}40`,
-  },
-  modePillText: {
-    fontSize: 13,
-    color: IOS_COLORS.secondaryLabel,
-  },
-  modePillTextActive: {
-    color: IOS_COLORS.systemBlue,
-    fontWeight: '500',
+    maxWidth: 460,
   },
   captureCard: {
     backgroundColor: IOS_REGISTER.cardBg,
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: IOS_REGISTER.separator,
-    paddingHorizontal: IOS_SPACING.lg,
-    paddingTop: IOS_SPACING.lg,
-    paddingBottom: IOS_SPACING.md,
-  },
-  captureTop: {
-    gap: IOS_SPACING.xs,
-  },
-  captureBottom: {
-    marginTop: IOS_SPACING.md,
+    padding: IOS_SPACING.lg,
     gap: IOS_SPACING.sm,
   },
   label: {
@@ -622,29 +523,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: IOS_COLORS.secondaryLabel,
     letterSpacing: 0.5,
-    marginBottom: 6,
   },
   helperText: {
     fontSize: 13,
     lineHeight: 18,
     color: IOS_COLORS.secondaryLabel,
-    marginBottom: IOS_SPACING.sm,
-    paddingRight: IOS_SPACING.xs,
-  },
-  examplesLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: IOS_COLORS.tertiaryLabel,
-    letterSpacing: 0.5,
-    marginTop: IOS_SPACING.sm,
-    marginBottom: 4,
-  },
-  examplesHelperText: {
-    fontSize: 12.5,
-    lineHeight: 17,
-    color: IOS_COLORS.tertiaryLabel,
-    marginBottom: IOS_SPACING.sm,
-    paddingRight: IOS_SPACING.sm,
   },
   input: {
     backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
@@ -657,27 +540,55 @@ const styles = StyleSheet.create({
     borderColor: IOS_COLORS.systemGray5,
   },
   textArea: {
-    minHeight: 164,
+    minHeight: 190,
     paddingTop: 12,
   },
-  exampleRow: {
+  attachmentHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: IOS_SPACING.xs,
-    marginBottom: IOS_SPACING.sm,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: IOS_SPACING.sm,
   },
-  exampleChip: {
+  detectedText: {
+    flex: 1,
+    fontSize: 12.5,
+    color: IOS_COLORS.tertiaryLabel,
+  },
+  attachButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: `${IOS_COLORS.systemBlue}10`,
     borderWidth: 1,
-    borderColor: `${IOS_COLORS.systemBlue}1F`,
+    borderColor: `${IOS_COLORS.systemBlue}22`,
   },
-  exampleChipText: {
-    fontSize: 12.5,
+  attachButtonText: {
+    fontSize: 13,
     fontWeight: '600',
     color: IOS_COLORS.systemBlue,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  attachmentList: {
+    gap: 8,
+  },
+  attachmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: `${IOS_COLORS.systemBlue}08`,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  attachmentName: {
+    flex: 1,
+    fontSize: 13.5,
+    color: IOS_COLORS.label,
   },
   promiseCard: {
     flexDirection: 'row',
@@ -718,9 +629,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  // Reference card inside the error-state children slot. Mirrors the
-  // submitted-link card in app/error-state-ios.tsx so users see WHICH
-  // source failed, not just THAT something failed.
   errorRef: {
     marginTop: 24,
     paddingHorizontal: 14,
@@ -755,7 +663,6 @@ const styles = StyleSheet.create({
   },
   errorRefSource: {
     fontSize: 14,
-    letterSpacing: -0.1,
     color: IOS_REGISTER.label,
   },
 });

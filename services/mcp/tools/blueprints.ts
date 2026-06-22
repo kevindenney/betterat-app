@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { isFeatureAvailable } from '../../../lib/subscriptions/sailorTiers';
 import type { AuthContext } from '../server';
+import { isResolvedOrgMembershipActive } from '../../../hooks/orgMembershipStatus';
 
 function jsonResponse(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
@@ -124,13 +125,12 @@ export function registerBlueprintTools(
       ) {
         const { data: membership } = await supabase
           .from('organization_memberships')
-          .select('id')
+          .select('id,status,membership_status')
           .eq('user_id', auth.userId)
           .eq('organization_id', (blueprint as any).organization_id)
-          .in('membership_status', ['active'])
           .maybeSingle();
 
-        if (!membership) {
+        if (!membership || !isResolvedOrgMembershipActive(membership)) {
           return jsonResponse({ error: 'You must be a member of the organization to subscribe' });
         }
       }

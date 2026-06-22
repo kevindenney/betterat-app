@@ -112,7 +112,9 @@ export default function SchoolsStartPilotPage() {
               <Text style={s.h1Sub}>
                 When a student or faculty signs in with an email at this domain,
                 they'll be added to your Hopkins workspace automatically. You stay
-                in control of who counts as a seat.
+                in control of who counts as a seat. Today this page is a guided
+                pilot-intake preview: BetterAt reviews domain ownership manually
+                during onboarding.
               </Text>
 
               {/* Primary domain entry */}
@@ -212,13 +214,13 @@ export default function SchoolsStartPilotPage() {
                           verifyMethod === 'email' && s.verifyCardTitleOn,
                         ]}
                       >
-                        Email an IT admin
+                        Manual review
                       </Text>
                     </View>
                     <Text style={s.verifyCardBody}>
-                      We'll email{' '}
-                      <Text style={s.verifyCardBodyEm}>postmaster@{primaryDomain}</Text>{' '}
-                      to confirm — slower, no DNS needed.
+                      Use this when you cannot add DNS. BetterAt will verify{' '}
+                      <Text style={s.verifyCardBodyEm}>{primaryDomain}</Text> with
+                      your admin during pilot setup.
                     </Text>
                   </Pressable>
                 </View>
@@ -233,10 +235,10 @@ export default function SchoolsStartPilotPage() {
                   style={s.continueBtn}
                   onPress={() => router.push('/admin/678e149e-2abb-422c-ac61-b76756a2150e/overview')}
                 >
-                  <Text style={s.continueBtnText}>Verify & continue →</Text>
+                  <Text style={s.continueBtnText}>Continue to admin preview →</Text>
                 </Pressable>
                 <Pressable onPress={() => router.push('/admin/678e149e-2abb-422c-ac61-b76756a2150e/overview')}>
-                  <Text style={s.skipText}>Skip — verify after first invoice</Text>
+                  <Text style={s.skipText}>Skip — verify after kickoff</Text>
                 </Pressable>
               </View>
             </View>

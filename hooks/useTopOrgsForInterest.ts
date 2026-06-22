@@ -18,6 +18,10 @@ export interface TopOrgRow {
   slug: string;
   join_mode: string;
   organization_type?: string | null;
+  status?: string | null;
+  official?: boolean | null;
+  claim_status?: string | null;
+  source?: string | null;
 }
 
 export function useTopOrgsForInterest(interestSlug: string | undefined, limit = 3) {
@@ -30,13 +34,20 @@ export function useTopOrgsForInterest(interestSlug: string | undefined, limit = 
 
       let q = await supabase
         .from('organizations')
-        .select('id, name, slug, join_mode, organization_type')
+        .select('id, name, slug, join_mode, organization_type, status, official, claim_status, source')
         .eq('interest_slug', interestSlug)
         .eq('is_active', true)
         .order('name')
         .limit(limit);
 
-      if (q.error && isMissingSupabaseColumn(q.error, 'organizations.organization_type')) {
+      if (
+        q.error &&
+        (isMissingSupabaseColumn(q.error, 'organizations.organization_type') ||
+          isMissingSupabaseColumn(q.error, 'organizations.status') ||
+          isMissingSupabaseColumn(q.error, 'organizations.official') ||
+          isMissingSupabaseColumn(q.error, 'organizations.claim_status') ||
+          isMissingSupabaseColumn(q.error, 'organizations.source'))
+      ) {
         q = await supabase
           .from('organizations')
           .select('id, name, slug, join_mode')
@@ -51,6 +62,10 @@ export function useTopOrgsForInterest(interestSlug: string | undefined, limit = 
       return ((q.data ?? []) as TopOrgRow[]).map((o) => ({
         ...o,
         join_mode: o.join_mode || 'invite_only',
+        status: o.status ?? null,
+        official: typeof o.official === 'boolean' ? o.official : null,
+        claim_status: o.claim_status ?? null,
+        source: o.source ?? null,
       }));
     },
   });

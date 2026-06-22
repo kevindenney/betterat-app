@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arc view — B+ (carded + collapsible, step-shaped)</title>
+<style>
+  :root{
+    --bg:#EEEEF3; --card:#FFFFFF; --line:rgba(60,60,67,0.16);
+    --label:#1c1c1e; --sec:#3c3c4399; --ter:#8a8a8e;
+    --azure:#007AFF; --azureT:rgba(0,122,255,0.06); --azureL:rgba(0,122,255,0.14);
+    --now:#FF6B5A; --rose:#D9476B; --green:#1F8636; --greenT:rgba(52,199,89,0.16);
+    --cap-purple:#9D70C9; --cap-teal:#2BA7A0; --cap-amber:#E0922F;
+    --lilac:#7C6BB0; --lilacT:rgba(124,107,176,0.07); --lilacL:rgba(124,107,176,0.20);
+    --serif:Georgia,"Times New Roman",serif;
+    --done-bg:#F4F6F4; --done-line:rgba(31,134,54,0.20);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+    background:#D9DCE6; color:var(--label);
+    -webkit-font-smoothing:antialiased; padding:40px 28px 72px;
+  }
+  .lede{max-width:920px;margin:0 auto 30px;text-align:center}
+  .lede h1{font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:8px}
+  .lede p{font-size:13px;color:#4a4f5b;line-height:1.6}
+  .lede p b{color:#1c1c1e}
+  .wrap{display:flex; gap:46px; justify-content:center; align-items:flex-start; flex-wrap:wrap}
+  .col{width:402px}
+  .col h2{font-size:15px; font-weight:700; letter-spacing:-0.2px; margin-bottom:6px; text-align:center}
+  .col p.sub{font-size:12px; color:#5a5f6b; text-align:center; margin-bottom:14px; line-height:1.45; min-height:46px}
+  .phone{
+    width:402px; background:var(--bg); border-radius:38px; padding:14px 0 0;
+    box-shadow:0 24px 60px rgba(20,24,40,0.28); border:1px solid rgba(0,0,0,0.06);
+    overflow:hidden;
+  }
+  .status{display:flex; justify-content:space-between; align-items:center; padding:4px 26px 6px; font-size:13px; font-weight:600}
+  .screen{padding:8px 16px 26px}
+
+  /* ---- season header ---- */
+  .crumb{display:flex;align-items:center;gap:8px;padding:6px 2px 2px}
+  .crumb .dot{width:9px;height:9px;border-radius:9px;background:var(--azure)}
+  .crumb b{font-size:14px;font-weight:700}
+  .crumb .v{color:var(--ter);font-size:13px}
+  .seasonTtl{font-family:var(--serif);font-size:22px;font-weight:700;line-height:1.12;margin:9px 2px 3px}
+  .seasonSub{font-size:12px;color:var(--ter);margin:0 2px 14px;font-variant:tabular-nums}
+
+  /* ---- collapsible white module ---- */
+  .mod{background:var(--card);border:0.5px solid var(--line);border-radius:18px;box-shadow:0 1px 3px rgba(0,0,0,0.05);overflow:hidden}
+  .mod + .mod{margin-top:10px}
+  .modBar{display:flex;align-items:center;gap:10px;padding:13px 15px;cursor:pointer}
+  .modBar .ic{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex:0 0 auto}
+  .modBar .tx{flex:1;min-width:0}
+  .modBar .k{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--ter);margin-bottom:2px}
+  .modBar .hl{font-family:var(--serif);font-size:14px;line-height:1.22;color:#2a2d33;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .modBar .chev{color:#c2c4ca;font-size:13px;flex:0 0 auto;transition:transform .2s}
+  .mod.open .modBar .chev{transform:rotate(90deg)}
+  .modBody{padding:0 15px 15px;border-top:0.5px solid var(--line);margin-top:-1px;padding-top:13px}
+
+  /* vision */
+  .vision{font-family:var(--serif);font-style:italic;font-size:14px;color:#54585f;line-height:1.4}
+  .vision .add{color:var(--azure);font-style:normal;font-weight:600;font-family:-apple-system;font-size:13px}
+
+  /* the tall-rectangle "tiny step" capability mark */
+  .capmark{width:6px;height:14px;border-radius:2px;flex:0 0 auto}
+  .capmark.sm{width:5px;height:11px}
+
+  /* capability expanded */
+  .capBar{height:14px;border-radius:5px;overflow:hidden;display:flex;margin:2px 0 12px}
+  .capBar i{display:block;height:100%}
+  .headline{font-family:var(--serif);font-size:15px;line-height:1.25;margin-bottom:9px}
+  .capChips{display:flex;flex-wrap:wrap;gap:7px}
+  .capChip{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#54585f;background:#F3F3F7;border:0.5px solid var(--line);padding:5px 10px;border-radius:999px}
+  .capChip .n{color:var(--ter);font-variant:tabular-nums}
+  .hint{font-size:11px;color:#a6a8ae;margin-top:9px}
+
+  /* reflections + crew expanded */
+  .spark{display:flex;align-items:flex-end;gap:4px;height:30px;margin:2px 0 6px}
+  .spark i{flex:1;background:var(--lilacL);border-radius:2px}
+  .reflectRow{display:flex;align-items:center;gap:8px;font-size:12px;color:#54585f}
+  .reflectRow .star{color:var(--lilac)}
+  .reflectRow .cta{margin-left:auto;color:var(--azure);font-weight:600}
+  .person{display:flex;align-items:center;gap:9px;margin-top:12px}
+  .ava{width:28px;height:28px;border-radius:999px;background:linear-gradient(135deg,#C9A0E0,#7C6BB0);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex:0 0 auto}
+  .person .sub2{font-size:11.5px;color:var(--ter)}
+  .peopleChips{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+  .lib .modBar .k{color:var(--lilac)}
+  .lib{background:var(--lilacT);border-color:var(--lilacL)}
+
+  /* ---- THE WORK ---- */
+  .workEyebrow{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 12px}
+  .workEyebrow .t{font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--ter)}
+  .workEyebrow .c{font-size:11px;color:var(--ter)}
+
+  /* every step = a card (tall rectangle). done/planned/next share the shape */
+  .card{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:13px 14px;position:relative;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+  .card + .card{margin-top:9px}
+  .eb{font-size:10px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:var(--ter);margin-bottom:5px}
+  .pill{display:inline-flex;align-items:center;font-size:9px;font-weight:800;letter-spacing:0.5px;padding:3px 8px;border-radius:999px}
+  .pill.done{color:var(--green);background:var(--greenT)}
+  .pill.next{color:#0046A8;background:var(--azureL)}
+  .pill.planned{color:var(--sec);background:#F0F0F4}
+  .pill.race{color:#fff;background:var(--rose)}
+  .row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .ord2{font-size:11px;color:#b6b8be;font-variant:tabular-nums}
+  .title{font-family:var(--serif);font-style:italic;color:var(--label);line-height:1.18;font-size:15px}
+  .loc{font-size:11px;color:var(--ter);margin-top:7px;font-variant:tabular-nums}
+  .capsRow{display:flex;gap:5px;margin-top:10px;align-items:center}
+  .capLbl{font-size:10.5px;color:#9a9ca2;margin-left:3px}
+
+  /* DONE = a real card, recessed + green-keyed, but clearly the same family */
+  .card.done{background:var(--done-bg);border-color:var(--done-line)}
+  .card.done .title{font-style:italic;color:#565b56;font-size:14px}
+  .card.done .check{position:absolute;top:13px;right:13px;width:18px;height:18px;border-radius:999px;background:var(--greenT);display:flex;align-items:center;justify-content:center}
+  .card.done .check svg{width:10px;height:10px}
+
+  /* collapse the done stack to a header you can fold */
+  .doneFold{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:0.8px;color:var(--ter);text-transform:uppercase;margin:2px 2px 9px;cursor:pointer}
+
+  /* NEXT hero */
+  .card.next{border:1.5px solid var(--azure);background:var(--azureT);box-shadow:0 8px 22px rgba(0,122,255,0.14)}
+  .card.next .title{font-size:17px}
+  .card.next .start{margin-top:11px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--azure)}
+
+  .nowbar{display:flex;align-items:center;gap:10px;margin:14px 2px 13px}
+  .nowbar .ln{flex:1;height:1.5px;background:linear-gradient(90deg,transparent,var(--now))}
+  .nowbar .ln.r{background:linear-gradient(90deg,var(--now),transparent)}
+  .nowbar .lbl{font-size:11px;font-weight:800;letter-spacing:1.6px;color:var(--now)}
+  .nowbar .pin{width:9px;height:9px;border-radius:999px;background:var(--now);box-shadow:0 0 0 4px rgba(255,107,90,0.18)}
+
+  .anchor{margin-top:11px;background:#fff;border:0.5px solid var(--line);border-left:4px solid var(--rose);border-radius:16px;padding:13px 15px;display:flex;gap:13px;align-items:flex-start;box-shadow:0 2px 8px rgba(217,71,107,0.10)}
+  .anchor .cal{flex:0 0 auto;width:44px;text-align:center;border-right:1px solid var(--line);padding-right:12px}
+  .anchor .cal .mo{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--rose);text-transform:uppercase}
+  .anchor .cal .dy{font-size:22px;font-weight:800;line-height:1.05;margin-top:1px}
+  .anchor .cal .tm{font-size:10px;color:var(--ter);margin-top:2px;font-variant:tabular-nums}
+  .anchor .title{font-size:15px;margin-top:6px}
+  .anchor .build{font-size:11px;color:var(--ter);margin-top:7px}
+
+  .note{font-size:11.5px;color:#4a4f5b;line-height:1.55;margin-top:16px;background:rgba(255,255,255,0.6);border-radius:12px;padding:12px 14px}
+  .note b{color:#1c1c1e}
+  .pro{color:#1F8636;font-weight:700}
+  .tag{display:inline-block;font-size:10px;font-weight:700;color:var(--azure);background:var(--azureL);padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:middle}
+
+  /* ---- gesture frame ---- */
+  .gLbl{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--azure);margin:16px 2px 8px;display:flex;align-items:center;gap:7px}
+  .gLbl .num{width:17px;height:17px;border-radius:999px;background:var(--azure);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex:0 0 auto}
+  .gCap{font-size:11px;color:var(--ter);margin:-4px 2px 9px 26px;line-height:1.4}
+  /* tap-to-edit ghost ring */
+  .card.tapfx{box-shadow:0 0 0 2px var(--azure),0 8px 22px rgba(0,122,255,0.14)}
+  .tapfinger{position:absolute;right:-4px;bottom:-8px;font-size:18px}
+  /* swipe-to-delete */
+  .swipeWrap{position:relative;border-radius:16px;overflow:hidden}
+  .swipeActions{position:absolute;top:0;right:0;bottom:0;display:flex}
+  .swipeActions .act{display:flex;flex-direction:column;align-items:center;justify-content:center;width:74px;color:#fff;font-size:11px;font-weight:700;gap:3px}
+  .swipeActions .act .gi{font-size:16px}
+  .swipeActions .more{background:#8E8E93}
+  .swipeActions .del{background:#FF3B30}
+  .swipeWrap .card{transform:translateX(-148px);transition:transform .2s}
+  /* reorder mode */
+  .reorderHint{display:flex;align-items:center;justify-content:space-between;background:var(--azureT);border:0.5px solid var(--azureL);border-radius:11px;padding:8px 12px;margin:2px 0 10px;font-size:12px;color:#0046A8;font-weight:600}
+  .reorderHint .done{color:var(--azure);font-weight:700}
+  .card.dragging{box-shadow:0 14px 30px rgba(20,24,40,0.22);transform:scale(1.015);border-color:rgba(0,0,0,0.12)}
+  .grip{position:absolute;top:50%;right:13px;transform:translateY(-50%);display:flex;flex-direction:column;gap:3px}
+  .grip i{width:16px;height:1.6px;border-radius:2px;background:#c2c4ca}
+  .card.reord{padding-right:42px}
+  /* insert affordance */
+  .insert{display:flex;align-items:center;gap:8px;margin:9px 6px;color:var(--azure);font-size:12px;font-weight:600}
+  .insert .ln{flex:1;height:0.5px;border-top:1px dashed rgba(0,122,255,0.4)}
+  .insert .plus{width:18px;height:18px;border-radius:999px;border:1px dashed var(--azure);display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1}
+</style>
+</head>
+<body>
+
+<div class="lede">
+  <h1>Arc view — B+ : carded &amp; collapsible, step-shaped</h1>
+  <p>Keeps <b>A's distinct white cards</b> (Aim · Capabilities · Reflection &amp; crew · Logbook) but makes each one <b>collapse to a single line</b> — so the resting state is calm, and you expand only what you want to reflect on. Below, <b>every step is a real tall card</b> (done, next, planned all share the L1 step-card shape) and the capability marks are <b>tiny step-shaped rectangles</b>, not dots. Left = resting (all folded). Right = capabilities expanded.</p>
+</div>
+
+<div class="wrap">
+
+  <!-- ════════════ RESTING (all collapsed) ════════════ -->
+  <div class="col">
+    <h2>Resting · everything folded</h2>
+    <p class="sub">The four reflect cards sit as quiet one-liners. The work is the only thing open — tall step-cards you can read &amp; reorder.</p>
+    <div class="phone">
+      <div class="status"><span>6:59</span><span>● ● ● ●</span></div>
+      <div class="screen">
+
+        <div class="crumb"><span class="dot"></span><b>Sail Racing</b><span class="v">▾</span></div>
+        <div class="seasonTtl">Winter Frostbite Season</div>
+        <div class="seasonSub">Oct 31 – Mar 30 · Week 6 of 22</div>
+
+        <!-- folded reflect cards -->
+        <div class="mod open">
+          <div class="modBar"><span class="ic" style="background:var(--azureL)">✺</span><div class="tx"><div class="k">The aim</div></div><span class="chev">›</span></div>
+          <div class="modBody"><div class="vision">Sail every Wednesday clean off the line and finish top-3 in the series. <span class="add">Edit →</span></div></div>
+        </div>
+        <div class="mod">
+          <div class="modBar"><span class="ic" style="background:rgba(157,112,201,0.16)">◎</span><div class="tx"><div class="k">Capabilities</div><div class="hl">Boat-work is anchoring this season</div></div><span class="chev">›</span></div>
+        </div>
+        <div class="mod">
+          <div class="modBar"><span class="ic" style="background:var(--lilacL)">✷</span><div class="tx"><div class="k">Reflection &amp; crew</div><div class="hl">3 pauses · Maya shaped 4 sessions</div></div><span class="chev">›</span></div>
+        </div>
+        <div class="mod lib">
+          <div class="modBar"><span class="ic" style="background:var(--lilacL)">❍</span><div class="tx"><div class="k">Logbook noticed</div><div class="hl">No start drills since Week 2</div></div><span class="chev">›</span></div>
+        </div>
+
+        <!-- THE WORK -->
+        <div class="workEyebrow"><span class="t">THE WORK</span><span class="c">5 steps · done behind, queued ahead</span></div>
+
+        <div class="doneFold"><span>▾</span>Done · 2</div>
+        <div class="card done">
+          <span class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="eb">Boat-work · Downtown Sailing Center</div>
+          <div class="row1"><span class="pill done">DONE</span><span class="ord2">1/5</span></div>
+          <div class="title">Rig tune &amp; bottom clean</div>
+          <div class="capsRow"><span class="capmark" style="background:var(--cap-purple)"></span><span class="capLbl">Boat prep</span></div>
+        </div>
+        <div class="card done">
+          <span class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="eb">Tactics · Downtown Sailing Center</div>
+          <div class="row1"><span class="pill done">DONE</span><span class="ord2">2/5</span></div>
+          <div class="title">Crew tactics debrief — mark roundings</div>
+          <div class="capsRow"><span class="capmark" style="background:var(--cap-teal)"></span><span class="capLbl">Boat handling</span></div>
+        </div>
+
+        <div class="nowbar"><div class="pin"></div><div class="ln"></div><div class="lbl">NOW</div><div class="ln r"></div></div>
+
+        <div class="card next">
+          <div class="eb">Boat-work · Baltimore City YC</div>
+          <div class="row1"><span class="pill next">NEXT</span><span class="ord2">3/5</span></div>
+          <div class="title">Frostbite sail inventory &amp; repairs</div>
+          <div class="capsRow"><span class="capmark" style="background:var(--cap-purple)"></span><span class="capmark" style="background:var(--cap-amber)"></span><span class="capLbl">Boat prep · Heavy-air trim</span></div>
+          <div class="start">Pick this up →</div>
+        </div>
+        <div class="card planned">
+          <div class="eb">Drills · Downtown Sailing Center</div>
+          <div class="row1"><span class="pill planned">PLANNED</span><span class="ord2">4/5</span></div>
+          <div class="title">Spinnaker set &amp; douse drills</div>
+          <div class="capsRow"><span class="capmark" style="background:var(--cap-teal)"></span><span class="capLbl">Boat handling</span></div>
+        </div>
+        <div class="anchor">
+          <div class="cal"><div class="mo">Jun</div><div class="dy">25</div><div class="tm">6:30a</div></div>
+          <div><div class="row1"><span class="pill race">RACE · 5/5</span></div><div class="title">Wed Night Series — Race 3</div><div class="build">The fixed point everything builds toward.</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ EXPANDED (capabilities open) ════════════ -->
+  <div class="col">
+    <h2>Capabilities expanded <span class="tag">tap</span></h2>
+    <p class="sub">Tapping a card unfolds it in place — the bar, chips &amp; detail appear, the rest stay folded. You reflect on one thing at a time.</p>
+    <div class="phone">
+      <div class="status"><span>6:59</span><span>● ● ● ●</span></div>
+      <div class="screen">
+
+        <div class="crumb"><span class="dot"></span><b>Sail Racing</b><span class="v">▾</span></div>
+        <div class="seasonTtl">Winter Frostbite Season</div>
+        <div class="seasonSub">Oct 31 – Mar 30 · Week 6 of 22</div>
+
+        <div class="mod open">
+          <div class="modBar"><span class="ic" style="background:var(--azureL)">✺</span><div class="tx"><div class="k">The aim</div></div><span class="chev">›</span></div>
+          <div class="modBody"><div class="vision">Sail every Wednesday clean off the line and finish top-3 in the series. <span class="add">Edit →</span></div></div>
+        </div>
+
+        <!-- expanded capabilities -->
+        <div class="mod open">
+          <div class="modBar"><span class="ic" style="background:rgba(157,112,201,0.16)">◎</span><div class="tx"><div class="k">Capabilities</div><div class="hl">Boat-work is anchoring this season</div></div><span class="chev">›</span></div>
+          <div class="modBody">
+            <div class="capBar"><i style="background:var(--cap-purple);width:42%"></i><i style="background:var(--cap-teal);width:30%"></i><i style="background:var(--cap-amber);width:18%"></i><i style="background:#C7C7CC;width:10%"></i></div>
+            <div class="capChips">
+              <div class="capChip"><span class="capmark sm" style="background:var(--cap-purple)"></span>Boat prep<span class="n">5</span></div>
+              <div class="capChip"><span class="capmark sm" style="background:var(--cap-teal)"></span>Boat handling<span class="n">3</span></div>
+              <div class="capChip"><span class="capmark sm" style="background:var(--cap-amber)"></span>Tactics<span class="n">2</span></div>
+              <div class="capChip"><span class="capmark sm" style="background:#C7C7CC"></span>Starts<span class="n">1</span></div>
+            </div>
+            <div class="hint">Tap a capability to filter the work below</div>
+          </div>
+        </div>
+
+        <div class="mod">
+          <div class="modBar"><span class="ic" style="background:var(--lilacL)">✷</span><div class="tx"><div class="k">Reflection &amp; crew</div><div class="hl">3 pauses · Maya shaped 4 sessions</div></div><span class="chev">›</span></div>
+        </div>
+        <div class="mod lib">
+          <div class="modBar"><span class="ic" style="background:var(--lilacL)">❍</span><div class="tx"><div class="k">Logbook noticed</div><div class="hl">No start drills since Week 2</div></div><span class="chev">›</span></div>
+        </div>
+
+        <div class="workEyebrow"><span class="t">THE WORK</span><span class="c">filtered · Boat prep</span></div>
+
+        <div class="card done">
+          <span class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="eb">Boat-work · Downtown Sailing Center</div>
+          <div class="row1"><span class="pill done">DONE</span><span class="ord2">1/5</span></div>
+          <div class="title">Rig tune &amp; bottom clean</div>
+          <div class="capsRow"><span class="capmark" style="background:var(--cap-purple)"></span><span class="capLbl">Boat prep</span></div>
+        </div>
+
+        <div class="nowbar"><div class="pin"></div><div class="ln"></div><div class="lbl">NOW</div><div class="ln r"></div></div>
+
+        <div class="card next">
+          <div class="eb">Boat-work · Baltimore City YC</div>
+          <div class="row1"><span class="pill next">NEXT</span><span class="ord2">3/5</span></div>
+          <div class="title">Frostbite sail inventory &amp; repairs</div>
+          <div class="capsRow"><span class="capmark" style="background:var(--cap-purple)"></span><span class="capmark" style="background:var(--cap-amber)"></span><span class="capLbl">Boat prep · Heavy-air trim</span></div>
+          <div class="start">Pick this up →</div>
+        </div>
+
+        <div class="note"><b>Why this is the synthesis:</b> A's <span class="pro">distinct white cards</span> survive (you preferred that look), but folding makes the resting state as calm as B. The work now reads as a single family of <span class="pro">tall step-cards</span> — done is the same shape, just recessed + green-keyed — and capability marks echo the step silhouette in miniature. Expanding a capability filters the work.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ GESTURES · edit / reorder / delete / insert ════════════ -->
+  <div class="col">
+    <h2>Edit · Reorder · Delete · Insert</h2>
+    <p class="sub">Because the steps are real cards, the verbs are the standard card gestures — nothing custom to learn. Same card, four states.</p>
+    <div class="phone">
+      <div class="status"><span>6:59</span><span>● ● ● ●</span></div>
+      <div class="screen">
+
+        <div class="crumb"><span class="dot"></span><b>Sail Racing</b><span class="v">▾</span></div>
+        <div class="seasonTtl" style="font-size:18px;margin-top:6px">The four verbs of the work</div>
+        <div class="seasonSub">Tap · long-press · swipe · the + between cards</div>
+
+        <!-- 1 · EDIT -->
+        <div class="gLbl"><span class="num">1</span>Edit — tap the card</div>
+        <div class="gCap">Opens the full step sheet (plan · sub-steps · capability · people · timing). Same place you mark it done. The card already looks tappable.</div>
+        <div class="card next tapfx">
+          <div class="eb">Boat-work · Baltimore City YC</div>
+          <div class="row1"><span class="pill next">NEXT</span><span class="ord2">3/5</span></div>
+          <div class="title">Frostbite sail inventory &amp; repairs</div>
+          <div class="capsRow"><span class="capmark" style="background:var(--cap-purple)"></span><span class="capmark" style="background:var(--cap-amber)"></span><span class="capLbl">Boat prep · Heavy-air trim</span></div>
+          <div class="start">Pick this up →</div>
+          <span class="tapfinger">👆</span>
+        </div>
+
+        <!-- 2 · REORDER -->
+        <div class="gLbl"><span class="num">2</span>Reorder — long-press, then drag</div>
+        <div class="gCap">Long-press any card (or tap <b>Reorder</b> in the eyebrow) to lift the stack into drag mode. Grip handle on the right. Dragging across <b>NOW</b> is how a step moves between done &amp; queued.</div>
+        <div class="reorderHint"><span>Drag to reorder · release on NOW to change status</span><span class="done">Done</span></div>
+        <div class="card planned reord dragging">
+          <div class="eb">Drills · Downtown Sailing Center</div>
+          <div class="row1"><span class="pill planned">PLANNED</span><span class="ord2">4/5</span></div>
+          <div class="title">Spinnaker set &amp; douse drills</div>
+          <span class="grip"><i></i><i></i><i></i></span>
+        </div>
+        <div class="card reord" style="opacity:0.6">
+          <div class="eb">Boat-work · Baltimore City YC</div>
+          <div class="row1"><span class="pill next">NEXT</span><span class="ord2">3/5</span></div>
+          <div class="title">Frostbite sail inventory &amp; repairs</div>
+          <span class="grip"><i></i><i></i><i></i></span>
+        </div>
+
+        <!-- 3 · DELETE -->
+        <div class="gLbl"><span class="num">3</span>Delete — swipe left</div>
+        <div class="gCap">Swipe reveals <b>Delete</b> (and More → duplicate, change season). Deleting an abandoned plan is meant to be cheap — an undo toast catches mistakes.</div>
+        <div class="swipeWrap">
+          <div class="swipeActions">
+            <div class="act more"><span class="gi">⋯</span>More</div>
+            <div class="act del"><span class="gi">🗑</span>Delete</div>
+          </div>
+          <div class="card planned">
+            <div class="eb">Theory · home</div>
+            <div class="row1"><span class="pill planned">PLANNED</span><span class="ord2">—</span></div>
+            <div class="title">Read up on roll tacking</div>
+          </div>
+        </div>
+
+        <!-- 4 · INSERT -->
+        <div class="gLbl"><span class="num">4</span>Insert — the + between cards</div>
+        <div class="gCap">A new step drops into the runway at the spot you tap (not "somewhere in the list"). Insert is a primary verb — a gap you noticed in practice becomes a step right where it belongs.</div>
+        <div class="card done" style="margin-bottom:0">
+          <span class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="eb">Tactics · Downtown Sailing Center</div>
+          <div class="row1"><span class="pill done">DONE</span><span class="ord2">2/5</span></div>
+          <div class="title">Crew tactics debrief</div>
+        </div>
+        <div class="insert"><span class="plus">+</span>Add a step here<span class="ln"></span></div>
+        <div class="card next">
+          <div class="eb">Boat-work · Baltimore City YC</div>
+          <div class="row1"><span class="pill next">NEXT</span><span class="ord2">3/5</span></div>
+          <div class="title">Frostbite sail inventory &amp; repairs</div>
+        </div>
+
+        <div class="note"><b>The model:</b> <b>tap = edit</b>, <b>long-press = reorder</b>, <b>swipe = delete/more</b>, <b>+ between = insert</b>. All four are native iOS card idioms, so the carded redesign earns them for free — no custom chrome on the card itself. <b>Reorder</b> &amp; <b>Select</b> stay as discoverable buttons in THE WORK eyebrow for anyone who doesn't try the gesture. Matches the canonical model: reorder / insert / delete are the primary verbs, and they should feel cheap.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

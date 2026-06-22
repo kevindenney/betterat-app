@@ -336,16 +336,19 @@ export class FollowerSuggestionService {
         return false;
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_suggestions')
         .update({ status: 'accepted' })
         .eq('id', suggestionId)
-        .eq('race_owner_id', userData.user.id);
+        .eq('race_owner_id', userData.user.id)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('acceptSuggestion failed:', error);
         return false;
       }
+      if (!data) throw new Error('Race suggestion not found.');
 
       return true;
     } catch (error) {
@@ -365,16 +368,19 @@ export class FollowerSuggestionService {
         return false;
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_suggestions')
         .update({ status: 'dismissed' })
         .eq('id', suggestionId)
-        .eq('race_owner_id', userData.user.id);
+        .eq('race_owner_id', userData.user.id)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('dismissSuggestion failed:', error);
         return false;
       }
+      if (!data) throw new Error('Race suggestion not found.');
 
       return true;
     } catch (error) {

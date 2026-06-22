@@ -38,6 +38,7 @@ import { useOrgPrograms, useProgramCapabilityCount } from '@/hooks/usePrograms';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useInterest } from '@/providers/InterestProvider';
 import type { BlueprintRecord, BlueprintAccessLevel, BlueprintPricingType } from '@/types/blueprint';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 const C = {
   bg: '#FFFFFF',
@@ -144,7 +145,7 @@ export function PublishBlueprintSheet({
   // Filter to orgs where user has a manager role
   const managerOrgs = memberships.filter(
     (m) =>
-      (m.membership_status === 'active' || m.status === 'active') &&
+      isResolvedOrgMembershipActive(m) &&
       MANAGER_ROLES.has(String(m.role || '').toLowerCase()) &&
       m.organization,
   );

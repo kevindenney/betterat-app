@@ -79,7 +79,8 @@ export async function resolveClubId(
     .limit(1)
     .maybeSingle();
 
-  return membership?.organization_id ?? null;
+  const membershipRow = membership as { organization_id?: string | null } | null;
+  return membershipRow?.organization_id ?? null;
 }
 
 /**
@@ -110,11 +111,15 @@ export async function resolveAuthContext(
     .limit(1)
     .maybeSingle();
 
+  const user = userRow as { email?: string | null; subscription_tier?: unknown } | null;
+
   return {
     userId,
-    email: userRow?.email ?? null,
+    email: user?.email ?? null,
     clubId,
-    tier: normalizeTier(userRow?.subscription_tier),
+    tier: normalizeTier(
+      typeof user?.subscription_tier === 'string' ? user.subscription_tier : undefined,
+    ),
     captureEntitled: !!livelihoodRow,
   };
 }

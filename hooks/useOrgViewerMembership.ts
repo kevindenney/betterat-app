@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { isAdminRole } from '@/hooks/useMyOrgs';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 
 /**
  * useOrgViewerMembership — the viewer's membership in one organization,
@@ -12,8 +13,9 @@ import { isAdminRole } from '@/hooks/useMyOrgs';
  * the page can show "Request pending" / "request again" affordances.
  *
  * Gotchas baked in:
- *  - prefer `membership_status` over the legacy `status` column (they
- *    can diverge); the domain is pending|active|rejected only.
+ *  - resolve split `status` / `membership_status` rows conservatively.
+ *    Canonical pending/rejected must not be promoted by stale
+ *    membership_status='active'.
  *  - admin is `owner|admin|manager` (isAdminRole), matching the rest of
  *    the app — the client flag is presentation-only; admin actions are
  *    RLS-gated server-side regardless.
@@ -50,7 +52,7 @@ export function useOrgViewerMembership(orgId: string | undefined): {
       const role = r.role ?? null;
       return {
         role,
-        status: r.membership_status || r.status || 'pending',
+        status: resolveOrgMembershipStatus(r),
         isAdmin: role ? isAdminRole(role) : false,
       };
     },

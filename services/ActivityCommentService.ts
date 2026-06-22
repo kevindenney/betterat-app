@@ -252,15 +252,18 @@ export class ActivityCommentService {
    */
   static async updateComment(commentId: string, content: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('activity_comments')
         .update({
           content: content.trim(),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', commentId);
+        .eq('id', commentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Activity comment not found.');
       return true;
     } catch (error) {
       logger.error('updateComment failed:', error);
@@ -273,12 +276,15 @@ export class ActivityCommentService {
    */
   static async deleteComment(commentId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('activity_comments')
         .delete()
-        .eq('id', commentId);
+        .eq('id', commentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Activity comment not found.');
       return true;
     } catch (error) {
       logger.error('deleteComment failed:', error);

@@ -26,6 +26,7 @@ import {
   useOrgVerificationRequests,
   useReviewOrgVerificationRequest,
 } from '@/hooks/useOrgVerificationRequests';
+import { useAuth } from '@/providers/AuthProvider';
 import type {
   AdminVerificationRequestRow,
   OrgVerificationDecision,
@@ -43,6 +44,24 @@ const C = {
   red: '#B42318',
   amber: '#B45309',
 } as const;
+
+type VerificationTab = 'pending' | 'history';
+
+function isPlatformAdminUser(user: any | null): boolean {
+  if (!user) return false;
+  const allowed = new Set(['admin', 'platform_admin', 'betterat_admin']);
+  const appRole = user.app_metadata?.role;
+  const userRole = user.user_metadata?.role;
+  const appRoles = Array.isArray(user.app_metadata?.roles)
+    ? user.app_metadata.roles
+    : [];
+
+  return (
+    allowed.has(appRole) ||
+    allowed.has(userRole) ||
+    appRoles.some((role: unknown) => typeof role === 'string' && allowed.has(role))
+  );
+}
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return 'Unknown date';
@@ -62,10 +81,26 @@ function decisionLabel(decision: OrgVerificationDecision): string {
   }
 }
 
+function statusTone(status: string | null | undefined): string {
+  switch (status) {
+    case 'approved':
+      return C.green;
+    case 'rejected':
+      return C.red;
+    case 'needs_info':
+      return C.amber;
+    default:
+      return C.muted;
+  }
+}
+
 export default function OrgVerificationsAdminScreen() {
+  const { user } = useAuth();
+  const [tab, setTab] = useState<VerificationTab>('pending');
   const { data, isLoading, error, refetch, isRefetching } =
-    useOrgVerificationRequests();
+    useOrgVerificationRequests(tab);
   const review = useReviewOrgVerificationRequest();
+  const canReview = isPlatformAdminUser(user);
 
   const [noteById, setNoteById] = useState<Record<string, string>>({});
 
@@ -98,8 +133,10 @@ export default function OrgVerificationsAdminScreen() {
       <Stack.Screen options={{ headerShown: true, title: 'Org verification queue' }} />
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>Admin Review</Text>
-          <Text style={styles.title}>Org Verification Queue</Text>
+          <Text style={styles.eyebrow}>{canReview ? 'Admin Review' : 'Your Requests'}</Text>
+          <Text style={styles.title}>
+            {canReview ? 'Org Verification Queue' : 'Org Verification Requests'}
+          </Text>
         </View>
         <Pressable style={styles.refreshButton} onPress={() => void refetch()}>
           <Ionicons
@@ -111,10 +148,38 @@ export default function OrgVerificationsAdminScreen() {
         </Pressable>
       </View>
 
+      <View style={styles.tabsRow}>
+        {(['pending', 'history'] as VerificationTab[]).map((value) => {
+          const active = tab === value;
+          return (
+            <Pressable
+              key={value}
+              style={[styles.tabBtn, active && styles.tabBtnActive]}
+              onPress={() => setTab(value)}
+            >
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                {value === 'pending' ? 'Pending' : 'History'}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {error ? (
         <Text style={styles.error}>
           {error instanceof Error ? error.message : 'Could not load queue.'}
         </Text>
+      ) : null}
+
+      {!canReview ? (
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>
+            {tab === 'pending' ? 'Pending BetterAt review' : 'Review history'}
+          </Text>
+          <Text style={styles.body}>
+            You can see requests you submitted. Only BetterAt platform admins can approve or reject them.
+          </Text>
+        </View>
       ) : null}
 
       {isLoading ? (
@@ -123,7 +188,11 @@ export default function OrgVerificationsAdminScreen() {
         </View>
       ) : requests.length === 0 ? (
         <View style={styles.card}>
-          <Text style={styles.body}>No pending verification requests.</Text>
+          <Text style={styles.body}>
+            {tab === 'pending'
+              ? 'No pending verification requests.'
+              : 'No verification request history yet.'}
+          </Text>
         </View>
       ) : (
         requests.map((request) => {
@@ -145,7 +214,9 @@ export default function OrgVerificationsAdminScreen() {
                     {requester?.email || 'no email'}
                   </Text>
                 </View>
-                <Text style={[styles.status, { color: C.amber }]}>pending</Text>
+                <Text style={[styles.status, { color: statusTone(request.status) }]}>
+                  {request.status || 'unknown'}
+                </Text>
               </View>
 
               <View style={styles.metaRow}>
@@ -159,6 +230,11 @@ export default function OrgVerificationsAdminScreen() {
                 <Text style={styles.meta}>
                   submitted {formatDate(request.created_at)}
                 </Text>
+                {request.decided_at ? (
+                  <Text style={styles.meta}>
+                    decided {formatDate(request.decided_at)}
+                  </Text>
+                ) : null}
               </View>
 
               {request.proof && Object.keys(request.proof).length > 0 ? (
@@ -172,46 +248,72 @@ export default function OrgVerificationsAdminScreen() {
                 <Text style={styles.body}>No proof attached.</Text>
               )}
 
-              <TextInput
-                value={noteById[request.id] || ''}
-                onChangeText={(text) =>
-                  setNoteById((prev) => ({ ...prev, [request.id]: text }))
-                }
-                style={styles.input}
-                placeholder="Reviewer notes (optional)"
-                multiline
-                numberOfLines={2}
-              />
+              {request.reviewer || request.reviewer_notes ? (
+                <View style={styles.historyBlock}>
+                  <Text style={styles.historyLabel}>Review</Text>
+                  <Text style={styles.body}>
+                    {request.reviewer?.full_name || request.reviewer?.email || 'BetterAt admin'}
+                    {request.decided_at ? ` · ${formatDate(request.decided_at)}` : ''}
+                  </Text>
+                  {request.reviewer_notes ? (
+                    <Text style={styles.historyNote}>{request.reviewer_notes}</Text>
+                  ) : null}
+                </View>
+              ) : null}
 
-              <View style={styles.actions}>
-                <Pressable
-                  style={[styles.actionButton, styles.approve]}
-                  disabled={busy}
-                  onPress={() => void handleDecision(request, 'approved')}
-                >
-                  <Text style={styles.actionText}>
-                    {decisionLabel('approved')}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.actionButton, styles.moreInfo]}
-                  disabled={busy}
-                  onPress={() => void handleDecision(request, 'needs_info')}
-                >
-                  <Text style={styles.actionText}>
-                    {decisionLabel('needs_info')}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.actionButton, styles.reject]}
-                  disabled={busy}
-                  onPress={() => void handleDecision(request, 'rejected')}
-                >
-                  <Text style={styles.actionText}>
-                    {decisionLabel('rejected')}
-                  </Text>
-                </Pressable>
-              </View>
+              {canReview && request.status === 'pending' ? (
+                <>
+                  <TextInput
+                    value={noteById[request.id] || ''}
+                    onChangeText={(text) =>
+                      setNoteById((prev) => ({ ...prev, [request.id]: text }))
+                    }
+                    style={styles.input}
+                    placeholder="Reviewer notes (optional)"
+                    multiline
+                    numberOfLines={2}
+                  />
+
+                  <View style={styles.actions}>
+                    <Pressable
+                      style={[styles.actionButton, styles.approve]}
+                      disabled={busy}
+                      onPress={() => void handleDecision(request, 'approved')}
+                    >
+                      <Text style={styles.actionText}>
+                        {decisionLabel('approved')}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.actionButton, styles.moreInfo]}
+                      disabled={busy}
+                      onPress={() => void handleDecision(request, 'needs_info')}
+                    >
+                      <Text style={styles.actionText}>
+                        {decisionLabel('needs_info')}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.actionButton, styles.reject]}
+                      disabled={busy}
+                      onPress={() => void handleDecision(request, 'rejected')}
+                    >
+                      <Text style={styles.actionText}>
+                        {decisionLabel('rejected')}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </>
+              ) : request.status === 'pending' ? (
+                <Text style={styles.body}>
+                  Awaiting BetterAt platform-admin review.
+                </Text>
+              ) : null}
+              {tab === 'history' && request.status !== 'pending' && !request.reviewer_notes ? (
+                <Text style={styles.body}>
+                  No reviewer note recorded.
+                </Text>
+              ) : null}
             </View>
           );
         })
@@ -253,6 +355,38 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   refreshText: { color: C.ink, fontWeight: '800' },
+  tabsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tabBtn: {
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.card,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  tabBtnActive: {
+    backgroundColor: '#EAF2FF',
+    borderColor: '#BFD3F6',
+  },
+  tabText: {
+    color: C.muted,
+    fontWeight: '700',
+  },
+  tabTextActive: {
+    color: C.ink,
+  },
+  infoCard: {
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 8,
+    padding: 16,
+    gap: 6,
+  },
+  infoTitle: { color: C.ink, fontSize: 16, fontWeight: '800' },
   center: { minHeight: 220, alignItems: 'center', justifyContent: 'center' },
   card: {
     backgroundColor: C.card,
@@ -295,6 +429,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Courier',
     lineHeight: 16,
+  },
+  historyBlock: {
+    backgroundColor: '#FBFCFE',
+    borderRadius: 6,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: C.line,
+    gap: 4,
+  },
+  historyLabel: {
+    color: C.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  historyNote: {
+    color: C.ink,
+    fontSize: 13,
+    lineHeight: 18,
   },
   input: {
     borderWidth: 1,

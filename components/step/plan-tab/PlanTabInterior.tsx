@@ -27,6 +27,7 @@ import {
   BeforeTheShiftCard,
   type BeforeShiftItem,
 } from '@/components/step/v2/plan/BeforeTheShiftCard';
+import { useToast } from '@/components/ui/AppToast';
 import { LibraryBeforePicker } from '@/components/library/picker/LibraryBeforePicker';
 import { StepPlanScrollMemory } from '@/services/StepPlanScrollMemory';
 
@@ -120,7 +121,9 @@ export function PlanTabInterior({
   const state = getPlanInteriorState({ planData, readOnly, doStarted });
   const [manualExpanded, setManualExpanded] = useState(state !== 'empty');
   const [coachOpen, setCoachOpen] = useState(false);
+  const toast = useToast();
   const effectiveInterestName = interestName?.trim() || 'this interest';
+  const coachSubtitle = `Drafting a plan for ${effectiveInterestName}`;
   const canUseCoach = Boolean(interestId && onConversationalCreate && !readOnly);
   const coachDisabledReason = !interestId
     ? 'AI Coach needs a step interest before it can draft a plan.'
@@ -303,10 +306,12 @@ export function PlanTabInterior({
                   onConversationalCreate!(data, suggestedTitle);
                   setManualExpanded(true);
                   setCoachOpen(false);
+                  toast.show('Plan drafted with AI Coach - refine anytime', 'success');
                 }}
                 embedded
                 stepCategory={stepCategory}
                 autoFocus
+                coachSubtitle={coachSubtitle}
               />
             )}
           </View>

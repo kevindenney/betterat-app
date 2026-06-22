@@ -47,12 +47,14 @@ interface OpenerEntry {
 const openerStack: OpenerEntry[] = []
 export function openInterestSwitcher() {
   for (let i = openerStack.length - 1; i >= 0; i--) {
-    if (openerStack[i]!.focused) {
-      openerStack[i]!.open()
+    const entry = openerStack[i]
+    if (entry?.focused) {
+      entry.open()
       return
     }
   }
-  openerStack[openerStack.length - 1]?.open()
+  const fallback = openerStack[openerStack.length - 1]
+  fallback?.open()
 }
 
 /** Group a list of interests by their parent domain, preserving domain order. */

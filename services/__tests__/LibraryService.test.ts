@@ -22,6 +22,7 @@ import { mockSupabaseResponse } from '../../test/helpers/supabaseMock';
 
 const {
   getUserLibrary,
+  deleteResource,
   markLessonCompleted,
   getResources,
 } = LibraryServiceModule;
@@ -165,6 +166,20 @@ describe('LibraryService', () => {
       const eqCalls = builder.eq.mock.calls;
       expect(eqCalls).toContainEqual(['playbook_id', 'lib-1']);
       expect(eqCalls).toContainEqual(['resource_type', 'book']);
+    });
+  });
+
+  describe('deleteResource', () => {
+    it('confirms the resource row was deleted', async () => {
+      const builder = chainBuilder(mockSupabaseResponse({ id: 'res-1' }));
+      fromMock.mockReturnValue(builder);
+
+      await deleteResource('res-1');
+
+      expect(builder.delete).toHaveBeenCalled();
+      expect(builder.eq).toHaveBeenCalledWith('id', 'res-1');
+      expect(builder.select).toHaveBeenCalledWith('id');
+      expect(builder.maybeSingle).toHaveBeenCalled();
     });
   });
 });

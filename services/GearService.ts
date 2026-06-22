@@ -306,19 +306,35 @@ export async function updateGearItem(
 }
 
 export async function setPrimaryGearItem(item: GearItem): Promise<GearItem> {
+  const { data: target, error: targetError } = await supabase
+    .from('gear_items')
+    .select('id')
+    .eq('id', item.id)
+    .eq('user_id', item.user_id)
+    .maybeSingle();
+  throwIfSupabaseError(targetError);
+  if (!target) throw new Error('Gear item not found.');
+
   const { error } = await supabase
     .from('gear_items')
     .update({ is_primary: false })
     .eq('user_id', item.user_id)
     .eq('interest_id', item.interest_id)
-    .eq('kind', item.kind);
+    .eq('kind', item.kind)
+    .neq('id', item.id);
   throwIfSupabaseError(error);
   return updateGearItem(item.id, { is_primary: true, status: item.status === 'retired' ? 'active' : item.status });
 }
 
 export async function deleteGearItem(id: string): Promise<void> {
-  const { error } = await supabase.from('gear_items').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('gear_items')
+    .delete()
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error('Gear item not found.');
 }
 
 export async function listStepGear(stepId: string): Promise<StepGearRow[]> {

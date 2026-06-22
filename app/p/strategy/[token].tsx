@@ -30,8 +30,6 @@ import {
 } from 'react-native';
 
 interface StrategyData {
-  id: string;
-  share_token: string;
   shared_at: string | null;
   race: {
     id: string;

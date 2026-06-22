@@ -88,7 +88,7 @@ export default function PublicRegattaLanding() {
       }
       
       const result = await response.json();
-      setData(result);
+      setData(result.regatta);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load regatta');
     } finally {

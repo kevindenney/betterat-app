@@ -11,10 +11,10 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -27,7 +27,7 @@ import {
   formatPeriod,
   formatDate,
 } from '@/hooks/useAdminOrgBilling';
-import { ORG_PLANS, type OrgPlanId } from '@/lib/subscriptions/orgTiers';
+import { ORG_PLAN_LIST, ORG_PLANS, type OrgBillingPeriod, type OrgPlanId } from '@/lib/subscriptions/orgTiers';
 import { OrgSubscriptionService } from '@/services/OrgSubscriptionService';
 
 type InvoiceFilter = 'all' | 'paid' | 'open';
@@ -111,21 +111,145 @@ const PLAN_FEATURES: string[] = [
 ];
 
 export function AdminBillingSurface() {
-  const { orgId } = useLocalSearchParams<{ orgId: string }>();
-  const { billing, invoices, loading } = useAdminOrgBilling(orgId as string);
+  const { width } = useWindowDimensions();
+  const { orgId, showPlans } = useLocalSearchParams<{ orgId: string; showPlans?: string }>();
+  const { billing, invoices, loading, source } = useAdminOrgBilling(orgId as string);
   const [filter, setFilter] = React.useState<InvoiceFilter>('all');
+  const [billingPeriod, setBillingPeriod] = React.useState<OrgBillingPeriod>('annual');
+  const [processingPlan, setProcessingPlan] = React.useState<OrgPlanId | null>(null);
+  const [planChooserOpen, setPlanChooserOpen] = React.useState(showPlans === '1');
+  const isCompact = width < 1260;
 
-  if (loading || !billing) {
+  const handleStartLiveCheckout = async (planId: OrgPlanId) => {
+    if (!orgId) return;
+    setProcessingPlan(planId);
+    try {
+      const result = await OrgSubscriptionService.createSubscription(orgId as string, planId, billingPeriod);
+      if (result.success && result.checkoutUrl) {
+        if (Platform.OS === 'web') {
+          window.location.href = result.checkoutUrl;
+        } else {
+          await WebBrowser.openBrowserAsync(result.checkoutUrl);
+        }
+      } else {
+        showAlert('Checkout Error', result.error ?? 'Unable to start live checkout.');
+      }
+    } finally {
+      setProcessingPlan(null);
+    }
+  };
+
+  React.useEffect(() => {
+    if (showPlans === '1') {
+      setPlanChooserOpen(true);
+    }
+  }, [showPlans]);
+
+  React.useEffect(() => {
+    if (source === 'test' || source === 'demo') {
+      setPlanChooserOpen(true);
+    }
+  }, [source]);
+
+  if (loading) {
     return (
       <View style={s.body}>
         <View style={s.loadingCard}>
-          <Text style={s.loadingText}>
-            {loading ? 'Loading billing…' : 'No billing record for this organization.'}
-          </Text>
+          <Text style={s.loadingText}>Loading billing…</Text>
         </View>
       </View>
     );
   }
+
+  if (!billing) {
+    return (
+      <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+        <View style={s.bannerCard}>
+          <View style={s.bannerText}>
+            <Text style={s.bannerEyebrow}>Live Stripe</Text>
+            <Text style={s.bannerBody}>
+              This organization does not have a billing record yet. Start the first live checkout below.
+            </Text>
+          </View>
+        </View>
+
+        <View style={s.card}>
+          <View style={s.cardHead}>
+            <View>
+              <Text style={s.cardEyebrow}>Live Stripe</Text>
+              <Text style={s.cardH3}>Choose a live organization plan</Text>
+            </View>
+            <View style={s.cardHeadActions}>
+              <View style={s.segControl}>
+                {(['annual', 'monthly'] as OrgBillingPeriod[]).map((opt) => {
+                  const on = billingPeriod === opt;
+                  return (
+                    <Pressable key={opt} style={[s.segOpt, on && s.segOptOn]} onPress={() => setBillingPeriod(opt)}>
+                      <Text style={on ? s.segOptTextOn : s.segOptText}>
+                        {opt === 'annual' ? 'Annual' : 'Monthly'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+          <View style={[s.planChooserGrid, isCompact && s.planChooserGridCompact]}>
+            {ORG_PLAN_LIST.map((plan) => {
+              const priceText = billingPeriod === 'annual' ? plan.annualPriceFormatted : plan.monthlyPriceFormatted;
+              const priceUnit = billingPeriod === 'annual' ? '/year' : '/month';
+              return (
+                <View key={plan.id} style={[s.planChooserCard, plan.isPopular && s.planChooserCardPopular]}>
+                  <Text style={[s.planChooserName, { color: plan.accentColor }]}>{plan.name}</Text>
+                  <Text style={s.planChooserDesc}>{plan.description}</Text>
+                  <View style={s.planChooserPriceRow}>
+                    <Text style={s.planChooserPrice}>{priceText}</Text>
+                    <Text style={s.planChooserPriceUnit}>{priceUnit}</Text>
+                  </View>
+                  {billingPeriod === 'annual' ? (
+                    <Text style={s.planChooserSavings}>{plan.annualSavings}</Text>
+                  ) : null}
+                  <View style={s.planChooserFeatures}>
+                    {plan.features.slice(0, 4).map((feature) => (
+                      <View key={feature} style={s.planChooserFeatureRow}>
+                        <Ionicons name="checkmark-circle" size={14} color={plan.accentColor} />
+                        <Text style={s.planChooserFeatureText}>{feature}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Pressable
+                    style={[s.planChooserBtn, { backgroundColor: plan.accentColor }, processingPlan && s.planChooserBtnDisabled]}
+                    disabled={!!processingPlan}
+                    onPress={() => handleStartLiveCheckout(plan.id)}
+                  >
+                    {processingPlan === plan.id ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={s.planChooserBtnText}>Start live checkout</Text>
+                    )}
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </ScrollView>
+    );
+  }
+
+  const sourceLabel =
+    source === 'test'
+      ? 'Stripe test mode'
+      : source === 'demo'
+        ? 'Seeded demo data'
+        : null;
+
+  const sourceMessage =
+    source === 'test'
+      ? 'This organization has a test-mode Stripe subscription on the old catalog. It is not live production billing.'
+      : source === 'demo'
+        ? 'This organization is rendering seeded billing rows. It does not have a real Stripe subscription yet.'
+        : null;
 
   const seatsPct = billing.seats_total > 0
     ? Math.round((billing.seats_used / billing.seats_total) * 100)
@@ -145,17 +269,48 @@ export function AdminBillingSurface() {
     return true;
   });
 
+  const handleOpenPlanChooser = () => {
+    setPlanChooserOpen(true);
+  };
+
+  const handleOpenBillingPortal = () => {
+    if (source === 'test' || source === 'demo') {
+      showAlert(
+        source === 'test' ? 'Test billing record' : 'Demo billing record',
+        source === 'test'
+          ? 'This org is currently tied to a Stripe test-mode subscription. Start live billing from the plan chooser below instead of using the billing portal.'
+          : 'This org does not have a live Stripe subscription yet. Start live billing from the plan chooser below.'
+      );
+      return;
+    }
+
+    openBillingPortal(orgId as string);
+  };
+
   return (
     <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+      {sourceLabel && sourceMessage ? (
+        <View style={s.bannerCard}>
+          <View style={s.bannerText}>
+            <Text style={s.bannerEyebrow}>{sourceLabel}</Text>
+            <Text style={s.bannerBody}>{sourceMessage}</Text>
+          </View>
+          <Pressable style={s.bannerBtn} onPress={handleOpenPlanChooser}>
+            <Ionicons name="arrow-up-circle-outline" size={14} color="#28406B" />
+            <Text style={s.bannerBtnText}>Start live billing</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {/* Plan hero */}
-      <View style={s.planCard}>
+      <View style={[s.planCard, isCompact && s.planCardCompact]}>
         <LinearGradient
           colors={['#2A3F66', '#1E335A']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={s.planMain}
         >
-          <Text style={s.planMainEyebrow}>Current plan</Text>
+          <Text style={s.planMainEyebrow}>{source === 'subscription' ? 'Current plan' : 'Current record'}</Text>
           <Text style={s.planTitle}>{billing.plan_label}</Text>
           <View style={s.priceRow}>
             <Text style={s.priceBig}>{formatMoneyShort(billing.price_monthly_cents)}</Text>
@@ -214,24 +369,87 @@ export function AdminBillingSurface() {
               </Text>
             </View>
           ) : null}
-          <Pressable style={s.ghostBtn} onPress={() => router.push('/organization/billing')}>
+          <Pressable style={s.ghostBtn} onPress={handleOpenPlanChooser}>
             <Ionicons name="arrow-down" size={13} color="#28406B" />
-            <Text style={s.ghostBtnText}>Change plan</Text>
+            <Text style={s.ghostBtnText}>{source === 'subscription' ? 'Change plan' : 'Choose live plan'}</Text>
           </Pressable>
         </View>
       </View>
 
+      {planChooserOpen ? (
+        <View style={s.card}>
+          <View style={s.cardHead}>
+            <View>
+              <Text style={s.cardEyebrow}>Live Stripe</Text>
+              <Text style={s.cardH3}>Choose a live organization plan</Text>
+            </View>
+            <View style={s.cardHeadActions}>
+              <View style={s.segControl}>
+                {(['annual', 'monthly'] as OrgBillingPeriod[]).map((opt) => {
+                  const on = billingPeriod === opt;
+                  return (
+                    <Pressable key={opt} style={[s.segOpt, on && s.segOptOn]} onPress={() => setBillingPeriod(opt)}>
+                      <Text style={on ? s.segOptTextOn : s.segOptText}>
+                        {opt === 'annual' ? 'Annual' : 'Monthly'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+          <View style={[s.planChooserGrid, isCompact && s.planChooserGridCompact]}>
+            {ORG_PLAN_LIST.map((plan) => {
+              const priceText = billingPeriod === 'annual' ? plan.annualPriceFormatted : plan.monthlyPriceFormatted;
+              const priceUnit = billingPeriod === 'annual' ? '/year' : '/month';
+              return (
+                <View key={plan.id} style={[s.planChooserCard, plan.isPopular && s.planChooserCardPopular]}>
+                  <Text style={[s.planChooserName, { color: plan.accentColor }]}>{plan.name}</Text>
+                  <Text style={s.planChooserDesc}>{plan.description}</Text>
+                  <View style={s.planChooserPriceRow}>
+                    <Text style={s.planChooserPrice}>{priceText}</Text>
+                    <Text style={s.planChooserPriceUnit}>{priceUnit}</Text>
+                  </View>
+                  {billingPeriod === 'annual' ? (
+                    <Text style={s.planChooserSavings}>{plan.annualSavings}</Text>
+                  ) : null}
+                  <View style={s.planChooserFeatures}>
+                    {plan.features.slice(0, 4).map((feature) => (
+                      <View key={feature} style={s.planChooserFeatureRow}>
+                        <Ionicons name="checkmark-circle" size={14} color={plan.accentColor} />
+                        <Text style={s.planChooserFeatureText}>{feature}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Pressable
+                    style={[s.planChooserBtn, { backgroundColor: plan.accentColor }, processingPlan && s.planChooserBtnDisabled]}
+                    disabled={!!processingPlan}
+                    onPress={() => handleStartLiveCheckout(plan.id)}
+                  >
+                    {processingPlan === plan.id ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={s.planChooserBtnText}>Start live checkout</Text>
+                    )}
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
       {/* Payment + alerts row */}
-      <View style={s.twoColRow}>
+      <View style={[s.twoColRow, isCompact && s.twoColRowCompact]}>
         <View style={[s.card, s.cardWide]}>
           <View style={s.cardHead}>
             <View>
               <Text style={s.cardEyebrow}>Payment method</Text>
               <Text style={s.cardH3}>Card on file</Text>
             </View>
-            <Pressable style={s.btnSm} onPress={() => openBillingPortal(orgId as string)}>
+            <Pressable style={s.btnSm} onPress={handleOpenBillingPortal}>
               <Ionicons name="create-outline" size={12} color="#28406B" />
-              <Text style={s.btnSmText}>Update</Text>
+              <Text style={s.btnSmText}>{source === 'subscription' ? 'Update' : 'Manage after live checkout'}</Text>
             </Pressable>
           </View>
           <View style={s.cardBody}>
@@ -258,21 +476,33 @@ export function AdminBillingSurface() {
                       .join(' · ')}
                   </Text>
                 </View>
-                <Pressable style={s.btnSmGhost} onPress={() => openBillingPortal(orgId as string)}>
+                <Pressable style={s.btnSmGhost} onPress={handleOpenBillingPortal}>
                   <Ionicons name="mail-outline" size={12} color="rgba(60, 60, 67, 0.6)" />
                   <Text style={s.btnSmGhostText}>Change receipt email</Text>
                 </Pressable>
               </View>
             ) : (
-              <Text style={s.payMeta}>No payment method on file yet.</Text>
+              <Text style={s.payMeta}>
+                {source === 'subscription'
+                  ? 'No payment method on file yet.'
+                  : 'No live payment method on file yet.'}
+              </Text>
             )}
             <View style={s.payFooter}>
               <Text style={s.payFooterText}>
-                Alternative billing:{' '}
-                <Text style={s.payFooterStrong}>
-                  Net-30 ACH invoicing available for orgs &gt; 100 seats
-                </Text>
-                . Ask your account rep.
+                {source === 'test'
+                  ? 'This card and invoice history came from Stripe test mode.'
+                  : source === 'demo'
+                    ? 'This payment block is seeded preview data until a live checkout creates a real subscription.'
+                    : 'Alternative billing: '}
+                {source === 'subscription' ? (
+                  <>
+                    <Text style={s.payFooterStrong}>
+                      Net-30 ACH invoicing available for orgs &gt; 100 seats
+                    </Text>
+                    . Ask your account rep.
+                  </>
+                ) : null}
               </Text>
             </View>
           </View>
@@ -495,6 +725,36 @@ const s = StyleSheet.create({
   body: { flex: 1, backgroundColor: '#F5F4EE' },
   bodyInner: { paddingHorizontal: 32, paddingTop: 18, paddingBottom: 40, gap: 18 },
 
+  bannerCard: {
+    backgroundColor: 'rgba(201, 150, 50, 0.12)',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(201, 150, 50, 0.22)',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  bannerText: { flex: 1, gap: 4 },
+  bannerEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#8F6412',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  bannerBody: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.9)', lineHeight: 18 },
+  bannerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  bannerBtnText: { fontSize: 12, fontWeight: '600', color: '#28406B' },
+
   loadingCard: {
     margin: 32,
     padding: 32,
@@ -514,6 +774,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     overflow: 'hidden',
   },
+  planCardCompact: { flexDirection: 'column' },
   planMain: { flex: 1.4, padding: 22, gap: 14 },
   planMainEyebrow: {
     fontSize: 10.5,
@@ -563,6 +824,7 @@ const s = StyleSheet.create({
   ghostBtnText: { fontSize: 12, fontWeight: '600', color: '#28406B' },
 
   twoColRow: { flexDirection: 'row', gap: 18 },
+  twoColRowCompact: { flexDirection: 'column' },
   cardWide: { flex: 1.4 },
   cardNarrow: { flex: 1 },
 
@@ -615,6 +877,47 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   btnSmGhostText: { fontSize: 11.5, fontWeight: '500', color: 'rgba(60, 60, 67, 0.85)' },
+
+  planChooserGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    padding: 18,
+  },
+  planChooserGridCompact: {
+    flexDirection: 'column',
+  },
+  planChooserCard: {
+    flex: 1,
+    backgroundColor: '#F9F8F3',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.06)',
+    padding: 16,
+    gap: 10,
+  },
+  planChooserCardPopular: {
+    borderColor: 'rgba(40, 64, 107, 0.18)',
+    backgroundColor: '#F5F7FC',
+  },
+  planChooserName: { fontSize: 16, fontWeight: '700' },
+  planChooserDesc: { fontSize: 12, color: 'rgba(60, 60, 67, 0.7)' },
+  planChooserPriceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  planChooserPrice: { fontSize: 28, fontWeight: '700', color: '#1C1C1E', letterSpacing: -0.4 },
+  planChooserPriceUnit: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.6)' },
+  planChooserSavings: { fontSize: 11.5, fontWeight: '600', color: '#1E8F47' },
+  planChooserFeatures: { gap: 6, minHeight: 86 },
+  planChooserFeatureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  planChooserFeatureText: { flex: 1, fontSize: 12, color: 'rgba(60, 60, 67, 0.86)', lineHeight: 17 },
+  planChooserBtn: {
+    marginTop: 'auto',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 40,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  planChooserBtnDisabled: { opacity: 0.7 },
+  planChooserBtnText: { fontSize: 12.5, fontWeight: '700', color: '#FFFFFF' },
 
   payRow: { flexDirection: 'row', gap: 14, alignItems: 'center', flexWrap: 'wrap' },
   payTextCol: { flex: 1, minWidth: 180 },

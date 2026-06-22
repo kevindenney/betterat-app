@@ -17,21 +17,21 @@ const combined = `${interiorSource}\n${startCardSource}\n${planRowSource}`;
 
 describe('Phase B.7 Frame 1 contract', () => {
   describe('DoStartCard', () => {
-    it('contains the canonical Frame 1 copy', () => {
-      expect(startCardSource).toContain('Start capturing');
-      expect(startCardSource).toContain('Voice, photo, or quick notes');
-      expect(startCardSource).toContain('Captures will appear here as you go.');
+    it('contains the quick-note-first Frame 1 copy', () => {
+      expect(startCardSource).toContain('Capture evidence');
+      expect(startCardSource).toContain('Jot a quick note');
+      expect(startCardSource).toContain('Add note');
     });
 
-    it('contains the three capture affordance labels in canonical order', () => {
-      expect(startCardSource).toContain('Voice note');
-      expect(startCardSource).toContain('Photo or video');
+    it('contains the three capture affordance labels in quick-note-first order', () => {
       expect(startCardSource).toContain('Quick note');
-      const voiceIdx = startCardSource.indexOf('Voice note');
-      const photoIdx = startCardSource.indexOf('Photo or video');
-      const noteIdx = startCardSource.indexOf('Quick note');
+      expect(startCardSource).toContain('Voice');
+      expect(startCardSource).toContain('Photo or video');
+      const noteIdx = startCardSource.indexOf('accessibilityLabel="Quick note"');
+      const voiceIdx = startCardSource.indexOf('label="Voice"');
+      const photoIdx = startCardSource.indexOf('label="Photo or video"');
+      expect(noteIdx).toBeLessThan(voiceIdx);
       expect(voiceIdx).toBeLessThan(photoIdx);
-      expect(photoIdx).toBeLessThan(noteIdx);
     });
   });
 

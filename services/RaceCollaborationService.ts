@@ -256,15 +256,18 @@ class RaceCollaborationServiceClass {
    * Update collaborator access level (owner only)
    */
   async updateAccessLevel(collaboratorId: string, accessLevel: AccessLevel): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('race_collaborators')
       .update({ access_level: accessLevel })
-      .eq('id', collaboratorId);
+      .eq('id', collaboratorId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update access level:', error);
       throw error;
     }
+    if (!data) throw new Error('Race collaborator not found.');
 
     logger.info('Updated access level', { collaboratorId, accessLevel });
   }
@@ -276,33 +279,39 @@ class RaceCollaborationServiceClass {
     collaboratorId: string,
     updates: { displayName?: string; role?: string }
   ): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('race_collaborators')
       .update({
         display_name: updates.displayName,
         role: updates.role,
       })
-      .eq('id', collaboratorId);
+      .eq('id', collaboratorId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update collaborator:', error);
       throw error;
     }
+    if (!data) throw new Error('Race collaborator not found.');
   }
 
   /**
    * Remove a collaborator (owner or self)
    */
   async removeCollaborator(collaboratorId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('race_collaborators')
       .delete()
-      .eq('id', collaboratorId);
+      .eq('id', collaboratorId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to remove collaborator:', error);
       throw error;
     }
+    if (!data) throw new Error('Race collaborator not found.');
 
     logger.info('Removed collaborator', { collaboratorId });
   }
@@ -311,18 +320,21 @@ class RaceCollaborationServiceClass {
    * Accept a pending invite (changes status from 'pending' to 'accepted')
    */
   async acceptInvite(collaboratorId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('race_collaborators')
       .update({
         status: 'accepted',
         joined_at: new Date().toISOString(),
       })
-      .eq('id', collaboratorId);
+      .eq('id', collaboratorId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to accept invite:', error);
       throw error;
     }
+    if (!data) throw new Error('Race collaborator not found.');
 
     logger.info('Accepted invite', { collaboratorId });
   }
@@ -331,17 +343,20 @@ class RaceCollaborationServiceClass {
    * Decline a pending invite (changes status from 'pending' to 'declined')
    */
   async declineInvite(collaboratorId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('race_collaborators')
       .update({
         status: 'declined',
       })
-      .eq('id', collaboratorId);
+      .eq('id', collaboratorId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to decline invite:', error);
       throw error;
     }
+    if (!data) throw new Error('Race collaborator not found.');
 
     logger.info('Declined invite', { collaboratorId });
   }

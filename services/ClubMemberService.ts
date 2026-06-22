@@ -267,15 +267,18 @@ class ClubMemberService {
    * Delete/remove a member
    */
   async deleteMember(memberId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('club_members')
       .delete()
-      .eq('id', memberId);
+      .eq('id', memberId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Error deleting member:', error);
       throw error;
     }
+    if (!data) throw new Error('Club member not found.');
   }
 
   // ============================================================================

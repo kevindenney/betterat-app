@@ -16,6 +16,7 @@ import type { BlueprintRecord } from '@/types/blueprint';
 import type { ProgramRecord } from '@/services/ProgramService';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 // ── Design tokens (matching blueprint page) ──────────────────────────
 const C = {
@@ -61,9 +62,7 @@ function normalize(value: unknown): string {
 }
 
 function isActiveMembership(row: MembershipRow): boolean {
-  const membershipStatus = normalize(row.membership_status);
-  const status = normalize(row.status);
-  return membershipStatus === 'active' || status === 'active';
+  return isResolvedOrgMembershipActive(row);
 }
 
 function isCoachRole(role: string | null): boolean {

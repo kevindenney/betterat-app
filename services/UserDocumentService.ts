@@ -8,7 +8,6 @@ import type {
   SSIUploadResult,
   SSIExtraction,
   ExtractionStatus,
-  rowToUserClubDocument,
 } from '@/types/ssi';
 
 const logger = createLogger('UserDocumentService');
@@ -270,13 +269,19 @@ class UserDocumentService {
    */
   async updateSharing(documentId: string, isShared: boolean): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_club_documents')
         .update({ is_shared: isShared })
-        .eq('id', documentId);
+        .eq('id', documentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Error updating sharing:', error);
+        return false;
+      }
+      if (!data) {
+        logger.warn('Document sharing update matched no rows:', { documentId });
         return false;
       }
 
@@ -293,13 +298,19 @@ class UserDocumentService {
    */
   async updateTitle(documentId: string, title: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_club_documents')
         .update({ title })
-        .eq('id', documentId);
+        .eq('id', documentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Error updating title:', error);
+        return false;
+      }
+      if (!data) {
+        logger.warn('Document title update matched no rows:', { documentId });
         return false;
       }
 
@@ -340,13 +351,19 @@ class UserDocumentService {
       }
 
       // Delete the database record
-      const { error: deleteError } = await supabase
+      const { data: deletedDocument, error: deleteError } = await supabase
         .from('user_club_documents')
         .delete()
-        .eq('id', documentId);
+        .eq('id', documentId)
+        .select('id')
+        .maybeSingle();
 
       if (deleteError) {
         logger.error('Error deleting document record:', deleteError);
+        return false;
+      }
+      if (!deletedDocument) {
+        logger.warn('Document delete matched no rows:', { documentId });
         return false;
       }
 

@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 export type MyOrgRole = 'owner' | 'admin' | 'manager' | 'member' | string;
 
@@ -72,9 +73,7 @@ export function useMyOrgs() {
 
       const rows: MyOrg[] = [];
       for (const m of data || []) {
-        const status = (m as any).status || (m as any).membership_status;
-        const active = status === 'active' || status === 'invite_accepted';
-        if (!active) continue;
+        if (!isResolvedOrgMembershipActive(m as any)) continue;
         const org = Array.isArray((m as any).organizations)
           ? (m as any).organizations[0]
           : (m as any).organizations;

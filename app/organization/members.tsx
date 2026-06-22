@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { InviteMemberSheet } from '@/components/organizations/InviteMemberSheet';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 
 type MemberBlueprint = {
   id: string;
@@ -50,7 +51,7 @@ function normalizeStatus(value: string | null | undefined): string {
 }
 
 function getStatusBucket(row: Pick<MemberRow, 'membership_status' | 'status'>): Exclude<StatusFilter, 'all'> | 'other' {
-  const normalizedStatus = normalizeStatus(row.membership_status || row.status);
+  const normalizedStatus = normalizeStatus(resolveOrgMembershipStatus(row));
   if (normalizedStatus === 'active' || normalizedStatus === 'verified') return 'active';
   if (normalizedStatus === 'pending' || normalizedStatus === 'invited') return 'pending';
   if (normalizedStatus === 'rejected') return 'rejected';
@@ -300,13 +301,18 @@ export default function OrganizationMembersScreen() {
       setSaveStates((prev) => ({ ...prev, [row.id]: undefined }));
 
       try {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('organization_memberships')
           .update({ role: normalizedNext })
           .eq('id', row.id)
-          .eq('organization_id', resolvedActiveOrgId);
+          .eq('organization_id', resolvedActiveOrgId)
+          .select('id')
+          .maybeSingle();
 
         if (error) throw error;
+        if (!data) {
+          throw new Error('Member not found or you do not have access to update them.');
+        }
 
         setRows((prev) =>
           prev.map((member) =>
@@ -364,14 +370,21 @@ export default function OrganizationMembersScreen() {
 
       try {
         while (true) {
-          const { error } = await supabase
+          const { data, error } = await supabase
             .from('organization_memberships')
             .update(payload)
             .eq('id', row.id)
             .eq('organization_id', resolvedActiveOrgId)
-            .eq('user_id', row.user_id);
+            .eq('user_id', row.user_id)
+            .select('id')
+            .maybeSingle();
 
-          if (!error) break;
+          if (!error) {
+            if (!data) {
+              throw new Error('Member not found or you do not have access to remove them.');
+            }
+            break;
+          }
 
           const missing = missingColumnMap.find(([key, qualified]) => payload[key] !== undefined && isMissingSupabaseColumn(error, qualified));
           if (missing) {

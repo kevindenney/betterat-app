@@ -351,7 +351,7 @@ class ClubDocumentService {
     extraction: ClubDocumentAIExtraction
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('club_documents')
         .update({
           ai_extraction: {
@@ -359,12 +359,15 @@ class ClubDocumentService {
             extractedAt: new Date().toISOString(),
           },
         })
-        .eq('id', documentId);
+        .eq('id', documentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Error storing AI extraction:', error);
         return false;
       }
+      if (!data) throw new Error('Club document not found.');
 
       return true;
     } catch (error) {
@@ -378,15 +381,18 @@ class ClubDocumentService {
    */
   async deactivateClubDocument(documentId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('club_documents')
         .update({ is_active: false })
-        .eq('id', documentId);
+        .eq('id', documentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Error deactivating club document:', error);
         throw error;
       }
+      if (!data) throw new Error('Club document not found.');
 
       return true;
     } catch (error) {
@@ -400,15 +406,18 @@ class ClubDocumentService {
    */
   async deleteClubDocument(documentId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('club_documents')
         .delete()
-        .eq('id', documentId);
+        .eq('id', documentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Error deleting club document:', error);
         throw error;
       }
+      if (!data) throw new Error('Club document not found.');
 
       return true;
     } catch (error) {
@@ -432,9 +441,18 @@ class ClubDocumentService {
           .update({ display_order: displayOrder })
           .eq('id', id)
           .eq('club_id', clubId)
+          .select('id')
+          .maybeSingle()
       );
 
-      await Promise.all(updates);
+      const results = await Promise.all(updates);
+      const failed = results.find((result) => result.error || !result.data);
+      if (failed?.error) {
+        logger.error('Error reordering club documents:', failed.error);
+        throw failed.error;
+      }
+      if (failed) throw new Error('Club document not found.');
+
       return true;
     } catch (error) {
       logger.error('Exception in reorderClubDocuments:', error);

@@ -199,10 +199,18 @@ class PlanServiceClass {
   }
 
   async delete(planId: string): Promise<void> {
-    const { error } = await supabase.from('plans').delete().eq('id', planId);
+    const { data, error } = await supabase
+      .from('plans')
+      .delete()
+      .eq('id', planId)
+      .select('id')
+      .maybeSingle();
     if (error) {
       logger.error('delete failed', { planId, error });
       throw error;
+    }
+    if (!data) {
+      throw new Error('Plan not found.');
     }
   }
 }

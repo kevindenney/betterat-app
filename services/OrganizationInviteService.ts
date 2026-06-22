@@ -48,6 +48,20 @@ export type CreateOrganizationInviteInput = {
   metadata?: Record<string, unknown>;
 };
 
+function generateInviteToken(): string {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = new Uint8Array(24);
+  const cryptoRef = typeof crypto !== 'undefined' ? crypto : null;
+  if (cryptoRef?.getRandomValues) {
+    cryptoRef.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+}
+
 class OrganizationInviteService {
   async listOrganizationInvites(
     organizationId: string,
@@ -84,6 +98,7 @@ class OrganizationInviteService {
     const roleLabelFromMetadata = typeof metadata.role_label === 'string' ? metadata.role_label : null;
     const resolvedRoleKey = input.role_key ?? roleKeyFromMetadata;
     const resolvedRoleLabel = input.role_label || roleLabelFromMetadata || 'Team Member';
+    const inviteToken = input.invite_token?.trim() || generateInviteToken();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Authentication required to create invites.');
@@ -97,7 +112,7 @@ class OrganizationInviteService {
         participant_id: input.participant_id ?? null,
         invitee_name: input.invitee_name ?? null,
         invitee_email: input.invitee_email ?? null,
-        invite_token: input.invite_token ?? null,
+        invite_token: inviteToken,
         role_key: resolvedRoleKey,
         role_label: resolvedRoleLabel,
         channel: input.channel ?? 'email',

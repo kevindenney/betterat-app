@@ -363,14 +363,19 @@ export class RaceRegistrationService {
       }
 
       // Update entry to pending payment
-      await supabase
+      const { data: pendingEntry, error: pendingError } = await supabase
         .from('race_entries')
         .update({
           status: 'pending_payment',
           payment_status: 'pending',
           payment_intent_id: data.paymentIntentId,
         })
-        .eq('id', entryId);
+        .eq('id', entryId)
+        .select('id')
+        .maybeSingle();
+
+      if (pendingError) throw pendingError;
+      if (!pendingEntry) throw new Error('Race entry not found.');
 
       return {
         success: true,
@@ -445,7 +450,7 @@ export class RaceRegistrationService {
       }
 
       // Update entry with payment confirmation
-      const { error: updateError } = await supabase
+      const { data: paidEntry, error: updateError } = await supabase
         .from('race_entries')
         .update({
           payment_status: 'paid',
@@ -453,9 +458,12 @@ export class RaceRegistrationService {
           payment_intent_id: paymentIntentId,
           payment_confirmed_at: new Date().toISOString(),
         })
-        .eq('id', entryId);
+        .eq('id', entryId)
+        .select('id')
+        .maybeSingle();
 
       if (updateError) throw updateError;
+      if (!paidEntry) throw new Error('Race entry not found.');
 
       // Send confirmation email to sailor
       await this.sendConfirmationEmail(entryId);
@@ -642,10 +650,15 @@ export class RaceRegistrationService {
         submitted_at: new Date().toISOString(),
       });
 
-      await supabase
+      const { data: updatedEntry, error: updateError } = await supabase
         .from('race_entries')
         .update({ documents_submitted: submittedDocs })
-        .eq('id', entryId);
+        .eq('id', entryId)
+        .select('id')
+        .maybeSingle();
+
+      if (updateError) throw updateError;
+      if (!updatedEntry) throw new Error('Race entry not found.');
 
       return { success: true, url: urlData.publicUrl };
     } catch (error: any) {
@@ -662,16 +675,19 @@ export class RaceRegistrationService {
     reason?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_entries')
         .update({
           status: 'withdrawn',
           withdrawn_at: new Date().toISOString(),
           withdrawal_reason: reason,
         })
-        .eq('id', entryId);
+        .eq('id', entryId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Race entry not found.');
 
       return { success: true };
     } catch (error: any) {

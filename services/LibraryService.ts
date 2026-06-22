@@ -164,12 +164,15 @@ export async function updateResource(
 
 export async function deleteResource(resourceId: string): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('playbook_resources')
       .delete()
-      .eq('id', resourceId);
+      .eq('id', resourceId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('Library resource not found.');
   } catch (err) {
     logger.error('Failed to delete library resource', err);
     throw err;

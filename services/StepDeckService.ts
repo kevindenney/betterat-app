@@ -84,23 +84,29 @@ export async function createOnDeckItem(input: CreateStepDeckInput): Promise<Step
 }
 
 export async function markOnDeckPlaced(id: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('step_deck')
     .update({ status: 'placed', placed_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
   if (error) {
     logger.error('Failed to mark on-deck item placed', error);
     throw error;
   }
+  if (!data) throw new Error('On-deck item not found.');
 }
 
 export async function discardOnDeckItem(id: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('step_deck')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
   if (error) {
     logger.error('Failed to discard on-deck item', error);
     throw error;
   }
+  if (!data) throw new Error('On-deck item not found.');
 }

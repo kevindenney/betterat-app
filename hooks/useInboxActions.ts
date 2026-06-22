@@ -36,11 +36,14 @@ async function updateSuggestionStatus(
   suggestionId: string,
   status: 'adopted' | 'saved' | 'dismissed',
 ): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('step_suggestions')
     .update({ status })
-    .eq('id', suggestionId);
+    .eq('id', suggestionId)
+    .select('id')
+    .maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error('Suggestion not found.');
 }
 
 export function useInboxActions(): UseInboxActionsResult {
@@ -166,11 +169,14 @@ export function useInboxActions(): UseInboxActionsResult {
       if (!user?.id) return;
       try {
         if (item.kind === 'reflection') {
-          const { error } = await supabase
+          const { data, error } = await supabase
             .from('peer_reflections')
             .update({ status: 'archived' })
-            .eq('id', item.id);
+            .eq('id', item.id)
+            .select('id')
+            .maybeSingle();
           if (error) throw error;
+          if (!data) throw new Error('Reflection not found.');
         } else if (item.kind === 'suggestion') {
           // Suggestions don't have a dedicated 'archived' status — treat
           // swipe-to-archive on a suggestion as a dismiss for now.

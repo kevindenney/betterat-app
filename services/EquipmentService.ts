@@ -412,14 +412,19 @@ class EquipmentService {
   async deleteEquipment(equipmentId: string): Promise<void> {
     logger.debug('Deleting equipment', { equipmentId });
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('boat_equipment')
       .delete()
-      .eq('id', equipmentId);
+      .eq('id', equipmentId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Error deleting equipment', { equipmentId, error });
       throw error;
+    }
+    if (!data) {
+      throw new Error('Equipment not found');
     }
   }
 
@@ -748,4 +753,3 @@ class EquipmentService {
 // Export singleton instance
 export const equipmentService = new EquipmentService();
 export default equipmentService;
-

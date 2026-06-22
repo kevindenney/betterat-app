@@ -28,6 +28,7 @@ import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 
 export type PersonRoleBadge =
   | 'student'
@@ -124,9 +125,13 @@ function mapStatus(
 ): PersonStatus {
   const s = (status ?? '').toLowerCase();
   const ms = (membershipStatus ?? '').toLowerCase();
-  if (s === 'active' || ms === 'active' || ms === 'verified') return 'active';
-  if (s === 'pending' || ms === 'pending') return 'pending';
   if (s === 'suspended') return 'suspended';
+  const resolved = resolveOrgMembershipStatus({
+    status: s || null,
+    membership_status: ms || null,
+  });
+  if (resolved === 'active') return 'active';
+  if (resolved === 'pending') return 'pending';
   return 'off-boarded';
 }
 
@@ -351,7 +356,7 @@ export function useApproveMembership(orgId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (membershipId: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('organization_memberships')
         .update({
           status: 'active',
@@ -359,8 +364,11 @@ export function useApproveMembership(orgId: string) {
           joined_at: new Date().toISOString(),
         })
         .eq('id', membershipId)
-        .eq('organization_id', orgId);
+        .eq('organization_id', orgId)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Membership could not be approved. It may have changed or you may not have access.');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-people', orgId] });

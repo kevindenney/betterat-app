@@ -436,16 +436,19 @@ export class CrewThreadService {
     updates: { name?: string; avatarEmoji?: string }
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('crew_threads')
         .update({
           name: updates.name,
           avatar_emoji: updates.avatarEmoji,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', threadId);
+        .eq('id', threadId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Crew thread not found.');
       return true;
     } catch (error) {
       logger.error('updateThread failed:', error);
@@ -458,12 +461,15 @@ export class CrewThreadService {
    */
   static async deleteThread(threadId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('crew_threads')
         .delete()
-        .eq('id', threadId);
+        .eq('id', threadId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Crew thread not found.');
       return true;
     } catch (error) {
       logger.error('deleteThread failed:', error);
@@ -653,13 +659,16 @@ export class CrewThreadService {
    */
   static async removeMember(threadId: string, userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('crew_thread_members')
         .delete()
         .eq('thread_id', threadId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Crew thread member not found.');
       return true;
     } catch (error) {
       logger.error('removeMember failed:', error);
@@ -690,13 +699,16 @@ export class CrewThreadService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('crew_thread_members')
         .update({ last_read_at: new Date().toISOString() })
         .eq('thread_id', threadId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Crew thread member not found.');
       return true;
     } catch (error) {
       logger.error('markAsRead failed:', error);
@@ -851,12 +863,15 @@ export class CrewThreadService {
    */
   static async deleteMessage(messageId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('crew_thread_messages')
         .delete()
-        .eq('id', messageId);
+        .eq('id', messageId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Crew thread message not found.');
       return true;
     } catch (error) {
       logger.error('deleteMessage failed:', error);

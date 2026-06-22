@@ -139,11 +139,15 @@ export function useOrgInviteLinks(orgId: string) {
 
   const revoke = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('org_invite_links')
         .update({ revoked_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('org_id', orgId)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Invite link not found or no longer belongs to this organization.');
       return { id };
     },
     onSuccess: () => {

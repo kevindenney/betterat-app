@@ -67,20 +67,51 @@ const JOIN_MODE_OPTIONS: {
   },
 ];
 
+const SAILING_ORG_KINDS: SelfServeOrgKind[] = [
+  'fleet',
+  'training_squad',
+  'community',
+  'other',
+];
+
+const NURSING_ORG_KINDS: SelfServeOrgKind[] = [
+  'institution',
+];
+
+function defaultKindForInterest(interestSlug?: string | null): SelfServeOrgKind {
+  if (interestSlug === 'nursing') return 'institution';
+  return 'fleet';
+}
+
+function kindOptionsForInterest(interestSlug?: string | null): SelfServeOrgKind[] {
+  if (interestSlug === 'nursing') return NURSING_ORG_KINDS;
+  if (interestSlug === 'sail-racing') return SAILING_ORG_KINDS;
+  return [...SELF_SERVE_ORG_KINDS];
+}
+
+function placeholderForInterest(interestSlug?: string | null): string {
+  if (interestSlug === 'nursing') return 'Johns Hopkins Hospital';
+  if (interestSlug === 'sail-racing') return 'Hong Kong Dragon Racing Fleet';
+  return 'Name of the organization';
+}
+
 export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheetProps) {
   const router = useRouter();
   const { currentInterest } = useInterest();
   const { user } = useAuth();
   const createOrg = useCreateOrg();
+  const interestSlug = currentInterest?.slug;
+  const kindOptions = useMemo(() => kindOptionsForInterest(interestSlug), [interestSlug]);
 
   const [memberOrgIds, setMemberOrgIds] = useState<Set<string>>(new Set());
 
   const [name, setName] = useState(initialName || '');
-  const [kind, setKind] = useState<SelfServeOrgKind>('fleet');
+  const [kind, setKind] = useState<SelfServeOrgKind>(() => defaultKindForInterest(interestSlug));
   const [joinMode, setJoinMode] = useState<OrganizationJoinMode>('request_to_join');
   const [description, setDescription] = useState('');
   const [similar, setSimilar] = useState<SimilarOrgMatch[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
+  const isInstitutionRequest = interestSlug === 'nursing' && kind === 'institution';
 
   // Reset state ONLY when the sheet transitions from closed → open. Earlier
   // version had `initialName` in deps, which caused the effect to re-fire
@@ -94,12 +125,12 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
   React.useEffect(() => {
     if (visible) {
       setName(initialNameRef.current || '');
-      setKind('fleet');
+      setKind(defaultKindForInterest(interestSlug));
       setJoinMode('request_to_join');
       setDescription('');
       setSimilar([]);
     }
-  }, [visible]);
+  }, [visible, interestSlug]);
 
   // Load the orgs the current user already belongs to, so a dedup suggestion
   // they're already a member of reads "You're already a member → Open" rather
@@ -176,12 +207,21 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
       const created = await createOrg.mutateAsync({
         name: trimmedName,
         kind,
-        joinMode,
+        joinMode: isInstitutionRequest ? 'invite_only' : joinMode,
         description: description.trim() || undefined,
         interestSlug: currentInterest?.slug,
+        requestOnly: isInstitutionRequest,
       });
       onClose();
-      router.push(`/discover/org/${created.slug}?from=create` as any);
+      if (isInstitutionRequest) {
+        showAlert(
+          'Institution request sent',
+          'Your request is now in BetterAt’s admin review queue. It will appear in Organizations after approval.',
+        );
+        router.replace('/(tabs)/library?zone=orgs' as any);
+        return;
+      }
+      router.push(`/organizations/${created.slug}?from=${isInstitutionRequest ? 'institution-request' : 'create'}` as any);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Could not create organization.';
@@ -203,7 +243,9 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
             <Pressable onPress={onClose} style={styles.headerBtn} hitSlop={8}>
               <Text style={styles.headerBtnText}>Cancel</Text>
             </Pressable>
-            <Text style={styles.headerTitle}>Add an org</Text>
+            <Text style={styles.headerTitle}>
+              {isInstitutionRequest ? 'Request institution' : 'Add an org'}
+            </Text>
             <Pressable
               onPress={handleSubmit}
               style={[styles.headerBtn, !canSubmit && styles.headerBtnDisabled]}
@@ -220,7 +262,7 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
                     !canSubmit && styles.headerBtnTextDisabled,
                   ]}
                 >
-                  Create
+                  {isInstitutionRequest ? 'Request' : 'Create'}
                 </Text>
               )}
             </Pressable>
@@ -236,7 +278,7 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="Hong Kong Dragon Racing Fleet"
+              placeholder={placeholderForInterest(interestSlug)}
               placeholderTextColor={IOS_REGISTER.labelTertiary}
               autoCapitalize="words"
               autoFocus
@@ -309,7 +351,7 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
 
             <Text style={[styles.label, styles.sectionGap]}>What kind?</Text>
             <View style={styles.chipsRow}>
-              {SELF_SERVE_ORG_KINDS.map((k) => {
+              {kindOptions.map((k) => {
                 const active = kind === k;
                 return (
                   <Pressable
@@ -327,40 +369,58 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
               })}
             </View>
 
-            <Text style={[styles.label, styles.sectionGap]}>Who can join?</Text>
-            <View style={styles.joinList}>
-              {JOIN_MODE_OPTIONS.map((opt) => {
-                const active = joinMode === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => setJoinMode(opt.value)}
-                    style={[styles.joinRow, active && styles.joinRowActive]}
-                  >
-                    <View style={styles.joinRowBody}>
-                      <Text
-                        style={[
-                          styles.joinRowLabel,
-                          active && styles.joinRowLabelActive,
-                        ]}
+            {isInstitutionRequest ? (
+              <View style={styles.requestNotice}>
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={18}
+                  color={IOS_COLORS.systemBlue}
+                />
+                <View style={styles.requestNoticeCopy}>
+                  <Text style={styles.requestNoticeTitle}>Institutional setup is reviewed</Text>
+                  <Text style={styles.requestNoticeBody}>
+                    BetterAt will review this institution before it becomes official. You will be recorded as the requester and initial owner of the pending org record.
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <>
+                <Text style={[styles.label, styles.sectionGap]}>Who can join?</Text>
+                <View style={styles.joinList}>
+                  {JOIN_MODE_OPTIONS.map((opt) => {
+                    const active = joinMode === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        onPress={() => setJoinMode(opt.value)}
+                        style={[styles.joinRow, active && styles.joinRowActive]}
                       >
-                        {opt.label}
-                      </Text>
-                      <Text style={styles.joinRowHint}>{opt.hint}</Text>
-                    </View>
-                    <Ionicons
-                      name={active ? 'radio-button-on' : 'radio-button-off'}
-                      size={20}
-                      color={
-                        active
-                          ? IOS_COLORS.systemBlue
-                          : IOS_REGISTER.labelTertiary
-                      }
-                    />
-                  </Pressable>
-                );
-              })}
-            </View>
+                        <View style={styles.joinRowBody}>
+                          <Text
+                            style={[
+                              styles.joinRowLabel,
+                              active && styles.joinRowLabelActive,
+                            ]}
+                          >
+                            {opt.label}
+                          </Text>
+                          <Text style={styles.joinRowHint}>{opt.hint}</Text>
+                        </View>
+                        <Ionicons
+                          name={active ? 'radio-button-on' : 'radio-button-off'}
+                          size={20}
+                          color={
+                            active
+                              ? IOS_COLORS.systemBlue
+                              : IOS_REGISTER.labelTertiary
+                          }
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            )}
 
             <Text style={[styles.label, styles.sectionGap]}>
               Short description{' '}
@@ -370,7 +430,11 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
               style={[styles.input, styles.inputMulti]}
               value={description}
               onChangeText={setDescription}
-              placeholder="A line on what this org is about"
+              placeholder={
+                isInstitutionRequest
+                  ? 'Website, department, or contact context for review'
+                  : 'A line on what this org is about'
+              }
               placeholderTextColor={IOS_REGISTER.labelTertiary}
               multiline
               numberOfLines={3}
@@ -384,8 +448,9 @@ export function CreateOrgSheet({ visible, initialName, onClose }: CreateOrgSheet
                 color={IOS_REGISTER.labelSecondary}
               />
               <Text style={styles.footnoteText}>
-                You become owner. The org shows as user-started until a
-                verified parent adopts it.
+                {isInstitutionRequest
+                  ? 'This creates a hidden review placeholder and sends a real request to the BetterAt admin queue.'
+                  : 'You become owner. The org shows as user-started until a verified parent adopts it.'}
               </Text>
             </View>
           </ScrollView>
@@ -530,6 +595,31 @@ const styles = StyleSheet.create({
   },
   joinRowHint: {
     fontSize: 12,
+    color: IOS_REGISTER.labelSecondary,
+  },
+  requestNotice: {
+    marginTop: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,122,255,0.20)',
+    backgroundColor: 'rgba(0,122,255,0.06)',
+    padding: 12,
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  requestNoticeCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  requestNoticeTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: IOS_REGISTER.label,
+  },
+  requestNoticeBody: {
+    fontSize: 13,
+    lineHeight: 18,
     color: IOS_REGISTER.labelSecondary,
   },
   footnote: {

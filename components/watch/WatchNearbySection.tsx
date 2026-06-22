@@ -230,6 +230,11 @@ function NearbyStepCard({
           <Text style={[styles.relText, { color: audienceMeta.color }]}>{audienceLabel}</Text>
         </View>
       </View>
+      {step.step_title?.trim() ? (
+        <Text style={styles.stepTitle} numberOfLines={2}>
+          {step.step_title.trim()}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -263,6 +268,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  stepTitle: {
+    marginTop: IOS_SPACING.sm,
+    fontSize: 16,
+    fontFamily: fontFamily.serif,
+    fontWeight: '500',
+    color: IOS_COLORS.label,
+    letterSpacing: -0.25,
+    lineHeight: 20,
   },
   personMark: {
     width: 32,

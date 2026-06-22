@@ -36,7 +36,7 @@ jest.mock('../StepFocusConcepts', () => ({ StepFocusConcepts: 'StepFocusConcepts
 // metadata keeps the flag-off branch rendering deterministic and lets us
 // assert StepCritiqueContent / StepFocusConcepts are mounted without setting
 // up the React Query provider.
-jest.mock('@/hooks/useTimelineSteps', () => ({
+jest.mock('@/hooks/useStepDetail', () => ({
   useStepDetail: () => ({ data: undefined }),
 }));
 
@@ -99,7 +99,7 @@ describe('ReviewTab — flag branching', () => {
 
   it('forwards readOnly + footer to the shell when the flag is ON', () => {
     mockFlag = true;
-    const footer = TestRenderer.create(<></>);
+    const footer = 'footer-token';
     const tree = render({ readOnly: true, footer });
     const shell = tree.root.findByType('ReflectTabIOSRegisterShell' as unknown as React.ComponentType);
     expect(shell.props.readOnly).toBe(true);

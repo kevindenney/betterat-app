@@ -46,7 +46,6 @@ interface StepData {
     notes: string | null;
     media_uploads: { uri: string; type: string; caption?: string }[];
     media_links: { url: string; platform: string; caption?: string }[];
-    sub_step_progress: Record<string, boolean>;
   };
   review: {
     overall_rating: number | null;
@@ -155,7 +154,6 @@ async function fetchStepFromSupabase(shareToken: string): Promise<StepData | nul
         platform: m.platform || 'other',
         ...(m.caption ? { caption: m.caption } : {}),
       })),
-      sub_step_progress: actData.sub_step_progress || {},
     },
     review: {
       overall_rating: reviewData.overall_rating ?? null,

@@ -18,6 +18,27 @@ jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
 }));
 
+jest.mock('@/hooks/useStepBeats', () => ({
+  useStepBeatsBinding: () => ({
+    beats: [],
+    onAdd: jest.fn(),
+    onDelete: jest.fn(),
+    onEdit: jest.fn(),
+    onReorder: jest.fn(),
+    onToggleDone: jest.fn(),
+  }),
+}));
+
+jest.mock('@/hooks/useStepLibraryBefore', () => ({
+  useLibraryBeforeBinding: () => ({
+    items: [],
+    itemsByBeat: {},
+    itemsBySubStep: {},
+    onToggle: jest.fn(),
+    totalEstimate: undefined,
+  }),
+}));
+
 jest.mock('react-native', () => {
   const StyleSheet = {
     create: (styles: unknown) => styles,
@@ -36,12 +57,19 @@ jest.mock('react-native', () => {
       timing: () => ({ start: jest.fn(), stop: jest.fn() }),
       loop: () => ({ start: jest.fn(), stop: jest.fn() }),
     },
+    ActivityIndicator: 'ActivityIndicator',
     Image: 'Image',
+    Modal: 'Modal',
+    Platform: {
+      OS: 'ios',
+      select: (options: Record<string, unknown>) => options.ios ?? options.default,
+    },
     Pressable: 'Pressable',
     ScrollView: 'ScrollView',
     TouchableOpacity: 'TouchableOpacity',
     StyleSheet,
     Text: 'Text',
+    TextInput: 'TextInput',
     View: 'View',
   };
 });
@@ -81,15 +109,15 @@ describe('DoTabInterior — state gating', () => {
     const names = componentNames(tree.root);
     expect(names).toContain('DoLiveCard');
     expect(names).not.toContain('DoStartCard');
-    expect(names).not.toContain('PlanStartingFrameRow');
+    expect(names).toContain('PlanStartingFrameRow');
   });
 
-  it('mounts DoPostActivityCard (Frame 3) when state is post_activity and hides Frame 1/2 components', () => {
+  it('mounts DoPostActivityCard (Frame 3) when state is post_activity and keeps the plan reference', () => {
     const tree = renderInterior({ state: 'post_activity' });
     const names = componentNames(tree.root);
     expect(names).toContain('DoPostActivityCard');
     expect(names).not.toContain('DoStartCard');
-    expect(names).not.toContain('PlanStartingFrameRow');
+    expect(names).toContain('PlanStartingFrameRow');
     expect(names).not.toContain('DoLiveCard');
   });
 });

@@ -94,14 +94,14 @@ export class OrgSubscriptionService {
         },
       });
 
-      if (error) {
+      if (error || !data?.url) {
         logger.error('Error creating org checkout session:', error);
         return { success: false, error: 'Failed to create checkout session' };
       }
 
       return {
         success: true,
-        checkoutUrl: data?.url,
+        checkoutUrl: data.url,
       };
     } catch (error: any) {
       logger.error('Error creating org subscription:', error);
@@ -152,16 +152,22 @@ export class OrgSubscriptionService {
       }
 
       // In production, call Stripe API to cancel
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('organization_subscriptions')
         .update({
           status: 'cancelled',
           cancelled_at: new Date().toISOString(),
         })
-        .eq('id', subscription.id);
+        .eq('id', subscription.id)
+        .eq('organization_id', orgId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         throw new Error('Failed to update subscription status');
+      }
+      if (!data) {
+        throw new Error('Subscription could not be cancelled');
       }
 
       return { success: true };

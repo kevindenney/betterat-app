@@ -23,22 +23,18 @@ export interface SubscriptionPlan {
   stripeAnnualPriceId?: string;
 }
 
-/**
- * Club Stripe Price IDs
- * Created: 2026-01-02
- */
 export const CLUB_STRIPE_PRICE_IDS = {
   starter: {
-    monthly: 'price_1Sl0oHBbfEeOhHXbWRBa81j7',   // $249/month
-    annual: 'price_1Sl0oTBbfEeOhHXbAfA0x5gK',    // $2,499/year
+    monthly: process.env.EXPO_PUBLIC_STRIPE_ORG_STARTER_MONTHLY_PRICE_ID || '',
+    annual: process.env.EXPO_PUBLIC_STRIPE_ORG_STARTER_ANNUAL_PRICE_ID || '',
   },
   professional: {
-    monthly: 'price_1Sl0pABbfEeOhHXbEaubR9jr',  // $499/month
-    annual: 'price_1Sl0pMBbfEeOhHXb9reoud5b',   // $4,999/year
+    monthly: process.env.EXPO_PUBLIC_STRIPE_ORG_PROFESSIONAL_MONTHLY_PRICE_ID || '',
+    annual: process.env.EXPO_PUBLIC_STRIPE_ORG_PROFESSIONAL_ANNUAL_PRICE_ID || '',
   },
   enterprise: {
-    monthly: 'price_1Sl0q2BbfEeOhHXb89WAlrJC',  // $899/month
-    annual: 'price_1Sl0qRBbfEeOhHXbkVYk7YsW',   // $8,999/year
+    monthly: process.env.EXPO_PUBLIC_STRIPE_ORG_ENTERPRISE_MONTHLY_PRICE_ID || '',
+    annual: process.env.EXPO_PUBLIC_STRIPE_ORG_ENTERPRISE_ANNUAL_PRICE_ID || '',
   },
 };
 
@@ -103,12 +99,12 @@ export const CLUB_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   },
   {
     id: 'starter',
-    name: 'Club Starter',
-    monthlyPrice: 24900, // $249.00
-    annualPrice: 249900, // $2,499.00
-    monthlyPriceFormatted: '$249',
-    annualPriceFormatted: '$2,499',
-    annualSavings: 'Save $489',
+    name: 'Organization Starter',
+    monthlyPrice: 9900, // $99.00
+    annualPrice: 99900, // $999.00
+    monthlyPriceFormatted: '$99',
+    annualPriceFormatted: '$999',
+    annualSavings: 'Save $189',
     description: 'Up to 500 members',
     features: [
       'Up to 500 members',
@@ -123,12 +119,12 @@ export const CLUB_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   },
   {
     id: 'professional',
-    name: 'Club Pro',
-    monthlyPrice: 49900, // $499.00
-    annualPrice: 499900, // $4,999.00
-    monthlyPriceFormatted: '$499',
-    annualPriceFormatted: '$4,999',
-    annualSavings: 'Save $989',
+    name: 'Organization Pro',
+    monthlyPrice: 24900, // $249.00
+    annualPrice: 249900, // $2,499.00
+    monthlyPriceFormatted: '$249',
+    annualPriceFormatted: '$2,499',
+    annualSavings: 'Save $489',
     description: 'Up to 2,000 members',
     features: [
       'Up to 2,000 members',
@@ -144,12 +140,12 @@ export const CLUB_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   },
   {
     id: 'enterprise',
-    name: 'Enterprise',
-    monthlyPrice: 89900, // $899.00
-    annualPrice: 899900, // $8,999.00
-    monthlyPriceFormatted: '$899',
-    annualPriceFormatted: '$8,999',
-    annualSavings: 'Save $1,789',
+    name: 'Organization Enterprise',
+    monthlyPrice: 59900, // $599.00
+    annualPrice: 599900, // $5,999.00
+    monthlyPriceFormatted: '$599',
+    annualPriceFormatted: '$5,999',
+    annualSavings: 'Save $1,189',
     description: 'Unlimited members',
     features: [
       'Unlimited members',

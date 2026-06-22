@@ -24,10 +24,56 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+const ORG_ADMIN_ROLES = new Set(['owner', 'admin', 'manager']);
 
 interface PortalRequest {
   organizationId: string;
   returnUrl: string;
+}
+
+// deno-lint-ignore no-explicit-any
+type SupabaseClient = any;
+
+function jsonResponse(body: Record<string, unknown>, status: number): Response {
+  return new Response(
+    JSON.stringify(body),
+    { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function requireOrgBillingAdmin(
+  req: Request,
+  supabase: SupabaseClient,
+  organizationId: string
+): Promise<Response | null> {
+  const authHeader = req.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  if (!token) {
+    return jsonResponse({ error: 'Missing authorization header' }, 401);
+  }
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+
+  const { data: membership } = await supabase
+    .from('organization_memberships')
+    .select('role, status, membership_status')
+    .eq('organization_id', organizationId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const role = String(membership?.role || '').trim().toLowerCase();
+  const status = String(membership?.membership_status || membership?.status || '').trim().toLowerCase();
+
+  if (!ORG_ADMIN_ROLES.has(role) || status !== 'active') {
+    return jsonResponse({ error: 'Forbidden' }, 403);
+  }
+
+  return null;
 }
 
 serve(async (req) => {
@@ -46,6 +92,8 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const authResponse = await requireOrgBillingAdmin(req, supabase, organizationId);
+    if (authResponse) return authResponse;
 
     // Resolve the Stripe customer for the org. The subscription row is the most
     // reliable source (written by the webhook); fall back to the org record.

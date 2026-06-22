@@ -374,16 +374,19 @@ class CommunityServiceClass {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Must be logged in to leave a community');
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('community_memberships')
       .delete()
       .eq('user_id', user.id)
-      .eq('community_id', communityId);
+      .eq('community_id', communityId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('[CommunityService] Error leaving community:', error);
       throw error;
     }
+    if (!data) throw new Error('Community membership not found.');
   }
 
   /**
@@ -562,16 +565,19 @@ class CommunityServiceClass {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Must be logged in');
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('community_memberships')
       .update({ notifications_enabled: enabled })
       .eq('user_id', user.id)
-      .eq('community_id', communityId);
+      .eq('community_id', communityId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('[CommunityService] Error toggling notifications:', error);
       throw error;
     }
+    if (!data) throw new Error('Community membership not found.');
   }
 
   // ============================================================================

@@ -832,6 +832,14 @@ function computeSeasonAnalysis(
         });
       }
     };
+    const visualFromTitle = (title: string): { canonicalLabel: string; color: string } | null => {
+      for (const entry of interestVocab.palette ?? []) {
+        if (entry.pattern.test(title)) {
+          return { canonicalLabel: entry.canonicalLabel, color: entry.color };
+        }
+      }
+      return null;
+    };
     for (const step of week.steps) {
       // A step pinned in from another interest is a cross-link, not part
       // of this sketchbook's capability development — its goals (e.g. a
@@ -850,6 +858,9 @@ function computeSeasonAnalysis(
           const v = resolveCapabilityVisuals(cap.label, interestVocab);
           bump(v.canonicalLabel, v.color, 'planned');
         }
+      } else {
+        const v = visualFromTitle(step.title);
+        if (v) bump(v.canonicalLabel, v.color, 'planned');
       }
       // Proven layer — confirmed step_capability_evidence rows. Mapped
       // through the same palette so a planned "Sail Design" and a
@@ -1955,6 +1966,8 @@ interface AdapterInput {
    * when null, it creates a new plan + writes vision to it.
    */
   activePlanId?: string | null;
+  /** Plan-level display currency for money-vocab interests. */
+  planCurrency?: string | null;
   /**
    * Optional weekly business outcomes (entrepreneur interest only).
    * When supplied for an entrepreneurial persona, drives the D11
@@ -2005,6 +2018,7 @@ export function mapToTimelineDataset({
   stepReflectionsMap,
   interestVision,
   activePlanId,
+  planCurrency,
   businessOutcomes,
   competencyProgress,
 }: AdapterInput): TimelineDataset {
@@ -2280,7 +2294,7 @@ export function mapToTimelineDataset({
   let seasonHeadline: HeadlineMetricValue | undefined;
   let lifetimeHeadline: HeadlineMetricValue | undefined;
   if (interestVocab.id === 'entrepreneur' && businessOutcomes && businessOutcomes.length > 0) {
-    const moneyConfig = moneyConfigForCurrency(businessOutcomes[0]?.currency);
+    const moneyConfig = moneyConfigForCurrency(planCurrency ?? businessOutcomes[0]?.currency);
     if (moneyConfig) {
       const toMajor = (rows: BusinessOutcomeInput[]) =>
         rows.reduce((sum, r) => sum + r.revenueMinor / 100, 0);

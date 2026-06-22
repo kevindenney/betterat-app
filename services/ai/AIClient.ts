@@ -1,4 +1,4 @@
-import { getAICircuitBreaker, CircuitOpenError } from '@/lib/utils/aiCircuitBreaker';
+import { getAICircuitBreaker } from '@/lib/utils/aiCircuitBreaker';
 import { shouldTriggerFallback, activateFallbackMode } from '@/lib/utils/aiFallback';
 
 /** Must match the constant in invokeAIEdgeFunction.ts */
@@ -41,8 +41,6 @@ export interface AIResponse {
 export class AIClient {
   protected readonly apiUrl = 'supabase.functions.race-coaching-chat';
 
-  constructor(_apiKey?: string) {}
-
   private isNodeRuntime(): boolean {
     return typeof process !== 'undefined' && Boolean(process.versions?.node);
   }
@@ -73,6 +71,9 @@ export class AIClient {
 
     const edgeUrl = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/${functionName}`;
 
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), AI_EDGE_FUNCTION_TIMEOUT_MS);
+
     try {
       const response = await fetch(edgeUrl, {
         method: 'POST',
@@ -81,7 +82,7 @@ export class AIClient {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(AI_EDGE_FUNCTION_TIMEOUT_MS),
+        signal: abortController.signal,
       });
 
       const rawText = await response.text();
@@ -111,6 +112,8 @@ export class AIClient {
         data: null,
         error: { message },
       };
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

@@ -2,10 +2,10 @@
  * Create Org Checkout Session Edge Function
  * Creates a Stripe Checkout session for organization (club) subscriptions.
  *
- * Flat Club tiers (web-only; Apple/Google IAP rejects B2B/org billing):
- * - starter:      $249/mo · $2,499/yr  (members get Pro)
- * - professional: $499/mo · $4,999/yr  (members get Pro)
- * - enterprise:   $899/mo · $8,999/yr  (members get Pro)
+ * Flat Organization tiers (web-only; Apple/Google IAP rejects B2B/org billing):
+ * - starter:      $99/mo  · $999/yr    (members get Pro)
+ * - professional: $249/mo · $2,499/yr  (members get Pro)
+ * - enterprise:   $599/mo · $5,999/yr  (members get Pro)
  *
  * Price IDs are allowlisted here (mirror lib/subscriptions/orgTiers.ts) so a
  * caller can't check out an arbitrary price.
@@ -32,39 +32,87 @@ type BillingPeriod = 'monthly' | 'annual';
 
 type PlanPriceTable = Record<OrgPlanId, { monthly: string; annual: string }>;
 
+function firstEnvValue(names: string[]): string {
+  for (const name of names) {
+    const value = Deno.env.get(name)?.trim();
+    if (value && /^price_[A-Za-z0-9]+$/.test(value)) return value;
+  }
+  return '';
+}
+
 // TEST-mode price IDs (live in the test Stripe account). Active whenever the
 // function runs with an sk_test key.
 const ORG_PLAN_PRICES_TEST: PlanPriceTable = {
   starter: {
-    monthly: 'price_1Sl0oHBbfEeOhHXbWRBa81j7', // $249/mo
-    annual: 'price_1Sl0oTBbfEeOhHXbAfA0x5gK', // $2,499/yr
+    monthly: 'price_1Sl0oHBbfEeOhHXbWRBa81j7', // test catalog
+    annual: 'price_1Sl0oTBbfEeOhHXbAfA0x5gK', // test catalog
   },
   professional: {
-    monthly: 'price_1Sl0pABbfEeOhHXbEaubR9jr', // $499/mo
-    annual: 'price_1Sl0pMBbfEeOhHXb9reoud5b', // $4,999/yr
+    monthly: 'price_1Sl0pABbfEeOhHXbEaubR9jr', // test catalog
+    annual: 'price_1Sl0pMBbfEeOhHXb9reoud5b', // test catalog
   },
   enterprise: {
-    monthly: 'price_1Sl0q2BbfEeOhHXb89WAlrJC', // $899/mo
-    annual: 'price_1Sl0qRBbfEeOhHXbkVYk7YsW', // $8,999/yr
+    monthly: 'price_1Sl0q2BbfEeOhHXb89WAlrJC', // test catalog
+    annual: 'price_1Sl0qRBbfEeOhHXbkVYk7YsW', // test catalog
   },
 };
 
-// LIVE-mode price IDs. TODO(live): create the live products/prices in the live
-// Stripe account and paste the six `price_…` IDs below. Until then live
-// checkout is intentionally blocked (see the guard in serve()) so we never
-// charge against a placeholder. Swapping each value in is a one-line edit.
+// LIVE-mode price IDs. Keep these in Supabase secrets/env vars so production
+// Stripe can be configured without shipping a code change.
 const ORG_PLAN_PRICES_LIVE: PlanPriceTable = {
   starter: {
-    monthly: '', // TODO(live): $249/mo live price ID
-    annual: '', // TODO(live): $2,499/yr live price ID
+    monthly: firstEnvValue([
+      'STRIPE_ORG_STARTER_MONTHLY_PRICE_ID',
+      'STRIPE_CLUB_STARTER_MONTHLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_ORG_STARTER_MONTHLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_CLUB_STARTER_MONTHLY_PRICE_ID',
+    ]),
+    annual: firstEnvValue([
+      'STRIPE_ORG_STARTER_ANNUAL_PRICE_ID',
+      'STRIPE_ORG_STARTER_YEARLY_PRICE_ID',
+      'STRIPE_CLUB_STARTER_ANNUAL_PRICE_ID',
+      'STRIPE_CLUB_STARTER_YEARLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_ORG_STARTER_ANNUAL_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_ORG_STARTER_YEARLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_CLUB_STARTER_ANNUAL_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_CLUB_STARTER_YEARLY_PRICE_ID',
+    ]),
   },
   professional: {
-    monthly: '', // TODO(live): $499/mo live price ID
-    annual: '', // TODO(live): $4,999/yr live price ID
+    monthly: firstEnvValue([
+      'STRIPE_ORG_PROFESSIONAL_MONTHLY_PRICE_ID',
+      'STRIPE_CLUB_PROFESSIONAL_MONTHLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_ORG_PROFESSIONAL_MONTHLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_CLUB_PROFESSIONAL_MONTHLY_PRICE_ID',
+    ]),
+    annual: firstEnvValue([
+      'STRIPE_ORG_PROFESSIONAL_ANNUAL_PRICE_ID',
+      'STRIPE_ORG_PROFESSIONAL_YEARLY_PRICE_ID',
+      'STRIPE_CLUB_PROFESSIONAL_ANNUAL_PRICE_ID',
+      'STRIPE_CLUB_PROFESSIONAL_YEARLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_ORG_PROFESSIONAL_ANNUAL_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_ORG_PROFESSIONAL_YEARLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_CLUB_PROFESSIONAL_ANNUAL_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_CLUB_PROFESSIONAL_YEARLY_PRICE_ID',
+    ]),
   },
   enterprise: {
-    monthly: '', // TODO(live): $899/mo live price ID
-    annual: '', // TODO(live): $8,999/yr live price ID
+    monthly: firstEnvValue([
+      'STRIPE_ORG_ENTERPRISE_MONTHLY_PRICE_ID',
+      'STRIPE_CLUB_ENTERPRISE_MONTHLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_ORG_ENTERPRISE_MONTHLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_CLUB_ENTERPRISE_MONTHLY_PRICE_ID',
+    ]),
+    annual: firstEnvValue([
+      'STRIPE_ORG_ENTERPRISE_ANNUAL_PRICE_ID',
+      'STRIPE_ORG_ENTERPRISE_YEARLY_PRICE_ID',
+      'STRIPE_CLUB_ENTERPRISE_ANNUAL_PRICE_ID',
+      'STRIPE_CLUB_ENTERPRISE_YEARLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_ORG_ENTERPRISE_ANNUAL_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_ORG_ENTERPRISE_YEARLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_CLUB_ENTERPRISE_ANNUAL_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_CLUB_ENTERPRISE_YEARLY_PRICE_ID',
+    ]),
   },
 };
 
@@ -73,6 +121,7 @@ const ORG_PLAN_PRICES_LIVE: PlanPriceTable = {
 const ORG_PLAN_PRICES: PlanPriceTable = IS_LIVE_MODE ? ORG_PLAN_PRICES_LIVE : ORG_PLAN_PRICES_TEST;
 
 const MEMBER_TIER = 'pro';
+const ORG_ADMIN_ROLES = new Set(['owner', 'admin', 'manager']);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -85,6 +134,51 @@ interface OrgCheckoutRequest {
   billingPeriod: BillingPeriod;
   successUrl: string;
   cancelUrl: string;
+}
+
+// deno-lint-ignore no-explicit-any
+type SupabaseClient = any;
+
+function jsonResponse(body: Record<string, unknown>, status: number): Response {
+  return new Response(
+    JSON.stringify(body),
+    { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function requireOrgBillingAdmin(
+  req: Request,
+  supabase: SupabaseClient,
+  organizationId: string
+): Promise<Response | null> {
+  const authHeader = req.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  if (!token) {
+    return jsonResponse({ error: 'Missing authorization header' }, 401);
+  }
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+
+  const { data: membership } = await supabase
+    .from('organization_memberships')
+    .select('role, status, membership_status')
+    .eq('organization_id', organizationId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const role = String(membership?.role || '').trim().toLowerCase();
+  const status = String(membership?.membership_status || membership?.status || '').trim().toLowerCase();
+
+  if (!ORG_ADMIN_ROLES.has(role) || status !== 'active') {
+    return jsonResponse({ error: 'Forbidden' }, 403);
+  }
+
+  return null;
 }
 
 serve(async (req) => {
@@ -114,12 +208,12 @@ serve(async (req) => {
     const priceId = billingPeriod === 'annual' ? planPrices.annual : planPrices.monthly;
 
     // Live mode with unfilled price IDs -> fail loudly instead of calling Stripe
-    // with an empty price. Clears once ORG_PLAN_PRICES_LIVE is populated.
+    // with an empty price. Clears once the corresponding env var is set.
     if (!priceId) {
       return new Response(
         JSON.stringify({
           error: IS_LIVE_MODE
-            ? 'Live org pricing is not configured yet. Add the live Stripe price IDs to ORG_PLAN_PRICES_LIVE.'
+            ? `Live org pricing is not configured for ${planId} (${billingPeriod}). Set the matching STRIPE_ORG_*_PRICE_ID secret.`
             : `No price configured for ${planId} (${billingPeriod}).`,
         }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -127,6 +221,8 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const authResponse = await requireOrgBillingAdmin(req, supabase, organizationId);
+    if (authResponse) return authResponse;
 
     // Get org info. The Stripe customer id lives on organization_subscriptions
     // (the organizations table has no stripe_customer_id column).
@@ -236,8 +332,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Org checkout session error:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: 'Failed to create checkout session', message: error.message }),
+      JSON.stringify({ error: 'Failed to create checkout session', message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

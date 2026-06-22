@@ -2,9 +2,21 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  setupFiles: ['<rootDir>/test/jest/setup.js'],
   roots: ['<rootDir>'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   moduleNameMapper: {
+    '^expo-router$': '<rootDir>/test/jest/expo-router.js',
+    '^expo-constants$': '<rootDir>/test/jest/expo-constants.js',
+    '^expo-localization$': '<rootDir>/test/jest/expo-localization.js',
+    '^expo-haptics$': '<rootDir>/test/jest/expo-haptics.js',
+    '^@expo/vector-icons$': '<rootDir>/test/jest/expo-vector-icons.js',
+    '^lucide-react-native$': '<rootDir>/test/jest/lucide-react-native.js',
+    '^react-native-gesture-handler$': '<rootDir>/test/jest/react-native-gesture-handler.js',
+    '^react-native-reanimated$': '<rootDir>/test/jest/react-native-reanimated.js',
+    '^react-native-safe-area-context$': '<rootDir>/test/jest/react-native-safe-area-context.js',
+    '^react-native-url-polyfill/auto$': '<rootDir>/test/jest/empty.js',
+    '^@sentry/react-native$': '<rootDir>/test/jest/sentry-react-native.js',
     '^@/(.*)$': '<rootDir>/$1',
   },
   transformIgnorePatterns: [

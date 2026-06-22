@@ -122,6 +122,7 @@ function mapOrganization(row: any): YachtClubOrganization {
     total_entry_refs: Number(row.total_entry_refs || 0),
     pricing_tier: row.pricing_tier || null,
     join_mode: (row.join_mode as OrgJoinMode) || null,
+    interest_slug: row.interest_slug ? String(row.interest_slug) : null,
   };
 }
 
@@ -137,6 +138,7 @@ export class YachtClubClaimService {
       .from('organizations')
       .select(ORG_SELECT)
       .eq('slug', cleanSlug)
+      .eq('is_active', true)
       .maybeSingle();
 
     if (error) throw error;

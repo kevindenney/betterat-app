@@ -13,10 +13,16 @@ import { useInterest } from '@/providers/InterestProvider';
 import { useOrganizationBlueprints, useBlueprintSteps, useSubscribe, useUnsubscribe, useBlueprintSubscription } from '@/hooks/useBlueprint';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import type { BlueprintRecord } from '@/types/blueprint';
-import { organizationDiscoveryService, type OrganizationJoinMode } from '@/services/OrganizationDiscoveryService';
+import {
+  isRequestJoinActive,
+  isRequestJoinPending,
+  organizationDiscoveryService,
+  type OrganizationJoinMode,
+} from '@/services/OrganizationDiscoveryService';
 import { useOrgPrograms, useOrgMemberTimelines } from '@/hooks/usePrograms';
 import { programService } from '@/services/ProgramService';
 import { supabase } from '@/services/supabase';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 
 interface OrganizationBrowserPageProps {
   interestSlug: string;
@@ -135,7 +141,7 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
 
             console.warn('[OrgBrowserPage] Membership check:', membership);
             if (membership && membership.length > 0) {
-              const status = membership[0].membership_status || membership[0].status;
+              const status = resolveOrgMembershipStatus(membership[0]);
               if (status === 'active') setJoinState('joined');
               else if (status === 'pending') setJoinState('pending');
             }
@@ -245,10 +251,10 @@ export function OrganizationBrowserPage({ interestSlug, orgSlug }: OrganizationB
       console.warn('[OrgBrowserPage] requestJoin:', { orgId: dbOrgId, mode: joinMode });
       const result = await organizationDiscoveryService.requestJoin({ orgId: dbOrgId, mode: joinMode! });
       console.warn('[OrgBrowserPage] requestJoin result:', result);
-      if (result.status === 'active' || result.status === 'existing') {
+      if (isRequestJoinActive(result)) {
         setJoinState('joined');
         showAlert('Joined', `You've joined ${org!.name}. Welcome!`);
-      } else if (result.status === 'pending') {
+      } else if (isRequestJoinPending(result)) {
         setJoinState('pending');
         showAlert('Request Sent', `Your request to join ${org!.name} has been sent. An admin will review it.`);
       } else {

@@ -38,6 +38,17 @@ export type RequestJoinResult = {
   message: string;
 };
 
+export function isRequestJoinActive(result: RequestJoinResult): boolean {
+  return (
+    result.status === 'active' ||
+    (result.status === 'existing' && result.membershipStatus === 'active')
+  );
+}
+
+export function isRequestJoinPending(result: RequestJoinResult): boolean {
+  return result.status === 'pending' || result.membershipStatus === 'pending';
+}
+
 const DEFAULT_LIMIT = 12;
 
 function normalizeJoinMode(value: unknown): OrganizationJoinMode {
@@ -80,6 +91,10 @@ function normalizeMembershipStatus(value: unknown): 'active' | 'pending' | 'reje
 
 function escapeLike(value: string): string {
   return value.replace(/[%_]/g, '');
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return Boolean(error) && (error as {code?: string}).code === '23505';
 }
 
 class OrganizationDiscoveryService {
@@ -407,7 +422,41 @@ class OrganizationDiscoveryService {
       .from('organization_memberships')
       .insert(insertPayload);
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      if (!isUniqueViolation(insertError)) throw insertError;
+
+      const {data: racedRows, error: racedError} = await supabase
+        .from('organization_memberships')
+        .select('status,membership_status')
+        .eq('organization_id', input.orgId)
+        .eq('user_id', userId)
+        .order('created_at', {ascending: false})
+        .limit(1);
+      if (racedError) throw racedError;
+
+      const raced = Array.isArray(racedRows) ? racedRows[0] : null;
+      const racedStatus = String(raced?.status || '').toLowerCase();
+      const racedMembershipStatus = normalizeMembershipStatus(raced?.membership_status);
+      if (racedStatus === 'active' || racedMembershipStatus === 'active') {
+        return {
+          status: 'existing',
+          membershipStatus: 'active',
+          message: 'Already a member.',
+        };
+      }
+      if (racedStatus === 'pending' || racedMembershipStatus === 'pending' || racedStatus === 'invited') {
+        return {
+          status: 'existing',
+          membershipStatus: 'pending',
+          message: 'Request already pending.',
+        };
+      }
+      return {
+        status: 'blocked',
+        membershipStatus: racedMembershipStatus,
+        message: 'Request could not be submitted. Please try again.',
+      };
+    }
 
     return {
       status: nextStatus,

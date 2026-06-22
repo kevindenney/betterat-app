@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TabScreenToolbar } from '@/components/ui/TabScreenToolbar';
 import { supabase } from '@/services/supabase';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 import { useInterest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { findPersonBySlug, type PersonSearchResult, type SampleTimelineStep } from '@/lib/landing/sampleData';
@@ -67,14 +68,8 @@ type OrganizationRow = {
   interest_slug: string | null;
 };
 
-function normalize(value: unknown): string {
-  return String(value || '').trim().toLowerCase();
-}
-
 function isActiveMembership(row: MembershipRow): boolean {
-  const membershipStatus = normalize(row.membership_status);
-  const status = normalize(row.status);
-  return membershipStatus === 'active' || status === 'active';
+  return isResolvedOrgMembershipActive(row);
 }
 
 /** Convert DB TimelineStepRecord status to SampleTimelineStep status */

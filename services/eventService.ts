@@ -242,12 +242,15 @@ export class EventService {
    * Delete an event
    */
   static async deleteEvent(eventId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('club_events')
       .delete()
-      .eq('id', eventId);
+      .eq('id', eventId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('Event not found.');
   }
 
   /**
@@ -401,7 +404,7 @@ export class EventService {
     const fileExt = file.name.split('.').pop();
     const fileName = `${eventId}/${documentType}_${Date.now()}.${fileExt}`;
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('event-documents')
       .upload(fileName, file);
 
@@ -479,12 +482,15 @@ export class EventService {
     }
 
     // Delete record
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('event_documents')
       .delete()
-      .eq('id', documentId);
+      .eq('id', documentId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('Event document not found.');
   }
 
   // =====================================================

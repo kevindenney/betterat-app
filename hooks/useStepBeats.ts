@@ -24,6 +24,10 @@ export interface StepBeat {
   updated_at: string;
 }
 
+function assertChangedStepBeat(data: { id: string } | null): void {
+  if (!data) throw new Error('Step beat not found.');
+}
+
 export function useStepBeats(stepId: string | undefined) {
   return useQuery<StepBeat[]>({
     queryKey: ['step-beats', stepId],
@@ -101,11 +105,14 @@ export function useUpdateStepBeat() {
       if (time_label !== undefined) patch.time_label = time_label?.trim() || null;
       if (body !== undefined) patch.body = body?.trim() || null;
       if (Object.keys(patch).length === 0) return;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('step_beats')
         .update(patch)
-        .eq('id', id);
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      assertChangedStepBeat(data);
     },
     onMutate: async ({ id, stepId, title, time_label, body }) => {
       const key = ['step-beats', stepId];
@@ -141,8 +148,14 @@ export function useDeleteStepBeat() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string; stepId: string }) => {
-      const { error } = await supabase.from('step_beats').delete().eq('id', id);
+      const { data, error } = await supabase
+        .from('step_beats')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      assertChangedStepBeat(data);
     },
     onMutate: async ({ id, stepId }) => {
       const key = ['step-beats', stepId];
@@ -166,11 +179,14 @@ export function useToggleStepBeatDone() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, done }: { id: string; stepId: string; done: boolean }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('step_beats')
         .update({ done })
-        .eq('id', id);
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      assertChangedStepBeat(data);
     },
     onMutate: async ({ id, stepId, done }) => {
       const key = ['step-beats', stepId];
@@ -211,8 +227,11 @@ export function useReorderStepBeats() {
             .from('step_beats')
             .update({ position: idx + 1 })
             .eq('id', id)
-            .then(({ error }) => {
+            .select('id')
+            .maybeSingle()
+            .then(({ data, error }) => {
               if (error) throw error;
+              assertChangedStepBeat(data);
             }),
         ),
       );

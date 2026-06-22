@@ -251,16 +251,19 @@ export async function recordCoachRating(
   coachId: string,
   rating: number,
 ): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from(TABLE)
     .update({
       coach_rating: rating,
       coach_id: coachId,
       coach_rated_at: new Date().toISOString(),
     })
-    .eq('id', goalId);
+    .eq('id', goalId)
+    .select('id')
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) throw new Error('Skill goal not found.');
 }
 
 // ---------------------------------------------------------------------------
@@ -269,20 +272,26 @@ export async function recordCoachRating(
 
 /** Archive a skill goal (soft delete) */
 export async function archiveSkillGoal(id: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from(TABLE)
     .update({ status: 'archived' })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) throw new Error('Skill goal not found.');
 }
 
 /** Permanently delete a skill goal */
 export async function deleteSkillGoal(id: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from(TABLE)
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) throw new Error('Skill goal not found.');
 }

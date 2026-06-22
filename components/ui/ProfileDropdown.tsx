@@ -35,6 +35,7 @@ import { router, usePathname } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData, OrgMembership } from '@/hooks/useProfileMenuData';
 import { useInterest } from '@/providers/InterestProvider';
+import { useOrganization } from '@/providers/OrganizationProvider';
 import { IOS_COLORS, IOS_ANIMATIONS, IOS_TOUCH } from '@/lib/design-tokens-ios';
 import { triggerHaptic } from '@/lib/haptics';
 import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
@@ -104,6 +105,7 @@ export function ProfileDropdown({
   const menu = useProfileMenuData();
   const homeVenue = useUserHomeVenue();
   const { currentInterest, switchInterest, userInterests } = useInterest();
+  const { setActiveOrganizationId } = useOrganization();
   const { data: inboxCount = 0 } = useInboxCount();
 
   // Boats only exist for the sailing interest (see AccountModalContent's
@@ -175,6 +177,7 @@ export function ProfileDropdown({
   // opening its page instead.
   const handleSwitchToOrg = async (org: OrgMembership) => {
     setOpen(false);
+    await setActiveOrganizationId(org.org_id);
     if (!org.interest_slug) {
       if (org.org_slug) router.push(`/org/${org.org_slug}` as any);
       return;

@@ -86,15 +86,18 @@ class FollowerPostServiceClass {
    * Delete a follower post (owner only — enforced by RLS)
    */
   async deletePost(postId: string): Promise<boolean> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('follower_posts')
       .delete()
-      .eq('id', postId);
+      .eq('id', postId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Error deleting follower post:', error);
       return false;
     }
+    if (!data) return false;
 
     return true;
   }

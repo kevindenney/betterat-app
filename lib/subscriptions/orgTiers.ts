@@ -1,11 +1,10 @@
 /**
  * Organization (Club / Institutional) Tier Definitions
  *
- * Updated: 2026-06-08 — moved from a per-seat model to flat Club tiers that
- * mirror the marketing site (better.at/#pricing → "Clubs & teams"):
- * - Starter:      $249/mo  · $2,499/yr  (up to 500 members)
- * - Professional: $499/mo  · $4,999/yr  (up to 2,000 members)
- * - Enterprise:   $899/mo  · $8,999/yr  (unlimited)
+ * Updated: 2026-06-21 — flat Organization tiers:
+ * - Starter:      $99/mo   · $999/yr    (up to 500 members)
+ * - Professional: $249/mo  · $2,499/yr  (up to 2,000 members)
+ * - Enterprise:   $599/mo  · $5,999/yr  (unlimited)
  *
  * All paid Club tiers grant members the Pro tier. Org subscriptions are
  * web-only (Stripe Checkout); Apple/Google IAP rejects B2B/org billing.
@@ -43,36 +42,37 @@ export interface OrgPlanDefinition {
 }
 
 /**
- * Real Stripe price IDs (created 2026-01-02). Kept in sync with the
- * allowlist inside supabase/functions/create-org-checkout-session.
+ * Stripe price IDs. The client reads public build env vars, while
+ * supabase/functions/create-org-checkout-session keeps its own server-side
+ * allowlist from Supabase secrets.
  */
 export const ORG_STRIPE_PRICE_IDS: Record<OrgPlanId, { monthly: string; annual: string }> = {
   starter: {
-    monthly: 'price_1Sl0oHBbfEeOhHXbWRBa81j7', // $249/mo
-    annual: 'price_1Sl0oTBbfEeOhHXbAfA0x5gK', // $2,499/yr
+    monthly: process.env.EXPO_PUBLIC_STRIPE_ORG_STARTER_MONTHLY_PRICE_ID || '',
+    annual: process.env.EXPO_PUBLIC_STRIPE_ORG_STARTER_ANNUAL_PRICE_ID || '',
   },
   professional: {
-    monthly: 'price_1Sl0pABbfEeOhHXbEaubR9jr', // $499/mo
-    annual: 'price_1Sl0pMBbfEeOhHXb9reoud5b', // $4,999/yr
+    monthly: process.env.EXPO_PUBLIC_STRIPE_ORG_PROFESSIONAL_MONTHLY_PRICE_ID || '',
+    annual: process.env.EXPO_PUBLIC_STRIPE_ORG_PROFESSIONAL_ANNUAL_PRICE_ID || '',
   },
   enterprise: {
-    monthly: 'price_1Sl0q2BbfEeOhHXb89WAlrJC', // $899/mo
-    annual: 'price_1Sl0qRBbfEeOhHXbkVYk7YsW', // $8,999/yr
+    monthly: process.env.EXPO_PUBLIC_STRIPE_ORG_ENTERPRISE_MONTHLY_PRICE_ID || '',
+    annual: process.env.EXPO_PUBLIC_STRIPE_ORG_ENTERPRISE_ANNUAL_PRICE_ID || '',
   },
 };
 
 export const ORG_PLANS: Record<OrgPlanId, OrgPlanDefinition> = {
   starter: {
     id: 'starter',
-    name: 'Club Starter',
+    name: 'Organization Starter',
     description: 'Up to 500 members',
-    price: '$249',
-    priceDetail: '/month · or $2,499/year',
-    monthlyPrice: 24900,
-    annualPrice: 249900,
-    monthlyPriceFormatted: '$249',
-    annualPriceFormatted: '$2,499',
-    annualSavings: 'Save $489',
+    price: '$99',
+    priceDetail: '/month · or $999/year',
+    monthlyPrice: 9900,
+    annualPrice: 99900,
+    monthlyPriceFormatted: '$99',
+    annualPriceFormatted: '$999',
+    annualSavings: 'Save $189',
     memberTier: 'pro',
     features: [
       'Up to 500 members',
@@ -91,15 +91,15 @@ export const ORG_PLANS: Record<OrgPlanId, OrgPlanDefinition> = {
   },
   professional: {
     id: 'professional',
-    name: 'Club Pro',
+    name: 'Organization Pro',
     description: 'Up to 2,000 members',
-    price: '$499',
-    priceDetail: '/month · or $4,999/year',
-    monthlyPrice: 49900,
-    annualPrice: 499900,
-    monthlyPriceFormatted: '$499',
-    annualPriceFormatted: '$4,999',
-    annualSavings: 'Save $989',
+    price: '$249',
+    priceDetail: '/month · or $2,499/year',
+    monthlyPrice: 24900,
+    annualPrice: 249900,
+    monthlyPriceFormatted: '$249',
+    annualPriceFormatted: '$2,499',
+    annualSavings: 'Save $489',
     memberTier: 'pro',
     features: [
       'Up to 2,000 members',
@@ -119,15 +119,15 @@ export const ORG_PLANS: Record<OrgPlanId, OrgPlanDefinition> = {
   },
   enterprise: {
     id: 'enterprise',
-    name: 'Enterprise',
+    name: 'Organization Enterprise',
     description: 'Unlimited members',
-    price: '$899',
-    priceDetail: '/month · or $8,999/year',
-    monthlyPrice: 89900,
-    annualPrice: 899900,
-    monthlyPriceFormatted: '$899',
-    annualPriceFormatted: '$8,999',
-    annualSavings: 'Save $1,789',
+    price: '$599',
+    priceDetail: '/month · or $5,999/year',
+    monthlyPrice: 59900,
+    annualPrice: 599900,
+    monthlyPriceFormatted: '$599',
+    annualPriceFormatted: '$5,999',
+    annualSavings: 'Save $1,189',
     memberTier: 'pro',
     features: [
       'Unlimited members',

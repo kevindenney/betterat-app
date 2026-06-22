@@ -107,7 +107,7 @@ class OrgManagementService {
    */
   static async archiveOrg(orgId: string): Promise<void> {
     const nowIso = new Date().toISOString();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('organizations')
       .update({
         status: 'archived',
@@ -115,11 +115,16 @@ class OrgManagementService {
         is_active: false,
         updated_at: nowIso,
       })
-      .eq('id', orgId);
+      .eq('id', orgId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.warn('archiveOrg failed', error);
       throw new Error(error.message || 'Could not archive org.');
+    }
+    if (!data) {
+      throw new Error('Organization not found or you do not have access to archive it.');
     }
   }
 }

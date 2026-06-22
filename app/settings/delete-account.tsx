@@ -43,8 +43,18 @@ export default function DeleteAccountScreen() {
   const isOAuthUser = !!provider && provider !== 'email';
 
   const handleDeleteAccount = async () => {
+    if (!user?.id) {
+      showAlert('Error', 'You must be signed in to delete your account');
+      return;
+    }
+
     if (confirmText !== 'DELETE') {
       showAlert('Error', 'Please type DELETE to confirm');
+      return;
+    }
+
+    if (!isOAuthUser && !user.email) {
+      showAlert('Error', 'No email address is available for password confirmation');
       return;
     }
 
@@ -61,7 +71,7 @@ export default function DeleteAccountScreen() {
         try {
           if (!isOAuthUser) {
             const { error: signInError } = await supabase.auth.signInWithPassword({
-              email: user?.email || '',
+              email: user.email,
               password: password,
             });
 
@@ -75,16 +85,19 @@ export default function DeleteAccountScreen() {
           // Soft-delete: mark the account for deletion and anonymize the row.
           // Auth-user removal and full cascade run server-side within 30 days
           // (the client has no service role to call auth.admin.deleteUser).
-          const { error: updateError } = await supabase
+          const { data: deletedUserRow, error: updateError } = await supabase
             .from('users')
             .update({
               deleted_at: new Date().toISOString(),
               email: `deleted_${Date.now()}@deleted.com`,
               full_name: 'Deleted User',
             })
-            .eq('id', user?.id);
+            .eq('id', user.id)
+            .select('id')
+            .maybeSingle();
 
           if (updateError) throw updateError;
+          if (!deletedUserRow) throw new Error('Could not schedule account deletion.');
 
           await signOut();
 

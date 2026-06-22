@@ -241,11 +241,17 @@ export function useOrgSecurity(orgId: string) {
   const removeDomain = useMutation({
     mutationFn: async (domainId: string) => {
       const row = domains.find((d) => d.id === domainId);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('org_verified_domains')
         .delete()
-        .eq('id', domainId);
+        .eq('id', domainId)
+        .eq('org_id', orgId)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) {
+        throw new Error('Domain not found or you do not have access to remove it.');
+      }
       return { domainId, domain: row?.domain ?? null };
     },
     onSuccess: ({ domain }) => {

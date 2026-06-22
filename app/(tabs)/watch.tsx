@@ -24,8 +24,11 @@ import {
   type FollowedStepStatus,
 } from '@/hooks/useFollowedStepsFeed';
 import { useFleetStepFeed } from '@/hooks/useFleetStepFeed';
+import { useCohortStepFeed } from '@/hooks/useCohortStepFeed';
+import { useAffinityGroupStepFeed } from '@/hooks/useAffinityGroupStepFeed';
 import { useUserFleets } from '@/hooks/useFleetData';
-import type { FleetMembership } from '@/services/fleetService';
+import { useUserOrgCohorts } from '@/hooks/useUserOrgCohorts';
+import { useUserAffinityGroups } from '@/hooks/useUserAffinityGroups';
 import { useBlueprintTitles } from '@/hooks/useBlueprintTitles';
 import { useCohortStream, type CohortStreamItem } from '@/hooks/useCohortStream';
 import {
@@ -76,6 +79,11 @@ const STATUS_META: Record<
 // below it (People = who you follow + cohort, Nearby = by place, Groups =
 // your fleets) — no more "Following" label sitting over cohort threads.
 type GroupingId = 'all' | 'fleet' | 'location';
+type WatchGroup = {
+  id: string;
+  name: string;
+  kind: 'fleet' | 'cohort' | 'affinity';
+};
 
 const LENS_OPTIONS: { id: GroupingId; label: string }[] = [
   { id: 'all', label: 'People' },
@@ -105,7 +113,7 @@ export default function WatchScreen() {
   const { user } = useAuth();
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [grouping, setGrouping] = useState<GroupingId>('all');
-  const [selectedFleetId, setSelectedFleetId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   // People discovery (find new people to follow) was folded out of the
   // Discover tab into Watch — it opens as a focused full-bleed surface
   // over the feed, with a floating back pill (mirrors the Library zones).
@@ -127,24 +135,82 @@ export default function WatchScreen() {
   // "touches your {gap}" tagging on the active band below.
   const { coverage } = useInterestCapabilityCoverage(currentInterest?.id ?? null);
 
-  // "By group" feed — fleetmates' steps, scoped to the active fleet. Fleets
-  // aren't org_memberships (separate fleet_members table), so resolve them
-  // here rather than from the org switcher.
-  const { fleets } = useUserFleets(user?.id ?? null);
-  // Fleets are a sailing-only construct, so don't surface a sailing fleet as a
-  // "group" under a non-sailing interest — a Dragon fleet was bleeding into the
-  // Nursing Groups lens (and dragging the viewer's nursing steps in with it).
-  const activeFleets = isSailingInterest(currentInterest?.slug)
-    ? fleets.filter((f) => f.status === 'active')
-    : [];
-  const resolvedFleetId =
-    selectedFleetId && activeFleets.some((f) => f.fleet.id === selectedFleetId)
-      ? selectedFleetId
-      : activeFleets[0]?.fleet.id ?? null;
+  // "Groups" feed — groupmates' steps for whichever group is selected. The
+  // Library groups zone can list fleets, affinity groups, and org cohorts; Watch
+  // mirrors that source list so a visible Library group is also watchable here.
+  const { fleets, loading: fleetsLoading } = useUserFleets(user?.id ?? null);
+  // Fleets are a sailing-only construct, so a Dragon fleet must not appear as a
+  // "group" under a non-sailing interest (and drag its members' steps in).
+  const activeInterestIsSailing = isSailingInterest(currentInterest?.slug);
+  const sailingFleets = useMemo(
+    () =>
+      activeInterestIsSailing
+        ? fleets.filter((f) => f.status === 'active')
+        : [],
+    [activeInterestIsSailing, fleets],
+  );
+  const { groups: affinityGroups, isLoading: affinityGroupsLoading } =
+    useUserAffinityGroups(currentInterest?.slug);
+  const { cohorts, isLoading: cohortsLoading } = useUserOrgCohorts(currentInterest?.slug);
+  const groupListLoading = activeInterestIsSailing
+    ? fleetsLoading
+    : affinityGroupsLoading || cohortsLoading;
+  const groups: WatchGroup[] = useMemo(() => {
+    const rows: WatchGroup[] = sailingFleets.map((f) => ({
+      id: f.fleet.id,
+      name: f.fleet.name,
+      kind: 'fleet' as const,
+    }));
+
+    if (activeInterestIsSailing) return rows;
+
+    const seen = new Set<string>();
+    const keyFor = (name: string, orgId?: string | null) =>
+      `${name.trim().toLowerCase()}::${orgId ?? ''}`;
+
+    for (const group of affinityGroups) {
+      seen.add(keyFor(group.name, group.parent_org_id));
+      rows.push({ id: group.id, name: group.name, kind: 'affinity' as const });
+    }
+
+    for (const cohort of cohorts) {
+      const key = keyFor(cohort.name, cohort.org_id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ id: cohort.id, name: cohort.name, kind: 'cohort' as const });
+    }
+
+    return rows;
+  }, [activeInterestIsSailing, sailingFleets, affinityGroups, cohorts]);
+  const resolvedGroup = useMemo(() => {
+    const found = selectedGroupId ? groups.find((g) => g.id === selectedGroupId) : null;
+    return found ?? groups[0] ?? null;
+  }, [groups, selectedGroupId]);
+  const groupActive = grouping === 'fleet' ? resolvedGroup : null;
   const { data: fleetFeed = [], isLoading: fleetLoading } = useFleetStepFeed(
-    grouping === 'fleet' ? resolvedFleetId : null,
+    groupActive?.kind === 'fleet' ? groupActive.id : null,
     currentInterest?.id,
   );
+  const { data: cohortFeed = [], isLoading: cohortLoading } = useCohortStepFeed(
+    groupActive?.kind === 'cohort' ? groupActive.id : null,
+    currentInterest?.id,
+  );
+  const { data: affinityFeed = [], isLoading: affinityLoading } = useAffinityGroupStepFeed(
+    groupActive?.kind === 'affinity' ? groupActive.id : null,
+    currentInterest?.id,
+  );
+  const groupFeed =
+    resolvedGroup?.kind === 'cohort'
+      ? cohortFeed
+      : resolvedGroup?.kind === 'affinity'
+        ? affinityFeed
+        : fleetFeed;
+  const groupLoading =
+    resolvedGroup?.kind === 'cohort'
+      ? cohortLoading
+      : resolvedGroup?.kind === 'affinity'
+        ? affinityLoading
+        : fleetLoading;
 
   const { data: cohortStream = [] } = useCohortStream(currentInterest?.id);
   const { data: followedPeople = [] } = useFollowedPeopleForLibrary();
@@ -155,9 +221,9 @@ export default function WatchScreen() {
   const allBlueprintIds = useMemo(() => {
     const set = new Set<string>();
     for (const item of feed) if (item.sourceBlueprintId) set.add(item.sourceBlueprintId);
-    for (const item of fleetFeed) if (item.sourceBlueprintId) set.add(item.sourceBlueprintId);
+    for (const item of groupFeed) if (item.sourceBlueprintId) set.add(item.sourceBlueprintId);
     return Array.from(set);
-  }, [feed, fleetFeed]);
+  }, [feed, groupFeed]);
   const { data: blueprintTitles } = useBlueprintTitles(allBlueprintIds);
   const blueprintTitleFor = (id: string | null): string | null =>
     id ? blueprintTitles?.get(id)?.title ?? null : null;
@@ -443,7 +509,15 @@ export default function WatchScreen() {
             homeVenueLabel={homeVenue?.venue ?? homeVenue?.region ?? null}
             interestSlug={currentInterest?.slug ?? null}
           />
-        ) : activeFleets.length === 0 ? (
+        ) : groupListLoading && groups.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
+            <Text style={styles.emptyTitle}>Loading groups…</Text>
+            <Text style={styles.emptyCopy}>
+              Checking the groups you belong to for {currentInterest?.name ?? 'this interest'}.
+            </Text>
+          </View>
+        ) : groups.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="boat-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
             <Text style={styles.emptyTitle}>You&apos;re not in a group yet</Text>
@@ -453,7 +527,7 @@ export default function WatchScreen() {
             </Text>
             <Pressable
               style={styles.emptyAction}
-              onPress={() => router.push('/(tabs)/fleet' as never)}
+              onPress={() => router.push('/library?zone=groups' as never)}
             >
               <Text style={styles.emptyActionText}>Go to groups</Text>
             </Pressable>
@@ -461,22 +535,22 @@ export default function WatchScreen() {
         ) : (
           <View style={styles.section}>
             <GroupPickerCard
-              fleets={activeFleets}
-              selectedFleetId={resolvedFleetId}
+              groups={groups}
+              selectedGroupId={resolvedGroup?.id ?? null}
               open={groupPickerOpen}
               onToggle={() => setGroupPickerOpen((o) => !o)}
               onSelect={(id) => {
-                setSelectedFleetId(id);
+                setSelectedGroupId(id);
                 setGroupPickerOpen(false);
               }}
-              onOpenGroup={() => router.push('/(tabs)/fleet' as never)}
+              onOpenGroup={() => router.push('/library?zone=groups' as never)}
             />
             <Text style={styles.sectionEyebrow}>
-              From {activeFleets.find((f) => f.fleet.id === resolvedFleetId)?.fleet.name ?? 'your group'}
+              From {resolvedGroup?.name ?? 'your group'}
             </Text>
-            {fleetLoading ? (
+            {groupLoading ? (
               <Text style={styles.emptyCopy}>Loading…</Text>
-            ) : fleetFeed.length === 0 ? (
+            ) : groupFeed.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Ionicons name="people-outline" size={28} color={IOS_COLORS.tertiaryLabel} />
                 <Text style={styles.emptyTitle}>No group activity yet</Text>
@@ -487,7 +561,7 @@ export default function WatchScreen() {
               </View>
             ) : (
               <View style={styles.feed}>
-                {fleetFeed.map((item) => (
+                {groupFeed.map((item) => (
                   <WatchCard
                     key={item.id}
                     item={item}
@@ -629,22 +703,22 @@ function groupInitials(name: string): string {
 }
 
 function GroupPickerCard({
-  fleets,
-  selectedFleetId,
+  groups,
+  selectedGroupId,
   open,
   onToggle,
   onSelect,
   onOpenGroup,
 }: {
-  fleets: FleetMembership[];
-  selectedFleetId: string | null;
+  groups: WatchGroup[];
+  selectedGroupId: string | null;
   open: boolean;
   onToggle: () => void;
   onSelect: (id: string) => void;
   onOpenGroup: () => void;
 }) {
-  const selected = fleets.find((f) => f.fleet.id === selectedFleetId) ?? fleets[0];
-  const canSwitch = fleets.length > 1;
+  const selected = groups.find((g) => g.id === selectedGroupId) ?? groups[0];
+  const canSwitch = groups.length > 1;
   if (!selected) return null;
   return (
     <View>
@@ -655,11 +729,11 @@ function GroupPickerCard({
         accessibilityState={{ expanded: canSwitch ? open : undefined }}
       >
         <View style={styles.groupPickerAvatar}>
-          <Text style={styles.groupPickerInitial}>{groupInitials(selected.fleet.name)}</Text>
+          <Text style={styles.groupPickerInitial}>{groupInitials(selected.name)}</Text>
         </View>
         <View style={styles.groupPickerText}>
           <Text style={styles.groupPickerName} numberOfLines={1}>
-            {selected.fleet.name}
+            {selected.name}
           </Text>
           <Text style={styles.groupPickerSub}>
             {canSwitch ? 'Switch group' : 'Open group'}
@@ -673,8 +747,8 @@ function GroupPickerCard({
       </Pressable>
       {open && canSwitch ? (
         <WatchFilterRow
-          categories={fleets.map((f) => ({ id: f.fleet.id, label: f.fleet.name }))}
-          selectedId={selectedFleetId ?? ''}
+          categories={groups.map((g) => ({ id: g.id, label: g.name }))}
+          selectedId={selectedGroupId ?? ''}
           onSelect={onSelect}
         />
       ) : null}

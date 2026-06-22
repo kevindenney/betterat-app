@@ -117,7 +117,6 @@ async function handleGetWidget(req: VercelRequest, res: VercelResponse, token: s
 
     // Return widget configuration
     return res.status(200).json({
-      id: widget.id,
       type: widget.widget_type,
       name: widget.name,
       config: {
@@ -157,7 +156,7 @@ async function handleGetWidget(req: VercelRequest, res: VercelResponse, token: s
 async function handleTrackImpression(req: VercelRequest, res: VercelResponse, token: string) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-    const { type, clubId, regattaId, domain, path } = body;
+    const { clubId, regattaId, domain } = body;
 
     // Get IP and user agent
     const ipHeader = req.headers['x-forwarded-for'];

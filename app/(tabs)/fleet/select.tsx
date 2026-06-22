@@ -245,6 +245,15 @@ export default function FleetSelectionScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <TouchableOpacity
+          style={styles.backRow}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/library'))}
+          accessibilityRole="button"
+          accessibilityLabel="Back to Library"
+        >
+          <Text style={styles.backText}>‹ Library</Text>
+        </TouchableOpacity>
+
         <DashboardSection
           title="Find Fleets"
           subtitle="Join fleets of sailors in your class and region"
@@ -342,6 +351,16 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 100,
     gap: 16,
+  },
+  backRow: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingRight: 12,
+  },
+  backText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   searchBox: {
     flexDirection: 'row',

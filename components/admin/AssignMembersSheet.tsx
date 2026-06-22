@@ -1,8 +1,8 @@
 /**
  * Assign members sheet — the "Assign members" counterpart to the cohort
  * detail roster. Picks org members who aren't already in the cohort and
- * inserts them into betterat_org_cohort_members (the institutional cohort
- * membership the admin Studio reads).
+ * idempotently upserts them into betterat_org_cohort_members (the
+ * institutional cohort membership the admin Studio reads).
  *
  * Candidate pool = the org's existing people (organization_memberships →
  * users, via useAdminPeople), minus whoever is already on the roster. A
@@ -90,7 +90,7 @@ export function AssignMembersSheet({
       }));
       const { error: insertErr } = await supabase
         .from('betterat_org_cohort_members')
-        .insert(payload);
+        .upsert(payload, { onConflict: 'cohort_id,user_id', ignoreDuplicates: true });
       if (insertErr) throw insertErr;
 
       // Audit best-effort — never block the assignment on the log.

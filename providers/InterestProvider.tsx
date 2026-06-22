@@ -29,6 +29,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/services/supabase'
 import { useAuth } from '@/providers/AuthProvider'
 import { createLogger } from '@/lib/utils/logger'
+import {
+  hasExistingProfileSignal,
+  normalizeSlug,
+  selectDefaultInterestForExistingUser,
+  selectExplicitInterestFromSignals,
+} from './InterestProvider.logic'
 
 const logger = createLogger('InterestProvider')
 
@@ -110,34 +116,6 @@ interface InterestContextValue {
 export const ASYNC_STORAGE_KEY = 'betterat_preferred_interest'
 const INTERESTS_QUERY_KEY = ['interests', 'all']
 const USER_INTERESTS_QUERY_KEY = ['user_interests']
-const EXISTING_PROFILE_AGE_THRESHOLD_MS = 5 * 60 * 1000
-
-function isValidDateValue(value: unknown): boolean {
-  return typeof value === 'string' && !Number.isNaN(Date.parse(value))
-}
-
-function hasExistingProfileSignal(profile: any): boolean {
-  if (!profile || typeof profile !== 'object') return false
-
-  if (profile.onboarding_completed === true) return true
-
-  const createdAt = profile.created_at
-  const hasStableProfileData = !!(profile.full_name || profile.avatar_url || profile.bio || profile.club_id)
-
-  if (isValidDateValue(createdAt) && hasStableProfileData) {
-    const ageMs = Date.now() - Date.parse(createdAt)
-    return ageMs >= EXISTING_PROFILE_AGE_THRESHOLD_MS
-  }
-
-  return false
-}
-
-function normalizeSlug(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const normalized = value.trim().toLowerCase()
-  return normalized.length > 0 ? normalized : null
-}
-
 // ---------------------------------------------------------------------------
 // Context
 // ---------------------------------------------------------------------------
@@ -174,9 +152,10 @@ export function InterestProvider({ children }: PropsWithChildren) {
   const [activeSlug, setActiveSlug] = useState<string | null>(null)
   const [resolving, setResolving] = useState(true)
 
-  // Track whether we already ran the initial resolution so we don't re-run
-  // every time `user` reference changes.
-  const resolvedOnceRef = useRef(false)
+  // Track which auth identity has already resolved an active interest so
+  // ref churn in AuthProvider does not re-run the resolver, while sign-in/out
+  // transitions still get a fresh resolution pass.
+  const resolvedIdentityRef = useRef<string | null>(null)
 
   // ---------- Fetch all available interests (catalog) via react-query ----------
 
@@ -350,8 +329,9 @@ export function InterestProvider({ children }: PropsWithChildren) {
     if (interestsLoading || interests.length === 0) return
     // Wait for user interests to load for signed-in users
     if (signedIn && userInterestsLoading) return
-    // Only resolve once (or when sign-in state meaningfully changes).
-    if (resolvedOnceRef.current) return
+    const identityKey = signedIn && user?.id ? `user:${user.id}` : 'guest'
+    // Only resolve once per auth identity.
+    if (resolvedIdentityRef.current === identityKey) return
 
     let cancelled = false
 
@@ -402,22 +382,11 @@ export function InterestProvider({ children }: PropsWithChildren) {
           const currentProfile = userProfile ?? (await fetchUserProfile(user.id))
           const metadata = (user.user_metadata ?? {}) as Record<string, unknown>
 
-          const profileSlugCandidates = [
-            normalizeSlug((currentProfile as any)?.active_interest_slug),
-            normalizeSlug((currentProfile as any)?.interest_slug),
-            normalizeSlug((currentProfile as any)?.primary_interest_slug),
-            normalizeSlug((currentProfile as any)?.preferred_interest_slug),
-          ].filter((value): value is string => !!value)
-
-          const metadataSlugCandidates = [
-            normalizeSlug(metadata.active_interest_slug),
-            normalizeSlug(metadata.interest_slug),
-          ].filter((value): value is string => !!value)
-
-          const explicitSlug =
-            [...profileSlugCandidates, ...metadataSlugCandidates]
-              .map((slug) => interests.find((interest) => interest.slug === slug))
-              .find((interest): interest is Interest => !!interest) ?? null
+          const explicitSlug = selectExplicitInterestFromSignals({
+            profile: currentProfile,
+            metadata,
+            interests,
+          })
 
           if (!cancelled && explicitSlug) {
             setActiveSlug(explicitSlug.slug)
@@ -452,11 +421,10 @@ export function InterestProvider({ children }: PropsWithChildren) {
             )
           } else if (!cancelled && hasExistingProfileSignal(currentProfile)) {
             // Existing user with no preference — pick first added interest or fall back
-            const defaultInterest =
-              (userInterests.length > 0 ? userInterests[0] : null) ??
-              interests.find((interest) => interest.slug === 'sail-racing') ??
-              interests[0] ??
-              null
+            const defaultInterest = selectDefaultInterestForExistingUser({
+              userInterests,
+              interests,
+            })
 
             if (defaultInterest) {
               setActiveSlug(defaultInterest.slug)
@@ -495,7 +463,7 @@ export function InterestProvider({ children }: PropsWithChildren) {
         // On any failure, leave as-is — the gate will prompt the user.
       } finally {
         if (!cancelled) {
-          resolvedOnceRef.current = true
+          resolvedIdentityRef.current = identityKey
           setResolving(false)
         }
       }
@@ -511,23 +479,6 @@ export function InterestProvider({ children }: PropsWithChildren) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interestsLoading, userInterestsLoading, interests, userInterests, signedIn, user?.id])
 
-  // Re-resolve when the user signs in / out
-  useEffect(() => {
-    // Reset so the main effect can re-run
-    resolvedOnceRef.current = false
-  }, [signedIn, user?.id, userProfile?.id, userProfile?.onboarding_completed, userProfile?.created_at])
-
-  // On a sign-in/out transition, hold `resolving` true until the new identity's
-  // interest resolves. Without this there is a one-commit window — after
-  // userInterests finish loading but before the main resolve effect re-runs —
-  // where loading is false and currentInterest is still null, which flashes (and
-  // can stick on) the InterestSelectionGate for users who already have an
-  // interest. Kept narrowly on [signedIn, user?.id] (NOT userProfile fields) so
-  // a later profile hydration can't strand `resolving` true with no resolve.
-  useEffect(() => {
-    setResolving(true)
-  }, [signedIn, user?.id])
-
   // ---------- Derived current interest ----------
 
   const currentInterest = useMemo(() => {
@@ -537,6 +488,44 @@ export function InterestProvider({ children }: PropsWithChildren) {
     const pool = signedIn && user?.id ? (userInterests.length > 0 ? userInterests : interests) : interests
     return pool.find((i) => i.slug === activeSlug) ?? null
   }, [activeSlug, userInterests, interests, signedIn, user?.id])
+
+  // Resolver watchdog: web/HMR and auth hydration can leave `resolving` true
+  // even after the user's interests are already available. Prefer a stable
+  // default interest over a permanent "Loading your interest…" shell.
+  useEffect(() => {
+    if (!signedIn || !user?.id) return
+    if (currentInterest) return
+    if (interestsLoading || userInterestsLoading) return
+    if (userInterests.length === 0) {
+      setResolving(false)
+      return
+    }
+
+    const fallback = userInterests[0]
+    const timeout = setTimeout(() => {
+      setActiveSlug(fallback.slug)
+      setResolving(false)
+      resolvedIdentityRef.current = `user:${user.id}`
+      void AsyncStorage.setItem(ASYNC_STORAGE_KEY, fallback.slug)
+      void supabase.from('user_preferences').upsert(
+        {
+          user_id: user.id,
+          preferred_interest_id: fallback.id,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' },
+      )
+    }, 2500)
+
+    return () => clearTimeout(timeout)
+  }, [
+    currentInterest,
+    interestsLoading,
+    signedIn,
+    user?.id,
+    userInterests,
+    userInterestsLoading,
+  ])
 
   const [viewMode, setViewMode] = useState<'interest' | 'domain'>('interest')
 

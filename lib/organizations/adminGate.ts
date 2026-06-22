@@ -1,5 +1,6 @@
 import { isUuid } from '@/utils/uuid';
 import { isOrgAdminRole as isCanonicalOrgAdminRole } from '@/lib/organizations/roleLabels';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 
 type MembershipLike = {
   organization_id?: unknown;
@@ -71,6 +72,9 @@ export function getActiveMembership({ memberships, activeOrgId }: GetActiveMembe
   return {
     organizationId: activeOrgId,
     role: String(match.role || '').trim() || null,
-    membershipStatus: String(match.membership_status ?? match.status ?? '').trim() || null,
+    membershipStatus: resolveOrgMembershipStatus({
+      status: typeof match.status === 'string' ? match.status : null,
+      membership_status: typeof match.membership_status === 'string' ? match.membership_status : null,
+    }),
   };
 }

@@ -284,15 +284,18 @@ class PracticeSessionServiceClass {
     if (updates.windSpeedMax !== undefined) dbUpdates.wind_speed_max = updates.windSpeedMax;
     if (updates.windDirection !== undefined) dbUpdates.wind_direction = updates.windDirection;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_sessions')
       .update(dbUpdates)
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update practice session:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session not found.');
 
     logger.info('Updated practice session', { sessionId });
   }
@@ -302,7 +305,7 @@ class PracticeSessionServiceClass {
    */
   async completeSession(sessionId: string, reflection: SessionReflectionInput): Promise<void> {
     // Update main session
-    const { error: sessionError } = await supabase
+    const { data: session, error: sessionError } = await supabase
       .from('practice_sessions')
       .update({
         status: 'completed',
@@ -311,20 +314,25 @@ class PracticeSessionServiceClass {
         reflection_notes: reflection.reflectionNotes || null,
         completed_at: new Date().toISOString(),
       })
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .select('id')
+      .maybeSingle();
 
     if (sessionError) {
       logger.error('Failed to complete session:', sessionError);
       throw sessionError;
     }
+    if (!session) throw new Error('Practice session not found.');
 
     // Update focus area + drill ratings concurrently (independent rows)
-    await Promise.all([
+    const ratingResults = await Promise.all([
       ...Object.entries(reflection.focusAreaRatings ?? {}).map(([focusAreaId, rating]) =>
         supabase
           .from('practice_session_focus_areas')
           .update({ post_session_rating: rating })
           .eq('id', focusAreaId)
+          .select('id')
+          .maybeSingle()
       ),
       ...Object.entries(reflection.drillRatings ?? {}).map(([drillId, data]) =>
         supabase
@@ -335,8 +343,13 @@ class PracticeSessionServiceClass {
             completed: data.completed ?? true,
           })
           .eq('id', drillId)
+          .select('id')
+          .maybeSingle()
       ),
     ]);
+    const failedRating = ratingResults.find((result) => result.error || !result.data);
+    if (failedRating?.error) throw failedRating.error;
+    if (failedRating) throw new Error('Practice session rating target not found.');
 
     logger.info('Completed practice session', { sessionId });
   }
@@ -345,15 +358,18 @@ class PracticeSessionServiceClass {
    * Start a session (change status to in_progress)
    */
   async startSession(sessionId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_sessions')
       .update({ status: 'in_progress' })
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to start session:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session not found.');
 
     logger.info('Started practice session', { sessionId });
   }
@@ -362,15 +378,18 @@ class PracticeSessionServiceClass {
    * Cancel a session
    */
   async cancelSession(sessionId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_sessions')
       .update({ status: 'cancelled' })
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to cancel session:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session not found.');
 
     logger.info('Cancelled practice session', { sessionId });
   }
@@ -379,12 +398,18 @@ class PracticeSessionServiceClass {
    * Delete a session (creator only)
    */
   async deleteSession(sessionId: string): Promise<void> {
-    const { error } = await supabase.from('practice_sessions').delete().eq('id', sessionId);
+    const { data, error } = await supabase
+      .from('practice_sessions')
+      .delete()
+      .eq('id', sessionId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to delete practice session:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session not found.');
 
     logger.info('Deleted practice session', { sessionId });
   }
@@ -414,15 +439,18 @@ class PracticeSessionServiceClass {
    * Clear invite code (revoke invites)
    */
   async clearInviteCode(sessionId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_sessions')
       .update({ invite_code: null })
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to clear invite code:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session not found.');
 
     logger.info('Cleared practice invite code', { sessionId });
   }
@@ -533,16 +561,19 @@ class PracticeSessionServiceClass {
       throw new Error('Not authenticated');
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_session_members')
       .delete()
       .eq('session_id', sessionId)
-      .eq('user_id', user.user.id);
+      .eq('user_id', user.user.id)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to leave session:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session member not found.');
 
     logger.info('Left practice session', { sessionId });
   }
@@ -556,16 +587,19 @@ class PracticeSessionServiceClass {
       throw new Error('Not authenticated');
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_session_members')
       .update({ rsvp_status: status })
       .eq('session_id', sessionId)
-      .eq('user_id', user.user.id);
+      .eq('user_id', user.user.id)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update RSVP:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session member not found.');
 
     logger.info('Updated RSVP', { sessionId, status });
   }
@@ -577,45 +611,57 @@ class PracticeSessionServiceClass {
     memberId: string,
     updates: { displayName?: string; role?: PracticeMemberRole }
   ): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_session_members')
       .update({
         display_name: updates.displayName,
         role: updates.role,
       })
-      .eq('id', memberId);
+      .eq('id', memberId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update member:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session member not found.');
   }
 
   /**
    * Mark member as attended
    */
   async markAttendance(memberId: string, attended: boolean): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_session_members')
       .update({ attended })
-      .eq('id', memberId);
+      .eq('id', memberId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to mark attendance:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session member not found.');
   }
 
   /**
    * Remove a member (session creator only)
    */
   async removeMember(memberId: string): Promise<void> {
-    const { error } = await supabase.from('practice_session_members').delete().eq('id', memberId);
+    const { data, error } = await supabase
+      .from('practice_session_members')
+      .delete()
+      .eq('id', memberId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to remove member:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice session member not found.');
 
     logger.info('Removed practice member', { memberId });
   }
@@ -680,33 +726,39 @@ class PracticeSessionServiceClass {
     rating: number,
     notes?: string
   ): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_session_focus_areas')
       .update({
         post_session_rating: rating,
         improvement_notes: notes || null,
       })
-      .eq('id', focusAreaId);
+      .eq('id', focusAreaId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update focus area rating:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice focus area not found.');
   }
 
   /**
    * Remove a focus area
    */
   async removeFocusArea(focusAreaId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_session_focus_areas')
       .delete()
-      .eq('id', focusAreaId);
+      .eq('id', focusAreaId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to remove focus area:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice focus area not found.');
   }
 
   // =========================================================================
@@ -813,15 +865,18 @@ class PracticeSessionServiceClass {
     if (updates.skipped !== undefined) dbUpdates.skipped = updates.skipped;
     if (updates.skipReason !== undefined) dbUpdates.skip_reason = updates.skipReason;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_session_drills')
       .update(dbUpdates)
-      .eq('id', sessionDrillId);
+      .eq('id', sessionDrillId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update drill execution:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice drill not found.');
   }
 
   /**
@@ -835,9 +890,14 @@ class PracticeSessionServiceClass {
         .update({ order_index: index })
         .eq('id', drillId)
         .eq('session_id', sessionId)
+        .select('id')
+        .maybeSingle()
     );
 
-    await Promise.all(updates);
+    const results = await Promise.all(updates);
+    const failed = results.find((result) => result.error || !result.data);
+    if (failed?.error) throw failed.error;
+    if (failed) throw new Error('Practice drill not found.');
     logger.info('Reordered drills', { sessionId });
   }
 
@@ -845,15 +905,18 @@ class PracticeSessionServiceClass {
    * Remove a drill from session
    */
   async removeDrill(sessionDrillId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('practice_session_drills')
       .delete()
-      .eq('id', sessionDrillId);
+      .eq('id', sessionDrillId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to remove drill:', error);
       throw error;
     }
+    if (!data) throw new Error('Practice drill not found.');
   }
 
   // =========================================================================

@@ -47,6 +47,11 @@ export default function ChangePasswordScreen() {
   };
 
   const handleChangePassword = async () => {
+    if (!user?.email) {
+      showAlert('Error', 'No email address is available for password confirmation');
+      return;
+    }
+
     if (!currentPassword || !newPassword || !confirmPassword) {
       showAlert('Error', 'All fields are required');
       return;
@@ -245,15 +250,20 @@ export default function ChangePasswordScreen() {
 
         <TouchableOpacity
           onPress={() => {
-            showConfirm(
-              'Reset Password',
-              'A password reset link will be sent to your email',
-              async () => {
-                try {
-                  await supabase.auth.resetPasswordForEmail(user?.email || '');
-                  showAlert('Success', 'Password reset link sent to your email');
-                } catch (error) {
-                  showAlert('Error', 'Failed to send reset link');
+      showConfirm(
+        'Reset Password',
+        'A password reset link will be sent to your email',
+        async () => {
+          try {
+            if (!user?.email) {
+              showAlert('Error', 'No email address is available for password reset');
+              return;
+            }
+            const { error } = await supabase.auth.resetPasswordForEmail(user.email);
+            if (error) throw error;
+            showAlert('Success', 'Password reset link sent to your email');
+          } catch (error) {
+            showAlert('Error', 'Failed to send reset link');
                 }
               },
               { confirmText: 'Send Link' }

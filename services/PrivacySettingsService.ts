@@ -158,15 +158,18 @@ export async function updateProfilePrivacy(
   userId: string,
   updates: Partial<ProfilePrivacySettings>,
 ): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .update(updates)
-    .eq('id', userId);
+    .eq('id', userId)
+    .select('id')
+    .maybeSingle();
 
   if (error) {
     logger.error('Failed to update profile privacy', error);
     throw error;
   }
+  if (!data) throw new Error('Profile not found.');
 }
 
 // ---------------------------------------------------------------------------

@@ -441,15 +441,18 @@ export async function editStepNote(input: {
   userId: string;
   body: string;
 }): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('step_discussions')
     .update({ body: input.body })
     .eq('id', input.discussionId)
-    .eq('user_id', input.userId);
+    .eq('user_id', input.userId)
+    .select('id')
+    .maybeSingle();
   if (error) {
     logger.error('Failed to edit step note', error);
     throw error;
   }
+  if (!data) throw new Error('Step discussion not found.');
 }
 
 /**
@@ -460,15 +463,18 @@ export async function deleteStepNote(input: {
   discussionId: string;
   userId: string;
 }): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('step_discussions')
     .delete()
     .eq('id', input.discussionId)
-    .eq('user_id', input.userId);
+    .eq('user_id', input.userId)
+    .select('id')
+    .maybeSingle();
   if (error) {
     logger.error('Failed to delete step note', error);
     throw error;
   }
+  if (!data) throw new Error('Step discussion not found.');
 }
 
 export async function toggleStepReaction(input: {

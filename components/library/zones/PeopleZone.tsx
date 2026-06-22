@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -18,13 +18,35 @@ import { PersonRowCard } from '@/components/library/people/PersonRowCard';
 import { useVocabulary } from '@/hooks/useVocabulary';
 
 export function PeopleZone() {
-  const { data: people, isLoading } = useFollowedPeopleForLibrary();
+  const { data: people, isLoading, error, refetch } = useFollowedPeopleForLibrary();
   const { vocab } = useVocabulary();
 
   if (isLoading) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.empty}>
+        <Ionicons name="warning-outline" size={28} color={IOS_COLORS.systemOrange} />
+        <Text style={styles.emptyTitle}>Could not load people</Text>
+        <Text style={styles.emptyBlurb}>
+          {error instanceof Error ? error.message : 'Try again in a moment.'}
+        </Text>
+        <Pressable
+          style={styles.retryButton}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading people"
+          onPress={() => {
+            void refetch();
+          }}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -84,5 +106,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: IOS_COLORS.secondaryLabel,
     textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

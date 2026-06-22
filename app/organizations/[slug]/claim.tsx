@@ -18,6 +18,73 @@ const C = {
   green: '#0F766E',
 } as const;
 
+type ClaimVocabulary = {
+  eyebrow: string;
+  submittedBody: string;
+  intro: string;
+  roleLabel: string;
+  rolePlaceholder: string;
+  emailLabel: string;
+  emailPlaceholder: string;
+  evidenceLabel: string;
+  evidencePlaceholder: string;
+  messagePlaceholder: string;
+};
+
+function claimVocabulary(org: YachtClubOrganization | null): ClaimVocabulary {
+  const interestSlug = org?.interest_slug ?? null;
+  const orgType = org?.organization_type ?? null;
+
+  if (interestSlug === 'nursing' || orgType === 'institution') {
+    return {
+      eyebrow: 'Institution Claim',
+      submittedBody:
+        'BetterAt will review this institution claim before marking the organization official or adding institutional admins.',
+      intro:
+        'Claims are manually reviewed. Approval marks the institution official and adds the claimant as a BetterAt institution admin.',
+      roleLabel: 'Institution role',
+      rolePlaceholder: 'Program director, faculty lead, administrator',
+      emailLabel: 'Official school or work email',
+      emailPlaceholder: 'name@school.edu',
+      evidenceLabel: 'Verification URL',
+      evidencePlaceholder: 'Institution directory, program page, or contact page',
+      messagePlaceholder: 'Anything BetterAt should know when reviewing this institution claim',
+    };
+  }
+
+  if (interestSlug === 'sail-racing' || orgType === 'yacht_club' || orgType === 'club') {
+    return {
+      eyebrow: 'Yacht Club Claim',
+      submittedBody:
+        'BetterAt will review your club claim before marking this organization official or adding admins.',
+      intro:
+        'Claims are manually reviewed. Approval marks the organization official and adds the claimant as a BetterAt org admin.',
+      roleLabel: 'Club role',
+      rolePlaceholder: 'Commodore, secretary, sailing manager',
+      emailLabel: 'Official email',
+      emailPlaceholder: 'name@club.org',
+      evidenceLabel: 'Verification URL',
+      evidencePlaceholder: 'Club staff page or contact page',
+      messagePlaceholder: 'Anything BetterAt should know when reviewing this claim',
+    };
+  }
+
+  return {
+    eyebrow: 'Organization Claim',
+    submittedBody:
+      'BetterAt will review this claim before marking the organization official or adding admins.',
+    intro:
+      'Claims are manually reviewed. Approval marks the organization official and adds the claimant as a BetterAt org admin.',
+    roleLabel: 'Organization role',
+    rolePlaceholder: 'Owner, administrator, program lead',
+    emailLabel: 'Official email',
+    emailPlaceholder: 'name@organization.org',
+    evidenceLabel: 'Verification URL',
+    evidencePlaceholder: 'Official staff page, directory, or contact page',
+    messagePlaceholder: 'Anything BetterAt should know when reviewing this organization claim',
+  };
+}
+
 export default function ClaimYachtClubPage() {
   const params = useLocalSearchParams<{ slug?: string }>();
   const slug = typeof params.slug === 'string' ? params.slug.trim() : '';
@@ -32,6 +99,7 @@ export default function ClaimYachtClubPage() {
   const [email, setEmail] = useState('');
   const [evidenceUrl, setEvidenceUrl] = useState('');
   const [message, setMessage] = useState('');
+  const vocab = claimVocabulary(org);
   const handleBack = React.useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace(`/organizations/${slug}` as never);
@@ -109,7 +177,7 @@ export default function ClaimYachtClubPage() {
             <Ionicons name="checkmark-circle-outline" size={42} color={C.green} />
             <Text style={styles.title}>Claim submitted</Text>
             <Text style={styles.body}>
-              BetterAt will review your club claim before marking this organization official or adding admins.
+              {vocab.submittedBody}
             </Text>
             <Pressable style={styles.secondaryButton} onPress={() => router.replace(`/organizations/${slug}` as never)}>
               <Text style={styles.secondaryButtonText}>Back to organization</Text>
@@ -117,11 +185,10 @@ export default function ClaimYachtClubPage() {
           </View>
         ) : (
           <View style={styles.card}>
-            <Text style={styles.eyebrow}>Yacht Club Claim</Text>
+            <Text style={styles.eyebrow}>{vocab.eyebrow}</Text>
             <Text style={styles.title}>{org?.name || 'Organization'}</Text>
             <Text style={styles.body}>
-              Claims are manually reviewed. Approval marks the organization official and adds the claimant as a
-              BetterAt org admin.
+              {vocab.intro}
             </Text>
 
             {!signedIn ? (
@@ -138,16 +205,16 @@ export default function ClaimYachtClubPage() {
               <TextInput value={claimantName} onChangeText={setClaimantName} style={styles.input} placeholder="Jane Smith" />
             </View>
             <View style={styles.field}>
-              <Text style={styles.label}>Club role</Text>
-              <TextInput value={claimantRole} onChangeText={setClaimantRole} style={styles.input} placeholder="Commodore, secretary, sailing manager" />
+              <Text style={styles.label}>{vocab.roleLabel}</Text>
+              <TextInput value={claimantRole} onChangeText={setClaimantRole} style={styles.input} placeholder={vocab.rolePlaceholder} />
             </View>
             <View style={styles.field}>
-              <Text style={styles.label}>Official email</Text>
-              <TextInput value={email} onChangeText={setEmail} style={styles.input} autoCapitalize="none" keyboardType="email-address" placeholder="name@club.org" />
+              <Text style={styles.label}>{vocab.emailLabel}</Text>
+              <TextInput value={email} onChangeText={setEmail} style={styles.input} autoCapitalize="none" keyboardType="email-address" placeholder={vocab.emailPlaceholder} />
             </View>
             <View style={styles.field}>
-              <Text style={styles.label}>Verification URL</Text>
-              <TextInput value={evidenceUrl} onChangeText={setEvidenceUrl} style={styles.input} autoCapitalize="none" placeholder="Club staff page or contact page" />
+              <Text style={styles.label}>{vocab.evidenceLabel}</Text>
+              <TextInput value={evidenceUrl} onChangeText={setEvidenceUrl} style={styles.input} autoCapitalize="none" placeholder={vocab.evidencePlaceholder} />
             </View>
             <View style={styles.field}>
               <Text style={styles.label}>Message</Text>
@@ -156,7 +223,7 @@ export default function ClaimYachtClubPage() {
                 onChangeText={setMessage}
                 style={[styles.input, styles.textarea]}
                 multiline
-                placeholder="Anything BetterAt should know when reviewing this claim"
+                placeholder={vocab.messagePlaceholder}
               />
             </View>
 

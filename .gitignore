@@ -49,6 +49,7 @@ credentials.json
 .env
 .env.development
 .chrome-devtools/
+.playwright-mcp/
 logs/
 bugreport-*.txt
 bugreport-*.zip

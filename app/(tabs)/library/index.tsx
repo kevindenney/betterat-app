@@ -121,7 +121,11 @@ export default function LibraryIndexScreen() {
 
   return (
     <>
-      <LibraryLanding conceptsBody={conceptsBody} librarianSlot={librarianSlot} />
+      <LibraryLanding
+        conceptsBody={conceptsBody}
+        librarianSlot={librarianSlot}
+        onOpenInspiration={() => setInspirationWizardOpen(true)}
+      />
       <InspirationWizard
         visible={inspirationWizardOpen}
         onClose={() => setInspirationWizardOpen(false)}

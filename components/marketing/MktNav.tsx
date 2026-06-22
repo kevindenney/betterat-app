@@ -20,31 +20,43 @@ export function MktNav({ active = 'schools', showBookDemo = true }: MktNavProps)
   const router = useRouter();
   return (
     <View style={s.nav}>
-      <Pressable onPress={() => router.push('/schools')} style={s.wordmark}>
+      <Pressable onPress={() => router.push('/')} style={s.wordmark}>
         <Text style={s.wordmarkBetter}>Better</Text>
         <Text style={s.wordmarkAt}>At</Text>
       </Pressable>
       <View style={s.links}>
-        <NavLink label="For practitioners" active={active === 'practitioners'} />
+        <NavLink
+          label="For practitioners"
+          active={active === 'practitioners'}
+          onPress={() => router.push('/')}
+        />
         <NavLink
           label="For schools & teams"
           active={active === 'schools'}
           onPress={() => router.push('/schools')}
         />
-        <NavLink label="For authors" active={active === 'authors'} />
+        <NavLink
+          label="For authors"
+          active={active === 'authors'}
+          onPress={() => router.push('/marketplace' as any)}
+        />
         <NavLink
           label="Pricing"
           active={active === 'pricing'}
           onPress={() => router.push('/schools/pricing')}
         />
-        <NavLink label="About" active={active === 'about'} />
+        <NavLink
+          label="About"
+          active={active === 'about'}
+          onPress={() => router.push('/')}
+        />
       </View>
       <View style={s.ctas}>
         <Pressable onPress={() => router.push('/(auth)/login' as any)}>
           <Text style={s.signIn}>Sign in</Text>
         </Pressable>
         {showBookDemo ? (
-          <Pressable style={s.bookDemo}>
+          <Pressable style={s.bookDemo} onPress={() => router.push('/schools/start-pilot')}>
             <Text style={s.bookDemoText}>Book a demo</Text>
           </Pressable>
         ) : null}

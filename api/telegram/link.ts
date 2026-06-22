@@ -90,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // --- Complete the link ---
-  const { error: updateError } = await supabase
+  const { data: updatedLink, error: updateError } = await supabase
     .from('telegram_links')
     .update({
       user_id: userId,
@@ -98,11 +98,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       link_code: null,
       link_code_expires_at: null,
     })
-    .eq('id', linkRow.id);
+    .eq('id', linkRow.id)
+    .eq('link_code', code.toUpperCase())
+    .is('linked_at', null)
+    .select('id')
+    .maybeSingle();
 
   if (updateError) {
     console.error('Telegram link update error:', updateError);
     res.status(500).json({ error: 'Failed to link account' });
+    return;
+  }
+
+  if (!updatedLink) {
+    res.status(400).json({ error: 'Invalid or expired link code' });
     return;
   }
 

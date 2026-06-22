@@ -422,11 +422,13 @@ class NotificationServiceClass {
    * Mark a notification as read
    */
   async markAsRead(userId: string, notificationId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('social_notifications')
       .update({ is_read: true })
       .eq('id', notificationId)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to mark notification as read', {
@@ -435,6 +437,9 @@ class NotificationServiceClass {
         error,
       });
       throw error;
+    }
+    if (!data) {
+      throw new Error('Notification not found.');
     }
   }
 
@@ -484,11 +489,13 @@ class NotificationServiceClass {
     userId: string,
     notificationId: string
   ): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('social_notifications')
       .delete()
       .eq('id', notificationId)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to delete notification', {
@@ -497,6 +504,9 @@ class NotificationServiceClass {
         error,
       });
       throw error;
+    }
+    if (!data) {
+      throw new Error('Notification not found.');
     }
   }
 

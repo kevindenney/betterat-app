@@ -164,23 +164,29 @@ export function CohortEditSheet({
         end_date: parseInputToIso(endDate),
         program: program.trim() || null,
       };
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('betterat_org_cohorts')
         .update(payload)
-        .eq('id', cohortId);
+        .eq('id', cohortId)
+        .eq('org_id', orgId)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Cohort could not be saved. It may have changed or you may not have access.');
 
       // Audit best-effort
-      await supabase.rpc('audit_log_event', {
-        p_org_id: orgId,
-        p_verb: 'cohort_edit',
-        p_verb_label: 'Edited',
-        p_description: `Updated cohort ${name.trim()} · status ${status}, max seats ${maxSeats || '—'}.`,
-        p_target_type: 'cohort',
-        p_target_id: cohortId,
-        p_target_label: name.trim(),
-        p_payload: { action: 'cohort.update', after: payload },
-      });
+      await supabase
+        .rpc('audit_log_event', {
+          p_org_id: orgId,
+          p_verb: 'cohort_edit',
+          p_verb_label: 'Edited',
+          p_description: `Updated cohort ${name.trim()} · status ${status}, max seats ${maxSeats || '—'}.`,
+          p_target_type: 'cohort',
+          p_target_id: cohortId,
+          p_target_label: name.trim(),
+          p_payload: { action: 'cohort.update', after: payload },
+        })
+        .then(undefined, () => undefined);
     },
     onSuccess: () => {
       setSavedAt(new Date());

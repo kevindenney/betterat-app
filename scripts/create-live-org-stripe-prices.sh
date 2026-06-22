@@ -4,9 +4,9 @@
 # ORG_PLAN_PRICES_LIVE block for supabase/functions/create-org-checkout-session/index.ts.
 #
 # Mirrors lib/subscriptions/orgTiers.ts (the source of truth):
-#   Club Starter  $249/mo · $2,499/yr
-#   Club Pro      $499/mo · $4,999/yr   (plan_id "professional")
-#   Enterprise    $899/mo · $8,999/yr
+#   Organization Starter  $99/mo  · $999/yr
+#   Organization Pro      $249/mo · $2,499/yr   (plan_id "professional")
+#   Organization Enterprise $599/mo · $5,999/yr
 #
 # This talks to the LIVE Stripe account — it creates real billing catalog objects.
 # It does NOT charge anyone; prices are inert until a checkout uses them. Run it once.
@@ -53,17 +53,17 @@ create_price() {
 
 echo "Creating LIVE org products + prices…" >&2
 
-STARTER_PROD=$(create_product "Club Starter" "Up to 500 members")
-STARTER_MONTHLY=$(create_price "$STARTER_PROD" 24900 month)
-STARTER_ANNUAL=$(create_price "$STARTER_PROD" 249900 year)
+STARTER_PROD=$(create_product "Organization Starter" "Up to 500 members")
+STARTER_MONTHLY=$(create_price "$STARTER_PROD" 9900 month)
+STARTER_ANNUAL=$(create_price "$STARTER_PROD" 99900 year)
 
-PRO_PROD=$(create_product "Club Pro" "Up to 2,000 members")
-PRO_MONTHLY=$(create_price "$PRO_PROD" 49900 month)
-PRO_ANNUAL=$(create_price "$PRO_PROD" 499900 year)
+PRO_PROD=$(create_product "Organization Pro" "Up to 2,000 members")
+PRO_MONTHLY=$(create_price "$PRO_PROD" 24900 month)
+PRO_ANNUAL=$(create_price "$PRO_PROD" 249900 year)
 
-ENT_PROD=$(create_product "Enterprise" "Unlimited members")
-ENT_MONTHLY=$(create_price "$ENT_PROD" 89900 month)
-ENT_ANNUAL=$(create_price "$ENT_PROD" 899900 year)
+ENT_PROD=$(create_product "Organization Enterprise" "Unlimited members")
+ENT_MONTHLY=$(create_price "$ENT_PROD" 59900 month)
+ENT_ANNUAL=$(create_price "$ENT_PROD" 599900 year)
 
 cat <<EOF
 
@@ -72,16 +72,16 @@ supabase/functions/create-org-checkout-session/index.ts (replace the empty TODOs
 
 const ORG_PLAN_PRICES_LIVE: PlanPriceTable = {
   starter: {
-    monthly: '$STARTER_MONTHLY', // \$249/mo
-    annual: '$STARTER_ANNUAL', // \$2,499/yr
+    monthly: '$STARTER_MONTHLY', // \$99/mo
+    annual: '$STARTER_ANNUAL', // \$999/yr
   },
   professional: {
-    monthly: '$PRO_MONTHLY', // \$499/mo
-    annual: '$PRO_ANNUAL', // \$4,999/yr
+    monthly: '$PRO_MONTHLY', // \$249/mo
+    annual: '$PRO_ANNUAL', // \$2,499/yr
   },
   enterprise: {
-    monthly: '$ENT_MONTHLY', // \$899/mo
-    annual: '$ENT_ANNUAL', // \$8,999/yr
+    monthly: '$ENT_MONTHLY', // \$599/mo
+    annual: '$ENT_ANNUAL', // \$5,999/yr
   },
 };
 

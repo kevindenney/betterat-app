@@ -33,6 +33,7 @@ import { isEmailAllowed, organizationDiscoveryService, type OrganizationJoinMode
 import { supabase } from '@/services/supabase';
 import { getActiveMembership, isActiveMembership as isActiveOrgMembership, isOrgAdminRole, resolveActiveOrgId } from '@/lib/organizations/adminGate';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 import { isUuid } from '@/utils/uuid';
 import { coachRoleLabel } from '@/lib/organizations/roleLabels';
 
@@ -223,7 +224,7 @@ export default function LearnScreen() {
     const byKey = new Map<string, (typeof organizationResults)[number]>();
     const getMembershipRank = (orgId: string): number => {
       const membership = membershipsByOrgId.get(orgId);
-      const normalizedStatus = String(membership?.membership_status || membership?.status || '').toLowerCase();
+      const normalizedStatus = membership ? resolveOrgMembershipStatus(membership) : '';
       if (normalizedStatus === 'active' || normalizedStatus === 'verified') return 3;
       if (normalizedStatus === 'pending' || normalizedStatus === 'invited') return 2;
       if (normalizedStatus === 'rejected') return 1;
@@ -252,7 +253,7 @@ export default function LearnScreen() {
   const activeMembershipCount = useMemo(
     () =>
       sortedMemberships.filter((membership) => {
-        const normalizedStatus = String(membership.membership_status || membership.status || '').toLowerCase();
+        const normalizedStatus = resolveOrgMembershipStatus(membership);
         return normalizedStatus === 'active' || normalizedStatus === 'verified';
       }).length,
     [sortedMemberships]
@@ -389,8 +390,7 @@ export default function LearnScreen() {
             const query = await supabase
               .from('organization_memberships')
               .select('organization_id,membership_status,status')
-              .eq('user_id', user.id)
-              .in('membership_status', ['active', 'verified']);
+              .eq('user_id', user.id);
 
             if (query.error && isMissingSupabaseColumn(query.error, 'organization_memberships.membership_status')) {
               const fallback = await supabase
@@ -400,7 +400,7 @@ export default function LearnScreen() {
                 .in('status', ['active', 'verified']);
               rows = fallback.data || null;
             } else {
-              rows = query.data || null;
+              rows = (query.data || []).filter((row) => resolveOrgMembershipStatus(row) === 'active');
             }
 
             const nextRow = (rows || []).find((row) => String(row.organization_id || '') !== organizationId) || (rows || [])[0];
@@ -676,7 +676,9 @@ export default function LearnScreen() {
                         const isBusy = joinBusyOrgId === org.id;
                         const hasDomainRestriction = Array.isArray(org.allowed_email_domains) && org.allowed_email_domains.length > 0;
                         const existingMembership = membershipsByOrgId.get(org.id);
-                        const membershipStatus = getMembershipSearchStatus(existingMembership?.membership_status || existingMembership?.status || null);
+                        const membershipStatus = getMembershipSearchStatus(
+                          existingMembership ? resolveOrgMembershipStatus(existingMembership) : null,
+                        );
                         const hasMembership = membershipStatus !== 'none';
                         const isOpenJoinRestricted = isOpenJoinMode
                           && hasDomainRestriction

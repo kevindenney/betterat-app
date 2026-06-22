@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Library: Groups ↔ Orgs continuum</title>
+<style>
+  :root {
+    --bg:        #F2F2F7;
+    --card:      #FFFFFF;
+    --label:     #1C1C1E;
+    --label2:    #6C6C70;
+    --label3:    #8A8A8E;
+    --hair:      #E5E5EA;
+    --blue:      #007AFF;
+    --plans:     #3B82F6;
+    --concepts:  #A855F7;
+    --resources: #F59E0B;
+    --groups:    #14B8A6;
+    --orgs:      #10B981;
+    --new:       #E94B7B;   /* highlight = changed copy */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+    background: #E9E9EE;
+    color: var(--label);
+    padding: 40px 28px 80px;
+  }
+  .page-head { max-width: 1180px; margin: 0 auto 30px; }
+  .page-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+  .page-head p { color: var(--label2); font-size: 14px; margin-top: 8px; max-width: 78ch; line-height: 1.5; }
+  .principle {
+    display: flex; gap: 22px; flex-wrap: wrap; margin-top: 18px;
+    background: #fff; border: 1px solid var(--hair); border-radius: 14px; padding: 16px 18px;
+  }
+  .principle .dial { flex: 1 1 200px; }
+  .principle .dial h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--label3); }
+  .principle .dial .bar { display:flex; align-items:center; gap:8px; margin-top:8px; font-size:13px; }
+  .principle .dial .tag { font-weight:700; }
+  .principle .dial .g { color: var(--groups); }
+  .principle .dial .o { color: var(--orgs); }
+  .principle .dial .arrow { flex:1; height:2px; background: linear-gradient(90deg, var(--groups), var(--orgs)); border-radius:2px; }
+
+  .frames { max-width: 1180px; margin: 0 auto; display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .col-cap { font-size: 13px; font-weight: 700; color: var(--label); }
+  .col-cap span { display:block; font-weight: 500; color: var(--label2); font-size: 11.5px; margin-top: 2px; }
+
+  .phone {
+    width: 340px; background: var(--bg); border-radius: 30px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.07), 0 22px 50px rgba(0,0,0,.16);
+    overflow: hidden; border: 1px solid #d7d7dd;
+  }
+  .statusbar { height: 30px; display:flex; align-items:center; justify-content:space-between; padding: 0 20px; font-size: 12px; font-weight:600; }
+  .navbar { padding: 4px 18px 8px; display:flex; align-items:center; justify-content:space-between; }
+  .navbar .loc { display:flex; align-items:center; gap:5px; font-size:15px; font-weight:600; }
+  .navbar .loc svg { width:14px; height:14px; }
+  .navbar .right { display:flex; gap:10px; align-items:center; }
+  .navbar .circle { width:30px;height:30px;border-radius:50%; background:#fff; border:1px solid var(--hair); display:grid; place-items:center; }
+  .navbar .av { width:30px;height:30px;border-radius:50%; background: linear-gradient(135deg,#0A84FF,#0040DD); color:#fff; display:grid; place-items:center; font-size:12px; font-weight:700;}
+
+  .seg { display:flex; background:#E3E3E8; border-radius:9px; padding:2px; margin: 4px 16px 14px; }
+  .seg button { flex:1; border:0; background:transparent; font-family:inherit; font-size:13px; font-weight:600; color:var(--label2); padding:6px 0; border-radius:7px; }
+  .seg button.on { background:#fff; color:var(--label); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  .body { padding: 0 16px 18px; }
+
+  /* super-eyebrow that spans both group + org sections = the continuum frame */
+  .circles-head { display:flex; align-items:center; gap:8px; margin: 10px 2px 2px; }
+  .circles-head .t { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color: var(--label3); }
+  .circles-head .sub { font-size:11px; color: var(--label3); }
+  .circles-head .line { flex:1; height:1px; background: var(--hair); }
+
+  .sec { margin-top: 16px; }
+  .sec-head { display:flex; align-items:center; justify-content:space-between; margin: 0 2px 3px; }
+  .sec-head .l { display:flex; align-items:center; gap:7px; }
+  .sec-head .dot { width:8px;height:8px;border-radius:50%; }
+  .sec-head .ttl { font-size:12.5px; font-weight:700; letter-spacing:.03em; color: var(--label); }
+  .sec-head .cnt { font-size:12px; color: var(--label3); font-weight:600; }
+  .sec-head .see { font-size:13px; color: var(--blue); font-weight:500; }
+  /* the NEW sub-line under each section header */
+  .sec-sub { font-size:12.5px; color: var(--label2); margin: 0 2px 9px; line-height:1.35; }
+  .sec-sub.flag { position:relative; }
+
+  .listcard { background:#fff; border-radius:12px; overflow:hidden; }
+  .row { display:flex; align-items:center; gap:11px; padding: 11px 13px; }
+  .row + .row { border-top: 1px solid var(--hair); }
+  .mark { width:40px;height:40px;border-radius:9px; display:grid; place-items:center; color:#fff; font-size:14px; font-weight:700; flex:0 0 auto; }
+  .row .meta { flex:1; min-width:0; }
+  .row .nm { font-size:15px; font-weight:600; letter-spacing:-.01em; }
+  .row .ds { font-size:13px; color: var(--label2); margin-top:1px; }
+  .row .ds b { color: var(--orgs); font-weight:600; }      /* parent-org crumb */
+  .row .chev { color:#C7C7CC; font-size:17px; }
+  .row .join { font-size:13px; font-weight:600; color: var(--blue); border:1px solid #cfe0ff; background:#F2F7FF; padding:5px 12px; border-radius:8px;}
+  .row .joined { font-size:12.5px; font-weight:600; color: var(--label3); }
+
+  /* faded sections above (to set context, like the screenshot) */
+  .ghost { opacity:.5; }
+  .ghost .ttl { color: var(--label2); }
+
+  .tabbar { display:flex; justify-content:space-around; padding: 9px 0 16px; background:#fff; border-top:1px solid var(--hair); }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; color: var(--label3); }
+  .tab.on { color: var(--blue); }
+  .tab .ic { width:22px;height:22px; }
+
+  /* annotation pin */
+  .pin { display:inline-grid; place-items:center; width:17px;height:17px;border-radius:50%; background:var(--new); color:#fff; font-size:10px; font-weight:800; margin-left:6px; vertical-align:middle; }
+  .legend { max-width: 1180px; margin: 34px auto 0; background:#fff; border:1px solid var(--hair); border-radius:14px; padding: 18px 20px; }
+  .legend h3 { font-size:15px; font-weight:700; margin-bottom: 12px; }
+  .legend ol { margin: 0; padding-left: 4px; list-style:none; display:grid; gap:11px; }
+  .legend li { display:flex; gap:10px; font-size:13.5px; color: var(--label2); line-height:1.45; }
+  .legend li .n { flex:0 0 auto; display:grid; place-items:center; width:18px;height:18px;border-radius:50%; background:var(--new); color:#fff; font-size:10px; font-weight:800; margin-top:1px;}
+  .legend li b { color: var(--label); font-weight:650; }
+  .legend li .was { color: var(--label3); text-decoration: line-through; }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Library — Groups ↔ Orgs as one continuum</h1>
+  <p>The dial that separates a <b>group</b> from an <b>org</b> is <b>authority — who issues the curriculum</b>. A group is the people you train alongside; an org is the institution that runs the program. Today they read as two unrelated worlds because the <i>yours ↔ stacks</i> toggle (membership) is stacked on top of <i>group ↔ org</i> (scale). The fix: a shared <b>“Your circles”</b> frame, parallel sub-lines, and a parent-org crumb on every group row so the nesting is visible. Pink dots <span class="pin">N</span> mark changed copy — see the key below.</p>
+  <div class="principle">
+    <div class="dial"><h4>Lifespan</h4><div class="bar"><span class="tag g">Group</span><span class="arrow"></span><span class="tag o">Org</span></div><div class="bar" style="color:var(--label2)">bounded season / rotation → permanent institution</div></div>
+    <div class="dial"><h4>Who pays</h4><div class="bar"><span class="tag g">Group</span><span class="arrow"></span><span class="tag o">Org</span></div><div class="bar" style="color:var(--label2)">free / peer-funded → has a billing tier</div></div>
+    <div class="dial"><h4>Authority</h4><div class="bar"><span class="tag g">Group</span><span class="arrow"></span><span class="tag o">Org</span></div><div class="bar" style="color:var(--label2)">a captain / convener → issues blueprints, admits members</div></div>
+  </div>
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME A — Sailing · Yours ============ -->
+  <div class="col">
+    <div class="col-cap">A · Library “Yours”<span>Sail racing</span></div>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="navbar">
+        <div class="loc"><svg viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2"><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Aberdeen Harbor</div>
+        <div class="right"><div class="circle">🔍</div><div class="circle">＋</div><div class="av">KD</div></div>
+      </div>
+      <div class="seg"><button class="on">Yours</button><button>The stacks</button></div>
+      <div class="body">
+        <!-- faded context sections -->
+        <div class="sec ghost">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:var(--concepts)"></div><div class="ttl">CONCEPTS</div></div><div class="see">See all 5 ›</div></div>
+          <div class="listcard"><div class="row"><div class="meta"><div class="nm" style="font-style:italic;font-weight:500">Ease the spinnaker halyard .5m…</div><div class="ds">Forming · 0 steps</div></div><div class="chev">›</div></div></div>
+        </div>
+        <div class="sec ghost">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:var(--resources)"></div><div class="ttl">RESOURCES</div></div><div class="see">See all 8 ›</div></div>
+        </div>
+
+        <!-- THE CONTINUUM -->
+        <div class="circles-head"><div class="t">Your circles</div><div class="line"></div><div class="sub">crew → club</div></div>
+
+        <div class="sec">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:var(--groups)"></div><div class="ttl">GROUPS</div><div class="cnt">1</div></div><div class="see">See all ›</div></div>
+          <div class="sec-sub">The people you train alongside.<span class="pin">1</span></div>
+          <div class="listcard">
+            <div class="row">
+              <div class="mark" style="background:#5B6470">HK</div>
+              <div class="meta"><div class="nm">Hong Kong Impala Fleet</div><div class="ds">Owner · <b>RHKYC</b><span class="pin">2</span></div></div>
+              <div class="chev">›</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:var(--orgs)"></div><div class="ttl">ORGS</div><div class="cnt">2</div></div><div class="see">See all ›</div></div>
+          <div class="sec-sub">The institutions that run the program.<span class="pin">3</span></div>
+          <div class="listcard">
+            <div class="row">
+              <div class="mark" style="background:#0B63CE">R</div>
+              <div class="meta"><div class="nm">Royal Hong Kong YC</div><div class="ds">Member · publishes your race calendar</div></div>
+              <div class="chev">›</div>
+            </div>
+            <div class="row">
+              <div class="mark" style="background:#1E5BB8">DA</div>
+              <div class="meta"><div class="nm">Int’l Dragon Association</div><div class="ds">Member · class association</div></div>
+              <div class="chev">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><div class="ic">◎</div>Practice</div>
+        <div class="tab on"><div class="ic">📚</div>Library</div>
+        <div class="tab"><div class="ic">👁</div>Watch</div>
+        <div class="tab"><div class="ic">🗺</div>Atlas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FRAME B — Sailing · The stacks (both tiers) ============ -->
+  <div class="col">
+    <div class="col-cap">B · Library “The stacks”<span>Both tiers discoverable</span></div>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="navbar">
+        <div class="loc"><svg viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2"><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Aberdeen Harbor</div>
+        <div class="right"><div class="circle">🔍</div><div class="circle">＋</div><div class="av">KD</div></div>
+      </div>
+      <div class="seg"><button>Yours</button><button class="on">The stacks</button></div>
+      <div class="body">
+        <div class="sec ghost">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:#0EA5E9"></div><div class="ttl">PLANS TO FOLLOW</div></div><div class="see">See all ›</div></div>
+        </div>
+
+        <div class="circles-head"><div class="t">Circles to join</div><div class="line"></div><div class="sub">crew → club</div></div>
+
+        <div class="sec">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:var(--groups)"></div><div class="ttl">GROUPS TO JOIN</div></div><div class="see">See all ›</div></div>
+          <div class="sec-sub">Crews near you taking on members.<span class="pin">4</span></div>
+          <div class="listcard">
+            <div class="row">
+              <div class="mark" style="background:#0F766E">SF</div>
+              <div class="meta"><div class="nm">SF Bay Dragon Fleet</div><div class="ds">12 sailors · <b>St Francis YC</b></div></div>
+              <button class="join">Join</button>
+            </div>
+            <div class="row">
+              <div class="mark" style="background:#7C3AED">MI</div>
+              <div class="meta"><div class="nm">Miami Etchells Group</div><div class="ds">Region fleet · no club</div></div>
+              <button class="join">Join</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:var(--orgs)"></div><div class="ttl">ORGS TO JOIN</div></div><div class="see">See all ›</div></div>
+          <div class="sec-sub">Clubs &amp; schools that own the calendar.<span class="pin">4</span></div>
+          <div class="listcard">
+            <div class="row">
+              <div class="mark" style="background:#5B6470">RS</div>
+              <div class="meta"><div class="nm">Royal St George YC</div><div class="ds">Unclaimed placeholder · request to join</div></div>
+              <button class="join">Join</button>
+            </div>
+            <div class="row">
+              <div class="mark" style="background:#0B63CE">RSY</div>
+              <div class="meta"><div class="nm">Royal Sydney YS</div><div class="ds">Request to join</div></div>
+              <button class="join">Join</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><div class="ic">◎</div>Practice</div>
+        <div class="tab on"><div class="ic">📚</div>Library</div>
+        <div class="tab"><div class="ic">👁</div>Watch</div>
+        <div class="tab"><div class="ic">🗺</div>Atlas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FRAME C — Nursing · Yours (vernacular) ============ -->
+  <div class="col">
+    <div class="col-cap">C · Library “Yours”<span>Nursing — native vocab</span></div>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="navbar">
+        <div class="loc"><svg viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2"><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Baltimore, MD</div>
+        <div class="right"><div class="circle">🔍</div><div class="circle">＋</div><div class="av">EM</div></div>
+      </div>
+      <div class="seg"><button class="on">Yours</button><button>The stacks</button></div>
+      <div class="body">
+        <div class="sec ghost">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:var(--resources)"></div><div class="ttl">RESOURCES</div></div><div class="see">See all ›</div></div>
+        </div>
+
+        <div class="circles-head"><div class="t">Your circles</div><div class="line"></div><div class="sub">cohort → school</div></div>
+
+        <div class="sec">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:var(--groups)"></div><div class="ttl">GROUPS</div><div class="cnt">1</div></div><div class="see">See all ›</div></div>
+          <div class="sec-sub">Your cohort — the people moving through the rotation with you.<span class="pin">5</span></div>
+          <div class="listcard">
+            <div class="row">
+              <div class="mark" style="background:#7C3AED">CC</div>
+              <div class="meta"><div class="nm">Critical Care Cohort ’26</div><div class="ds">Member · <b>JHU School of Nursing</b></div></div>
+              <div class="chev">›</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-head"><div class="l"><div class="dot" style="background:var(--orgs)"></div><div class="ttl">ORGS</div><div class="cnt">1</div></div><div class="see">See all ›</div></div>
+          <div class="sec-sub">The institutions that run the program.<span class="pin">5</span></div>
+          <div class="listcard">
+            <div class="row">
+              <div class="mark" style="background:#1E5BB8">JH</div>
+              <div class="meta"><div class="nm">JHU School of Nursing</div><div class="ds">Enrolled · issues your curriculum &amp; placements</div></div>
+              <div class="chev">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><div class="ic">◎</div>Practice</div>
+        <div class="tab on"><div class="ic">📚</div>Library</div>
+        <div class="tab"><div class="ic">👁</div>Watch</div>
+        <div class="tab"><div class="ic">🗺</div>Atlas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FRAME D — Groups full-zone ============ -->
+  <div class="col">
+    <div class="col-cap">D · Groups full-zone<span>“See all” drill-in</span></div>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="navbar">
+        <div class="loc" style="gap:8px"><span style="color:var(--blue);font-size:22px;line-height:1">‹</span><span>Groups</span></div>
+        <div class="right"><div class="av">KD</div></div>
+      </div>
+      <div class="body">
+        <div class="sec-sub" style="margin-top:8px">The crews and cohorts you’re in — the people on the start line with you.<span class="pin">1</span></div>
+        <div class="sec" style="margin-top:6px">
+          <div class="listcard">
+            <div class="row">
+              <div class="mark" style="background:#5B6470">HK</div>
+              <div class="meta"><div class="nm">Hong Kong Impala Fleet</div><div class="ds">Owner · <b>RHKYC</b></div></div>
+              <div class="chev">›</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec" style="margin-top:22px">
+          <div class="sec-head"><div class="l"><div class="ttl" style="letter-spacing:.04em;color:var(--label3)">FIND MORE</div></div></div>
+          <div class="listcard">
+            <div class="row"><div class="mark" style="background:#F2F7FF;color:var(--blue);font-size:18px">🔍</div><div class="meta"><div class="nm" style="color:var(--blue)">Find a group to join</div><div class="ds">Crews near Aberdeen Harbor</div></div><div class="chev">›</div></div>
+            <div class="row"><div class="mark" style="background:#F2F7FF;color:var(--blue);font-size:20px">＋</div><div class="meta"><div class="nm" style="color:var(--blue)">Create a group</div><div class="ds">Start a fleet or cohort</div></div><div class="chev">›</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h3>What changed (pink pins)</h3>
+  <ol>
+    <li><span class="n">1</span><div><b>Parallel sub-lines under each section header.</b> Groups → “The people you train alongside.” Orgs → “The institutions that run the program.” The headers stop being bare nouns and start naming the <i>authority</i> dial. <span class="was">was: no sub-line</span></div></li>
+    <li><span class="n">2</span><div><b>Parent-org crumb on every group row.</b> <code>Owner · <b style="color:var(--orgs)">RHKYC</b></code> puts the nesting on screen — the fleet visibly sits inside the club, so “group” and “org” read as <i>room</i> and <i>building</i>, not two worlds.</div></li>
+    <li><span class="n">3</span><div><b>Shared “Your circles” super-eyebrow</b> spans Groups + Orgs with a <code>crew → club</code> hairline, framing them as one tight→wide continuum instead of two disconnected zones.</div></li>
+    <li><span class="n">4</span><div><b>Both tiers under each segment.</b> “The stacks” now shows <i>Groups to join</i> <u>and</u> <i>Orgs to join</i>, so a region-only fleet isn’t homeless and a joinable club isn’t exiled to a different screen. Membership (yours/stacks) and scale (group/org) become independent axes.</div></li>
+    <li><span class="n">5</span><div><b>Interest-native vocab.</b> Same structure, but nursing reads “cohort / school,” sailing reads “fleet / club.” The de-overlap rule: drop “clubs” from the Groups copy (it currently appears in <i>both</i> Groups and Orgs empty states — the root of the fusion). <span class="was">was: “Fleets, clubs, and cohorts you belong to…”</span></div></li>
+  </ol>
+</div>
+
+</body>
+</html>

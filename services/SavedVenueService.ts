@@ -154,13 +154,16 @@ export class SavedVenueService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('saved_venues')
       .delete()
       .eq('user_id', user.id)
-      .eq('venue_id', venueId);
+      .eq('venue_id', venueId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('Saved venue not found.');
   }
 
   /**

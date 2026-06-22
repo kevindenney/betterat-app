@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
@@ -23,12 +23,39 @@ import { PlanRowCard } from '@/components/library/plans/PlanRowCard';
 
 export function PlansZone() {
   const { currentInterest } = useInterest();
-  const { data: plans, isLoading } = useSubscribedPlansForLibrary(currentInterest?.id);
+  const {
+    data: plans,
+    isLoading,
+    error,
+    refetch,
+  } = useSubscribedPlansForLibrary(currentInterest?.id);
 
   if (isLoading) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.empty}>
+        <Ionicons name="warning-outline" size={28} color={IOS_COLORS.systemOrange} />
+        <Text style={styles.emptyTitle}>Could not load plans</Text>
+        <Text style={styles.emptyBlurb}>
+          {error instanceof Error ? error.message : 'Try again in a moment.'}
+        </Text>
+        <Pressable
+          style={styles.retryButton}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading plans"
+          onPress={() => {
+            void refetch();
+          }}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -90,5 +117,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: IOS_COLORS.secondaryLabel,
     textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

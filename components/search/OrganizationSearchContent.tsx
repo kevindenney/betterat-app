@@ -15,6 +15,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { organizationDiscoveryService, isEmailAllowed } from '@/services/OrganizationDiscoveryService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { IOS_COLORS, IOS_TYPOGRAPHY, IOS_SPACING, IOS_RADIUS } from '@/lib/design-tokens-ios';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 
 interface OrganizationSearchContentProps {
   toolbarOffset?: number;
@@ -100,7 +101,9 @@ export function OrganizationSearchContent({
 
   const renderItem = useCallback(({item}: {item: any}) => {
       const membership = membershipsByOrgId.get(item.id);
-      const membershipStatus = normalizeMembershipStatus(membership?.membership_status || membership?.status);
+      const membershipStatus = normalizeMembershipStatus(
+        membership ? resolveOrgMembershipStatus(membership) : null,
+      );
       const isCurrentOrg = activeOrganizationId === item.id;
       const allowedDomains = Array.isArray(item.allowed_email_domains) ? item.allowed_email_domains : [];
       const emailAllowed = isEmailAllowed({

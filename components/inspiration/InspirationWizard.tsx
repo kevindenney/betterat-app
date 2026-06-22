@@ -20,6 +20,7 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type {
   InspirationExtraction,
   InspirationBlueprintStep,
+  InspirationCalendar,
   InspirationInterestReview,
   ProposedInterest,
   InspirationContentType,
@@ -27,9 +28,10 @@ import type {
 import { InspirationCaptureStep } from './InspirationCaptureStep';
 import { InspirationInterestStep } from './InspirationInterestStep';
 import { InspirationBlueprintStep as BlueprintStepReview } from './InspirationBlueprintStep';
+import { InspirationCalendarStep as CalendarStepReview } from './InspirationCalendarStep';
 import { InspirationSuccessStep } from './InspirationSuccessStep';
 
-type WizardStep = 'capture' | 'review-interest' | 'review-blueprint' | 'success';
+type WizardStep = 'capture' | 'review-interest' | 'review-blueprint' | 'review-calendar' | 'success';
 
 interface InspirationWizardProps {
   visible: boolean;
@@ -38,13 +40,14 @@ interface InspirationWizardProps {
 
 export function InspirationWizard({ visible, onClose }: InspirationWizardProps) {
   const { user } = useAuth();
-  const { userInterests, proposeInterest } = useInterest();
+  const { currentInterest, userInterests, proposeInterest } = useInterest();
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<WizardStep>('capture');
   const [extraction, setExtraction] = useState<InspirationExtraction | null>(null);
   const [interestEdits, setInterestEdits] = useState<Partial<ProposedInterest>>({});
   const [selectedExistingInterestId, setSelectedExistingInterestId] = useState<string | null>(null);
+  const [editedBlueprintSteps, setEditedBlueprintSteps] = useState<InspirationBlueprintStep[] | null>(null);
   const [sourceContent, setSourceContent] = useState('');
   const [sourceContentType, setSourceContentType] = useState<InspirationContentType>('url');
   const [activating, setActivating] = useState(false);
@@ -73,6 +76,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
     setExtraction(null);
     setInterestEdits({});
     setSelectedExistingInterestId(null);
+    setEditedBlueprintSteps(null);
     setSourceContent('');
     setSourceContentType('url');
     setActivating(false);
@@ -98,9 +102,11 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
     setStep('review-blueprint');
   }, []);
 
-  // Step 3 → Step 4: Blueprint reviewed, activate everything
-  const handleActivate = useCallback(
-    async (steps: InspirationBlueprintStep[]) => {
+  const runActivation = useCallback(
+    async (
+      steps: InspirationBlueprintStep[],
+      calendarReview: InspirationCalendar | null,
+    ) => {
       if (!extraction || !user?.id) return;
 
       setActivating(true);
@@ -113,6 +119,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
             interestEdits,
             selectedExistingInterestId,
             editedSteps: steps,
+            calendarReview,
             sourceContent,
             sourceContentType,
           },
@@ -137,12 +144,33 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
     [extraction, user?.id, interestEdits, selectedExistingInterestId, sourceContent, sourceContentType, proposeInterest],
   );
 
+  // Step 3 → optional Step 4: Blueprint reviewed
+  const handleBlueprintReviewed = useCallback(
+    async (steps: InspirationBlueprintStep[]) => {
+      setEditedBlueprintSteps(steps);
+      if (extraction?.calendar?.steps?.length) {
+        setStep('review-calendar');
+        return;
+      }
+      await runActivation(steps, null);
+    },
+    [extraction?.calendar?.steps?.length, runActivation],
+  );
+
+  const handleCalendarReviewed = useCallback(
+    async (calendarReview: InspirationCalendar | null) => {
+      await runActivation(editedBlueprintSteps ?? extraction?.blueprint.steps ?? [], calendarReview);
+    },
+    [editedBlueprintSteps, extraction?.blueprint.steps, runActivation],
+  );
+
   const handleBack = useCallback(() => {
     if (step === 'review-interest') setStep('capture');
     else if (step === 'review-blueprint') setStep('review-interest');
+    else if (step === 'review-calendar') setStep('review-blueprint');
   }, [step]);
 
-  const canGoBack = step === 'review-interest' || step === 'review-blueprint';
+  const canGoBack = step === 'review-interest' || step === 'review-blueprint' || step === 'review-calendar';
 
   const userInterestSlugs = userInterests.map((i) => i.slug);
 
@@ -179,6 +207,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
             {step === 'capture' && 'Get Inspired'}
             {step === 'review-interest' && 'Your Interest'}
             {step === 'review-blueprint' && 'Your Plan'}
+            {step === 'review-calendar' && 'Your Calendar'}
             {step === 'success' && 'Ready!'}
           </Text>
 
@@ -190,7 +219,9 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
         {/* Step content */}
         {step === 'capture' && (
           <InspirationCaptureStep
+            userId={user?.id}
             userInterestSlugs={userInterestSlugs}
+            currentInterest={currentInterest}
             onComplete={handleExtractionComplete}
             registerAbortHandler={registerCaptureAbortHandler}
           />
@@ -208,7 +239,14 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
           <BlueprintStepReview
             extraction={extraction}
             activating={activating}
-            onActivate={handleActivate}
+            onActivate={handleBlueprintReviewed}
+          />
+        )}
+        {step === 'review-calendar' && extraction && (
+          <CalendarStepReview
+            calendar={extraction.calendar}
+            activating={activating}
+            onConfirm={handleCalendarReviewed}
           />
         )}
         {step === 'success' && result && (

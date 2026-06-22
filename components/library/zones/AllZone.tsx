@@ -41,11 +41,21 @@ import { useLibraryResourcesPreview } from '@/hooks/useLibraryResourcesPreview';
 import { useDiscoverBlueprints } from '@/hooks/useBlueprint';
 import { useMarketplaceBlueprints, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
 import { useQuery } from '@tanstack/react-query';
-import { useTopOrgsForInterest } from '@/hooks/useTopOrgsForInterest';
+import { useTopOrgsForInterest, type TopOrgRow } from '@/hooks/useTopOrgsForInterest';
+import { useTrendingFleets } from '@/hooks/useFleetDiscovery';
+import { useMyOrgs, type MyOrg } from '@/hooks/useMyOrgs';
+import {
+  useDiscoverableAffinityGroups,
+  useUserAffinityGroups,
+  type AffinityGroupKind,
+  type UserAffinityGroup,
+} from '@/hooks/useUserAffinityGroups';
+import { useUserOrgCohorts, type UserOrgCohort } from '@/hooks/useUserOrgCohorts';
 import {
   fetchOrgMembershipRows,
   orgMembershipsQueryKey,
 } from '@/hooks/orgMembershipsQuery';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 import { useUserFleets } from '@/hooks/useFleetData';
 import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
@@ -60,6 +70,7 @@ import {
   pickSquareMarkColor,
 } from '@/components/discover/canonical';
 import type { DiscoveredBlueprint } from '@/services/BlueprintService';
+import type { Fleet as DiscoveryFleet } from '@/services/FleetDiscoveryService';
 
 const PREVIEW_LIMIT = 3;
 
@@ -68,6 +79,8 @@ interface AllZoneProps {
   onJumpToZone: (zone: LibraryZone) => void;
   /** Librarian ask-strip + noticed card, rendered above the feed. */
   librarianSlot?: React.ReactNode;
+  /** Optional deep-link target for the yours ↔ stacks axis. */
+  initialSegment?: 'yours' | 'stacks';
 }
 
 interface SectionHeaderProps {
@@ -78,11 +91,13 @@ interface SectionHeaderProps {
 }
 
 function SectionHeader({ title, dotColor, count, onSeeAll }: SectionHeaderProps) {
+  const showInlineCount = typeof count === 'number' && count > 0;
   return (
     <View style={styles.sectionHead}>
       <View style={styles.headLeft}>
         <View style={[styles.dot, { backgroundColor: dotColor }]} />
         <Text style={styles.eyebrow}>{title}</Text>
+        {showInlineCount ? <Text style={styles.eyebrowCount}>{count}</Text> : null}
       </View>
       <Pressable
         onPress={onSeeAll}
@@ -91,9 +106,6 @@ function SectionHeader({ title, dotColor, count, onSeeAll }: SectionHeaderProps)
         hitSlop={6}
         style={styles.seeAllBtn}
       >
-        <Text style={styles.seeAllText}>
-          {typeof count === 'number' ? `See all ${count}` : 'See all'}
-        </Text>
         <Ionicons name="chevron-forward" size={12} color={IOS_COLORS.systemBlue} />
       </Pressable>
     </View>
@@ -102,6 +114,26 @@ function SectionHeader({ title, dotColor, count, onSeeAll }: SectionHeaderProps)
 
 function EmptyHint({ children }: { children: React.ReactNode }) {
   return <Text style={styles.emptyHint}>{children}</Text>;
+}
+
+function SectionSubline({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.sectionSubline}>{children}</Text>;
+}
+
+function CirclesHeader({
+  title,
+  scale,
+}: {
+  title: string;
+  scale: string;
+}) {
+  return (
+    <View style={styles.circlesHead}>
+      <Text style={styles.circlesTitle}>{title}</Text>
+      <View style={styles.circlesLine} />
+      <Text style={styles.circlesScale}>{scale}</Text>
+    </View>
+  );
 }
 
 function LoadingRow() {
@@ -120,6 +152,14 @@ interface FollowRow {
   author: string;
   subscriberCount: number;
   badge: string | null;
+  route: string;
+}
+
+interface LibraryGroupRow {
+  id: string;
+  name: string;
+  initialsSource: string;
+  descriptor: string;
   route: string;
 }
 
@@ -153,6 +193,88 @@ function discoveredToFollowRow(bp: DiscoveredBlueprint): FollowRow {
     badge,
     route: `/(tabs)/library/blueprints/${bp.id}`,
   };
+}
+
+function compactOrgName(name?: string | null): string | null {
+  if (!name) return null;
+  if (/Royal Hong Kong Yacht Club/i.test(name)) return 'RHKYC';
+  if (/Johns Hopkins School of Nursing/i.test(name)) return 'JHU School of Nursing';
+  if (name.length <= 18) return name;
+  const initials = initialsForName(name);
+  return initials.length >= 2 ? initials : name;
+}
+
+function formatSailorCount(count?: number): string {
+  if (!count || count <= 0) return 'Open fleet';
+  return `${count} ${count === 1 ? 'sailor' : 'sailors'}`;
+}
+
+function formatOrgRole(role: string): string {
+  switch (role) {
+    case 'owner':
+      return 'Owner';
+    case 'admin':
+      return 'Admin';
+    case 'manager':
+      return 'Manager';
+    default:
+      return 'Member';
+  }
+}
+
+function formatAffinityGroupRole(role?: string | null): string {
+  switch (role) {
+    case 'leader':
+      return 'Leader';
+    case 'coach':
+      return 'Coach';
+    default:
+      return 'Member';
+  }
+}
+
+function affinityGroupKindLabel(kind: AffinityGroupKind): string {
+  switch (kind) {
+    case 'cohort':
+      return 'Cohort';
+    case 'crew_pod':
+      return 'Crew';
+    case 'practice_group':
+      return 'Practice group';
+    case 'class_fleet':
+    default:
+      return 'Fleet';
+  }
+}
+
+function descriptorForMyOrg(org: MyOrg, interestSlug?: string | null): string {
+  const role = formatOrgRole(org.role);
+  if (interestSlug === 'nursing') return `${role} · issues your curriculum and placements`;
+  if (interestSlug === 'sail-racing') return `${role} · publishes your race calendar`;
+  return `${role} · runs the program`;
+}
+
+function descriptorForDiscoverableFleet(fleet: DiscoveryFleet): string {
+  const org = compactOrgName(fleet.organizations?.name);
+  return [formatSailorCount(fleet.member_count), org].filter(Boolean).join(' · ');
+}
+
+function descriptorForUserAffinityGroup(group: UserAffinityGroup): string {
+  const org = compactOrgName(group.parent_org_name);
+  return [formatAffinityGroupRole(group.role), org].filter(Boolean).join(' · ');
+}
+
+function descriptorForUserOrgCohort(cohort: UserOrgCohort): string {
+  const role = cohort.role
+    ? cohort.role.charAt(0).toUpperCase() + cohort.role.slice(1)
+    : 'Member';
+  const org = compactOrgName(cohort.org_name);
+  return [role, org].filter(Boolean).join(' · ');
+}
+
+function descriptorForDiscoverableAffinityGroup(group: UserAffinityGroup): string {
+  const org = compactOrgName(group.parent_org_name);
+  return [affinityGroupKindLabel(group.kind), org].filter(Boolean).join(' · ');
 }
 
 function FollowPlanRow({ row }: { row: FollowRow }) {
@@ -275,18 +397,72 @@ function TopSegment({
   );
 }
 
-export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
+export function AllZone({
+  counts,
+  onJumpToZone,
+  librarianSlot,
+  initialSegment = 'yours',
+}: AllZoneProps) {
   const { currentInterest, allInterests, userInterests, addInterest } = useInterest();
   const { user } = useAuth();
   const interestId = currentInterest?.id;
   const interestSlug = currentInterest?.slug;
+  const isSailRacing = interestSlug === 'sail-racing';
+  const circlesScale = isSailRacing ? 'crew -> club' : interestSlug === 'nursing' ? 'cohort -> school' : 'group -> org';
 
-  // Fleet memberships are sailing-specific today. Until the generic groups
-  // model feeds this zone, keep fleet rows scoped to Sail Racing so they don't
-  // leak into Nursing or other interests.
-  const { fleets, loading: groupsLoading } = useUserFleets(user?.id);
-  const groupRows = interestSlug === 'sail-racing' ? fleets : [];
-  const groupPreview = groupRows.slice(0, PREVIEW_LIMIT);
+  const { fleets, loading: fleetsLoading } = useUserFleets(user?.id);
+  const { groups: userAffinityGroups, isLoading: affinityGroupsLoading } =
+    useUserAffinityGroups(interestSlug);
+  const { cohorts: userOrgCohorts, isLoading: orgCohortsLoading } =
+    useUserOrgCohorts(interestSlug);
+  const groupsLoading = isSailRacing ? fleetsLoading : affinityGroupsLoading || orgCohortsLoading;
+  const fleetGroupPreview = isSailRacing ? fleets.slice(0, PREVIEW_LIMIT) : [];
+  const nonSailingGroupRows = React.useMemo<LibraryGroupRow[]>(() => {
+    if (isSailRacing) return [];
+    const seen = new Set<string>();
+    const keyFor = (name: string, orgId?: string | null) =>
+      `${name.trim().toLowerCase()}::${orgId ?? ''}`;
+    const rows: LibraryGroupRow[] = [];
+
+    for (const group of userAffinityGroups) {
+      seen.add(keyFor(group.name, group.parent_org_id));
+      rows.push({
+        id: `affinity:${group.id}`,
+        name: group.name,
+        initialsSource: group.short_name ?? group.name,
+        descriptor: descriptorForUserAffinityGroup(group),
+        route: `/group/${group.id}`,
+      });
+    }
+
+    for (const cohort of userOrgCohorts) {
+      const key = keyFor(cohort.name, cohort.org_id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({
+        id: `cohort:${cohort.id}`,
+        name: cohort.name,
+        initialsSource: cohort.name,
+        descriptor: descriptorForUserOrgCohort(cohort),
+        route: `/organization/cohort/${cohort.id}`,
+      });
+    }
+
+    return rows;
+  }, [isSailRacing, userAffinityGroups, userOrgCohorts]);
+  const nonSailingGroupPreview = nonSailingGroupRows.slice(0, PREVIEW_LIMIT);
+  const groupCount = isSailRacing ? fleets.length : nonSailingGroupRows.length;
+  const joinedFleetIds = React.useMemo(
+    () => new Set(fleets.map((m) => m.fleet.id)),
+    [fleets],
+  );
+  const joinedAffinityGroupIds = React.useMemo(
+    () => new Set(userAffinityGroups.map((g) => g.id)),
+    [userAffinityGroups],
+  );
+  const { fleets: trendingFleets, loading: trendingFleetsLoading } = useTrendingFleets(8);
+  const { groups: discoverableAffinityGroups, isLoading: discoverableGroupsLoading } =
+    useDiscoverableAffinityGroups(interestSlug, 8);
 
   const { data: plans, isLoading: plansLoading } =
     useSubscribedPlansForLibrary(interestId);
@@ -300,6 +476,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
     useMarketplaceBlueprints(interestId ?? null);
   const { data: topOrgs, isLoading: orgsLoading } =
     useTopOrgsForInterest(interestSlug, PREVIEW_LIMIT);
+  const { data: myOrgs } = useMyOrgs();
   // Same cached read OrganizationProvider uses — lets the org rows show the
   // viewer's own standing ("Member" / "Request pending") instead of only the
   // org's join mode.
@@ -311,7 +488,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
   const membershipStatusByOrgId = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const row of membershipRows ?? []) {
-      const status = row.membership_status ?? row.status;
+      const status = resolveOrgMembershipStatus(row);
       if (status) map.set(row.organization_id, status);
     }
     return map;
@@ -336,12 +513,42 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
     for (const bp of catalog ?? []) push(discoveredToFollowRow(bp));
     return rows.slice(0, PREVIEW_LIMIT);
   }, [marketPlans, catalog]);
-  const orgPreview = topOrgs ?? [];
+  const myOrgRows = React.useMemo(
+    () => (myOrgs ?? []).filter((org) => org.interest_slug === interestSlug).slice(0, PREVIEW_LIMIT),
+    [myOrgs, interestSlug],
+  );
+  const orgPreview = React.useMemo(
+    () => (topOrgs ?? []).filter((org) => membershipStatusByOrgId.get(org.id) !== 'active'),
+    [topOrgs, membershipStatusByOrgId],
+  );
+  const groupJoinPreview = React.useMemo(
+    () =>
+      isSailRacing
+        ? trendingFleets
+            .filter((fleet) => !joinedFleetIds.has(fleet.id))
+            .slice(0, PREVIEW_LIMIT)
+        : [],
+    [isSailRacing, trendingFleets, joinedFleetIds],
+  );
+  const affinityGroupJoinPreview = React.useMemo(
+    () =>
+      isSailRacing
+        ? []
+        : discoverableAffinityGroups
+            .filter((group) => !joinedAffinityGroupIds.has(group.id))
+            .slice(0, PREVIEW_LIMIT),
+    [isSailRacing, discoverableAffinityGroups, joinedAffinityGroupIds],
+  );
+  const joinGroupsLoading = isSailRacing ? trendingFleetsLoading : discoverableGroupsLoading;
 
   // Top-level "yours ↔ the stacks" axis, made literal as a segmented
   // control. Each half is a full screen so the user never scrolls their
   // own shelf to reach catalog content (or vice versa).
-  const [topSegment, setTopSegment] = React.useState<'yours' | 'stacks'>('yours');
+  const [topSegment, setTopSegment] = React.useState<'yours' | 'stacks'>(initialSegment);
+
+  React.useEffect(() => {
+    setTopSegment(initialSegment);
+  }, [initialSegment]);
 
   // Jump-back-in: the freshest real item from each of the user's own
   // surfaces. Not true "last-opened" (we don't track opens yet) — this is
@@ -562,35 +769,108 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
         )}
       </View>
 
+      <CirclesHeader title="Your circles" scale={circlesScale} />
+
       <View style={styles.section}>
         <SectionHeader
           title="GROUPS"
           dotColor="#14B8A6"
-          count={groupRows.length || undefined}
+          count={groupCount || undefined}
           onSeeAll={() => onJumpToZone('groups')}
         />
-        {groupsLoading && groupRows.length === 0 ? (
+        {groupsLoading && groupCount === 0 ? (
           <LoadingRow />
-        ) : groupPreview.length === 0 ? (
+        ) : groupCount === 0 ? (
           <EmptyHint>
-            {interestSlug === 'sail-racing'
-              ? 'Fleets, clubs, and cohorts you belong to show up here.'
-              : `Groups for ${currentInterest?.name ?? 'this interest'} will show up here once you join one.`}
+            {isSailRacing
+              ? "The crews and fleets you're in — the people on the start line with you."
+              : interestSlug === 'nursing'
+                ? 'Your cohorts will show up here — the people moving through the rotation with you.'
+                : `Groups for ${currentInterest?.name ?? 'this interest'} will show up here once you join one.`}
           </EmptyHint>
         ) : (
+          <>
+          <SectionSubline>
+            {isSailRacing
+              ? 'The people you train alongside.'
+              : 'The people moving through the work with you.'}
+          </SectionSubline>
           <CanonicalList>
-            {groupPreview.map((m, idx) => (
-              <CanonicalOrgRow
-                key={m.fleet.id}
-                first={idx === 0}
-                initials={initialsForName(m.fleet.name)}
-                markColor={pickSquareMarkColor(m.fleet.id)}
-                name={m.fleet.name}
-                descriptor={groupRoleDescriptor(m)}
-                onPress={() => router.push('/(tabs)/fleet' as never)}
-              />
-            ))}
+            {isSailRacing
+              ? fleetGroupPreview.map((m, idx) => (
+                  <CanonicalOrgRow
+                    key={m.fleet.id}
+                    first={idx === 0}
+                    initials={initialsForName(m.fleet.name)}
+                    markColor={pickSquareMarkColor(m.fleet.id)}
+                    name={m.fleet.name}
+                    descriptor={
+                      [groupRoleDescriptor(m), compactOrgName(m.fleet.organization?.name)]
+                        .filter(Boolean)
+                        .join(' · ')
+                    }
+                    onPress={() => router.push('/(tabs)/fleet' as never)}
+                  />
+                ))
+              : nonSailingGroupPreview.map((group, idx) => (
+                  <CanonicalOrgRow
+                    key={group.id}
+                    first={idx === 0}
+                    initials={initialsForName(group.initialsSource)}
+                    markColor={pickSquareMarkColor(group.id)}
+                    name={group.name}
+                    descriptor={group.descriptor}
+                    onPress={() => router.push(group.route as never)}
+                  />
+                ))}
           </CanonicalList>
+          </>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader
+          title="ORGS"
+          dotColor="#10B981"
+          count={myOrgRows.length || undefined}
+          onSeeAll={() => onJumpToZone('orgs')}
+        />
+        {myOrgRows.length === 0 ? (
+          <EmptyHint>
+            {isSailRacing
+              ? "The clubs and class associations you've joined — they own the calendar and publish the plans."
+              : interestSlug === 'nursing'
+                ? "The schools and programs you've joined — they issue curriculum and placements."
+                : `Organizations you belong to in ${currentInterest?.name ?? 'this interest'} will show up here.`}
+          </EmptyHint>
+        ) : (
+          <>
+            <SectionSubline>
+              {isSailRacing
+                ? 'The institutions that run the program.'
+                : interestSlug === 'nursing'
+                  ? 'The schools and programs that run the curriculum.'
+                  : 'The institutions that run the program.'}
+            </SectionSubline>
+            <CanonicalList>
+              {myOrgRows.map((org, idx) => (
+                <CanonicalOrgRow
+                  key={org.id}
+                  first={idx === 0}
+                  initials={initialsForName(org.name)}
+                  markColor={pickSquareMarkColor(org.id)}
+                  name={org.name}
+                  descriptor={descriptorForMyOrg(org, interestSlug)}
+                  joinedLabel={formatOrgRole(org.role)}
+                  onPress={() =>
+                    org.slug
+                      ? router.push(`/discover/org/${org.slug}?from=library-yours` as never)
+                      : undefined
+                  }
+                />
+              ))}
+            </CanonicalList>
+          </>
         )}
       </View>
 
@@ -619,9 +899,61 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
         )}
       </View>
 
+      <CirclesHeader title="Circles to join" scale={circlesScale} />
+
       <View style={styles.section}>
         <SectionHeader
-          title="ORGS"
+          title="GROUPS TO JOIN"
+          dotColor="#14B8A6"
+          onSeeAll={() => onJumpToZone('groups')}
+        />
+        {joinGroupsLoading && groupJoinPreview.length === 0 && affinityGroupJoinPreview.length === 0 ? (
+          <LoadingRow />
+        ) : groupJoinPreview.length === 0 && affinityGroupJoinPreview.length === 0 ? (
+          <EmptyHint>
+            {isSailRacing
+              ? 'Crews near you taking on members will show up here.'
+              : `Groups to join in ${currentInterest?.name ?? 'this interest'} will show up here when available.`}
+          </EmptyHint>
+        ) : (
+          <>
+            <SectionSubline>
+              {isSailRacing
+                ? 'Crews near you taking on members.'
+                : 'People you could practice with next.'}
+            </SectionSubline>
+          <CanonicalList>
+              {isSailRacing
+                ? groupJoinPreview.map((fleet, idx) => (
+                    <CanonicalOrgRow
+                      key={fleet.id}
+                      first={idx === 0}
+                      initials={initialsForName(fleet.name)}
+                      markColor={pickSquareMarkColor(fleet.id)}
+                      name={fleet.name}
+                      descriptor={descriptorForDiscoverableFleet(fleet)}
+                      onPress={() => router.push('/(tabs)/fleet/select' as never)}
+                    />
+                  ))
+                : affinityGroupJoinPreview.map((group, idx) => (
+                    <CanonicalOrgRow
+                      key={group.id}
+                      first={idx === 0}
+                      initials={initialsForName(group.short_name ?? group.name)}
+                      markColor={pickSquareMarkColor(group.id)}
+                      name={group.name}
+                      descriptor={descriptorForDiscoverableAffinityGroup(group)}
+                      onPress={() => router.push(`/group/${group.id}` as never)}
+                    />
+                  ))}
+          </CanonicalList>
+          </>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader
+          title="ORGS TO JOIN"
           dotColor="#10B981"
           onSeeAll={() => onJumpToZone('orgs')}
         />
@@ -629,10 +961,21 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
           <LoadingRow />
         ) : orgPreview.length === 0 ? (
           <EmptyHint>
-            Clubs, schools, and programs in {currentInterest?.name ?? 'this craft'} will
-            show up here as they come online.
+            {isSailRacing
+              ? 'Clubs and schools that own the calendar will show up here.'
+              : interestSlug === 'nursing'
+                ? 'Schools and programs you can join will show up here.'
+                : `Organizations in ${currentInterest?.name ?? 'this craft'} will show up here as they come online.`}
           </EmptyHint>
         ) : (
+          <>
+          <SectionSubline>
+            {isSailRacing
+              ? 'Clubs and schools that own the calendar.'
+              : interestSlug === 'nursing'
+                ? 'Schools and programs that run the curriculum.'
+                : 'Institutions that run the program.'}
+          </SectionSubline>
           <CanonicalList>
             {orgPreview.map((org, idx) => (
               <CanonicalOrgRow
@@ -643,7 +986,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
                 name={org.name}
                 descriptor={describeOrgStanding(
                   membershipStatusByOrgId.get(org.id),
-                  org.join_mode,
+                  org,
                 )}
                 onPress={() =>
                   router.push(`/discover/org/${org.slug}?from=library` as never)
@@ -651,6 +994,7 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
               />
             ))}
           </CanonicalList>
+          </>
         )}
       </View>
 
@@ -710,11 +1054,28 @@ export function AllZone({ counts, onJumpToZone, librarianSlot }: AllZoneProps) {
 
 function describeOrgStanding(
   membershipStatus: string | undefined,
-  joinMode: string,
+  org: TopOrgRow,
 ): string {
   if (membershipStatus === 'active') return 'Member';
   if (membershipStatus === 'pending') return 'Request pending';
-  return describeOrgJoinMode(joinMode);
+  if (isOrgPlaceholder(org)) {
+    if (org.organization_type === 'yacht_club') {
+      if (org.claim_status === 'claim_pending') return 'Yacht club placeholder · claim pending';
+      if (org.claim_status === 'rejected') return 'Yacht club placeholder · claim rejected';
+      return 'Unclaimed placeholder';
+    }
+    return 'Unclaimed placeholder';
+  }
+  return describeOrgJoinMode(org.join_mode);
+}
+
+function isOrgPlaceholder(org: TopOrgRow): boolean {
+  return (
+    org.status === 'placeholder' ||
+    org.official === false ||
+    org.claim_status === 'unclaimed' ||
+    org.source === 'dragon_worlds_clubspot'
+  );
 }
 
 function describeOrgJoinMode(mode: string): string {
@@ -871,22 +1232,57 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: IOS_COLORS.label,
   },
+  eyebrowCount: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+  },
   seeAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'center',
+    width: 24,
+    height: 24,
     paddingVertical: 4,
-  },
-  seeAllText: {
-    fontSize: 13,
-    color: IOS_COLORS.systemBlue,
-    fontWeight: '500',
   },
   emptyHint: {
     fontSize: 13,
     lineHeight: 18,
     color: IOS_COLORS.secondaryLabel,
     paddingHorizontal: IOS_SPACING.lg,
+  },
+  sectionSubline: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: IOS_COLORS.secondaryLabel,
+    paddingHorizontal: IOS_SPACING.lg,
+    marginTop: -4,
+  },
+  circlesHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: IOS_SPACING.lg,
+    marginBottom: -4,
+  },
+  circlesTitle: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: IOS_COLORS.tertiaryLabel,
+  },
+  circlesLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(60,60,67,0.18)',
+  },
+  circlesScale: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: IOS_COLORS.tertiaryLabel,
   },
   loadingRow: {
     alignItems: 'center',

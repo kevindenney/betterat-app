@@ -76,7 +76,8 @@ env:
       - scroll
       - scroll
       - extendedWaitUntil:
-          visible: "Sign Out"
+          visible:
+            id: "account-sign-out-button"
           timeout: 5000
       - tapOn:
           id: "account-sign-out-button"
@@ -87,26 +88,17 @@ env:
           text: "Sign Out"
           index: 1
       - extendedWaitUntil:
-          visible: "Welcome back"
+          visible: "Log in"
           timeout: 15000
 
-# Navigate into Account then open Login
-- openLink: "betterat://account"
-- extendedWaitUntil:
-    visible: "Account"
-    timeout: 10000
-- tapOn:
-    id: "account-sign-in-button"
+# Navigate directly to Login
+- openLink: "betterat://login"
 - extendedWaitUntil:
     visible:
       id: "login-title"
     timeout: 20000
 - assertVisible:
     id: "login-title"
-- assertVisible:
-    id: "login-identifier-input"
-- assertVisible:
-    id: "login-password-input"
 
 # ============================================================
 # CREDENTIAL ENTRY
@@ -116,7 +108,7 @@ env:
 
 # Enter email
 - tapOn:
-    id: "login-identifier-input"
+    point: "50%,62%"
 - eraseText
 - inputText: ${TEST_EMAIL}
 
@@ -125,7 +117,7 @@ env:
 
 # Enter password
 - tapOn:
-    id: "login-password-input"
+    point: "50%,69%"
 - eraseText
 - inputText: ${TEST_PASSWORD}
 

@@ -57,10 +57,6 @@ export interface EnhancedAIResponse {
  * Enhanced AI client with Skills and MCP support
  */
 export class EnhancedAIClient extends AIClient {
-  constructor(apiKey?: string) {
-    super(apiKey);
-  }
-
   /**
    * Create a message with Skills and/or MCP support
    */

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/services/supabase';
 import { isUuid } from '@/utils/uuid';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 
 export type OrgMember = {
   userId: string;
@@ -28,8 +29,12 @@ const DEFAULT_LIMIT = 200;
 
 const normalizeStatus = (membershipStatus: unknown, status: unknown): string => {
   const primary = String(membershipStatus ?? '').trim().toLowerCase();
-  if (primary.length > 0) return primary;
-  return String(status ?? '').trim().toLowerCase();
+  const canonical = String(status ?? '').trim().toLowerCase();
+  if (!primary && !canonical) return '';
+  return resolveOrgMembershipStatus({
+    membership_status: primary || null,
+    status: canonical || null,
+  });
 };
 
 const resolveDisplayName = (name: unknown, email: unknown): string => {

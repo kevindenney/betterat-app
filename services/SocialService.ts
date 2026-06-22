@@ -329,16 +329,19 @@ class SocialServiceClass {
     commentId: string,
     content: string
   ): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('regatta_comments')
       .update({ content, updated_at: new Date().toISOString() })
       .eq('id', commentId)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update comment', { userId, commentId, error });
       throw error;
     }
+    if (!data) throw new Error('Regatta comment not found.');
 
     logger.info('Updated comment', { userId, commentId });
   }
@@ -347,16 +350,19 @@ class SocialServiceClass {
    * Delete (soft) a comment
    */
   async deleteComment(userId: string, commentId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('regatta_comments')
       .update({ is_deleted: true })
       .eq('id', commentId)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to delete comment', { userId, commentId, error });
       throw error;
     }
+    if (!data) throw new Error('Regatta comment not found.');
 
     logger.info('Deleted comment', { userId, commentId });
   }
@@ -526,11 +532,13 @@ class SocialServiceClass {
       return;
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('user_follows')
       .update(updates)
       .eq('follower_id', followerId)
-      .eq('following_id', followingId);
+      .eq('following_id', followingId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to update follow options', {
@@ -540,6 +548,7 @@ class SocialServiceClass {
       });
       throw error;
     }
+    if (!data) throw new Error('Follow relationship not found.');
 
     logger.info('Updated follow options', { followerId, followingId, options });
   }

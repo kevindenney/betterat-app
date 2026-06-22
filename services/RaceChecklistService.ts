@@ -18,7 +18,6 @@ import type {
   CreateChecklistItemInput,
   RaceTimeline,
   PhaseStatus,
-  mapRowToChecklistItem,
 } from '@/types/excellenceFramework';
 
 export class RaceChecklistService {
@@ -427,15 +426,18 @@ export class RaceChecklistService {
    */
   static async deleteChecklistItem(itemId: string): Promise<void> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_checklist_items')
         .delete()
-        .eq('id', itemId);
+        .eq('id', itemId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Failed to delete checklist item', { error, itemId });
         throw error;
       }
+      if (!data) throw new Error('Race checklist item not found.');
     } catch (error) {
       logger.error('Error in deleteChecklistItem', { error });
       throw error;

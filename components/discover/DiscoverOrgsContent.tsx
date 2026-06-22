@@ -43,6 +43,7 @@ import {
 import { supabase } from '@/services/supabase';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 import {
   YACHT_CLUB_DEMO_NAME,
   YACHT_CLUB_DEMO_SLUG,
@@ -94,14 +95,18 @@ function orgDescriptor(org: OrgRow): string {
   if (isYachtClubPlaceholder(org)) {
     if (org.claim_status === 'claim_pending') return 'Yacht club placeholder · claim pending';
     if (org.claim_status === 'rejected') return 'Yacht club placeholder · claim rejected';
-    return 'Yacht club placeholder · unclaimed';
+    return 'Unclaimed placeholder';
   }
 
-  switch (org.join_mode) {
+  return joinModeLabel(org.join_mode);
+}
+
+function joinModeLabel(joinMode: OrganizationJoinMode): string {
+  switch (joinMode) {
     case 'open_join':
       return 'Open to join';
     case 'request_to_join':
-      return 'Requires approval';
+      return 'Request to join';
     case 'invite_only':
     default:
       return 'Invite only';
@@ -149,8 +154,9 @@ export function DiscoverOrgsContent({
 }: DiscoverOrgsContentProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const { currentInterest } = useInterest();
+  const { currentInterest, loading: interestLoading } = useInterest();
   const interestSlug = currentInterest?.slug;
+  const isInstitutionRequest = interestSlug === 'nursing';
   const interestName = currentInterest?.name;
 
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
@@ -264,8 +270,7 @@ export function DiscoverOrgsContent({
         if (cancelled) return;
         const ids = new Set<string>();
         for (const row of data || []) {
-          const status = row.status || row.membership_status;
-          if (status === 'active' || status === 'invite_accepted') {
+          if (isResolvedOrgMembershipActive(row)) {
             ids.add(row.organization_id);
           }
         }
@@ -371,7 +376,13 @@ export function DiscoverOrgsContent({
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
       >
-        {!interestSlug && (
+        {interestLoading && !interestSlug && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={IOS_COLORS.systemBlue} />
+          </View>
+        )}
+
+        {!interestLoading && !interestSlug && (
           <View style={styles.emptyContainer}>
             <Ionicons name="compass-outline" size={36} color={IOS_REGISTER.labelTertiary} />
             <Text style={styles.emptyText}>
@@ -414,22 +425,24 @@ export function DiscoverOrgsContent({
         {!loading && interestSlug && cells.length > 0 && (
           <>
             <CanonicalListEyebrow {...eyebrow} />
-            <Pressable
-              style={styles.demoPromo}
-              onPress={() => router.push(`/organizations/${YACHT_CLUB_DEMO_SLUG}` as any)}
-            >
-              <View style={styles.demoPromoBadge}>
-                <Ionicons name="sparkles-outline" size={14} color="#0B63CE" />
-                <Text style={styles.demoPromoBadgeText}>Demo</Text>
-              </View>
-              <View style={styles.demoPromoBody}>
-                <Text style={styles.demoPromoTitle}>{YACHT_CLUB_DEMO_NAME}</Text>
-                <Text style={styles.demoPromoText}>
-                  See the synthetic club example with contacts, fleets, a free placeholder tier, and the full pricing ladder.
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={IOS_REGISTER.labelSecondary} />
-            </Pressable>
+            {interestSlug === 'sail-racing' ? (
+              <Pressable
+                style={styles.demoPromo}
+                onPress={() => router.push(`/organizations/${YACHT_CLUB_DEMO_SLUG}` as any)}
+              >
+                <View style={styles.demoPromoBadge}>
+                  <Ionicons name="sparkles-outline" size={14} color="#0B63CE" />
+                  <Text style={styles.demoPromoBadgeText}>Demo</Text>
+                </View>
+                <View style={styles.demoPromoBody}>
+                  <Text style={styles.demoPromoTitle}>{YACHT_CLUB_DEMO_NAME}</Text>
+                  <Text style={styles.demoPromoText}>
+                    See the synthetic club example with contacts, fleets, a free placeholder tier, and the full pricing ladder.
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={IOS_REGISTER.labelSecondary} />
+              </Pressable>
+            ) : null}
             <CanonicalList>{cells.map(renderOrgRow)}</CanonicalList>
           </>
         )}
@@ -464,12 +477,18 @@ export function DiscoverOrgsContent({
             />
             <View style={styles.createCtaBody}>
               <Text style={styles.createCtaTitle}>
-                {searchResults
-                  ? `Don't see “${searchQuery}”? Add it.`
-                  : "Don't see your org? Add it."}
+                {isInstitutionRequest
+                  ? searchResults
+                    ? `Don't see “${searchQuery}”? Request it.`
+                    : "Don't see your institution? Request it."
+                  : searchResults
+                    ? `Don't see “${searchQuery}”? Add it.`
+                    : "Don't see your org? Add it."}
               </Text>
               <Text style={styles.createCtaHint}>
-                Start it now — a verified parent can adopt it later.
+                {isInstitutionRequest
+                  ? 'BetterAt reviews institution requests before they appear here.'
+                  : 'Start it now — a verified parent can adopt it later.'}
               </Text>
             </View>
             <Ionicons

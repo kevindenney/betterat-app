@@ -554,12 +554,15 @@ class RaceSignalService {
    * Expire a signal
    */
   async expireSignal(signalId: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('race_signals')
       .update({ is_active: false })
-      .eq('id', signalId);
+      .eq('id', signalId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('Race signal not found.');
   }
 
   // -------------------------------------------------------------------------

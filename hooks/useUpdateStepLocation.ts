@@ -28,13 +28,18 @@ export function useUpdateStepLocation() {
         updated_at: new Date().toISOString(),
       };
       if (locationName != null) patch.location_name = locationName;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('timeline_steps')
         .update(patch)
-        .eq('id', stepId);
+        .eq('id', stepId)
+        .select('id')
+        .maybeSingle();
       if (error) {
         console.warn('[atlas] update step location failed', error);
         throw new Error(error.message || 'Could not save location');
+      }
+      if (!data) {
+        throw new Error('Step not found.');
       }
       return stepId;
     },

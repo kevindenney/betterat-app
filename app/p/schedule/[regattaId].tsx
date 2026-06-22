@@ -91,20 +91,34 @@ export default function PublicSchedulePage() {
         setLoading(true);
       }
       
-      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}/schedule`);
+      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}?include=schedule`);
       
       if (!response.ok) {
         throw new Error('Failed to load schedule');
       }
       
       const result = await response.json();
-      setData(result);
+      const schedule = result.schedule?.days ?? [];
+      setData({
+        regatta: {
+          id: result.regatta.id,
+          name: result.regatta.name,
+          venue: result.regatta.venue,
+          club_name: result.regatta.club?.name ?? null,
+        },
+        schedule,
+        metadata: result.schedule?.metadata ?? {
+          total_races: 0,
+          races_completed: 0,
+          last_updated: new Date().toISOString(),
+        },
+      });
       
       // Auto-select today or first day
-      if (result.schedule.length > 0) {
+      if (schedule.length > 0) {
         const today = new Date().toISOString().split('T')[0];
-        const todaySchedule = result.schedule.find((d: ScheduleDay) => d.date === today);
-        setSelectedDate(todaySchedule ? today : result.schedule[0].date);
+        const todaySchedule = schedule.find((d: ScheduleDay) => d.date === today);
+        setSelectedDate(todaySchedule ? today : schedule[0].date);
       }
       
       setError(null);

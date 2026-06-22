@@ -25,6 +25,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/services/supabase';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 /**
  * Search-result discriminator. Person results don't carry lat/lng — they
@@ -244,11 +245,14 @@ async function fetchOrgMembershipIds(viewerId: string | null): Promise<Set<strin
   if (!viewerId) return new Set();
   const { data, error } = await supabase
     .from('organization_memberships')
-    .select('organization_id')
-    .eq('user_id', viewerId)
-    .eq('membership_status', 'active');
+    .select('organization_id,status,membership_status')
+    .eq('user_id', viewerId);
   if (error || !data) return new Set();
-  return new Set((data as { organization_id: string }[]).map((r) => r.organization_id));
+  return new Set(
+    ((data as { organization_id: string; status?: string | null; membership_status?: string | null }[]) || [])
+      .filter((row) => isResolvedOrgMembershipActive(row))
+      .map((r) => r.organization_id),
+  );
 }
 
 async function fetchGroupMembershipIds(viewerId: string | null): Promise<Set<string>> {

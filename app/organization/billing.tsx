@@ -19,6 +19,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
+import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { OrgSubscriptionService, type OrgSubscription } from '@/services/OrgSubscriptionService';
 import { ORG_PLANS, ORG_PLAN_LIST, type OrgPlanId, type OrgBillingPeriod } from '@/lib/subscriptions/orgTiers';
 import { isOrgAdminRole } from '@/lib/organizations/adminGate';
@@ -29,6 +30,7 @@ export default function OrganizationBillingScreen() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { userProfile } = useAuth();
+  const menu = useProfileMenuData();
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<OrgSubscription | null>(null);
   const [seats, setSeats] = useState<{ total: number; used: number; available: number } | null>(null);
@@ -40,6 +42,15 @@ export default function OrganizationBillingScreen() {
   const profile = userProfile as any;
   const orgId = profile?.active_organization_id;
   const userRole = profile?.organization_role;
+  const adminOrgId =
+    (menu.activeOrg?.is_admin ? menu.activeOrg.org_id : null) ??
+    menu.memberships.find((membership) => membership.is_admin)?.org_id ??
+    null;
+
+  useEffect(() => {
+    if (menu.loading || !adminOrgId) return;
+    router.replace(`/admin/${adminOrgId}/billing` as any);
+  }, [menu.loading, adminOrgId]);
 
   useEffect(() => {
     if (!orgId) {
@@ -62,6 +73,14 @@ export default function OrganizationBillingScreen() {
 
     loadData();
   }, [orgId]);
+
+  if (menu.loading || adminOrgId) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
   const handleCheckout = async (planId: OrgPlanId) => {
     if (!orgId) {

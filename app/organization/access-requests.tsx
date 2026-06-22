@@ -9,6 +9,10 @@ import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { isMissingSupabaseColumn } from '@/lib/utils/supabaseSchemaFallback';
+import {
+  isResolvedOrgMembershipActive,
+  resolveOrgMembershipStatus,
+} from '@/hooks/orgMembershipStatus';
 
 type PendingRequestRow = {
   id: string;
@@ -41,10 +45,7 @@ export default function OrganizationAccessRequestsScreen() {
     const providerId = String(activeOrganizationId || '').trim();
     if (providerId) return providerId;
     const activeMembership = memberships.find((membership: any) => {
-      const membershipStatus = String(
-        membership?.membership_status || membership?.status || '',
-      ).toLowerCase();
-      return membershipStatus === 'active';
+      return isResolvedOrgMembershipActive(membership);
     });
     if (!activeMembership) return null;
     return String((activeMembership as any).organization_id ?? (activeMembership as any).organizationId ?? '').trim() || null;
@@ -58,9 +59,9 @@ export default function OrganizationAccessRequestsScreen() {
     }) ?? null;
   }, [memberships, resolvedActiveOrgId]);
 
-  const membershipStatus = String(
-    activeOrgMembership?.membership_status || activeOrgMembership?.status || '',
-  ).toLowerCase();
+  const membershipStatus = activeOrgMembership
+    ? resolveOrgMembershipStatus(activeOrgMembership)
+    : '';
   const membershipRole = String(activeOrgMembership?.role || '').toLowerCase();
   const hasActiveMembership = membershipStatus === 'active';
   const hasAdminRole = membershipRole === 'admin' || membershipRole === 'manager' || membershipRole === 'owner';
@@ -273,13 +274,20 @@ export default function OrganizationAccessRequestsScreen() {
         ];
 
         while (true) {
-          const { error } = await supabase
+          const { data, error } = await supabase
             .from('organization_memberships')
             .update(updatePayload)
             .eq('id', request.id)
-            .eq('organization_id', resolvedActiveOrgId);
+            .eq('organization_id', resolvedActiveOrgId)
+            .select('id')
+            .maybeSingle();
 
-          if (!error) break;
+          if (!error) {
+            if (!data) {
+              throw new Error('Request not found or you do not have access to update it.');
+            }
+            break;
+          }
 
           const missing = missingColumnFallbacks.find(([key, qualified]) =>
             updatePayload[key] !== undefined && isMissingSupabaseColumn(error, qualified)

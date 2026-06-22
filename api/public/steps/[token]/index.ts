@@ -34,7 +34,6 @@ export interface PublicStepInfo {
     notes: string | null;
     media_uploads: { uri: string; type: string; caption?: string }[];
     media_links: { url: string; platform: string; caption?: string }[];
-    sub_step_progress: Record<string, boolean>;
   };
   review: {
     overall_rating: number | null;
@@ -175,7 +174,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         notes: actData.notes || null,
         media_uploads: mediaUploads,
         media_links: mediaLinks,
-        sub_step_progress: actData.sub_step_progress || {},
       },
       review: {
         overall_rating: reviewData.overall_rating ?? null,

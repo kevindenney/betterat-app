@@ -157,8 +157,14 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
       if (patch.authorPayoutPct !== undefined) payload.author_payout_pct = patch.authorPayoutPct;
       if (patch.trialDays !== undefined) payload.trial_days = patch.trialDays;
       if (Object.keys(payload).length === 0) return { patch };
-      const { error } = await supabase.from('blueprints').update(payload).eq('id', blueprintId);
+      const { data, error } = await supabase
+        .from('blueprints')
+        .update(payload)
+        .eq('id', blueprintId)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Blueprint not found.');
       return { patch };
     },
     onSuccess: (result) => {

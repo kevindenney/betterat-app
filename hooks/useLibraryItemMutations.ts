@@ -21,11 +21,14 @@ export function useUpdateLibraryItem(itemId: string | undefined) {
   return useMutation({
     mutationFn: async (input: UpdateInput) => {
       if (!itemId) throw new Error('itemId required');
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('library_items')
         .update(input)
-        .eq('id', itemId);
+        .eq('id', itemId)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Library item not found.');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['library-item-detail', itemId] });
@@ -44,11 +47,14 @@ export function useDeleteLibraryItem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (itemId: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('library_items')
         .delete()
-        .eq('id', itemId);
+        .eq('id', itemId)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Library item not found.');
     },
     onSuccess: (_data, itemId) => {
       // Cascade joins (library_item_interests, library_item_topics,

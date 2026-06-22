@@ -28,6 +28,7 @@ import type {
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import { createStep } from '@/services/TimelineStepService';
 import { resolveInterestId } from '@/services/TimelineStepService';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 const logger = createLogger('BlueprintService');
 
@@ -90,12 +91,15 @@ export async function updateBlueprint(
 
 export async function deleteBlueprint(blueprintId: string): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('timeline_blueprints')
       .delete()
-      .eq('id', blueprintId);
+      .eq('id', blueprintId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('Blueprint not found.');
   } catch (err) {
     logger.error('Failed to delete blueprint', err);
     throw err;
@@ -358,13 +362,16 @@ export async function removeStepFromBlueprint(
   stepId: string,
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('blueprint_steps')
       .delete()
       .eq('blueprint_id', blueprintId)
-      .eq('step_id', stepId);
+      .eq('step_id', stepId)
+      .select('step_id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('Blueprint step not found.');
   } catch (err) {
     logger.error('Failed to remove step from blueprint', err);
     throw err;
@@ -549,13 +556,16 @@ export async function unsubscribe(
   blueprintId: string,
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('blueprint_subscriptions')
       .delete()
       .eq('blueprint_id', blueprintId)
-      .eq('subscriber_id', subscriberId);
+      .eq('subscriber_id', subscriberId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('Blueprint subscription not found.');
   } catch (err) {
     logger.error('Failed to unsubscribe from blueprint', err);
     throw err;
@@ -811,12 +821,15 @@ export async function updateLastSynced(
   subscriptionId: string,
 ): Promise<void> {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('blueprint_subscriptions')
       .update({ last_synced_at: new Date().toISOString() })
-      .eq('id', subscriptionId);
+      .eq('id', subscriptionId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('Blueprint subscription not found.');
   } catch (err) {
     logger.error('Failed to update last synced', err);
     throw err;
@@ -877,12 +890,11 @@ export async function checkBlueprintAccess(
     try {
       const { data } = await supabase
         .from('organization_memberships')
-        .select('id')
+        .select('id,status,membership_status')
         .eq('user_id', userId)
         .eq('organization_id', blueprint.organization_id)
-        .in('membership_status', ['active'])
         .maybeSingle();
-      isOrgMember = !!data;
+      isOrgMember = data ? isResolvedOrgMembershipActive(data) : false;
     } catch (err) {
       logger.error('Failed to check org membership', err);
     }
@@ -1530,14 +1542,18 @@ export async function createBlueprintFromCurriculum(
 
   // 3b. Set inspiration source columns if provided
   if (inspirationSourceType) {
-    await supabase
+    const { data: inspirationUpdated, error: inspirationUpdateError } = await supabase
       .from('timeline_blueprints')
       .update({
         inspiration_source_url: inspirationSourceUrl ?? null,
         inspiration_source_text: inspirationSourceText ?? null,
         inspiration_source_type: inspirationSourceType,
       })
-      .eq('id', blueprint.id);
+      .eq('id', blueprint.id)
+      .select('id')
+      .maybeSingle();
+    if (inspirationUpdateError) throw inspirationUpdateError;
+    if (!inspirationUpdated) throw new Error('Blueprint not found.');
   }
 
   // 4. Link steps to blueprint

@@ -95,7 +95,7 @@ export default function PublicResultsPage() {
         setLoading(true);
       }
       
-      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}/results`);
+      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}?include=results`);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -103,7 +103,21 @@ export default function PublicResultsPage() {
       }
       
       const result = await response.json();
-      setData(result);
+      if (!result.results) {
+        throw new Error('Results are not published yet');
+      }
+      setData({
+        regatta: {
+          id: result.regatta.id,
+          name: result.regatta.name,
+          venue: result.regatta.venue,
+          club_name: result.regatta.club?.name ?? null,
+          results_published_at: result.results.metadata.last_updated,
+        },
+        races: result.results.races,
+        standings: result.results.standings,
+        metadata: result.results.metadata,
+      });
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load results');
@@ -139,7 +153,7 @@ export default function PublicResultsPage() {
   };
 
   const handleDownloadCSV = () => {
-    const csvUrl = `${API_BASE}/api/public/regattas/${regattaId}/results?format=csv`;
+    const csvUrl = `${API_BASE}/api/public/regattas/${regattaId}?include=results&format=csv`;
     if (Platform.OS === 'web') {
       window.open(csvUrl, '_blank');
     } else {

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arc / Season view — declutter redesign mocks</title>
+<style>
+  :root{
+    --bg:#EEEEF3; --card:#FFFFFF; --line:rgba(60,60,67,0.16);
+    --label:#1c1c1e; --sec:#3c3c4399; --ter:#8a8a8e;
+    --azure:#007AFF; --azureT:rgba(0,122,255,0.06); --azureL:rgba(0,122,255,0.14);
+    --now:#FF6B5A; --rose:#D9476B; --green:#1F8636; --greenT:rgba(52,199,89,0.16);
+    --cap-purple:#9D70C9; --cap-teal:#2BA7A0; --cap-amber:#E0922F;
+    --lilac:#7C6BB0; --lilacT:rgba(124,107,176,0.08); --lilacL:rgba(124,107,176,0.20);
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+    background:#D9DCE6; color:var(--label);
+    -webkit-font-smoothing:antialiased; padding:40px 28px 72px;
+  }
+  .lede{max-width:980px;margin:0 auto 30px;text-align:center}
+  .lede h1{font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:8px}
+  .lede p{font-size:13px;color:#4a4f5b;line-height:1.6}
+  .lede p b{color:#1c1c1e}
+  .wrap{display:flex; gap:46px; justify-content:center; align-items:flex-start; flex-wrap:wrap}
+  .col{width:402px}
+  .col h2{font-size:15px; font-weight:700; letter-spacing:-0.2px; margin-bottom:6px; text-align:center}
+  .col p.sub{font-size:12px; color:#5a5f6b; text-align:center; margin-bottom:14px; line-height:1.45; min-height:50px}
+  .phone{
+    width:402px; background:var(--bg); border-radius:38px; padding:14px 0 0;
+    box-shadow:0 24px 60px rgba(20,24,40,0.28); border:1px solid rgba(0,0,0,0.06);
+    overflow:hidden;
+  }
+  .status{display:flex; justify-content:space-between; align-items:center; padding:4px 26px 6px; font-size:13px; font-weight:600}
+  .screen{padding:8px 16px 26px}
+
+  /* ---- season header ---- */
+  .crumb{display:flex;align-items:center;gap:8px;padding:6px 2px 2px}
+  .crumb .dot{width:9px;height:9px;border-radius:9px;background:var(--azure)}
+  .crumb b{font-size:14px;font-weight:700}
+  .crumb .v{color:var(--ter);font-size:13px}
+  .seasonTtl{font-family:var(--serif);font-size:22px;font-weight:700;line-height:1.12;margin:9px 2px 3px}
+  .seasonSub{font-size:12px;color:var(--ter);margin:0 2px 14px;font-variant:tabular-nums}
+
+  /* ---- generic module card ---- */
+  .mod{background:var(--card);border:0.5px solid var(--line);border-radius:18px;padding:15px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+  .mod + .mod{margin-top:13px}
+  .modHead{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .modHead .ic{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex:0 0 auto}
+  .modHead .t{font-size:11px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:var(--ter)}
+  .modHead .more{margin-left:auto;font-size:12px;color:var(--azure);font-weight:600}
+  .headline{font-family:var(--serif);font-size:16px;line-height:1.25;font-weight:600;margin-bottom:4px}
+  .sub2{font-size:12px;color:var(--ter);line-height:1.45}
+
+  /* vision */
+  .vision{font-family:var(--serif);font-style:italic;font-size:14.5px;color:#54585f;line-height:1.4}
+  .vision .add{color:var(--azure);font-style:normal;font-weight:600;font-family:-apple-system}
+
+  /* capability stacked bar */
+  .capBar{height:14px;border-radius:5px;overflow:hidden;display:flex;margin:10px 0 11px}
+  .capBar i{display:block;height:100%}
+  .capChips{display:flex;flex-wrap:wrap;gap:7px}
+  .capChip{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#54585f;background:#F3F3F7;border:0.5px solid var(--line);padding:5px 10px;border-radius:999px}
+  .capChip .d{width:8px;height:8px;border-radius:3px}
+  .capChip .n{color:var(--ter);font-variant:tabular-nums}
+  .hint{font-size:11px;color:#a6a8ae;margin-top:9px}
+
+  /* reflections sparkline */
+  .spark{display:flex;align-items:flex-end;gap:4px;height:34px;margin:8px 0 4px}
+  .spark i{flex:1;background:var(--lilacL);border-radius:2px}
+  .reflectRow{display:flex;align-items:center;gap:8px;font-size:12px;color:#54585f;margin-top:6px}
+  .reflectRow .star{color:var(--lilac)}
+  .reflectRow .cta{margin-left:auto;color:var(--azure);font-weight:600}
+
+  /* people */
+  .person{display:flex;align-items:center;gap:9px}
+  .ava{width:30px;height:30px;border-radius:999px;background:linear-gradient(135deg,#C9A0E0,#7C6BB0);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex:0 0 auto}
+  .peopleChips{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+
+  /* librarian */
+  .lib{background:var(--lilacT);border:0.5px solid var(--lilacL)}
+  .lib .modHead .t{color:var(--lilac)}
+  .lib .body{font-size:13px;line-height:1.5;color:#48434f}
+
+  /* ---- THE WORK linear (compact reuse) ---- */
+  .workEyebrow{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 12px}
+  .workEyebrow .t{font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--ter)}
+  .workEyebrow .c{font-size:11px;color:var(--ter)}
+  .ledgerHead{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:0.8px;color:var(--ter);margin:2px 2px 8px;text-transform:uppercase}
+  .doneRow{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:11px}
+  .check{width:17px;height:17px;border-radius:999px;background:var(--greenT);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .check svg{width:9px;height:9px}
+  .doneRow .ttl{flex:1;font-family:var(--serif);font-style:italic;font-size:13.5px;color:#54585f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .doneRow .ord{font-size:10px;color:#b6b8be;font-variant:tabular-nums}
+  .nowbar{display:flex;align-items:center;gap:10px;margin:13px 2px 14px}
+  .nowbar .ln{flex:1;height:1.5px;background:linear-gradient(90deg,transparent,var(--now))}
+  .nowbar .ln.r{background:linear-gradient(90deg,var(--now),transparent)}
+  .nowbar .lbl{font-size:11px;font-weight:800;letter-spacing:1.6px;color:var(--now)}
+  .nowbar .pin{width:9px;height:9px;border-radius:999px;background:var(--now);box-shadow:0 0 0 4px rgba(255,107,90,0.18)}
+  .card{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:13px 14px;position:relative;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+  .card + .card{margin-top:10px}
+  .eb{font-size:10px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:var(--ter);margin-bottom:5px}
+  .pill{display:inline-flex;align-items:center;font-size:9px;font-weight:800;letter-spacing:0.5px;padding:3px 8px;border-radius:999px}
+  .pill.next{color:#0046A8;background:var(--azureL)}
+  .pill.planned{color:var(--sec);background:#F0F0F4}
+  .pill.race{color:#fff;background:var(--rose)}
+  .row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .ord2{font-size:11px;color:#b6b8be;font-variant:tabular-nums}
+  .title{font-family:var(--serif);font-style:italic;color:var(--label);line-height:1.18}
+  .capsRow{display:flex;gap:5px;margin-top:9px;align-items:center}
+  .cdot{width:7px;height:7px;border-radius:2px;flex:0 0 auto}
+  .capLbl{font-size:10.5px;color:#9a9ca2;margin-left:3px}
+  .card.next{border:1.5px solid var(--azure);background:var(--azureT);box-shadow:0 8px 22px rgba(0,122,255,0.14)}
+  .card.next .title{font-size:17px}
+  .card.next .start{margin-top:11px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--azure)}
+  .card.planned .title{font-size:14.5px}
+  .anchor{margin-top:11px;background:#fff;border:0.5px solid var(--line);border-left:4px solid var(--rose);border-radius:16px;padding:13px 15px;display:flex;gap:13px;align-items:flex-start;box-shadow:0 2px 8px rgba(217,71,107,0.10)}
+  .anchor .cal{flex:0 0 auto;width:44px;text-align:center;border-right:1px solid var(--line);padding-right:12px}
+  .anchor .cal .mo{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--rose);text-transform:uppercase}
+  .anchor .cal .dy{font-size:22px;font-weight:800;line-height:1.05;margin-top:1px}
+  .anchor .cal .tm{font-size:10px;color:var(--ter);margin-top:2px;font-variant:tabular-nums}
+  .anchor .title{font-size:15px;margin-top:6px}
+  .anchor .build{font-size:11px;color:var(--ter);margin-top:7px}
+
+  /* ---- B: collapsed summary rows ---- */
+  .sumRow{display:flex;align-items:center;gap:11px;padding:13px 4px;border-bottom:0.5px solid var(--line)}
+  .sumRow .ic{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex:0 0 auto}
+  .sumRow .bd{flex:1;min-width:0}
+  .sumRow .k{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--ter);margin-bottom:2px}
+  .sumRow .hl{font-family:var(--serif);font-size:14.5px;line-height:1.2}
+  .sumRow .chev{color:#c2c4ca;font-size:16px}
+  .zoneDiv{display:flex;align-items:center;gap:10px;margin:18px 2px 14px}
+  .zoneDiv .ln{flex:1;height:0.5px;background:var(--line)}
+  .zoneDiv .lbl{font-size:10px;font-weight:800;letter-spacing:1.6px;color:var(--ter)}
+
+  /* ---- C: segment ---- */
+  .seg{display:flex;background:#E4E4EC;border-radius:11px;padding:3px;margin:6px 2px 16px}
+  .seg .o{flex:1;text-align:center;font-size:13px;font-weight:600;color:var(--sec);padding:7px 0;border-radius:8px}
+  .seg .o.on{background:#fff;color:var(--label);box-shadow:0 1px 3px rgba(0,0,0,0.12)}
+  .seg .o .ct{font-size:10px;color:var(--ter);font-weight:600;margin-left:4px}
+
+  .note{font-size:11.5px;color:#4a4f5b;line-height:1.55;margin-top:16px;background:rgba(255,255,255,0.6);border-radius:12px;padding:12px 14px}
+  .note b{color:#1c1c1e}
+  .pro{color:#1F8636;font-weight:700}
+  .con{color:#C0392B;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="lede">
+  <h1>Arc / Season view — declutter</h1>
+  <p>Today the arc view stacks <b>7 undifferentiated sections</b> (header · vision · capability map · capability chips · reflections · fleet/people · librarian · THE WORK) in one flat scroll — it reads busy and every section has the same visual weight. All three options keep the <b>same content + steps-as-cards</b>, but differ in how they <b>separate the four jobs</b>: <b>reflect on capabilities</b> · <b>reflect on your reflections + who helped</b> · <b>read &amp; reorder the work</b>. Vocab is interest-driven (season / arc / rotation / quarter).</p>
+</div>
+
+<div class="wrap">
+
+  <!-- ════════════ A · CARDED MODULES ════════════ -->
+  <div class="col">
+    <h2>A · Carded modules</h2>
+    <p class="sub">Every job becomes a distinct, tinted card with its own icon + header — so the eye can tell capabilities from people from the work at a glance. Same content, just contained &amp; separated.</p>
+    <div class="phone">
+      <div class="status"><span>6:59</span><span>● ● ● ●</span></div>
+      <div class="screen">
+
+        <div class="crumb"><span class="dot"></span><b>Sail Racing</b><span class="v">▾</span></div>
+        <div class="seasonTtl">Winter Frostbite Season</div>
+        <div class="seasonSub">Oct 31 – Mar 30 · Week 6 of 22</div>
+
+        <!-- vision -->
+        <div class="mod">
+          <div class="modHead"><span class="ic" style="background:var(--azureL)">✺</span><span class="t">The aim</span></div>
+          <div class="vision">Sail every Wednesday clean off the line and finish top-3 in the series. <span class="add">Edit →</span></div>
+        </div>
+
+        <!-- capabilities -->
+        <div class="mod">
+          <div class="modHead"><span class="ic" style="background:rgba(157,112,201,0.16)">◎</span><span class="t">Capabilities this season</span><span class="more">Rebalance</span></div>
+          <div class="headline">Boat-work is anchoring this season</div>
+          <div class="capBar">
+            <i style="background:var(--cap-purple);width:42%"></i><i style="background:var(--cap-teal);width:30%"></i><i style="background:var(--cap-amber);width:18%"></i><i style="background:#C7C7CC;width:10%"></i>
+          </div>
+          <div class="capChips">
+            <div class="capChip"><span class="d" style="background:var(--cap-purple)"></span>Boat prep<span class="n">5</span></div>
+            <div class="capChip"><span class="d" style="background:var(--cap-teal)"></span>Boat handling<span class="n">3</span></div>
+            <div class="capChip"><span class="d" style="background:var(--cap-amber)"></span>Tactics<span class="n">2</span></div>
+          </div>
+          <div class="hint">Tap a capability to filter the work below</div>
+        </div>
+
+        <!-- reflections + people merged: "the human layer" -->
+        <div class="mod">
+          <div class="modHead"><span class="ic" style="background:var(--lilacL)">✷</span><span class="t">Reflection &amp; crew</span></div>
+          <div class="spark"><i style="height:60%"></i><i style="height:20%"></i><i style="height:80%"></i><i style="height:35%"></i><i style="height:100%"></i><i style="height:15%"></i></div>
+          <div class="reflectRow"><span class="star">✷</span>3 reflection pauses this season<span class="cta">Reflect now →</span></div>
+          <div style="height:11px"></div>
+          <div class="person"><span class="ava">MP</span><div style="flex:1"><div class="headline" style="font-size:14px;margin:0">Maya Patel is shaping this season</div><div class="sub2">Crewed 4 of your last 6 sessions</div></div></div>
+          <div class="peopleChips">
+            <div class="capChip"><span class="ava" style="width:18px;height:18px;font-size:9px">MP</span>Maya<span class="n">4</span></div>
+            <div class="capChip"><span class="ava" style="width:18px;height:18px;font-size:9px;background:linear-gradient(135deg,#9DB8E0,#5B82C9)">JK</span>Coach J<span class="n">2</span></div>
+          </div>
+        </div>
+
+        <!-- librarian -->
+        <div class="mod lib">
+          <div class="modHead"><span class="ic" style="background:var(--lilacL)">❍</span><span class="t">This season · logbook noticed</span></div>
+          <div class="body">You keep prepping the boat but haven't drilled starts since Week 2 — your top-3 goal lives or dies on the line.</div>
+        </div>
+
+        <!-- THE WORK -->
+        <div class="mod" style="padding:14px 14px 16px">
+          <div class="workEyebrow"><span class="t">THE WORK</span><span class="c">5 steps · done behind, queued ahead</span></div>
+          <div class="ledgerHead"><span>▾</span>Done · 2</div>
+          <div class="doneRow"><span class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="ttl">Rig tune &amp; bottom clean</span><span class="ord">1/5</span></div>
+          <div class="doneRow"><span class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="ttl">Crew tactics debrief</span><span class="ord">2/5</span></div>
+          <div class="nowbar"><div class="pin"></div><div class="ln"></div><div class="lbl">NOW</div><div class="ln r"></div></div>
+          <div class="card next">
+            <div class="eb">Boat-work · Baltimore City YC</div>
+            <div class="row1"><span class="pill next">NEXT</span><span class="ord2">3/5</span></div>
+            <div class="title">Frostbite sail inventory &amp; repairs</div>
+            <div class="start">Pick this up →</div>
+          </div>
+          <div class="card planned">
+            <div class="eb">Drills · Downtown Sailing Center</div>
+            <div class="row1"><span class="pill planned">PLANNED</span><span class="ord2">4/5</span></div>
+            <div class="title">Spinnaker set &amp; douse drills</div>
+          </div>
+          <div class="anchor">
+            <div class="cal"><div class="mo">Jun</div><div class="dy">25</div><div class="tm">6:30a</div></div>
+            <div><div class="row1"><span class="pill race">RACE · 5/5</span></div><div class="title">Wed Night Series — Race 3</div><div class="build">The fixed point everything builds toward.</div></div>
+          </div>
+        </div>
+
+        <div class="note"><b>Read:</b> clearest separation, most scannable. <span class="con">Risk:</span> 5 stacked cards can still feel like a lot of scroll — the "busy" complaint may partly survive. Mitigate by making the human/librarian cards collapsible.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ B · SUMMARY-FIRST ════════════ -->
+  <div class="col">
+    <h2>B · Reflect summary, work first</h2>
+    <p class="sub">The three "look back" sections collapse to one-line tappable headlines at the top. A hard divider drops you into THE WORK — the thing you actually act on. Reflection is a glance, not a wall.</p>
+    <div class="phone">
+      <div class="status"><span>6:59</span><span>● ● ● ●</span></div>
+      <div class="screen">
+
+        <div class="crumb"><span class="dot"></span><b>Sail Racing</b><span class="v">▾</span></div>
+        <div class="seasonTtl">Winter Frostbite Season</div>
+        <div class="seasonSub">Oct 31 – Mar 30 · Week 6 of 22</div>
+
+        <!-- vision stays, it's short -->
+        <div class="mod" style="padding:13px 15px">
+          <div class="vision">Finish top-3 in the series, clean off every line. <span class="add">Edit →</span></div>
+        </div>
+
+        <div style="height:8px"></div>
+
+        <!-- collapsed reflect rows -->
+        <div class="sumRow">
+          <span class="ic" style="background:rgba(157,112,201,0.16)">◎</span>
+          <div class="bd"><div class="k">Capabilities</div><div class="hl">Boat-work is anchoring this season</div></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="sumRow">
+          <span class="ic" style="background:var(--lilacL)">✷</span>
+          <div class="bd"><div class="k">Reflection &amp; crew</div><div class="hl">3 pauses · Maya shaped 4 sessions</div></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="sumRow">
+          <span class="ic" style="background:var(--lilacL)">❍</span>
+          <div class="bd"><div class="k">Logbook noticed</div><div class="hl">No start drills since Week 2</div></div>
+          <span class="chev">›</span>
+        </div>
+
+        <!-- hard divider into the work -->
+        <div class="zoneDiv"><div class="ln"></div><div class="lbl">THE WORK</div><div class="ln"></div></div>
+        <div class="seasonSub" style="margin:-6px 2px 12px">5 steps · done behind, queued ahead</div>
+
+        <div class="ledgerHead"><span>▾</span>Done · 2</div>
+        <div class="doneRow"><span class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="ttl">Rig tune &amp; bottom clean</span><span class="ord">1/5</span></div>
+        <div class="doneRow"><span class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="ttl">Crew tactics debrief</span><span class="ord">2/5</span></div>
+        <div class="nowbar"><div class="pin"></div><div class="ln"></div><div class="lbl">NOW</div><div class="ln r"></div></div>
+        <div class="card next">
+          <div class="eb">Boat-work · Baltimore City YC</div>
+          <div class="row1"><span class="pill next">NEXT</span><span class="ord2">3/5</span></div>
+          <div class="title">Frostbite sail inventory &amp; repairs</div>
+          <div class="capsRow"><div class="cdot" style="background:var(--cap-purple)"></div><div class="cdot" style="background:var(--cap-amber)"></div><span class="capLbl">Boat prep · Heavy-air trim</span></div>
+          <div class="start">Pick this up →</div>
+        </div>
+        <div class="card planned">
+          <div class="eb">Drills · Downtown Sailing Center</div>
+          <div class="row1"><span class="pill planned">PLANNED</span><span class="ord2">4/5</span></div>
+          <div class="title">Spinnaker set &amp; douse drills</div>
+        </div>
+        <div class="anchor">
+          <div class="cal"><div class="mo">Jun</div><div class="dy">25</div><div class="tm">6:30a</div></div>
+          <div><div class="row1"><span class="pill race">RACE · 5/5</span></div><div class="title">Wed Night Series — Race 3</div><div class="build">The fixed point everything builds toward.</div></div>
+        </div>
+
+        <div class="note"><b>Read:</b> <span class="pro">shortest scroll to the work</span> — reflection is available but doesn't block. Matches "I open this to decide what to do next." <span class="con">Risk:</span> reflection is the season view's reason to exist; burying it one tap deep could make people skip it. Best if reflection is a destination, not the default focus.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ C · TWO-SEGMENT ════════════ -->
+  <div class="col">
+    <h2>C · Reflect | Work segment</h2>
+    <p class="sub">One toggle splits the season's two modes: <b>Reflect</b> (capabilities, reflections, crew, librarian) and <b>Work</b> (the step sequence). Each tab is calm and single-purpose — you choose which head you're in.</p>
+    <div class="phone">
+      <div class="status"><span>6:59</span><span>● ● ● ●</span></div>
+      <div class="screen">
+
+        <div class="crumb"><span class="dot"></span><b>Sail Racing</b><span class="v">▾</span></div>
+        <div class="seasonTtl">Winter Frostbite Season</div>
+        <div class="seasonSub">Oct 31 – Mar 30 · Week 6 of 22</div>
+
+        <div class="seg"><div class="o on">Reflect</div><div class="o">Work<span class="ct">5</span></div></div>
+
+        <!-- REFLECT tab content -->
+        <div class="mod">
+          <div class="modHead"><span class="ic" style="background:var(--azureL)">✺</span><span class="t">The aim</span></div>
+          <div class="vision">Finish top-3 in the series, clean off every line. <span class="add">Edit →</span></div>
+        </div>
+        <div class="mod">
+          <div class="modHead"><span class="ic" style="background:rgba(157,112,201,0.16)">◎</span><span class="t">Capabilities</span><span class="more">Rebalance</span></div>
+          <div class="headline">Boat-work is anchoring this season</div>
+          <div class="capBar"><i style="background:var(--cap-purple);width:42%"></i><i style="background:var(--cap-teal);width:30%"></i><i style="background:var(--cap-amber);width:18%"></i><i style="background:#C7C7CC;width:10%"></i></div>
+          <div class="capChips">
+            <div class="capChip"><span class="d" style="background:var(--cap-purple)"></span>Boat prep<span class="n">5</span></div>
+            <div class="capChip"><span class="d" style="background:var(--cap-teal)"></span>Handling<span class="n">3</span></div>
+            <div class="capChip"><span class="d" style="background:var(--cap-amber)"></span>Tactics<span class="n">2</span></div>
+          </div>
+        </div>
+        <div class="mod">
+          <div class="modHead"><span class="ic" style="background:var(--lilacL)">✷</span><span class="t">Reflection &amp; crew</span></div>
+          <div class="spark"><i style="height:60%"></i><i style="height:20%"></i><i style="height:80%"></i><i style="height:35%"></i><i style="height:100%"></i><i style="height:15%"></i></div>
+          <div class="reflectRow"><span class="star">✷</span>3 pauses<span class="cta">Reflect now →</span></div>
+          <div style="height:10px"></div>
+          <div class="person"><span class="ava">MP</span><div style="flex:1"><div class="headline" style="font-size:13.5px;margin:0">Maya shaped 4 of 6 sessions</div></div></div>
+        </div>
+        <div class="mod lib">
+          <div class="modHead"><span class="ic" style="background:var(--lilacL)">❍</span><span class="t">Logbook noticed</span></div>
+          <div class="body">No start drills since Week 2 — your top-3 goal lives on the line.</div>
+        </div>
+
+        <div class="note"><b>Read:</b> calmest per-screen; each tab does one job. The <b>Work</b> tab is just the linear column (Option A's last card, full-bleed). <span class="con">Risk:</span> hides half the season behind a tap — you lose the "see capabilities + the work together" glance that motivates reordering. Adds a 3rd segment layer if Atlas-style nav also segments.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

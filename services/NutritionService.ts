@@ -82,11 +82,17 @@ export async function updateNutritionEntry(
 }
 
 export async function deleteNutritionEntry(id: string): Promise<boolean> {
-  const { error } = await supabase.from('nutrition_entries').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('nutrition_entries')
+    .delete()
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
   if (error) {
     logger.error('deleteNutritionEntry failed', error);
     return false;
   }
+  if (!data) return false;
   return true;
 }
 

@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -42,7 +43,12 @@ export function ResourcesZone({ onOpenCapture }: Props) {
   const { currentInterest } = useInterest();
   const toast = useToast();
   const createLibraryItem = useCreateLibraryItem();
-  const { data: zones } = useLibraryZonesData(currentInterest?.id);
+  const {
+    data: zones,
+    isLoading: zonesLoading,
+    error: zonesError,
+    refetch: refetchZones,
+  } = useLibraryZonesData(currentInterest?.id);
   const { data: counts } = useLibraryCounts(currentInterest?.id);
 
   // Demo content stands in only when the account is completely empty so
@@ -98,7 +104,31 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
       </TouchableOpacity>
 
-      {inPlay.length > 0 ? (
+      {zonesError ? (
+        <View style={styles.stateCard}>
+          <Ionicons name="warning-outline" size={24} color={IOS_COLORS.systemOrange} />
+          <Text style={styles.stateTitle}>Could not load resources</Text>
+          <Text style={styles.stateBody}>
+            {zonesError instanceof Error ? zonesError.message : 'Try again in a moment.'}
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading resources"
+            onPress={() => {
+              void refetchZones();
+            }}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : zonesLoading && !zones ? (
+        <View style={styles.stateCard}>
+          <ActivityIndicator size="small" color={IOS_COLORS.tertiaryLabel} />
+          <Text style={styles.stateBody}>Loading resources…</Text>
+        </View>
+      ) : inPlay.length > 0 ? (
         <>
           <ShelfHead
             title="In play this week"
@@ -126,7 +156,7 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         </>
       ) : null}
 
-      {recent.length > 0 ? (
+      {!zonesError && !(zonesLoading && !zones) && recent.length > 0 ? (
         <>
           <ShelfHead
             title="Recently added"
@@ -149,7 +179,7 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         </>
       ) : null}
 
-      {collections.length > 0 ? (
+      {!zonesError && !(zonesLoading && !zones) && collections.length > 0 ? (
         <>
           <ShelfHead
             title="Collections"
@@ -299,6 +329,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: IOS_COLORS.secondaryLabel,
     marginTop: 1,
+  },
+  stateCard: {
+    marginHorizontal: IOS_SPACING.lg,
+    marginTop: IOS_SPACING.sm,
+    padding: IOS_SPACING.lg,
+    borderRadius: 14,
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.18)',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stateTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  stateBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: IOS_COLORS.secondaryLabel,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   shelfHead: {
     flexDirection: 'row',

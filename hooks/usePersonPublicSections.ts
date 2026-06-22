@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import type { DescriptorValues } from '@/lib/profile-descriptors';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 export interface PersonTrajectoryItem {
   stepId: string;
@@ -202,9 +203,8 @@ export function usePersonPublicSections(
         ? Promise.resolve({ data: null, error: null })
         : supabase
             .from('organization_memberships')
-            .select('organization_id, user_id, organizations!inner(id, name, slug)')
-            .in('user_id', [viewerId!, userId!])
-            .eq('membership_status', 'active');
+            .select('organization_id, user_id, status, membership_status, organizations!inner(id, name, slug)')
+            .in('user_id', [viewerId!, userId!]);
 
       const threadsPromise = supabase
         .from('step_discussions')
@@ -271,7 +271,7 @@ export function usePersonPublicSections(
 
       // Intersect memberships client-side: keep orgs where BOTH ids appear.
       const byOrg = new Map<string, { name: string; slug: string | null; users: Set<string> }>();
-      for (const row of (orgsRes.data ?? []) as any[]) {
+      for (const row of ((orgsRes.data ?? []) as any[]).filter((membership) => isResolvedOrgMembershipActive(membership))) {
         const org = row.organizations;
         if (!org) continue;
         const entry = byOrg.get(row.organization_id) ?? {

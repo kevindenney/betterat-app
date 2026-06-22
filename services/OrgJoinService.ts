@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase';
 import type { OrgJoinMode } from '@/services/YachtClubClaimService';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 
 /**
  * Self-serve organization join, branched by the org's `join_mode`.
@@ -31,6 +32,12 @@ function isUniqueViolation(error: unknown): boolean {
   return Boolean(error) && (error as { code?: string }).code === '23505';
 }
 
+function joinResultFromStatus(status?: string): JoinResult | null {
+  if (status === 'active') return 'active';
+  if (status === 'pending') return 'pending';
+  return null;
+}
+
 export class OrgJoinService {
   static async join({ orgId, userId, joinMode }: JoinArgs): Promise<JoinResult> {
     if (joinMode === 'invite_only') {
@@ -51,16 +58,21 @@ export class OrgJoinService {
 
     if (existing) {
       const row = existing as { membership_status?: string; status?: string };
-      const current = row.membership_status || row.status || 'pending';
+      const current = resolveOrgMembershipStatus(row);
       if (current === 'active' || current === targetStatus) {
         return current === 'active' ? 'active' : targetStatus;
       }
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from('organization_memberships')
         .update({ status: targetStatus, membership_status: targetStatus })
         .eq('organization_id', orgId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('status,membership_status')
+        .maybeSingle();
       if (error) throw error;
+      if (!updated) {
+        throw new Error('Could not update your organization membership.');
+      }
       return targetStatus;
     }
 
@@ -73,8 +85,21 @@ export class OrgJoinService {
     });
     if (error) {
       // Lost a race — the row appeared between our read and insert.
-      // Treat as success at the requested status.
-      if (isUniqueViolation(error)) return targetStatus;
+      // Re-read and return the actual membership state.
+      if (isUniqueViolation(error)) {
+        const { data: raced, error: racedError } = await supabase
+          .from('organization_memberships')
+          .select('status,membership_status')
+          .eq('organization_id', orgId)
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (racedError) throw racedError;
+        const racedStatus = joinResultFromStatus(
+          resolveOrgMembershipStatus((raced as { membership_status?: string; status?: string } | null) ?? {}),
+        );
+        if (racedStatus) return racedStatus;
+        throw new Error('Could not confirm your organization membership.');
+      }
       throw error;
     }
     return targetStatus;

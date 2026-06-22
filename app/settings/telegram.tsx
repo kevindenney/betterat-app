@@ -139,17 +139,21 @@ export default function TelegramSettingsScreen(): React.ReactElement {
   // ---------------------------------------------------------------------------
 
   const handleDisconnect = useCallback(() => {
-    if (!link) return;
+    if (!link || !user?.id) return;
     showConfirm(
       'Disconnect Telegram',
       'You will no longer be able to interact with BetterAt via Telegram. You can reconnect at any time.',
       async () => {
         try {
-          const { error } = await supabase
+          const { data, error } = await supabase
             .from('telegram_links')
             .update({ is_active: false })
-            .eq('id', link.id);
+            .eq('id', link.id)
+            .eq('user_id', user.id)
+            .select('id')
+            .maybeSingle();
           if (error) throw error;
+          if (!data) throw new Error('Telegram link not found.');
           setLink(null);
         } catch (err) {
           logger.error('Failed to disconnect telegram', err);
@@ -158,7 +162,7 @@ export default function TelegramSettingsScreen(): React.ReactElement {
       },
       { destructive: true },
     );
-  }, [link]);
+  }, [link, user?.id]);
 
   // ---------------------------------------------------------------------------
   // Render

@@ -423,18 +423,21 @@ class RaceDocumentService {
    */
   async shareDocumentWithFleet(raceDocumentId: string, fleetId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_documents')
         .update({
           shared_with_fleet: true,
           fleet_id: fleetId,
         })
-        .eq('id', raceDocumentId);
+        .eq('id', raceDocumentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Error sharing document with fleet:', error);
         throw error;
       }
+      if (!data) throw new Error('Race document not found.');
 
       return true;
     } catch (error) {
@@ -448,18 +451,21 @@ class RaceDocumentService {
    */
   async unshareDocumentFromFleet(raceDocumentId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_documents')
         .update({
           shared_with_fleet: false,
           fleet_id: null,
         })
-        .eq('id', raceDocumentId);
+        .eq('id', raceDocumentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Error unsharing document from fleet:', error);
         throw error;
       }
+      if (!data) throw new Error('Race document not found.');
 
       return true;
     } catch (error) {
@@ -507,12 +513,18 @@ class RaceDocumentService {
    */
   async unlinkDocumentFromRace(raceDocumentId: string): Promise<boolean> {
     try {
-      const { error } = await supabase.from('race_documents').delete().eq('id', raceDocumentId);
+      const { data, error } = await supabase
+        .from('race_documents')
+        .delete()
+        .eq('id', raceDocumentId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Error unlinking document from race:', error);
         throw error;
       }
+      if (!data) throw new Error('Race document not found.');
 
       return true;
     } catch (error) {

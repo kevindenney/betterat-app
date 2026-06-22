@@ -187,8 +187,11 @@ export default function SchoolsPricingPage() {
         <View style={s.academicNote}>
           <Text style={s.academicText}>
             Per-seat pricing for K-12 districts and 501(c)(3) non-profits is 40%
-            off · <Text style={s.academicLink}>apply for academic pricing →</Text>
+            off.
           </Text>
+          <Pressable onPress={() => router.push('/schools/start-pilot')}>
+            <Text style={s.academicLink}>Apply for academic pricing →</Text>
+          </Pressable>
         </View>
 
         <Footer />

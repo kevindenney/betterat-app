@@ -15,11 +15,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
+import { useOrganization } from '@/providers/OrganizationProvider';
+import { isOrgAdminRole } from '@/lib/organizations/roleLabels';
 import {
   fetchOrgMembershipRows,
   orgMembershipsQueryKey,
   type OrgMembershipEmbeddedOrg,
 } from '@/hooks/orgMembershipsQuery';
+import { isProfileMenuActiveMembership } from '@/hooks/useProfileMenuData.logic';
 
 export interface OrgMembership {
   org_id: string;
@@ -77,15 +80,10 @@ function isFacultyRole(role: string | null | undefined): boolean {
   return r === 'faculty' || r === 'instructor' || r === 'mentor' || r === 'coach';
 }
 
-function isAdminRole(role: string | null | undefined): boolean {
-  if (!role) return false;
-  const r = role.toLowerCase();
-  return r === 'admin' || r === 'owner' || r === 'administrator';
-}
-
 export function useProfileMenuData(): ProfileMenuData {
   const { user } = useAuth();
   const userId = user?.id;
+  const { activeOrganizationId } = useOrganization();
 
   // Shared cached read — same query (key ['profile-menu-orgs', userId]) the
   // OrganizationProvider now consumes. The shared read is unfiltered; we
@@ -99,12 +97,7 @@ export function useProfileMenuData(): ProfileMenuData {
 
   const memberships: OrgMembership[] = useMemo(() => {
     return rawRows
-      .filter((r) => {
-        // active per either column — see feedback_membership_status_split.md
-        const s1 = (r.status ?? '').toLowerCase();
-        const s2 = (r.membership_status ?? '').toLowerCase();
-        return s1 === 'active' || s2 === 'active' || s2 === 'verified';
-      })
+      .filter(isProfileMenuActiveMembership)
       .map((r) => {
         // LEFT join — org may be null; supabase typegen may model it as an array.
         const org: OrgMembershipEmbeddedOrg | null = Array.isArray(r.organization)
@@ -118,24 +111,28 @@ export function useProfileMenuData(): ProfileMenuData {
           org_short_name: shortNameFor(orgName),
           interest_slug: org?.interest_slug ?? null,
           role: r.role,
-          is_admin: isAdminRole(r.role),
+          is_admin: isOrgAdminRole(r.role),
           is_faculty: isFacultyRole(r.role),
           is_author: isAuthorRole(r.role),
         };
       });
   }, [rawRows]);
 
-  // The active org follows the active interest: an org is "current" only
-  // when its interest_slug matches the interest the user is viewing (e.g.
-  // viewing Sail Racing → HKDA, not Johns Hopkins). When no org covers the
-  // active interest, the user is in their Personal context (activeOrg null),
-  // so the menu never shows a mismatched org banner / sign-out target.
+  // Prefer the explicit active organization selected in OrganizationProvider.
+  // This matters when a user belongs to multiple orgs under the same interest
+  // (e.g. two nursing orgs): interest_slug alone cannot distinguish them.
+  // Fall back to the older interest-derived behavior when no active org has
+  // been selected yet.
   const { currentInterest } = useInterest();
   const activeInterestSlug = currentInterest?.slug ?? null;
-  const activeOrg =
+  const activeOrgById = activeOrganizationId
+    ? memberships.find((m) => m.org_id === activeOrganizationId) ?? null
+    : null;
+  const activeOrgByInterest =
     (activeInterestSlug
       ? memberships.find((m) => m.interest_slug === activeInterestSlug)
       : undefined) ?? null;
+  const activeOrg = activeOrgById ?? activeOrgByInterest ?? null;
 
   const isAdmin = !!activeOrg?.is_admin;
   const isFaculty = !!activeOrg?.is_faculty;

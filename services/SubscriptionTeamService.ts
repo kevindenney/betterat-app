@@ -9,7 +9,6 @@ import { supabase } from '@/services/supabase';
 import { createLogger } from '@/lib/utils/logger';
 import type {
   SubscriptionTeam,
-  SubscriptionTeamMember,
   SubscriptionTeamWithMembers,
   SubscriptionTeamInvite,
   InviteResult,
@@ -26,7 +25,7 @@ export class SubscriptionTeamService {
   static async getTeam(userId: string): Promise<SubscriptionTeam | null> {
     try {
       // First check if user owns a team
-      const { data: ownedTeam, error: ownedError } = await supabase
+      const { data: ownedTeam } = await supabase
         .from('subscription_teams')
         .select('*')
         .eq('owner_id', userId)
@@ -37,7 +36,7 @@ export class SubscriptionTeamService {
       }
 
       // Check if user is a member of a team
-      const { data: membership, error: memberError } = await supabase
+      const { data: membership } = await supabase
         .from('subscription_team_members')
         .select('team_id')
         .eq('user_id', userId)
@@ -146,7 +145,7 @@ export class SubscriptionTeamService {
         return { used: 0, max: 5, available: 5 };
       }
 
-      const { count, error: countError } = await supabase
+      const { count } = await supabase
         .from('subscription_team_members')
         .select('*', { count: 'exact', head: true })
         .eq('team_id', teamId)
@@ -240,13 +239,19 @@ export class SubscriptionTeamService {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('subscription_teams')
         .update({ invite_code: code, updated_at: new Date().toISOString() })
-        .eq('id', teamId);
+        .eq('id', teamId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Failed to generate invite code:', error);
+        return null;
+      }
+      if (!data) {
+        logger.error('Team not found while generating invite code');
         return null;
       }
 
@@ -350,13 +355,20 @@ export class SubscriptionTeamService {
       }
 
       // Remove the member
-      const { error: deleteError } = await supabase
+      const { data: deletedMember, error: deleteError } = await supabase
         .from('subscription_team_members')
         .delete()
-        .eq('id', memberId);
+        .eq('id', memberId)
+        .eq('team_id', teamId)
+        .select('id')
+        .maybeSingle();
 
       if (deleteError) {
         logger.error('Failed to remove member:', deleteError);
+        return false;
+      }
+      if (!deletedMember) {
+        logger.error('Member not found while removing from team');
         return false;
       }
 
@@ -389,15 +401,21 @@ export class SubscriptionTeamService {
    */
   static async cancelInvite(teamId: string, memberId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('subscription_team_members')
         .delete()
         .eq('id', memberId)
         .eq('team_id', teamId)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Failed to cancel invite:', error);
+        return false;
+      }
+      if (!data) {
+        logger.error('Pending invite not found while cancelling');
         return false;
       }
 
@@ -413,13 +431,19 @@ export class SubscriptionTeamService {
    */
   static async updateTeamName(teamId: string, name: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('subscription_teams')
         .update({ name, updated_at: new Date().toISOString() })
-        .eq('id', teamId);
+        .eq('id', teamId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         logger.error('Failed to update team name:', error);
+        return false;
+      }
+      if (!data) {
+        logger.error('Team not found while updating name');
         return false;
       }
 
@@ -434,7 +458,7 @@ export class SubscriptionTeamService {
    * Get count of pending invites
    */
   private static async getPendingInviteCount(teamId: string): Promise<number> {
-    const { count, error } = await supabase
+    const { count } = await supabase
       .from('subscription_team_members')
       .select('*', { count: 'exact', head: true })
       .eq('team_id', teamId)
@@ -479,12 +503,18 @@ export class SubscriptionTeamService {
       }
 
       // Remove membership
-      const { error: deleteError } = await supabase
+      const { data: deletedMember, error: deleteError } = await supabase
         .from('subscription_team_members')
         .delete()
-        .eq('id', member.id);
+        .eq('id', member.id)
+        .eq('user_id', userId)
+        .select('id')
+        .maybeSingle();
 
       if (deleteError) {
+        return false;
+      }
+      if (!deletedMember) {
         return false;
       }
 

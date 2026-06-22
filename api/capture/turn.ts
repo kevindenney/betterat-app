@@ -149,8 +149,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const history = parseHistory(body.history);
 
   // 4. Resolve BetterAt auth context + user context for the system prompt
-  const auth = await resolveAuthContext(supabase, userId);
-  const userCtx = await loadUserContext(supabase, userId, auth.clubId);
+  const captureSupabase = supabase as never;
+  const auth = await resolveAuthContext(captureSupabase, userId);
+  const userCtx = await loadUserContext(captureSupabase, userId, auth.clubId);
 
   // 5. Build system prompt + initial message list
   const systemPrompt = uploadedPhotoUrl
@@ -175,7 +176,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const result = await runConversationTurn({
       systemPrompt,
       messages: initialMessages,
-      supabase,
+      supabase: supabase as never,
       auth,
       channel: 'in_app_voice',
       uploadedPhotoUrl,

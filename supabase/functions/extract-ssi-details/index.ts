@@ -32,8 +32,11 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let activeDocumentId: string | undefined;
+
   try {
     const { text, documentId }: ExtractionRequest = await req.json();
+    activeDocumentId = documentId;
 
     if (!text && !documentId) {
       return new Response(
@@ -45,7 +48,6 @@ Deno.serve(async (req) => {
     // API key is checked inside complete()
 
     let documentText = text;
-    let docRecord: any = null;
 
     // If documentId provided, fetch the document and update status
     if (documentId) {
@@ -64,8 +66,6 @@ Deno.serve(async (req) => {
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      docRecord = document;
 
       // Update status to processing
       await supabase
@@ -330,6 +330,17 @@ Return ONLY the JSON object, no additional text.`;
 
   } catch (error) {
     console.error('[extract-ssi-details] Error:', error);
+
+    if (activeDocumentId) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      await supabase
+        .from('user_club_documents')
+        .update({
+          extraction_status: 'failed',
+          extraction_error: error.message || 'Internal server error'
+        })
+        .eq('id', activeDocumentId);
+    }
 
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),

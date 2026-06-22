@@ -134,15 +134,18 @@ export function useRaceMarks({
     try {
       logger.debug('Updating mark:', mark.id);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_marks')
         .update({
           latitude: mark.latitude,
           longitude: mark.longitude,
         })
-        .eq('id', mark.id);
+        .eq('id', mark.id)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Race mark not found.');
 
       logger.debug('Mark updated successfully');
 
@@ -170,12 +173,15 @@ export function useRaceMarks({
     try {
       logger.debug('Deleting mark:', markId);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_marks')
         .delete()
-        .eq('id', markId);
+        .eq('id', markId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Race mark not found.');
 
       logger.debug('Mark deleted successfully');
 

@@ -19,6 +19,8 @@ const stripe = new Stripe(stripeSecretKey, {
   httpClient: Stripe.createFetchHttpClient(),
 });
 
+const IS_LIVE_MODE = stripeSecretKey.startsWith('sk_live_');
+
 const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 if (!webhookSecret) throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not set');
 
@@ -34,6 +36,82 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 if (!supabaseServiceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is not set');
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+type ConsumerTier = 'individual' | 'pro';
+
+interface ConsumerPriceConfig {
+  tier: ConsumerTier;
+  testPriceIds: string[];
+  envNames: string[];
+}
+
+function firstEnvValue(names: string[]): string {
+  for (const name of names) {
+    const value = Deno.env.get(name)?.trim();
+    if (value && /^price_[A-Za-z0-9]+$/.test(value)) return value;
+  }
+  return '';
+}
+
+const CONSUMER_PRICE_CONFIGS: ConsumerPriceConfig[] = [
+  {
+    tier: 'individual',
+    testPriceIds: ['price_1Tft79BbfEeOhHXbC6kMnpSI'], // $9/mo
+    envNames: [
+      'STRIPE_INDIVIDUAL_MONTHLY_PRICE_ID',
+      'STRIPE_PLUS_MONTHLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_INDIVIDUAL_MONTHLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_PLUS_MONTHLY_PRICE_ID',
+    ],
+  },
+  {
+    tier: 'individual',
+    testPriceIds: [
+      'price_1TjCcsBbfEeOhHXbSwJroOny', // $89/yr current
+      'price_1Tft7ABbfEeOhHXbeIzYLCce', // $90/yr legacy
+    ],
+    envNames: [
+      'STRIPE_INDIVIDUAL_YEARLY_PRICE_ID',
+      'STRIPE_INDIVIDUAL_ANNUAL_PRICE_ID',
+      'STRIPE_PLUS_YEARLY_PRICE_ID',
+      'STRIPE_PLUS_ANNUAL_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_INDIVIDUAL_YEARLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_INDIVIDUAL_ANNUAL_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_PLUS_YEARLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_PLUS_ANNUAL_PRICE_ID',
+    ],
+  },
+  {
+    tier: 'pro',
+    testPriceIds: ['price_1Tft7BBbfEeOhHXbdaVhs9Js'], // $29/mo
+    envNames: [
+      'STRIPE_PRO_MONTHLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID',
+    ],
+  },
+  {
+    tier: 'pro',
+    testPriceIds: ['price_1Tft7CBbfEeOhHXb0tr4xNnO'], // $290/yr
+    envNames: [
+      'STRIPE_PRO_YEARLY_PRICE_ID',
+      'STRIPE_PRO_ANNUAL_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID',
+      'EXPO_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID',
+    ],
+  },
+];
+
+const CONSUMER_PRICE_TIERS: Record<string, ConsumerTier> = {};
+for (const config of CONSUMER_PRICE_CONFIGS) {
+  const configuredPriceId = firstEnvValue(config.envNames);
+  const priceIds = IS_LIVE_MODE
+    ? [configuredPriceId]
+    : [configuredPriceId, ...config.testPriceIds];
+
+  for (const priceId of priceIds) {
+    if (priceId) CONSUMER_PRICE_TIERS[priceId] = config.tier;
+  }
+}
 
 serve(async (req: Request) => {
   const signature = req.headers.get('stripe-signature');
@@ -87,12 +165,29 @@ serve(async (req: Request) => {
       });
     }
 
-    // Record event as processing
-    await supabase.from('stripe_webhook_events').insert({
+    // Record event as processing. The event_id unique constraint is the
+    // race-safe idempotency gate when Stripe retries arrive concurrently.
+    const { error: insertEventError } = await supabase.from('stripe_webhook_events').insert({
       event_id: event.id,
       event_type: event.type,
       processed_at: new Date().toISOString(),
     });
+
+    if (insertEventError) {
+      if (insertEventError.code === '23505') {
+        console.log(`Skipping concurrently-processed event: ${event.id}`);
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.error('Failed to record Stripe webhook event:', insertEventError);
+      return new Response(JSON.stringify({ error: 'Failed to record webhook event' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     // BUG 9: Validate event.account for Connect events that require it
     const connectEventTypes = [
@@ -998,17 +1093,17 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   };
 
   // Get the price/product to determine tier.
-  // Consumer subscription prices mirror Apple: Individual $9/$90, Pro $29/$290.
+  // Consumer subscription prices mirror Apple: Individual/Plus and Pro.
   const priceId = subscription.items.data[0]?.price.id;
-  const tierMap: Record<string, string> = {
-    'price_1Tft79BbfEeOhHXbC6kMnpSI': 'individual', // $9/mo
-    'price_1TjCcsBbfEeOhHXbSwJroOny': 'individual', // $89/yr (current)
-    'price_1Tft7ABbfEeOhHXbeIzYLCce': 'individual', // $90/yr (legacy)
-    'price_1Tft7BBbfEeOhHXbdaVhs9Js': 'pro',        // $29/mo
-    'price_1Tft7CBbfEeOhHXb0tr4xNnO': 'pro',        // $290/yr
-  };
-
-  const tier = tierMap[priceId] || 'individual';
+  let tier = priceId ? CONSUMER_PRICE_TIERS[priceId] : undefined;
+  if (!tier) {
+    const message = `Unknown consumer subscription price ID: ${priceId ?? '(missing)'}`;
+    if (IS_LIVE_MODE) {
+      throw new Error(`${message}. Set the matching STRIPE_*_PRICE_ID webhook secret before processing live subscriptions.`);
+    }
+    console.warn(`${message}. Falling back to individual tier in test mode.`);
+    tier = 'individual';
+  }
   // subscriptions.plan_type is its own enum {basic, pro, enterprise} — distinct
   // from the subscription_tier enum used by `tier`. Map across them.
   const planTypeMap: Record<string, string> = {
@@ -2048,4 +2143,3 @@ async function triggerConfirmationEmail(entityId: string, type: 'race_entry' | '
     console.error('Failed to send confirmation email:', error);
   }
 }
-

@@ -60,6 +60,8 @@ interface ConversationalCaptureProps {
    * paste overlay quick capture).
    */
   showContextStrip?: boolean;
+  /** Optional Plan-tab subtitle shown under the AI Coach header. */
+  coachSubtitle?: string;
 }
 
 // 25s ceiling for the structuring call — long enough for Gemini Flash on a
@@ -99,6 +101,7 @@ export function ConversationalCapture({
   stepCategory,
   autoFocus,
   showContextStrip = true,
+  coachSubtitle,
 }: ConversationalCaptureProps) {
   const { user } = useAuth();
   const [input, setInput] = useState('');
@@ -462,7 +465,10 @@ Respond with ONLY valid JSON:
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="chatbubbles" size={14} color={IOS_COLORS.systemPurple} />
-          <Text style={styles.headerTitle}>Talk it through</Text>
+          <View>
+            <Text style={styles.headerTitle}>Talk it through</Text>
+            {coachSubtitle ? <Text style={styles.headerSubtitle}>{coachSubtitle}</Text> : null}
+          </View>
         </View>
         {showDraftCta && (
           <Pressable
@@ -720,6 +726,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: IOS_COLORS.systemPurple,
     letterSpacing: 0.3,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+    marginTop: 1,
   },
   headerDraftButton: {
     flexDirection: 'row',

@@ -486,7 +486,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const challenge = req.query['hub.challenge'];
     const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
 
-    if (mode === 'subscribe' && token === verifyToken && typeof challenge === 'string') {
+    if (verifyToken && mode === 'subscribe' && token === verifyToken && typeof challenge === 'string') {
       res.status(200).send(challenge);
       return;
     }

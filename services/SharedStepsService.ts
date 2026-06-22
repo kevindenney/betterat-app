@@ -272,28 +272,34 @@ export async function getSharedWithYouInbox(viewerUserId: string): Promise<Share
 }
 
 export async function markSharedStepRead(sharedStepId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('shared_steps')
     .update({ read_at: new Date().toISOString() })
-    .eq('id', sharedStepId);
+    .eq('id', sharedStepId)
+    .select('id')
+    .maybeSingle();
   if (error) {
     logger.error('Failed to mark shared step read', error);
     throw error;
   }
+  if (!data) throw new Error('Shared step not found.');
 }
 
 export async function recordForkedSharedStep(input: {
   sharedStepId: string;
   forkedStepId: string;
 }): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('shared_steps')
     .update({ forked_to_step_id: input.forkedStepId, read_at: new Date().toISOString() })
-    .eq('id', input.sharedStepId);
+    .eq('id', input.sharedStepId)
+    .select('id')
+    .maybeSingle();
   if (error) {
     logger.error('Failed to record fork on shared step', error);
     throw error;
   }
+  if (!data) throw new Error('Shared step not found.');
 }
 
 export async function listSharedStepComments(sharedStepId: string): Promise<SharedStepCommentRecord[]> {

@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 import { fetchOrgMembershipRows, type OrgMembershipEmbeddedOrg } from '@/hooks/orgMembershipsQuery';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 export const NURSING_CURATED_SITES_KEY = 'nursing-curated-sites';
 
@@ -85,9 +86,8 @@ export function useNursingCuratedSites(): {
       const memberships = await fetchOrgMembershipRows(user!.id);
       const partnerRow = memberships.find((m) => {
         const org = firstOrg(m.organization);
-        const active = m.status === 'active' || m.membership_status === 'active';
         return (
-          active &&
+          isResolvedOrgMembershipActive(m) &&
           org?.organization_type === 'institution' &&
           org?.interest_slug === 'nursing'
         );

@@ -41,10 +41,13 @@ export type OrganizationVerificationMode =
 
 /**
  * Org kinds the self-serve create-org form offers. Subset of OrganizationKind —
- * we don't surface 'club' / 'institution' / 'yacht_club' as self-serve options
- * because those are reserved for the verified path (claim, not create).
+ * we don't surface 'club' / 'yacht_club' as self-serve options because those
+ * are reserved for the verified path (claim, not create).
+ * `institution` is allowed for self-serve placeholder creation so schools,
+ * hospitals, and programs can be discovered before verification/adoption.
  */
 export const SELF_SERVE_ORG_KINDS = [
+  'institution',
   'fleet',
   'training_squad',
   'study_group',
@@ -57,6 +60,7 @@ export const SELF_SERVE_ORG_KINDS = [
 export type SelfServeOrgKind = (typeof SELF_SERVE_ORG_KINDS)[number];
 
 export const SELF_SERVE_ORG_KIND_LABELS: Record<SelfServeOrgKind, string> = {
+  institution: 'Institution',
   fleet: 'Fleet',
   training_squad: 'Training squad',
   study_group: 'Study group',
@@ -80,6 +84,7 @@ export interface CreateUserOrgInput {
   description?: string;
   parentOrgId?: string;
   interestSlug?: string;
+  requestOnly?: boolean;
 }
 
 /**

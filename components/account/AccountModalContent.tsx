@@ -43,7 +43,7 @@ import { TourPricingCard } from '@/components/onboarding/TourPricingCard';
 import { accountStyles, getInitials } from './accountStyles';
 
 export default function AccountModalContent() {
-  const { user, userProfile, updateUserProfile, isDemoSession, capabilities, coachProfile, removeCapability } = useAuth();
+  const { user, userProfile, updateUserProfile, isDemoSession, capabilities, coachProfile, removeCapability, signOut } = useAuth();
   const { currentInterest } = useInterest();
   const { activeDomain } = useOrganization();
   const { vocab } = useVocabulary();
@@ -164,6 +164,22 @@ export default function AccountModalContent() {
       { destructive: true, confirmText: 'Continue' }
     );
   }, []);
+
+  const handleSignOut = useCallback(() => {
+    showConfirm(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      async () => {
+        try {
+          await signOut();
+        } catch (error) {
+          console.error('[AccountModalContent] Sign out failed:', error);
+          showAlert('Error', 'Failed to sign out. Please try again.');
+        }
+      },
+      { destructive: true, confirmText: 'Sign Out' }
+    );
+  }, [signOut]);
 
   // ── Trailing value component helper ──────────────────────────────
   const trailingValue = (text: string) => (
@@ -516,6 +532,14 @@ export default function AccountModalContent() {
 
         {/* ── Account ──────────────────────────────────────────── */}
         <IOSListSection header="Account">
+          <IOSListItem
+            testID="account-sign-out-button"
+            title="Sign Out"
+            leadingIcon="log-out-outline"
+            leadingIconColor={IOS_COLORS.secondaryLabel}
+            titleStyle={accountStyles.signOutText}
+            onPress={handleSignOut}
+          />
           <IOSListItem
             title="Delete Account"
             leadingIcon="trash-outline"

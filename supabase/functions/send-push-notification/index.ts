@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     // Collect all Expo push messages to send in a single batch
     const pushMessages: ExpoPushMessage[] = [];
     // Track which token belongs to which message index for stale token cleanup
-    const tokenMap: Array<{ token: string; userId: string }> = [];
+    const tokenMap: { token: string; userId: string }[] = [];
 
     for (const recipient of recipients) {
       // Check notification preference if a category is specified
@@ -125,12 +125,9 @@ Deno.serve(async (req) => {
     }
 
     // Send batch to Expo Push API (max 100 per request)
-    const chunks: ExpoPushMessage[][] = [];
-    for (let i = 0; i < pushMessages.length; i += 100) {
-      chunks.push(pushMessages.slice(i, i + 100));
-    }
-
-    for (const chunk of chunks) {
+    for (let chunkStart = 0; chunkStart < pushMessages.length; chunkStart += 100) {
+      const chunk = pushMessages.slice(chunkStart, chunkStart + 100);
+      const chunkTokenMap = tokenMap.slice(chunkStart, chunkStart + 100);
       try {
         const response = await fetch(EXPO_PUSH_URL, {
           method: 'POST',
@@ -153,7 +150,7 @@ Deno.serve(async (req) => {
         // Process each ticket
         for (let i = 0; i < tickets.length; i++) {
           const ticket = tickets[i];
-          const tokenInfo = tokenMap[i];
+          const tokenInfo = chunkTokenMap[i];
 
           if (ticket.status === 'ok') {
             results.sent++;
@@ -167,7 +164,6 @@ Deno.serve(async (req) => {
                 .delete()
                 .eq('token', tokenInfo.token)
                 .eq('user_id', tokenInfo.userId);
-              console.log(`[Push] Removed stale token for user ${tokenInfo.userId}`);
             }
           } else {
             results.failed++;
@@ -179,8 +175,6 @@ Deno.serve(async (req) => {
         results.failed += chunk.length;
       }
     }
-
-    console.log(`[Push] Results: ${JSON.stringify(results)}`);
 
     return new Response(
       JSON.stringify({ success: true, ...results }),

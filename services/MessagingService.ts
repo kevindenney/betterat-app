@@ -282,18 +282,23 @@ class MessagingService {
     const otherUserId = isCoach ? convo.sailor_id : convo.coach_id;
 
     // Set read_at on unread messages sent by the other party
-    await supabase
+    const { error: messagesError } = await supabase
       .from('coaching_messages')
       .update({ read_at: new Date().toISOString() })
       .eq('conversation_id', conversationId)
       .eq('sender_id', otherUserId)
       .is('read_at', null);
+    if (messagesError) throw messagesError;
 
     // Reset the user's unread counter
-    await supabase
+    const { data: updatedConversation, error: conversationError } = await supabase
       .from('coaching_conversations')
       .update(isCoach ? { coach_unread_count: 0 } : { sailor_unread_count: 0 })
-      .eq('id', conversationId);
+      .eq('id', conversationId)
+      .select('id')
+      .maybeSingle();
+    if (conversationError) throw conversationError;
+    if (!updatedConversation) throw new Error('Conversation not found.');
   }
 
   // -----------------------------------------------------------------------
@@ -351,13 +356,17 @@ class MessagingService {
 
     // Update conversation preview without incrementing unread counts for system messages
     const preview = content.length > 100 ? content.slice(0, 100) : content;
-    await supabase
+    const { data: updatedConversation, error: updateError } = await supabase
       .from('coaching_conversations')
       .update({
         last_message_at: message.created_at,
         last_message_preview: preview,
       })
-      .eq('id', conversationId);
+      .eq('id', conversationId)
+      .select('id')
+      .maybeSingle();
+    if (updateError) throw updateError;
+    if (!updatedConversation) throw new Error('Conversation not found.');
 
     return message as CoachingMessage;
   }

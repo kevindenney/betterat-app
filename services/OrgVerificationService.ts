@@ -8,7 +8,7 @@
  *
  * Auth model:
  *  - requestVerification: org admin (RLS gate in slice 1 migration)
- *  - listPendingRequests: platform admin only (RLS gate in slice 3 migration)
+ *  - listRequests: platform admin sees all; requesters see their own rows via RLS
  *  - reviewRequest: calls SECURITY DEFINER RPC, double-gated
  */
 
@@ -43,7 +43,14 @@ export interface AdminVerificationRequestRow extends OrgVerificationRequest {
     email: string | null;
     full_name: string | null;
   } | null;
+  reviewer?: {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+  } | null;
 }
+
+export type OrgVerificationRequestScope = 'pending' | 'history' | 'all';
 
 class OrgVerificationService {
   /**
@@ -79,41 +86,61 @@ class OrgVerificationService {
   }
 
   /**
-   * Platform-admin only. Returns pending requests with embedded org +
-   * requester profile. RLS is the gate; non-admins get an empty array.
+   * Request list for the review console. Platform admins can see all rows;
+   * requesters can see their own rows via RLS. Scope controls whether the
+   * caller wants the active queue, past decisions, or everything.
    */
-  static async listPendingRequests(): Promise<AdminVerificationRequestRow[]> {
-    const { data, error } = await supabase
+  static async listRequests(
+    scope: OrgVerificationRequestScope = 'pending',
+  ): Promise<AdminVerificationRequestRow[]> {
+    let query = supabase
       .from('org_verification_requests')
       .select(
         '*, organizations(id, name, slug, organization_type, creation_source, interest_slug)',
-      )
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(200);
+      );
+
+    if (scope === 'pending') {
+      query = query
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+    } else if (scope === 'history') {
+      query = query
+        .neq('status', 'pending')
+        .order('decided_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    } else {
+      query = query
+        .order('created_at', { ascending: false });
+    }
+
+    const { data, error } = await query.limit(200);
 
     if (error) {
-      logger.warn('listPendingRequests failed', error);
+      logger.warn('listRequests failed', { scope, error });
       throw new Error(error.message || 'Could not load verification requests.');
     }
 
     const rows = (data || []) as AdminVerificationRequestRow[];
-    const requesterIds = Array.from(
-      new Set(rows.map((r) => r.requested_by).filter(Boolean)),
+    const profileIds = Array.from(
+      new Set(
+        rows
+          .flatMap((r) => [r.requested_by, r.reviewer_id])
+          .filter(Boolean),
+      ),
     );
 
-    if (requesterIds.length === 0) {
+    if (profileIds.length === 0) {
       return rows;
     }
 
     const { data: profiles, error: profileError } = await supabase
       .from('profiles')
       .select('id, email, full_name')
-      .in('id', requesterIds);
+      .in('id', profileIds);
 
     if (profileError) {
       // Profile lookups are best-effort; log and return rows without them.
-      logger.warn('listPendingRequests profile join failed', profileError);
+      logger.warn('listRequests profile join failed', { scope, error: profileError });
       return rows;
     }
 
@@ -131,6 +158,7 @@ class OrgVerificationService {
     return rows.map((row) => ({
       ...row,
       requester: byId.get(row.requested_by) || null,
+      reviewer: row.reviewer_id ? byId.get(row.reviewer_id) || null : null,
     }));
   }
 

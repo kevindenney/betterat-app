@@ -20,6 +20,7 @@ import { ActivityCatalog } from '@/components/events/ActivityCatalog'
 import { TemplatePreview } from '@/components/events/TemplatePreview'
 import type { ActivityTemplate } from '@/types/activities'
 import { getTemplatesByOrg } from '@/services/activityCatalog'
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus'
 
 type CatalogTab = 'interests' | 'organizations' | 'coaches' | 'people' | 'content'
 
@@ -50,9 +51,7 @@ function normalize(value: unknown): string {
 }
 
 function isActiveMembership(row: MembershipRow): boolean {
-  const membershipStatus = normalize(row.membership_status)
-  const status = normalize(row.status)
-  return membershipStatus === 'active' || status === 'active'
+  return isResolvedOrgMembershipActive(row)
 }
 
 function isCoachRole(role: string | null): boolean {

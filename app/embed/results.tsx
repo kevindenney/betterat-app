@@ -8,7 +8,7 @@
 import { Text } from '@/components/ui/text';
 import { useLocalSearchParams } from 'expo-router';
 import { ExternalLink, Trophy } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Linking,
@@ -55,11 +55,7 @@ export default function EmbedResultsWidget() {
 
   const isDark = theme === 'dark';
 
-  useEffect(() => {
-    fetchResults();
-  }, [regattaId]);
-
-  const fetchResults = async () => {
+  const fetchResults = useCallback(async () => {
     if (!regattaId) {
       setError('No regatta specified');
       setLoading(false);
@@ -67,20 +63,38 @@ export default function EmbedResultsWidget() {
     }
     
     try {
-      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}/results`);
+      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}?include=results`);
       
       if (!response.ok) {
         throw new Error('Failed to load results');
       }
       
       const result = await response.json();
-      setData(result);
+      if (!result.results) {
+        throw new Error('No results available');
+      }
+      setData({
+        regatta: {
+          id: result.regatta.id,
+          name: result.regatta.name,
+          club_name: result.regatta.club?.name ?? null,
+        },
+        standings: result.results.standings,
+        metadata: {
+          races_completed: result.results.metadata.races_completed,
+          last_updated: result.results.metadata.last_updated,
+        },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
       setLoading(false);
     }
-  };
+  }, [regattaId]);
+
+  useEffect(() => {
+    fetchResults();
+  }, [fetchResults]);
 
   // Send height to parent for dynamic sizing
   useEffect(() => {
@@ -278,4 +292,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-

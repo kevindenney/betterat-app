@@ -77,14 +77,24 @@ export default function PublicNoticesPage() {
         setLoading(true);
       }
       
-      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}/notices?limit=50`);
+      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}?include=notices`);
       
       if (!response.ok) {
         throw new Error('Failed to load notices');
       }
       
       const result = await response.json();
-      setData(result);
+      setData({
+        regatta: {
+          id: result.regatta.id,
+          name: result.regatta.name,
+        },
+        notices: result.notices?.items ?? [],
+        metadata: result.notices?.metadata ?? {
+          total_count: 0,
+          has_more: false,
+        },
+      });
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load notices');

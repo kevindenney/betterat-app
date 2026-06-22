@@ -26,6 +26,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/services/supabase';
 import {
+  isRequestJoinActive,
+  isRequestJoinPending,
   organizationDiscoveryService,
   type RequestJoinResult,
 } from '@/services/OrganizationDiscoveryService';
@@ -166,10 +168,10 @@ export default function OrgWelcomeScreen() {
         mode: org.join_mode || 'invite_only',
       });
 
-      if (result.status === 'active' || result.status === 'existing') {
+      if (isRequestJoinActive(result)) {
         setPhase('joined');
         setMessage(result.status === 'existing' ? 'You\'re already a member!' : `You've joined ${org.name}!`);
-      } else if (result.status === 'pending') {
+      } else if (isRequestJoinPending(result)) {
         setPhase('pending');
         setMessage(`Your request to join ${org.name} has been sent. An admin will review it.`);
       } else {

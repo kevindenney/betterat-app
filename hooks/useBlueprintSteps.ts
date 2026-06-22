@@ -186,8 +186,14 @@ export function useBlueprintSteps(blueprintId: string, orgId?: string | null) {
   const deleteStep = useMutation({
     mutationFn: async (id: string) => {
       const existing = steps.find((s) => s.id === id);
-      const { error } = await supabase.from('blueprint_step_templates').delete().eq('id', id);
+      const { data, error } = await supabase
+        .from('blueprint_step_templates')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Blueprint step not found.');
       return { id, title: existing?.title ?? null };
     },
     onSuccess: (result) => {

@@ -29,6 +29,19 @@ const logger = createLogger('TimelineStepService');
 // Cache interest slug → id lookups for the session
 const interestIdCache = new Map<string, string>();
 
+function withQueryTimeout<T>(
+  query: PromiseLike<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  return Promise.race([
+    Promise.resolve(query),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+    }),
+  ]);
+}
+
 export async function resolveInterestId(slug: string): Promise<string | null> {
   if (interestIdCache.has(slug)) return interestIdCache.get(slug)!;
   try {
@@ -92,16 +105,29 @@ export async function getUserTimeline(
       ? getPinnedStepsForInterest(userId, singleInterestId)
       : Promise.resolve([]);
 
-    const [ownResult, collabResult, pinnedSteps] = await Promise.all([
-      ownQuery, collabQuery, pinnedPromise,
+    const [ownResult, collabResult, pinnedResult] = await Promise.allSettled([
+      withQueryTimeout(ownQuery, 15_000, 'Own timeline query'),
+      withQueryTimeout(collabQuery, 4_000, 'Collaborator timeline query'),
+      withQueryTimeout(pinnedPromise, 4_000, 'Pinned timeline query'),
     ]);
 
-    if (ownResult.error) throw ownResult.error;
-    if (collabResult.error) throw collabResult.error;
+    if (ownResult.status === 'rejected') throw ownResult.reason;
+    if (ownResult.value.error) throw ownResult.value.error;
 
     // Merge: own steps first (sorted), then collaborated steps, then pinned — deduplicated
-    const ownSteps = (ownResult.data ?? []) as TimelineStepRecord[];
-    const collabSteps = (collabResult.data ?? []) as TimelineStepRecord[];
+    const ownSteps = (ownResult.value.data ?? []) as TimelineStepRecord[];
+    let collabSteps: TimelineStepRecord[] = [];
+    if (collabResult.status === 'rejected') {
+      logger.warn('Collaborator timeline unavailable; continuing with own steps only', collabResult.reason);
+    } else if (collabResult.value.error) {
+      logger.warn('Collaborator timeline unavailable; continuing with own steps only', collabResult.value.error);
+    } else {
+      collabSteps = (collabResult.value.data ?? []) as TimelineStepRecord[];
+    }
+    const pinnedSteps = pinnedResult.status === 'fulfilled' ? pinnedResult.value : [];
+    if (pinnedResult.status === 'rejected') {
+      logger.warn('Pinned timeline steps unavailable; continuing without pins', pinnedResult.reason);
+    }
     const seenIds = new Set(ownSteps.map((s) => s.id));
     const uniqueCollabSteps = collabSteps.filter((s) => {
       if (seenIds.has(s.id)) return false;

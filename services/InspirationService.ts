@@ -10,13 +10,18 @@ import { supabase } from '@/services/supabase';
 import { createLogger, serializeError } from '@/lib/utils/logger';
 import { createBlueprintFromCurriculum, subscribe as subscribeToBlueprint } from '@/services/BlueprintService';
 import { getOrCreatePlaybook, addInboxItem } from '@/services/PlaybookService';
-import { bulkPinStepToInterests } from '@/services/TimelineStepService';
+import { bulkPinStepToInterests, createStep } from '@/services/TimelineStepService';
+import { SeasonService } from '@/services/SeasonService';
 import type {
   InspirationExtractInput,
   InspirationExtraction,
+  InspirationCalendar,
+  InspirationCalendarSeason,
+  InspirationCalendarStep,
   ActivateInspirationInput,
   ActivateInspirationResult,
 } from '@/types/inspiration';
+import type { Season } from '@/types/season';
 
 const logger = createLogger('InspirationService');
 
@@ -40,22 +45,154 @@ export async function extractInspiration(
       content_type: input.content_type,
       content: input.content,
       user_existing_interest_slugs: input.user_existing_interest_slugs,
+      attachments: input.attachments ?? [],
+      interest_id: input.interest_id ?? null,
+      interest_slug: input.interest_slug ?? null,
+      interest_label: input.interest_label ?? null,
+      persona_vocabulary: input.persona_vocabulary ?? null,
+      recurring_anchors: input.recurring_anchors ?? null,
     },
     signal: options.signal,
   } as any);
 
   if (error) {
+    let edgeMessage: string | null = null;
+    const response = (error as { context?: Response; response?: Response })?.context
+      ?? (error as { context?: Response; response?: Response })?.response;
+    if (response?.clone) {
+      try {
+        const payload = await response.clone().json();
+        edgeMessage = typeof payload?.error === 'string' ? payload.error : null;
+      } catch {
+        // Keep the original SDK error when the response body is not JSON.
+      }
+    }
     // This failure is surfaced to the user in the wizard's error state.
     // Logging at error-level in React Native dev triggers the console overlay,
     // which hijacks the modal and makes a handled network/input failure feel
     // like a crash. Keep it available for debugging without promoting it to a
     // red-screen style developer error.
-    logger.info('Inspiration extraction failed', serializeError(error));
-    throw new Error(error.message ?? 'Failed to extract inspiration');
+    logger.info('Inspiration extraction failed', { ...serializeError(error), edgeMessage });
+    throw new Error(edgeMessage ?? error.message ?? 'Failed to extract inspiration');
   }
 
   // Edge function returns the extraction directly as JSON
   return data as InspirationExtraction;
+}
+
+function parseDateOnly(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12));
+}
+
+function isoDateToStartsAt(value: string | null | undefined): string | null {
+  return parseDateOnly(value)?.toISOString() ?? null;
+}
+
+function inferSeasonYear(season: InspirationCalendarSeason): number {
+  return Number(season.start_date.slice(0, 4)) || new Date().getFullYear();
+}
+
+function uniqueCalendarSteps(steps: InspirationCalendarStep[]): InspirationCalendarStep[] {
+  const seen = new Set<string>();
+  return steps.filter((step) => {
+    const key = [
+      step.title.trim().toLowerCase(),
+      step.date ?? '',
+      step.recurrence ?? '',
+      step.season_name ?? '',
+    ].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return Boolean(step.title.trim());
+  });
+}
+
+async function createCalendarFromInspiration(params: {
+  userId: string;
+  interestId: string;
+  blueprintId: string;
+  calendar: InspirationCalendar | null | undefined;
+}): Promise<string[]> {
+  const { userId, interestId, blueprintId, calendar } = params;
+  if (!calendar || !Array.isArray(calendar.steps) || calendar.steps.length === 0) return [];
+
+  const seasonByName = new Map<string, Season>();
+  const validSeasonDefs = (calendar.seasons ?? []).filter(
+    (season) => season.name?.trim() && parseDateOnly(season.start_date) && parseDateOnly(season.end_date),
+  );
+
+  for (const season of validSeasonDefs) {
+    try {
+      const created = await SeasonService.createSeason(
+        {
+          name: season.name.trim(),
+          year: inferSeasonYear(season),
+          start_date: season.start_date,
+          end_date: season.end_date,
+          interest_id: interestId,
+          description: 'Created from an Inspiration calendar dump.',
+        },
+        userId,
+      );
+      seasonByName.set(season.name.trim().toLowerCase(), created);
+    } catch (err) {
+      logger.warn('Failed to create inspiration season (non-fatal):', err);
+    }
+  }
+
+  const today = new Date();
+  const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const stepsToCreate = uniqueCalendarSteps(calendar.steps);
+
+  const createdIds: string[] = [];
+  for (let i = 0; i < stepsToCreate.length; i++) {
+    const step = stepsToCreate[i];
+    const date = parseDateOnly(step.date);
+    const season = step.season_name
+      ? seasonByName.get(step.season_name.trim().toLowerCase()) ?? null
+      : null;
+    const status =
+      step.tense === 'past' || (date && date < todayUTC)
+        ? 'completed'
+        : 'pending';
+
+    try {
+      const created = await createStep({
+        user_id: userId,
+        interest_id: interestId,
+        source_type: 'suggestion',
+        source_id: blueprintId,
+        title: step.title,
+        description: step.source_span ?? null,
+        category: step.type_label || 'general',
+        status,
+        starts_at: isoDateToStartsAt(step.date),
+        season_id: season?.id ?? null,
+        is_race: step.is_anchor && /race|regatta/i.test(`${step.type_label} ${step.title}`),
+        sort_order: i + 1,
+        metadata: {
+          inspiration_calendar: {
+            type_label: step.type_label,
+            tense: step.tense,
+            confidence: step.confidence,
+            recurrence: step.recurrence,
+            is_anchor: step.is_anchor,
+            source_span: step.source_span ?? null,
+          },
+          source: 'inspiration_flow',
+          season_name: step.season_name ?? null,
+        },
+      });
+      createdIds.push(created.id);
+    } catch (err) {
+      logger.warn('Failed to create inspiration calendar step (non-fatal):', err);
+    }
+  }
+
+  return createdIds;
 }
 
 // ---------------------------------------------------------------------------
@@ -79,6 +216,7 @@ export async function activateInspiration(
     interestEdits,
     selectedExistingInterestId,
     editedSteps,
+    calendarReview,
     sourceContent,
     sourceContentType,
   } = input;
@@ -187,6 +325,19 @@ export async function activateInspiration(
     logger.warn('Failed to auto-pin cross-interest steps (non-fatal):', err);
   }
 
+  // 2c. Create the reviewed seasons and dated/undated calendar steps.
+  let calendarStepIds: string[] = [];
+  try {
+    calendarStepIds = await createCalendarFromInspiration({
+      userId,
+      interestId: interest.id,
+      blueprintId: blueprint.id,
+      calendar: calendarReview,
+    });
+  } catch (err) {
+    logger.warn('Failed to seed inspiration calendar (non-fatal):', err);
+  }
+
   // 3. Create the playbook and seed source content
   logger.debug('Creating playbook for interest:', interest.id);
   const playbook = await getOrCreatePlaybook(userId, interest.id);
@@ -215,7 +366,7 @@ export async function activateInspiration(
     interestSlug: interest.slug,
     blueprintId: blueprint.id,
     blueprintSlug: blueprint.slug,
-    stepIds: createdSteps.map((s) => s.id),
+    stepIds: [...createdSteps.map((s) => s.id), ...calendarStepIds],
     playbookId: playbook.id,
   };
 }

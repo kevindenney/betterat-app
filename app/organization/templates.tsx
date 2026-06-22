@@ -25,6 +25,7 @@ import {
 import { resolveInterestId } from '@/services/TimelineStepService';
 import type { BlueprintRecord } from '@/types/blueprint';
 import { isUuid } from '@/utils/uuid';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -66,8 +67,7 @@ export default function OrganizationBlueprintsScreen() {
 
   const resolvedActiveOrgId = String(activeOrganizationId || '').trim()
     || String((memberships || []).find((membership: any) => {
-      const status = String(membership?.membership_status || membership?.status || '').trim().toLowerCase();
-      return status === 'active';
+      return isResolvedOrgMembershipActive(membership);
     })?.organization_id || '').trim();
 
   const resolvedConfig = orgInterestSlug ? getInterestEventConfig(orgInterestSlug) : null;

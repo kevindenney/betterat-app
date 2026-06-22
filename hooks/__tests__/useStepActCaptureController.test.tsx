@@ -30,6 +30,10 @@ jest.mock('@/providers/AuthProvider', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
 }));
 
+jest.mock('@/components/ui/AppToast', () => ({
+  useToast: () => ({ show: jest.fn() }),
+}));
+
 const showConfirmMock = jest.fn();
 const showAlertMock = jest.fn();
 jest.mock('@/lib/utils/crossPlatformAlert', () => ({

@@ -58,7 +58,7 @@ const ARC_LANDING_MIN_STEPS = 5;
 
 export function TimelineZoomPracticeScreen() {
   const { user } = useAuth();
-  const { currentInterest } = useInterest();
+  const { currentInterest, loading: interestLoading } = useInterest();
   const searchParams = useLocalSearchParams<{
     selected?: string | string[];
     level?: string | string[];
@@ -84,7 +84,10 @@ export function TimelineZoomPracticeScreen() {
     }
     return undefined;
   }, [searchParams.selected]);
-  const { data: steps = [], isLoading: stepsLoading } = useMyTimeline(interestId);
+  const hasResolvedInterest = Boolean(interestId) && !interestLoading;
+  const { data: steps = [], isLoading: stepsLoading } = useMyTimeline(interestId, {
+    enabled: hasResolvedInterest,
+  });
   // A ?selected= id from the route only lands the user at the step-detail
   // level if it still resolves to a loaded step. A stale selection (the step
   // was deleted, or the starter step was reseeded with a new id) would
@@ -311,6 +314,7 @@ export function TimelineZoomPracticeScreen() {
         stepReflectionsMap,
         interestVision: effectiveVision,
         activePlanId: activePlan?.id ?? null,
+        planCurrency: activePlan?.currency ?? null,
         businessOutcomes,
         competencyProgress,
       }),
@@ -330,6 +334,7 @@ export function TimelineZoomPracticeScreen() {
       stepReflectionsMap,
       effectiveVision,
       activePlan?.id,
+      activePlan?.currency,
       businessOutcomes,
       competencyProgress,
     ],
@@ -708,7 +713,7 @@ export function TimelineZoomPracticeScreen() {
   useStarterStepSeed({
     interestId,
     interestSlug: currentInterest?.slug ?? null,
-    hasZeroSteps: !stepsLoading && steps.length === 0,
+    hasZeroSteps: hasResolvedInterest && !stepsLoading && steps.length === 0,
     stepsLoading,
   });
 
@@ -735,7 +740,13 @@ export function TimelineZoomPracticeScreen() {
         <View style={styles.emptyWrap}>
           <View style={styles.emptyBox}>
             <Text style={styles.emptyTitle}>
-              {stepsLoading ? 'Loading your timeline…' : 'Setting up your starter step…'}
+              {interestLoading
+                ? 'Loading your interest…'
+                : !interestId
+                  ? 'Choose an interest to start'
+                  : stepsLoading
+                    ? 'Loading your timeline…'
+                    : 'Setting up your starter step…'}
             </Text>
             {signedInEmail ? (
               <Text style={styles.signedInLine}>

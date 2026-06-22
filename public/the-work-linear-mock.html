@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>THE WORK — linear redesign mock</title>
+<style>
+  :root{
+    --bg:#EEEEF3; --card:#FFFFFF; --line:rgba(60,60,67,0.16);
+    --label:#1c1c1e; --sec:#3c3c4399; --ter:#8a8a8e;
+    --azure:#007AFF; --azureT:rgba(0,122,255,0.06); --azureL:rgba(0,122,255,0.14);
+    --now:#FF6B5A; --rose:#D9476B; --green:#1F8636; --greenT:rgba(52,199,89,0.16);
+    --cap-purple:#9D70C9; --cap-teal:#2BA7A0; --cap-amber:#E0922F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+    background:#D9DCE6; color:var(--label);
+    -webkit-font-smoothing:antialiased; padding:40px 28px 64px;
+  }
+  .wrap{display:flex; gap:48px; justify-content:center; align-items:flex-start; flex-wrap:wrap}
+  .col{width:402px}
+  .col h2{font-size:15px; font-weight:700; letter-spacing:-0.2px; margin-bottom:6px; text-align:center}
+  .col p.sub{font-size:12px; color:#5a5f6b; text-align:center; margin-bottom:14px; line-height:1.4}
+  .phone{
+    width:402px; background:var(--bg); border-radius:38px; padding:14px 0 0;
+    box-shadow:0 24px 60px rgba(20,24,40,0.28); border:1px solid rgba(0,0,0,0.06);
+    overflow:hidden;
+  }
+  .status{display:flex; justify-content:space-between; align-items:center; padding:4px 26px 8px; font-size:13px; font-weight:600}
+  .crumb{display:flex; align-items:center; gap:8px; padding:6px 18px 2px}
+  .crumb .dot{width:9px;height:9px;border-radius:9px;background:var(--azure)}
+  .crumb b{font-size:15px;font-weight:700}
+  .crumb span{color:var(--ter);font-size:14px}
+  .screen{padding:14px 18px 26px}
+
+  .secHead{display:flex; align-items:center; justify-content:space-between; margin:2px 2px 12px}
+  .secHead .t{font-size:11px; font-weight:700; letter-spacing:1.4px; color:var(--ter)}
+  .secHead .cap{font-size:11.5px; color:var(--ter); margin-top:3px}
+  .chips{display:flex; gap:8px}
+  .chip{font-size:12px; font-weight:600; color:var(--azure); background:var(--azureT); border:1px solid var(--azureL); padding:5px 11px; border-radius:999px}
+
+  /* ---- DONE ledger (slim, quiet) ---- */
+  .ledgerHead{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:0.8px;color:var(--ter);margin:2px 2px 8px;text-transform:uppercase}
+  .ledgerHead .car{font-size:10px}
+  .doneRow{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:11px}
+  .doneRow + .doneRow{margin-top:2px}
+  .check{width:18px;height:18px;border-radius:999px;background:var(--greenT);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .check svg{width:10px;height:10px}
+  .doneRow .body{flex:1;min-width:0}
+  .doneRow .ttl{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:14px;color:#54585f;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .doneRow .meta{font-size:11px;color:var(--ter);margin-top:2px;font-variant:tabular-nums}
+  .doneRow .ord{font-size:10.5px;color:#b6b8be;font-variant:tabular-nums;font-feature-settings:"tnum"}
+  .cdot{width:7px;height:7px;border-radius:2px;flex:0 0 auto}
+
+  /* ---- NOW divider ---- */
+  .nowbar{display:flex;align-items:center;gap:10px;margin:16px 2px 18px}
+  .nowbar .ln{flex:1;height:1.5px;background:linear-gradient(90deg,transparent,var(--now))}
+  .nowbar .ln.r{background:linear-gradient(90deg,var(--now),transparent)}
+  .nowbar .lbl{font-size:11px;font-weight:800;letter-spacing:1.6px;color:var(--now)}
+  .nowbar .pin{width:9px;height:9px;border-radius:999px;background:var(--now);box-shadow:0 0 0 4px rgba(255,107,90,0.18)}
+
+  /* ---- cards ahead ---- */
+  .card{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:14px 15px;position:relative;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+  .card + .card{margin-top:11px}
+  .eb{font-size:10px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;color:var(--ter);margin-bottom:5px}
+  .pill{display:inline-flex;align-items:center;font-size:9px;font-weight:800;letter-spacing:0.5px;padding:3px 8px;border-radius:999px}
+  .pill.next{color:#0046A8;background:var(--azureL)}
+  .pill.planned{color:var(--sec);background:#F0F0F4}
+  .pill.race{color:#fff;background:var(--rose)}
+  .row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+  .ord2{font-size:11px;color:#b6b8be;font-variant:tabular-nums;font-feature-settings:"tnum"}
+  .title{font-family:Georgia,"Times New Roman",serif;font-style:italic;color:var(--label);line-height:1.18}
+  .loc{font-size:11.5px;color:var(--ter);margin-top:8px;font-variant:tabular-nums}
+  .capsRow{display:flex;gap:5px;margin-top:11px;align-items:center}
+  .capLbl{font-size:10.5px;color:#9a9ca2;margin-left:3px}
+
+  /* NEXT — biggest, richest */
+  .card.next{border:1.5px solid var(--azure);background:var(--azureT);box-shadow:0 8px 22px rgba(0,122,255,0.14)}
+  .card.next .title{font-size:18px}
+  .card.next .start{margin-top:13px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--azure)}
+
+  /* PLANNED — medium */
+  .card.planned .title{font-size:15px}
+
+  /* ANCHOR — wide dated banner */
+  .anchor{margin-top:13px;background:#fff;border:0.5px solid var(--line);border-left:4px solid var(--rose);border-radius:16px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start;box-shadow:0 2px 8px rgba(217,71,107,0.10)}
+  .anchor .cal{flex:0 0 auto;width:46px;text-align:center;border-right:1px solid var(--line);padding-right:13px}
+  .anchor .cal .mo{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--rose);text-transform:uppercase}
+  .anchor .cal .dy{font-size:23px;font-weight:800;color:var(--label);line-height:1.05;margin-top:1px}
+  .anchor .cal .tm{font-size:10px;color:var(--ter);margin-top:2px;font-variant:tabular-nums}
+  .anchor .ab{flex:1;min-width:0}
+  .anchor .title{font-size:16px;margin-top:6px}
+  .anchor .build{font-size:11px;color:var(--ter);margin-top:8px}
+
+  /* ---- anchor-grouped frame ---- */
+  .groupHead{display:flex;align-items:center;gap:9px;margin:18px 2px 12px}
+  .groupHead .flag{width:8px;height:8px;border-radius:2px;background:var(--rose)}
+  .groupHead .gt{font-size:11px;font-weight:800;letter-spacing:0.8px;color:#7a3047;text-transform:uppercase}
+  .groupHead .gd{font-size:11px;color:var(--ter);margin-left:auto;font-variant:tabular-nums}
+  .grail{border-left:2px dashed rgba(217,71,107,0.35);margin-left:9px;padding-left:16px}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:0.5px solid var(--line)}
+  .legend .k{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ter)}
+  .legend .sw{width:9px;height:9px;border-radius:3px}
+  .note{font-size:12px;color:#4a4f5b;line-height:1.55;margin-top:18px;background:rgba(255,255,255,0.55);border-radius:12px;padding:13px 15px}
+  .note b{color:#1c1c1e}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ════════════ FRAME A — Linear + asymmetric density ════════════ -->
+  <div class="col">
+    <h2>A · Linear + asymmetric density</h2>
+    <p class="sub">One column = the sequence. Done collapses to a quiet ledger,<br>the runway ahead gets room, NEXT is the hero, the race is the destination.</p>
+    <div class="phone">
+      <div class="status"><span>6:59</span><span>● ● ● ●</span></div>
+      <div class="crumb"><span class="dot"></span><b>Sail Racing</b><span>›</span><span>Step 4</span></div>
+      <div class="screen">
+
+        <div class="secHead">
+          <div>
+            <div class="t">THE WORK</div>
+            <div class="cap">5 steps · done behind, queued ahead</div>
+          </div>
+          <div class="chips"><div class="chip">Reorder</div><div class="chip">Select</div></div>
+        </div>
+
+        <!-- DONE ledger -->
+        <div class="ledgerHead"><span class="car">▾</span>Done · 2</div>
+        <div class="doneRow">
+          <div class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="body">
+            <div class="ttl">Rig tune &amp; bottom clean</div>
+            <div class="meta">Downtown Sailing Center</div>
+          </div>
+          <div class="cdot" style="background:var(--cap-purple)"></div>
+          <div class="ord">1/5</div>
+        </div>
+        <div class="doneRow">
+          <div class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="body">
+            <div class="ttl">Crew tactics debrief — mark roundings</div>
+            <div class="meta">Downtown Sailing Center</div>
+          </div>
+          <div class="cdot" style="background:var(--cap-teal)"></div>
+          <div class="ord">2/5</div>
+        </div>
+
+        <!-- NOW -->
+        <div class="nowbar"><div class="pin"></div><div class="ln"></div><div class="lbl">NOW</div><div class="ln r"></div></div>
+
+        <!-- NEXT hero -->
+        <div class="card next">
+          <div class="eb">Boat-work · Baltimore City Yacht Club</div>
+          <div class="row1"><span class="pill next">NEXT</span><span class="ord2">3/5</span></div>
+          <div class="title">Frostbite sail inventory &amp; repairs</div>
+          <div class="capsRow"><div class="cdot" style="background:var(--cap-purple)"></div><div class="cdot" style="background:var(--cap-amber)"></div><span class="capLbl">Boat prep · Heavy-air trim</span></div>
+          <div class="start">Pick this up →</div>
+        </div>
+
+        <!-- planned -->
+        <div class="card planned">
+          <div class="eb">Drills · Downtown Sailing Center</div>
+          <div class="row1"><span class="pill planned">PLANNED</span><span class="ord2">4/5</span></div>
+          <div class="title">Spinnaker set &amp; douse drills</div>
+          <div class="capsRow"><div class="cdot" style="background:var(--cap-teal)"></div><span class="capLbl">Boat handling</span></div>
+        </div>
+
+        <!-- anchor -->
+        <div class="anchor">
+          <div class="cal"><div class="mo">Jun</div><div class="dy">25</div><div class="tm">6:30a</div></div>
+          <div class="ab">
+            <div class="row1"><span class="pill race">RACE · 5/5</span></div>
+            <div class="title">Wednesday Night Series — Race 3</div>
+            <div class="build">The fixed point everything above builds toward.</div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="k"><span class="sw" style="background:var(--green)"></span>done</div>
+          <div class="k"><span class="sw" style="background:var(--azure)"></span>next</div>
+          <div class="k"><span class="sw" style="background:#C7C7CC"></span>planned</div>
+          <div class="k"><span class="sw" style="background:var(--rose)"></span>race</div>
+          <div class="k"><span class="sw" style="background:var(--cap-purple)"></span>capability</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ FRAME B — Anchor-grouped ════════════ -->
+  <div class="col">
+    <h2>B · Anchor-grouped</h2>
+    <p class="sub">Same column, but the runway is grouped <i>under the race it feeds</i>.<br>The prep's reason ("before Race 3") is explicit, not implied by position.</p>
+    <div class="phone">
+      <div class="status"><span>6:59</span><span>● ● ● ●</span></div>
+      <div class="crumb"><span class="dot"></span><b>Sail Racing</b><span>›</span><span>Step 4</span></div>
+      <div class="screen">
+
+        <div class="secHead">
+          <div>
+            <div class="t">THE WORK</div>
+            <div class="cap">5 steps · grouped by what they feed</div>
+          </div>
+          <div class="chips"><div class="chip">Reorder</div><div class="chip">Select</div></div>
+        </div>
+
+        <!-- DONE ledger -->
+        <div class="ledgerHead"><span class="car">▾</span>Done · 2</div>
+        <div class="doneRow">
+          <div class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="body"><div class="ttl">Rig tune &amp; bottom clean</div><div class="meta">Downtown Sailing Center</div></div>
+          <div class="cdot" style="background:var(--cap-purple)"></div><div class="ord">1/5</div>
+        </div>
+        <div class="doneRow">
+          <div class="check"><svg viewBox="0 0 12 12"><path d="M2 6.5L5 9.5L10 3" stroke="#1F8636" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="body"><div class="ttl">Crew tactics debrief — mark roundings</div><div class="meta">Downtown Sailing Center</div></div>
+          <div class="cdot" style="background:var(--cap-teal)"></div><div class="ord">2/5</div>
+        </div>
+
+        <!-- NOW -->
+        <div class="nowbar"><div class="pin"></div><div class="ln"></div><div class="lbl">NOW</div><div class="ln r"></div></div>
+
+        <!-- anchor group -->
+        <div class="groupHead"><span class="flag"></span><span class="gt">Before · Wed Night Series — Race 3</span><span class="gd">Thu Jun 25</span></div>
+        <div class="grail">
+          <div class="card next">
+            <div class="eb">Boat-work · Baltimore City Yacht Club</div>
+            <div class="row1"><span class="pill next">NEXT</span><span class="ord2">3/5</span></div>
+            <div class="title">Frostbite sail inventory &amp; repairs</div>
+            <div class="capsRow"><div class="cdot" style="background:var(--cap-purple)"></div><div class="cdot" style="background:var(--cap-amber)"></div><span class="capLbl">Boat prep · Heavy-air trim</span></div>
+            <div class="start">Pick this up →</div>
+          </div>
+          <div class="card planned">
+            <div class="eb">Drills · Downtown Sailing Center</div>
+            <div class="row1"><span class="pill planned">PLANNED</span><span class="ord2">4/5</span></div>
+            <div class="title">Spinnaker set &amp; douse drills</div>
+            <div class="capsRow"><div class="cdot" style="background:var(--cap-teal)"></div><span class="capLbl">Boat handling</span></div>
+          </div>
+        </div>
+
+        <!-- the anchor itself -->
+        <div class="anchor">
+          <div class="cal"><div class="mo">Jun</div><div class="dy">25</div><div class="tm">6:30a</div></div>
+          <div class="ab">
+            <div class="row1"><span class="pill race">RACE · 5/5</span></div>
+            <div class="title">Wednesday Night Series — Race 3</div>
+            <div class="build">2 prep steps queued before the gun.</div>
+          </div>
+        </div>
+
+        <div class="note"><b>Why this might win:</b> a race is <i>why</i> its prep exists. Grouping makes that relationship the structure — add a step and it lands "before Race 3," not just "somewhere in the list." Costs a section header per anchor; great when there's a clear next race, noisier for loose backlog with no upcoming anchor.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

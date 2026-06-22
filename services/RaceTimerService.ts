@@ -348,13 +348,16 @@ export class RaceTimerService {
    */
   static async deleteSession(sessionId: string, sailorId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_timer_sessions')
         .delete()
         .eq('id', sessionId)
-        .eq('sailor_id', sailorId);
+        .eq('sailor_id', sailorId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Race timer session not found.');
 
       return true;
     } catch (error) {
@@ -371,16 +374,19 @@ export class RaceTimerService {
     conditions: RaceConditions
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('race_timer_sessions')
         .update({
           wind_direction: conditions.wind_direction,
           wind_speed: conditions.wind_speed,
           wave_height: conditions.wave_height,
         })
-        .eq('id', sessionId);
+        .eq('id', sessionId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Race timer session not found.');
 
       return true;
     } catch (error) {

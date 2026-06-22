@@ -120,12 +120,15 @@ export function useBlueprintCohorts(blueprintId: string, orgId: string | null) {
 
   const unassign = useMutation({
     mutationFn: async (cohortId: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('blueprint_cohorts')
         .delete()
         .eq('blueprint_id', blueprintId)
-        .eq('cohort_id', cohortId);
+        .eq('cohort_id', cohortId)
+        .select('blueprint_id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Blueprint cohort assignment not found.');
       const cohortName = rows.find((r) => r.id === cohortId)?.name ?? null;
       return { cohortId, cohortName };
     },

@@ -70,7 +70,9 @@ export function BlueprintCohortLinkSheet({
         blueprint_id: blueprintId,
         cohort_id: cohortId,
       }));
-      const { error: insertErr } = await supabase.from('blueprint_cohorts').insert(payload);
+      const { error: insertErr } = await supabase
+        .from('blueprint_cohorts')
+        .upsert(payload, { onConflict: 'blueprint_id,cohort_id', ignoreDuplicates: true });
       if (insertErr) throw insertErr;
 
       const countLabel = `${ids.length} ${ids.length === 1 ? 'cohort' : 'cohorts'}`;

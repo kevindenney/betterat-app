@@ -5,7 +5,7 @@ import TestRenderer, {
   act,
 } from 'react-test-renderer';
 import { DoCaptureRow, type DoCaptureRowProps } from '../DoCaptureRow';
-import type { DoCaptureItem } from '../doCaptureModel';
+import { formatClockTime, type DoCaptureItem } from '../doCaptureModel';
 
 // React 19's act() requires this flag; without it TestRenderer prints a noisy
 // warning even though every render is wrapped.
@@ -149,13 +149,16 @@ describe('DoCaptureRow — Frame 2 dispatch', () => {
     ).toBeGreaterThanOrEqual(2);
   });
 
-  it('renders the clock time and the relative-ago label', () => {
+  it('renders the clock time without the removed relative-ago label', () => {
     const now = Date.parse('2026-05-16T14:30:00Z');
+    const capturedAt = '2026-05-16T14:27:00Z';
     const tree = renderRow({
-      capture: cap({ kind: 'note', body: 'x', capturedAt: '2026-05-16T14:27:00Z' }),
+      capture: cap({ kind: 'note', body: 'x', capturedAt }),
       nowMs: now,
     });
-    expect(allText(tree.root)).toContain('3m');
+    const text = allText(tree.root);
+    expect(text).toContain(formatClockTime(capturedAt));
+    expect(text).not.toContain('3m');
   });
 
   it('suppresses the fresh wash when frozen is true even if fresh is requested (Frame 3)', () => {

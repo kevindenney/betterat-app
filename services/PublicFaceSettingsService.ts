@@ -125,16 +125,20 @@ export async function setPublicFaceInterestActive(
     .eq('interest_id', membershipId)
     .maybeSingle();
   if (currentError) throw currentError;
+  if (!current) throw new Error('Interest not found.');
 
   const updatePayload: Record<string, unknown> = { is_active: active };
   if (!active && current?.is_primary) updatePayload.is_primary = false;
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('user_interests')
     .update(updatePayload)
     .eq('user_id', userId)
-    .eq('interest_id', membershipId);
+    .eq('interest_id', membershipId)
+    .select('interest_id')
+    .maybeSingle();
   if (error) throw error;
+  if (!updated) throw new Error('Interest not found.');
 
   if (!active && current?.is_primary) {
     await ensureOneActivePrimary(userId);
@@ -145,18 +149,31 @@ export async function setPublicFacePrimaryInterest(
   userId: string,
   membershipId: string,
 ): Promise<void> {
+  const { data: target, error: targetError } = await supabase
+    .from('user_interests')
+    .select('interest_id')
+    .eq('user_id', userId)
+    .eq('interest_id', membershipId)
+    .maybeSingle();
+  if (targetError) throw targetError;
+  if (!target) throw new Error('Interest not found.');
+
   const { error: clearError } = await supabase
     .from('user_interests')
     .update({ is_primary: false })
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .neq('interest_id', membershipId);
   if (clearError) throw clearError;
 
-  const { error: setError } = await supabase
+  const { data: updated, error: setError } = await supabase
     .from('user_interests')
     .update({ is_primary: true, is_active: true })
     .eq('user_id', userId)
-    .eq('interest_id', membershipId);
+    .eq('interest_id', membershipId)
+    .select('interest_id')
+    .maybeSingle();
   if (setError) throw setError;
+  if (!updated) throw new Error('Interest not found.');
 }
 
 export async function movePublicFaceInterest(
@@ -179,11 +196,15 @@ export async function movePublicFaceInterest(
         .from('user_interests')
         .update({ sort_order: sortOrder })
         .eq('user_id', userId)
-        .eq('interest_id', interest.membershipId),
+        .eq('interest_id', interest.membershipId)
+        .select('interest_id')
+        .maybeSingle(),
     ),
   ).then((results) => {
     const failed = results.find((result) => result.error);
     if (failed?.error) throw failed.error;
+    const missing = results.find((result) => !result.data);
+    if (missing) throw new Error('Interest not found.');
   });
 }
 
@@ -198,10 +219,13 @@ async function ensureOneActivePrimary(userId: string): Promise<void> {
   if (rows.length === 0 || rows.some((row) => row.is_primary)) return;
 
   rows.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  const { error: setError } = await supabase
+  const { data: updated, error: setError } = await supabase
     .from('user_interests')
     .update({ is_primary: true })
     .eq('user_id', userId)
-    .eq('interest_id', rows[0].interest_id);
+    .eq('interest_id', rows[0].interest_id)
+    .select('interest_id')
+    .maybeSingle();
   if (setError) throw setError;
+  if (!updated) throw new Error('Interest not found.');
 }

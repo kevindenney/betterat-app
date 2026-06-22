@@ -59,18 +59,6 @@ export default function SchoolsLanding() {
           </View>
         </View>
 
-        {/* Logo strip */}
-        <View style={s.logoStrip}>
-          <Text style={s.logoStripLabel}>In use at</Text>
-          <View style={s.logoStripRow}>
-            <Text style={s.logoStripItem}>Johns Hopkins · MSN</Text>
-            <Text style={s.logoStripItem}>UCSF Nursing</Text>
-            <Text style={s.logoStripItem}>King's College London</Text>
-            <Text style={s.logoStripItem}>RHKYC · Sailing Academy</Text>
-            <Text style={s.logoStripItem}>UPenn Vet</Text>
-          </View>
-        </View>
-
         {/* Three-up: One platform · three lenses */}
         <View style={s.threeUp}>
           <Text style={s.sectionH2}>One platform · three lenses · same data</Text>

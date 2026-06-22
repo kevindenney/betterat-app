@@ -30,13 +30,15 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { Redirect, Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 
 import { supabase } from '@/services/supabase';
 import {
+  isRequestJoinActive,
+  isRequestJoinPending,
   organizationDiscoveryService,
   type OrganizationJoinMode,
 } from '@/services/OrganizationDiscoveryService';
@@ -66,6 +68,7 @@ import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
 import { useQueryClient } from '@tanstack/react-query';
 import { orgMembershipsQueryKey } from '@/hooks/orgMembershipsQuery';
+import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -152,7 +155,19 @@ function communityGlyph(communityType: string | null | undefined): IconName {
 }
 
 export default function OrgDetailScreen() {
-  if (Platform.OS === 'web') return <IOSOnlyNotice surface="Org" />;
+  const params = useLocalSearchParams<{ slug?: string }>();
+  // The iOS-register org detail is phone-only. On web, hand off to the
+  // web-compatible /organizations/[slug] route rather than dead-ending on a
+  // "designed for the iOS app" card — that route renders full org detail
+  // (hero, join, fleets, members) for real and placeholder orgs alike.
+  if (Platform.OS === 'web') {
+    const slug = typeof params.slug === 'string' ? params.slug.trim() : '';
+    return slug ? (
+      <Redirect href={`/organizations/${slug}` as any} />
+    ) : (
+      <IOSOnlyNotice surface="Org" />
+    );
+  }
   return <OrgDetailScreenInner />;
 }
 
@@ -246,8 +261,12 @@ function OrgDetailScreenInner() {
             .eq('organization_id', org.id)
             .maybeSingle();
           if (cancelled || !my) return;
-          const active = my.status === 'active' || my.membership_status === 'active';
-          const pending = my.status === 'pending' || my.membership_status === 'pending';
+          const membershipStatus = resolveOrgMembershipStatus({
+            membership_status: my.membership_status,
+            status: my.status,
+          });
+          const active = membershipStatus === 'active';
+          const pending = membershipStatus === 'pending';
           setIsMember(active);
           setJoinState(pending ? 'pending' : 'idle');
           if (active) {
@@ -440,11 +459,11 @@ function OrgDetailScreenInner() {
       // Membership rows changed — refresh every surface that captions orgs
       // by the viewer's standing (Library stacks rows, profile menu, …).
       queryClient.invalidateQueries({ queryKey: orgMembershipsQueryKey(user?.id) });
-      if (result.status === 'active' || (result.status === 'existing' && result.membershipStatus === 'active')) {
+      if (isRequestJoinActive(result)) {
         setIsMember(true);
         setMemberSince(`Member since ${new Date().getFullYear()}`);
         setJoinState('idle');
-      } else if (result.status === 'pending' || result.membershipStatus === 'pending') {
+      } else if (isRequestJoinPending(result)) {
         setJoinState('pending');
       } else {
         setJoinState('idle');

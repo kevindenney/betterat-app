@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase';
+import type { AffinityGroupKind } from '@/hooks/useUserAffinityGroups';
 
 /**
  * Self-serve join/leave for affinity groups (class-fleets, cohorts,
@@ -22,6 +23,18 @@ interface GroupMembershipArgs {
   userId: string;
 }
 
+export interface CreateSelfServeGroupArgs {
+  name: string;
+  kind: Extract<AffinityGroupKind, 'crew_pod' | 'practice_group'>;
+  description?: string | null;
+  interestSlug?: string | null;
+}
+
+export interface CreatedAffinityGroup {
+  id: string;
+  name: string;
+}
+
 function isUniqueViolation(error: unknown): boolean {
   // PostgrestError is a plain object, not an Error instance — read code
   // directly. 23505 = unique_violation (membership row already exists).
@@ -29,6 +42,38 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 export class AffinityGroupService {
+  /**
+   * Create a peer-run group and join the creator immediately. Official
+   * institutional cohorts still live in betterat_org_cohorts and are created
+   * by org admins; this is only for lightweight study/practice groups.
+   */
+  static async createSelfServeGroup({
+    name,
+    kind,
+    description,
+    interestSlug,
+  }: CreateSelfServeGroupArgs): Promise<CreatedAffinityGroup> {
+    const trimmedName = name.trim();
+    if (trimmedName.length < 2) {
+      throw new Error('Give the group a name of at least 2 characters.');
+    }
+
+    const { data, error } = await supabase.functions.invoke('create-affinity-group', {
+      body: {
+        name: trimmedName,
+        kind,
+        description: description?.trim() || null,
+        interestSlug: interestSlug || null,
+      },
+    });
+
+    if (error) throw error;
+    if (data?.error) throw new Error(String(data.error));
+    if (!data?.id) throw new Error('Could not create group.');
+
+    return { id: data.id, name: data.name };
+  }
+
   /**
    * Join a group as an active member. Idempotent: an existing active row
    * is a no-op; a soft-inactive row is reactivated via UPDATE.

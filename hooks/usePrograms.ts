@@ -15,6 +15,7 @@ import {
 import type { ProgramRecord } from '@/services/ProgramService';
 import type { Competency } from '@/types/competency';
 import type { SamplePerson, SampleTimelineStep } from '@/lib/landing/sampleData';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 /** Real member with timeline data, shaped to match SamplePerson for reuse in PersonTimelineRow */
 export interface RealMemberTimeline {
@@ -83,14 +84,14 @@ async function getOrgMemberTimelines(orgId: string, interestId: string): Promise
   // 1. Get active org members
   const { data: members, error: memErr } = await supabase
     .from('organization_memberships')
-    .select('user_id, role')
-    .eq('organization_id', orgId)
-    .in('membership_status', ['active']);
+    .select('user_id, role, status, membership_status')
+    .eq('organization_id', orgId);
   if (memErr) throw memErr;
-  if (!members || members.length === 0) return [];
+  const activeMembers = ((members ?? []) as any[]).filter((member) => isResolvedOrgMembershipActive(member));
+  if (activeMembers.length === 0) return [];
 
-  const userIds = members.map((m: any) => m.user_id);
-  const roleMap = new Map(members.map((m: any) => [m.user_id, m.role ?? 'member']));
+  const userIds = activeMembers.map((m: any) => m.user_id);
+  const roleMap = new Map(activeMembers.map((m: any) => [m.user_id, m.role ?? 'member']));
 
   // 2. Fetch profiles
   const { data: profiles } = await supabase

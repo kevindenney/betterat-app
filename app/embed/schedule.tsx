@@ -8,7 +8,7 @@
 import { Text } from '@/components/ui/text';
 import { useLocalSearchParams } from 'expo-router';
 import { AlertTriangle, Calendar, Clock, ExternalLink } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Linking,
@@ -59,11 +59,7 @@ export default function EmbedScheduleWidget() {
 
   const isDark = theme === 'dark';
 
-  useEffect(() => {
-    fetchSchedule();
-  }, [regattaId]);
-
-  const fetchSchedule = async () => {
+  const fetchSchedule = useCallback(async () => {
     if (!regattaId) {
       setError('No regatta specified');
       setLoading(false);
@@ -71,20 +67,34 @@ export default function EmbedScheduleWidget() {
     }
     
     try {
-      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}/schedule`);
+      const response = await fetch(`${API_BASE}/api/public/regattas/${regattaId}?include=schedule`);
       
       if (!response.ok) {
         throw new Error('Failed to load schedule');
       }
       
       const result = await response.json();
-      setData(result);
+      setData({
+        regatta: {
+          id: result.regatta.id,
+          name: result.regatta.name,
+        },
+        schedule: result.schedule?.days ?? [],
+        metadata: result.schedule?.metadata ?? {
+          total_races: 0,
+          races_completed: 0,
+        },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
       setLoading(false);
     }
-  };
+  }, [regattaId]);
+
+  useEffect(() => {
+    fetchSchedule();
+  }, [fetchSchedule]);
 
   // Send height to parent
   useEffect(() => {
@@ -347,4 +357,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-

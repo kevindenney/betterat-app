@@ -50,6 +50,7 @@ import { useSailorSuggestions } from '@/hooks/useSailorSuggestions';
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 import {
   initialsForName,
   pickAvatarMarkColor,
@@ -103,13 +104,9 @@ export function useHomeOrg(): HomeOrg | null {
         if (memErr) throw memErr;
         if (cancelled) return;
 
-        const activeRows = (memberships ?? []).filter((r: any) => {
-          const a = r.status === 'active' || r.status === 'invite_accepted';
-          const b =
-            r.membership_status === 'active' ||
-            r.membership_status === 'invite_accepted';
-          return a || b;
-        }) as { organization_id: string; role: string | null }[];
+        const activeRows = (memberships ?? []).filter((r: any) =>
+          isResolvedOrgMembershipActive(r),
+        ) as { organization_id: string; role: string | null }[];
 
         if (activeRows.length === 0) {
           setClub(null);
@@ -205,11 +202,7 @@ function useAlsoClub(homeOrgId: string | null): AlsoClubPick | null {
             .select('organization_id, status, membership_status')
             .eq('user_id', user.id);
           for (const row of (mine ?? []) as any[]) {
-            const a = row.status === 'active' || row.status === 'invite_accepted';
-            const b =
-              row.membership_status === 'active' ||
-              row.membership_status === 'invite_accepted';
-            if (a || b) ownedOrgIds.add(row.organization_id);
+            if (isResolvedOrgMembershipActive(row)) ownedOrgIds.add(row.organization_id);
           }
         }
 
@@ -325,11 +318,7 @@ export function useThisWeeksPick(): ThisWeeksPick | null {
           .eq('user_id', user.id);
         const myOrgIds = new Set<string>();
         for (const row of (memberships ?? []) as any[]) {
-          const a = row.status === 'active' || row.status === 'invite_accepted';
-          const b =
-            row.membership_status === 'active' ||
-            row.membership_status === 'invite_accepted';
-          if (a || b) myOrgIds.add(row.organization_id);
+          if (isResolvedOrgMembershipActive(row)) myOrgIds.add(row.organization_id);
         }
         if (myOrgIds.size === 0) {
           setPick(null);

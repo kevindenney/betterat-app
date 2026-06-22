@@ -4,10 +4,11 @@
  * Slice 2 of the create-org flow (spec at
  * docs/redesign/specs/CREATE_ORG_FLOW_SPEC.md).
  *
- * Inserts an organization with creation_source='user', official=false,
- * claim_status='unclaimed', and immediately creates an owner membership for
- * the caller. The user-created → verified handoff (adoption) is a separate
- * service that ships in slice 4.
+ * Inserts an organization with creation_source='user', official=false, and
+ * claim_status='unclaimed'. Self-serve community/group creation immediately
+ * creates an owner membership for the caller. Request-only institution intake
+ * creates a non-public review placeholder, records the requester as owner, and
+ * enqueues a real org_verification_requests row for platform review.
  */
 
 import { supabase } from '@/services/supabase';
@@ -30,7 +31,10 @@ export interface SimilarOrgMatch {
 }
 
 function escapeLike(value: string): string {
-  return value.replace(/[%_]/g, '');
+  return value
+    .replace(/[%_,(){}"]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function slugify(text: string): string {
@@ -76,6 +80,7 @@ class OrgCreationService {
 
     const creationSource: OrganizationCreationSource = 'user';
 
+    const requestOnly = input.requestOnly === true;
     const orgPayload: Record<string, unknown> = {
       name,
       slug,
@@ -84,15 +89,22 @@ class OrgCreationService {
       interest_slug: interestSlug,
       creation_source: creationSource,
       official: false,
-      claim_status: 'unclaimed',
-      status: 'active',
-      is_active: true,
-      verification_mode: 'none',
+      claim_status: requestOnly ? 'claim_pending' : 'unclaimed',
+      status: requestOnly ? 'placeholder' : 'active',
+      is_active: !requestOnly,
+      verification_mode: requestOnly ? 'admin_approval' : 'none',
       created_by: userId,
       parent_org_id: input.parentOrgId || null,
-      metadata: input.description?.trim()
-        ? { description: input.description.trim() }
-        : {},
+      metadata: {
+        ...(input.description?.trim() ? { description: input.description.trim() } : {}),
+        ...(requestOnly
+          ? {
+              request_only: true,
+              requested_by_user_id: userId,
+              requested_at: new Date().toISOString(),
+            }
+          : {}),
+      },
     };
 
     const { data: orgRow, error: orgError } = await supabase
@@ -131,6 +143,37 @@ class OrgCreationService {
       throw new Error(
         membershipError.message || 'Created org, but could not assign you as owner.',
       );
+    }
+
+    if (requestOnly) {
+      const verificationProof = {
+        source: 'discover_institution_request',
+        requested_name: name,
+        interest_slug: interestSlug,
+        organization_type: input.kind,
+        ...(input.description?.trim()
+          ? { description: input.description.trim() }
+          : {}),
+      };
+
+      const { error: verificationError } = await supabase
+        .from('org_verification_requests')
+        .insert({
+          organization_id: orgRow.id,
+          requested_by: userId,
+          status: 'pending',
+          proof: verificationProof,
+        });
+
+      if (verificationError) {
+        logger.warn('createUserOrg verification request insert failed', verificationError);
+        throw new Error(
+          verificationError.message ||
+            'Created org request, but could not enqueue it for review.',
+        );
+      }
+
+      return orgRow as CreatedOrganization;
     }
 
     return orgRow as CreatedOrganization;

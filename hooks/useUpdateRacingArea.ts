@@ -60,7 +60,7 @@ export function useUpdateRacingArea() {
         radius_meters: radiusMeters,
         classes_used: classesUsed,
       };
-      const { error } = await supabase
+      const { data: updatedArea, error } = await supabase
         .from('atlas_pois')
         .update({
           name: trimmedName,
@@ -70,10 +70,15 @@ export function useUpdateRacingArea() {
           metadata,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', input.id);
+        .eq('id', input.id)
+        .select('id')
+        .maybeSingle();
       if (error) {
         console.warn('[atlas] update racing area failed', error);
         throw new Error(error.message || 'Could not save changes');
+      }
+      if (!updatedArea) {
+        throw new Error('Racing area not found.');
       }
       return input.id;
     },

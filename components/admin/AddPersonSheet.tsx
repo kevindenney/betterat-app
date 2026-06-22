@@ -94,10 +94,10 @@ export function AddPersonSheet({
   } | null>(null);
 
   const sendMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (queuedEmails: EmailChip[]) => {
       if (!invitedByUserId) throw new Error('Not signed in');
-      if (emails.length === 0) throw new Error('Add at least one email address');
-      const payload = emails.map((chip) => ({
+      if (queuedEmails.length === 0) throw new Error('Add at least one email address');
+      const payload = queuedEmails.map((chip) => ({
         organization_id: orgId,
         invitee_email: chip.email,
         role_label: ROLE_LABEL[role],
@@ -141,30 +141,32 @@ export function AddPersonSheet({
       }
 
       // Audit: one event for the whole batch (preserves "invited N people" framing)
-      const countLabel = `${emails.length} ${emails.length === 1 ? 'person' : 'people'}`;
+      const countLabel = `${queuedEmails.length} ${queuedEmails.length === 1 ? 'person' : 'people'}`;
       const cohortLabel = cohort?.trim() ? ` to ${cohort.trim()}` : '';
-      await supabase.rpc('audit_log_event', {
-        p_org_id: orgId,
-        p_verb: 'invited',
-        p_verb_label: 'Invited',
-        p_description: `Invited ${countLabel}${cohortLabel} as ${ROLE_LABEL[role]}.`,
-        p_target_type: 'invite',
-        p_target_id: null,
-        p_target_label: countLabel,
-        p_payload: {
-          action: 'invite.bulk_send',
-          count: emails.length,
-          method: emails.length > 1 ? 'manual_batch' : 'manual_single',
-          role_key: ROLE_KEY[role],
-          cohort_label: cohort,
-          auto_subscribe: autoSubscribe,
-        },
-      });
+      await supabase
+        .rpc('audit_log_event', {
+          p_org_id: orgId,
+          p_verb: 'invited',
+          p_verb_label: 'Invited',
+          p_description: `Invited ${countLabel}${cohortLabel} as ${ROLE_LABEL[role]}.`,
+          p_target_type: 'invite',
+          p_target_id: null,
+          p_target_label: countLabel,
+          p_payload: {
+            action: 'invite.bulk_send',
+            count: queuedEmails.length,
+            method: queuedEmails.length > 1 ? 'manual_batch' : 'manual_single',
+            role_key: ROLE_KEY[role],
+            cohort_label: cohort,
+            auto_subscribe: autoSubscribe,
+          },
+        })
+        .then(undefined, () => undefined);
     },
-    onSuccess: () => {
+    onSuccess: (_data, queuedEmails) => {
       queryClient.invalidateQueries({ queryKey: ['admin-people', orgId] });
       queryClient.invalidateQueries({ queryKey: ['admin-audit-feed', orgId] });
-      onSubmit?.({ emails, role, cohort, autoSubscribe });
+      onSubmit?.({ emails: queuedEmails, role, cohort, autoSubscribe });
       setEmails([]);
       setSubmitError(null);
       onClose();
@@ -192,20 +194,34 @@ export function AddPersonSheet({
     return /^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(addr.trim());
   }
 
-  function commitDraft() {
-    const tokens = emailDraft
+  function parseDraftChips(draft: string): EmailChip[] {
+    const tokens = draft
       .split(/[,\s]+/)
       .map((t) => t.trim())
       .filter(Boolean);
-    if (tokens.length === 0) return;
-    const validTokens = tokens.filter(isValidEmail).map((token) => {
+    return tokens.filter(isValidEmail).map((token) => {
       const domain = token.split('@')[1]?.toLowerCase() ?? '';
       return { email: token, isValid: verifiedDomains.includes(domain) };
     });
+  }
+
+  function commitDraft(): EmailChip[] {
+    const validTokens = parseDraftChips(emailDraft);
     if (validTokens.length > 0) {
       setEmails((prev) => [...prev, ...validTokens]);
     }
     setEmailDraft('');
+    return validTokens;
+  }
+
+  function sendQueuedInvites() {
+    const draftChips = parseDraftChips(emailDraft);
+    const queuedEmails = [...emails, ...draftChips];
+    if (emailDraft.trim()) {
+      setEmails(queuedEmails);
+      setEmailDraft('');
+    }
+    sendMutation.mutate(queuedEmails);
   }
 
   function removeChip(idx: number) {
@@ -608,7 +624,7 @@ export function AddPersonSheet({
               accent="navy"
               icon="send"
               label={sendMutation.isPending ? 'Sending…' : 'Send invites'}
-              onPress={() => sendMutation.mutate()}
+              onPress={sendQueuedInvites}
             />
           </View>
         </View>

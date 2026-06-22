@@ -515,7 +515,7 @@ export function NetflixLandingPage() {
                   <Text key={t} style={s.audTile}>{t}</Text>
                 ))}
               </View>
-              <Pressable style={[s.btnFill, { width: '100%', marginTop: 8 }]} onPress={() => openUrl('mailto:hello@betterat.app?subject=Claim%20my%20organization')}>
+              <Pressable style={[s.btnFill, { width: '100%', marginTop: 8 }]} onPress={() => goRoute('/schools/start-pilot')}>
                 <Text style={s.btnFillText}>Claim your organization</Text>
               </Pressable>
               <Text style={s.bpNote}>We're onboarding founding organizations now. These are the kinds of orgs BetterAt is built for — not a list of current members.</Text>
@@ -689,22 +689,22 @@ export function NetflixLandingPage() {
             </View>
             <View style={s.giveCards}>
               {[
-                ['rgba(0,113,227,0.12)', '🎓', 'High-school students', 'Schools can apply for subsidized access for their students — so a teenager learning to practice on purpose gets the same tools as anyone training for a championship.', 'Schools apply →', 'mailto:hello@betterat.app?subject=School%20subsidized%20access%20application'],
-                ['rgba(52,199,89,0.14)', '🌱', 'Rural entrepreneurs', 'NGOs and livelihood programs can apply to bring subsidized access to the entrepreneurs they support — turning a blueprint into a step-by-step path in their own vocabulary.', 'NGOs apply →', 'mailto:hello@betterat.app?subject=NGO%20subsidized%20access%20application'],
+                ['rgba(0,113,227,0.12)', '🎓', 'High-school students', 'Schools can apply for subsidized access for their students — so a teenager learning to practice on purpose gets the same tools as anyone training for a championship.', 'Schools apply →', '/schools/start-pilot'],
+                ['rgba(52,199,89,0.14)', '🌱', 'Rural entrepreneurs', 'NGOs and livelihood programs can apply to bring subsidized access to the entrepreneurs they support — turning a blueprint into a step-by-step path in their own vocabulary.', 'NGOs apply →', '/schools/start-pilot'],
               ].map(([bg, emoji, h, p, tag, href]) => (
                 <View key={h} style={s.giveCard}>
                   <View style={[s.gi, { backgroundColor: bg }]}><Text style={s.icEmoji}>{emoji}</Text></View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.giveCardH4}>{h}</Text>
                     <Text style={s.giveCardP}>{p}</Text>
-                    <Pressable onPress={() => openUrl(href)}><Text style={s.gtag}>{tag}</Text></Pressable>
+                    <Pressable onPress={() => goRoute(href)}><Text style={s.gtag}>{tag}</Text></Pressable>
                   </View>
                 </View>
               ))}
             </View>
           </View>
           <View style={s.giveFoot}>
-            <Pressable style={s.btnFill} onPress={() => openUrl('mailto:hello@betterat.app?subject=Apply%20for%20subsidized%20BetterAt%20access')}>
+            <Pressable style={s.btnFill} onPress={() => goRoute('/schools/start-pilot')}>
               <Text style={s.btnFillText}>Apply for subsidized access</Text>
             </Pressable>
             <Text style={s.gnote}>For schools and NGOs. We review every application by hand — there's no automated funnel yet, and that's on purpose.</Text>
@@ -721,7 +721,7 @@ export function NetflixLandingPage() {
             <Pressable style={s.btnFill} onPress={() => scrollToId('blueprint')}>
               <Text style={s.btnFillText}>Get the blueprint</Text>
             </Pressable>
-            <Pressable onPress={() => openUrl('mailto:hello@betterat.app?subject=Claim%20my%20organization')}>
+            <Pressable onPress={() => goRoute('/schools/start-pilot')}>
               <Text style={s.btnLink}>Claim your organization ›</Text>
             </Pressable>
           </View>
@@ -751,7 +751,7 @@ export function NetflixLandingPage() {
               <Pressable onPress={() => goRoute('/schools/pricing')}><Text style={s.footColA}>Institutional plans</Text></Pressable>
               <Pressable onPress={() => openUrl('mailto:hello@betterat.app?subject=Publish%20a%20BetterAt%20blueprint')}><Text style={s.footColA}>Publish a blueprint</Text></Pressable>
               <Pressable onPress={() => goRoute('/schools')}><Text style={s.footColA}>Run a cohort</Text></Pressable>
-              <Pressable onPress={() => openUrl('mailto:hello@betterat.app?subject=Verify%20my%20organization')}><Text style={s.footColA}>Verify your org</Text></Pressable>
+              <Pressable onPress={() => goRoute('/schools/start-pilot')}><Text style={s.footColA}>Verify your org</Text></Pressable>
             </View>
             <View style={s.footCol}>
               <Text style={s.footColH5}>Company</Text>

@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import type { KnowledgeScopeType } from '@/types/community-feed';
+import { isResolvedOrgMembershipActive } from '@/hooks/orgMembershipStatus';
 
 export interface KnowledgeAudience {
   scopeType: Extract<KnowledgeScopeType, 'fleet' | 'org' | 'blueprint' | 'cohort'>;
@@ -75,8 +76,7 @@ export function useKnowledgeAudiences() {
       }
 
       for (const row of orgRes.data || []) {
-        const status = (row as any).status || (row as any).membership_status;
-        if (status !== 'active' && status !== 'invite_accepted') continue;
+        if (!isResolvedOrgMembershipActive(row as any)) continue;
         const org = Array.isArray((row as any).organizations)
           ? (row as any).organizations[0]
           : (row as any).organizations;

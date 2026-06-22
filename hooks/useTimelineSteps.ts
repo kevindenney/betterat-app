@@ -51,7 +51,10 @@ const KEYS = {
 // 1. Current user's timeline
 // ---------------------------------------------------------------------------
 
-export function useMyTimeline(interestId?: string | string[] | null) {
+export function useMyTimeline(
+  interestId?: string | string[] | null,
+  options: { enabled?: boolean } = {},
+) {
   const { user } = useAuth();
   const userId = user?.id;
   const queryClient = useQueryClient();
@@ -59,7 +62,7 @@ export function useMyTimeline(interestId?: string | string[] | null) {
   const result = useQuery<TimelineStepRecord[], Error>({
     queryKey: KEYS.myTimeline(interestId),
     queryFn: () => getUserTimeline(userId!, interestId),
-    enabled: Boolean(userId),
+    enabled: Boolean(userId) && (options.enabled ?? true),
     // Prevent refetch when window regains focus (e.g. returning from share dialog / mail app).
     // Without this, the refetch creates new array references that cascade through
     // interestFilteredRaces → cardGridRaces → initialRaceIndex, causing the card

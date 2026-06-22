@@ -53,25 +53,21 @@ import {
   generateWorkedExample,
   type WorkedExampleBeat,
 } from '@/services/ai/WorkedExampleService';
+import {
+  BLANK_FIELDS,
+  BLANK_FIELD_ORDER,
+  WORKED_EXAMPLE_FAILURE_MESSAGE,
+  buildStepAddPayload,
+  emptyBlankValues,
+  getWorkedExampleButtonLabel,
+  shouldShowWorkedExampleTrigger,
+  type BlankFieldKey,
+} from './StepAddSheet.logic';
 import type { QuickCapturePayload } from '@/services/QuickCaptureService';
 import type { BlueprintSuggestedNextStep } from '@/types/blueprint';
 import type { AISuggestion } from '@/services/ai/crossInterestSuggestions';
 import type { RacePlan, StepLocation } from '@/types/step-detail';
 import type { TimelineStepVisibility } from '@/types/timeline-steps';
-
-type BlankFieldKey = 'why' | 'how' | 'when' | 'where';
-
-const BLANK_FIELDS: { key: BlankFieldKey; label: string; placeholder: string; multiline?: boolean }[] = [
-  { key: 'why', label: 'Why', placeholder: 'Why does this matter right now?', multiline: true },
-  { key: 'how', label: 'How', placeholder: 'How will you do it? One step per line.', multiline: true },
-  { key: 'when', label: 'When', placeholder: 'When will you do this?' },
-  { key: 'where', label: 'Where', placeholder: 'Where will this happen?' },
-];
-const BLANK_FIELD_ORDER = BLANK_FIELDS.map((f) => f.key);
-
-function emptyBlankValues(): Record<BlankFieldKey, string> {
-  return { why: '', how: '', when: '', where: '' };
-}
 
 interface StepAddSheetProps {
   visible: boolean;
@@ -228,7 +224,7 @@ export function StepAddSheet({
       setWorkedBeats(result.runthrough);
       setWorkedApplied(true);
     } catch {
-      setWorkedError('Could not build a worked example. Try again.');
+      setWorkedError(WORKED_EXAMPLE_FAILURE_MESSAGE);
     } finally {
       setWorkedGenerating(false);
     }
@@ -401,25 +397,25 @@ export function StepAddSheet({
   }, [sheetTranslateY, visible]);
 
   const canSave = whatText.trim().length > 0 && !saving;
+  const showWorkedTrigger = shouldShowWorkedExampleTrigger({whatText, workedApplied});
 
   const handleSaveBlank = async () => {
     const trimmed = whatText.trim();
     if (!trimmed || saving) return;
     setSaving(true);
-    const payload: QuickCapturePayload = {
-      kind: 'text',
-      content: trimmed,
-      why: fieldValues.why.trim() || undefined,
-      how: fieldValues.how.trim() || undefined,
-      scheduledAt: whenISO ?? undefined,
-      location: whereLocation,
-      isRace: showRaceSelector ? isRace : undefined,
-      racePlan: showRaceSelector && isRace ? racePlan : undefined,
-      imageUri: photoUri,
+    const payload = buildStepAddPayload({
+      trimmed,
+      fieldValues,
+      whenISO,
+      whereLocation,
+      showRaceSelector,
+      isRace,
+      racePlan,
+      photoUri,
       viewedSeasonId,
       visibility,
-      runthroughBeats: workedBeats.length > 0 ? workedBeats : undefined,
-    };
+      workedBeats,
+    });
 
     // onSave() does the optimistic timeline insert before its first await.
     // Close this local modal immediately so its transparent layer cannot
@@ -743,7 +739,7 @@ export function StepAddSheet({
                 </View>
               ) : null}
 
-              {whatText.trim() && !workedApplied ? (
+              {showWorkedTrigger ? (
                 <Pressable
                   style={[styles.workedTrigger, { borderColor: hexWithAlpha(accent, 0.4) }]}
                   onPress={handleGenerateWorkedExample}
@@ -758,7 +754,7 @@ export function StepAddSheet({
                   )}
                   <View style={styles.workedTriggerCopy}>
                     <Text style={[styles.workedTriggerText, { color: accent }]}>
-                      {workedGenerating ? 'Building a worked example…' : 'Build a worked example'}
+                      {getWorkedExampleButtonLabel({workedGenerating})}
                     </Text>
                     {!workedGenerating ? (
                       <Text style={styles.workedTriggerHint} numberOfLines={1}>

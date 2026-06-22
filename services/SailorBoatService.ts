@@ -430,14 +430,19 @@ export class SailorBoatService {
 
     // Set the selected boat as primary
     logger.debug('⭐ [SailorBoatService] Setting boat as primary...');
-    const { error: setError } = await supabase
+    const { data: updatedBoat, error: setError } = await supabase
       .from('sailor_boats')
       .update({ is_primary: true })
-      .eq('id', boatId);
+      .eq('id', boatId)
+      .select('id')
+      .maybeSingle();
 
     if (setError) {
 
       throw setError;
+    }
+    if (!updatedBoat) {
+      throw new Error('Boat not found');
     }
     logger.debug('⭐ [SailorBoatService] Primary boat updated successfully');
 
@@ -502,14 +507,19 @@ export class SailorBoatService {
       throw fetchError;
     }
 
-    const { error } = await supabase
+    const { data: deletedBoat, error } = await supabase
       .from('sailor_boats')
       .delete()
-      .eq('id', boatId);
+      .eq('id', boatId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Error deleting boat:', error);
       throw error;
+    }
+    if (!deletedBoat) {
+      throw new Error('Boat not found');
     }
 
     // Check if there are any other boats for this sailor in this class

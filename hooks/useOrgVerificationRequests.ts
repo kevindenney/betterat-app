@@ -9,16 +9,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   OrgVerificationService,
+  type OrgVerificationRequestScope,
   type AdminVerificationRequestRow,
   type OrgVerificationDecision,
 } from '@/services/OrgVerificationService';
 
-const PENDING_KEY = ['admin', 'org-verification-requests', 'pending'] as const;
+const ORG_VERIFICATION_REQUESTS_KEY_PREFIX = [
+  'admin',
+  'org-verification-requests',
+] as const;
 
-export function useOrgVerificationRequests() {
+export function orgVerificationRequestsQueryKey(
+  scope: OrgVerificationRequestScope = 'pending',
+) {
+  return [...ORG_VERIFICATION_REQUESTS_KEY_PREFIX, scope] as const;
+}
+
+export function useOrgVerificationRequests(scope: OrgVerificationRequestScope = 'pending') {
+  const queryKey = orgVerificationRequestsQueryKey(scope);
+
   return useQuery<AdminVerificationRequestRow[]>({
-    queryKey: PENDING_KEY,
-    queryFn: () => OrgVerificationService.listPendingRequests(),
+    queryKey,
+    queryFn: () => OrgVerificationService.listRequests(scope),
     staleTime: 30 * 1000,
   });
 }
@@ -40,7 +52,9 @@ export function useReviewOrgVerificationRequest() {
         input.reviewerNotes,
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENDING_KEY });
+      queryClient.invalidateQueries({
+        queryKey: ORG_VERIFICATION_REQUESTS_KEY_PREFIX,
+      });
       // Approved requests flip the org — refresh discover too.
       queryClient.invalidateQueries({ queryKey: ['discover-orgs'] });
     },

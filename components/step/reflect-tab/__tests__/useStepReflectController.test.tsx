@@ -121,6 +121,7 @@ jest.mock('@/lib/featureFlags', () => ({
 }));
 
 jest.mock('@tanstack/react-query', () => ({
+  useQuery: () => ({ data: [], isLoading: false, error: null }),
   useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }));
 
@@ -248,7 +249,9 @@ describe('useStepReflectController — Phase 4 shape', () => {
           }),
         ]),
       }),
-    });
+    }, expect.objectContaining({
+      onSuccess: expect.any(Function),
+    }));
     hook.unmount();
   });
 
