@@ -28,6 +28,7 @@ import {
   getUserCapabilityProgress,
   getUserOrgPrograms,
   getFollowedUsersActivity,
+  getGroupmateActivity,
 } from '@/services/ai/StepPlanAIService';
 import { getSuggestedNextSteps } from '@/services/BlueprintService';
 
@@ -113,6 +114,12 @@ export interface WorkedExamplePersonalContext {
    * the curriculum they've committed to following.
    */
   blueprintContext?: string[];
+  /**
+   * Phase 5 — the affinity groups (study groups, crew pods, practice groups)
+   * the user has joined, each with what groupmates recently worked on, so the
+   * example reflects the peer cohort they now practice alongside.
+   */
+  groupContext?: string[];
 }
 
 function buildSystemPrompt(params: {
@@ -144,6 +151,7 @@ Rules:
 - If a "Program / curriculum" is listed, align the example with how that program would frame and sequence the work, so it dovetails with what they're already being taught.
 - If "People they follow recently worked on" is listed, you may nod to shared approaches, but keep the example squarely about THIS practitioner — never copy a peer's step.
 - If "Blueprints they're following" are listed, treat them as the curriculum the practitioner has committed to: sequence and frame the example so it slots in alongside where they are in that blueprint, reinforcing rather than duplicating it.
+- If "In their groups, members recently worked on" is listed, treat it as the peer cohort they practice alongside: pitch the example at that shared level and echo the group's focus where it fits, without copying any one member's step.
 
 Respond with ONLY valid JSON, no markdown fences, in this exact shape:
 {
@@ -220,6 +228,13 @@ function buildPersonalContext(ctx: WorkedExamplePersonalContext | undefined): st
   if (blueprints.length) {
     lines.push(`- Blueprints they're following: ${blueprints.join('; ')}`);
   }
+  const groups = (ctx.groupContext ?? [])
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  if (groups.length) {
+    lines.push(`- In their groups, members recently worked on: ${groups.join('; ')}`);
+  }
   if (!lines.length) return '';
   return `\n\nABOUT THIS PRACTITIONER:\n${lines.join('\n')}`;
 }
@@ -273,9 +288,10 @@ function safeParse(responseText: string): WorkedExampleResult | null {
  * competencies), saved playbook concepts, and the latest review's focus line.
  * Phase 3 — their membership graph: org programs they're enrolled in and what
  * people they follow have recently worked on. Phase 4 — the blueprints they've
- * subscribed to and where they are in each. Cherry-picks existing gatherers
- * rather than rebuilding the queries; every fetch is defensive so a miss never
- * blocks generation.
+ * subscribed to and where they are in each. Phase 5 — the affinity groups
+ * they've joined and what groupmates recently worked on. Cherry-picks existing
+ * gatherers rather than rebuilding the queries; every fetch is defensive so a
+ * miss never blocks generation.
  */
 async function gatherGrowthContext(
   userId: string,
@@ -287,6 +303,7 @@ async function gatherGrowthContext(
   programContext: string[];
   peerActivity: string[];
   blueprintContext: string[];
+  groupContext: string[];
 }> {
   const empty = {
     capabilityGaps: [],
@@ -295,6 +312,7 @@ async function gatherGrowthContext(
     programContext: [],
     peerActivity: [],
     blueprintContext: [],
+    groupContext: [],
   };
   try {
     // Personalization is best-effort enrichment, never a gate: if the gather
@@ -312,11 +330,12 @@ async function gatherGrowthContext(
         getUserOrgPrograms(userId, interestId).catch(() => []),
         getFollowedUsersActivity(userId, interestId).catch(() => []),
         getSuggestedNextSteps(userId, interestId).catch(() => []),
+        getGroupmateActivity(userId, interestId).catch(() => []),
       ]),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
     ]);
     if (!gathered) return empty;
-    const [progress, playbook, programs, followed, blueprints] = gathered;
+    const [progress, playbook, programs, followed, blueprints, groups] = gathered;
 
     // Weakest-practiced first; drop already-competent. attemptCount is the
     // trustworthy gap signal (the capability auto-tagging is otherwise a façade).
@@ -382,6 +401,18 @@ async function gatherGrowthContext(
       })
       .slice(0, 3);
 
+    // One line per joined group, naming a couple of things groupmates are on,
+    // so the example reflects the peer cohort the user practices alongside.
+    const groupContext = groups
+      .map((g) => {
+        const name = g.groupName?.trim();
+        const titles = g.stepTitles.map((t) => t.trim()).filter(Boolean).slice(0, 2);
+        if (!name || !titles.length) return '';
+        return `${name} (${titles.join(', ')})`;
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+
     return {
       capabilityGaps,
       knowledgeConcepts,
@@ -389,6 +420,7 @@ async function gatherGrowthContext(
       programContext,
       peerActivity,
       blueprintContext,
+      groupContext,
     };
   } catch {
     return empty;
@@ -411,7 +443,8 @@ export async function generateWorkedExample(
   // Fold the user's compounding signals into the practitioner block when we can
   // key them to a real user + interest: their growth edge (Phase 2 — capability
   // gaps + saved concepts) and their membership graph (Phase 3 — enrolled
-  // programs + what people they follow are working on).
+  // programs + what people they follow are working on; Phase 4 — subscribed
+  // blueprints; Phase 5 — joined groups and what groupmates are working on).
   let mergedContext = personalContext;
   if (userId && interestId) {
     const growth = await gatherGrowthContext(userId, interestId);
@@ -423,6 +456,7 @@ export async function generateWorkedExample(
       programContext: growth.programContext,
       peerActivity: growth.peerActivity,
       blueprintContext: growth.blueprintContext,
+      groupContext: growth.groupContext,
     };
   }
 

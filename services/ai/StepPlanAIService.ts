@@ -114,6 +114,11 @@ export interface CapabilityProgressEntry {
   attemptCount: number;
 }
 
+export interface GroupmateActivity {
+  groupName: string;
+  stepTitles: string[];
+}
+
 // ---------------------------------------------------------------------------
 // Context Gathering
 // ---------------------------------------------------------------------------
@@ -368,6 +373,79 @@ export async function getFollowedUsersActivity(
       userName,
       recentSteps: recentSteps.slice(0, 3), // max 3 per user
     }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Recent step activity from members of the affinity groups (study groups, crew
+ * pods, practice groups) this person has joined, scoped to the current interest.
+ * Groups are the generic peer-cohort primitive; joining one should make the
+ * worked example aware of what the people around you are actually working on.
+ */
+export async function getGroupmateActivity(
+  userId: string,
+  interestId: string,
+): Promise<GroupmateActivity[]> {
+  try {
+    // The user's active group memberships, with each group's name.
+    const { data: memberships, error: memErr } = await supabase
+      .from('affinity_group_members')
+      .select('group_id, affinity_groups ( id, name, is_active )')
+      .eq('user_id', userId)
+      .eq('status', 'active');
+
+    if (memErr || !memberships?.length) return [];
+
+    const groupNameById = new Map<string, string>();
+    for (const m of memberships as any[]) {
+      const g = m.affinity_groups;
+      if (g?.is_active && g?.name) groupNameById.set(g.id as string, g.name as string);
+    }
+    const groupIds = [...groupNameById.keys()];
+    if (!groupIds.length) return [];
+
+    // Other active members across those groups, mapped back to a group name.
+    const { data: roster } = await supabase
+      .from('affinity_group_members')
+      .select('group_id, user_id')
+      .in('group_id', groupIds)
+      .eq('status', 'active');
+
+    const groupByMember = new Map<string, string>();
+    for (const r of (roster ?? []) as any[]) {
+      if (r.user_id === userId) continue;
+      const name = groupNameById.get(r.group_id);
+      if (name && !groupByMember.has(r.user_id)) groupByMember.set(r.user_id, name);
+    }
+    const memberIds = [...groupByMember.keys()];
+    if (!memberIds.length) return [];
+
+    // Recent steps from groupmates in this interest.
+    const { data: steps } = await supabase
+      .from('timeline_steps')
+      .select('user_id, title')
+      .in('user_id', memberIds)
+      .eq('interest_id', interestId)
+      .order('updated_at', { ascending: false })
+      .limit(20);
+
+    if (!steps?.length) return [];
+
+    const byGroup = new Map<string, string[]>();
+    for (const s of steps as any[]) {
+      const groupName = groupByMember.get(s.user_id);
+      const title = (s.title ?? '').trim();
+      if (!groupName || !title) continue;
+      const arr = byGroup.get(groupName) ?? [];
+      if (arr.length < 3 && !arr.includes(title)) arr.push(title);
+      byGroup.set(groupName, arr);
+    }
+
+    return [...byGroup.entries()]
+      .filter(([, titles]) => titles.length > 0)
+      .map(([groupName, stepTitles]) => ({ groupName, stepTitles }));
   } catch {
     return [];
   }
