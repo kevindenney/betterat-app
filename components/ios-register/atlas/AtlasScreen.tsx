@@ -83,7 +83,7 @@ import { ReshapeAreaBanner } from './ReshapeAreaBanner';
 import { useUpdateRacingArea } from '@/hooks/useUpdateRacingArea';
 import { useUpdateStepLocation } from '@/hooks/useUpdateStepLocation';
 import { useStepLocationSuggestions } from '@/hooks/useStepLocationSuggestions';
-import { useMyRacingAreas } from '@/hooks/useMyRacingAreas';
+import { useMyRacingAreas, type MyRacingArea } from '@/hooks/useMyRacingAreas';
 import { circlePolygon } from '@/hooks/useAtlasRacingAreas';
 import { useSavedVenues } from '@/hooks/useSavedVenues';
 import {
@@ -139,7 +139,10 @@ import { useWaveOverlay } from '@/hooks/useWaveOverlay';
 import { useNextRaceMarks } from '@/hooks/useNextRaceMarks';
 import { NursingSitesSurface } from '@/components/ios-register/atlas/NursingSitesSurface';
 import { NursingCoverageSurface } from '@/components/ios-register/atlas/NursingCoverageSurface';
-import { InterestSitesSurface } from '@/components/ios-register/atlas/InterestSitesSurface';
+import {
+  InterestSitesSurface,
+  type InterestRaceAreaSite,
+} from '@/components/ios-register/atlas/InterestSitesSurface';
 import { CapabilitiesSurface } from '@/components/ios-register/atlas/CapabilitiesSurface';
 import { NursingMapSurface } from '@/components/ios-register/atlas/NursingMapSurface';
 import {
@@ -216,6 +219,24 @@ function openClubLens(
     'Club lens',
     'This will recenter Atlas around the club and filter to that organization’s events, fleets, sailors, and public steps. Fleet-specific lenses, like RHKYC · Dragon, sit one level below this.',
   );
+}
+
+function racingAreaToPressTarget(area: MyRacingArea): AtlasRacingAreaPressTarget | null {
+  if (area.centerLat == null || area.centerLng == null) return null;
+  const polygon: GeoJSON.Polygon =
+    area.geometry?.type === 'Polygon'
+      ? (area.geometry as GeoJSON.Polygon)
+      : circlePolygon(area.centerLng, area.centerLat, area.radiusMeters ?? 1000);
+  return {
+    id: area.id,
+    name: area.areaName,
+    venueId: area.venueId,
+    centerLat: area.centerLat,
+    centerLng: area.centerLng,
+    classesUsed: area.classesUsed,
+    createdBy: area.createdBy,
+    polygon,
+  };
 }
 
 export interface AtlasNextEvent {
@@ -2993,6 +3014,20 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       })),
     [myRacingAreas],
   );
+  const interestRaceAreaSites = useMemo<InterestRaceAreaSite[]>(
+    () =>
+      myRacingAreas.flatMap((area) => {
+        if (area.centerLat == null || area.centerLng == null) return [];
+        return [{
+          id: area.id,
+          name: area.areaName,
+          lat: area.centerLat,
+          lng: area.centerLng,
+          subtitle: area.typicalCourses?.[0] ?? 'Local knowledge area',
+        }];
+      }),
+    [myRacingAreas],
+  );
   const savedVenueItems = useMemo<SavedPlaceItem[]>(
     () =>
       savedVenues.map((venue) => ({
@@ -3432,21 +3467,18 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
         setSearchFocus({ lat: item.lat, lng: item.lng });
       }
       const area = myRacingAreas.find((a) => a.id === item.id);
-      if (!area || area.centerLat == null || area.centerLng == null) return;
-      const polygon: GeoJSON.Polygon =
-        area.geometry?.type === 'Polygon'
-          ? (area.geometry as GeoJSON.Polygon)
-          : circlePolygon(area.centerLng, area.centerLat, area.radiusMeters ?? 1000);
-      handleRacingAreaPress({
-        id: area.id,
-        name: area.areaName,
-        venueId: area.venueId,
-        centerLat: area.centerLat,
-        centerLng: area.centerLng,
-        classesUsed: area.classesUsed,
-        createdBy: area.createdBy,
-        polygon,
-      });
+      const target = area ? racingAreaToPressTarget(area) : null;
+      if (target) handleRacingAreaPress(target);
+    },
+    [myRacingAreas, handleRacingAreaPress],
+  );
+  const handlePickInterestRaceArea = useCallback(
+    (item: InterestRaceAreaSite) => {
+      setF1View('map');
+      setSearchFocus({lat: item.lat, lng: item.lng});
+      const area = myRacingAreas.find((a) => a.id === item.id);
+      const target = area ? racingAreaToPressTarget(area) : null;
+      if (target) handleRacingAreaPress(target);
     },
     [myRacingAreas, handleRacingAreaPress],
   );
@@ -3971,6 +4003,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               interestName={currentInterest?.name ?? 'your craft'}
               framePins={framePinsWithDemo}
               steps={pickerSteps}
+              raceAreas={isSailingFrame ? interestRaceAreaSites : []}
               toolbarOffset={f1ChromeH}
               bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
               onSitePress={(site) => {
@@ -3981,6 +4014,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                 setSelectedPin(pin ?? null);
                 setSearchFocus({ lat: site.lat, lng: site.lng });
               }}
+              onRaceAreaPress={handlePickInterestRaceArea}
               onPlanStep={() => handlers.onPrimaryAction?.()}
             />
           ) : (

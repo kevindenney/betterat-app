@@ -31,13 +31,23 @@ interface SiteRow {
   stepCount: number;
 }
 
+export interface InterestRaceAreaSite {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  subtitle?: string | null;
+}
+
 export interface InterestSitesSurfaceProps {
   interestName: string;
   framePins: AtlasPinSpec[];
   steps: PickerStep[];
+  raceAreas?: InterestRaceAreaSite[];
   toolbarOffset?: number;
   bottomOffset?: number;
-  onSitePress?: (site: { id: string; name: string; lat: number; lng: number }) => void;
+  onSitePress?: (site: {id: string; name: string; lat: number; lng: number}) => void;
+  onRaceAreaPress?: (area: InterestRaceAreaSite) => void;
   onPlanStep?: () => void;
 }
 
@@ -52,9 +62,11 @@ export function InterestSitesSurface({
   interestName,
   framePins,
   steps,
+  raceAreas = [],
   toolbarOffset = 0,
   bottomOffset = 0,
   onSitePress,
+  onRaceAreaPress,
   onPlanStep,
 }: InterestSitesSurfaceProps) {
   const { yourSites, moreSites, nextStep } = useMemo(() => {
@@ -173,6 +185,38 @@ export function InterestSitesSurface({
           </View>
         </Pressable>
       )}
+
+      {raceAreas.length > 0 ? (
+        <>
+          <Text style={styles.eyebrow}>Race areas</Text>
+          <View style={styles.card}>
+            {raceAreas.map((area, i) => (
+              <View key={area.id}>
+                {i > 0 ? <View style={styles.sep} /> : null}
+                <Pressable
+                  style={styles.moreRow}
+                  accessibilityRole="button"
+                  accessibilityLabel={area.name}
+                  onPress={() => onRaceAreaPress?.(area)}
+                >
+                  <View style={styles.raceAreaBadge}>
+                    <Ionicons name="flag" size={15} color="#0E7490" />
+                  </View>
+                  <View style={styles.moreText}>
+                    <Text style={styles.raceAreaName} numberOfLines={1}>
+                      {area.name}
+                    </Text>
+                    <Text style={styles.moreSub} numberOfLines={1}>
+                      {area.subtitle || 'Local knowledge area'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
 
       {/* More interest sites nearby — real POIs with no steps yet. */}
       {moreSites.length > 0 ? (
@@ -335,7 +379,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(118,118,128,0.12)',
   },
   moreBadgeText: { fontSize: 11, fontWeight: '700', color: IOS_COLORS.secondaryLabel },
+  raceAreaBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(14,116,144,0.10)',
+  },
+  moreText: { flex: 1, gap: 2 },
   moreName: { flex: 1, fontSize: 14, fontWeight: '600', color: IOS_COLORS.label, letterSpacing: -0.2 },
+  raceAreaName: { fontSize: 14, fontWeight: '600', color: IOS_COLORS.label, letterSpacing: -0.2 },
+  moreSub: { fontSize: 12, color: IOS_COLORS.secondaryLabel },
   emptyCard: {
     flexDirection: 'row',
     gap: 12,
