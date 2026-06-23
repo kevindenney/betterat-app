@@ -37,6 +37,7 @@
     "smoke:jhu-blueprint-postsignup": "node scripts/jhu-blueprint-smoke-postsignup.mjs",
     "seed:multi-audience-demo": "node scripts/seed-multi-audience-demo-personas.mjs",
     "seed:rhkyc": "node scripts/seed-rhkyc-demo.mjs",
+    "seed:rhkyc-watch": "node scripts/seed-rhkyc-dragon-watch-activity.mjs",
     "seed:sailors": "node scripts/seed-sailors-tab-demo.mjs",
     "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "npx tsc --noEmit",
