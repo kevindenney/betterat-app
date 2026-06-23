@@ -29,6 +29,21 @@ const logger = createLogger('TimelineStepService');
 // Cache interest slug → id lookups for the session
 const interestIdCache = new Map<string, string>();
 
+const QUERY_TIMEOUT_ERROR = 'QueryTimeoutError';
+
+function createQueryTimeoutError(label: string, timeoutMs: number): Error {
+  const error = new Error(`${label} timed out after ${timeoutMs}ms`);
+  error.name = QUERY_TIMEOUT_ERROR;
+  return error;
+}
+
+function isQueryTimeoutError(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof Error && error.name === QUERY_TIMEOUT_ERROR) return true;
+  const message = (error as { message?: string })?.message;
+  return typeof message === 'string' && message.includes('timed out after');
+}
+
 function withQueryTimeout<T>(
   query: PromiseLike<T>,
   timeoutMs: number,
@@ -37,7 +52,7 @@ function withQueryTimeout<T>(
   return Promise.race([
     Promise.resolve(query),
     new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+      setTimeout(() => reject(createQueryTimeoutError(label, timeoutMs)), timeoutMs);
     }),
   ]);
 }
@@ -140,7 +155,11 @@ export async function getUserTimeline(
       .map((s) => ({ ...s, _pinned: true as const }));
     return [...ownSteps, ...uniqueCollabSteps, ...uniquePinnedSteps];
   } catch (err) {
-    if (!isAbortError(err)) logger.error('Failed to fetch user timeline', err);
+    if (isQueryTimeoutError(err)) {
+      logger.warn('User timeline unavailable before timeout; React Query will retry', err);
+    } else if (!isAbortError(err)) {
+      logger.error('Failed to fetch user timeline', err);
+    }
     throw err;
   }
 }
