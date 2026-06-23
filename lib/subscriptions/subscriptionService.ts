@@ -57,6 +57,19 @@ export interface PurchaseResult {
   needsRestore?: boolean;
 }
 
+interface PurchasesErrorLike {
+  code?: string | number;
+  message?: string;
+  readableErrorCode?: string;
+  readable_error_code?: string;
+  underlyingErrorMessage?: string;
+  userInfo?: {
+    underlyingErrorMessage?: string;
+    readableErrorCode?: string;
+    readable_error_code?: string;
+  };
+}
+
 const logger = createLogger('subscriptionService');
 
 /**
@@ -190,6 +203,32 @@ function configProductForId(productId: string): SubscriptionProduct | undefined 
   return Object.values(SUBSCRIPTION_PRODUCTS).find((p) => p.id === productId);
 }
 
+function isAndroidBillingUnavailable(error: unknown): boolean {
+  if (Platform.OS !== 'android') return false;
+
+  const candidate = error as PurchasesErrorLike | null | undefined;
+  const readableCode =
+    candidate?.readableErrorCode ??
+    candidate?.readable_error_code ??
+    candidate?.userInfo?.readableErrorCode ??
+    candidate?.userInfo?.readable_error_code ??
+    '';
+  const underlying =
+    candidate?.underlyingErrorMessage ??
+    candidate?.userInfo?.underlyingErrorMessage ??
+    candidate?.message ??
+    '';
+  const normalizedCode = String(candidate?.code ?? '');
+  const normalizedMessage = underlying.toLowerCase();
+
+  return (
+    normalizedMessage.includes('billing is not available in this device') ||
+    normalizedMessage.includes('billing service unavailable on device') ||
+    normalizedMessage.includes('the device or user is not allowed to make the purchase') ||
+    (readableCode === 'PurchaseNotAllowedError' && normalizedCode === '3')
+  );
+}
+
 /**
  * Subscription Service Class
  * Handles all subscription operations on native platforms.
@@ -284,6 +323,11 @@ export class SubscriptionService {
 
       this.availableProducts = merged.length > 0 ? merged : Object.values(SUBSCRIPTION_PRODUCTS);
     } catch (error) {
+      if (isAndroidBillingUnavailable(error)) {
+        logger.warn('Play billing unavailable on this Android device; using config products');
+        this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
+        return;
+      }
       logger.error('Failed to load products', error);
       this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
     }

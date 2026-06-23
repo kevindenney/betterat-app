@@ -84,6 +84,22 @@ if (Platform.OS !== 'web' && __DEV__) {
   const originalConsoleError = console.error;
   console.error = (...args) => {
     const first = typeof args[0] === 'string' ? args[0] : '';
+    const second = typeof args[1] === 'string' ? args[1] : '';
+    const combined = `${first} ${second}`;
+    const serializedArgs = args
+      .map((arg) => {
+        if (typeof arg === 'string') return arg;
+        if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+        if (typeof arg === 'object' && arg) {
+          try {
+            return JSON.stringify(arg);
+          } catch {
+            return String(arg);
+          }
+        }
+        return String(arg ?? '');
+      })
+      .join(' ');
     if (
       first.includes('MapLibre Native [ERROR]') &&
       (first.includes('Requesting:') || first.includes('Failed to load tile'))
@@ -96,10 +112,29 @@ if (Platform.OS !== 'web' && __DEV__) {
     // red-box toast so real errors stay visible. Products resolve normally in
     // a Play internal-testing / TestFlight build.
     if (
-      (first.includes('[RevenueCat]') &&
-        (first.includes('Error fetching offerings') ||
-          first.includes('Could not find ProductDetails'))) ||
-      first.includes('[subscriptionService] Failed to load products')
+      (serializedArgs.includes('[RevenueCat]') &&
+        (serializedArgs.includes('Error fetching offerings') ||
+          serializedArgs.includes('Could not find ProductDetails') ||
+          serializedArgs.includes('The device or user is not allowed to make the purchase') ||
+          serializedArgs.includes('Billing service unavailable on device'))) ||
+      (serializedArgs.includes('[subscriptionService]') &&
+        serializedArgs.includes('Failed to load products') &&
+        (serializedArgs.includes('The device or user is not allowed to make the purchase') ||
+          serializedArgs.includes('Billing service unavailable on device') ||
+          serializedArgs.includes('Could not find ProductDetails')))
+    ) {
+      return;
+    }
+    // Bridgeless React Native dev builds can emit FPS/debug-view soft exceptions
+    // during screen attach/detach. They do not represent a user-facing failure,
+    // but they do trigger the red console-error overlay on Android emulators.
+    if (
+      combined.includes('ReactNoCrashSoftException') ||
+      combined.includes('onWindowFocusChange(hasFocus = "true")') ||
+      combined.includes('ReactNoCrashBridgeNotAllowedSoftException') ||
+      combined.includes('getNativeModule(UIManagerModule.class) cannot be called when the bridge is disabled') ||
+      combined.includes('FpsDebugFrameCallback') ||
+      combined.includes('FpsView')
     ) {
       return;
     }

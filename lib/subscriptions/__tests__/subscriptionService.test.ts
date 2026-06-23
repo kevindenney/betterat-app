@@ -146,4 +146,58 @@ describe('subscriptionService', () => {
       expect(result.error).toContain('cancelled');
     });
   });
+
+  describe('initialize — Android billing-unavailable fallback', () => {
+    it('falls back to config products when Android returns purchase-not-allowed without a readable code', async () => {
+      jest.resetModules();
+
+      jest.doMock('react-native', () => ({
+        Platform: { OS: 'android', select: (opts: any) => opts.android ?? opts.default },
+        Alert: { alert: jest.fn() },
+      }));
+      jest.doMock('@/services/supabase', () => ({
+        supabase: {
+          from: jest.fn(),
+          auth: {
+            getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }),
+          },
+          functions: { invoke: jest.fn() },
+        },
+      }));
+      jest.doMock('@/lib/utils/logger', () => ({
+        createLogger: () => ({
+          debug: jest.fn(),
+          info: jest.fn(),
+          warn: jest.fn(),
+          error: jest.fn(),
+        }),
+      }));
+      jest.doMock('react-native-purchases', () => ({
+        __esModule: true,
+        LOG_LEVEL: { WARN: 'WARN' },
+        default: {
+          configure: jest.fn(),
+          setLogLevel: jest.fn(),
+          addCustomerInfoUpdateListener: jest.fn(),
+          logIn: jest.fn(),
+          getOfferings: jest.fn().mockRejectedValue({
+            message: 'The device or user is not allowed to make the purchase.',
+          }),
+          getCustomerInfo: jest.fn(),
+          purchasePackage: jest.fn(),
+          restorePurchases: jest.fn(),
+        },
+      }));
+
+      process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY = 'test-android-key';
+
+      const { SubscriptionService, SUBSCRIPTION_PRODUCTS } = require('../subscriptionService');
+      const instance = new SubscriptionService();
+
+      await instance.initialize();
+      const products = await instance.getAvailableProducts();
+
+      expect(products).toEqual(Object.values(SUBSCRIPTION_PRODUCTS));
+    });
+  });
 });
