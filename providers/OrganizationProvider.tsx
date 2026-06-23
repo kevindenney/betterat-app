@@ -482,6 +482,28 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         hasSession: false,
       };
       if (isAbortError(error)) return;
+      if (timedOut) {
+        logger.warn('Session load timed out; continuing without organization context', payload);
+        setMembershipLoadError(null);
+        setMembershipLoadErrorPayload(payload);
+        setMembershipLoadDebug({
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          hasSession: false,
+          userId: currentUserId,
+          phase: 'timeout',
+          table: 'organization_memberships',
+          errorMessage: 'SESSION_TIMEOUT',
+          errorCode: payload.code,
+          errorDetails: payload.details,
+          errorHint: payload.hint,
+        });
+        setMemberships([]);
+        setActiveOrganizationIdState(null);
+        setLoading(false);
+        setReady(true);
+        return;
+      }
       logger.error('Session load failed', payload);
       setMembershipLoadError('Could not load organizations. Retry.');
       setMembershipLoadErrorPayload(payload);
@@ -619,7 +641,13 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         timedOut,
         hasSession: latestHasSession,
       };
-      if (!isAbortError(error)) logger.error('Membership load failed', payload);
+      if (!isAbortError(error)) {
+        if (timedOut) {
+          logger.warn('Membership load timed out; continuing without organization context', payload);
+        } else {
+          logger.error('Membership load failed', payload);
+        }
+      }
       setMembershipLoadDebug({
         startedAt,
         finishedAt: new Date().toISOString(),
@@ -633,7 +661,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         errorHint: payload.hint,
       });
       if (rawMessage === 'ORG_MEMBERSHIP_TIMEOUT') {
-        setMembershipLoadError('Could not load organizations. Retry.');
+        setMembershipLoadError(null);
       } else {
         const errorCode = typeof (error as any)?.code === 'string' ? (error as any).code : null;
         setMembershipLoadError(`Could not load organizations. ${rawMessage || 'Retry.'}${errorCode ? ` (${errorCode})` : ''}`);

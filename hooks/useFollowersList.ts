@@ -10,6 +10,23 @@ import { CrewFinderService } from '@/services/CrewFinderService';
 import { invalidateFollowQueries } from '@/hooks/followInvalidations';
 
 const PAGE_SIZE = 50;
+const QUERY_TIMEOUT_MS = 8000;
+
+const EMPTY_PAGE = { users: [], hasMore: false };
+
+function withQueryTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const timeout = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), QUERY_TIMEOUT_MS);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  });
+}
 
 interface UserListItem {
   userId: string;
@@ -41,15 +58,21 @@ export function useFollowersList(
     queryKey: ['user-list', type, userId],
     queryFn: async ({ pageParam = 0 }) => {
       if (type === 'followers') {
-        return SailorProfileService.getFollowers(userId, user?.id, {
-          limit: PAGE_SIZE,
-          offset: pageParam,
-        });
+        return withQueryTimeout(
+          SailorProfileService.getFollowers(userId, user?.id, {
+            limit: PAGE_SIZE,
+            offset: pageParam,
+          }),
+          EMPTY_PAGE
+        );
       } else {
-        return SailorProfileService.getFollowing(userId, user?.id, {
-          limit: PAGE_SIZE,
-          offset: pageParam,
-        });
+        return withQueryTimeout(
+          SailorProfileService.getFollowing(userId, user?.id, {
+            limit: PAGE_SIZE,
+            offset: pageParam,
+          }),
+          EMPTY_PAGE
+        );
       }
     },
     getNextPageParam: (lastPage, allPages) => {
