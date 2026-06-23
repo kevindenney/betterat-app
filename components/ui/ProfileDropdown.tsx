@@ -20,6 +20,7 @@ import {
   Text,
   Pressable,
   Image,
+  ScrollView,
   StyleSheet,
   Platform,
   Modal,
@@ -78,7 +79,7 @@ export function ProfileDropdown({
   const [open, setOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const scale = useSharedValue(1);
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   // On native the inline-absolute menu is trapped in the chrome's stacking
   // context, so later sibling overlays (e.g. Atlas's "Nearby" pill) paint on
   // top of it. Rendering the open menu in a Modal lets it escape that context
@@ -140,6 +141,8 @@ export function ProfileDropdown({
   const isDark = variant === 'dark';
   const halfSize = size / 2;
   const avatarDynamic = { width: size, height: size, borderRadius: halfSize };
+  const nativeMenuTop = anchor?.top ?? size + 8;
+  const nativeMenuMaxHeight = Math.max(240, windowHeight - nativeMenuTop - 16);
 
   const handleClose = () => setOpen(false);
   const navigate = (path: string) => {
@@ -363,6 +366,7 @@ export function ProfileDropdown({
                   s.dropdown,
                   s.dropdownModal,
                   { top: anchor?.top ?? size + 8 },
+                  { maxHeight: nativeMenuMaxHeight },
                   menuAlign === 'left'
                     ? { left: anchor?.left ?? 8 }
                     : { right: anchor?.right ?? 8 },
@@ -370,7 +374,15 @@ export function ProfileDropdown({
                 ]}
                 onPress={(e) => e.stopPropagation?.()}
               >
-                {menuBody}
+                <ScrollView
+                  style={{ maxHeight: nativeMenuMaxHeight }}
+                  contentContainerStyle={s.menuScrollContent}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator
+                >
+                  {menuBody}
+                </ScrollView>
               </Pressable>
             </Pressable>
           </Modal>
@@ -1012,6 +1024,9 @@ const s = StyleSheet.create({
   },
   dropdownModal: {
     position: 'absolute',
+  },
+  menuScrollContent: {
+    paddingBottom: 8,
   },
 
   popInner: { paddingVertical: 8 },
