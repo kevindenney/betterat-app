@@ -1939,14 +1939,19 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         },
       });
     }
-    menuActions.push({
-      label: 'Open in iOS preview',
-      icon: <Ionicons name="sparkles-outline" size={20} color={STEP_COLORS.label} />,
-      onPress: () => {
-        setMenuOpen(false);
-        router.push(`/race/ios/${step.id}` as any);
-      },
-    });
+    // Dev-only design-migration preview (renders the step with the iOS
+    // register kit at /race/ios/<id>). Hidden in production builds — most
+    // of that surface is still placeholder data.
+    if (__DEV__) {
+      menuActions.push({
+        label: 'Open in iOS preview',
+        icon: <Ionicons name="sparkles-outline" size={20} color={STEP_COLORS.label} />,
+        onPress: () => {
+          setMenuOpen(false);
+          router.push(`/race/ios/${step.id}` as any);
+        },
+      });
+    }
 
     // v3 screen-designs Phase B — when STEP_IDENTITY_DECK_V3 is on we
     // replace headerInner + belowTitleRow with <IdentityDeck> +
