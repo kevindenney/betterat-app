@@ -374,8 +374,8 @@ export function CrewThreadChat({
   return (
     <KeyboardAvoidingView
       style={[staticStyles.container, { backgroundColor: colors.systemBackground }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={100}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
       {/* Message list */}
       <FlatList

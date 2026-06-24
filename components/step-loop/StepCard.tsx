@@ -23,7 +23,7 @@
  */
 
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { MoreVertical } from 'lucide-react-native';
 import { GRAY_5, LABEL_3 } from '@/lib/design-tokens-step-loop-ios';
 import type { PhaseTabsProps } from './PhaseTabs';
@@ -130,7 +130,11 @@ export function StepCard({
 
   if (scrollAsUnit) {
     return (
-      <View style={[styles.card, style]} testID={testID}>
+      <KeyboardAvoidingView
+        style={[styles.card, style]}
+        behavior={Platform.OS === 'android' ? 'height' : undefined}
+        testID={testID}
+      >
         <ScrollView
           style={styles.scrollContainer}
           contentContainerStyle={[
@@ -150,7 +154,7 @@ export function StepCard({
           <View style={styles.bodyIntrinsic}>{children}</View>
         </ScrollView>
         {footer ? <View style={styles.footer}>{footer}</View> : null}
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 

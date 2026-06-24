@@ -1265,10 +1265,9 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           accessibilityLabel={adoptedCopy ? 'Open adopted step' : 'Add step to timeline'}
           onPress={handleAdoptPeerStep}
           disabled={adoptStep.isPending}
-          style={({ pressed }) => [
+          style={[
             styles.peerActionButton,
             styles.peerActionButtonPrimary,
-            pressed && styles.peerActionButtonPressed,
             adoptStep.isPending && styles.peerActionButtonDisabled,
           ]}
         >
@@ -1289,11 +1288,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           accessibilityRole="button"
           accessibilityLabel="Message step author"
           onPress={handleMessageStepOwner}
-          style={({ pressed }) => [
-            styles.peerActionButton,
-            styles.peerActionButtonSecondary,
-            pressed && styles.peerActionButtonPressed,
-          ]}
+          style={[styles.peerActionButton, styles.peerActionButtonSecondary]}
         >
           <Ionicons name="chatbubble-outline" size={15} color={STEP_COLORS.label} />
           <Text style={styles.peerActionSecondaryText} numberOfLines={1}>
@@ -2856,9 +2851,6 @@ const styles = StyleSheet.create({
     backgroundColor: STEP_COLORS.headerBg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: STEP_COLORS.border,
-  },
-  peerActionButtonPressed: {
-    opacity: 0.82,
   },
   peerActionButtonDisabled: {
     opacity: 0.62,
