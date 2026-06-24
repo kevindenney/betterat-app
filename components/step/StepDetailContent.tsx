@@ -1222,7 +1222,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const handleAdoptPeerStep = useCallback(() => {
     if (!step || isOwner) return;
     if (adoptedCopy) {
-      router.push(`/step/${adoptedCopy.id}` as any);
+      router.push(`/(tabs)/practice?selected=${adoptedCopy.id}` as any);
       return;
     }
     const targetInterestId = step.interest_id ?? currentInterest?.id ?? null;
@@ -1234,7 +1234,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       { sourceStepId: step.id, interestId: targetInterestId },
       {
         onSuccess: (created) => {
-          router.push(`/step/${created.id}` as any);
+          router.push(`/(tabs)/practice?selected=${created.id}` as any);
         },
         onError: (error) => {
           const message =
