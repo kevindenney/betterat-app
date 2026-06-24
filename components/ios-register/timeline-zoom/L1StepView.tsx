@@ -28,6 +28,7 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -143,6 +144,58 @@ const WEB_L1_CARD_WIDTH = '33%';
 const WEB_L1_CARD_LEFT = '33.5%';
 const WEB_L1_CARD_GUTTER = 20;
 
+// How many cards to keep mounted on each side of the focused one. One is enough
+// for the peek + a flash-free hand-off: the incoming neighbour is already
+// mounted (and its StepDetailContent already loaded) before it slides to centre.
+const PAGER_WINDOW = 1;
+
+/**
+ * The window of sibling steps to render, each tagged with its absolute index in
+ * the full list. Positioning by absolute index (not by prev/focused/next role)
+ * is what lets a card keep its identity when focus moves onto it.
+ */
+function buildWindow(
+  steps: TimelineStep[],
+  focusedIndex: number,
+): { step: TimelineStep; index: number }[] {
+  const out: { step: TimelineStep; index: number }[] = [];
+  for (let i = focusedIndex - PAGER_WINDOW; i <= focusedIndex + PAGER_WINDOW; i++) {
+    if (i >= 0 && i < steps.length) out.push({ step: steps[i], index: i });
+  }
+  return out;
+}
+
+/**
+ * One card in the L1 pager lane. Its rest position is `cardBase` (its absolute
+ * index × stride); the shared `scrollX` slides the whole lane. Because cardBase
+ * is keyed to the step's identity (not its role), React reuses this instance
+ * when the step transitions next → focused, so StepDetailContent never remounts.
+ */
+function PagerCard({
+  scrollX,
+  cardBase,
+  isFocused,
+  children,
+}: {
+  scrollX: SharedValue<number>;
+  cardBase: number;
+  isFocused: boolean;
+  children: React.ReactNode;
+}) {
+  const style = useAnimatedStyle(
+    () => ({ transform: [{ translateX: cardBase - scrollX.value }] }),
+    [cardBase],
+  );
+  return (
+    <Animated.View
+      style={[styles.pagerCard, isFocused && styles.pagerCardFocused, style]}
+      pointerEvents={isFocused ? 'auto' : 'none'}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
 export function L1StepView({
   dataset,
   step,
@@ -180,20 +233,38 @@ export function L1StepView({
     Platform.OS === 'web'
       ? hostWidth * WEB_L1_CARD_WIDTH_RATIO + WEB_L1_CARD_GUTTER
       : SCREEN_WIDTH;
-  const translateX = useSharedValue(0);
+  // Windowed pager geometry. Cards are positioned by their ABSOLUTE index in
+  // the sibling list (cardBase = index × stride) inside a lane scrolled by
+  // `scrollX`. Because a card's base position never depends on which step is
+  // focused, the card that was the off-screen "next" neighbour keeps the same
+  // React key + animated position when it becomes focused — React reuses the
+  // instance instead of unmounting the ghost and mounting a fresh
+  // StepDetailContent. That remount was the "mini flash" on landing.
+  const scrollX = useSharedValue(0);
+  const dragStartX = useSharedValue(0);
   const passedThreshold = useSharedValue(false);
 
-  // Keep the lane's neutral geometry synchronized with the focused step. When
-  // the parent swaps `step` (after a committed swipe, a jump, or a picker
-  // selection), reset translateX to 0 *in the same render* that swaps in the
-  // new step — so the incoming card lands centered with no intermediate frame
-  // showing the previous card. The swipe worklet deliberately leaves the lane
-  // translated (neighbour centered) until this runs, which is what kills the
-  // old-title flash on landing.
-  const lastStepIdRef = useRef(step.id);
-  if (lastStepIdRef.current !== step.id) {
-    lastStepIdRef.current = step.id;
-    translateX.value = 0;
+  const steps = allSteps ?? [];
+  const focusedIndex = steps.findIndex((s) => s.id === step.id);
+  const useList = focusedIndex >= 0;
+  const lastIndex = steps.length - 1;
+  const canPrev = useList ? focusedIndex > 0 : hasPrev;
+  const canNext = useList ? focusedIndex < lastIndex : hasNext;
+
+  // Keep scrollX pinned to the focused card's rest position. On a committed
+  // swipe the gesture has already animated scrollX to exactly this value, so
+  // this write is a no-op (no jump); on an external jump (picker / task bar)
+  // or a width change (web resize) it snaps the lane to re-center instantly.
+  const lastFocusRef = useRef<number | null>(null);
+  const lastStrideRef = useRef<number | null>(null);
+  if (
+    embedFullDetail &&
+    useList &&
+    (lastFocusRef.current !== focusedIndex || lastStrideRef.current !== swipeStridePx)
+  ) {
+    scrollX.value = focusedIndex * swipeStridePx;
+    lastFocusRef.current = focusedIndex;
+    lastStrideRef.current = swipeStridePx;
   }
 
   const handleHostLayout = useCallback((event: LayoutChangeEvent) => {
@@ -221,14 +292,14 @@ export function L1StepView({
     .failOffsetY([-12, 12])
     .onStart(() => {
       'worklet';
+      dragStartX.value = scrollX.value;
       passedThreshold.value = false;
       runOnJS(fireLightHaptic)();
     })
     .onUpdate((e) => {
       'worklet';
-      // Rubber-banded follow: the card moves with the finger but dampened
-      // so the gesture feels held back enough to read as intentional.
-      translateX.value = e.translationX * SWIPE_RUBBER_FACTOR;
+      // Lane follows the finger 1:1 — scroll grows as you drag left (toward next).
+      scrollX.value = dragStartX.value - e.translationX * SWIPE_RUBBER_FACTOR;
       // Threshold-cross light haptic — once per gesture.
       const crossed = Math.abs(e.translationX) > SWIPE_PX_THRESHOLD;
       if (crossed && !passedThreshold.value) {
@@ -243,42 +314,27 @@ export function L1StepView({
       const enoughDistance = Math.abs(e.translationX) > SWIPE_PX_THRESHOLD;
       const enoughVelocity = Math.abs(e.velocityX) > SWIPE_VELOCITY_THRESHOLD;
       if (!enoughDistance && !enoughVelocity) {
-        // Cancelled — spring back to center.
-        translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
+        // Cancelled — spring back to the current card's rest position.
+        scrollX.value = withSpring(dragStartX.value, { damping: 18, stiffness: 220 });
         return;
       }
-      const dir = e.translationX > 0 ? 1 : -1;
-      if ((dir > 0 && !hasPrev) || (dir < 0 && !hasNext)) {
-        translateX.value = withSpring(0, { damping: 18, stiffness: 220 });
+      const goPrev = e.translationX > 0;
+      if ((goPrev && !canPrev) || (!goPrev && !canNext)) {
+        scrollX.value = withSpring(dragStartX.value, { damping: 18, stiffness: 220 });
         return;
       }
-      const direction = dir > 0 ? 'prev' : 'next';
-      // Let the visible neighbor slide into the center, then commit the focus
-      // change. We do NOT reset translateX here: snapping the lane back to 0
-      // before the parent swaps in the new focusStepId leaves the stale (old)
-      // card centered at x=0 for the entire heavy re-render, which reads as the
-      // old title flashing back. Instead the lane holds with the neighbor
-      // centered, and translateX is reset to 0 in the same render that swaps in
-      // the new step (see the step.id guard above).
-      translateX.value = withTiming(dir * swipeStridePx, { duration: 220 }, (finished) => {
+      const direction = goPrev ? 'prev' : 'next';
+      // Settle the neighbour into the centre, then commit the focus change.
+      // scrollX lands exactly on the next card's rest position, so when the
+      // parent swaps in the new focused step the rest-pin guard above is a
+      // no-op and the reused card simply stays centred — no remount, no flash.
+      const target = dragStartX.value + (goPrev ? -swipeStridePx : swipeStridePx);
+      scrollX.value = withTiming(target, { duration: 220 }, (finished) => {
         if (finished) {
           runOnJS(fireSwipe)(direction);
         }
       });
     });
-
-  const translateStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-  // Neighbor cards sit one card-width + gutter to either side. They share
-  // translateX with the focused card so the lane moves as one horizontal
-  // timeline strip.
-  const prevTranslateStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value - swipeStridePx }],
-  }));
-  const nextTranslateStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value + swipeStridePx }],
-  }));
 
   if (embedFullDetail) {
     return (
@@ -301,30 +357,26 @@ export function L1StepView({
         ) : null}
         <GestureDetector gesture={swipeGesture}>
           <View style={styles.embedGestureLayer}>
-            {prevStep ? (
-              <Animated.View
-                style={[styles.ghostCard, prevTranslateStyle]}
-                pointerEvents="none"
-              >
-                <EmbeddedStepCard step={prevStep} bottomInset={bottomInset} />
-              </Animated.View>
-            ) : null}
-            {nextStep ? (
-              <Animated.View
-                style={[styles.ghostCard, nextTranslateStyle]}
-                pointerEvents="none"
-              >
-                <EmbeddedStepCard step={nextStep} bottomInset={bottomInset} />
-              </Animated.View>
-            ) : null}
-            <Animated.View style={[styles.embedContent, translateStyle]}>
-              <EmbeddedStepCard
-                step={step}
-                onScroll={onScroll}
-                onStepDeleted={onStepDeleted}
-                bottomInset={bottomInset}
-              />
-            </Animated.View>
+            {(useList ? buildWindow(steps, focusedIndex) : [{ step, index: 0 }]).map(
+              ({ step: cardStep, index }) => {
+                const isFocused = cardStep.id === step.id;
+                return (
+                  <PagerCard
+                    key={cardStep.id}
+                    scrollX={scrollX}
+                    cardBase={index * swipeStridePx}
+                    isFocused={isFocused}
+                  >
+                    <EmbeddedStepCard
+                      step={cardStep}
+                      onScroll={isFocused ? onScroll : undefined}
+                      onStepDeleted={isFocused ? onStepDeleted : undefined}
+                      bottomInset={bottomInset}
+                    />
+                  </PagerCard>
+                );
+              },
+            )}
           </View>
         </GestureDetector>
         {showStepSwitcher && allSteps ? (
@@ -642,36 +694,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   embedDetailHost: { flex: 1, position: 'relative' },
-  embedContent: {
-    flex: 1,
-    marginHorizontal: CARD_INSET,
-    marginVertical: 10,
-    backgroundColor: IOS_REGISTER.cardBg,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(0,0,0,0.06)',
-    overflow: 'hidden',
-    zIndex: 2,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.16,
-        shadowRadius: 24,
-        shadowOffset: { width: 0, height: 10 },
-      },
-      android: { elevation: 9 },
-      web: {
-        alignSelf: 'center',
-        boxShadow:
-          '0 1px 2px rgba(0,0,0,0.06), 0 18px 40px -16px rgba(0,0,0,0.28), 0 6px 14px -6px rgba(0,0,0,0.12)',
-        width: WEB_L1_CARD_WIDTH,
-      } as any,
-      default: {},
-    }),
-  },
-  // Adjacent embedded step cards. They render real content but do not
-  // receive pointer events; swiping anywhere in the lane moves the strip.
-  ghostCard: {
+  // Every card in the pager lane shares this geometry. They're absolutely
+  // positioned and slide as one strip via each card's translateX, so the
+  // focused card and its peeking neighbours are laid out identically — the
+  // only difference is zIndex + pointer events (see pagerCardFocused).
+  pagerCard: {
     position: 'absolute',
     top: 10,
     bottom: 10,
@@ -695,9 +722,14 @@ const styles = StyleSheet.create({
         left: WEB_L1_CARD_LEFT,
         right: 'auto',
         width: WEB_L1_CARD_WIDTH,
+        boxShadow:
+          '0 1px 2px rgba(0,0,0,0.06), 0 18px 40px -16px rgba(0,0,0,0.28), 0 6px 14px -6px rgba(0,0,0,0.12)',
       } as any,
       default: {},
     }),
+  },
+  pagerCardFocused: {
+    zIndex: 3,
   },
   // Adjacent-step silhouettes — edge + corner + shadow only, no content.
   // Sit behind the main card; the user reads them as "more here".
