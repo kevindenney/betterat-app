@@ -144,10 +144,15 @@ const WEB_L1_CARD_WIDTH = '33%';
 const WEB_L1_CARD_LEFT = '33.5%';
 const WEB_L1_CARD_GUTTER = 20;
 
-// How many cards to keep mounted on each side of the focused one. One is enough
-// for the peek + a flash-free hand-off: the incoming neighbour is already
-// mounted (and its StepDetailContent already loaded) before it slides to centre.
-const PAGER_WINDOW = 1;
+// How many cards to keep mounted on each side of the focused one. Two — not one.
+// At rest the lane shows three cards (prev · focused · next), so a single buffer
+// looks sufficient. But a drag slides the whole lane up to a full stride before
+// the gesture resolves, which uncovers the `focused ± 2` slot. With only one card
+// buffered that slot is unmounted, so the incoming step reads as a gray gap until
+// release re-centres the window and mounts it. Buffering two keeps the next-out
+// card mounted (StepDetailContent already loaded) so it slides into view from the
+// moment the scroll begins, instead of popping in on release.
+const PAGER_WINDOW = 2;
 
 /**
  * The window of sibling steps to render, each tagged with its absolute index in
