@@ -81,7 +81,13 @@ const scrollToId = (id: string) => {
 const openUrl = (url: string) => {
   Linking.openURL(url).catch(() => {});
 };
-const goRoute = (route: string) => router.push(route as never);
+const goRoute = (route: string) => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && route.startsWith('/')) {
+    window.location.assign(route);
+    return;
+  }
+  router.push(route as never);
+};
 
 // ── small shared atoms ───────────────────────────────────────────────
 function Wrap({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
@@ -215,7 +221,7 @@ export function NetflixLandingPage() {
       <View nativeID="top" style={s.hero}>
         <Wrap>
           <Text style={s.h1}>
-            Get measurably better at <Text style={s.h1Em}>anything</Text> you practice.
+            Get better at <Text style={s.h1Em}>anything</Text> you practice.
           </Text>
           <Text style={s.lede}>
             It starts with one real path — a <Text style={s.b}>Dragon World Championship</Text>{' '}
@@ -737,7 +743,7 @@ export function NetflixLandingPage() {
                 <BetterAtLogo size={26} />
                 <Text style={s.brandText}>BetterAt</Text>
               </View>
-              <Text style={s.footBrandP}>Get measurably better at anything you practice. One model for every craft — interests, organizations, blueprints and people.</Text>
+              <Text style={s.footBrandP}>Get better at anything you practice. One model for every craft — interests, organizations, blueprints and people.</Text>
             </View>
             <View style={s.footCol}>
               <Text style={s.footColH5}>Product</Text>

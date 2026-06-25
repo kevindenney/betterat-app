@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>BetterAt — Get measurably better at anything you practice</title>
+<title>BetterAt — Get better at anything you practice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -102,6 +102,7 @@
   .lg{width:9px;height:9px;border-radius:50%}
 
   .demo-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}
+  .demo-grid.one{grid-template-columns:minmax(0,620px);justify-content:center}
   @media(max-width:780px){.demo-grid{grid-template-columns:1fr}}
   .frame{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lg);overflow:hidden}
   .frame-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line-soft);background:#fbfcfe}
@@ -119,6 +120,12 @@
   .mk-tab.plan.on{background:rgba(45,127,249,.1);color:var(--plan);border-color:rgba(45,127,249,.25)}
   .mk-tab.plan.on .b{background:var(--plan)}
   .mk-tab .b.chk{background:var(--review)}
+  .mk-tab{cursor:pointer;transition:.18s}
+  .mk-tab.do.on{background:#fff7ed;color:var(--do);border-color:#fed7aa}
+  .mk-tab.do.on .b{background:var(--do)}
+  .mk-tab.review.on{background:#f0fdf4;color:var(--review);border-color:#bbf7d0}
+  .mk-tab.review.on .b{background:var(--review)}
+  .ph-panel[hidden]{display:none}
 
   .mk-card{border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:9px;background:#fff}
   .mk-lbl{font-size:11.5px;font-weight:600;color:var(--accent-ink);margin-bottom:5px;display:flex;align-items:center;gap:6px;transition:.3s}
@@ -287,7 +294,7 @@
     </div>
     <div class="nav-cta">
       <a class="signin" href="/login">Sign in</a>
-      <a class="pill-btn" href="/pricing">Get started</a>
+      <a class="pill-btn" href="#pricing">Get started</a>
     </div>
   </div>
 </nav>
@@ -296,7 +303,7 @@
 <header class="hero">
   <div class="wrap">
     <div class="eyebrow rv" id="eyebrow">One engine · every interest</div>
-    <h1 class="rv">Get measurably better at <em id="hero-craft">anything</em> you practice.</h1>
+    <h1 class="rv">Get better at <em id="hero-craft">anything you practice</em>.</h1>
     <p class="lede rv" id="hero-lede">Real practitioners break their craft into steps you actually work. Subscribe and they drop into your timeline — one <b>Plan → Do → Review → Discuss</b> at a time, in your field's own words.</p>
 
     <div class="switch-label rv">Pick an interest — watch the app speak your language</div>
@@ -319,73 +326,78 @@
         </div>
       </div>
 
-      <div class="demo-grid">
-        <!-- PLAN frame -->
+      <div class="demo-grid one">
         <div class="frame">
           <div class="frame-bar"><span class="tl"><i></i><i></i><i></i></span><span class="frame-url">betterat.app/practice</span></div>
           <div class="frame-body">
             <div class="mk-title" id="d-title">Tune the rig for race-day breeze</div>
             <div class="mk-phaseline" id="d-phase">Dragon Worlds · race-week · Tue</div>
             <div class="mk-tabs">
-              <span class="mk-tab plan on"><span class="b">1</span>Plan</span>
-              <span class="mk-tab do"><span class="b">2</span>Do</span>
-              <span class="mk-tab review"><span class="b">3</span>Review</span>
-              <span class="mk-tab discuss"><span class="b">4</span>Discuss</span>
+              <span class="mk-tab plan on" data-ph="plan"><span class="b">1</span>Plan</span>
+              <span class="mk-tab do" data-ph="do"><span class="b">2</span>Do</span>
+              <span class="mk-tab review" data-ph="review"><span class="b">3</span>Review</span>
+              <span class="mk-tab discuss" data-ph="discuss"><span class="b">4</span>Discuss</span>
             </div>
-            <div class="mk-card">
-              <div class="mk-lbl">💡 <span id="d-whatlbl">What will you do?</span></div>
-              <div class="mk-val" id="d-what">Set base + 2 for the 12–15 kt forecast</div>
-              <span class="mk-ai">✦ <span id="d-ai">Open AI Coach</span></span>
-            </div>
-            <div class="mk-card">
-              <div class="mk-lbl">☰ How will you do it?</div>
-              <div id="d-subs"></div>
-            </div>
-            <div class="mk-card">
-              <div class="mk-lbl">🎯 Why — capability</div>
-              <div class="mk-chips" id="d-caps"></div>
-            </div>
-            <div class="mk-card" style="margin-bottom:0">
-              <div class="mk-lbl">👥 With whom?</div>
-              <div class="crew"><span class="cav" id="d-crewav">KD</span><span id="d-crew">Helm · bow · trim</span></div>
-            </div>
-          </div>
-        </div>
 
-        <!-- DO + REVIEW side -->
-        <div>
-          <div class="side-card">
-            <div class="side-head" style="color:var(--do)"><span class="cdot" style="background:var(--do)"></span>Do · capture in the moment</div>
-            <div class="capture-field"><span id="d-capture">Jot a quick note…</span><span>↑</span></div>
-            <div class="capture-row">
-              <span class="cbtn">🎙 Voice</span><span class="cbtn">📷 Photo</span><span class="cbtn" id="d-channelbtn">💬 Telegram</span>
+            <!-- PLAN -->
+            <div class="ph-panel" data-ph="plan">
+              <div class="mk-card">
+                <div class="mk-lbl">💡 <span id="d-whatlbl">What will you do?</span></div>
+                <div class="mk-val" id="d-what">Set base + 2 for the 12–15 kt forecast</div>
+                <span class="mk-ai">✦ <span id="d-ai">Open AI Coach</span></span>
+              </div>
+              <div class="mk-card">
+                <div class="mk-lbl">☰ How will you do it?</div>
+                <div id="d-subs"></div>
+              </div>
+              <div class="mk-card">
+                <div class="mk-lbl">🎯 Why — capability</div>
+                <div class="mk-chips" id="d-caps"></div>
+              </div>
+              <div class="mk-card" style="margin-bottom:0">
+                <div class="mk-lbl">👥 With whom?</div>
+                <div class="crew"><span class="cav" id="d-crewav">KD</span><span id="d-crew">Helm · bow · trim</span></div>
+              </div>
             </div>
-            <div class="note-bubble" id="d-note">Base + 2 held steady through 14 kt. Forestay felt right off the line — touch loose in the top puffs.
-              <div class="who" id="d-notewho">Captured 13:42 · on the water</div>
+
+            <!-- DO -->
+            <div class="ph-panel" data-ph="do" hidden>
+              <div class="side-head" style="color:var(--do)"><span class="cdot" style="background:var(--do)"></span>Capture in the moment</div>
+              <div class="capture-field"><span id="d-capture">Jot a quick note…</span><span>↑</span></div>
+              <div class="capture-row">
+                <span class="cbtn">🎙 Voice</span><span class="cbtn">📷 Photo</span><span class="cbtn" id="d-channelbtn">💬 Telegram</span>
+              </div>
+              <div class="note-bubble" id="d-note">Base + 2 held steady through 14 kt. Forestay felt right off the line — touch loose in the top puffs.
+                <div class="who" id="d-notewho">Captured 13:42 · on the water</div>
+              </div>
             </div>
-          </div>
-          <div class="side-card">
-            <div class="side-head" style="color:var(--review)"><span class="cdot" style="background:var(--review)"></span>Review · what it added up to</div>
-            <span class="rv-badge" id="d-rvbadge">✓ Settled</span>
-            <div class="rv-line" id="d-rvline">Boatspeed evidence logged vs. the fleet. The librarian flagged a tuning pattern for light air.</div>
-            <div class="goal">
-              <div class="gicon" id="d-goalicon">🏆</div>
-              <div><div class="gt">Working toward</div><div class="gv" id="d-goal">Podium at the Worlds</div></div>
+
+            <!-- REVIEW -->
+            <div class="ph-panel" data-ph="review" hidden>
+              <div class="side-head" style="color:var(--review)"><span class="cdot" style="background:var(--review)"></span>What it added up to</div>
+              <span class="rv-badge" id="d-rvbadge">✓ Settled</span>
+              <div class="rv-line" id="d-rvline">Boatspeed evidence logged vs. the fleet. The librarian flagged a tuning pattern for light air.</div>
+              <div class="goal">
+                <div class="gicon" id="d-goalicon">🏆</div>
+                <div><div class="gt">Working toward</div><div class="gv" id="d-goal">Podium at the Worlds</div></div>
+              </div>
             </div>
-          </div>
-          <div class="side-card" style="margin-bottom:0">
-            <div class="side-head" style="color:var(--discuss)"><span class="cdot" style="background:var(--discuss)"></span>Discuss · talk it through with people</div>
-            <div class="thread-who"><span class="cav" id="d-dwhoav">KD</span><span id="d-dwho">Kevin Denney</span><span class="au">· author</span></div>
-            <div class="note-bubble discuss" id="d-dmsg">Base + 2 is my go-to for 12–15. If it goes soft before the start, drop back to base — you’ll point higher off the line.</div>
-            <div class="capture-field" style="margin-top:11px"><span>Add a comment…</span><span>↑</span></div>
-            <div class="thread-hint">Subscribe the blueprint and bring your crew — the thread is where a step turns into a conversation.</div>
+
+            <!-- DISCUSS -->
+            <div class="ph-panel" data-ph="discuss" hidden>
+              <div class="side-head" style="color:var(--discuss)"><span class="cdot" style="background:var(--discuss)"></span>Talk it through with people</div>
+              <div class="thread-who"><span class="cav" id="d-dwhoav">KD</span><span id="d-dwho">Kevin Denney</span><span class="au">· author</span></div>
+              <div class="note-bubble discuss" id="d-dmsg">Base + 2 is my go-to for 12–15. If it goes soft before the start, drop back to base — you’ll point higher off the line.</div>
+              <div class="capture-field" style="margin-top:11px"><span>Add a comment…</span><span>↑</span></div>
+              <div class="thread-hint">Subscribe the blueprint and bring your crew — the thread is where a step turns into a conversation.</div>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="demo-cta">
-        <a class="btn-fill" id="d-cta" href="/blueprint/dragon-worlds-2027-peak-performance?auto_subscribe=1">Get the Dragon Worlds blueprint</a>
-        <a class="btn-ghost" href="/pricing">or start your own path ›</a>
+        <a class="btn-fill" id="d-cta" href="#pricing">Get the Dragon Worlds blueprint</a>
+        <a class="btn-ghost" href="#pricing">or start your own path ›</a>
       </div>
     </div>
   </div>
@@ -417,7 +429,7 @@
           <span class="cb-goal">✅ Competency sign-offs</span>
           <span class="cb-goal">🎓 NCLEX-ready</span>
         </div>
-        <a class="cb-cta" style="background:var(--accent)" href="/schools/start-pilot">Start with your school's blueprint ›</a>
+        <a class="cb-cta" style="background:var(--accent)" href="#pricing">Start with your school's blueprint ›</a>
       </div>
       <div class="cb-art">
         <div class="phone">
@@ -468,7 +480,7 @@
           <span class="cb-goal">⛳ Break 80</span>
           <span class="cb-goal">🏅 Qualify for club champ</span>
         </div>
-        <a class="cb-cta" style="background:var(--accent)" href="/pricing">Follow a coach's blueprint ›</a>
+        <a class="cb-cta" style="background:var(--accent)" href="#pricing">Follow a coach's blueprint ›</a>
       </div>
       <div class="cb-art">
         <div class="phone">
@@ -519,7 +531,7 @@
           <span class="cb-goal">📈 Boatspeed vs. fleet</span>
           <span class="cb-goal">🎯 Clean starts</span>
         </div>
-        <a class="cb-cta" style="background:var(--accent)" href="/blueprint/dragon-worlds-2027-peak-performance?auto_subscribe=1">Get the Dragon Worlds blueprint ›</a>
+        <a class="cb-cta" style="background:var(--accent)" href="#pricing">Get the Dragon Worlds blueprint ›</a>
       </div>
       <div class="cb-art">
         <div class="phone">
@@ -570,7 +582,7 @@
           <span class="cb-goal">🔁 Repeat customers</span>
           <span class="cb-goal">👭 Hire her first helper</span>
         </div>
-        <a class="cb-cta" style="background:var(--accent)" href="/pricing">Start free on Telegram ›</a>
+        <a class="cb-cta" style="background:var(--accent)" href="#pricing">Start free on Telegram ›</a>
       </div>
       <div class="cb-art">
         <div class="phone">
@@ -734,7 +746,7 @@
         </div>
       </div>
       <div class="pane-foot">
-        <a class="btn-fill" href="/schools/start-pilot">Talk to our team</a>
+        <a class="btn-fill" href="#pricing">Talk to our team</a>
         <span class="pane-note">Start with the free claim path if you just need an official presence. Move to a paid plan when you need cohorts, paid blueprints, or centralized billing.</span>
       </div>
     </div>
@@ -767,8 +779,8 @@
         </div>
       </div>
       <div class="pane-foot">
-        <a class="btn-fill" href="/schools/pricing">See institutional pricing →</a>
-        <a class="btn-ghost" href="/schools/start-pilot">Apply for subsidized access</a>
+        <a class="btn-fill" href="#pricing">See institutional pricing →</a>
+        <a class="btn-ghost" href="#pricing">Apply for subsidized access</a>
       </div>
     </div>
   </div>
@@ -780,7 +792,7 @@
     <h2 class="serif">Whatever you're getting better at — start today.</h2>
     <p class="sub">One real step is all it takes. Pick an interest and watch the path appear.</p>
     <div class="demo-cta">
-      <a class="btn-fill" href="/pricing">Get started free</a>
+      <a class="btn-fill" href="#pricing">Get started free</a>
       <a class="btn-ghost" href="#interests">Browse the interests ›</a>
     </div>
   </div>
@@ -788,7 +800,7 @@
 
 <footer>
   <div class="wrap foot-inner">
-    <span>© BetterAt — get measurably better at anything you practice.</span>
+    <span>© BetterAt — get better at anything you practice.</span>
     <span>Sailing today · nursing, golf &amp; livelihoods next.</span>
   </div>
 </footer>
@@ -798,8 +810,8 @@
   const P = {
     sailing:{
       label:'Sail Racing', car:'· Dragon World Championship',
-      accent:'#2d7ff9', soft:'rgba(45,127,249,.12)', ink:'#1c6df0', navletter:'B', ctaHref:'/blueprint/dragon-worlds-2027-peak-performance?auto_subscribe=1',
-      heroWord:'racing', eyebrow:'Sailing · live today',
+      accent:'#2d7ff9', soft:'rgba(45,127,249,.12)', ink:'#1c6df0', navletter:'B', ctaHref:'#pricing',
+      heroWord:'sail racing', eyebrow:'Sailing · live today',
       lede:'A Dragon World Championship race-week prep, authored by someone who has done it — every step drops into your timeline with the breeze, the boat and the crew that matter.',
       title:'Tune the rig for race-day breeze', phase:'Dragon Worlds · race-week · Tue',
       whatlbl:'What will you do?', what:'Set base + 2 for the 12–15 kt forecast', ai:'Open AI Coach',
@@ -813,8 +825,8 @@
     },
     nursing:{
       label:'Nursing', car:'· Johns Hopkins School of Nursing',
-      accent:'#0ea5a4', soft:'rgba(14,165,164,.12)', ink:'#0b8a89', navletter:'B', ctaHref:'/schools/start-pilot',
-      heroWord:'your degree', eyebrow:'Nursing · on the roadmap',
+      accent:'#0ea5a4', soft:'rgba(14,165,164,.12)', ink:'#0b8a89', navletter:'B', ctaHref:'#pricing',
+      heroWord:'your nursing degree', eyebrow:'Nursing · on the roadmap',
       lede:'Your program already has the structure — rotations, competencies, NCLEX. BetterAt turns it into a timeline you work shift by shift, building evidence toward your sign-offs.',
       title:'Pre-shift prep — 4-patient assignment', phase:'Adult Health I · Med-Surg · Week 6 of 14',
       whatlbl:'What’s the plan for the shift?', what:'Safe care for a 4-patient med-surg load', ai:'Ask the AI Coach',
@@ -828,7 +840,7 @@
     },
     golf:{
       label:'Golf', car:'· handicap 14.2 → 9',
-      accent:'#3f9d5a', soft:'rgba(63,157,90,.13)', ink:'#2f8048', navletter:'B', ctaHref:'/pricing',
+      accent:'#3f9d5a', soft:'rgba(63,157,90,.13)', ink:'#2f8048', navletter:'B', ctaHref:'#pricing',
       heroWord:'golf', eyebrow:'Golf · on the roadmap',
       lede:'Stop hitting balls with no plan. Every range session and round becomes a step with a purpose — and your capabilities show exactly where the strokes are hiding.',
       title:'Range session — wedge distance ladder', phase:'Spring league · range day · goal break 80',
@@ -843,8 +855,8 @@
     },
     craft:{
       label:'Her business', car:'· Ranchi, Jharkhand',
-      accent:'#e0741a', soft:'rgba(224,116,26,.13)', ink:'#b65a10', navletter:'B', ctaHref:'/pricing',
-      heroWord:'her business', eyebrow:'Livelihoods · on the roadmap',
+      accent:'#e0741a', soft:'rgba(224,116,26,.13)', ink:'#b65a10', navletter:'B', ctaHref:'#pricing',
+      heroWord:'your business', eyebrow:'Livelihoods · on the roadmap',
       lede:'Priya makes lac bangles from home. Her calendar is festivals, not weeks. BetterAt meets her in Telegram — she captures orders and supplier runs by voice note in Hindi, and the app holds the bigger picture.',
       title:'Diwali batch — 40 lac bangle sets', phase:'Diwali rush · 3 weeks out · आज का काम',
       whatlbl:'What’s today’s work?', what:'Get 40 sets ready for the Diwali rush', ai:'AI Coach (हिन्दी)',
@@ -900,6 +912,13 @@
   }
 
   document.querySelectorAll('.pchip').forEach(c => c.addEventListener('click', () => paint(c.dataset.k)));
+
+  /* phase tabs — switch the phone through Plan · Do · Review · Discuss */
+  document.querySelectorAll('.mk-tab').forEach(t => t.addEventListener('click', () => {
+    const ph = t.dataset.ph;
+    document.querySelectorAll('.mk-tab').forEach(x => x.classList.toggle('on', x === t));
+    document.querySelectorAll('.ph-panel').forEach(pnl => { pnl.hidden = (pnl.dataset.ph !== ph); });
+  }));
 
   /* pricing audience toggle */
   document.querySelectorAll('.aud-pill').forEach(pill => pill.addEventListener('click', () => {

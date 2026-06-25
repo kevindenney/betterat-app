@@ -123,7 +123,7 @@ export function DataBrowserLandingPage() {
         <View style={styles.heroInner}>
           <Text style={styles.heroEyebrow}>DELIBERATE PRACTICE PLATFORM</Text>
           <Text style={[styles.heroTitle, isDesktop && styles.heroTitleDesktop]}>
-            Get measurably better at anything you practice.
+            Get better at anything you practice.
           </Text>
           <Text style={styles.heroLede}>
             One model for every craft — organizations, groups, people, and timelines.
