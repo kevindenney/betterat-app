@@ -11,7 +11,7 @@
  *
  * Web uses Stripe — see subscriptionService.web.ts.
  *
- * Pricing: Individual $9/mo ($90/yr), Pro $29/mo ($290/yr)
+ * Pricing: Individual $9/mo ($89/yr), Pro $29/mo ($290/yr)
  */
 
 import { NativeModules, Platform } from 'react-native';
@@ -136,11 +136,11 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
     }) as string,
     title: 'Individual',
     description: 'AI-powered race preparation',
-    price: '$90/year',
-    priceAmountMicros: 90000000,
+    price: '$89/year',
+    priceAmountMicros: 89000000,
     priceCurrencyCode: 'USD',
     billingPeriod: 'yearly',
-    effectiveMonthly: '$7.50/mo',
+    effectiveMonthly: '$7.42/mo',
     isPopular: true,
     features: [
       'Unlimited races',
@@ -203,29 +203,56 @@ function configProductForId(productId: string): SubscriptionProduct | undefined 
   return Object.values(SUBSCRIPTION_PRODUCTS).find((p) => p.id === productId);
 }
 
+function collectErrorText(error: unknown): string {
+  if (typeof error === 'string') return error.toLowerCase();
+  if (!error) return '';
+
+  const candidate = error as PurchasesErrorLike;
+  const userInfo = candidate.userInfo ?? {};
+  const parts = [
+    candidate.message,
+    candidate.underlyingErrorMessage,
+    candidate.readableErrorCode,
+    candidate.readable_error_code,
+    userInfo.underlyingErrorMessage,
+    userInfo.readableErrorCode,
+    userInfo.readable_error_code,
+    String(candidate.code ?? ''),
+  ];
+
+  try {
+    parts.push(JSON.stringify(error));
+  } catch {
+    // Native error payloads can be unserializable.
+  }
+
+  return parts.filter(Boolean).join(' ').toLowerCase();
+}
+
 function isAndroidBillingUnavailable(error: unknown): boolean {
   if (Platform.OS !== 'android') return false;
 
-  const candidate = error as PurchasesErrorLike | null | undefined;
-  const readableCode =
-    candidate?.readableErrorCode ??
-    candidate?.readable_error_code ??
-    candidate?.userInfo?.readableErrorCode ??
-    candidate?.userInfo?.readable_error_code ??
-    '';
-  const underlying =
-    candidate?.underlyingErrorMessage ??
-    candidate?.userInfo?.underlyingErrorMessage ??
-    candidate?.message ??
-    '';
-  const normalizedCode = String(candidate?.code ?? '');
-  const normalizedMessage = underlying.toLowerCase();
+  const normalizedMessage = collectErrorText(error);
 
   return (
     normalizedMessage.includes('billing is not available in this device') ||
     normalizedMessage.includes('billing service unavailable on device') ||
+    normalizedMessage.includes('billing service unavailable') ||
     normalizedMessage.includes('the device or user is not allowed to make the purchase') ||
-    (readableCode === 'PurchaseNotAllowedError' && normalizedCode === '3')
+    normalizedMessage.includes('not allowed to make the purchase') ||
+    normalizedMessage.includes('purchasenotallowed') ||
+    normalizedMessage.includes('purchase not allowed') ||
+    normalizedMessage.includes('could not find productdetails') ||
+    (normalizedMessage.includes('productdetails') && normalizedMessage.includes('not found')) ||
+    // Sideloaded dev/debug builds aren't store-distributed, so RevenueCat can't
+    // fetch any products and reports a ConfigurationError on every offerings
+    // fetch. Treat it like billing-unavailable: fall back to config prices.
+    normalizedMessage.includes('configurationerror') ||
+    normalizedMessage.includes('configuration_error') ||
+    normalizedMessage.includes('none of the products registered') ||
+    normalizedMessage.includes('error fetching offerings') ||
+    normalizedMessage.includes('issue with your configuration') ||
+    normalizedMessage.includes('problem with your configuration')
   );
 }
 
@@ -281,6 +308,13 @@ export class SubscriptionService {
 
       await this.loadProducts();
     } catch (error) {
+      if (isAndroidBillingUnavailable(error)) {
+        if (this.availableProducts.length === 0) {
+          this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
+        }
+        return;
+      }
+
       logger.error('Failed to initialize subscription service', error);
       // Don't throw — the paywall should still render config prices.
       if (this.availableProducts.length === 0) {
@@ -324,7 +358,6 @@ export class SubscriptionService {
       this.availableProducts = merged.length > 0 ? merged : Object.values(SUBSCRIPTION_PRODUCTS);
     } catch (error) {
       if (isAndroidBillingUnavailable(error)) {
-        logger.warn('Play billing unavailable on this Android device; using config products');
         this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
         return;
       }

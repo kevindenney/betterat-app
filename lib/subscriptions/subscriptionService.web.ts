@@ -3,7 +3,7 @@
  * Uses Stripe for web subscriptions
  *
  * Updated: 2026-03-15
- * Pricing: Individual $9/mo ($90/yr) / Pro $29/mo ($290/yr)
+ * Pricing: Individual $9/mo ($89/yr) / Pro $29/mo ($290/yr)
  */
 
 import { supabase } from '@/services/supabase';
@@ -81,11 +81,11 @@ export const SUBSCRIPTION_PRODUCTS: Record<string, SubscriptionProduct> = {
     id: STRIPE_PRICE_IDS.individual_yearly,
     title: 'Individual',
     description: 'AI-powered race preparation',
-    price: '$90/year',
-    priceAmountMicros: 90000000,
+    price: '$89/year',
+    priceAmountMicros: 89000000,
     priceCurrencyCode: 'USD',
     billingPeriod: 'yearly',
-    effectiveMonthly: '$7.50/mo',
+    effectiveMonthly: '$7.42/mo',
     isPopular: true,
     features: [
       'Unlimited races',

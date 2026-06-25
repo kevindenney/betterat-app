@@ -26,6 +26,7 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
+import StoreKitPlanScreen from '@/components/subscription/StoreKitPlanScreen';
 import { useTrialStatus } from '@/components/subscription/TrialWarningBanner';
 import { IOSListSection } from '@/components/ui/ios/IOSListSection';
 import { IOSListItem } from '@/components/ui/ios/IOSListItem';
@@ -154,7 +155,19 @@ function PlanIcon({ icon: Icon, color }: { icon: LucideIcon; color: string }) {
 // Main component
 // =============================================================================
 
+/**
+ * Route dispatcher. Native (iOS/Android) purchases must run through
+ * StoreKit / Play Billing via RevenueCat — Apple Guideline 3.1.1 forbids the
+ * Stripe checkout below on iOS. Web keeps Stripe.
+ */
 export default function SubscriptionPage() {
+  if (Platform.OS !== 'web') {
+    return <StoreKitPlanScreen />;
+  }
+  return <StripeSubscriptionPage />;
+}
+
+function StripeSubscriptionPage() {
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const trialStatus = useTrialStatus();
