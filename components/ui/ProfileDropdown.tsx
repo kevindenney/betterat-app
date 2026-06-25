@@ -349,7 +349,12 @@ export function ProfileDropdown({
               ]}
               onPress={(e) => e.stopPropagation?.()}
             >
-              {menuBody}
+              <ScrollView
+                style={{ maxHeight: Math.max(240, windowHeight - size - 24) }}
+                contentContainerStyle={s.menuScrollContent}
+              >
+                {menuBody}
+              </ScrollView>
             </Pressable>
           </Pressable>
         ) : (
