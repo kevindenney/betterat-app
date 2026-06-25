@@ -729,6 +729,10 @@ const styles = StyleSheet.create({
         width: WEB_L1_CARD_WIDTH,
         boxShadow:
           '0 1px 2px rgba(0,0,0,0.06), 0 18px 40px -16px rgba(0,0,0,0.28), 0 6px 14px -6px rgba(0,0,0,0.12)',
+        // A mouse-drag to swipe would otherwise select the card text it passes
+        // over (blue highlight). Suppress selection so dragging only swipes.
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
       } as any,
       default: {},
     }),
