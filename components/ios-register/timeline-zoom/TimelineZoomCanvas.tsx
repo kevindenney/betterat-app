@@ -42,6 +42,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { useInterest } from '@/providers/InterestProvider';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
+import { useTabBarVisibility } from '@/components/navigation/TabBarVisibilityContext';
 import { AppChromeRow } from '@/components/ui/AppChromeRow';
 import { useScrollHideChrome } from '@/hooks/useScrollHideChrome';
 import { InterestHeader } from './InterestHeader';
@@ -235,22 +236,48 @@ export function TimelineZoomCanvas({
   }, [level]);
   const [focusStepId, setFocusStepId] = useState<string>(dataset.focusStepId);
   const [gestureDirection, setGestureDirection] = useState<'in' | 'out' | null>(null);
-  // Canvas-wide season selection — survives zoom-level changes so the
-  // user's pick at L3 persists when they pinch back in and out.
-  const [selectedSeasonId, setSelectedSeasonId] = useState<string>(
-    dataset.currentSeasonId,
+  // The arc that owns a given step (steps are bucketed into a season by date
+  // window, so this is the source of truth for "which arc is this step in").
+  const seasonIdOfStepIn = useCallback(
+    (stepId: string | null | undefined): string | null => {
+      if (!stepId) return null;
+      return (
+        dataset.seasons.find((s) =>
+          s.weeks.some((w) => w.steps.some((st) => st.id === stepId)),
+        )?.id ?? null
+      );
+    },
+    [dataset.seasons],
   );
-  // If the dataset itself swaps to a new current season (e.g. user
-  // switched interest), reset to that.
-  React.useEffect(() => {
-    setSelectedSeasonId(dataset.currentSeasonId);
-  }, [dataset.currentSeasonId]);
+  // Canvas-wide season selection — survives zoom-level changes so the
+  // user's pick at L3 persists when they pinch back in and out. Defaults to
+  // the arc that owns the focused (NOW) step rather than the date-of-today
+  // "current" arc, which is empty whenever the user's active arc is past its
+  // calendar window.
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string>(
+    () => seasonIdOfStepIn(dataset.focusStepId) ?? dataset.currentSeasonId,
+  );
   React.useEffect(() => {
     if (!dataset.focusStepId) return;
     setFocusStepId((current) =>
       current === dataset.focusStepId ? current : dataset.focusStepId,
     );
   }, [dataset.focusStepId]);
+  // Keep the arc selector pointed at the focused step's arc. Drilling into a
+  // step (handleOpenStep), snapping to NOW, or switching interest all move
+  // focusStepId; this follows it so zooming L1→L3 lands on the arc that owns
+  // the step instead of the empty calendar-current arc. Browsing arcs at L3
+  // changes selectedSeasonId without touching focusStepId, so it isn't undone.
+  const focusedArcId = useMemo(
+    () => seasonIdOfStepIn(focusStepId),
+    [seasonIdOfStepIn, focusStepId],
+  );
+  React.useEffect(() => {
+    if (!focusedArcId) return;
+    setSelectedSeasonId((current) =>
+      current === focusedArcId ? current : focusedArcId,
+    );
+  }, [focusedArcId]);
   // Explicit `?selected=` deep-link (discussion-notification tap). Whenever
   // it resolves to a step, jump to L1 on it — `initialLevel` only applies at
   // mount, so a deep-link landing on the already-mounted Practice tab would
@@ -289,7 +316,21 @@ export function TimelineZoomCanvas({
   // Step level shows the global floating tab bar; reserve clearance so the
   // embedded capture composer + NowFloat sit above it instead of behind it.
   const tabBarClearance = Math.max(insets.bottom, 8) + FLOATING_TAB_BAR_HEIGHT + 16;
-  const { onScroll: onInnerScroll, chromeAnimStyle } = useScrollHideChrome();
+  const chromeHideDistance = Platform.OS === 'android' ? 96 : 72;
+  // Same scroll that hides the top chrome also slides the bottom floating
+  // tab bar away (shared value written on the UI thread, no re-renders).
+  const { scrollHidden } = useTabBarVisibility();
+  const { onScroll: onInnerScroll, chromeAnimStyle } = useScrollHideChrome({
+    hideDistance: chromeHideDistance,
+    externalProgress: scrollHidden,
+  });
+  // Restore the tab bar when this surface unmounts (tab switch / pop) so a
+  // mid-scroll hidden state doesn't leak into other screens.
+  React.useEffect(() => {
+    return () => {
+      scrollHidden.value = 0;
+    };
+  }, [scrollHidden]);
 
   // Continuous scale value driven by pinch — used to gate level changes on
   // release and to animate the canvas scale during the gesture.
