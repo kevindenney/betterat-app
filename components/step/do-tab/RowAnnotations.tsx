@@ -22,6 +22,7 @@ const CAPTURE_GLYPH: Record<DoCaptureKind, React.ComponentProps<typeof Ionicons>
   photo: 'image',
   video: 'videocam',
   media_link: 'link',
+  measurement: 'analytics-outline',
   flag: 'flag',
   time_marker: 'time',
 };

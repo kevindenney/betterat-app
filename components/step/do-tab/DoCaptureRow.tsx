@@ -31,6 +31,7 @@ const ACCENT_BY_KIND: Record<string, string> = {
   photo: LABEL_2,
   video: LABEL_2,
   media_link: GRAY_3,
+  measurement: IOS_BLUE,
   flag: CORAL,
 };
 
@@ -40,6 +41,7 @@ const TYPE_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: s
   photo: { icon: 'camera-outline', label: 'Photo' },
   video: { icon: 'videocam-outline', label: 'Video' },
   media_link: { icon: 'link-outline', label: 'Link' },
+  measurement: { icon: 'analytics-outline', label: 'Measurement' },
   flag: { icon: 'flag', label: 'Flag' },
 };
 

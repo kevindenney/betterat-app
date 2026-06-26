@@ -57,6 +57,12 @@ export interface DoTabInteriorProps {
   onSubStepCapture?: (subStepId: string, kind: SubStepCaptureKind) => void;
   /** Inline note submit anchored to a beat or How sub-step (no modal). */
   onSubStepNoteSubmit?: (subStepId: string, text: string) => void;
+  /** Open the in-app video recorder ("+" sheet → Video). */
+  onSelectVideo?: () => void;
+  /** Open the barcode / QR scanner ("+" sheet → Scan). */
+  onSelectScan?: () => void;
+  /** Open the manual measurement form ("+" sheet → Measurement). */
+  onSelectMeasurement?: () => void;
   /** Captures already anchored to each How sub-step, newest-first, keyed by id. */
   subStepCaptures?: Record<string, DoCaptureItem[]>;
   onTagCapture?: (captureId: string) => void;
@@ -107,6 +113,9 @@ export function DoTabInterior({
   onQuickNoteSubmit,
   onToggleSubStep,
   subStepCaptures,
+  onSelectVideo,
+  onSelectScan,
+  onSelectMeasurement,
   onStopCapturing,
   onPressPlayVoice,
   onEditCapture,
@@ -225,6 +234,9 @@ export function DoTabInterior({
           onQuickNoteSubmit={onQuickNoteSubmit}
           onAddPhoto={onPhotoOrVideo}
           onAddVoiceNote={onVoiceNote}
+          onSelectVideo={onSelectVideo}
+          onSelectScan={onSelectScan}
+          onSelectMeasurement={onSelectMeasurement}
           onStopCapturing={onStopCapturing}
           onPressPlayVoice={onPressPlayVoice}
           onEditCapture={onEditCapture}

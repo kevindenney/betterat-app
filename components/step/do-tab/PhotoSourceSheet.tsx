@@ -1,3 +1,10 @@
+/**
+ * PhotoSourceSheet — chooser for the Do tab camera button.
+ *
+ * The camera affordance previously dropped straight into the photo library
+ * despite a camera icon. This sheet lets the user pick the source: take a new
+ * photo with the camera, or choose an existing one from the library.
+ */
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,51 +16,43 @@ const LABEL = '#1C1C1E';
 const LABEL_2 = '#3C3C43';
 const LABEL_3 = 'rgba(60, 60, 67, 0.60)';
 
-export interface CaptureTypesSheetProps {
+export interface PhotoSourceSheetProps {
   visible: boolean;
   onDismiss: () => void;
-  onSelectVideo?: () => void;
-  onSelectScan?: () => void;
-  onSelectMeasurement?: () => void;
+  onTakePhoto: () => void;
+  onChooseFromLibrary: () => void;
 }
 
-export function CaptureTypesSheet({
+export function PhotoSourceSheet({
   visible,
   onDismiss,
-  onSelectVideo,
-  onSelectScan,
-  onSelectMeasurement,
-}: CaptureTypesSheetProps) {
+  onTakePhoto,
+  onChooseFromLibrary,
+}: PhotoSourceSheetProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <Pressable style={styles.scrim} onPress={onDismiss} accessibilityLabel="Close capture types" />
+      <Pressable style={styles.scrim} onPress={onDismiss} accessibilityLabel="Close photo source" />
       <View style={styles.sheet}>
         <View style={styles.handle} />
-        <Text style={styles.title}>More capture types</Text>
-        <CaptureTypeRow
-          icon="videocam-outline"
-          title="Video"
-          subtitle="Record a short clip"
-          onPress={onSelectVideo ?? onDismiss}
+        <Text style={styles.title}>Add a photo</Text>
+        <SourceRow
+          icon="camera-outline"
+          title="Take Photo"
+          subtitle="Capture with the camera"
+          onPress={onTakePhoto}
         />
-        <CaptureTypeRow
-          icon="scan-outline"
-          title="Scan"
-          subtitle="Scan a barcode or QR code"
-          onPress={onSelectScan ?? onDismiss}
-        />
-        <CaptureTypeRow
-          icon="analytics-outline"
-          title="Measurement"
-          subtitle="Log a number — speed, weight, score…"
-          onPress={onSelectMeasurement ?? onDismiss}
+        <SourceRow
+          icon="images-outline"
+          title="Choose from Library"
+          subtitle="Pick an existing photo or video"
+          onPress={onChooseFromLibrary}
         />
       </View>
     </Modal>
   );
 }
 
-function CaptureTypeRow({
+function SourceRow({
   icon,
   title,
   subtitle,
@@ -149,3 +148,5 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+
+export default PhotoSourceSheet;

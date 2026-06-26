@@ -47,12 +47,15 @@ import { normalizeHowSubSteps } from '@/lib/step/normalizeHowSubSteps';
 import type { DoTabInteriorProps } from '@/components/step/do-tab/DoTabInterior';
 import type { SubStepCaptureKind } from '@/components/step/do-tab/PlanStartingFrameRow';
 import type {
+  MediaLink,
   MediaUpload,
   Observation,
   StepActData,
   StepMetadata,
   StepPlanData,
 } from '@/types/step-detail';
+import type { ExtractedMeasurement } from '@/types/measurements';
+import type { MeasurementInput } from '@/components/step/do-tab/MeasurementCaptureModal';
 
 const IMAGE_QUALITY = 0.6;
 const IS_NATIVE = Platform.OS === 'ios' || Platform.OS === 'android';
@@ -107,6 +110,25 @@ export interface StepActCaptureControllerView {
   quickNoteInitialText: string;
   /** Title override for the quick-note modal — "Edit note" while editing. */
   quickNoteTitle: string | undefined;
+  /** Interest slug — drives per-interest measurement presets. */
+  interestSlug: string | undefined;
+  /** Photo-source chooser (Take Photo vs Choose from Library) visibility. */
+  photoSourceVisible: boolean;
+  closePhotoSource: () => void;
+  onTakePhoto: () => void;
+  onChooseFromLibrary: () => void;
+  /** In-app video recorder visibility. */
+  videoCaptureVisible: boolean;
+  closeVideoCapture: () => void;
+  onVideoCaptured: (uri: string) => void;
+  /** Barcode / QR scanner visibility. */
+  scanCaptureVisible: boolean;
+  closeScanCapture: () => void;
+  onBarcodeScanned: (data: string) => void;
+  /** Manual measurement form visibility. */
+  measurementVisible: boolean;
+  closeMeasurement: () => void;
+  onMeasurementSubmit: (input: MeasurementInput) => void;
 }
 
 /**
@@ -152,6 +174,15 @@ export function useStepActCaptureController({
   // When the quick-note modal was opened from a specific How sub-step, the new
   // observation is anchored to it (sub_step_id). Transient — cleared on submit.
   const captureSubStepIdRef = useRef<string | null>(null);
+
+  // Capture-type modal visibility. The photo-source chooser, in-app video
+  // recorder, barcode scanner, and measurement form all mount in the shell.
+  const [photoSourceVisible, setPhotoSourceVisible] = useState(false);
+  const [videoCaptureVisible, setVideoCaptureVisible] = useState(false);
+  const [scanCaptureVisible, setScanCaptureVisible] = useState(false);
+  const [measurementVisible, setMeasurementVisible] = useState(false);
+  // Sub-step a photo-source pick is anchored to (null for whole-step capture).
+  const photoSubStepIdRef = useRef<string | null>(null);
 
   // Per-step timing gate: when the flag is on AND this step is not flagged
   // is_timed, the Do tab is a passive capture surface — no auto-stamp, no
@@ -262,51 +293,91 @@ export function useStepActCaptureController({
     [saveAct],
   );
 
-  const pickPhotoOrVideoNative = useCallback(async (subStepId?: string | null) => {
-    if (!user?.id) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      quality: IMAGE_QUALITY,
-      videoMaxDuration: 30,
-      allowsMultipleSelection: false,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    const isVideo = asset.type === 'video';
-    const ext = asset.uri.split('.').pop()?.toLowerCase() || (isVideo ? 'mp4' : 'jpg');
-    const fileId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const fileName = `${user.id}/${stepId}/${fileId}.${ext}`;
-    try {
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      const arrayBuffer = await new Response(blob).arrayBuffer();
-      const { error: uploadError } = await supabase.storage
-        .from('step-media')
-        .upload(fileName, arrayBuffer, {
-          contentType: blob.type || (isVideo ? `video/${ext}` : `image/${ext}`),
-          upsert: false,
-        });
-      if (uploadError) throw uploadError;
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('step-media').getPublicUrl(fileName);
-      const newUpload: MediaUpload = {
-        id: fileId,
-        uri: publicUrl,
-        type: isVideo ? 'video' : 'photo',
-        caption: undefined,
-        created_at: new Date().toISOString(),
-        ...(subStepId ? { sub_step_id: subStepId } : {}),
-      };
-      const currentUploads = metadataRef.current.act?.media_uploads ?? [];
-      saveAct({ media_uploads: [...currentUploads, newUpload] });
-      toast.show(isVideo ? 'Video added' : 'Photo added', 'success');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      showAlert('Upload failed', message);
-    }
-  }, [user?.id, stepId, saveAct, toast]);
+  // Shared upload path for camera capture, library picks, and in-app video
+  // recording — all three resolve a local uri then write a media_upload.
+  const uploadStepMedia = useCallback(
+    async ({
+      uri,
+      isVideo,
+      subStepId,
+    }: {
+      uri: string;
+      isVideo: boolean;
+      subStepId?: string | null;
+    }) => {
+      if (!user?.id) {
+        showAlert('Sign in required', 'Sign in to save photos and videos to this step.');
+        return;
+      }
+      const ext = uri.split('.').pop()?.toLowerCase() || (isVideo ? 'mp4' : 'jpg');
+      const fileId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const fileName = `${user.id}/${stepId}/${fileId}.${ext}`;
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const arrayBuffer = await new Response(blob).arrayBuffer();
+        const { error: uploadError } = await supabase.storage
+          .from('step-media')
+          .upload(fileName, arrayBuffer, {
+            contentType: blob.type || (isVideo ? `video/${ext}` : `image/${ext}`),
+            upsert: false,
+          });
+        if (uploadError) throw uploadError;
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('step-media').getPublicUrl(fileName);
+        const newUpload: MediaUpload = {
+          id: fileId,
+          uri: publicUrl,
+          type: isVideo ? 'video' : 'photo',
+          caption: undefined,
+          created_at: new Date().toISOString(),
+          ...(subStepId ? { sub_step_id: subStepId } : {}),
+        };
+        const currentUploads = metadataRef.current.act?.media_uploads ?? [];
+        saveAct({ media_uploads: [...currentUploads, newUpload] });
+        toast.show(isVideo ? 'Video added' : 'Photo added', 'success');
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        showAlert('Upload failed', message);
+      }
+    },
+    [user?.id, stepId, saveAct, toast],
+  );
+
+  const takePhoto = useCallback(
+    async (subStepId?: string | null) => {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        showAlert('Camera access needed', 'Enable camera access in Settings to take a photo.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: IMAGE_QUALITY,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      await uploadStepMedia({ uri: result.assets[0].uri, isVideo: false, subStepId });
+    },
+    [uploadStepMedia],
+  );
+
+  const chooseFromLibrary = useCallback(
+    async (subStepId?: string | null) => {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: true,
+        quality: IMAGE_QUALITY,
+        videoMaxDuration: 30,
+        allowsMultipleSelection: false,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      await uploadStepMedia({ uri: asset.uri, isVideo: asset.type === 'video', subStepId });
+    },
+    [uploadStepMedia],
+  );
 
   const removeCapture = useCallback(
     (captureId: string) => {
@@ -363,13 +434,14 @@ export function useStepActCaptureController({
           showAlert('Photo upload', 'Photo capture is available on iOS and Android.');
           return;
         }
-        void pickPhotoOrVideoNative(subStepId);
+        photoSubStepIdRef.current = subStepId;
+        setPhotoSourceVisible(true);
         return;
       }
       captureSubStepIdRef.current = subStepId;
       setQuickNoteVisible(true);
     },
-    [readOnly, pickPhotoOrVideoNative],
+    [readOnly],
   );
 
   // Inline note path for beats + How rows — writes the observation anchored to
@@ -390,8 +462,109 @@ export function useStepActCaptureController({
       showAlert('Photo upload', 'Photo capture is available on iOS and Android.');
       return;
     }
-    void pickPhotoOrVideoNative();
-  }, [readOnly, pickPhotoOrVideoNative]);
+    photoSubStepIdRef.current = null;
+    setPhotoSourceVisible(true);
+  }, [readOnly]);
+
+  // ─── Photo-source chooser (Take Photo vs Choose from Library) ─────────────
+  const closePhotoSource = useCallback(() => setPhotoSourceVisible(false), []);
+
+  const handleTakePhoto = useCallback(() => {
+    setPhotoSourceVisible(false);
+    void takePhoto(photoSubStepIdRef.current);
+  }, [takePhoto]);
+
+  const handleChooseFromLibrary = useCallback(() => {
+    setPhotoSourceVisible(false);
+    void chooseFromLibrary(photoSubStepIdRef.current);
+  }, [chooseFromLibrary]);
+
+  // ─── Video recording ──────────────────────────────────────────────────────
+  const handleSelectVideo = useCallback(() => {
+    if (readOnly) return;
+    setVideoCaptureVisible(true);
+  }, [readOnly]);
+
+  const closeVideoCapture = useCallback(() => setVideoCaptureVisible(false), []);
+
+  const handleVideoCaptured = useCallback(
+    (uri: string) => {
+      setVideoCaptureVisible(false);
+      void uploadStepMedia({ uri, isVideo: true });
+    },
+    [uploadStepMedia],
+  );
+
+  // ─── Barcode / QR scan ────────────────────────────────────────────────────
+  const handleSelectScan = useCallback(() => {
+    if (readOnly) return;
+    setScanCaptureVisible(true);
+  }, [readOnly]);
+
+  const closeScanCapture = useCallback(() => setScanCaptureVisible(false), []);
+
+  const handleBarcodeScanned = useCallback(
+    (data: string) => {
+      setScanCaptureVisible(false);
+      const trimmed = data.trim();
+      if (!trimmed) return;
+      if (/^https?:\/\//i.test(trimmed)) {
+        const link: MediaLink = {
+          id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          url: trimmed,
+          caption: 'Scanned code',
+          platform: 'other',
+          added_at: new Date().toISOString(),
+        };
+        const currentLinks = metadataRef.current.act?.media_links ?? [];
+        saveAct({ media_links: [...currentLinks, link] });
+        toast.show('Link added', 'success');
+        return;
+      }
+      addObservation(`Scanned: ${trimmed}`);
+      toast.show('Code saved', 'success');
+    },
+    [saveAct, addObservation, toast],
+  );
+
+  // ─── Manual measurement ───────────────────────────────────────────────────
+  const handleSelectMeasurement = useCallback(() => {
+    if (readOnly) return;
+    setMeasurementVisible(true);
+  }, [readOnly]);
+
+  const closeMeasurement = useCallback(() => setMeasurementVisible(false), []);
+
+  const handleMeasurementSubmit = useCallback(
+    ({ label, value, unit, note }: MeasurementInput) => {
+      setMeasurementVisible(false);
+      const nowIso = new Date().toISOString();
+      const entry: ExtractedMeasurement = {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        measurement: {
+          category: 'performance',
+          metric_name: label,
+          value,
+          unit: unit || undefined,
+          notes: note || undefined,
+        },
+        confidence: 1,
+        source: 'manual_edit',
+        verified: true,
+        timestamp: nowIso,
+      };
+      const prev = metadataRef.current.act?.measurements;
+      saveAct({
+        measurements: {
+          ...prev,
+          extracted: [...(prev?.extracted ?? []), entry],
+          last_extracted_at: nowIso,
+        },
+      });
+      toast.show('Measurement added', 'success');
+    },
+    [saveAct, toast],
+  );
 
   const handleStopCapturing = useCallback(() => {
     if (readOnly) return;
@@ -579,6 +752,9 @@ export function useStepActCaptureController({
     onToggleSubStep: handleToggleSubStep,
     onSubStepCapture: handleSubStepCapture,
     onSubStepNoteSubmit: handleSubStepNoteSubmit,
+    onSelectVideo: handleSelectVideo,
+    onSelectScan: handleSelectScan,
+    onSelectMeasurement: handleSelectMeasurement,
     subStepCaptures,
   };
 
@@ -590,6 +766,7 @@ export function useStepActCaptureController({
     captures,
     planData,
     stepTitle,
+    interestSlug,
     doTabInteriorProps,
     markingCapture,
     closeMarkAsEvidence,
@@ -597,5 +774,19 @@ export function useStepActCaptureController({
     submitQuickNote,
     quickNoteInitialText,
     quickNoteTitle: editingCaptureId ? 'Edit note' : undefined,
+    // Capture-type modals (mounted in DoTabIOSRegisterShell)
+    photoSourceVisible,
+    closePhotoSource,
+    onTakePhoto: handleTakePhoto,
+    onChooseFromLibrary: handleChooseFromLibrary,
+    videoCaptureVisible,
+    closeVideoCapture,
+    onVideoCaptured: handleVideoCaptured,
+    scanCaptureVisible,
+    closeScanCapture,
+    onBarcodeScanned: handleBarcodeScanned,
+    measurementVisible,
+    closeMeasurement,
+    onMeasurementSubmit: handleMeasurementSubmit,
   };
 }

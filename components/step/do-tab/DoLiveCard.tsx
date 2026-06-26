@@ -33,6 +33,12 @@ export interface DoLiveCardProps {
   onAddPhoto?: () => void;
   /** Composer add-voice (mic) button callback. */
   onAddVoiceNote?: () => void;
+  /** "+" sheet → Video: open the in-app recorder. */
+  onSelectVideo?: () => void;
+  /** "+" sheet → Scan: open the barcode / QR scanner. */
+  onSelectScan?: () => void;
+  /** "+" sheet → Measurement: open the manual measurement form. */
+  onSelectMeasurement?: () => void;
   /** Retained for callers; the Stop-capturing CTA has been removed. */
   onStopCapturing?: () => void;
   /** Play callback forwarded to each voice capture row. */
@@ -66,6 +72,9 @@ export function DoLiveCard({
   onQuickNoteSubmit,
   onAddPhoto,
   onAddVoiceNote,
+  onSelectVideo,
+  onSelectScan,
+  onSelectMeasurement,
   onPressPlayVoice,
   onEditCapture,
   onDeleteCapture,
@@ -104,6 +113,30 @@ export function DoLiveCard({
       <CaptureTypesSheet
         visible={captureTypesVisible}
         onDismiss={() => setCaptureTypesVisible(false)}
+        onSelectVideo={
+          onSelectVideo
+            ? () => {
+                setCaptureTypesVisible(false);
+                onSelectVideo();
+              }
+            : undefined
+        }
+        onSelectScan={
+          onSelectScan
+            ? () => {
+                setCaptureTypesVisible(false);
+                onSelectScan();
+              }
+            : undefined
+        }
+        onSelectMeasurement={
+          onSelectMeasurement
+            ? () => {
+                setCaptureTypesVisible(false);
+                onSelectMeasurement();
+              }
+            : undefined
+        }
       />
     </View>
   );

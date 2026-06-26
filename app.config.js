@@ -22,7 +22,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.betterat.app',
-      buildNumber: '10',
+      buildNumber: '11',
       usesAppleSignIn: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -42,7 +42,7 @@ module.exports = {
     },
     android: {
       package: 'at.better.app',
-      versionCode: 8,
+      versionCode: 9,
       adaptiveIcon: {
         backgroundColor: '#0a1832',
         foregroundImage: './assets/images/android-icon-foreground.png',
@@ -92,6 +92,16 @@ module.exports = {
         {
           organization: process.env.SENTRY_ORG,
           project: process.env.SENTRY_PROJECT,
+        },
+      ],
+      [
+        'expo-camera',
+        {
+          cameraPermission:
+            'BetterAt needs camera access to capture photos, video, and scan codes on a step.',
+          microphonePermission:
+            'BetterAt needs microphone access to record video and voice notes.',
+          recordAudioAndroid: true,
         },
       ],
     ],

@@ -29,6 +29,10 @@ import { WorkingWithConcepts } from '@/components/step/plan-tab/WorkingWithConce
 import { DoTabInterior } from './DoTabInterior';
 import { DoQuickNoteModal } from './DoQuickNoteModal';
 import { MarkAsEvidenceSheet } from './MarkAsEvidenceSheet';
+import { PhotoSourceSheet } from './PhotoSourceSheet';
+import { VideoCaptureModal } from './VideoCaptureModal';
+import { ScanCaptureModal } from './ScanCaptureModal';
+import { MeasurementCaptureModal } from './MeasurementCaptureModal';
 
 export interface DoTabIOSRegisterShellProps {
   /** Step the shell is bound to. */
@@ -118,6 +122,32 @@ export function DoTabIOSRegisterShell({
         onSubmit={controller.submitQuickNote}
         initialText={controller.quickNoteInitialText}
         title={controller.quickNoteTitle}
+      />
+
+      <PhotoSourceSheet
+        visible={controller.photoSourceVisible}
+        onDismiss={controller.closePhotoSource}
+        onTakePhoto={controller.onTakePhoto}
+        onChooseFromLibrary={controller.onChooseFromLibrary}
+      />
+
+      <VideoCaptureModal
+        visible={controller.videoCaptureVisible}
+        onClose={controller.closeVideoCapture}
+        onCaptured={controller.onVideoCaptured}
+      />
+
+      <ScanCaptureModal
+        visible={controller.scanCaptureVisible}
+        onClose={controller.closeScanCapture}
+        onScanned={controller.onBarcodeScanned}
+      />
+
+      <MeasurementCaptureModal
+        visible={controller.measurementVisible}
+        onClose={controller.closeMeasurement}
+        onSubmit={controller.onMeasurementSubmit}
+        interestSlug={controller.interestSlug}
       />
     </View>
   );

@@ -1,4 +1,5 @@
 import type { MediaLink, MediaUpload, Observation, StepActData } from '@/types/step-detail';
+import type { ExtractedMeasurement, Measurement } from '@/types/measurements';
 
 export type DoCaptureKind =
   | 'voice'
@@ -6,6 +7,7 @@ export type DoCaptureKind =
   | 'photo'
   | 'video'
   | 'media_link'
+  | 'measurement'
   | 'flag'
   | 'time_marker';
 
@@ -13,6 +15,7 @@ export type DoCaptureSource =
   | 'act_observation'
   | 'media_upload'
   | 'media_link'
+  | 'measurement'
   | 'sub_step_deviation'
   | 'notes_legacy'
   | 'time_marker';
@@ -84,6 +87,31 @@ function mediaUploadToCapture(media: MediaUpload): DoCaptureItem {
   };
 }
 
+function measurementBody(m: Measurement): string {
+  if (m.category === 'exercise') {
+    const parts = [m.exercise_name];
+    if (m.weight_value != null) parts.push(`${m.weight_value}${m.weight_unit ?? ''}`);
+    if (m.reps != null) parts.push(`${m.reps} reps`);
+    return parts.join(' · ');
+  }
+  const name = m.category === 'health' ? (m.metric_name ?? m.metric_type) : m.metric_name;
+  const unit = m.unit ? ` ${m.unit}` : '';
+  return `${name}: ${m.value}${unit}`;
+}
+
+function measurementToCapture(em: ExtractedMeasurement): DoCaptureItem {
+  return {
+    id: `measure:${em.id}`,
+    kind: 'measurement',
+    capturedAt: em.timestamp ?? null,
+    body: measurementBody(em.measurement),
+    capabilityIds: [],
+    capabilityLabels: [],
+    flaggedForDebrief: false,
+    source: 'measurement',
+  };
+}
+
 function mediaLinkToCapture(link: MediaLink): DoCaptureItem {
   return {
     id: `link:${link.id}`,
@@ -117,6 +145,11 @@ export function normalizeDoCaptures(act: StepActData | undefined | null): DoCapt
   for (const link of act.media_links ?? []) {
     if (!link?.id) continue;
     items.push(mediaLinkToCapture(link));
+  }
+
+  for (const em of act.measurements?.extracted ?? []) {
+    if (!em?.id) continue;
+    items.push(measurementToCapture(em));
   }
 
   return items;
@@ -209,6 +242,7 @@ export function summarizeCaptureBreakdown(items: DoCaptureItem[]): DoCaptureBrea
         break;
       case 'note':
       case 'media_link':
+      case 'measurement':
       case 'flag':
         out.note += 1;
         break;
