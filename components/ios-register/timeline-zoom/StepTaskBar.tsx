@@ -16,15 +16,17 @@
  */
 
 import React, { useMemo, useRef, useState } from 'react';
-import { Dimensions, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { IOS_REGISTER } from '@/lib/design-tokens-ios';
+import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { useUniversalPlus } from '@/components/capture';
 import { useInterest } from '@/providers/InterestProvider';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { SIDEBAR_PIN_BREAKPOINT, useWebDrawer } from '@/providers/WebDrawerProvider';
 import { StepAddSheet } from './StepAddSheet';
 import type { TimelineStep } from './types';
 
@@ -62,6 +64,18 @@ export function StepTaskBar({
   const { currentInterest } = useInterest();
   const accentColor = currentInterest?.accent_color ?? IOS_REGISTER.accentUserAction;
   const isSailRacing = (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing';
+
+  // Web sidebar reveal. This bar replaces AppChromeRow on the Step level, so
+  // without this the collapsed sidebar has no reopen affordance here — the
+  // user is stranded on the Practice canvas until a hard refresh. Gated like
+  // AppChromeRow: only where a sidebar can actually render.
+  const { isDrawerOpen, openDrawer } = useWebDrawer();
+  const { width: windowWidth } = useWindowDimensions();
+  const showWebSidebarToggle =
+    Platform.OS === 'web' &&
+    FEATURE_FLAGS.USE_WEB_SIDEBAR_LAYOUT &&
+    windowWidth >= SIDEBAR_PIN_BREAKPOINT &&
+    !isDrawerOpen;
 
   const nowOrdinal = useMemo(
     () => allSteps.findIndex((s) => s.id === nowStepId),
@@ -156,6 +170,24 @@ export function StepTaskBar({
 
   return (
     <View style={styles.nav}>
+      {showWebSidebarToggle ? (
+        <Pressable
+          onPress={openDrawer}
+          style={({ pressed, hovered }) => [
+            styles.sidebarToggle,
+            (hovered as boolean) && styles.sidebarToggleHover,
+            pressed && styles.sidebarTogglePressed,
+          ]}
+          accessibilityLabel="Show sidebar"
+          accessibilityRole="button"
+        >
+          <View style={styles.sidebarIcon}>
+            <View style={styles.sidebarIconLeft} />
+            <View style={styles.sidebarIconRight} />
+          </View>
+        </Pressable>
+      ) : null}
+
       {/* Persistent breadcrumb chrome: [ ● Interest › Step N ▾ ].
           The accent dot + interest name tap to the interest switcher (sheet UP);
           the › Step N leaf taps to the step list (menu DOWN). One pill, one place. */}
@@ -277,6 +309,42 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     minHeight: 48,
     zIndex: 1000,
+  },
+  // Apple-style sidebar reveal — mirrors AppChromeRow's collapsed-sidebar toggle.
+  sidebarToggle: {
+    width: 32,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: IOS_COLORS.separator,
+    backgroundColor: IOS_COLORS.systemBackground,
+    marginRight: 10,
+  },
+  sidebarToggleHover: {
+    backgroundColor: IOS_COLORS.secondarySystemBackground,
+    borderColor: IOS_COLORS.opaqueSeparator,
+  },
+  sidebarTogglePressed: {
+    backgroundColor: IOS_COLORS.tertiarySystemFill,
+  },
+  sidebarIcon: {
+    width: 16,
+    height: 12,
+    flexDirection: 'row',
+    borderRadius: 2,
+    borderWidth: 1.5,
+    borderColor: IOS_COLORS.secondaryLabel,
+    overflow: 'hidden',
+  },
+  sidebarIconLeft: {
+    width: 5,
+    height: '100%',
+    backgroundColor: IOS_COLORS.secondaryLabel,
+  },
+  sidebarIconRight: {
+    flex: 1,
   },
   // Breadcrumb interest pill — persistent chrome, never a plain label.
   intpill: {

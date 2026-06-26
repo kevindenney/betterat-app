@@ -603,7 +603,14 @@ export function TimelineZoomCanvas({
                       prevStep={prevStep}
                       nextStep={nextStep}
                       onScroll={onInnerScroll}
-                      onStepDeleted={() => setLevel(3)}
+                      onStepDeleted={() => {
+                        // Stay at L1 on the step that slides into the deleted
+                        // one's slot (next, else the previous neighbor). Only
+                        // fall back to the arc view when nothing's left.
+                        const fallback = nextStep ?? prevStep;
+                        if (fallback) setFocusStepId(fallback.id);
+                        else setLevel(3);
+                      }}
                       allSteps={arcSteps}
                       onJumpToStep={(id) => setFocusStepId(id)}
                       hideStepSwitcher={hideInterestHeader}

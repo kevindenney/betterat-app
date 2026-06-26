@@ -25,7 +25,6 @@ import type { SubStep } from '@/types/step-detail';
 
 const SUBSTEP_LINE_HEIGHT = 18;
 const SUBSTEP_MIN_HEIGHT = 36;
-const SUBSTEP_MAX_HEIGHT = SUBSTEP_LINE_HEIGHT * 8;
 
 // ---------------------------------------------------------------------------
 // Individual sub-step row with local text state
@@ -67,9 +66,8 @@ function SubStepRow({
 
   const handleContentSizeChange = useCallback(
     (e: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) => {
-      const next = e.nativeEvent.contentSize.height;
-      const clamped = Math.min(SUBSTEP_MAX_HEIGHT, Math.max(SUBSTEP_MIN_HEIGHT, next));
-      setInputHeight((prev) => (prev === clamped ? prev : clamped));
+      const next = Math.max(SUBSTEP_MIN_HEIGHT, e.nativeEvent.contentSize.height);
+      setInputHeight((prev) => (prev === next ? prev : next));
     },
     [],
   );
@@ -309,7 +307,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: SUBSTEP_LINE_HEIGHT,
     minHeight: SUBSTEP_MIN_HEIGHT,
-    maxHeight: SUBSTEP_MAX_HEIGHT,
     color: IOS_COLORS.label,
     backgroundColor: IOS_COLORS.systemGray6,
     borderRadius: 8,
@@ -317,7 +314,7 @@ const styles = StyleSheet.create({
     borderColor: IOS_COLORS.systemGray4,
     padding: IOS_SPACING.sm,
     ...Platform.select({
-      web: { outlineStyle: 'none', resize: 'none', overflow: 'hidden' } as any,
+      web: { outlineStyle: 'none', resize: 'none' } as any,
     }),
   },
   removeButton: {
