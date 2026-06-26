@@ -100,11 +100,16 @@ export function HingeSurface({
           </ScrollView>
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Nothing captured in this beat yet</Text>
+            <Text style={styles.emptyTitle}>This beat is quiet</Text>
             <Text style={styles.emptyBody}>
-              That&rsquo;s fine — a beat can just be a breath. When you&rsquo;re ready, pick
-              what&rsquo;s next below.
+              A beat gathers what you flag or save during a step — flag a moment or save an
+              insight and it&rsquo;ll show up here. That&rsquo;s fine too; a beat can just be a
+              breath.
             </Text>
+            <Pressable style={styles.emptyAction} onPress={onPreviousStep} hitSlop={6}>
+              <ChevronLeft size={15} color="#007AFF" />
+              <Text style={styles.emptyActionText}>Go to your last step</Text>
+            </Pressable>
           </View>
         )}
 
@@ -251,6 +256,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: '#9CA3AF',
+  },
+  emptyAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 3,
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingLeft: 8,
+    paddingRight: 12,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+  },
+  emptyActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   bookendBlock: {
     paddingHorizontal: 16,
