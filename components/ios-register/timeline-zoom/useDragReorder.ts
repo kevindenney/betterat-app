@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
@@ -168,10 +169,9 @@ export function useDragReorder<T extends { id: string }>({
   }, [liftedId, onReorder, onDrop]);
 
   const buildItemGesture = useCallback(
-    (itemId: string, index: number) =>
-      Gesture.Pan()
+    (itemId: string, index: number) => {
+      const pan = Gesture.Pan()
         .enabled(enabled)
-        .activateAfterLongPress(LIFT_ACTIVATION_MS)
         .onStart(() => {
           'worklet';
           runOnJS(handleLiftStart)(itemId, index);
@@ -187,8 +187,22 @@ export function useDragReorder<T extends { id: string }>({
           // even when the gesture is interrupted (e.g. another card
           // claims focus). handleDrop is idempotent for the cancel case.
           runOnJS(handleDrop)();
-        }),
-    [enabled, handleLiftStart, handlePanUpdate, handleDrop],
+        });
+      if (Platform.OS === 'web') {
+        // Desktop: a mouse grab-and-drag is the expected reorder gesture and
+        // it's almost always faster than a long-press hold, so requiring the
+        // hold made reorder feel broken. Activate on a small drag offset
+        // instead — mouse drags don't scroll an RN-web ScrollView, so this
+        // can't steal the list's scroll the way it would on touch.
+        return axis === 'horizontal'
+          ? pan.activeOffsetX([-6, 6])
+          : pan.activeOffsetY([-6, 6]);
+      }
+      // Touch: lift only after a long-press so a plain vertical pan still
+      // scrolls the list instead of grabbing a card.
+      return pan.activateAfterLongPress(LIFT_ACTIVATION_MS);
+    },
+    [enabled, handleLiftStart, handlePanUpdate, handleDrop, axis],
   );
 
   return {
