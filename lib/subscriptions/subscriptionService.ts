@@ -84,6 +84,13 @@ const REVENUECAT_API_KEY = Platform.select({
 const IS_EXPO_GO =
   (NativeModules as { ExponentConstants?: { appOwnership?: string } } | undefined)?.ExponentConstants
     ?.appOwnership === 'expo';
+// `react-native-purchases` registers a `RNPurchases` native module. A dev
+// client built without it linked (e.g. an older standalone build) leaves
+// `Purchases` methods backed by a null native module, so calling any of them
+// (`setLogLevel`, `configure`, …) throws "Cannot read property … of null".
+// Treat a missing module like Expo Go: fall back to config-only products.
+const IS_PURCHASES_NATIVE_MODULE_AVAILABLE =
+  (NativeModules as { RNPurchases?: unknown } | undefined)?.RNPurchases != null;
 
 /**
  * RevenueCat entitlement identifiers (configured in the RevenueCat dashboard).
@@ -281,8 +288,8 @@ export class SubscriptionService {
    */
   async initialize(): Promise<void> {
     try {
-      if (IS_EXPO_GO) {
-        logger.warn('RevenueCat native store unavailable in Expo Go; using config-only products');
+      if (IS_EXPO_GO || !IS_PURCHASES_NATIVE_MODULE_AVAILABLE) {
+        logger.warn('RevenueCat native module unavailable; using config-only products');
         this.availableProducts = Object.values(SUBSCRIPTION_PRODUCTS);
         return;
       }
