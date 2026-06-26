@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Add & manage resources — options</title>
+<style>
+  :root{
+    --label:#1c1c1e; --label2:#3c3c43; --label3:rgba(60,60,67,.6);
+    --tint:#E8533B; --blue:#007AFF; --green:#1F8636; --purple:#7A5AF8;
+    --hair:rgba(60,60,67,.18); --bg:#f2f2f7; --card:#fff; --paper:#FAFAF7;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;color:var(--label)}
+  .wrap{max-width:1500px;margin:0 auto;padding:28px 22px 90px}
+  h1{font-size:22px;margin:0 0 4px}
+  .lead{color:var(--label3);font-size:13.5px;margin:0 0 8px;max-width:820px;line-height:1.5}
+  .secthead{font-size:16px;margin:34px 0 4px;padding-bottom:6px;border-bottom:1px solid var(--hair)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:24px;align-items:start;margin-top:16px}
+  .col h2{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--label2);margin:0 0 4px}
+  .col .note{font-size:12.5px;color:var(--label3);margin:0 0 12px;line-height:1.45;min-height:48px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:600;border-radius:5px;padding:2px 7px;margin-bottom:8px}
+  .tag.keep{background:#E9F7EE;color:var(--green)}
+  .tag.warn{background:#FDECEA;color:var(--tint)}
+  .tag.new{background:#E8F0FE;color:var(--blue)}
+
+  .phone{background:var(--card);border-radius:22px;border:1px solid var(--hair);overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.07)}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:.5px solid var(--hair)}
+  .nav .t{font-size:15px;font-weight:600}
+  .nav .x{color:var(--blue);font-size:15px}
+  .pad{padding:14px 16px}
+  .grab{width:36px;height:5px;border-radius:3px;background:rgba(60,60,67,.3);margin:8px auto 2px}
+
+  .field{border:1px solid var(--hair);border-radius:11px;padding:11px 12px;font-size:13.5px;color:var(--label3);margin:0 16px 12px;background:#fff}
+  .field.active{border-color:var(--blue);color:var(--label)}
+  .eyebrow{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);margin:14px 16px 6px}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin:0 16px 12px}
+  .chip{font-size:12px;border:1px solid var(--hair);border-radius:999px;padding:5px 11px;color:var(--label2);background:#fff}
+  .chip.on{background:#111;color:#fff;border-color:#111}
+  .chip.fmt.on{background:var(--tint);border-color:var(--tint)}
+  .seg{display:flex;background:#EFEFF4;border-radius:10px;padding:3px;margin:0 16px 6px}
+  .seg div{flex:1;text-align:center;font-size:12.5px;padding:7px 0;border-radius:8px;color:var(--label2)}
+  .seg div.on{background:#fff;color:var(--label);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .cta{margin:14px 16px 16px;background:var(--blue);color:#fff;text-align:center;font-size:15px;font-weight:600;border-radius:13px;padding:13px}
+  .cta.soft{background:#Bcd6fb}
+
+  /* resolved preview card */
+  .rcard{margin:0 16px 12px;display:flex;gap:11px;align-items:center;border:.5px solid var(--hair);background:var(--paper);border-radius:13px;padding:11px}
+  .rthumb{width:42px;height:52px;border-radius:7px;background:#fff;border:.5px solid var(--hair);position:relative;flex-shrink:0;overflow:hidden}
+  .rthumb .sp{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--tint)}
+  .rthumb .lb{position:absolute;bottom:5px;left:6px;font-family:ui-monospace,monospace;font-size:8px;color:var(--label3)}
+  .rthumb.vid{background:#000}
+  .rbody{flex:1;min-width:0}
+  .rbody .t{font-size:13.5px;font-weight:600}
+  .rbody .s{font-size:11.5px;color:var(--label3)}
+  .badge{font-size:9.5px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:5px;background:#E9F7EE;color:var(--green);align-self:flex-start}
+
+  /* manage list rows */
+  .secthd{display:flex;align-items:center;justify-content:space-between;margin:14px 16px 8px}
+  .secthd .l{font-size:13px;font-weight:600}
+  .secthd .l b{color:var(--label3);font-weight:500}
+  .search{margin:0 16px 10px;background:#EFEFF4;border-radius:10px;padding:8px 12px;font-size:13px;color:var(--label3);display:flex;align-items:center;gap:7px}
+  .lirow{margin:0 16px;border-bottom:.5px solid var(--hair);padding:11px 0;display:flex;align-items:center;gap:11px}
+  .lirow:last-child{border-bottom:0}
+  .liic{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .liic.pdf{background:rgba(232,83,59,.14)}
+  .liic.vid{background:rgba(122,90,248,.14)}
+  .liic.link{background:rgba(0,122,255,.12)}
+  .liic.note{background:rgba(255,159,10,.16)}
+  .libody{flex:1;min-width:0}
+  .libody .t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .libody .s{font-size:12px;color:var(--label3)}
+  .pill{font-size:10.5px;font-weight:600;color:var(--blue);background:rgba(0,122,255,.1);border-radius:6px;padding:2px 7px;flex-shrink:0}
+  .pill.muted{color:var(--label3);background:#EFEFF4}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0}
+  .liov{color:var(--label3);font-size:18px;padding:0 2px}
+  .swipe{margin:0 16px;display:flex;border-radius:12px;overflow:hidden;border:.5px solid var(--hair)}
+  .swipe .main{flex:1;padding:11px;display:flex;align-items:center;gap:11px;background:#fff}
+  .swipe .pin{background:var(--green);color:#fff;display:flex;align-items:center;padding:0 14px;font-size:12px;font-weight:600}
+  .swipe .del{background:#FF3B30;color:#fff;display:flex;align-items:center;padding:0 14px;font-size:12px;font-weight:600}
+  .legend{font-size:12.5px;color:var(--label2);margin-top:14px;line-height:1.55;max-width:900px}
+  .legend b{color:var(--label)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Add &amp; manage resources — options</h1>
+  <p class="lead">Two flows to tighten: <b>Add to Library</b> (the capture sheet) and <b>Resources</b> (the saved list on the Library tab). Mock only — pick what you like and I'll wire it. Note: "Compact file band" on the detail screen already shipped.</p>
+
+  <!-- ============ ADD ============ -->
+  <h2 class="secthead">A. Add to Library (capture sheet)</h2>
+  <div class="grid">
+
+    <!-- current add -->
+    <div class="col">
+      <h2>Current</h2>
+      <p class="note">Four mode tabs (Link / Upload / Photo / Paste) you choose up front, then a URL field, an empty Name, chips, and an Attach-to segment. You commit before seeing what was captured.</p>
+      <div class="phone">
+        <div class="grab"></div>
+        <div class="pad" style="text-align:center"><div style="font-size:17px;font-weight:700">Add to your Library</div><div style="font-size:12px;color:var(--label3)">Link, file, photo of a page, or paste text.</div></div>
+        <div class="seg"><div class="on">Link</div><div>Upload</div><div>Photo</div><div>Paste</div></div>
+        <div class="field" style="margin-top:8px">Paste a URL — youtube.com, nejm.org…</div>
+        <div class="eyebrow">Name</div>
+        <div class="field">We'll fill this in — or name it yourself</div>
+        <div class="eyebrow">Relevant for</div>
+        <div class="chips"><span class="chip">Entrepreneur</span><span class="chip">Golf</span><span class="chip">Nursing</span><span class="chip on">✓ Sail Racing</span></div>
+        <div class="eyebrow">Attach to</div>
+        <div class="seg"><div class="on">Standalone</div><div>Concept</div><div>Step</div></div>
+        <div class="cta soft">✦ Add to Library</div>
+      </div>
+    </div>
+
+    <!-- A1 smart paste + live preview -->
+    <div class="col">
+      <h2>A1 — Smart paste + live preview</h2>
+      <span class="tag new">Recommended</span>
+      <p class="note">One field auto-detects link vs. pasted text vs. file — no mode tabs to pick. As soon as a URL resolves, a preview card shows the cleaned title, format, source &amp; thumbnail so you confirm before saving. Name auto-fills (Fix 1) but stays editable.</p>
+      <div class="phone">
+        <div class="grab"></div>
+        <div class="pad" style="text-align:center"><div style="font-size:17px;font-weight:700">Add to your Library</div><div style="font-size:12px;color:var(--label3)">Paste anything, drop a file, or snap a page.</div></div>
+        <div class="field active" style="margin-top:10px">…/Seminars/Prepping for the Worlds.pdf</div>
+        <div class="rcard">
+          <div class="rthumb"><div class="sp"></div><span class="lb">PDF</span></div>
+          <div class="rbody"><span class="badge">DETECTED · PDF</span><div class="t" style="margin-top:3px">Prepping For The Worlds</div><div class="s">rhkyc.org.hk</div></div>
+        </div>
+        <div class="chips"><span class="chip on">✓ Sail Racing</span><span class="chip">+ Golf</span><span class="chip">+ Nursing</span></div>
+        <div class="seg"><div class="on">Just save</div><div>Pin to step</div><div>Start concept</div></div>
+        <div class="cta">✦ Save to Library</div>
+      </div>
+      <p class="note" style="min-height:0;color:var(--green);font-weight:600">≈ collapse 4 tabs → 1 field + add oEmbed/filename preview</p>
+    </div>
+
+    <!-- A2 quick paste sheet -->
+    <div class="col">
+      <h2>A2 — Drop-and-go (minimal)</h2>
+      <span class="tag keep">If you add a lot, fast</span>
+      <p class="note">For speed: a single field that accepts multiple URLs/lines at once and saves them all to the current interest with smart defaults. Refine names/tags later from the detail screen. Bulk capture, zero ceremony.</p>
+      <div class="phone">
+        <div class="grab"></div>
+        <div class="pad" style="text-align:center"><div style="font-size:17px;font-weight:700">Quick add</div><div style="font-size:12px;color:var(--label3)">One per line — links or notes.</div></div>
+        <div class="field active" style="height:96px;line-height:1.7">…/Prepping for the Worlds.pdf<br>youtube.com/watch?v=…<br>Reading the line bias before the gun</div>
+        <div class="rcard" style="background:#fff;border-style:dashed"><div class="rbody"><div class="t">3 items → Sail Racing</div><div class="s">1 PDF · 1 video · 1 note · auto-named</div></div><span class="pill">Sail Racing ▾</span></div>
+        <div class="cta">Save 3 to Library</div>
+      </div>
+      <p class="note" style="min-height:0;color:var(--green);font-weight:600">≈ new lightweight entry alongside the full sheet</p>
+    </div>
+
+  </div>
+
+  <!-- ============ MANAGE ============ -->
+  <h2 class="secthead">B. Resources list (manage)</h2>
+  <div class="grid">
+
+    <!-- current manage -->
+    <div class="col">
+      <h2>Current</h2>
+      <p class="note">A flat list. Every row repeats "From rhkyc.org.hk", there's no search/filter, no sense of which items are actually used in steps, and managing (rename / delete / pin) means opening each item.</p>
+      <div class="phone">
+        <div class="nav"><span class="t">Library · Sail Racing</span><span class="x">＋</span></div>
+        <div class="secthd"><span class="l">RESOURCES <b>7</b></span><span class="liov">›</span></div>
+        <div class="lirow"><div class="liic link">🔗</div><div class="libody"><div class="t">rhkyc.org.hk</div><div class="s">From rhkyc.org.hk · Just now</div></div><span class="liov">›</span></div>
+        <div class="lirow"><div class="liic link">🔗</div><div class="libody"><div class="t">rhkyc.org.hk</div><div class="s">From rhkyc.org.hk · Just now</div></div><span class="liov">›</span></div>
+        <div class="lirow"><div class="liic pdf">📄</div><div class="libody"><div class="t">Prepping for the Worlds.pdf</div><div class="s">From rhkyc.org.hk · 1 hr ago</div></div><span class="liov">›</span></div>
+      </div>
+    </div>
+
+    <!-- B1 filter + usage + actions -->
+    <div class="col">
+      <h2>B1 — Filter, search, usage &amp; quick actions</h2>
+      <span class="tag new">Recommended</span>
+      <p class="note">Add a search box + format filter chips. Each row gets a color-coded format icon, the <b>cleaned</b> title, a "used in N steps" pill (or "Unfiled"), and an unread dot. ⋯ / swipe gives Pin-to-step, Rename, Delete without opening the item.</p>
+      <div class="phone">
+        <div class="nav"><span class="t">Resources</span><span class="x">＋</span></div>
+        <div class="search">🔍 Search resources</div>
+        <div class="chips"><span class="chip fmt on">All 7</span><span class="chip">PDF 2</span><span class="chip">Video 3</span><span class="chip">Link 1</span><span class="chip">Notes 1</span></div>
+        <div class="lirow"><div class="dot"></div><div class="liic pdf">📄</div><div class="libody"><div class="t">Prepping For The Worlds</div><div class="s">rhkyc.org.hk · 1 hr ago</div></div><span class="pill">2 steps</span></div>
+        <div class="lirow"><div class="liic vid">🎬</div><div class="libody"><div class="t">Jamie McWilliams — Seminar 1</div><div class="s">rhkyc.org.hk · today</div></div><span class="pill muted">Unfiled</span></div>
+        <div class="lirow"><div class="liic vid">🎬</div><div class="libody"><div class="t">Jamie McWilliams — Seminar 2</div><div class="s">rhkyc.org.hk · today</div></div><span class="pill">1 step</span></div>
+        <div class="swipe" style="margin-top:8px"><div class="main"><div class="liic note">📝</div><div class="libody"><div class="t">Line bias before the gun</div><div class="s">Note · today</div></div></div><div class="pin">Pin</div><div class="del">Delete</div></div>
+      </div>
+      <p class="note" style="min-height:0;color:var(--green);font-weight:600">≈ search/filter state + usage count join + row actions</p>
+    </div>
+
+    <!-- B2 grouped + multi-select -->
+    <div class="col">
+      <h2>B2 — Grouped + multi-select</h2>
+      <span class="tag keep">For bigger libraries</span>
+      <p class="note">Group by format (or "Pinned vs Unfiled"), with a <b>Select</b> mode for bulk re-tag / pin / delete. Useful once a resource list grows past a screen; pairs with B1's chips as the "expanded" view.</p>
+      <div class="phone">
+        <div class="nav"><span class="x">Select</span><span class="t">Resources</span><span class="x">Done</span></div>
+        <div class="eyebrow">📄 Documents · 2</div>
+        <div class="lirow"><div class="liic" style="background:rgba(0,122,255,.12)">☑️</div><div class="libody"><div class="t">Prepping For The Worlds</div><div class="s">rhkyc.org.hk</div></div><span class="pill">2 steps</span></div>
+        <div class="lirow"><div class="liic note">▢</div><div class="libody"><div class="t">Tide notes — Victoria Harbour</div><div class="s">Note</div></div><span class="pill muted">Unfiled</span></div>
+        <div class="eyebrow">🎬 Video · 3</div>
+        <div class="lirow"><div class="liic" style="background:rgba(0,122,255,.12)">☑️</div><div class="libody"><div class="t">Jamie McWilliams — Seminar 1</div><div class="s">rhkyc.org.hk</div></div><span class="pill muted">Unfiled</span></div>
+        <div class="cta" style="margin-top:14px">Tag 2 · Pin · Delete</div>
+      </div>
+      <p class="note" style="min-height:0;color:var(--green);font-weight:600">≈ section list + selection state (layer on B1)</p>
+    </div>
+
+  </div>
+
+  <p class="legend"><b>My recommendation:</b> ship <b>A1</b> (smart-paste + live preview — it makes Fix 1's cleaned name visible <i>before</i> saving and kills the mode-tab friction) and <b>B1</b> (search + format filter + "used in N steps" + swipe actions — turns the list from a dumb feed into something you can actually manage). <b>A2</b> and <b>B2</b> are nice once volume grows; layer them later. Reply with the combo you want.</p>
+</div>
+</body>
+</html>

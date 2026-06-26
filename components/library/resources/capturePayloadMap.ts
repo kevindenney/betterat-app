@@ -7,6 +7,7 @@
 
 import type { LibraryFormat } from './types';
 import type { CreateLibraryItemInput } from '@/hooks/useCreateLibraryItem';
+import { filenameToTitle } from '@/lib/utils/filenameToTitle';
 
 type CaptureMode = 'link' | 'upload' | 'photo' | 'paste';
 
@@ -32,7 +33,7 @@ export interface CaptureSheetPayload {
   oEmbed?: { title?: string; thumbnailUrl?: string };
 }
 
-function deriveKindFromUrl(url: string): LibraryFormat {
+export function deriveKindFromUrl(url: string): LibraryFormat {
   const lower = url.toLowerCase();
   if (/youtube\.com|youtu\.be|vimeo\.com/.test(lower)) return 'video';
   if (/\.pdf(\?|$)/.test(lower)) return 'pdf';
@@ -41,7 +42,7 @@ function deriveKindFromUrl(url: string): LibraryFormat {
   return 'link';
 }
 
-function hostnameOf(url: string): string | null {
+export function hostnameOf(url: string): string | null {
   try {
     return new URL(url).hostname.replace(/^www\./, '');
   } catch {
@@ -49,13 +50,28 @@ function hostnameOf(url: string): string | null {
   }
 }
 
-function titleFromUrl(url: string): string {
+function filenameFromUrl(url: string): string | null {
+  try {
+    const last = decodeURIComponent(
+      new URL(url).pathname.split('/').filter(Boolean).pop() ?? '',
+    );
+    return /\.[a-z0-9]{2,5}$/i.test(last) ? last : null;
+  } catch {
+    return null;
+  }
+}
+
+export function titleFromUrl(url: string): string {
+  // A file-like URL (…/Prepping for the Worlds.pdf) reads better as its
+  // cleaned filename than as a bare hostname.
+  const fileName = filenameFromUrl(url);
+  if (fileName) return filenameToTitle(fileName);
   const host = hostnameOf(url);
   if (host) return host;
   return url.slice(0, 80);
 }
 
-function titleFromPastedText(text: string): string {
+export function titleFromPastedText(text: string): string {
   const firstLine = text.split('\n')[0]?.trim() ?? '';
   if (firstLine.length === 0) return 'Pasted note';
   return firstLine.length > 80 ? `${firstLine.slice(0, 77)}…` : firstLine;
@@ -105,7 +121,7 @@ export function mapCapturePayloadToLibraryItem(
     return {
       ...base,
       kind: kindFromMime(u.mimeType, payload.mode),
-      title: payload.title ?? u.fileName,
+      title: payload.title ?? filenameToTitle(u.fileName),
       source_label: payload.mode === 'photo' ? 'Photo' : 'Uploaded file',
       url_or_blob_id: u.publicUrl,
     };

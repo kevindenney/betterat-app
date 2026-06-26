@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Resource detail — layout options</title>
+<style>
+  :root{
+    --label:#1c1c1e; --label2:#3c3c43; --label3:rgba(60,60,67,.6);
+    --tint:#E8533B; --blue:#007AFF; --green:#1F8636;
+    --hair:rgba(60,60,67,.18); --bg:#f2f2f7; --card:#fff;
+    --paper:#FAFAF7;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;color:var(--label)}
+  .wrap{max-width:1500px;margin:0 auto;padding:28px 22px 80px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--label3);font-size:13.5px;margin:0 0 22px;max-width:760px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:24px;align-items:start}
+  .col h2{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--label2);margin:0 0 4px}
+  .col .note{font-size:12.5px;color:var(--label3);margin:0 0 12px;line-height:1.45;min-height:34px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:600;border-radius:5px;padding:2px 7px;margin-bottom:8px}
+  .tag.keep{background:#E9F7EE;color:var(--green)}
+  .tag.warn{background:#FDECEA;color:var(--tint)}
+  .tag.new{background:#E8F0FE;color:var(--blue)}
+
+  /* iPhone frame */
+  .phone{background:var(--card);border-radius:22px;border:1px solid var(--hair);overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.07)}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:.5px solid var(--hair)}
+  .nav .back{color:var(--blue);font-size:15px;display:flex;align-items:center;gap:3px}
+  .nav .acts{display:flex;gap:14px;color:var(--blue);font-size:17px}
+  .pad{padding:14px 16px}
+
+  .fmtrow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--tint);background:rgba(232,83,59,.12);border-radius:6px;padding:3px 7px}
+  .meta{font-size:12px;color:var(--label3)}
+  .title{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:2px 0 2px;line-height:1.15}
+  .source{font-size:12.5px;color:var(--label3)}
+
+  /* Current oversized cover */
+  .cover{margin:14px 16px;aspect-ratio:16/9;background:var(--paper);border:.5px solid var(--hair);border-radius:14px;position:relative;overflow:hidden;padding:16px}
+  .cover .spine{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tint)}
+  .cover .stamp{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.08em;color:var(--label3)}
+  .cover .page{position:absolute;bottom:16px;left:18px;font-size:11px;color:var(--label3)}
+
+  .actbar{display:flex;gap:8px;padding:0 16px;margin:14px 0}
+  .act{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:.5px solid var(--hair);border-radius:11px;padding:10px 0;font-size:13px;font-weight:500;background:#fff}
+  .act .ic{font-size:14px}
+
+  .eyebrow{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--label3);margin:18px 16px 8px}
+  .row{margin:0 16px 8px;border:.5px solid var(--hair);border-radius:12px;padding:11px 12px;display:flex;align-items:center;gap:10px}
+  .row .ic{width:30px;height:30px;border-radius:8px;background:#F0F0F3;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .row .body{flex:1;min-width:0}
+  .row .t{font-size:14px;font-weight:600}
+  .row .s{font-size:12px;color:var(--label3)}
+  .row .chev{color:var(--label3)}
+
+  /* Option A: compact file band */
+  .band{margin:14px 16px;display:flex;align-items:center;gap:12px;background:var(--paper);border:.5px solid var(--hair);border-radius:14px;padding:12px}
+  .band .thumb{width:46px;height:58px;border-radius:7px;background:#fff;border:.5px solid var(--hair);position:relative;flex-shrink:0;overflow:hidden}
+  .band .thumb .spine{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--tint)}
+  .band .thumb .lbl{position:absolute;bottom:5px;left:7px;font-family:ui-monospace,monospace;font-size:8.5px;color:var(--label3)}
+  .band .body{flex:1;min-width:0}
+  .band .open{background:var(--blue);color:#fff;font-size:12.5px;font-weight:600;border-radius:9px;padding:8px 14px;flex-shrink:0}
+
+  /* Option B: inline web preview */
+  .ifr{margin:14px 16px;height:300px;border:.5px solid var(--hair);border-radius:14px;background:#525659;position:relative;overflow:hidden}
+  .ifr .pg{position:absolute;inset:18px;background:#fff;border-radius:3px;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:18px;font-size:8px;color:#444;line-height:1.5;overflow:hidden}
+  .ifr .pg h4{font-size:11px;margin:0 0 8px}
+  .ifr .open{position:absolute;right:10px;top:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:7px;padding:5px 9px}
+
+  /* Option C: collapsed strip */
+  .strip{margin:14px 16px;height:60px;background:var(--paper);border:.5px solid var(--hair);border-radius:12px;position:relative;display:flex;align-items:center;padding:0 14px;gap:10px}
+  .strip .spine{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tint);border-radius:12px 0 0 12px}
+  .strip .stamp{font-family:ui-monospace,monospace;font-size:11px;color:var(--label3)}
+  .strip .exp{margin-left:auto;font-size:12.5px;color:var(--blue);font-weight:500}
+
+  .legend{font-size:12px;color:var(--label3);margin-top:10px;line-height:1.5}
+  .save{display:inline-block;margin-top:12px;font-size:12px;color:var(--green);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Resource detail — trimming the oversized cover</h1>
+  <p class="sub">The current screen opens with a 16:9 "book cover" box. For a PDF with no thumbnail that's a large empty rectangle showing only a colored spine + "PDF" stamp — it pushes the actually-useful sections (Read/Listen, where it appears in your practice, your marks) below the fold. Four options below, from lightest-touch to most ambitious. Mock only — nothing wired.</p>
+
+  <div class="grid">
+
+    <!-- CURRENT -->
+    <div class="col">
+      <h2>Current</h2>
+      <p class="note">A 16:9 cover dominates the first screen; for thumbnail-less files it's mostly dead space.</p>
+      <div class="phone">
+        <div class="nav"><span class="back">‹ Library</span><span class="acts">⤴  ⋯</span></div>
+        <div class="pad">
+          <div class="fmtrow"><span class="chip">📄 PDF</span><span class="meta">PDF · rhkyc.org.hk</span></div>
+          <div class="title">Prepping For The Worlds</div>
+          <div class="source">rhkyc.org.hk · Added Jun 26, 2026</div>
+        </div>
+        <div class="cover"><div class="spine"></div><span class="stamp">PDF</span><span class="page">PDF · rhkyc.org.hk</span></div>
+        <div class="actbar">
+          <div class="act"><span class="ic">📖</span>Read</div>
+          <div class="act"><span class="ic">🎧</span>Listen</div>
+          <div class="act"><span class="ic">✏️</span>Annotate</div>
+        </div>
+        <div class="eyebrow" style="color:var(--label3)">Where this appears in your practice</div>
+        <div class="row"><div class="ic">⛵</div><div class="body"><div class="t">Read Jamie's Worlds prep</div><div class="s">Before-shift reading</div></div><span class="chev">›</span></div>
+      </div>
+    </div>
+
+    <!-- OPTION A -->
+    <div class="col">
+      <h2>Option A — Compact file band</h2>
+      <span class="tag keep">Lightest touch</span>
+      <p class="note">Swap the 16:9 box for a slim file row: small spine-thumb, title/meta, and a primary <b>Open</b>. Recovers ~60% of vertical space; useful sections rise above the fold.</p>
+      <div class="phone">
+        <div class="nav"><span class="back">‹ Library</span><span class="acts">⤴  ⋯</span></div>
+        <div class="pad">
+          <div class="fmtrow"><span class="chip">📄 PDF</span><span class="meta">PDF · rhkyc.org.hk</span></div>
+          <div class="title">Prepping For The Worlds</div>
+          <div class="source">rhkyc.org.hk · Added Jun 26, 2026</div>
+        </div>
+        <div class="band">
+          <div class="thumb"><div class="spine"></div><span class="lbl">PDF</span></div>
+          <div class="body"><div class="t" style="font-size:14px;font-weight:600">Prepping For The Worlds.pdf</div><div class="s" style="font-size:12px;color:var(--label3)">~12 pages · opens in viewer</div></div>
+          <div class="open">Open</div>
+        </div>
+        <div class="actbar">
+          <div class="act"><span class="ic">🎧</span>Listen</div>
+          <div class="act"><span class="ic">✏️</span>Annotate</div>
+        </div>
+        <div class="eyebrow">Where this appears in your practice</div>
+        <div class="row"><div class="ic">⛵</div><div class="body"><div class="t">Read Jamie's Worlds prep</div><div class="s">Before-shift reading</div></div><span class="chev">›</span></div>
+        <div class="row" style="border-color:rgba(31,134,54,.35)"><div class="ic" style="background:rgba(52,199,89,.16);color:var(--green)">＋</div><div class="body"><div class="t">Create a step from this</div><div class="s">Pinned as before-shift reading</div></div><span class="chev">›</span></div>
+      </div>
+      <span class="save">≈ small style change in ResourceItemDetail</span>
+    </div>
+
+    <!-- OPTION B -->
+    <div class="col">
+      <h2>Option B — Real inline preview (web)</h2>
+      <span class="tag new">Turns dead space into content</span>
+      <p class="note">On web, render the actual first page in an iframe (same trick as the YouTube embed) at a reduced height, with <b>Open full</b>. Native keeps the compact band from A. Dead box becomes a real preview.</p>
+      <div class="phone">
+        <div class="nav"><span class="back">‹ Library</span><span class="acts">⤴  ⋯</span></div>
+        <div class="pad">
+          <div class="fmtrow"><span class="chip">📄 PDF</span><span class="meta">PDF · rhkyc.org.hk</span></div>
+          <div class="title">Prepping For The Worlds</div>
+          <div class="source">rhkyc.org.hk · Added Jun 26, 2026</div>
+        </div>
+        <div class="ifr">
+          <div class="open">Open full ↗</div>
+          <div class="pg"><h4>Prepping for the Worlds</h4>Notes on the Dragon class for the upcoming championship. Sail two knots low of close-hauled in the lulls to keep flow on the foils. Commit early on the first beat and read the pre-start line bias before the gun…<br><br>Section 1 — Boat setup<br>Section 2 — Tide strategy in Victoria Harbour…</div>
+        </div>
+        <div class="actbar">
+          <div class="act"><span class="ic">🎧</span>Listen</div>
+          <div class="act"><span class="ic">✏️</span>Annotate</div>
+        </div>
+        <div class="eyebrow">Where this appears in your practice</div>
+        <div class="row"><div class="ic">⛵</div><div class="body"><div class="t">Read Jamie's Worlds prep</div><div class="s">Before-shift reading</div></div><span class="chev">›</span></div>
+      </div>
+      <span class="save">≈ web-only iframe branch + height cap</span>
+    </div>
+
+    <!-- OPTION C -->
+    <div class="col">
+      <h2>Option C — Collapsed strip (tap to expand)</h2>
+      <span class="tag keep">Keeps a cover, optional</span>
+      <p class="note">Shrink the cover to a 60px strip by default; tap <b>Preview</b> to expand to the full cover/preview. Best if you sometimes want the visual but not always.</p>
+      <div class="phone">
+        <div class="nav"><span class="back">‹ Library</span><span class="acts">⤴  ⋯</span></div>
+        <div class="pad">
+          <div class="fmtrow"><span class="chip">📄 PDF</span><span class="meta">PDF · rhkyc.org.hk</span></div>
+          <div class="title">Prepping For The Worlds</div>
+          <div class="source">rhkyc.org.hk · Added Jun 26, 2026</div>
+        </div>
+        <div class="strip"><div class="spine"></div><span class="stamp">PDF</span><span class="meta">~12 pages</span><span class="exp">Preview ▾</span></div>
+        <div class="actbar">
+          <div class="act"><span class="ic">📖</span>Read</div>
+          <div class="act"><span class="ic">🎧</span>Listen</div>
+          <div class="act"><span class="ic">✏️</span>Annotate</div>
+        </div>
+        <div class="eyebrow">Where this appears in your practice</div>
+        <div class="row"><div class="ic">⛵</div><div class="body"><div class="t">Read Jamie's Worlds prep</div><div class="s">Before-shift reading</div></div><span class="chev">›</span></div>
+        <div class="row"><div class="ic">📝</div><div class="body"><div class="t">3 marked excerpts</div><div class="s">Your highlights</div></div><span class="chev">›</span></div>
+      </div>
+      <span class="save">≈ collapse state + height swap</span>
+    </div>
+
+  </div>
+
+  <p class="legend"><b>My take:</b> ship <b>A</b> now (small, fixes the space complaint everywhere incl. native), and layer <b>B</b> on top for web PDFs/links so the space becomes a real preview rather than empty. <b>C</b> only if you want to preserve the cover aesthetic as an opt-in. Reply with a letter (or mix) and I'll wire it.</p>
+</div>
+</body>
+</html>

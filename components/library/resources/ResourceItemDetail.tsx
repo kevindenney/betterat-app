@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Linking,
   Platform,
@@ -29,7 +30,10 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 import { ConceptEditor } from '@/components/playbook/concepts/ConceptEditor';
 import { useInterest } from '@/providers/InterestProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { usePlaybook } from '@/hooks/usePlaybook';
+import { createStep } from '@/services/TimelineStepService';
+import { insertStepLibraryBefore } from '@/hooks/useStepLibraryBefore';
 import { FORMAT_ICON, FORMAT_TINT } from './formatStyles';
 import { DEMO_LIBRARY_ITEMS } from './demoItems';
 import { InterestTagRow } from './InterestTagRow';
@@ -155,10 +159,12 @@ export function ResourceItemDetail({ item }: Props) {
   const tint = FORMAT_TINT[item.format];
   const isDemoItem = item.id in DEMO_LIBRARY_ITEMS;
   const { currentInterest } = useInterest();
+  const { user } = useAuth();
   const { data: playbook } = usePlaybook(currentInterest?.id);
   const updateItem = useUpdateLibraryItem(item.id);
   const deleteItem = useDeleteLibraryItem();
   const [conceptEditorOpen, setConceptEditorOpen] = useState(false);
+  const [creatingStep, setCreatingStep] = useState(false);
   const conceptDraft = useMemo(() => buildConceptDraft(item), [item]);
   const youtubeVideoId = useMemo(() => getYouTubeVideoId(item.url), [item.url]);
   const showEmbeddedYouTube = Platform.OS === 'web' && item.format === 'video' && !!youtubeVideoId;
@@ -277,6 +283,51 @@ export function ResourceItemDetail({ item }: Props) {
     ]);
   };
 
+  const handleCreateStep = async () => {
+    if (creatingStep) return;
+    if (!user?.id || !currentInterest?.id) {
+      showAlert(
+        'Create step',
+        'Your interest is still loading. Try again in a moment.',
+      );
+      return;
+    }
+    setCreatingStep(true);
+    try {
+      const step = await createStep({
+        user_id: user.id,
+        interest_id: currentInterest.id,
+        title: item.title.slice(0, 100),
+        category: 'reading_study',
+        source_type: 'manual',
+        status: 'pending',
+        metadata: {
+          plan: { what_will_you_do: item.title },
+          source_library_item_id: item.id,
+        },
+      });
+      // Auto-pin this item as before-shift reading. Best-effort — the step
+      // is already created, so a pin failure shouldn't block navigation.
+      try {
+        await insertStepLibraryBefore({
+          stepId: step.id,
+          libraryItemId: item.id,
+          userId: user.id,
+        });
+      } catch {
+        // pin is best-effort
+      }
+      router.push(`/(tabs)/practice?selected=${step.id}` as never);
+    } catch (err) {
+      showAlert(
+        'Step creation failed',
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setCreatingStep(false);
+    }
+  };
+
   const handleCiteAsOrigin = () => {
     if (!currentInterest?.id || !playbook?.id) {
       showAlert(
@@ -336,57 +387,49 @@ export function ResourceItemDetail({ item }: Props) {
           <Text style={styles.sourceLine}>{item.sourceLine}</Text>
         </View>
 
-        <View style={[styles.preview, showEmbeddedYouTube && styles.videoPreview]}>
-          {showEmbeddedYouTube ? (
+        {showEmbeddedYouTube ? (
+          <View style={[styles.preview, styles.videoPreview]}>
             <YouTubeEmbed videoId={youtubeVideoId!} title={item.title} />
-          ) : item.thumbUrl ? (
-            <Image
-              source={{ uri: item.thumbUrl }}
-              style={styles.previewImage}
-              resizeMode={item.format === 'video' ? 'contain' : 'cover'}
-            />
-          ) : null}
-          {!showEmbeddedYouTube ? (
-            <>
-              <View style={[styles.previewSpine, { backgroundColor: tint }]} />
-              <View
-                style={[
-                  styles.previewStampPill,
-                  item.thumbUrl ? styles.previewStampOverImage : null,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.previewStamp,
-                    item.thumbUrl ? styles.previewStampOnImage : null,
-                  ]}
-                >
-                  {item.formatLabel.toUpperCase()}
-                </Text>
-              </View>
-              {item.meta ? (
-                <Text
-                  style={[
-                    styles.previewPage,
-                    item.thumbUrl ? styles.previewPageOnImage : null,
-                  ]}
-                >
-                  {item.meta}
-                </Text>
-              ) : null}
-            </>
-          ) : null}
-        </View>
-
-        <View style={styles.actionsRow}>
+          </View>
+        ) : (
           <TouchableOpacity
-            style={styles.action}
+            style={styles.fileBand}
             activeOpacity={0.7}
             onPress={handleRead}
           >
-            <Ionicons name="book-outline" size={16} color={IOS_COLORS.label} />
-            <Text style={styles.actionText}>Read</Text>
+            <View style={styles.bandThumb}>
+              {item.thumbUrl ? (
+                <Image
+                  source={{ uri: item.thumbUrl }}
+                  style={styles.bandThumbImg}
+                  resizeMode="cover"
+                />
+              ) : (
+                <>
+                  <View style={[styles.bandSpine, { backgroundColor: tint }]} />
+                  <Text style={styles.bandStamp}>
+                    {item.formatLabel.toUpperCase()}
+                  </Text>
+                </>
+              )}
+            </View>
+            <View style={styles.bandBody}>
+              <Text style={styles.bandTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              {item.meta ? (
+                <Text style={styles.bandMeta} numberOfLines={1}>
+                  {item.meta}
+                </Text>
+              ) : null}
+            </View>
+            <View style={styles.bandOpen}>
+              <Text style={styles.bandOpenText}>Open</Text>
+            </View>
           </TouchableOpacity>
+        )}
+
+        <View style={styles.actionsRow}>
           <TouchableOpacity
             style={styles.action}
             activeOpacity={0.7}
@@ -430,6 +473,34 @@ export function ResourceItemDetail({ item }: Props) {
               ))}
             </View>
           </>
+        ) : null}
+
+        {!isDemoItem ? (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={[styles.citeRow, styles.stepRow]}
+            onPress={handleCreateStep}
+            disabled={creatingStep}
+          >
+            <View style={styles.stepIc}>
+              <Ionicons name="add-circle" size={16} color="#1F8636" />
+            </View>
+            <View style={styles.citeCopy}>
+              <Text style={styles.citeTitle}>Create a step from this</Text>
+              <Text style={styles.citeSub}>
+                Start a new step with this pinned as before-shift reading
+              </Text>
+            </View>
+            {creatingStep ? (
+              <ActivityIndicator size="small" color={IOS_COLORS.tertiaryLabel} />
+            ) : (
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={IOS_COLORS.tertiaryLabel}
+              />
+            )}
+          </TouchableOpacity>
         ) : null}
 
         <TouchableOpacity
@@ -613,56 +684,73 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  previewSpine: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
+  fileBand: {
+    marginHorizontal: IOS_SPACING.lg,
+    marginTop: IOS_SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FAFAF7',
+    borderWidth: 0.5,
+    borderColor: 'rgba(60,60,67,0.18)',
+    borderRadius: 14,
+    padding: 12,
   },
-  previewImage: {
+  bandThumb: {
+    width: 46,
+    height: 58,
+    borderRadius: 7,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0.5,
+    borderColor: 'rgba(60,60,67,0.18)',
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+    padding: 6,
+  },
+  bandThumbImg: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   },
-  previewStampPill: {
-    alignSelf: 'flex-start',
-  },
-  previewStampOverImage: {
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  previewStamp: {
-    fontSize: 11,
-    fontFamily: fontFamily.mono,
-    fontWeight: '500',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: IOS_COLORS.tertiaryLabel,
-  },
-  previewStampOnImage: {
-    color: '#FFFFFF',
-  },
-  previewPageOnImage: {
-    color: '#FFFFFF',
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  previewPage: {
+  bandSpine: {
     position: 'absolute',
-    bottom: 12,
-    right: 14,
-    fontSize: 11,
-    fontWeight: '700',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+  },
+  bandStamp: {
+    fontSize: 8.5,
+    fontFamily: fontFamily.mono,
     letterSpacing: 0.4,
     color: IOS_COLORS.tertiaryLabel,
+  },
+  bandBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  bandTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.label,
+  },
+  bandMeta: {
+    fontSize: 12,
+    color: IOS_COLORS.tertiaryLabel,
+    marginTop: 1,
+  },
+  bandOpen: {
+    backgroundColor: '#007AFF',
+    borderRadius: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  bandOpenText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '600',
   },
   actionsRow: {
     flexDirection: 'row',
@@ -791,6 +879,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(175,82,222,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  stepIc: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    backgroundColor: 'rgba(52,199,89,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepRow: {
+    marginBottom: 0,
+    borderColor: 'rgba(52,199,89,0.35)',
   },
   citeCopy: {
     flex: 1,

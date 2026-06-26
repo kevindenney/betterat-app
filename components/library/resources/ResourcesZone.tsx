@@ -6,12 +6,14 @@
  * - "Collections" horizontal shelf of named bundles
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -19,19 +21,38 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
-import { showAlert } from '@/lib/utils/crossPlatformAlert';
+import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useToast } from '@/components/ui/AppToast';
 import { hapticSuccess } from '@/lib/haptics';
 import { useCreateLibraryItem } from '@/hooks/useCreateLibraryItem';
 import { useLibraryZonesData } from '@/hooks/useLibraryZonesData';
+import { useLibraryResources } from '@/hooks/useLibraryResources';
+import {
+  useUpdateLibraryItem,
+  useDeleteLibraryItem,
+} from '@/hooks/useLibraryItemMutations';
 import { useLibraryCounts } from '@/hooks/useLibraryCounts';
 import { useInterest } from '@/providers/InterestProvider';
 import { LibraryItemCard } from './LibraryItemCard';
 import { RecentItemRow } from './RecentItemRow';
+import { ResourceListRow } from './ResourceListRow';
 import { CollectionsRow } from './CollectionsRow';
 import { CaptureSheet } from './CaptureSheet';
 import { mapCapturePayloadToLibraryItem } from './capturePayloadMap';
+import { FORMAT_TINT } from './formatStyles';
 import { DEMO_COLLECTIONS, DEMO_IN_PLAY, DEMO_RECENT } from './demoZonesData';
+import type { LibraryFormat, LibraryItemRow } from './types';
+
+const FORMAT_CHIP_LABEL: Record<LibraryFormat, string> = {
+  pdf: 'PDFs',
+  video: 'Videos',
+  book: 'Books',
+  link: 'Links',
+  audio: 'Audio',
+  article: 'Articles',
+  note: 'Notes',
+  image: 'Images',
+};
 
 interface Props {
   /** Optional external open trigger; if not provided the zone opens its own sheet. */
@@ -40,6 +61,11 @@ interface Props {
 
 export function ResourcesZone({ onOpenCapture }: Props) {
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [formatFilter, setFormatFilter] = useState<LibraryFormat | 'all'>('all');
+  const [menuItem, setMenuItem] = useState<LibraryItemRow | null>(null);
+  const [renameItem, setRenameItem] = useState<LibraryItemRow | null>(null);
+  const [renameText, setRenameText] = useState('');
   const { currentInterest } = useInterest();
   const toast = useToast();
   const createLibraryItem = useCreateLibraryItem();
@@ -49,7 +75,29 @@ export function ResourcesZone({ onOpenCapture }: Props) {
     error: zonesError,
     refetch: refetchZones,
   } = useLibraryZonesData(currentInterest?.id);
+  const { data: allResources = [] } = useLibraryResources(currentInterest?.id);
+  const updateItem = useUpdateLibraryItem(renameItem?.id);
+  const deleteItem = useDeleteLibraryItem();
   const { data: counts } = useLibraryCounts(currentInterest?.id);
+
+  // Format chips: only offer formats that actually appear in the list.
+  const availableFormats = useMemo(() => {
+    const set = new Set<LibraryFormat>();
+    for (const r of allResources) set.add(r.format);
+    return Array.from(set);
+  }, [allResources]);
+
+  const filteredResources = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allResources.filter((r) => {
+      if (formatFilter !== 'all' && r.format !== formatFilter) return false;
+      if (!q) return true;
+      return (
+        r.title.toLowerCase().includes(q) ||
+        (r.source ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [allResources, query, formatFilter]);
 
   // Demo content stands in only when the account is completely empty so
   // the JHU/MSN-Capstone screenshots keep working on a fresh account. Any
@@ -67,6 +115,53 @@ export function ResourcesZone({ onOpenCapture }: Props) {
   const handleOpenCapture = () => {
     if (onOpenCapture) onOpenCapture();
     else setCaptureOpen(true);
+  };
+
+  const startRename = (item: LibraryItemRow) => {
+    setMenuItem(null);
+    setRenameItem(item);
+    setRenameText(item.title);
+  };
+  const commitRename = () => {
+    const next = renameText.trim();
+    if (!renameItem || !next || next === renameItem.title) {
+      setRenameItem(null);
+      return;
+    }
+    updateItem.mutate(
+      { title: next },
+      {
+        onSuccess: () => {
+          hapticSuccess();
+          setRenameItem(null);
+        },
+        onError: (err) =>
+          showAlert(
+            'Rename failed',
+            err instanceof Error ? err.message : String(err),
+          ),
+      },
+    );
+  };
+  const confirmDelete = (item: LibraryItemRow) => {
+    setMenuItem(null);
+    showConfirm(
+      'Delete resource',
+      `Remove "${item.title}" from your library? Steps that pin it will lose the reference.`,
+      () =>
+        deleteItem.mutate(item.id, {
+          onSuccess: () => {
+            hapticSuccess();
+            toast.show('Removed from your library.', 'success');
+          },
+          onError: (err) =>
+            showAlert(
+              'Delete failed',
+              err instanceof Error ? err.message : String(err),
+            ),
+        }),
+      { destructive: true, confirmText: 'Delete' },
+    );
   };
 
   return (
@@ -130,16 +225,7 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         </View>
       ) : inPlay.length > 0 ? (
         <>
-          <ShelfHead
-            title="In play this week"
-            count={inPlay.length}
-            onSeeAll={() =>
-              showAlert(
-                'In play this week',
-                'Full list view is on the roadmap — not built yet.',
-              )
-            }
-          />
+          <ShelfHead title="In play this week" count={inPlay.length} />
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -158,15 +244,7 @@ export function ResourcesZone({ onOpenCapture }: Props) {
 
       {!zonesError && !(zonesLoading && !zones) && recent.length > 0 ? (
         <>
-          <ShelfHead
-            title="Recently added"
-            onSeeAll={() =>
-              showAlert(
-                'Recently added',
-                'Full list view is on the roadmap — not built yet.',
-              )
-            }
-          />
+          <ShelfHead title="Recently added" />
           <View style={styles.recentBlock}>
             {recent.map((item) => (
               <RecentItemRow
@@ -204,7 +282,178 @@ export function ResourcesZone({ onOpenCapture }: Props) {
         </>
       ) : null}
 
+      {!zonesError && allResources.length > 0 ? (
+        <>
+          <ShelfHead
+            title="All resources"
+            count={allResources.length}
+            topPad={IOS_SPACING.lg}
+          />
+          <View style={styles.searchBar}>
+            <Ionicons
+              name="search"
+              size={15}
+              color={IOS_COLORS.tertiaryLabel}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search resources"
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {query.length > 0 ? (
+              <TouchableOpacity hitSlop={8} onPress={() => setQuery('')}>
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color={IOS_COLORS.tertiaryLabel}
+                />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {availableFormats.length > 1 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipTrack}
+            >
+              <FilterChip
+                label="All"
+                active={formatFilter === 'all'}
+                onPress={() => setFormatFilter('all')}
+              />
+              {availableFormats.map((f) => (
+                <FilterChip
+                  key={f}
+                  label={FORMAT_CHIP_LABEL[f]}
+                  tint={FORMAT_TINT[f]}
+                  active={formatFilter === f}
+                  onPress={() => setFormatFilter(f)}
+                />
+              ))}
+            </ScrollView>
+          ) : null}
+
+          <View style={styles.recentBlock}>
+            {filteredResources.length > 0 ? (
+              filteredResources.map((item) => (
+                <ResourceListRow
+                  key={item.id}
+                  item={item}
+                  onPress={() => openItem(item.id)}
+                  onMore={() => setMenuItem(item)}
+                />
+              ))
+            ) : (
+              <Text style={styles.emptyFilter}>
+                No resources match “{query.trim() || FORMAT_CHIP_LABEL[
+                  formatFilter as LibraryFormat
+                ]}”.
+              </Text>
+            )}
+          </View>
+        </>
+      ) : null}
+
       <View style={styles.bottomPad} />
+
+      <Modal
+        visible={menuItem !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuItem(null)}
+      >
+        <TouchableOpacity
+          style={styles.menuBackdrop}
+          activeOpacity={1}
+          onPress={() => setMenuItem(null)}
+        >
+          <View style={styles.menuSheet}>
+            <Text style={styles.menuTitle} numberOfLines={1}>
+              {menuItem?.title}
+            </Text>
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                const it = menuItem;
+                setMenuItem(null);
+                if (it) openItem(it.id);
+              }}
+            >
+              <Ionicons name="open-outline" size={18} color={IOS_COLORS.label} />
+              <Text style={styles.menuRowText}>Open</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => menuItem && startRename(menuItem)}
+            >
+              <Ionicons
+                name="create-outline"
+                size={18}
+                color={IOS_COLORS.label}
+              />
+              <Text style={styles.menuRowText}>Rename</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => menuItem && confirmDelete(menuItem)}
+            >
+              <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+              <Text style={[styles.menuRowText, { color: '#FF3B30' }]}>
+                Delete
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={renameItem !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRenameItem(null)}
+      >
+        <View style={styles.menuBackdrop}>
+          <View style={styles.renameCard}>
+            <Text style={styles.renameTitle}>Rename resource</Text>
+            <TextInput
+              style={styles.renameInput}
+              value={renameText}
+              onChangeText={setRenameText}
+              autoFocus
+              selectTextOnFocus
+              placeholder="Title"
+              placeholderTextColor={IOS_COLORS.tertiaryLabel}
+            />
+            <View style={styles.renameActions}>
+              <TouchableOpacity
+                style={styles.renameBtn}
+                onPress={() => setRenameItem(null)}
+              >
+                <Text style={styles.renameBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.renameBtn, styles.renameSave]}
+                onPress={commitRename}
+                disabled={updateItem.isPending}
+              >
+                {updateItem.isPending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={[styles.renameBtnText, styles.renameSaveText]}>
+                    Save
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <CaptureSheet
         visible={captureOpen}
         onClose={() => setCaptureOpen(false)}
@@ -251,10 +500,47 @@ function ShelfHead({
         {title}
         {count != null ? <Text style={styles.shelfCount}>  {count}</Text> : null}
       </Text>
-      <TouchableOpacity hitSlop={8} activeOpacity={0.6} onPress={onSeeAll}>
-        <Text style={styles.seeAll}>All</Text>
-      </TouchableOpacity>
+      {onSeeAll ? (
+        <TouchableOpacity hitSlop={8} activeOpacity={0.6} onPress={onSeeAll}>
+          <Text style={styles.seeAll}>All</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
+  );
+}
+
+function FilterChip({
+  label,
+  tint,
+  active,
+  onPress,
+}: {
+  label: string;
+  tint?: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const accent = tint ?? '#007AFF';
+  return (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={[
+        styles.chip,
+        active
+          ? { backgroundColor: `${accent}1A`, borderColor: `${accent}55` }
+          : null,
+      ]}
+    >
+      <Text
+        style={[
+          styles.chipText,
+          active ? { color: accent, fontWeight: '700' } : null,
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
   );
 }
 
@@ -399,6 +685,125 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_COLORS.systemBackground,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(60,60,67,0.18)',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginHorizontal: IOS_SPACING.lg,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: 'rgba(118,118,128,0.12)',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: IOS_COLORS.label,
+    padding: 0,
+  },
+  chipTrack: {
+    paddingHorizontal: IOS_SPACING.lg,
+    gap: 8,
+    paddingBottom: 10,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.22)',
+    backgroundColor: IOS_COLORS.systemBackground,
+  },
+  chipText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  emptyFilter: {
+    paddingHorizontal: IOS_SPACING.lg,
+    paddingVertical: 18,
+    fontSize: 13,
+    color: IOS_COLORS.tertiaryLabel,
+    textAlign: 'center',
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  menuSheet: {
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderRadius: 14,
+    paddingVertical: 6,
+    overflow: 'hidden',
+  },
+  menuTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_COLORS.tertiaryLabel,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(60,60,67,0.14)',
+  },
+  menuRowText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: IOS_COLORS.label,
+  },
+  renameCard: {
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+  },
+  renameTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: IOS_COLORS.label,
+  },
+  renameInput: {
+    fontSize: 15,
+    color: IOS_COLORS.label,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: 'rgba(118,118,128,0.12)',
+  },
+  renameActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  renameBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 9,
+    minWidth: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  renameBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_COLORS.secondaryLabel,
+  },
+  renameSave: {
+    backgroundColor: '#007AFF',
+  },
+  renameSaveText: {
+    color: '#FFFFFF',
   },
   bottomPad: {
     height: 32,

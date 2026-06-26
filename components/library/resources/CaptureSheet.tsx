@@ -11,9 +11,10 @@
  * Wave 2f: UI only — write to library_items lands in a follow-up.
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -30,12 +31,47 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { fetchOEmbedMetadata } from '@/lib/oEmbed';
+import { filenameToTitle } from '@/lib/utils/filenameToTitle';
+import { FORMAT_ICON, FORMAT_TINT } from './formatStyles';
+import {
+  deriveKindFromUrl,
+  hostnameOf,
+  kindFromMime,
+  titleFromPastedText,
+  titleFromUrl,
+} from './capturePayloadMap';
+import type { LibraryFormat } from './types';
 import {
   pickFile,
   pickImage,
   uploadFile,
   type PickedFile,
 } from '@/services/LibraryUploadService';
+
+/** A trimmed value reads as a URL when it has a scheme or a bare domain. */
+function looksLikeUrl(value: string): boolean {
+  const t = value.trim();
+  if (!t || /\s/.test(t)) return false;
+  if (/^https?:\/\//i.test(t)) return true;
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|\?|$)/i.test(t);
+}
+
+/** Prepend https:// to a bare domain so URL parsing and oEmbed work. */
+function normalizeUrl(value: string): string {
+  const t = value.trim();
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+}
+
+const FORMAT_LABEL: Record<LibraryFormat, string> = {
+  pdf: 'PDF',
+  video: 'Video',
+  book: 'Book',
+  link: 'Link',
+  audio: 'Audio',
+  article: 'Article',
+  note: 'Note',
+  image: 'Image',
+};
 
 type CaptureMode = 'link' | 'upload' | 'photo' | 'paste';
 type AttachTo = 'standalone' | 'concept' | 'step';
@@ -76,37 +112,26 @@ interface Props {
   }) => void;
 }
 
-function fileNameFromUrl(url: string): string {
-  try {
-    const path = new URL(url).pathname;
-    return decodeURIComponent(path.split('/').filter(Boolean).pop() ?? '');
-  } catch {
-    return '';
-  }
-}
-
-function filenameToTitle(name: string): string {
-  return name
-    .replace(/\.[a-z0-9]+$/i, '')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 export function CaptureSheet({ visible, onClose, onSave }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { userInterests, currentInterest } = useInterest();
-  const [mode, setMode] = useState<CaptureMode>('link');
+  // One smart field for the common case (paste a URL or text); file/photo are
+  // secondary affordances that set `picked` instead.
+  const [smartText, setSmartText] = useState('');
   const [picked, setPicked] = useState<PickedFile | null>(null);
+  const [pickedKind, setPickedKind] = useState<'upload' | 'photo'>('upload');
   const [pickError, setPickError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [attachTo, setAttachTo] = useState<AttachTo>('standalone');
-  const [pastedText, setPastedText] = useState('');
-  const [linkUrl, setLinkUrl] = useState('');
   const [title, setTitle] = useState('');
-  const [autoFillingTitle, setAutoFillingTitle] = useState(false);
+  // oEmbed result for the typed URL, resolved on blur to enrich the live
+  // preview (real title + thumbnail). Null until/unless one resolves.
+  const [linkMeta, setLinkMeta] = useState<{
+    title?: string;
+    thumbnailUrl?: string;
+  } | null>(null);
+  const [resolvingLink, setResolvingLink] = useState(false);
   const [interestIds, setInterestIds] = useState<Set<string>>(() =>
     currentInterest ? new Set([currentInterest.id]) : new Set(),
   );
@@ -116,7 +141,11 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
   // user's mid-capture chip toggles aren't reset on re-render.
   React.useEffect(() => {
     if (!visible) return;
+    setSmartText('');
     setTitle('');
+    setPicked(null);
+    setPickError(null);
+    setLinkMeta(null);
     setInterestIds(currentInterest ? new Set([currentInterest.id]) : new Set());
     // intentionally omit currentInterest to avoid wiping toggles mid-sheet
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,16 +160,6 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
     });
   };
 
-  const handleModeChange = (next: CaptureMode) => {
-    if (next !== mode) {
-      // Drop any picked file when switching modes so we don't carry stale
-      // upload state into a different capture flow.
-      setPicked(null);
-      setPickError(null);
-    }
-    setMode(next);
-  };
-
   const handlePick = async (kind: 'file' | 'image' | 'camera') => {
     setPickError(null);
     try {
@@ -150,57 +169,99 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
           : await pickImage({ fromCamera: kind === 'camera' });
       if (result) {
         setPicked(result);
-        if (!title.trim()) setTitle(filenameToTitle(result.name));
+        setPickedKind(kind === 'file' ? 'upload' : 'photo');
+        setSmartText('');
+        setLinkMeta(null);
       }
     } catch (err) {
       setPickError(err instanceof Error ? err.message : String(err));
     }
   };
 
-  // Auto-name a link from its oEmbed title, or — for file-like URLs that don't
-  // oEmbed (PDFs, CSVs, spreadsheets) — from the cleaned-up filename. Never
-  // clobbers a name the user already typed.
-  const handleAutoFillTitle = async () => {
-    const url = linkUrl.trim();
-    if (!url || title.trim()) return;
-    const fileName = fileNameFromUrl(url);
-    if (fileName && /\.(pdf|csv|xlsx?|docx?|pptx?|txt)$/i.test(fileName)) {
-      setTitle(filenameToTitle(fileName));
-      return;
-    }
-    setAutoFillingTitle(true);
+  // Resolve a typed URL's oEmbed metadata on blur so the preview card can show
+  // a real title + thumbnail before saving. File-like URLs (PDF/CSV/…) don't
+  // oEmbed, so we skip the fetch and let the preview derive from the filename.
+  const handleResolveLink = async () => {
+    if (picked || !looksLikeUrl(smartText)) return;
+    const url = normalizeUrl(smartText);
+    if (/\.(pdf|csv|xlsx?|docx?|pptx?|txt)(\?|$)/i.test(url)) return;
+    setResolvingLink(true);
     try {
       const meta = await fetchOEmbedMetadata(url);
-      if (meta?.title && !title.trim()) setTitle(meta.title);
-      else if (fileName && !title.trim()) setTitle(filenameToTitle(fileName));
+      setLinkMeta(
+        meta ? { title: meta.title, thumbnailUrl: meta.thumbnailUrl } : null,
+      );
     } finally {
-      setAutoFillingTitle(false);
+      setResolvingLink(false);
     }
   };
 
-  const canSave =
-    (mode === 'link' && linkUrl.trim().length > 0)
-    || (mode === 'paste' && pastedText.trim().length > 0)
-    || ((mode === 'upload' || mode === 'photo') && picked !== null);
+  // The detected capture mode — drives the preview and the save payload so
+  // what the user sees is exactly what lands in the library.
+  const detectedMode: CaptureMode | null = picked
+    ? pickedKind
+    : looksLikeUrl(smartText)
+    ? 'link'
+    : smartText.trim().length > 0
+    ? 'paste'
+    : null;
+
+  // Resolved preview of what will be saved (format/title/source/thumb).
+  const preview = useMemo(() => {
+    if (picked) {
+      const format =
+        pickedKind === 'photo'
+          ? 'image'
+          : kindFromMime(picked.mimeType, 'upload');
+      return {
+        format,
+        title: title.trim() || filenameToTitle(picked.name),
+        source: pickedKind === 'photo' ? 'Photo' : 'Uploaded file',
+        meta: formatBytes(picked.size),
+        thumb: null as string | null,
+      };
+    }
+    const t = smartText.trim();
+    if (!t) return null;
+    if (looksLikeUrl(t)) {
+      const url = normalizeUrl(t);
+      return {
+        format: deriveKindFromUrl(url),
+        title: title.trim() || linkMeta?.title?.trim() || titleFromUrl(url),
+        source: hostnameOf(url) ?? 'Link',
+        meta: '',
+        thumb: linkMeta?.thumbnailUrl ?? null,
+      };
+    }
+    return {
+      format: 'note' as LibraryFormat,
+      title: title.trim() || titleFromPastedText(t),
+      source: 'Pasted note',
+      meta: `${t.length} characters`,
+      thumb: null as string | null,
+    };
+  }, [picked, pickedKind, smartText, title, linkMeta]);
+
+  const canSave = detectedMode !== null;
 
   const handleSubmit = async () => {
-    if (!canSave) return;
+    if (!detectedMode) return;
+    const mode = detectedMode;
     let upload:
       | { publicUrl: string; mimeType: string; fileName: string; sizeBytes: number }
       | undefined;
     let titleFromUpload: string | undefined;
     let oEmbed: { title?: string; thumbnailUrl?: string } | undefined;
-    if (mode === 'link' && linkUrl.trim()) {
-      // Best-effort enrichment — failure is silent and we fall back to
-      // hostname-only title plus a colored preview spine.
-      setUploading(true);
-      const meta = await fetchOEmbedMetadata(linkUrl.trim());
-      setUploading(false);
-      if (meta) {
-        oEmbed = {
-          title: meta.title,
-          thumbnailUrl: meta.thumbnailUrl,
-        };
+    if (mode === 'link') {
+      const url = normalizeUrl(smartText);
+      // Reuse the preview's resolved metadata; fetch only if blur didn't run.
+      if (linkMeta) {
+        oEmbed = linkMeta;
+      } else {
+        setUploading(true);
+        const meta = await fetchOEmbedMetadata(url);
+        setUploading(false);
+        if (meta) oEmbed = { title: meta.title, thumbnailUrl: meta.thumbnailUrl };
       }
     }
     if ((mode === 'upload' || mode === 'photo') && picked) {
@@ -236,15 +297,16 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
       attachTo,
       tags: [],
       title: title.trim() || titleFromUpload || oEmbed?.title,
-      url: mode === 'link' ? linkUrl.trim() : undefined,
-      pastedText: mode === 'paste' ? pastedText.trim() : undefined,
+      url: mode === 'link' ? normalizeUrl(smartText) : undefined,
+      pastedText: mode === 'paste' ? smartText.trim() : undefined,
       upload,
       interestIds: Array.from(interestIds),
       oEmbed,
     });
-    setLinkUrl('');
-    setPastedText('');
+    setSmartText('');
+    setTitle('');
     setPicked(null);
+    setLinkMeta(null);
     onClose();
   };
 
@@ -280,137 +342,130 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
             </Text>
           </View>
 
-          <ModeTabs mode={mode} onChange={handleModeChange} />
-
-          {mode === 'upload' ? (
-            <View>
-              <TouchableOpacity
-                activeOpacity={0.6}
-                style={styles.dropZone}
-                onPress={() => handlePick('file')}
-              >
-                <Ionicons name="cloud-upload-outline" size={26} color={IOS_COLORS.tertiaryLabel} />
-                <Text style={styles.dropZoneText}>
-                  Tap to pick a PDF, image, or document
-                </Text>
-              </TouchableOpacity>
-
-              {picked ? (
-                <View style={styles.uploaded}>
-                  <View style={styles.uploadedGlyph}>
-                    <Text style={styles.uploadedGlyphText}>
-                      {(picked.mimeType.split('/')[1] ?? 'FILE')
-                        .slice(0, 4)
-                        .toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.uploadedBody}>
-                    <Text style={styles.uploadedTitle} numberOfLines={1}>
-                      {picked.name}
-                    </Text>
-                    <Text style={styles.uploadedMeta}>
-                      {formatBytes(picked.size)} · ready to upload
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    hitSlop={6}
-                    onPress={() => setPicked(null)}
-                  >
-                    <Ionicons name="close-circle" size={18} color={IOS_COLORS.tertiaryLabel} />
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-              {pickError ? (
-                <Text style={styles.pickError}>{pickError}</Text>
-              ) : null}
-            </View>
-          ) : mode === 'link' ? (
+          {!picked ? (
             <View style={styles.inputBlock}>
               <TextInput
-                value={linkUrl}
-                onChangeText={setLinkUrl}
-                onBlur={handleAutoFillTitle}
-                placeholder="Paste a URL — youtube.com, nejm.org, …"
-                placeholderTextColor={IOS_COLORS.tertiaryLabel}
-                style={styles.input}
-                autoCapitalize="none"
-                keyboardType="url"
-              />
-            </View>
-          ) : mode === 'photo' ? (
-            <View>
-              <View style={styles.photoRow}>
-                <TouchableOpacity
-                  style={[styles.dropZone, styles.dropZoneHalf]}
-                  activeOpacity={0.6}
-                  onPress={() => handlePick('camera')}
-                >
-                  <Ionicons name="camera-outline" size={26} color={IOS_COLORS.tertiaryLabel} />
-                  <Text style={styles.dropZoneText}>Take a photo</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.dropZone, styles.dropZoneHalf]}
-                  activeOpacity={0.6}
-                  onPress={() => handlePick('image')}
-                >
-                  <Ionicons name="image-outline" size={26} color={IOS_COLORS.tertiaryLabel} />
-                  <Text style={styles.dropZoneText}>Pick from library</Text>
-                </TouchableOpacity>
-              </View>
-              {picked ? (
-                <View style={styles.uploaded}>
-                  <View style={[styles.uploadedGlyph, styles.uploadedGlyphImage]}>
-                    <Text style={styles.uploadedGlyphText}>IMG</Text>
-                  </View>
-                  <View style={styles.uploadedBody}>
-                    <Text style={styles.uploadedTitle} numberOfLines={1}>
-                      {picked.name}
-                    </Text>
-                    <Text style={styles.uploadedMeta}>
-                      {formatBytes(picked.size)} · ready to upload
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    hitSlop={6}
-                    onPress={() => setPicked(null)}
-                  >
-                    <Ionicons name="close-circle" size={18} color={IOS_COLORS.tertiaryLabel} />
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-              {pickError ? (
-                <Text style={styles.pickError}>{pickError}</Text>
-              ) : null}
-            </View>
-          ) : (
-            <View style={styles.inputBlock}>
-              <TextInput
-                value={pastedText}
-                onChangeText={setPastedText}
-                placeholder="Paste any text or quote here…"
+                value={smartText}
+                onChangeText={setSmartText}
+                onBlur={handleResolveLink}
+                placeholder="Paste a link or any text — youtube.com, a PDF URL, a quote…"
                 placeholderTextColor={IOS_COLORS.tertiaryLabel}
                 style={[styles.input, styles.inputMulti]}
+                autoCapitalize="none"
                 multiline
                 textAlignVertical="top"
               />
             </View>
-          )}
+          ) : null}
 
-          <View style={styles.titleBlock}>
-            <View style={styles.titleLblRow}>
-              <Text style={styles.titleLbl}>Name</Text>
-              {autoFillingTitle ? (
-                <ActivityIndicator size="small" color={IOS_COLORS.tertiaryLabel} />
-              ) : null}
+          {!picked && smartText.trim().length === 0 ? (
+            <View style={styles.secondaryRow}>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                activeOpacity={0.6}
+                onPress={() => handlePick('file')}
+              >
+                <Ionicons
+                  name="document-attach-outline"
+                  size={18}
+                  color={IOS_COLORS.secondaryLabel}
+                />
+                <Text style={styles.secondaryBtnText}>File</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                activeOpacity={0.6}
+                onPress={() => handlePick('camera')}
+              >
+                <Ionicons
+                  name="camera-outline"
+                  size={18}
+                  color={IOS_COLORS.secondaryLabel}
+                />
+                <Text style={styles.secondaryBtnText}>Camera</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                activeOpacity={0.6}
+                onPress={() => handlePick('image')}
+              >
+                <Ionicons
+                  name="image-outline"
+                  size={18}
+                  color={IOS_COLORS.secondaryLabel}
+                />
+                <Text style={styles.secondaryBtnText}>Photo</Text>
+              </TouchableOpacity>
             </View>
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="We'll fill this in — or name it yourself"
-              placeholderTextColor={IOS_COLORS.tertiaryLabel}
-              style={styles.input}
-            />
-          </View>
+          ) : null}
+
+          {pickError ? (
+            <Text style={styles.pickError}>{pickError}</Text>
+          ) : null}
+
+          {preview ? (
+            <View style={styles.preview}>
+              <View style={styles.previewEyebrowRow}>
+                <Ionicons name="sparkles" size={12} color="#5C2DAA" />
+                <Text style={styles.previewEyebrow}>
+                  Auto-detected · {FORMAT_LABEL[preview.format]}
+                </Text>
+                {resolvingLink ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={IOS_COLORS.tertiaryLabel}
+                  />
+                ) : null}
+              </View>
+              <View style={styles.previewCard}>
+                <View
+                  style={[
+                    styles.previewThumb,
+                    { backgroundColor: `${FORMAT_TINT[preview.format]}1F` },
+                  ]}
+                >
+                  {preview.thumb ? (
+                    <Image
+                      source={{ uri: preview.thumb }}
+                      style={styles.previewThumbImg}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Ionicons
+                      name={FORMAT_ICON[preview.format]}
+                      size={22}
+                      color={FORMAT_TINT[preview.format]}
+                    />
+                  )}
+                </View>
+                <View style={styles.previewBody}>
+                  <Text style={styles.previewTitle} numberOfLines={2}>
+                    {preview.title}
+                  </Text>
+                  <Text style={styles.previewMeta} numberOfLines={1}>
+                    {preview.source}
+                    {preview.meta ? ` · ${preview.meta}` : ''}
+                  </Text>
+                </View>
+                {picked ? (
+                  <TouchableOpacity hitSlop={6} onPress={() => setPicked(null)}>
+                    <Ionicons
+                      name="close-circle"
+                      size={18}
+                      color={IOS_COLORS.tertiaryLabel}
+                    />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Rename — or keep the auto-name"
+                placeholderTextColor={IOS_COLORS.tertiaryLabel}
+                style={styles.previewRename}
+              />
+            </View>
+          ) : null}
 
           {userInterests.length > 0 ? (
             <View style={styles.relevantFor}>
@@ -513,44 +568,6 @@ export function CaptureSheet({ visible, onClose, onSave }: Props) {
   );
 }
 
-function ModeTabs({
-  mode,
-  onChange,
-}: {
-  mode: CaptureMode;
-  onChange: (m: CaptureMode) => void;
-}) {
-  const modes: { key: CaptureMode; label: string }[] = [
-    { key: 'link', label: 'Link' },
-    { key: 'upload', label: 'Upload' },
-    { key: 'photo', label: 'Photo' },
-    { key: 'paste', label: 'Paste' },
-  ];
-  return (
-    <View style={styles.modeRow}>
-      {modes.map((m) => {
-        const isActive = m.key === mode;
-        return (
-          <TouchableOpacity
-            key={m.key}
-            onPress={() => onChange(m.key)}
-            activeOpacity={0.7}
-            style={[styles.modeBtn, isActive ? styles.modeBtnActive : null]}
-          >
-            <Text
-              style={[
-                styles.modeBtnText,
-                isActive ? styles.modeBtnTextActive : null,
-              ]}
-            >
-              {m.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   sheet: {
@@ -614,105 +631,91 @@ const styles = StyleSheet.create({
     color: IOS_COLORS.secondaryLabel,
     textAlign: 'center',
   },
-  modeRow: {
+  secondaryRow: {
     flexDirection: 'row',
-    backgroundColor: IOS_COLORS.tertiarySystemGroupedBackground,
-    borderRadius: 10,
-    padding: 3,
-    gap: 2,
+    gap: 8,
   },
-  modeBtn: {
+  secondaryBtn: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modeBtnActive: {
-    backgroundColor: IOS_COLORS.systemBackground,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-  },
-  modeBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: IOS_COLORS.secondaryLabel,
-  },
-  modeBtnTextActive: {
-    color: IOS_COLORS.label,
-  },
-  dropZone: {
-    height: 116,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: 'rgba(60,60,67,0.2)',
-    borderStyle: 'dashed',
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderWidth: 0.5,
+    borderColor: 'rgba(60,60,67,0.18)',
   },
-  dropZoneHalf: {
-    flex: 1,
-  },
-  dropZoneText: {
+  secondaryBtnText: {
     fontSize: 13,
+    fontWeight: '600',
     color: IOS_COLORS.secondaryLabel,
-  },
-  photoRow: {
-    flexDirection: 'row',
-    gap: 8,
   },
   pickError: {
     marginTop: 6,
     fontSize: 12,
     color: '#FF3B30',
   },
-  uploaded: {
+  preview: {
+    backgroundColor: IOS_COLORS.systemBackground,
+    borderRadius: 14,
+    padding: 12,
+    gap: 10,
+    borderWidth: 0.5,
+    borderColor: 'rgba(175,82,222,0.35)',
+  },
+  previewEyebrowRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    marginTop: 8,
-    backgroundColor: IOS_COLORS.systemBackground,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(60,60,67,0.18)',
+    gap: 5,
   },
-  uploadedGlyph: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,59,48,0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadedGlyphImage: {
-    backgroundColor: 'rgba(255,204,0,0.18)',
-  },
-  uploadedGlyphText: {
-    fontSize: 9,
+  previewEyebrow: {
+    fontSize: 11,
     fontFamily: fontFamily.mono,
     fontWeight: '500',
-    color: '#FF3B30',
-    letterSpacing: 0.5,
+    color: '#5C2DAA',
+    letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
-  uploadedBody: {
+  previewCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  previewThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  previewThumbImg: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  previewBody: {
     flex: 1,
     minWidth: 0,
   },
-  uploadedTitle: {
-    fontSize: 13,
+  previewTitle: {
+    fontSize: 15,
     fontWeight: '600',
     color: IOS_COLORS.label,
+    lineHeight: 19,
   },
-  uploadedMeta: {
-    fontSize: 11,
+  previewMeta: {
+    fontSize: 12,
     color: IOS_COLORS.tertiaryLabel,
-    marginTop: 1,
+    marginTop: 2,
+  },
+  previewRename: {
+    fontSize: 14,
+    color: IOS_COLORS.label,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(118,118,128,0.12)',
   },
   inputBlock: {
     backgroundColor: IOS_COLORS.systemBackground,
@@ -731,69 +734,6 @@ const styles = StyleSheet.create({
   inputMulti: {
     minHeight: 96,
   },
-  autoMeta: {
-    backgroundColor: IOS_COLORS.systemBackground,
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
-    borderWidth: 0.5,
-    borderColor: 'rgba(60,60,67,0.18)',
-  },
-  autoEyebrow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  autoEyebrowText: {
-    fontSize: 11,
-    fontFamily: fontFamily.mono,
-    fontWeight: '500',
-    color: '#5C2DAA',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
-  tagRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(175,82,222,0.12)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(175,82,222,0.35)',
-  },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#5C2DAA',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  metaLbl: {
-    fontSize: 12,
-    color: IOS_COLORS.secondaryLabel,
-    fontWeight: '500',
-  },
-  metaValRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaVal: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: IOS_COLORS.label,
-  },
   attach: {
     backgroundColor: IOS_COLORS.systemBackground,
     borderRadius: 12,
@@ -801,22 +741,6 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 0.5,
     borderColor: 'rgba(60,60,67,0.18)',
-  },
-  titleBlock: {
-    gap: 6,
-  },
-  titleLblRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  titleLbl: {
-    fontSize: 12,
-    fontFamily: fontFamily.mono,
-    fontWeight: '500',
-    color: IOS_COLORS.secondaryLabel,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
   },
   relevantFor: {
     backgroundColor: IOS_COLORS.systemBackground,

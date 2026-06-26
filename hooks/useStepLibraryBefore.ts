@@ -124,6 +124,42 @@ export function useToggleStepLibraryRead(stepId: string | undefined) {
   });
 }
 
+/**
+ * Pin a library item as before-shift reading on a step. Plain async so it can
+ * run against a just-created step (no hook/stepId-at-render needed) — the
+ * attach mutation below delegates here too.
+ */
+export async function insertStepLibraryBefore({
+  stepId,
+  libraryItemId,
+  userId,
+  howSubStepId,
+  beatId,
+}: {
+  stepId: string;
+  libraryItemId: string;
+  userId: string;
+  howSubStepId?: string | null;
+  beatId?: string | null;
+}): Promise<void> {
+  // Pick next position: count existing + 1, server-side via head:true.
+  const { count, error: countErr } = await supabase
+    .from('step_library_before')
+    .select('id', { count: 'exact', head: true })
+    .eq('step_id', stepId);
+  if (countErr) throw countErr;
+  const nextPosition = (count ?? 0) + 1;
+  const { error } = await supabase.from('step_library_before').insert({
+    step_id: stepId,
+    library_item_id: libraryItemId,
+    position: nextPosition,
+    added_by: userId,
+    how_sub_step_id: howSubStepId ?? null,
+    beat_id: beatId ?? null,
+  });
+  if (error) throw error;
+}
+
 export function useAttachLibraryItemToStepBefore(stepId: string | undefined) {
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -139,22 +175,13 @@ export function useAttachLibraryItemToStepBefore(stepId: string | undefined) {
     }) => {
       if (!stepId) throw new Error('stepId required');
       if (!user?.id) throw new Error('not authenticated');
-      // Pick next position: count existing + 1, server-side via head:true.
-      const { count, error: countErr } = await supabase
-        .from('step_library_before')
-        .select('id', { count: 'exact', head: true })
-        .eq('step_id', stepId);
-      if (countErr) throw countErr;
-      const nextPosition = (count ?? 0) + 1;
-      const { error } = await supabase.from('step_library_before').insert({
-        step_id: stepId,
-        library_item_id: libraryItemId,
-        position: nextPosition,
-        added_by: user.id,
-        how_sub_step_id: howSubStepId ?? null,
-        beat_id: beatId ?? null,
+      await insertStepLibraryBefore({
+        stepId,
+        libraryItemId,
+        userId: user.id,
+        howSubStepId,
+        beatId,
       });
-      if (error) throw error;
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['step-library-before', stepId] });

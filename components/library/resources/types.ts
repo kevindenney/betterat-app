@@ -12,6 +12,8 @@ export interface LibraryItemRow {
   capturedFrom?: string;
   capturedAt?: string;
   topicTag?: string;
+  /** How many steps pin this item as before-shift reading. */
+  pinCount?: number;
 }
 
 export interface CollectionCard {

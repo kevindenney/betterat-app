@@ -33,6 +33,7 @@ export function useUpdateLibraryItem(itemId: string | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['library-item-detail', itemId] });
       qc.invalidateQueries({ queryKey: ['library-zones-data'] });
+      qc.invalidateQueries({ queryKey: ['library-resources'] });
       qc.invalidateQueries({ queryKey: ['library-items-for-picker'] });
       qc.invalidateQueries({ queryKey: ['library-resources-preview'] });
       // step-library-before joins library_items(title, source_label, …), so a
@@ -62,6 +63,7 @@ export function useDeleteLibraryItem() {
       // step_beat_pins) drop server-side via ON DELETE CASCADE.
       qc.invalidateQueries({ queryKey: ['library-item-detail', itemId] });
       qc.invalidateQueries({ queryKey: ['library-zones-data'] });
+      qc.invalidateQueries({ queryKey: ['library-resources'] });
       qc.invalidateQueries({ queryKey: ['library-items-for-picker'] });
       qc.invalidateQueries({ queryKey: ['library-resources-preview'] });
       qc.invalidateQueries({ queryKey: ['library-counts'] });

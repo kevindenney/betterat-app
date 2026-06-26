@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import { createLogger } from '@/lib/utils/logger';
+import { filenameToTitle } from '@/lib/utils/filenameToTitle';
 import type { ResourceType, FileUploadMetadata } from '@/types/library';
 
 const logger = createLogger('LibraryUploadService');
@@ -41,15 +42,6 @@ function mimeToResourceType(mime: string): ResourceType {
     mime === 'text/plain'
   ) return 'document';
   return 'other';
-}
-
-/** Clean a filename into a readable title */
-function filenameToTitle(filename: string): string {
-  return filename
-    .replace(/\.[^.]+$/, '') // strip extension
-    .replace(/[-_]+/g, ' ')  // separators → spaces
-    .replace(/\b\w/g, (c) => c.toUpperCase()) // title case
-    .trim();
 }
 
 /**

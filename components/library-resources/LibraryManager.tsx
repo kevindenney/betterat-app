@@ -227,7 +227,7 @@ export function LibraryManager() {
           <View key={key} style={styles.group}>
             <View style={styles.groupHeader}>
               <Text style={styles.groupLabel}>{label}</Text>
-              {'count' in items && groupMode === 'creator' && (
+              {groupMode === 'creator' && (
                 <Text style={styles.groupCount}>
                   {(items as LibraryResourceRecord[]).length}
                 </Text>
