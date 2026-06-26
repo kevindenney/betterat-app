@@ -290,7 +290,7 @@ function AnchorBanner({ step, total, ordById, focusStepId, selectEnabled, isSele
   const isNext = step.id === nextId;
   return (
     <Pressable
-      style={[styles.anchor, { borderLeftColor: tint }, isFocused && styles.cardFocused, selected && styles.cardSelected]}
+      style={[styles.anchor, { borderLeftColor: isNext ? NOW_RED : tint, borderLeftWidth: isNext ? 5 : 4 }, isFocused && styles.cardFocused, selected && styles.cardSelected]}
       onPress={selectEnabled ? () => onToggleSelect?.(step.id) : () => onOpenStep(step.id)}
       onLongPress={onLongPressStep}
       delayLongPress={300}
@@ -434,7 +434,10 @@ const styles = StyleSheet.create({
 
   /* cards */
   card: { backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: 'rgba(60,60,67,0.16)', borderRadius: 16, paddingHorizontal: 15, paddingVertical: 14, marginTop: 11, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-  cardNext: { borderWidth: 1.5, borderColor: AZURE, backgroundColor: 'rgba(0,122,255,0.05)', shadowColor: AZURE, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  // The NOW-red left rail ties the next card to the NowDivider directly above
+  // it, so "NOW → do this" reads as a single unit; the rest of the card keeps
+  // its blue NEXT treatment.
+  cardNext: { borderWidth: 1.5, borderColor: AZURE, borderLeftWidth: 5, borderLeftColor: NOW_RED, backgroundColor: 'rgba(0,122,255,0.05)', shadowColor: AZURE, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
   cardDone: { backgroundColor: '#F4F6F4', borderColor: 'rgba(31,134,54,0.20)', shadowOpacity: 0, elevation: 0, marginTop: 9 },
   cardFocused: { borderColor: AZURE, borderWidth: 1 },
   cardSelected: { borderColor: AZURE, backgroundColor: 'rgba(0,122,255,0.06)' },

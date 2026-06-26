@@ -19,6 +19,7 @@ const MARK = '#E07A3C';
 interface RaceCourseMiniMapProps {
   areaName?: string;
   courseLabel?: string;
+  courseType?: string;
   laps?: number;
   onEditCourse?: () => void;
 }
@@ -26,9 +27,21 @@ interface RaceCourseMiniMapProps {
 export function RaceCourseMiniMap({
   areaName,
   courseLabel,
+  courseType,
   laps,
   onEditCourse,
 }: RaceCourseMiniMapProps) {
+  // Coastal / distance races round fixed geography point-to-point, so the
+  // windward mark and course sides are meaningless — show the start and a
+  // schematic passage instead. Mirrors RaceCourseLiveMap's coastal branch.
+  const type = String(courseType ?? '').toLowerCase();
+  const label = String(courseLabel ?? '').toLowerCase();
+  const isCoastalCourse =
+    type === 'coastal' ||
+    type === 'distance' ||
+    label.includes('coastal') ||
+    label.includes('distance');
+
   const courseValue = [
     courseLabel,
     laps ? `${laps} lap${laps === 1 ? '' : 's'}` : undefined,
@@ -65,6 +78,30 @@ export function RaceCourseMiniMap({
             strokeWidth={2}
             strokeDasharray="4 4"
           />
+          {isCoastalCourse ? (
+            <>
+              {/* Schematic passage: start → turning point → finish. Illustrative
+                  only (no real coordinates), so it reads as "around a course". */}
+              <Line
+                x1="50%"
+                y1="72%"
+                x2="30%"
+                y2="48%"
+                stroke="rgba(224,122,60,0.85)"
+                strokeWidth={2}
+                strokeDasharray="5 4"
+              />
+              <Line
+                x1="30%"
+                y1="48%"
+                x2="60%"
+                y2="28%"
+                stroke="rgba(224,122,60,0.85)"
+                strokeWidth={2}
+                strokeDasharray="5 4"
+              />
+            </>
+          ) : null}
         </Svg>
 
         {areaName ? (
@@ -73,9 +110,20 @@ export function RaceCourseMiniMap({
           </Text>
         ) : null}
 
-        {/* Windward mark + label */}
-        <View style={[styles.mark, { left: '50%', top: '24%' }]} />
-        <Text style={[styles.markLabel, { left: '50%', top: '15%' }]}>Windward</Text>
+        {isCoastalCourse ? (
+          <>
+            {/* Turning mark + finish — generic, no windward/leeward grammar. */}
+            <View style={[styles.mark, { left: '30%', top: '48%' }]} />
+            <View style={[styles.mark, { left: '60%', top: '28%' }]} />
+            <Text style={[styles.markLabel, { left: '60%', top: '19%' }]}>Finish</Text>
+          </>
+        ) : (
+          <>
+            {/* Windward mark + label */}
+            <View style={[styles.mark, { left: '50%', top: '24%' }]} />
+            <Text style={[styles.markLabel, { left: '50%', top: '15%' }]}>Windward</Text>
+          </>
+        )}
 
         {/* Pin (left) start mark + label */}
         <View style={[styles.mark, { left: '34%', top: '74%' }]} />

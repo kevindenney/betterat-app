@@ -12,6 +12,7 @@ import { SynthesisPrompt } from './SynthesisPrompt';
 import { ReflectField } from './ReflectField';
 import { CapabilitiesPracticed } from './CapabilitiesPracticed';
 import { CompetencyPickerModal } from '@/components/competency/CompetencyPickerModal';
+import { ConceptLinkSheet } from '@/components/step/ConceptLinkSheet';
 import { MicPrompt } from './MicPrompt';
 import { SaveAndSettleCTA } from './SaveAndSettleCTA';
 import { useStepReflectController } from './useStepReflectController';
@@ -51,6 +52,11 @@ export function ReflectTabIOSRegisterShell({
   // step, so the live `stepId` prop drifts off the step we just completed. Pin
   // the celebration to the snapshot the controller hands back at settle time.
   const [celebratedStepId, setCelebratedStepId] = React.useState<string | null>(null);
+  // Concept links are authored in the Plan tab, but a wrong/irrelevant check
+  // can surface here at Reflect with no way to fix it. Reuse ConceptLinkSheet
+  // (same link/unlink + fork-on-link the Plan tab uses) so remove/swap/add all
+  // stay cache-coherent rather than building a one-off per-card unlink.
+  const [conceptSheetVisible, setConceptSheetVisible] = React.useState(false);
 
   const controller = useStepReflectController({
     stepId,
@@ -223,7 +229,7 @@ export function ReflectTabIOSRegisterShell({
         />
       ) : null}
 
-      {view.conceptPrompts.length > 0 ? (
+      {view.conceptPrompts.length > 0 || (!settled && !view.readOnly) ? (
         <View style={styles.conceptPromptWrap}>
           {view.conceptPrompts.map((prompt) => (
             <View key={prompt.conceptId} style={styles.conceptPromptCard}>
@@ -263,7 +269,32 @@ export function ReflectTabIOSRegisterShell({
               </View>
             </View>
           ))}
+          {!settled && !view.readOnly ? (
+            <Pressable
+              style={styles.conceptManageRow}
+              onPress={() => setConceptSheetVisible(true)}
+              accessibilityRole="button"
+            >
+              <Text style={styles.conceptManageText}>
+                {view.conceptPrompts.length > 0
+                  ? '＋ Add or change concepts'
+                  : '＋ Link a concept this step tested'}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
+      ) : null}
+
+      {conceptSheetVisible ? (
+        <ConceptLinkSheet
+          visible={conceptSheetVisible}
+          stepId={view.stepId}
+          interestId={view.conceptInterestId}
+          onDismiss={() => {
+            setConceptSheetVisible(false);
+            view.onConceptsChanged();
+          }}
+        />
       ) : null}
 
       {!settled ? (
@@ -431,5 +462,15 @@ const styles = StyleSheet.create({
   },
   conceptPromptButtonTextOn: {
     color: '#FFFFFF',
+  },
+  conceptManageRow: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    alignSelf: 'flex-start',
+  },
+  conceptManageText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#7C4DFF',
   },
 });

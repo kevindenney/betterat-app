@@ -26,6 +26,12 @@ import {
   useReopenStepForWork,
   useUpdateStep,
 } from '@/hooks/useTimelineSteps';
+import { resequenceTimelineSortOrders } from '@/services/TimelineStepService';
+import {
+  MoveStepSheet,
+  type MoveStepItem,
+  type MoveTarget,
+} from '@/components/ios-register/timeline-zoom/MoveStepSheet';
 import { StepCombinatorsRow } from './StepCombinatorsRow';
 import { StepVisibilityChip } from './StepVisibilityChip';
 import { StepHeaderSubtitle } from './StepHeaderMeta';
@@ -84,6 +90,8 @@ import type { StepAccessPerson } from '@/components/step/StepDiscussionInline';
 // it still lives in components/step/StepBlueprintChrome.tsx for other
 // surfaces (RaceSummaryCard, future detail variants).
 import { StepDiscussionPeek } from './StepDiscussionPeek';
+import { RaceStrategySection } from '@/components/step/RaceStrategySection';
+import { useUserBoatClasses } from '@/hooks/useUserBoatClasses';
 import { useStepBlueprintChrome } from '@/hooks/useStepBlueprintChrome';
 import { useStepDiscussionPeek } from '@/hooks/useStepDiscussionPeek';
 import { useLatestPeerReflection } from '@/hooks/useLatestPeerReflection';
@@ -95,6 +103,7 @@ import { ZOOM_RAIL_RESERVED_WIDTH } from '@/components/ios-register/timeline-zoo
 import { FacultyAttestSheet } from '@/components/competency/FacultyAttestSheet';
 import { StepCompleteCelebration } from './StepCompleteCelebration';
 import { CrewThreadService } from '@/services/CrewThreadService';
+import { DueDatePickerModal } from './DueDatePickerModal';
 import { hapticSuccess } from '@/lib/haptics';
 
 // DateTimePicker is native-only; web keeps the text inputs in the timing sheet.
@@ -332,6 +341,9 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     routeParams?.scope === 'cohort' || routeTab === 'discussion';
 
   const { data: step, isLoading, error } = useStepDetail(stepId);
+  // Sailor's primary boat class — drives the per-class rig-tune baseline on
+  // race steps. [] for coaches/non-sailors → no rig-tune card.
+  const { classes: userBoatClasses } = useUserBoatClasses();
   // Loaded for Section H StepCombinatorsRow's "N related" count. React
   // Query caches by interest id, so when this component is embedded in
   // the canvas (which already calls useMyTimeline) the row count is
@@ -422,6 +434,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   // course off the user's Atlas areas, persisted to metadata.race_plan.
   const [raceCourseOpen, setRaceCourseOpen] = useState(false);
   const [timingSheetOpen, setTimingSheetOpen] = useState(false);
+  const [dueDatePickerOpen, setDueDatePickerOpen] = useState(false);
   const [showTimingDatePicker, setShowTimingDatePicker] = useState(false);
   const [showTimingTimePicker, setShowTimingTimePicker] = useState(false);
   const [timingDraft, setTimingDraft] = useState<TimingDraft>({
@@ -548,6 +561,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const [pinInterestsOpen, setPinInterestsOpen] = useState(false);
   const [linkBlueprintStepOpen, setLinkBlueprintStepOpen] = useState(false);
   const [linkConceptOpen, setLinkConceptOpen] = useState(false);
+  const [moveSheetOpen, setMoveSheetOpen] = useState(false);
+  const [moveBusy, setMoveBusy] = useState(false);
 
   // The step record often arrives after this component first renders. If
   // usePillTabs initializes while `step` is still undefined, the surface can
@@ -1107,6 +1122,17 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       (old: any) => old ? { ...old, due_at: dueAt } : old,
     );
     updateStep.mutate({ stepId, input: { due_at: dueAt } });
+    setDueDatePickerOpen(false);
+  }, [step, stepId, isOwner, updateStep, queryClient]);
+
+  const handleSelectDueDate = useCallback((dueAt: string) => {
+    if (!step || !isOwner) return;
+    queryClient.setQueryData(
+      ['timeline-steps', 'detail', stepId],
+      (old: any) => old ? { ...old, due_at: dueAt } : old,
+    );
+    updateStep.mutate({ stepId, input: { due_at: dueAt } });
+    setDueDatePickerOpen(false);
   }, [step, stepId, isOwner, updateStep, queryClient]);
 
   const handlePromptDueDate = useCallback(() => {
@@ -1131,7 +1157,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       );
       return;
     }
-    showAlert('Set due date', 'Due-date editing is available on iOS and the web. Android picker is coming soon.');
+    setDueDatePickerOpen(true);
   }, [step, isOwner, handleSetDueDate]);
 
   const handleClearDueDate = useCallback(() => {
@@ -1213,6 +1239,68 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       },
     });
   }, [isOwner, redoStep, step, stepId]);
+
+  // L1 single-step zoom has no drag handle, so reordering there happens
+  // through the "Move step…" action → MoveStepSheet. The picker spans the
+  // whole interest sequence (the sort_order spine the L3 drag persists to),
+  // because most steps are undated and don't belong to a date window.
+  const moveStepItems = useMemo<MoveStepItem[]>(
+    () =>
+      viewerInterestSteps.map((s) => ({
+        id: s.id,
+        title: s.title ?? 'Untitled step',
+        isDone: s.status === 'settled' || s.status === 'completed',
+        isRace: Boolean(s.is_race),
+      })),
+    [viewerInterestSteps],
+  );
+
+  const handleMoveStep = useCallback(
+    async (target: MoveTarget) => {
+      if (!step || !isOwner) return;
+      const ordered = viewerInterestSteps.map((s) => s.id);
+      if (ordered.indexOf(step.id) < 0) {
+        setMoveSheetOpen(false);
+        return;
+      }
+      const without = ordered.filter((id) => id !== step.id);
+      let insertAt: number;
+      if ('toTop' in target) {
+        insertAt = 0;
+      } else {
+        const afterIdx = without.indexOf(target.afterStepId);
+        if (afterIdx < 0) {
+          setMoveSheetOpen(false);
+          return;
+        }
+        insertAt = afterIdx + 1;
+      }
+      const next = [
+        ...without.slice(0, insertAt),
+        step.id,
+        ...without.slice(insertAt),
+      ];
+      // No-op guard — picker can land on the current slot.
+      if (next.length === ordered.length && next.every((id, i) => id === ordered[i])) {
+        setMoveSheetOpen(false);
+        return;
+      }
+      setMoveBusy(true);
+      try {
+        await resequenceTimelineSortOrders(next);
+        queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+        queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+        setMoveSheetOpen(false);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Could not move the step.';
+        showAlert('Could not move step', message);
+      } finally {
+        setMoveBusy(false);
+      }
+    },
+    [step, isOwner, viewerInterestSteps, queryClient],
+  );
 
   const adoptedCopy = useMemo(() => {
     if (!step || isOwner) return null;
@@ -1693,6 +1781,23 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             raceTime={showRaceSelector ? step.starts_at ?? null : undefined}
             embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER}
           />
+          {showRaceSelector && step.is_race ? (
+            <RaceStrategySection
+              lat={(step.metadata as StepMetadata)?.race_plan?.center?.lat ?? null}
+              lng={(step.metadata as StepMetadata)?.race_plan?.center?.lng ?? null}
+              raceStartAt={step.starts_at ?? null}
+              courseSummary={buildRaceCourseSummary(
+                (step.metadata as StepMetadata)?.race_plan,
+              )}
+              onOpenCourse={
+                (step.metadata as StepMetadata)?.race_plan?.center
+                  ? openRaceCourseInAtlas
+                  : () => setRaceCourseOpen(true)
+              }
+              boatClass={userBoatClasses[0] ?? null}
+              courseType={(step.metadata as StepMetadata)?.race_plan?.course_type ?? null}
+            />
+          ) : null}
         </>
       )}
       {activeTab === 'act' && (
@@ -1889,6 +1994,17 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           handlePromptDueDate();
         },
       });
+      if (moveStepItems.length > 1) {
+        menuActions.push({
+          label: 'Move step…',
+          testID: 'step-action-move',
+          icon: <Ionicons name="swap-vertical-outline" size={20} color={STEP_COLORS.label} />,
+          onPress: () => {
+            setMenuOpen(false);
+            setMoveSheetOpen(true);
+          },
+        });
+      }
       menuActions.push({
         label: 'Pin to other interests',
         testID: 'step-action-pin-interests',
@@ -2148,6 +2264,13 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           stepId={stepId}
           interestSlug={stepInterestSlug ?? null}
         />
+        <DueDatePickerModal
+          visible={dueDatePickerOpen}
+          currentDate={step.due_at ?? null}
+          onSelect={handleSelectDueDate}
+          onClear={handleClearDueDate}
+          onClose={() => setDueDatePickerOpen(false)}
+        />
         {step.source_blueprint_id ? (
           <LinkBlueprintStepSheet
             visible={linkBlueprintStepOpen}
@@ -2375,6 +2498,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           onClose={() => setMenuOpen(false)}
           title="Step actions"
           actions={menuActions}
+        />
+        <MoveStepSheet
+          visible={moveSheetOpen}
+          steps={moveStepItems}
+          movingStepId={stepId}
+          onMove={handleMoveStep}
+          onClose={() => setMoveSheetOpen(false)}
+          busy={moveBusy}
         />
       </View>
     );

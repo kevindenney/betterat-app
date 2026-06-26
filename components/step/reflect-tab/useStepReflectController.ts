@@ -103,6 +103,9 @@ export interface Phase4ReflectViewProps {
   onSuggestCapabilities: () => Promise<void>;
   onMarkFieldAsConceptSeed: (id: ReflectFieldId) => Promise<void>;
   onAnswerConceptPrompt: (conceptId: string, answer: boolean) => void;
+  stepId: string;
+  conceptInterestId: string | null;
+  onConceptsChanged: () => void;
   onSettle: () => Promise<void>;
 }
 
@@ -659,38 +662,38 @@ export function useStepReflectController({
     );
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!stepId) return undefined;
-    (async () => {
-      try {
-        const links = await getStepConceptLinks(stepId);
-        const conceptIds = links.map((link) => link.concept_id);
-        if (conceptIds.length === 0) {
-          if (!cancelled) setConceptPrompts([]);
-          return;
-        }
-        const { data } = await supabase
-          .from('playbook_concepts')
-          .select('id,title')
-          .in('id', conceptIds);
-        if (!cancelled) {
-          setConceptPrompts(
-            (data ?? []).map((concept: any) => ({
-              conceptId: concept.id,
-              title: concept.title,
-              answer: null,
-            })),
-          );
-        }
-      } catch {
-        if (!cancelled) setConceptPrompts([]);
+  // Loads the step's linked concepts into the Yes/No prompts. Exposed so the
+  // reflect surface can re-run it after the user adds/removes links via the
+  // ConceptLinkSheet, preserving any answers already given.
+  const loadConceptPrompts = useCallback(async () => {
+    if (!stepId) return;
+    try {
+      const links = await getStepConceptLinks(stepId);
+      const conceptIds = links.map((link) => link.concept_id);
+      if (conceptIds.length === 0) {
+        setConceptPrompts([]);
+        return;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      const { data } = await supabase
+        .from('playbook_concepts')
+        .select('id,title')
+        .in('id', conceptIds);
+      setConceptPrompts((prev) => {
+        const prevById = new Map(prev.map((p) => [p.conceptId, p]));
+        return (data ?? []).map((concept: any) => ({
+          conceptId: concept.id,
+          title: concept.title,
+          answer: prevById.get(concept.id)?.answer ?? null,
+        }));
+      });
+    } catch {
+      // Leave the current prompts in place on a transient fetch failure.
+    }
   }, [stepId]);
+
+  useEffect(() => {
+    void loadConceptPrompts();
+  }, [loadConceptPrompts]);
 
   const onSettle = useCallback(async () => {
     if (!step || readOnly) return;
@@ -813,6 +816,9 @@ export function useStepReflectController({
       onSuggestCapabilities,
       onMarkFieldAsConceptSeed,
       onAnswerConceptPrompt,
+      stepId,
+      conceptInterestId: step?.interest_id ?? currentInterest?.id ?? null,
+      onConceptsChanged: () => void loadConceptPrompts(),
       onSettle,
     },
     isSettling: settling,

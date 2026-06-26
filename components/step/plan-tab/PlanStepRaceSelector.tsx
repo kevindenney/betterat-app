@@ -120,6 +120,7 @@ export function PlanStepRaceSelector({
             <RaceCourseMiniMap
               areaName={racePlan?.area_name}
               courseLabel={racePlan?.course_label}
+              courseType={racePlan?.course_type}
               laps={racePlan?.laps}
               onEditCourse={readOnly ? undefined : onOpenRaceCourse}
             />

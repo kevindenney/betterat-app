@@ -87,6 +87,14 @@ export function RaceCourseLiveMap({
   const courseType = String(racePlan.course_type ?? '').toLowerCase();
   const courseLabel = String(racePlan.course_label ?? '').toLowerCase();
   const isTriangleCourse = courseType === 'triangle' || courseLabel.includes('triangle');
+  // Coastal / distance races run point-to-point around fixed geography, so the
+  // windward-leeward grammar (course legs, layline-favored side, up/downwind
+  // strategy) doesn't apply — only the start and the live conditions do.
+  const isCoastalCourse =
+    courseType === 'coastal' ||
+    courseType === 'distance' ||
+    courseLabel.includes('coastal') ||
+    courseLabel.includes('distance');
 
   const courseValue = [
     racePlan.course_label,
@@ -211,7 +219,7 @@ export function RaceCourseLiveMap({
           frame="f2"
           focusLocation={focusLocation}
           showRaceAreas
-          showCourse={!isTriangleCourse}
+          showCourse={!isTriangleCourse && !isCoastalCourse}
           coursePreviewCollection={coursePreviewCollection}
           courseWindDirectionDeg={hasConditions ? marine?.wind?.degrees : undefined}
           courseCurrentDirectionDeg={hasConditions ? marine?.current?.degrees : undefined}
@@ -331,7 +339,7 @@ export function RaceCourseLiveMap({
           </Pressable>
         ) : null}
         {strategy ? (
-          <CompactStrategyCard strategy={strategy} />
+          <CompactStrategyCard strategy={strategy} startOnly={isCoastalCourse} />
         ) : null}
       </View>
     </View>
@@ -340,33 +348,38 @@ export function RaceCourseLiveMap({
 
 type StrategySectionId = 'start' | 'upwind' | 'downwind';
 
-function CompactStrategyCard({ strategy }: { strategy: CourseStrategy }) {
+// startOnly: coastal/distance races round fixed geography, so only the start
+// carries windward-leeward meaning — the up/down legs are dropped.
+function CompactStrategyCard({ strategy, startOnly }: { strategy: CourseStrategy; startOnly?: boolean }) {
   const [open, setOpen] = useState<StrategySectionId | null>(null);
   const rows = useMemo(
-    () => [
-      {
-        id: 'start' as const,
-        title: 'Start',
-        tag: strategy.start.favoredEnd === 'committee' ? 'BOAT' : strategy.start.favoredEnd.toUpperCase(),
-        headline: strategy.start.text.split(/[.!?]/)[0],
-        body: strategy.start.text,
-      },
-      {
-        id: 'upwind' as const,
-        title: 'Upwind',
-        tag: strategy.upwind.favoredSide.toUpperCase(),
-        headline: strategy.upwind.summary.split(/[.!?]/)[0],
-        body: strategy.upwind.summary,
-      },
-      {
-        id: 'downwind' as const,
-        title: 'Downwind',
-        tag: strategy.downwind.favoredSide.toUpperCase(),
-        headline: strategy.downwind.summary.split(/[.!?]/)[0],
-        body: strategy.downwind.summary,
-      },
-    ],
-    [strategy],
+    () => {
+      const all = [
+        {
+          id: 'start' as const,
+          title: 'Start',
+          tag: strategy.start.favoredEnd === 'committee' ? 'BOAT' : strategy.start.favoredEnd.toUpperCase(),
+          headline: strategy.start.text.split(/[.!?]/)[0],
+          body: strategy.start.text,
+        },
+        {
+          id: 'upwind' as const,
+          title: 'Upwind',
+          tag: strategy.upwind.favoredSide.toUpperCase(),
+          headline: strategy.upwind.summary.split(/[.!?]/)[0],
+          body: strategy.upwind.summary,
+        },
+        {
+          id: 'downwind' as const,
+          title: 'Downwind',
+          tag: strategy.downwind.favoredSide.toUpperCase(),
+          headline: strategy.downwind.summary.split(/[.!?]/)[0],
+          body: strategy.downwind.summary,
+        },
+      ];
+      return startOnly ? all.filter((row) => row.id === 'start') : all;
+    },
+    [strategy, startOnly],
   );
 
   return (
@@ -374,7 +387,7 @@ function CompactStrategyCard({ strategy }: { strategy: CourseStrategy }) {
       <View style={styles.strategyHeader}>
         <Text style={styles.strategyEyebrow}>Strategy</Text>
         <Text style={styles.strategyHeadline} numberOfLines={1}>
-          {strategyHeadline(strategy)}
+          {strategyHeadline(strategy, startOnly)}
         </Text>
       </View>
       <View style={styles.strategyRows}>

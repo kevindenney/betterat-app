@@ -180,11 +180,13 @@ function PagerCard({
   scrollX,
   cardBase,
   isFocused,
+  isNow,
   children,
 }: {
   scrollX: SharedValue<number>;
   cardBase: number;
   isFocused: boolean;
+  isNow?: boolean;
   children: React.ReactNode;
 }) {
   const style = useAnimatedStyle(
@@ -193,9 +195,19 @@ function PagerCard({
   );
   return (
     <Animated.View
-      style={[styles.pagerCard, isFocused && styles.pagerCardFocused, style]}
+      style={[
+        styles.pagerCard,
+        isFocused && styles.pagerCardFocused,
+        isNow && styles.pagerCardNow,
+        style,
+      ]}
       pointerEvents={isFocused ? 'auto' : 'none'}
     >
+      {isNow ? (
+        <View style={styles.pagerNowRail} pointerEvents="none">
+          <Text style={styles.pagerNowRailText}>NOW</Text>
+        </View>
+      ) : null}
       {children}
     </Animated.View>
   );
@@ -371,6 +383,7 @@ export function L1StepView({
                     scrollX={scrollX}
                     cardBase={index * swipeStridePx}
                     isFocused={isFocused}
+                    isNow={cardStep.id === dataset.focusStepId}
                   >
                     <EmbeddedStepCard
                       step={cardStep}
@@ -739,6 +752,28 @@ const styles = StyleSheet.create({
   },
   pagerCardFocused: {
     zIndex: 3,
+  },
+  // The NOW step gets a bold left rail + corner badge so the card you should
+  // act on next reads as "now" at a glance, even amid the swipeable pager.
+  pagerCardNow: {
+    borderLeftWidth: 5,
+    borderLeftColor: NOW_COLOR,
+  },
+  pagerNowRail: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderBottomRightRadius: 9,
+    backgroundColor: NOW_COLOR,
+    zIndex: 4,
+  },
+  pagerNowRailText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    color: '#FFFFFF',
   },
   // Adjacent-step silhouettes — edge + corner + shadow only, no content.
   // Sit behind the main card; the user reads them as "more here".

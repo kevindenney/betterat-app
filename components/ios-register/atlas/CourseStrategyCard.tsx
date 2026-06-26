@@ -25,13 +25,18 @@ const END_LABEL: Record<StartEnd, string> = {
   even: 'EVEN',
 };
 
-/** One-line headline for the collapsed scrubber row, e.g. "LEFT side · PIN start". */
-export function strategyHeadline(strategy: CourseStrategy): string {
+/**
+ * One-line headline for the collapsed scrubber row, e.g. "LEFT side · PIN start".
+ * `startOnly` drops the favored-side half — coastal/distance races round fixed
+ * geography, so an upwind favored side is meaningless and only the start reads.
+ */
+export function strategyHeadline(strategy: CourseStrategy, startOnly = false): string {
   const side = strategy.upwind.favoredSide;
   const end = strategy.start.favoredEnd;
+  const endPart = end === 'even' ? 'open start' : `${END_LABEL[end]} start`;
+  if (startOnly) return endPart.charAt(0).toUpperCase() + endPart.slice(1);
   if (side === 'even' && end === 'even') return 'Even — play the shifts';
   const sidePart = side === 'even' ? 'Even sides' : `${SIDE_LABEL[side]} side`;
-  const endPart = end === 'even' ? 'open start' : `${END_LABEL[end]} start`;
   return `${sidePart} · ${endPart}`;
 }
 
@@ -43,7 +48,18 @@ function FavoredTag({ favored, label }: { favored: boolean; label: string }) {
   );
 }
 
-export function CourseStrategyCard({ strategy }: { strategy: CourseStrategy }) {
+export function CourseStrategyCard({
+  strategy,
+  startOnly = false,
+}: {
+  strategy: CourseStrategy;
+  /**
+   * Coastal/distance races round fixed geography, so favored-side and
+   * upwind/downwind tactics are meaningless — only the start still matters.
+   * When set, render the START section alone.
+   */
+  startOnly?: boolean;
+}) {
   const { start, upwind, downwind } = strategy;
   return (
     <View style={styles.card}>
@@ -55,6 +71,8 @@ export function CourseStrategyCard({ strategy }: { strategy: CourseStrategy }) {
         <Text style={styles.body}>{start.text}</Text>
       </View>
 
+      {startOnly ? null : (
+      <>
       <View style={styles.section}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>UPWIND</Text>
@@ -82,6 +100,8 @@ export function CourseStrategyCard({ strategy }: { strategy: CourseStrategy }) {
           </View>
         ))}
       </View>
+      </>
+      )}
     </View>
   );
 }
