@@ -38,8 +38,11 @@ export function InspirationSuccessStep({
   const iconName = resolveIonicon(interestEdits.icon_name ?? extraction.proposed_interest.icon_name);
   const stepCount = extraction.blueprint.steps.length;
 
-  const handleStartExploring = async () => {
-    // Switch to the new interest, then close and navigate
+  const handleStartPracticing = async () => {
+    // Switch to the new interest, then close and land on the practice timeline.
+    // This is the only post-build action: "View Blueprint" used to sit beside
+    // it but landed on a near-identical view of the same just-built plan, so it
+    // read as a duplicate. The blueprint stays reachable later from the interest.
     try {
       await switchInterest(result.interestSlug);
     } catch (err) {
@@ -47,16 +50,6 @@ export function InspirationSuccessStep({
     }
     onClose();
     router.push('/(tabs)/practice');
-  };
-
-  const handleViewBlueprint = async () => {
-    try {
-      await switchInterest(result.interestSlug);
-    } catch (err) {
-      console.warn('[InspirationSuccessStep] switchInterest failed:', err);
-    }
-    onClose();
-    router.push(`/blueprint/${result.blueprintSlug}`);
   };
 
   return (
@@ -98,14 +91,9 @@ export function InspirationSuccessStep({
 
       {/* Actions */}
       <View style={styles.footer}>
-        <Pressable onPress={handleStartExploring} style={styles.primaryButton}>
+        <Pressable onPress={handleStartPracticing} style={styles.primaryButton}>
           <Ionicons name="arrow-forward" size={18} color="#fff" />
-          <Text style={styles.primaryButtonText}>Start Exploring</Text>
-        </Pressable>
-
-        <Pressable onPress={handleViewBlueprint} style={styles.secondaryButton}>
-          <Ionicons name="map-outline" size={16} color={IOS_COLORS.systemBlue} />
-          <Text style={styles.secondaryButtonText}>View Blueprint</Text>
+          <Text style={styles.primaryButtonText}>Start practicing</Text>
         </Pressable>
       </View>
     </View>
@@ -196,19 +184,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: '#fff',
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: IOS_COLORS.systemGray6,
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: IOS_COLORS.systemBlue,
   },
 });
