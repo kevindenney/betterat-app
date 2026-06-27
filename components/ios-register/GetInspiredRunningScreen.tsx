@@ -36,11 +36,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { LoadingNarration } from './LoadingNarration';
 
+/** What the user actually handed us — drives the source-aware copy. */
+export type GetInspiredSourceKind = 'url' | 'text' | 'file';
+
 /**
  * The canonical narration sequence for Get Inspired. Each line is the
  * pipeline-stage's purpose expressed in plain present-continuous voice.
  * Exported so the preview route can drive auto-cycling against the same
- * line set.
+ * line set. The first line is source-aware (see `firstNarrationLine`) — a
+ * text dump should not be narrated as "Reading the link"; only the lead
+ * line changes, so the stage count and timings stay stable.
  */
 export const GET_INSPIRED_NARRATION_LINES: readonly string[] = [
   'Reading the link',
@@ -49,6 +54,32 @@ export const GET_INSPIRED_NARRATION_LINES: readonly string[] = [
   'Drafting your plan',
   'Shaping the first step',
 ];
+
+const FIRST_NARRATION_LINE: Record<GetInspiredSourceKind, string> = {
+  url: 'Reading the link',
+  text: 'Reading what you sent',
+  file: 'Reading your file',
+};
+
+const SOURCE_CARD_LABEL: Record<GetInspiredSourceKind, string> = {
+  url: 'From your link',
+  text: 'From your text',
+  file: 'From your file',
+};
+
+const SOURCE_CARD_ICON: Record<
+  GetInspiredSourceKind,
+  React.ComponentProps<typeof Ionicons>['name']
+> = {
+  url: 'link-outline',
+  text: 'document-text-outline',
+  file: 'document-attach-outline',
+};
+
+/** Narration lines with the lead line swapped for the given source kind. */
+export function narrationLinesForKind(kind: GetInspiredSourceKind): string[] {
+  return [FIRST_NARRATION_LINE[kind], ...GET_INSPIRED_NARRATION_LINES.slice(1)];
+}
 
 /**
  * Stage durations (ms) — each stage holds 1.5–2.5s except the last one,
@@ -64,6 +95,12 @@ export const GET_INSPIRED_STAGE_DURATIONS_MS: readonly number[] = [
 interface Props {
   /** The user's submitted URL or content reference (production: real input). */
   submittedUrl: string;
+  /**
+   * What the user handed us. Drives the source-aware copy (card label, lead
+   * narration line, icon). Defaults to 'url' to preserve the preview route's
+   * link-based fixture.
+   */
+  sourceKind?: GetInspiredSourceKind;
   /** Caller-owned abort handler. Wired to the real cancel flow in production. */
   onStop: () => void;
   /**
@@ -88,14 +125,16 @@ interface Props {
 
 export function GetInspiredRunningScreen({
   submittedUrl,
+  sourceKind = 'url',
   onStop,
   embedded: _embedded = false,
   activeIndex = 0,
   estimateLabel = 'Plan in progress. You can leave this open.',
 }: Props) {
+  const lines = narrationLinesForKind(sourceKind);
   const resolvedIndex = Math.max(
     0,
-    Math.min(activeIndex, GET_INSPIRED_NARRATION_LINES.length - 1),
+    Math.min(activeIndex, lines.length - 1),
   );
 
   return (
@@ -137,13 +176,13 @@ export function GetInspiredRunningScreen({
             <View style={styles.submitted}>
               <View style={styles.submittedIco}>
                 <Ionicons
-                  name="document-text-outline"
+                  name={SOURCE_CARD_ICON[sourceKind]}
                   size={16}
                   color={IOS_REGISTER.labelSecondary}
                 />
               </View>
               <View style={styles.submittedMeta}>
-                <Text style={styles.submittedTop}>From your link</Text>
+                <Text style={styles.submittedTop}>{SOURCE_CARD_LABEL[sourceKind]}</Text>
                 <Text style={styles.submittedUrl} numberOfLines={1}>
                   {submittedUrl}
                 </Text>
@@ -154,9 +193,9 @@ export function GetInspiredRunningScreen({
           <View style={styles.progressCard}>
             <LoadingNarration
               microLabel="Working on this"
-              lines={[...GET_INSPIRED_NARRATION_LINES]}
+              lines={lines}
               activeIndex={resolvedIndex}
-              stepMeta={`Step ${resolvedIndex + 1} of ${GET_INSPIRED_NARRATION_LINES.length}`}
+              stepMeta={`Step ${resolvedIndex + 1} of ${lines.length}`}
             />
           </View>
         </ScrollView>

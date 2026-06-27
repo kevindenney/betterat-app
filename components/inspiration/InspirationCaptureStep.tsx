@@ -27,6 +27,7 @@ import {
   GetInspiredRunningScreen,
   IOSRegisterErrorState,
 } from '@/components/ios-register';
+import type { GetInspiredSourceKind } from '@/components/ios-register/GetInspiredRunningScreen';
 import { resolveInterestVocab } from '@/components/ios-register/timeline-zoom/interestVocab';
 import { getAnchorsForRange } from '@/components/ios-register/timeline-zoom/interestAnchors';
 import type {
@@ -358,10 +359,17 @@ export function InspirationCaptureStep({
   }
 
   if (loading && FEATURE_FLAGS.GET_INSPIRED_IOS_REGISTER) {
+    const hasText = Boolean(inputValue.trim());
+    const sourceKind: GetInspiredSourceKind = hasText
+      ? detectedType === 'url'
+        ? 'url'
+        : 'text'
+      : 'file';
     return (
       <GetInspiredRunningScreen
         embedded
         submittedUrl={inputValue.trim() || attachments.map((a) => a.filename).join(', ')}
+        sourceKind={sourceKind}
         onStop={() => {
           abortControllerRef.current?.abort();
         }}
