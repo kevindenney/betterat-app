@@ -33,6 +33,7 @@ import { queryClient } from '@/lib/queryClient';
 import { ToastProvider } from '@/components/ui/AppToast';
 import { WebAlertProvider } from '@/components/ui/WebAlertDialog';
 import { UniversalPlusProvider } from '@/components/capture';
+import { ShareIntentGate } from '@/components/capture/ShareIntentGate';
 import { Stack, router, useSegments } from 'expo-router';
 import {
   useFonts,
@@ -115,12 +116,16 @@ if (Platform.OS !== 'web' && __DEV__) {
       (serializedArgs.includes('[RevenueCat]') &&
         (serializedArgs.includes('Error fetching offerings') ||
           serializedArgs.includes('Could not find ProductDetails') ||
+          serializedArgs.includes('ConfigurationError') ||
+          serializedArgs.includes('None of the products registered') ||
           serializedArgs.includes('The device or user is not allowed to make the purchase') ||
           serializedArgs.includes('Billing service unavailable on device'))) ||
       (serializedArgs.includes('[subscriptionService]') &&
         serializedArgs.includes('Failed to load products') &&
         (serializedArgs.includes('The device or user is not allowed to make the purchase') ||
           serializedArgs.includes('Billing service unavailable on device') ||
+          serializedArgs.includes('ConfigurationError') ||
+          serializedArgs.includes('None of the products registered') ||
           serializedArgs.includes('Could not find ProductDetails')))
     ) {
       return;
@@ -291,7 +296,7 @@ if (typeof window !== 'undefined' && Platform.OS === 'web') {
 /**
  * FirebaseBridgeHandler - Handles Firebase auth bridge tokens for WebView embedding
  *
- * When Dragon Worlds app embeds RegattaFlow in a WebView, it passes auth tokens
+ * When Dragon Worlds app embeds BetterAt in a WebView, it passes auth tokens
  * in the URL. This component:
  * 1. Detects session tokens (new) or bridge token (legacy) in the URL
  * 2. Establishes a Supabase session with the tokens
@@ -490,7 +495,7 @@ function InterestSelectionGate() {
 }
 
 /**
- * Global auth guard — unauthenticated users on non-public routes get sent to `/`.
+ * Global auth guard — unauthenticated users on non-public routes get sent to login.
  * Public routes: index (logo page), (auth) screens, callback, privacy, welcome.
  */
 function AuthGate() {
@@ -574,9 +579,20 @@ function AuthGate() {
 
     if (isPublicRoute) return;
 
-    // Not signed in and on a protected route → send to index (logo page)
+    // Not signed in and on a protected route → send to login and preserve the target.
     if (!signedIn || isGuest || state === 'guest') {
-      router.replace('/');
+      let returnTo = ''
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        returnTo = `${window.location.pathname}${window.location.search}`
+      } else {
+        const routeSegments = segments.filter((segment) => !segment.startsWith('('))
+        returnTo = routeSegments.length > 0 ? `/${routeSegments.join('/')}` : ''
+      }
+      const loginRoute =
+        returnTo && returnTo !== '/'
+          ? `/(auth)/login?returnTo=${encodeURIComponent(returnTo)}`
+          : '/(auth)/login'
+      router.replace(loginRoute as any)
     }
   }, [ready, loading, signedIn, isGuest, state, segments]);
 
@@ -591,6 +607,7 @@ function StackWithSplash() {
       <FirebaseBridgeHandler />
       <NetworkStatusBanner />
       <AuthGate />
+      <ShareIntentGate />
       <InterestSelectionGate />
       <Stack screenOptions={{headerShown: false}}>
         <Stack.Screen name="index" options={{ headerShown: false }} />

@@ -104,6 +104,21 @@ module.exports = {
           recordAudioAndroid: true,
         },
       ],
+      // OS share-sheet → Inbox capture. Accept links and plain text only for
+      // now (the in-app handler, ShareIntentGate.native.tsx, drops weburl/text
+      // into playbook_insights); media/file shares are ignored. Needs an EAS
+      // dev build to exercise the generated iOS share extension / Android
+      // intent filter — not yet verified on-device.
+      [
+        'expo-share-intent',
+        {
+          iosActivationRules: {
+            NSExtensionActivationSupportsWebURLWithMaxCount: 1,
+            NSExtensionActivationSupportsText: true,
+          },
+          androidIntentFilters: ['text/*'],
+        },
+      ],
     ],
     updates: {
       enabled: false,
