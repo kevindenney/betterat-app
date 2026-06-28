@@ -35,6 +35,7 @@ import { PlansZone } from '@/components/library/zones/PlansZone';
 import { PeopleZone } from '@/components/library/zones/PeopleZone';
 import { ResourcesZone } from '@/components/library/zones/ResourcesZone';
 import { GroupsZone } from '@/components/library/zones/GroupsZone';
+import { InboxZone } from '@/components/library/zones/InboxZone';
 import { DiscoverPlansContent } from '@/components/discover/DiscoverPlansContent';
 import { DiscoverOrgsContent } from '@/components/discover/DiscoverOrgsContent';
 import { DiscoverInterestsContent } from '@/components/discover/DiscoverInterestsContent';
@@ -56,6 +57,7 @@ import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 const VALID_ZONES: LibraryZone[] = [
   'all',
   'today',
+  'inbox',
   'plans',
   'people',
   'concepts',
@@ -76,6 +78,7 @@ const FULL_BLEED_ZONES: LibraryZone[] = ['today', 'follow', 'orgs', 'interests']
 const ZONE_TITLE: Record<LibraryZone, string> = {
   all: 'Library',
   today: 'This week',
+  inbox: 'Inbox',
   plans: 'Plans',
   concepts: 'Concepts',
   resources: 'Resources',
@@ -91,6 +94,7 @@ const ZONE_TITLE: Record<LibraryZone, string> = {
 const ZONE_DESCRIPTION: Record<LibraryZone, string> = {
   all: 'Cross-cutting insights the librarian noticed across your library.',
   today: "What's worth your attention this week across your crafts.",
+  inbox: 'Links and half-formed ideas you dumped — sort them when you’re ready.',
   plans: 'Subscribed Blueprints you can pull into your own Plan.',
   concepts: "Mental models you're forming, refining, or have settled.",
   resources: 'Saved articles, docs, and references.',
@@ -225,6 +229,8 @@ export function LibraryLanding({ conceptsBody, librarianSlot, onOpenInspiration 
             librarianSlot={librarianSlot}
             initialSegment={initialAllSegment}
           />
+        ) : zone === 'inbox' ? (
+          <InboxZone />
         ) : zone === 'plans' ? (
           <PlansZone />
         ) : zone === 'people' ? (
@@ -339,6 +345,10 @@ export function LibraryLanding({ conceptsBody, librarianSlot, onOpenInspiration 
         visible={addChooserOpen}
         accent={currentInterest?.accent_color ?? IOS_COLORS.systemBlue}
         onClose={() => setAddChooserOpen(false)}
+        onDumpToInbox={() => {
+          setAddChooserOpen(false);
+          handleZoneChange('inbox');
+        }}
         onNewStep={() => {
           setAddChooserOpen(false);
           setStepAddOpen(true);
@@ -368,6 +378,7 @@ function LibraryAddChooser({
   visible,
   accent,
   onClose,
+  onDumpToInbox,
   onNewStep,
   onNewConcept,
   onCaptureResource,
@@ -377,6 +388,7 @@ function LibraryAddChooser({
   visible: boolean;
   accent: string;
   onClose: () => void;
+  onDumpToInbox: () => void;
   onNewStep: () => void;
   onNewConcept: () => void;
   onCaptureResource: () => void;
@@ -406,6 +418,13 @@ function LibraryAddChooser({
             </Pressable>
           </View>
           <View style={styles.addChooserRows}>
+            <AddChoiceRow
+              icon="file-tray"
+              title="Dump to Inbox"
+              subtitle="Paste a link or jot an idea — sort it later."
+              accent={accent}
+              onPress={onDumpToInbox}
+            />
             {onGetInspired ? (
               <AddChoiceRow
                 icon="sparkles"

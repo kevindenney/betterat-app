@@ -37,6 +37,7 @@ import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 import { useSubscribedPlansForLibrary } from '@/hooks/useSubscribedPlansForLibrary';
 import { useLifecycleConcepts } from '@/hooks/usePlaybook';
+import { useInbox } from '@/hooks/useInbox';
 import { useLibraryResourcesPreview } from '@/hooks/useLibraryResourcesPreview';
 import { useDiscoverBlueprints } from '@/hooks/useBlueprint';
 import { useMarketplaceBlueprints, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
@@ -470,6 +471,8 @@ export function AllZone({
     useLifecycleConcepts(interestId);
   const { data: resources, isLoading: resourcesLoading } =
     useLibraryResourcesPreview(interestId, PREVIEW_LIMIT);
+  const { data: inboxItems } = useInbox(interestId);
+  const inboxCount = inboxItems?.length ?? 0;
   const { data: catalog, isLoading: catalogLoading } =
     useDiscoverBlueprints(interestId);
   const { blueprints: marketPlans, loading: marketLoading } =
@@ -667,6 +670,31 @@ export function AllZone({
           What's worth your attention
         </Text>
         <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
+      </Pressable>
+
+      {/* Inbox — the capture-first pile. A quiet ribbon (mirrors This week)
+          so the unsorted dump is one tap from the feed without competing
+          with the librarian voice. The count nudges triage when it's growing. */}
+      <Pressable
+        style={styles.thisWeek}
+        onPress={() => onJumpToZone('inbox')}
+        accessibilityRole="button"
+        accessibilityLabel="Open your capture inbox"
+      >
+        <Ionicons name="file-tray-outline" size={16} color={IOS_COLORS.secondaryLabel} />
+        <Text style={styles.thisWeekTitle}>Inbox</Text>
+        <Text style={styles.thisWeekHint} numberOfLines={1}>
+          {inboxCount > 0
+            ? `${inboxCount} to sort`
+            : 'Dump links & ideas to sort later'}
+        </Text>
+        {inboxCount > 0 ? (
+          <View style={styles.inboxCountPill}>
+            <Text style={styles.inboxCountText}>{inboxCount}</Text>
+          </View>
+        ) : (
+          <Ionicons name="chevron-forward" size={15} color={IOS_COLORS.tertiaryLabel} />
+        )}
       </Pressable>
 
       {/* ---------------------------------------------------------------- */}
@@ -1123,6 +1151,20 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12.5,
     color: IOS_COLORS.tertiaryLabel,
+  },
+  inboxCountPill: {
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inboxCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   segWrap: {
     paddingHorizontal: IOS_SPACING.lg,

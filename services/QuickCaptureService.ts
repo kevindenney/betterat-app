@@ -23,7 +23,7 @@ import type {
   SubStep,
 } from '@/types/step-detail';
 
-export type QuickCaptureKind = 'text' | 'voice';
+export type QuickCaptureKind = 'text' | 'voice' | 'link';
 
 export interface QuickCapturePayload {
   kind: QuickCaptureKind;
@@ -363,6 +363,13 @@ export interface DropInsightArgs {
   payload: QuickCapturePayload;
 }
 
+/** Inbox triage state machine (see BETTERAT_INBOX_SPEC.md / the
+ *  playbook_insights_capture_inbox migration). New captures land 'unsorted'. */
+export type InboxStatus = 'unsorted' | 'kept' | 'archived' | 'refined';
+
+/** What a capture graduated into once refined — the polymorphic target type. */
+export type RefinedToType = 'step' | 'concept' | 'resource' | 'blueprint';
+
 export interface PlaybookInsightRecord {
   id: string;
   user_id: string;
@@ -370,6 +377,15 @@ export interface PlaybookInsightRecord {
   kind: QuickCaptureKind;
   content: string;
   audio_uri: string | null;
+  /** Set when kind='link' — the captured URL. content holds an optional note. */
+  source_url: string | null;
+  /** Optional human label (e.g. an OG title once enriched). */
+  title: string | null;
+  status: InboxStatus;
+  refined_to_type: RefinedToType | null;
+  refined_to_id: string | null;
+  /** Legacy single-target column, retained for back-compat; the polymorphic
+   *  refined_to_{type,id} pair is authoritative for new refinements. */
   refined_to_concept_id: string | null;
   created_at: string;
 }

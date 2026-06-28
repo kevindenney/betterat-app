@@ -5,6 +5,9 @@ import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 export type LibraryZone =
   | 'all'
   | 'today'
+  // Capture-first Inbox — the unsorted pile of dumped links/notes, reached
+  // from the feed. Triage graduates a capture into a step/concept/resource.
+  | 'inbox'
   | 'plans'
   | 'people'
   | 'concepts'
