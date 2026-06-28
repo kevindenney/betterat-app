@@ -24,7 +24,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
 import { useInterest } from '@/providers/InterestProvider';
 import { useToast } from '@/components/ui/AppToast';
-import { useInbox, useDropLink, useDropNote, useTriageInsight } from '@/hooks/useInbox';
+import {
+  useInbox,
+  useDropLink,
+  useDropNote,
+  useTriageInsight,
+  useRefineInsight,
+} from '@/hooks/useInbox';
 import type { PlaybookInsightRecord } from '@/services/QuickCaptureService';
 
 // A capture is a link if it parses as an http(s) URL or bare domain. Kept
@@ -56,6 +62,8 @@ export function InboxZone() {
   const dropLink = useDropLink(interestId);
   const dropNote = useDropNote(interestId);
   const { keep, archive } = useTriageInsight(interestId);
+  const { toStep, toConcept } = useRefineInsight(interestId);
+  const canRefine = Boolean(interestId);
 
   const [draft, setDraft] = useState('');
   const capturing = dropLink.isPending || dropNote.isPending;
@@ -140,8 +148,11 @@ export function InboxZone() {
               key={item.id}
               item={item}
               first={idx === 0}
+              canRefine={canRefine}
               keeping={keep.isPending && keep.variables?.insightId === item.id}
               archiving={archive.isPending && archive.variables?.insightId === item.id}
+              steppingTo={toStep.isPending && toStep.variables?.insight.id === item.id}
+              conceptingTo={toConcept.isPending && toConcept.variables?.insight.id === item.id}
               onKeep={() =>
                 keep.mutate(
                   { insightId: item.id },
@@ -152,6 +163,24 @@ export function InboxZone() {
                 archive.mutate(
                   { insightId: item.id },
                   { onError: (e) => toast.show(e.message, 'error') },
+                )
+              }
+              onMakeStep={() =>
+                toStep.mutate(
+                  { insight: item },
+                  {
+                    onSuccess: () => toast.show('Made a step', 'success'),
+                    onError: (e) => toast.show(e.message, 'error'),
+                  },
+                )
+              }
+              onMakeConcept={() =>
+                toConcept.mutate(
+                  { insight: item },
+                  {
+                    onSuccess: () => toast.show('Made a concept', 'success'),
+                    onError: (e) => toast.show(e.message, 'error'),
+                  },
                 )
               }
             />
@@ -165,18 +194,29 @@ export function InboxZone() {
 function InboxRow({
   item,
   first,
+  canRefine,
   keeping,
   archiving,
+  steppingTo,
+  conceptingTo,
   onKeep,
   onArchive,
+  onMakeStep,
+  onMakeConcept,
 }: {
   item: PlaybookInsightRecord;
   first: boolean;
+  canRefine: boolean;
   keeping: boolean;
   archiving: boolean;
+  steppingTo: boolean;
+  conceptingTo: boolean;
   onKeep: () => void;
   onArchive: () => void;
+  onMakeStep: () => void;
+  onMakeConcept: () => void;
 }) {
+  const [sorting, setSorting] = useState(false);
   const isLink = item.kind === 'link' && !!item.source_url;
   const primary = isLink
     ? item.title?.trim() || hostOf(item.source_url!)
@@ -184,61 +224,113 @@ function InboxRow({
   const secondary = isLink
     ? item.content.trim() || item.source_url!
     : null;
-  const busy = keeping || archiving;
+  const refining = steppingTo || conceptingTo;
+  const busy = keeping || archiving || refining;
 
   return (
-    <View style={[styles.row, first && styles.rowFirst]}>
-      <View style={[styles.kindBadge, isLink ? styles.kindLink : styles.kindNote]}>
-        <Ionicons
-          name={isLink ? 'link' : item.kind === 'voice' ? 'mic' : 'document-text'}
-          size={15}
-          color={isLink ? '#0A84FF' : '#8E5BE8'}
-        />
-      </View>
-      <Pressable
-        style={styles.rowBody}
-        disabled={!isLink}
-        onPress={() => isLink && Linking.openURL(normalizeUrl(item.source_url!))}
-      >
-        <Text style={styles.rowPrimary} numberOfLines={2}>
-          {primary}
-        </Text>
-        {secondary ? (
-          <Text style={styles.rowSecondary} numberOfLines={1}>
-            {secondary}
+    <View style={[styles.rowWrap, first && styles.rowFirst]}>
+      <View style={styles.row}>
+        <View style={[styles.kindBadge, isLink ? styles.kindLink : styles.kindNote]}>
+          <Ionicons
+            name={isLink ? 'link' : item.kind === 'voice' ? 'mic' : 'document-text'}
+            size={15}
+            color={isLink ? '#0A84FF' : '#8E5BE8'}
+          />
+        </View>
+        <Pressable
+          style={styles.rowBody}
+          disabled={!isLink}
+          onPress={() => isLink && Linking.openURL(normalizeUrl(item.source_url!))}
+        >
+          <Text style={styles.rowPrimary} numberOfLines={2}>
+            {primary}
           </Text>
-        ) : null}
-      </Pressable>
-      <View style={styles.rowActions}>
-        <Pressable
-          style={styles.actionBtn}
-          onPress={onKeep}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel="Keep"
-          hitSlop={6}
-        >
-          {keeping ? (
-            <ActivityIndicator size="small" color="#34C759" />
-          ) : (
-            <Ionicons name="bookmark-outline" size={20} color="#34C759" />
-          )}
+          {secondary ? (
+            <Text style={styles.rowSecondary} numberOfLines={1}>
+              {secondary}
+            </Text>
+          ) : null}
         </Pressable>
-        <Pressable
-          style={styles.actionBtn}
-          onPress={onArchive}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel="Archive"
-          hitSlop={6}
-        >
-          {archiving ? (
-            <ActivityIndicator size="small" color={IOS_COLORS.systemGray} />
-          ) : (
-            <Ionicons name="archive-outline" size={20} color={IOS_COLORS.systemGray} />
-          )}
-        </Pressable>
+        <View style={styles.rowActions}>
+          {canRefine ? (
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => setSorting((s) => !s)}
+              disabled={busy}
+              accessibilityRole="button"
+              accessibilityLabel="Sort into a step or concept"
+              hitSlop={6}
+            >
+              <Ionicons
+                name={sorting ? 'chevron-up' : 'git-branch-outline'}
+                size={20}
+                color="#007AFF"
+              />
+            </Pressable>
+          ) : null}
+          <Pressable
+            style={styles.actionBtn}
+            onPress={onKeep}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Keep"
+            hitSlop={6}
+          >
+            {keeping ? (
+              <ActivityIndicator size="small" color="#34C759" />
+            ) : (
+              <Ionicons name="bookmark-outline" size={20} color="#34C759" />
+            )}
+          </Pressable>
+          <Pressable
+            style={styles.actionBtn}
+            onPress={onArchive}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Archive"
+            hitSlop={6}
+          >
+            {archiving ? (
+              <ActivityIndicator size="small" color={IOS_COLORS.systemGray} />
+            ) : (
+              <Ionicons name="archive-outline" size={20} color={IOS_COLORS.systemGray} />
+            )}
+          </Pressable>
+        </View>
       </View>
+
+      {sorting && canRefine ? (
+        <View style={styles.refinePanel}>
+          <Pressable
+            style={styles.refineBtn}
+            onPress={onMakeStep}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Make a step"
+          >
+            {steppingTo ? (
+              <ActivityIndicator size="small" color="#007AFF" />
+            ) : (
+              <Ionicons name="list-outline" size={17} color="#007AFF" />
+            )}
+            <Text style={styles.refineBtnText}>Make a step</Text>
+          </Pressable>
+          <Pressable
+            style={styles.refineBtn}
+            onPress={onMakeConcept}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Make a concept"
+          >
+            {conceptingTo ? (
+              <ActivityIndicator size="small" color="#8E5BE8" />
+            ) : (
+              <Ionicons name="bulb-outline" size={17} color="#8E5BE8" />
+            )}
+            <Text style={[styles.refineBtnText, { color: '#8E5BE8' }]}>Make a concept</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -307,17 +399,43 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(60,60,67,0.15)',
     overflow: 'hidden',
   },
+  rowWrap: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(60,60,67,0.12)',
+  },
+  rowFirst: {
+    borderTopWidth: 0,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
     paddingHorizontal: 12,
     paddingVertical: 11,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(60,60,67,0.12)',
   },
-  rowFirst: {
-    borderTopWidth: 0,
+  refinePanel: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 11,
+    paddingTop: 1,
+  },
+  refineBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minHeight: 36,
+    borderRadius: 10,
+    backgroundColor: '#F2F2F7',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(60,60,67,0.15)',
+  },
+  refineBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   kindBadge: {
     width: 30,
