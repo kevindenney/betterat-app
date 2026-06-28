@@ -16,6 +16,7 @@ import { useWebDrawer, WebDrawerProvider } from '@/providers/WebDrawerProvider';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 import { useUnreadMessageCount } from '@/hooks/useMessaging';
 import { useInboxCount } from '@/hooks/useInboxCount';
+import { useUnsortedInboxCount } from '@/hooks/useInbox';
 import { InterestSwitcher } from '@/components/InterestSwitcher';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { type TabConfig, getTabsForUserType } from '@/lib/navigation-config';
@@ -98,6 +99,7 @@ function TabLayoutInner() {
   }, [memberships]);
   const unreadMessageCount = useUnreadMessageCount(user?.id);
   const { data: inboxCount = 0 } = useInboxCount();
+  const { data: unsortedInboxCount = 0 } = useUnsortedInboxCount();
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
@@ -440,6 +442,7 @@ function TabLayoutInner() {
             const counts: Record<string, number> = {};
             if (unreadMessageCount > 0) counts.learn = unreadMessageCount;
             if (inboxCount > 0) counts.inbox = inboxCount;
+            if (unsortedInboxCount > 0) counts.library = unsortedInboxCount;
             return Object.keys(counts).length > 0 ? counts : undefined;
           })()}
         />
@@ -466,6 +469,7 @@ function TabLayoutInner() {
     isIPadPortrait,
     unreadMessageCount,
     inboxCount,
+    unsortedInboxCount,
   ]);
 
   // Memoize screenOptions so React Navigation doesn't see a fresh function

@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   archiveInsight,
+  countUnsortedInbox,
   dropLink,
   dropNote,
   enrichLinkTitle,
@@ -27,11 +28,28 @@ import type { TimelineStepRecord } from '@/types/timeline-steps';
 const inboxKey = (userId: string, interestId: string) =>
   ['inbox', userId, interestId] as const;
 
+const unsortedCountKey = (userId: string) =>
+  ['inbox-unsorted-count', userId] as const;
+
 export function useInbox(interestId: string | undefined) {
   const { user } = useAuth();
   return useQuery<PlaybookInsightRecord[], Error>({
     queryKey: inboxKey(user?.id ?? '', interestId ?? ''),
     queryFn: () => listInbox({ userId: user!.id, interestId: interestId ?? null }),
+    enabled: Boolean(user?.id),
+  });
+}
+
+/**
+ * Cross-interest count of unsorted captures, for the Library tab badge. Kept on
+ * its own key (not derived from useInbox, which is interest-scoped) so the badge
+ * reflects everything still to triage regardless of the active interest.
+ */
+export function useUnsortedInboxCount() {
+  const { user } = useAuth();
+  return useQuery<number, Error>({
+    queryKey: unsortedCountKey(user?.id ?? ''),
+    queryFn: () => countUnsortedInbox(user!.id),
     enabled: Boolean(user?.id),
   });
 }
@@ -45,6 +63,7 @@ export function useDropLink(interestId: string | undefined) {
     onSuccess: (record) => {
       const key = inboxKey(user?.id ?? '', interestId ?? '');
       queryClient.invalidateQueries({ queryKey: key });
+      queryClient.invalidateQueries({ queryKey: unsortedCountKey(user?.id ?? '') });
       // Fire-and-forget OG title backfill; refetch only when a title lands so
       // the row swaps from bare host → real page title without blocking capture.
       if (record.source_url) {
@@ -66,6 +85,7 @@ export function useDropNote(interestId: string | undefined) {
       dropNote({ userId: user!.id, interestId: interestId ?? null, text }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: inboxKey(user?.id ?? '', interestId ?? '') });
+      queryClient.invalidateQueries({ queryKey: unsortedCountKey(user?.id ?? '') });
     },
   });
 }
@@ -73,8 +93,10 @@ export function useDropNote(interestId: string | undefined) {
 export function useTriageInsight(interestId: string | undefined) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const invalidate = () =>
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: inboxKey(user?.id ?? '', interestId ?? '') });
+    queryClient.invalidateQueries({ queryKey: unsortedCountKey(user?.id ?? '') });
+  };
 
   const keep = useMutation<void, Error, { insightId: string }>({
     mutationFn: ({ insightId }) => keepInsight(insightId),
@@ -92,6 +114,7 @@ export function useRefineInsight(interestId: string | undefined) {
   const queryClient = useQueryClient();
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: inboxKey(user?.id ?? '', interestId ?? '') });
+    queryClient.invalidateQueries({ queryKey: unsortedCountKey(user?.id ?? '') });
     queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
     queryClient.invalidateQueries({ queryKey: ['playbook-concepts'] });
     queryClient.invalidateQueries({ queryKey: ['playbook-lifecycle-concepts'] });

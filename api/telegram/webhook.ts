@@ -175,6 +175,13 @@ async function handleCallbackQuery(
 // Message handler (text, photo, voice)
 // ---------------------------------------------------------------------------
 
+// A "bare link" is a message that is nothing but a single http(s) URL — the
+// classic "forward a link to the bot and move on" capture. We require the
+// scheme and forbid internal whitespace so anything with surrounding prose
+// ("check this out <url>") falls through to the LLM instead of being silently
+// filed. Lowest-friction Inbox capture per BETTERAT_INBOX_SPEC.md.
+const BARE_LINK_RE = /^https?:\/\/[^\s]+$/i;
+
 async function handleMessage(
   message: NonNullable<TelegramUpdate['message']>,
 ): Promise<void> {
@@ -384,6 +391,30 @@ async function handleMessage(
     .from('telegram_links')
     .update({ telegram_chat_id: chatId })
     .eq('telegram_user_id', telegramUserId);
+
+  // --- Bare-link fast path: forward a URL, it lands in the Inbox unsorted ---
+  // Capture stays zero-classification (no interest, no kind decision) — triage
+  // happens later in /library?zone=inbox. Skips the LLM entirely so the round
+  // trip is one insert. interest_id stays null by design (deferred to triage).
+  if (hasText && !hasPhoto && !hasVoice && BARE_LINK_RE.test(text)) {
+    const { error: dropError } = await supabase.from('playbook_insights').insert({
+      user_id: userId,
+      interest_id: null,
+      kind: 'link',
+      source_url: text,
+      content: '',
+    });
+    if (dropError) {
+      console.error('[telegram] inbox link drop failed:', dropError.message);
+      await sendMessage(chatId, "Sorry, I couldn't save that link. Please try again.");
+      return;
+    }
+    await sendMessage(
+      chatId,
+      "📥 Saved to your Inbox. Sort it into a step, concept, or resource whenever you're ready.",
+    );
+    return;
+  }
 
   // --- Build auth context + user context for system prompt ---
   const auth = await resolveAuthContext(supabase, userId);

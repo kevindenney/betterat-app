@@ -166,6 +166,23 @@ export async function listInbox({
 }
 
 /**
+ * Count the viewer's unsorted captures across all interests. Drives the Library
+ * tab badge ("you have stuff to triage") — head-only count, no rows fetched.
+ */
+export async function countUnsortedInbox(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('playbook_insights')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'unsorted');
+  if (error) {
+    logger.error('Failed to count unsorted inbox', error);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/**
  * Move a capture out of the unsorted pile. 'kept' = "I want this, leave it";
  * 'archived' = "not now". Both drop it off the unsorted list. Returns the id
  * so the caller can confirm a row actually changed (RLS no-op → zero rows).
