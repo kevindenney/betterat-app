@@ -272,16 +272,22 @@ export async function refineToStep({
   insight,
   userId,
   interestId,
+  title: titleInput,
+  description,
 }: {
   insight: PlaybookInsightRecord;
   userId: string;
   interestId: string;
+  title?: string | null;
+  description?: string | null;
 }): Promise<TimelineStepRecord> {
-  const title = titleForInsight(insight, 'Untitled step');
+  const title = titleInput?.trim() || titleForInsight(insight, 'Untitled step');
   const note = String(insight.content ?? '').trim();
+  const trimmedDescription = description?.trim();
   const descriptionParts = [
-    insight.kind === 'link' && insight.source_url ? insight.source_url : null,
-    insight.kind === 'link' ? (note || null) : null,
+    trimmedDescription || null,
+    insight.kind === 'link' && !trimmedDescription ? (note || null) : null,
+    insight.kind === 'link' && insight.source_url ? `Source: ${insight.source_url}` : null,
   ].filter(Boolean) as string[];
 
   const step = await createStep({
@@ -327,15 +333,17 @@ export async function refineToResource({
   insight,
   userId,
   interestId,
+  title: titleInput,
 }: {
   insight: PlaybookInsightRecord;
   userId: string;
   interestId: string;
+  title?: string | null;
 }): Promise<{ id: string }> {
   if (insight.kind !== 'link' || !insight.source_url) {
     throw new Error('Only a captured link can become a resource.');
   }
-  const title = titleForInsight(insight, 'Untitled resource');
+  const title = titleInput?.trim() || titleForInsight(insight, 'Untitled resource');
 
   const { data: item, error: itemError } = await supabase
     .from('library_items')
@@ -382,19 +390,23 @@ export async function refineToConcept({
   insight,
   userId,
   interestId,
+  title: titleInput,
+  body: bodyInput,
 }: {
   insight: PlaybookInsightRecord;
   userId: string;
   interestId: string;
+  title?: string | null;
+  body?: string | null;
 }): Promise<PlaybookConceptRecord> {
   const playbook = await getOrCreatePlaybook(userId, interestId);
-  const title = titleForInsight(insight, 'Untitled concept');
+  const title = titleInput?.trim() || titleForInsight(insight, 'Untitled concept');
   const note = String(insight.content ?? '').trim();
   const bodyParts = [
     note || null,
     insight.kind === 'link' && insight.source_url ? insight.source_url : null,
   ].filter(Boolean) as string[];
-  const body = bodyParts.join('\n\n');
+  const body = bodyInput?.trim() || bodyParts.join('\n\n');
 
   const concept = await createConcept(userId, {
     playbook_id: playbook.id,

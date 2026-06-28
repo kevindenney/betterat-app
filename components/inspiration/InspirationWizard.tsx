@@ -39,6 +39,8 @@ interface InspirationWizardProps {
   onClose: () => void;
   /** Prefill the capture step's source box (e.g. an Inbox link being graduated). */
   initialSource?: { content: string; contentType: InspirationContentType } | null;
+  /** Preselect an existing interest when the source already has a target. */
+  initialSelectedExistingInterestId?: string | null;
   /** Fires after a blueprint is successfully created, so a caller can record lineage. */
   onActivated?: (result: ActivateInspirationResult) => void;
 }
@@ -47,6 +49,7 @@ export function InspirationWizard({
   visible,
   onClose,
   initialSource,
+  initialSelectedExistingInterestId = null,
   onActivated,
 }: InspirationWizardProps) {
   const { user } = useAuth();
@@ -56,7 +59,9 @@ export function InspirationWizard({
   const [step, setStep] = useState<WizardStep>('capture');
   const [extraction, setExtraction] = useState<InspirationExtraction | null>(null);
   const [interestEdits, setInterestEdits] = useState<Partial<ProposedInterest>>({});
-  const [selectedExistingInterestId, setSelectedExistingInterestId] = useState<string | null>(null);
+  const [selectedExistingInterestId, setSelectedExistingInterestId] = useState<string | null>(
+    initialSelectedExistingInterestId,
+  );
   const [editedBlueprintSteps, setEditedBlueprintSteps] = useState<InspirationBlueprintStep[] | null>(null);
   const [sourceContent, setSourceContent] = useState('');
   const [sourceContentType, setSourceContentType] = useState<InspirationContentType>('url');
@@ -85,14 +90,14 @@ export function InspirationWizard({
     setStep('capture');
     setExtraction(null);
     setInterestEdits({});
-    setSelectedExistingInterestId(null);
+    setSelectedExistingInterestId(initialSelectedExistingInterestId);
     setEditedBlueprintSteps(null);
     setSourceContent('');
     setSourceContentType('url');
     setActivating(false);
     setResult(null);
     onClose();
-  }, [onClose]);
+  }, [initialSelectedExistingInterestId, onClose]);
 
   // Step 1 → Step 2: AI extraction complete
   const handleExtractionComplete = useCallback(

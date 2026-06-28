@@ -17,6 +17,10 @@ import { DueDatePickerModal } from '@/components/step/DueDatePickerModal';
 interface ComposerWhenFieldProps {
   value?: string | null;
   onChange: (next: string | undefined) => void;
+  /** Placeholder when no time is set. Defaults to the generic step prompt. */
+  placeholder?: string;
+  /** Title shown atop the date/time picker modal. */
+  pickerTitle?: string;
 }
 
 function formatWhen(iso: string): string {
@@ -39,7 +43,12 @@ function formatWhen(iso: string): string {
   return `${dateLabel} at ${timeLabel}`;
 }
 
-export function ComposerWhenField({ value, onChange }: ComposerWhenFieldProps) {
+export function ComposerWhenField({
+  value,
+  onChange,
+  placeholder = 'When will you do this?',
+  pickerTitle = 'When',
+}: ComposerWhenFieldProps) {
   const [pickerVisible, setPickerVisible] = useState(false);
   const hasValue = Boolean(value);
 
@@ -66,7 +75,7 @@ export function ComposerWhenField({ value, onChange }: ComposerWhenFieldProps) {
       >
         <Ionicons name="calendar-outline" size={18} color={IOS_COLORS.systemBlue} />
         <Text style={[styles.triggerText, !hasValue && styles.triggerPlaceholder]} numberOfLines={1}>
-          {hasValue ? formatWhen(value!) : 'When will you do this?'}
+          {hasValue ? formatWhen(value!) : placeholder}
         </Text>
         {hasValue ? (
           <Pressable
@@ -83,7 +92,7 @@ export function ComposerWhenField({ value, onChange }: ComposerWhenFieldProps) {
 
       <DueDatePickerModal
         visible={pickerVisible}
-        title="When"
+        title={pickerTitle}
         currentDate={value ?? null}
         onSelect={handleSelect}
         onClear={handleClear}
