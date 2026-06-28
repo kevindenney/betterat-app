@@ -285,6 +285,22 @@ export async function refineToStep({
 }
 
 /**
+ * Stamp a capture as graduated into a blueprint. The blueprint itself is built
+ * by the Get Inspired wizard (interest + steps + calendar), which already
+ * persists the source; this only records the lineage on the insight so it
+ * leaves the unsorted pile. Caller passes the blueprintId the wizard returned.
+ */
+export async function refineToBlueprint({
+  insight,
+  blueprintId,
+}: {
+  insight: PlaybookInsightRecord;
+  blueprintId: string;
+}): Promise<void> {
+  await stampRefined(insight.id, 'blueprint', blueprintId);
+}
+
+/**
  * Graduate a captured link into a Library resource. Link-only: a `library_items`
  * row has no body column, so a plain note would lose its text — those graduate to
  * a step or concept instead. Creates the item (kind='link', host as source label),

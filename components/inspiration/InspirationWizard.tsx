@@ -18,6 +18,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { activateInspiration } from '@/services/InspirationService';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import type {
+  ActivateInspirationResult,
   InspirationExtraction,
   InspirationBlueprintStep,
   InspirationCalendar,
@@ -36,9 +37,18 @@ type WizardStep = 'capture' | 'review-interest' | 'review-blueprint' | 'review-c
 interface InspirationWizardProps {
   visible: boolean;
   onClose: () => void;
+  /** Prefill the capture step's source box (e.g. an Inbox link being graduated). */
+  initialSource?: { content: string; contentType: InspirationContentType } | null;
+  /** Fires after a blueprint is successfully created, so a caller can record lineage. */
+  onActivated?: (result: ActivateInspirationResult) => void;
 }
 
-export function InspirationWizard({ visible, onClose }: InspirationWizardProps) {
+export function InspirationWizard({
+  visible,
+  onClose,
+  initialSource,
+  onActivated,
+}: InspirationWizardProps) {
   const { user } = useAuth();
   const { currentInterest, userInterests, proposeInterest } = useInterest();
   const insets = useSafeAreaInsets();
@@ -130,6 +140,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
           interestSlug: activationResult.interestSlug,
           blueprintSlug: activationResult.blueprintSlug,
         });
+        onActivated?.(activationResult);
         setStep('success');
       } catch (err) {
         console.error('[InspirationWizard] activation failed:', err);
@@ -141,7 +152,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
         setActivating(false);
       }
     },
-    [extraction, user?.id, interestEdits, selectedExistingInterestId, sourceContent, sourceContentType, proposeInterest],
+    [extraction, user?.id, interestEdits, selectedExistingInterestId, sourceContent, sourceContentType, proposeInterest, onActivated],
   );
 
   // Step 3 → optional Step 4: Blueprint reviewed
@@ -222,6 +233,7 @@ export function InspirationWizard({ visible, onClose }: InspirationWizardProps) 
             userId={user?.id}
             userInterestSlugs={userInterestSlugs}
             currentInterest={currentInterest}
+            initialValue={initialSource?.content}
             onComplete={handleExtractionComplete}
             registerAbortHandler={registerCaptureAbortHandler}
           />

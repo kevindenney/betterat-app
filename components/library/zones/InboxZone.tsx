@@ -31,6 +31,7 @@ import {
   useTriageInsight,
   useRefineInsight,
 } from '@/hooks/useInbox';
+import { InspirationWizard } from '@/components/inspiration/InspirationWizard';
 import type { PlaybookInsightRecord } from '@/services/QuickCaptureService';
 
 // A capture is a link if it parses as an http(s) URL or bare domain. Kept
@@ -62,8 +63,16 @@ export function InboxZone() {
   const dropLink = useDropLink(interestId);
   const dropNote = useDropNote(interestId);
   const { keep, archive } = useTriageInsight(interestId);
-  const { toStep, toConcept, toResource } = useRefineInsight(interestId);
+  const { toStep, toConcept, toResource, toBlueprint } = useRefineInsight(interestId);
   const canRefine = Boolean(interestId);
+
+  // The capture being graduated into a blueprint via the Get Inspired wizard.
+  const [blueprintInsight, setBlueprintInsight] = useState<PlaybookInsightRecord | null>(null);
+  const blueprintSource = blueprintInsight
+    ? blueprintInsight.kind === 'link' && blueprintInsight.source_url
+      ? { content: blueprintInsight.source_url, contentType: 'url' as const }
+      : { content: blueprintInsight.content, contentType: 'text' as const }
+    : null;
 
   const [draft, setDraft] = useState('');
   const capturing = dropLink.isPending || dropNote.isPending;
@@ -154,6 +163,10 @@ export function InboxZone() {
               steppingTo={toStep.isPending && toStep.variables?.insight.id === item.id}
               conceptingTo={toConcept.isPending && toConcept.variables?.insight.id === item.id}
               resourcingTo={toResource.isPending && toResource.variables?.insight.id === item.id}
+              blueprintingTo={
+                (toBlueprint.isPending && toBlueprint.variables?.insight.id === item.id) ||
+                blueprintInsight?.id === item.id
+              }
               onKeep={() =>
                 keep.mutate(
                   { insightId: item.id },
@@ -193,10 +206,25 @@ export function InboxZone() {
                   },
                 )
               }
+              onMakeBlueprint={() => setBlueprintInsight(item)}
             />
           ))}
         </View>
       )}
+
+      {blueprintInsight && blueprintSource ? (
+        <InspirationWizard
+          visible
+          initialSource={blueprintSource}
+          onActivated={(result) =>
+            toBlueprint.mutate(
+              { insight: blueprintInsight, blueprintId: result.blueprintId },
+              { onError: (e) => toast.show(e.message, 'error') },
+            )
+          }
+          onClose={() => setBlueprintInsight(null)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -210,11 +238,13 @@ function InboxRow({
   steppingTo,
   conceptingTo,
   resourcingTo,
+  blueprintingTo,
   onKeep,
   onArchive,
   onMakeStep,
   onMakeConcept,
   onMakeResource,
+  onMakeBlueprint,
 }: {
   item: PlaybookInsightRecord;
   first: boolean;
@@ -224,11 +254,13 @@ function InboxRow({
   steppingTo: boolean;
   conceptingTo: boolean;
   resourcingTo: boolean;
+  blueprintingTo: boolean;
   onKeep: () => void;
   onArchive: () => void;
   onMakeStep: () => void;
   onMakeConcept: () => void;
   onMakeResource: () => void;
+  onMakeBlueprint: () => void;
 }) {
   const [sorting, setSorting] = useState(false);
   const isLink = item.kind === 'link' && !!item.source_url;
@@ -238,7 +270,7 @@ function InboxRow({
   const secondary = isLink
     ? item.content.trim() || item.source_url!
     : null;
-  const refining = steppingTo || conceptingTo || resourcingTo;
+  const refining = steppingTo || conceptingTo || resourcingTo || blueprintingTo;
   const busy = keeping || archiving || refining;
 
   return (
@@ -346,21 +378,37 @@ function InboxRow({
         </View>
       ) : null}
 
-      {sorting && canRefine && isLink ? (
+      {sorting && canRefine ? (
         <View style={styles.refinePanelSecond}>
+          {isLink ? (
+            <Pressable
+              style={styles.refineBtn}
+              onPress={onMakeResource}
+              disabled={busy}
+              accessibilityRole="button"
+              accessibilityLabel="Save as resource"
+            >
+              {resourcingTo ? (
+                <ActivityIndicator size="small" color="#34C759" />
+              ) : (
+                <Ionicons name="library-outline" size={17} color="#34C759" />
+              )}
+              <Text style={[styles.refineBtnText, { color: '#34C759' }]}>Save as resource</Text>
+            </Pressable>
+          ) : null}
           <Pressable
             style={styles.refineBtn}
-            onPress={onMakeResource}
+            onPress={onMakeBlueprint}
             disabled={busy}
             accessibilityRole="button"
-            accessibilityLabel="Save as resource"
+            accessibilityLabel="Build a blueprint"
           >
-            {resourcingTo ? (
-              <ActivityIndicator size="small" color="#34C759" />
+            {blueprintingTo ? (
+              <ActivityIndicator size="small" color="#FF9500" />
             ) : (
-              <Ionicons name="library-outline" size={17} color="#34C759" />
+              <Ionicons name="sparkles-outline" size={17} color="#FF9500" />
             )}
-            <Text style={[styles.refineBtnText, { color: '#34C759' }]}>Save as resource</Text>
+            <Text style={[styles.refineBtnText, { color: '#FF9500' }]}>Build a blueprint</Text>
           </Pressable>
         </View>
       ) : null}

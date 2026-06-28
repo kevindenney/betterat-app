@@ -117,6 +117,8 @@ interface InspirationCaptureStepProps {
   userId?: string | null;
   userInterestSlugs: string[];
   currentInterest?: InspirationCaptureInterestContext | null;
+  /** Seed the source box (e.g. an Inbox link/note being graduated to a blueprint). */
+  initialValue?: string | null;
   onComplete: (
     extraction: InspirationExtraction,
     content: string,
@@ -144,10 +146,11 @@ export function InspirationCaptureStep({
   userId,
   userInterestSlugs,
   currentInterest,
+  initialValue,
   onComplete,
   registerAbortHandler,
 }: InspirationCaptureStepProps) {
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(initialValue ?? '');
   const [attachments, setAttachments] = useState<InspirationAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);

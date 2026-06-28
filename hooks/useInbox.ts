@@ -15,6 +15,7 @@ import {
   enrichLinkTitle,
   keepInsight,
   listInbox,
+  refineToBlueprint,
   refineToConcept,
   refineToResource,
   refineToStep,
@@ -115,5 +116,15 @@ export function useRefineInsight(interestId: string | undefined) {
       refineToResource({ insight, userId: user!.id, interestId: interestId! }),
     onSuccess: invalidate,
   });
-  return { toStep, toConcept, toResource };
+  // The blueprint itself is built by the Get Inspired wizard; this mutation only
+  // stamps the insight refined→blueprint once the wizard returns a blueprintId.
+  const toBlueprint = useMutation<
+    void,
+    Error,
+    { insight: PlaybookInsightRecord; blueprintId: string }
+  >({
+    mutationFn: ({ insight, blueprintId }) => refineToBlueprint({ insight, blueprintId }),
+    onSuccess: invalidate,
+  });
+  return { toStep, toConcept, toResource, toBlueprint };
 }
