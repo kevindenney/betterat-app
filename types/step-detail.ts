@@ -4,6 +4,7 @@
 
 import type { StepMeasurements } from './measurements';
 import type { StepNutrition } from './step-nutrition';
+import type { TimelineStepStatus } from './timeline-steps';
 
 export interface SubStep {
   id: string;
@@ -549,5 +550,34 @@ export interface StepMetadata {
   livelihood?: LivelihoodStepData;
   /** Sailing — race-area + course choice when the step is_race (mockup 27). */
   race_plan?: RacePlan;
+  /** Set on a folded source: points at the canonical target it folded into. */
+  folded_into?: FoldedIntoRef;
+  /** Set on a fold target: provenance for each source folded into it. */
+  folded_sources?: FoldedSourceRef[];
   [key: string]: unknown;
+}
+
+/** Written on a source step's metadata when it is folded into a target. */
+export interface FoldedIntoRef {
+  step_id: string;
+  title: string | null;
+  folded_at: string;
+  /** Status the source held before folding — restored on unfold. */
+  prior_status: TimelineStepStatus;
+}
+
+/** Per-source provenance appended to a target's metadata.folded_sources. */
+export interface FoldedSourceRef {
+  step_id: string;
+  title: string | null;
+  folded_at: string;
+  prior_status: TimelineStepStatus;
+  key_takeaway?: unknown;
+  teaching_reflection?: unknown;
+  counts?: {
+    observations?: number;
+    media_uploads?: number;
+    media_links?: number;
+    sections?: number;
+  };
 }

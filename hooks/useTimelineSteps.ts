@@ -17,6 +17,8 @@ import {
   adoptQuotedStep,
   createStepsFromCourse,
   redoStepAsNewStep,
+  foldStepIntoStep,
+  unfoldStep,
   reopenStepForWork,
   pinStepToInterest,
   unpinStepFromInterest,
@@ -234,6 +236,42 @@ export function useRedoStepAsNewStep() {
       queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
       // A redo schedules a fresh, usually future-dated step that can become
       // the next upcoming event.
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
+    },
+  });
+}
+
+export function useFoldStep() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    TimelineStepRecord,
+    Error,
+    { sourceStepId: string; targetStepId: string }
+  >({
+    mutationFn: ({ sourceStepId, targetStepId }) =>
+      foldStepIntoStep(sourceStepId, targetStepId),
+    onSuccess: (target, { sourceStepId }) => {
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(sourceStepId) });
+      queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(target.id) });
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
+      // The folded source may have been the next upcoming event.
+      queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
+    },
+  });
+}
+
+export function useUnfoldStep() {
+  const queryClient = useQueryClient();
+
+  return useMutation<TimelineStepRecord, Error, string>({
+    mutationFn: unfoldStep,
+    onSuccess: () => {
+      // Prefix-invalidates every ['timeline-steps', ...] key, including the
+      // source's and target's stepDetail caches.
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
+      queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
       queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     },
   });

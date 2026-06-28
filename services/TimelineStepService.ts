@@ -89,6 +89,10 @@ export async function getUserTimeline(
       .select('*')
       .eq('user_id', userId)
       .eq('is_plan_template', false)
+      // Folded steps are tombstoned references whose work now lives on their
+      // target — hide them from the arc; they stay reachable via the target's
+      // provenance link / deep link (getStepById).
+      .neq('status', 'folded')
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true })
       .limit(200);
@@ -608,6 +612,52 @@ export async function redoStepAsNewStep(
     return created;
   } catch (err) {
     logger.error('Failed to redo step as new step', err);
+    throw err;
+  }
+}
+
+/**
+ * Fold a source step into a target step. The source's work (act/review
+ * metadata, beats, flag events, library links, capability evidence) moves onto
+ * the target with provenance, and the source becomes a reversible folded
+ * reference (status='folded'). Runs as one transactional RPC so a partial move
+ * can't orphan rows. Returns the updated target step.
+ */
+export async function foldStepIntoStep(
+  sourceStepId: string,
+  targetStepId: string,
+): Promise<TimelineStepRecord> {
+  try {
+    const { data, error } = await supabase.rpc('fold_step_into_step', {
+      p_source_id: sourceStepId,
+      p_target_id: targetStepId,
+    });
+    if (error) throw error;
+    const rows = (data ?? []) as TimelineStepRecord[];
+    if (!rows.length) throw new Error('Fold returned no target step');
+    return rows[0];
+  } catch (err) {
+    logger.error('Failed to fold step into step', err);
+    throw err;
+  }
+}
+
+/**
+ * Reverse a fold: returns moved child rows to the source, strips the folded-in
+ * metadata + provenance from the target, and restores the source to its prior
+ * status. Returns the restored source step.
+ */
+export async function unfoldStep(sourceStepId: string): Promise<TimelineStepRecord> {
+  try {
+    const { data, error } = await supabase.rpc('unfold_step', {
+      p_source_id: sourceStepId,
+    });
+    if (error) throw error;
+    const rows = (data ?? []) as TimelineStepRecord[];
+    if (!rows.length) throw new Error('Unfold returned no source step');
+    return rows[0];
+  } catch (err) {
+    logger.error('Failed to unfold step', err);
     throw err;
   }
 }
@@ -1272,7 +1322,7 @@ function generateShareToken(): string {
 
 function getShareUrl(token: string): string {
   const base =
-    typeof window !== 'undefined' ? window.location.origin : 'https://regattaflow.com';
+    typeof window !== 'undefined' ? window.location.origin : 'https://better.at';
   return `${base}/p/step/${token}`;
 }
 

@@ -213,6 +213,7 @@ const STATUS_MAP: Record<TimelineStepStatus, StepStatus> = {
   completed: 'done',
   settled: 'reflected',
   skipped: 'done',
+  folded: 'done',
 };
 
 // First-run suppression: don't surface "the librarian noticed" / "-heavy"

@@ -12,6 +12,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { isPersistedRaceId } from '@/lib/races/isPersistedRaceId';
 
 export interface LatestPeerReflection {
   id: string;
@@ -73,7 +74,7 @@ function initialsFor(name: string | null | undefined, fallback: string): string 
 export function useLatestPeerReflection(stepId: string | null | undefined) {
   return useQuery<LatestPeerReflection | null>({
     queryKey: ['latest-peer-reflection', stepId],
-    enabled: Boolean(stepId),
+    enabled: isPersistedRaceId(stepId),
     staleTime: 30_000,
     queryFn: async () => {
       if (!stepId) return null;

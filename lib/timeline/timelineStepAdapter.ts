@@ -7,6 +7,7 @@ const STATUS_MAP: Record<TimelineStepStatus, string> = {
   completed: 'completed',
   settled: 'completed',
   skipped: 'abandoned',
+  folded: 'abandoned',
 };
 
 export function timelineStepToCardRaceData(step: TimelineStepRecord): CardRaceData {

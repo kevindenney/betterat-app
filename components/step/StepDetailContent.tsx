@@ -21,9 +21,11 @@ import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import {
   useAdoptStep,
   useDeleteStep,
+  useFoldStep,
   useMyTimeline,
   useRedoStepAsNewStep,
   useReopenStepForWork,
+  useUnfoldStep,
   useUpdateStep,
 } from '@/hooks/useTimelineSteps';
 import { resequenceTimelineSortOrders } from '@/services/TimelineStepService';
@@ -32,6 +34,10 @@ import {
   type MoveStepItem,
   type MoveTarget,
 } from '@/components/ios-register/timeline-zoom/MoveStepSheet';
+import {
+  FoldStepSheet,
+  type FoldTargetItem,
+} from '@/components/ios-register/timeline-zoom/FoldStepSheet';
 import { StepCombinatorsRow } from './StepCombinatorsRow';
 import { StepVisibilityChip } from './StepVisibilityChip';
 import { StepHeaderSubtitle } from './StepHeaderMeta';
@@ -412,6 +418,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const deleteStep = useDeleteStep();
   const reopenStep = useReopenStepForWork();
   const redoStep = useRedoStepAsNewStep();
+  const foldStep = useFoldStep();
+  const unfoldStep = useUnfoldStep();
   const invalidateAtlasStepQueries = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['atlas-next-event'] });
     queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
@@ -563,6 +571,8 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const [linkConceptOpen, setLinkConceptOpen] = useState(false);
   const [moveSheetOpen, setMoveSheetOpen] = useState(false);
   const [moveBusy, setMoveBusy] = useState(false);
+  const [foldSheetOpen, setFoldSheetOpen] = useState(false);
+  const [foldBusy, setFoldBusy] = useState(false);
 
   // The step record often arrives after this component first renders. If
   // usePillTabs initializes while `step` is still undefined, the surface can
@@ -1165,6 +1175,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   }, [handleSetDueDate]);
 
   const isMarkedDone = step?.status === 'settled' || step?.status === 'completed';
+  const isFolded = step?.status === 'folded';
+  // A folded step is a read-only tombstone — its live work now lives on the
+  // target, so editing it (plan, captures, review, race toggle, title) would
+  // write onto a reference the user can reopen at any time. Suppress all edit
+  // affordances while folded; the owner regains them after unfold.
+  const canEditStep = isOwner && !isFolded;
 
   // Done toggle — settle into the completed boundary, or reopen without
   // deleting existing Do/Reflect evidence.
@@ -1301,6 +1317,148 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     },
     [step, isOwner, viewerInterestSteps, queryClient],
   );
+
+  // Folding moves this step's work onto a canonical anchor (usually a race).
+  // The picker ranks the interest's other steps so the likeliest anchor floats
+  // up: races first, then same-day, then nearby-in-time. Self, already-folded
+  // steps, and (as a source) race steps themselves are never offered — a race
+  // is an anchor you fold *into*, not one you fold away.
+  const foldTargetItems = useMemo<FoldTargetItem[]>(() => {
+    if (!step || !isOwner) return [];
+    const sourceStart = step.starts_at ? new Date(step.starts_at).getTime() : null;
+    const DAY = 86_400_000;
+    const sameDay = (a: number, b: number) =>
+      new Date(a).toDateString() === new Date(b).toDateString();
+    const scored = viewerInterestSteps
+      .filter((s) => s.id !== step.id && s.status !== 'folded')
+      .map((s) => {
+        const start = s.starts_at ? new Date(s.starts_at).getTime() : null;
+        let score = 0;
+        let contextTag: string | undefined;
+        if (s.is_race) score += 100;
+        if (sourceStart != null && start != null) {
+          if (sameDay(sourceStart, start)) {
+            score += 50;
+            contextTag = 'SAME DAY';
+          } else if (Math.abs(sourceStart - start) <= 14 * DAY) {
+            score += 30;
+            contextTag = 'NEARBY';
+          }
+        }
+        const whenLabel = start
+          ? new Date(start).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+            })
+          : undefined;
+        return {
+          item: {
+            id: s.id,
+            title: s.title ?? 'Untitled step',
+            isRace: Boolean(s.is_race),
+            isDone: s.status === 'settled' || s.status === 'completed',
+            contextTag,
+            whenLabel,
+          } as FoldTargetItem,
+          score,
+          start: start ?? Number.MAX_SAFE_INTEGER,
+        };
+      });
+    scored.sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.start - b.start ||
+        a.item.title.localeCompare(b.item.title),
+    );
+    return scored.map((s) => s.item);
+  }, [step, isOwner, viewerInterestSteps]);
+
+  // Tombstone state — set only when this step has itself been folded away.
+  const foldedInto = useMemo(() => {
+    if (step?.status !== 'folded') return null;
+    return (step.metadata as StepMetadata | undefined)?.folded_into ?? null;
+  }, [step?.status, step?.metadata]);
+
+  const handleFoldInto = useCallback(
+    (targetId: string) => {
+      if (!step || !isOwner) return;
+      // A just-created step still carries its optimistic `temp-…` id until the
+      // server write resolves; folding it would send a non-UUID to the RPC and
+      // 400. Ask the user to wait the moment out rather than erroring.
+      if (step.id.startsWith('temp-')) {
+        showAlert('Still saving', 'Give this step a moment to save, then fold it.');
+        return;
+      }
+      const target = foldTargetItems.find((t) => t.id === targetId);
+      if (!target) return;
+      const act = (step.metadata as StepMetadata | undefined)?.act;
+      const review = (step.metadata as StepMetadata | undefined)?.review;
+      const moved =
+        (act?.observations?.length ?? 0) +
+        (act?.media_uploads?.length ?? 0) +
+        (act?.media_links?.length ?? 0) +
+        (review?.sections?.length ?? 0);
+      const detail =
+        moved > 0
+          ? `Its ${moved} ${moved === 1 ? 'entry' : 'entries'} of work move onto “${target.title}”.`
+          : `“${target.title}” keeps its own identity and timing.`;
+      // Close the sheet before confirming — the web confirm dialog renders in
+      // the tree, so a still-open bottom-sheet Modal would obscure it (same
+      // close-then-confirm order the delete flow uses).
+      setFoldSheetOpen(false);
+      showConfirm(
+        'Fold into this step?',
+        `${detail} This step becomes a folded reference you can reopen anytime.`,
+        () => {
+          setFoldBusy(true);
+          foldStep.mutate(
+            { sourceStepId: step.id, targetStepId: targetId },
+            {
+              onSuccess: () => {
+                setFoldBusy(false);
+                invalidateAtlasStepQueries();
+                router.replace(`/step/${targetId}` as any);
+              },
+              onError: (error) => {
+                setFoldBusy(false);
+                const message =
+                  error instanceof Error ? error.message : 'Could not fold the step.';
+                showAlert('Fold failed', message);
+              },
+            },
+          );
+        },
+      );
+    },
+    [step, isOwner, foldTargetItems, foldStep, invalidateAtlasStepQueries],
+  );
+
+  const handleUnfold = useCallback(() => {
+    if (!step) return;
+    if (step.id.startsWith('temp-')) {
+      showAlert('Still saving', 'Give this step a moment to save, then try again.');
+      return;
+    }
+    showConfirm(
+      'Unfold this step?',
+      'It returns to your timeline as its own step, and the work it contributed moves back off the target.',
+      () => {
+        setFoldBusy(true);
+        unfoldStep.mutate(step.id, {
+          onSuccess: () => {
+            setFoldBusy(false);
+            invalidateAtlasStepQueries();
+          },
+          onError: (error) => {
+            setFoldBusy(false);
+            const message =
+              error instanceof Error ? error.message : 'Could not unfold the step.';
+            showAlert('Unfold failed', message);
+          },
+        });
+      },
+    );
+  }, [step, unfoldStep, invalidateAtlasStepQueries]);
 
   const adoptedCopy = useMemo(() => {
     if (!step || isOwner) return null;
@@ -1646,7 +1804,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         stepId={stepId}
         interestId={step.interest_id}
         interestSlug={stepInterestSlug}
-        readOnly={!isOwner}
+        readOnly={!canEditStep}
       />
       {isCollaborator ? (() => {
         const planCollabs = serverPlanData.collaborators ?? [];
@@ -1732,20 +1890,20 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
             interestId={step.interest_id}
             onUpdate={handlePlanUpdate}
             onNextTab={() => handleNextTab('act')}
-            readOnly={!isOwner}
-            brainDumpData={isOwner ? brainDumpData : undefined}
-            onBrainDumpChange={isOwner ? handleDraftChange : undefined}
-            onStructureWithAI={isOwner ? handleStructureWithAI : undefined}
+            readOnly={!canEditStep}
+            brainDumpData={canEditStep ? brainDumpData : undefined}
+            onBrainDumpChange={canEditStep ? handleDraftChange : undefined}
+            onStructureWithAI={canEditStep ? handleStructureWithAI : undefined}
             isStructuring={aiStructuring}
             hasPlanContent={hasPlanContent}
             interestSlug={stepInterestSlug}
             interestName={stepInterestName}
-            useConversationalCapture={isOwner}
-            onConversationalCreate={isOwner ? handleConversationalCreate : undefined}
+            useConversationalCapture={canEditStep}
+            onConversationalCreate={canEditStep ? handleConversationalCreate : undefined}
             stepCategory={step.category}
             isRace={showRaceSelector ? Boolean(step.is_race) : undefined}
             onToggleRace={
-              showRaceSelector && isOwner
+              showRaceSelector && canEditStep
                 ? (next) => {
                     queryClient.setQueryData(
                       ['timeline-steps', 'detail', stepId],
@@ -1801,12 +1959,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         </>
       )}
       {activeTab === 'act' && (
-        <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!isOwner} interestId={step.interest_id} interestName={stepInterestName} interestSlug={stepInterestSlug} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} isRace={showRaceSelector ? Boolean(step.is_race) : undefined} />
+        <ActTab stepId={stepId} dateEnrichment={planData.date_enrichment} onNextTab={() => handleNextTab('review')} readOnly={!canEditStep} interestId={step.interest_id} interestName={stepInterestName} interestSlug={stepInterestSlug} embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER} isRace={showRaceSelector ? Boolean(step.is_race) : undefined} />
       )}
       {activeTab === 'review' && (
         <ReviewTab
           stepId={stepId}
-          readOnly={!isOwner}
+          readOnly={!canEditStep}
           embedded={FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER}
           isRace={showRaceSelector ? Boolean(step.is_race) : undefined}
         />
@@ -1894,8 +2052,38 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     const detailInterestName = stepInterestName ?? currentInterest?.name;
     const detailInterestAccent =
       stepInterest?.accent_color ?? currentInterest?.accent_color ?? null;
+    // Tombstone — a folded step keeps its content read-only but leads with a
+    // banner that says where the live work moved, with a one-tap jump back.
+    const foldedBanner =
+      isFolded && foldedInto ? (
+        <Pressable
+          onPress={() =>
+            foldedInto.step_id
+              ? router.replace(`/step/${foldedInto.step_id}` as any)
+              : undefined
+          }
+          style={({ pressed }) => [styles.foldedBanner, pressed && { opacity: 0.7 }]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            foldedInto.title
+              ? `Folded into ${foldedInto.title}. Open target step.`
+              : 'Folded step. Open target step.'
+          }
+        >
+          <Ionicons name="git-merge-outline" size={15} color={STEP_COLORS.secondaryLabel} />
+          <Text style={styles.foldedBannerText} numberOfLines={1}>
+            Folded into{' '}
+            <Text style={styles.foldedBannerTarget}>
+              {foldedInto.title ?? 'another step'}
+            </Text>
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={STEP_COLORS.tertiaryLabel} />
+        </Pressable>
+      ) : null;
+
     const belowTitleRow = (detailInterestName || counterText || planName) ? (
       <>
+        {foldedBanner}
         <View style={styles.belowTitleRow}>
           {detailInterestName ? (
             <View style={styles.belowInterestPill}>
@@ -1924,18 +2112,21 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         />
       </>
     ) : (
-      <StepCombinatorsRow
-        step={step}
-        blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
-        blueprintAuthorName={null}
-        viewerSteps={viewerInterestSteps}
-        accessPeople={discussionAccess}
-        onShowPlaybook={() => setActiveTab('plan')}
-      />
+      <>
+        {foldedBanner}
+        <StepCombinatorsRow
+          step={step}
+          blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
+          blueprintAuthorName={null}
+          viewerSteps={viewerInterestSteps}
+          accessPeople={discussionAccess}
+          onShowPlaybook={() => setActiveTab('plan')}
+        />
+      </>
     );
 
     const menuActions: ActionSheetAction[] = [];
-    if (isOwner) {
+    if (isOwner && !isFolded) {
       menuActions.push({
         label: isMarkedDone ? 'Mark not done' : 'Mark done',
         disabled: reopenStep.isPending,
@@ -1952,6 +2143,31 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         },
       });
     }
+    // A folded step is a reversible reference, not an editable step — its menu
+    // collapses to "go to where the work lives" and "bring it back".
+    if (isOwner && isFolded) {
+      if (foldedInto?.step_id) {
+        menuActions.push({
+          label: 'View target step',
+          testID: 'step-action-view-target',
+          icon: <Ionicons name="open-outline" size={20} color={STEP_COLORS.label} />,
+          onPress: () => {
+            setMenuOpen(false);
+            router.replace(`/step/${foldedInto.step_id}` as any);
+          },
+        });
+      }
+      menuActions.push({
+        label: 'Unfold step',
+        testID: 'step-action-unfold',
+        disabled: unfoldStep.isPending,
+        icon: <Ionicons name="git-branch-outline" size={20} color={STEP_COLORS.label} />,
+        onPress: () => {
+          setMenuOpen(false);
+          handleUnfold();
+        },
+      });
+    }
     menuActions.push({
       label: 'Share step',
       testID: 'step-action-share',
@@ -1965,7 +2181,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         });
       },
     });
-    if (isOwner) {
+    if (isOwner && !isFolded) {
       menuActions.push({
         label: 'Redo as new step',
         testID: 'step-action-redo',
@@ -2002,6 +2218,19 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           onPress: () => {
             setMenuOpen(false);
             setMoveSheetOpen(true);
+          },
+        });
+      }
+      // A race is the anchor you fold *into*, so it never offers to fold itself
+      // away; every other step can fold onto a canonical target when one exists.
+      if (!step.is_race && foldTargetItems.length > 0) {
+        menuActions.push({
+          label: 'Fold into another step…',
+          testID: 'step-action-fold',
+          icon: <Ionicons name="git-merge-outline" size={20} color={STEP_COLORS.label} />,
+          onPress: () => {
+            setMenuOpen(false);
+            setFoldSheetOpen(true);
           },
         });
       }
@@ -2100,7 +2329,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       <IdentityDeck
         title={step.title || `${vocab('Learning Event')}`}
         titleSlot={
-          isOwner ? (
+          canEditStep ? (
             <TextInput
               style={[styles.titleInput, styles.identityTitleInput]}
               value={editingTitle ?? step.title ?? ''}
@@ -2219,7 +2448,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           pill={hideStatePill ? undefined : <StatePill variant={pillSpec.variant} label={pillSpec.label} />}
           onMenuPress={() => setMenuOpen(true)}
           titleBlock={useIdentityDeck ? identityDeckEl : headerInner}
-          belowTitle={useIdentityDeck ? peerQuoteEl : belowTitleRow}
+          belowTitle={useIdentityDeck ? (<>{foldedBanner}{peerQuoteEl}</>) : belowTitleRow}
           footer={peerActionFooter}
           phaseTabs={
             <PhaseTabs
@@ -2507,6 +2736,14 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           onClose={() => setMoveSheetOpen(false)}
           busy={moveBusy}
         />
+        <FoldStepSheet
+          visible={foldSheetOpen}
+          sourceTitle={step.title ?? 'this step'}
+          targets={foldTargetItems}
+          onSelect={handleFoldInto}
+          onClose={() => setFoldSheetOpen(false)}
+          busy={foldBusy}
+        />
       </View>
     );
   }
@@ -2765,6 +3002,28 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: STEP_PALETTE.borderTertiary,
+  },
+  foldedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginHorizontal: 14,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+  },
+  foldedBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: STEP_COLORS.secondaryLabel,
+    letterSpacing: -0.1,
+  },
+  foldedBannerTarget: {
+    fontWeight: '600',
+    color: STEP_COLORS.label,
   },
   belowInterestPill: {
     flexDirection: 'row',

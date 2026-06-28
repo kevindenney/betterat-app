@@ -10,6 +10,7 @@ import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { isPersistedRaceId } from '@/lib/races/isPersistedRaceId';
 
 export interface StepBeat {
   id: string;
@@ -31,7 +32,7 @@ function assertChangedStepBeat(data: { id: string } | null): void {
 export function useStepBeats(stepId: string | undefined) {
   return useQuery<StepBeat[]>({
     queryKey: ['step-beats', stepId],
-    enabled: !!stepId,
+    enabled: isPersistedRaceId(stepId),
     staleTime: 15_000,
     queryFn: async () => {
       if (!stepId) return [];

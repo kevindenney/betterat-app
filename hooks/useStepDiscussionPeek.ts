@@ -11,6 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { isPersistedRaceId } from '@/lib/races/isPersistedRaceId';
 
 export interface StepDiscussionPeekData {
   noteCount: number;
@@ -134,7 +135,7 @@ export function useStepDiscussionPeek(stepId: string | null | undefined) {
         return null;
       }
     },
-    enabled: Boolean(stepId),
+    enabled: isPersistedRaceId(stepId),
     staleTime: 30 * 1000,
   });
 }

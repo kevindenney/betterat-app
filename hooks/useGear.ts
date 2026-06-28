@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
+import { isPersistedRaceId } from '@/lib/races/isPersistedRaceId';
 import {
   addStepGearItem,
   createGearItem,
@@ -36,7 +37,7 @@ export function useStepGear(stepId: string | null | undefined) {
   return useQuery({
     queryKey: KEYS.stepGear(stepId ?? null),
     queryFn: () => listStepGear(stepId!),
-    enabled: Boolean(stepId),
+    enabled: isPersistedRaceId(stepId),
     staleTime: 30_000,
   });
 }

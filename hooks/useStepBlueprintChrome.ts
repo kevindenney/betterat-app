@@ -15,6 +15,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { isPersistedRaceId } from '@/lib/races/isPersistedRaceId';
 
 export interface StepBlueprintChromeData {
   blueprintId: string;
@@ -151,7 +152,7 @@ export function useStepBlueprintChrome(stepId: string | null | undefined) {
         return null;
       }
     },
-    enabled: Boolean(stepId),
+    enabled: isPersistedRaceId(stepId),
     staleTime: 5 * 60 * 1000,
   });
 }

@@ -9,7 +9,7 @@ export type TimelineStepSourceType =
   | 'blueprint'
   | 'user_fork'
   | 'suggestion';
-export type TimelineStepStatus = 'pending' | 'in_progress' | 'completed' | 'settled' | 'skipped';
+export type TimelineStepStatus = 'pending' | 'in_progress' | 'completed' | 'settled' | 'skipped' | 'folded';
 export type TimelineStepVisibility = 'private' | 'crew' | 'fleet' | 'public';
 
 export type MapFeedScope = 'mine' | 'following' | 'crew' | 'fleet' | 'all';
