@@ -18,6 +18,7 @@ import { supabase } from './supabase';
 import { logger } from '@/lib/logger';
 import { createConcept, getOrCreatePlaybook } from './PlaybookService';
 import { createStep } from './TimelineStepService';
+import { fetchUrlMetadata } from './UrlMetadataService';
 import type { InboxStatus, PlaybookInsightRecord } from './QuickCaptureService';
 import type { PlaybookConceptRecord } from '@/types/playbook';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
@@ -68,6 +69,36 @@ export async function dropLink({
   }
   if (!data) throw new Error('Link capture returned no row');
   return data as PlaybookInsightRecord;
+}
+
+/**
+ * Backfill a captured link's title from its Open Graph metadata. Fire-and-forget
+ * after dropLink: capture stays instant (the row lands with no title and the
+ * row renders the bare host), then this swaps in the real page title once the
+ * extract-url-metadata edge function returns. Only writes when title is still
+ * null, so it never clobbers a title the user typed. Returns the title it set,
+ * or null when there was nothing to set.
+ */
+export async function enrichLinkTitle(
+  insightId: string,
+  url: string,
+): Promise<string | null> {
+  const meta = await fetchUrlMetadata(url);
+  const title = meta?.title?.trim();
+  if (!title) return null;
+
+  const { data, error } = await supabase
+    .from('playbook_insights')
+    .update({ title })
+    .eq('id', insightId)
+    .is('title', null)
+    .select('id')
+    .maybeSingle();
+  if (error) {
+    logger.error('Failed to backfill inbox link title', error);
+    return null;
+  }
+  return data ? title : null;
 }
 
 /**

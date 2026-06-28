@@ -12,6 +12,7 @@ import {
   archiveInsight,
   dropLink,
   dropNote,
+  enrichLinkTitle,
   keepInsight,
   listInbox,
   refineToConcept,
@@ -39,8 +40,18 @@ export function useDropLink(interestId: string | undefined) {
   return useMutation<PlaybookInsightRecord, Error, { url: string; note?: string | null }>({
     mutationFn: ({ url, note }) =>
       dropLink({ userId: user!.id, interestId: interestId ?? null, url, note }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: inboxKey(user?.id ?? '', interestId ?? '') });
+    onSuccess: (record) => {
+      const key = inboxKey(user?.id ?? '', interestId ?? '');
+      queryClient.invalidateQueries({ queryKey: key });
+      // Fire-and-forget OG title backfill; refetch only when a title lands so
+      // the row swaps from bare host → real page title without blocking capture.
+      if (record.source_url) {
+        enrichLinkTitle(record.id, record.source_url)
+          .then((title) => {
+            if (title) queryClient.invalidateQueries({ queryKey: key });
+          })
+          .catch(() => {});
+      }
     },
   });
 }
