@@ -306,6 +306,27 @@ export class AffinityGroupService {
   }
 
   /**
+   * Reorder the group's shared prep plan. Pass the full ordered list of step
+   * ids; the member-gated `reorder_affinity_group_plan_steps` RPC rewrites
+   * `blueprint_steps.sort_order` to match (the order is owned by the blueprint
+   * author, so a non-author member can't UPDATE it directly). The array must be
+   * exactly this group plan's steps. Any active member can reorder (peer model).
+   */
+  static async reorderPlanSteps({
+    groupId,
+    stepIds,
+  }: {
+    groupId: string;
+    stepIds: string[];
+  }): Promise<void> {
+    const { error } = await supabase.rpc('reorder_affinity_group_plan_steps', {
+      p_group_id: groupId,
+      p_step_ids: stepIds,
+    });
+    if (error) throw error;
+  }
+
+  /**
    * Return the group's invite token, generating one on first call. The link is
    * private + unlisted — sharing it IS the access grant (no open-join queue).
    */

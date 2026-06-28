@@ -212,6 +212,8 @@ export default function GroupDetailPage(): React.ReactElement {
   const [addingStep, setAddingStep] = useState(false);
   // null = the compose modal is in "add" mode; a step id = editing that step.
   const [editStepId, setEditStepId] = useState<string | null>(null);
+  // Reorder mode swaps the timeline rows from tap-to-edit to up/down controls.
+  const [reorderMode, setReorderMode] = useState(false);
 
   const { membership, refetch: refetchMembership } = useGroupViewerMembership(group?.id);
   const isMember = Boolean(membership?.isMember);
@@ -551,6 +553,34 @@ export default function GroupDetailPage(): React.ReactElement {
     );
   }, [group?.id, group?.blueprint_id, editStepId, queryClient, toast]);
 
+  // Move a step up/down in the shared plan. Optimistically reorders the cached
+  // list, then persists the full new order via the member-gated RPC; on failure
+  // we refetch to snap back to the server truth.
+  const handleMoveStep = useCallback(
+    (index: number, dir: -1 | 1) => {
+      if (!group?.id || !group.blueprint_id) return;
+      const target = index + dir;
+      if (target < 0 || target >= planSteps.length) return;
+      const reordered = [...planSteps];
+      const [moved] = reordered.splice(index, 1);
+      reordered.splice(target, 0, moved);
+      const key = ['group-plan-steps', group.blueprint_id];
+      queryClient.setQueryData(key, reordered);
+      void (async () => {
+        try {
+          await AffinityGroupService.reorderPlanSteps({
+            groupId: group.id,
+            stepIds: reordered.map((s) => s.id),
+          });
+        } catch (err) {
+          queryClient.invalidateQueries({ queryKey: key });
+          toast.show((err as Error)?.message || 'Could not reorder', 'error');
+        }
+      })();
+    },
+    [group?.id, group?.blueprint_id, planSteps, queryClient, toast],
+  );
+
   // Invite by link: ensure the token, build the URL, then share (native) or
   // copy (web). The link IS the access grant — private + unlisted, no queue.
   const handleInvite = useCallback(() => {
@@ -861,6 +891,22 @@ export default function GroupDetailPage(): React.ReactElement {
                   <Ionicons name="chevron-forward" size={18} color={C.muted} />
                 </Pressable>
 
+                {!planStepsLoading && planSteps.length > 1 ? (
+                  <Pressable
+                    style={styles.reorderToggle}
+                    onPress={() => setReorderMode((v) => !v)}
+                  >
+                    <Ionicons
+                      name={reorderMode ? 'checkmark' : 'swap-vertical'}
+                      size={14}
+                      color={accent.base}
+                    />
+                    <Text style={[styles.reorderToggleText, { color: accent.base }]}>
+                      {reorderMode ? 'Done reordering' : 'Reorder'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+
                 {planStepsLoading ? (
                   <View style={styles.planLoading}>
                     <ActivityIndicator color={accent.base} />
@@ -875,8 +921,10 @@ export default function GroupDetailPage(): React.ReactElement {
                         <Pressable
                           key={step.id}
                           style={styles.tlRow}
-                          onPress={isMember ? () => openEditStep(step) : undefined}
-                          disabled={!isMember}
+                          onPress={
+                            isMember && !reorderMode ? () => openEditStep(step) : undefined
+                          }
+                          disabled={!isMember || reorderMode}
                         >
                           <View style={styles.tlRail}>
                             <View
@@ -904,7 +952,34 @@ export default function GroupDetailPage(): React.ReactElement {
                             </Text>
                             {category ? <Text style={styles.tlSub}>{category}</Text> : null}
                           </View>
-                          {st === 'active' ? (
+                          {reorderMode ? (
+                            <View style={styles.tlMoveControls}>
+                              <Pressable
+                                style={styles.tlMoveBtn}
+                                disabled={i === 0}
+                                onPress={() => handleMoveStep(i, -1)}
+                                hitSlop={6}
+                              >
+                                <Ionicons
+                                  name="chevron-up"
+                                  size={18}
+                                  color={i === 0 ? C.line : accent.base}
+                                />
+                              </Pressable>
+                              <Pressable
+                                style={styles.tlMoveBtn}
+                                disabled={i === planSteps.length - 1}
+                                onPress={() => handleMoveStep(i, 1)}
+                                hitSlop={6}
+                              >
+                                <Ionicons
+                                  name="chevron-down"
+                                  size={18}
+                                  color={i === planSteps.length - 1 ? C.line : accent.base}
+                                />
+                              </Pressable>
+                            </View>
+                          ) : st === 'active' ? (
                             <Text style={[styles.tlTag, { color: accent.ink, backgroundColor: `${accent.base}1A` }]}>
                               In progress
                             </Text>
@@ -1355,6 +1430,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tlEdit: { marginTop: 2 },
+  tlMoveControls: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -2 },
+  tlMoveBtn: { padding: 4 },
+  reorderToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    marginTop: 2,
+  },
+  reorderToggleText: { fontSize: 13, fontWeight: '700' },
   removeStepRow: {
     flexDirection: 'row',
     alignItems: 'center',
