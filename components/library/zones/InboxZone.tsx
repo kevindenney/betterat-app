@@ -62,7 +62,7 @@ export function InboxZone() {
   const dropLink = useDropLink(interestId);
   const dropNote = useDropNote(interestId);
   const { keep, archive } = useTriageInsight(interestId);
-  const { toStep, toConcept } = useRefineInsight(interestId);
+  const { toStep, toConcept, toResource } = useRefineInsight(interestId);
   const canRefine = Boolean(interestId);
 
   const [draft, setDraft] = useState('');
@@ -153,6 +153,7 @@ export function InboxZone() {
               archiving={archive.isPending && archive.variables?.insightId === item.id}
               steppingTo={toStep.isPending && toStep.variables?.insight.id === item.id}
               conceptingTo={toConcept.isPending && toConcept.variables?.insight.id === item.id}
+              resourcingTo={toResource.isPending && toResource.variables?.insight.id === item.id}
               onKeep={() =>
                 keep.mutate(
                   { insightId: item.id },
@@ -183,6 +184,15 @@ export function InboxZone() {
                   },
                 )
               }
+              onMakeResource={() =>
+                toResource.mutate(
+                  { insight: item },
+                  {
+                    onSuccess: () => toast.show('Saved as resource', 'success'),
+                    onError: (e) => toast.show(e.message, 'error'),
+                  },
+                )
+              }
             />
           ))}
         </View>
@@ -199,10 +209,12 @@ function InboxRow({
   archiving,
   steppingTo,
   conceptingTo,
+  resourcingTo,
   onKeep,
   onArchive,
   onMakeStep,
   onMakeConcept,
+  onMakeResource,
 }: {
   item: PlaybookInsightRecord;
   first: boolean;
@@ -211,10 +223,12 @@ function InboxRow({
   archiving: boolean;
   steppingTo: boolean;
   conceptingTo: boolean;
+  resourcingTo: boolean;
   onKeep: () => void;
   onArchive: () => void;
   onMakeStep: () => void;
   onMakeConcept: () => void;
+  onMakeResource: () => void;
 }) {
   const [sorting, setSorting] = useState(false);
   const isLink = item.kind === 'link' && !!item.source_url;
@@ -224,7 +238,7 @@ function InboxRow({
   const secondary = isLink
     ? item.content.trim() || item.source_url!
     : null;
-  const refining = steppingTo || conceptingTo;
+  const refining = steppingTo || conceptingTo || resourcingTo;
   const busy = keeping || archiving || refining;
 
   return (
@@ -331,6 +345,25 @@ function InboxRow({
           </Pressable>
         </View>
       ) : null}
+
+      {sorting && canRefine && isLink ? (
+        <View style={styles.refinePanelSecond}>
+          <Pressable
+            style={styles.refineBtn}
+            onPress={onMakeResource}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Save as resource"
+          >
+            {resourcingTo ? (
+              <ActivityIndicator size="small" color="#34C759" />
+            ) : (
+              <Ionicons name="library-outline" size={17} color="#34C759" />
+            )}
+            <Text style={[styles.refineBtnText, { color: '#34C759' }]}>Save as resource</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -419,6 +452,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 11,
     paddingTop: 1,
+  },
+  refinePanelSecond: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 11,
   },
   refineBtn: {
     flex: 1,

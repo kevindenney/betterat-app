@@ -285,6 +285,61 @@ export async function refineToStep({
 }
 
 /**
+ * Graduate a captured link into a Library resource. Link-only: a `library_items`
+ * row has no body column, so a plain note would lose its text — those graduate to
+ * a step or concept instead. Creates the item (kind='link', host as source label),
+ * tags it to the interest via library_item_interests, then stamps refined→resource.
+ */
+export async function refineToResource({
+  insight,
+  userId,
+  interestId,
+}: {
+  insight: PlaybookInsightRecord;
+  userId: string;
+  interestId: string;
+}): Promise<{ id: string }> {
+  if (insight.kind !== 'link' || !insight.source_url) {
+    throw new Error('Only a captured link can become a resource.');
+  }
+  const title = titleForInsight(insight, 'Untitled resource');
+
+  const { data: item, error: itemError } = await supabase
+    .from('library_items')
+    .insert({
+      user_id: userId,
+      kind: 'link',
+      title,
+      source_label: hostOf(insight.source_url),
+      url_or_blob_id: insight.source_url,
+      interest_id: interestId,
+    })
+    .select('id')
+    .single();
+  if (itemError) {
+    logger.error('Failed to create library item from inbox link', itemError);
+    throw itemError;
+  }
+  if (!item) throw new Error('Resource creation returned no row');
+
+  const { error: tagError } = await supabase
+    .from('library_item_interests')
+    .insert({ item_id: item.id, interest_id: interestId });
+  if (tagError) {
+    logger.error('Resource created but failed to tag interest', tagError);
+    throw tagError;
+  }
+
+  try {
+    await stampRefined(insight.id, 'resource', item.id);
+  } catch (err) {
+    logger.error('Resource created but failed to stamp insight refined', err);
+    throw err;
+  }
+  return { id: item.id };
+}
+
+/**
  * Graduate a capture into a playbook concept. Resolves (or creates) the user's
  * playbook for the interest, mints a forming concept seeded with the capture's
  * text, then stamps the insight refined→concept (also setting the legacy

@@ -16,6 +16,7 @@ import {
   keepInsight,
   listInbox,
   refineToConcept,
+  refineToResource,
   refineToStep,
 } from '@/services/InboxService';
 import type { PlaybookInsightRecord } from '@/services/QuickCaptureService';
@@ -93,6 +94,10 @@ export function useRefineInsight(interestId: string | undefined) {
     queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
     queryClient.invalidateQueries({ queryKey: ['playbook-concepts'] });
     queryClient.invalidateQueries({ queryKey: ['playbook-lifecycle-concepts'] });
+    queryClient.invalidateQueries({ queryKey: ['library-counts'] });
+    queryClient.invalidateQueries({ queryKey: ['library-resources-preview'] });
+    queryClient.invalidateQueries({ queryKey: ['library-resources'] });
+    queryClient.invalidateQueries({ queryKey: ['library-zones-data'] });
   };
 
   const toStep = useMutation<TimelineStepRecord, Error, { insight: PlaybookInsightRecord }>({
@@ -105,5 +110,10 @@ export function useRefineInsight(interestId: string | undefined) {
       refineToConcept({ insight, userId: user!.id, interestId: interestId! }),
     onSuccess: invalidate,
   });
-  return { toStep, toConcept };
+  const toResource = useMutation<{ id: string }, Error, { insight: PlaybookInsightRecord }>({
+    mutationFn: ({ insight }) =>
+      refineToResource({ insight, userId: user!.id, interestId: interestId! }),
+    onSuccess: invalidate,
+  });
+  return { toStep, toConcept, toResource };
 }
