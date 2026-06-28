@@ -28,9 +28,11 @@ import {
 } from '@/services/AffinityGroupService';
 import type { AffinityGroupKind } from '@/hooks/useUserAffinityGroups';
 import { useAffinityGroupRoster } from '@/hooks/useAffinityGroupRoster';
+import { useGroupPlanSteps } from '@/hooks/useGroupPlanSteps';
 import { AddPeoplePicker } from '@/components/step/plan-tab/AddPeoplePicker';
 import type { StepCollaborator } from '@/types/step-detail';
 import { getUserBlueprints, getBlueprintById } from '@/services/BlueprintService';
+import type { TimelineStepRecord } from '@/types/timeline-steps';
 
 const C = {
   bg: '#F7FAFC',
@@ -155,6 +157,24 @@ function buildInviteUrl(token: string): string {
   return `${origin}/group/join/${token}`;
 }
 
+// Collapse the step status enum into the three states the shared timeline
+// cares about: done (filled node), active (ringed node), and upcoming (hollow
+// node). settled/completed both read as done.
+type PrepState = 'done' | 'active' | 'upcoming';
+function prepState(status: TimelineStepRecord['status']): PrepState {
+  if (status === 'completed' || status === 'settled') return 'done';
+  if (status === 'in_progress') return 'active';
+  return 'upcoming';
+}
+
+// Humanize the step category for the timeline subtitle. 'general' carries no
+// signal, so it reads as no subtitle rather than a meaningless "General".
+function prettyCategory(category: string | null | undefined): string {
+  const c = (category || '').trim();
+  if (!c || c === 'general') return '';
+  return c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' ');
+}
+
 export default function GroupDetailPage(): React.ReactElement {
   const params = useLocalSearchParams<{ id?: string }>();
   const groupId = typeof params.id === 'string' ? params.id.trim() : '';
@@ -187,6 +207,10 @@ export default function GroupDetailPage(): React.ReactElement {
   const { membership, refetch: refetchMembership } = useGroupViewerMembership(group?.id);
   const isMember = Boolean(membership?.isMember);
   const { data: roster = [] } = useAffinityGroupRoster(group?.id, isMember);
+  const { data: planSteps = [], isLoading: planStepsLoading } = useGroupPlanSteps(
+    group?.blueprint_id,
+    isMember,
+  );
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -690,26 +714,101 @@ export default function GroupDetailPage(): React.ReactElement {
               </View>
             ) : null}
 
-            {attachedPlan ? (
-              <Pressable
-                style={styles.planCard}
-                onPress={() => router.push(`/library/blueprints/${attachedPlan.id}` as never)}
-              >
-                <View style={[styles.planIcon, { backgroundColor: accent.base }]}>
-                  <Ionicons name="map" size={18} color="#FFFFFF" />
-                </View>
-                <View style={styles.planText}>
-                  <Text style={styles.planEyebrow}>Group plan</Text>
-                  <Text style={styles.planTitle} numberOfLines={2}>
-                    {attachedPlan.title}
-                  </Text>
-                  {membership?.isMember ? (
-                    <Text style={styles.planSub}>
-                      You’re subscribed — first steps are on your timeline, pull the rest anytime.
+            {isMember && group.blueprint_id ? (
+              <View style={styles.planSection}>
+                <Pressable
+                  style={styles.planHeader}
+                  disabled={!attachedPlan}
+                  onPress={() =>
+                    attachedPlan &&
+                    router.push(`/library/blueprints/${attachedPlan.id}` as never)
+                  }
+                >
+                  <View style={[styles.planIcon, { backgroundColor: accent.base }]}>
+                    <Ionicons name="map" size={18} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.planText}>
+                    <Text style={styles.planEyebrow}>Shared prep</Text>
+                    <Text style={styles.planTitle} numberOfLines={2}>
+                      {attachedPlan?.title ?? 'Group plan'}
                     </Text>
-                  ) : null}
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={C.muted} />
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={C.muted} />
+                </Pressable>
+
+                {planStepsLoading ? (
+                  <View style={styles.planLoading}>
+                    <ActivityIndicator color={accent.base} />
+                  </View>
+                ) : planSteps.length > 0 ? (
+                  <View style={styles.timeline}>
+                    {planSteps.map((step, i) => {
+                      const st = prepState(step.status);
+                      const showLine = i < planSteps.length - 1 || Boolean(group.goal_at);
+                      const category = prettyCategory(step.category);
+                      return (
+                        <View key={step.id} style={styles.tlRow}>
+                          <View style={styles.tlRail}>
+                            <View
+                              style={[
+                                styles.tlNode,
+                                st === 'done'
+                                  ? { backgroundColor: accent.base, borderColor: accent.base }
+                                  : st === 'active'
+                                    ? { backgroundColor: '#FFFFFF', borderColor: accent.base }
+                                    : { backgroundColor: '#FFFFFF', borderColor: C.line },
+                              ]}
+                            >
+                              {st === 'done' ? (
+                                <Ionicons name="checkmark" size={11} color="#FFFFFF" />
+                              ) : null}
+                            </View>
+                            {showLine ? <View style={styles.tlLine} /> : null}
+                          </View>
+                          <View style={styles.tlBody}>
+                            <Text
+                              style={[styles.tlTitle, st === 'done' && styles.tlTitleDone]}
+                              numberOfLines={2}
+                            >
+                              {step.title || 'Untitled step'}
+                            </Text>
+                            {category ? <Text style={styles.tlSub}>{category}</Text> : null}
+                          </View>
+                          {st === 'active' ? (
+                            <Text style={[styles.tlTag, { color: accent.ink, backgroundColor: `${accent.base}1A` }]}>
+                              In progress
+                            </Text>
+                          ) : null}
+                        </View>
+                      );
+                    })}
+
+                    {group.goal_at ? (
+                      <View style={styles.tlRow}>
+                        <View style={styles.tlRail}>
+                          <View style={[styles.tlNode, styles.tlAnchorNode, { backgroundColor: accent.base, borderColor: accent.base }]}>
+                            <Ionicons name="flag" size={11} color="#FFFFFF" />
+                          </View>
+                        </View>
+                        <View style={styles.tlBody}>
+                          <Text style={[styles.tlAnchorTitle, { color: accent.ink }]}>
+                            {(group.goal_label || 'Goal day')} · {formatGoalDate(group.goal_at)}
+                          </Text>
+                          <Text style={styles.tlSub}>Everything above converges here</Text>
+                        </View>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : (
+                  <Text style={styles.planEmpty}>This plan has no steps yet.</Text>
+                )}
+              </View>
+            ) : isMember ? (
+              <Pressable style={styles.planEmptyCard} onPress={openAttach}>
+                <Ionicons name="map-outline" size={20} color={accent.base} />
+                <Text style={styles.planEmptyCardText}>
+                  Attach a shared plan — the prep steps everyone works toward together.
+                </Text>
               </Pressable>
             ) : null}
 
@@ -996,7 +1095,44 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   noticeBody: { color: C.ink, fontSize: 15, lineHeight: 22 },
-  planCard: {
+  planSection: {
+    backgroundColor: C.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.line,
+    padding: 14,
+    gap: 6,
+  },
+  planHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  planLoading: { paddingVertical: 24, alignItems: 'center' },
+  planEmpty: { color: C.muted, fontSize: 14, paddingTop: 8, paddingLeft: 52 },
+  timeline: { marginTop: 8 },
+  tlRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  tlRail: { width: 18, alignItems: 'center' },
+  tlNode: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tlAnchorNode: { width: 22, height: 22, borderRadius: 11, marginTop: -1 },
+  tlLine: { flex: 1, width: 2, minHeight: 18, backgroundColor: C.line, marginVertical: 2 },
+  tlBody: { flex: 1, paddingBottom: 16 },
+  tlTitle: { color: C.ink, fontSize: 15, fontWeight: '600', lineHeight: 20 },
+  tlTitleDone: { color: C.muted, textDecorationLine: 'line-through' },
+  tlSub: { color: C.muted, fontSize: 12, fontWeight: '600', marginTop: 2 },
+  tlAnchorTitle: { fontSize: 15, fontWeight: '800' },
+  tlTag: {
+    fontSize: 11,
+    fontWeight: '700',
+    borderRadius: 7,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    overflow: 'hidden',
+  },
+  planEmptyCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -1004,8 +1140,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: C.line,
-    padding: 14,
+    borderStyle: 'dashed',
+    padding: 16,
   },
+  planEmptyCardText: { flex: 1, color: C.muted, fontSize: 14, lineHeight: 20, fontWeight: '600' },
   planIcon: {
     width: 40,
     height: 40,
@@ -1022,7 +1160,6 @@ const styles = StyleSheet.create({
     color: C.muted,
   },
   planTitle: { color: C.ink, fontSize: 16, fontWeight: '700' },
-  planSub: { color: C.muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
