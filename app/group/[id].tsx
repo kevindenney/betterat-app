@@ -210,6 +210,8 @@ export default function GroupDetailPage(): React.ReactElement {
   const [addStepTitle, setAddStepTitle] = useState('');
   const [addStepDescription, setAddStepDescription] = useState('');
   const [addingStep, setAddingStep] = useState(false);
+  // null = the compose modal is in "add" mode; a step id = editing that step.
+  const [editStepId, setEditStepId] = useState<string | null>(null);
 
   const { membership, refetch: refetchMembership } = useGroupViewerMembership(group?.id);
   const isMember = Boolean(membership?.isMember);
@@ -460,6 +462,20 @@ export default function GroupDetailPage(): React.ReactElement {
 
   // Append a step to the shared plan. Any member can add (peer model); the
   // RPC writes it as the plan author's step so every member reads it back.
+  const openAddStep = useCallback(() => {
+    setEditStepId(null);
+    setAddStepTitle('');
+    setAddStepDescription('');
+    setAddStepVisible(true);
+  }, []);
+
+  const openEditStep = useCallback((step: { id: string; title: string | null; description: string | null }) => {
+    setEditStepId(step.id);
+    setAddStepTitle(step.title ?? '');
+    setAddStepDescription(step.description ?? '');
+    setAddStepVisible(true);
+  }, []);
+
   const handleAddStep = useCallback(() => {
     if (!group?.id || addingStep) return;
     const title = addStepTitle.trim();
@@ -470,18 +486,28 @@ export default function GroupDetailPage(): React.ReactElement {
     setAddingStep(true);
     void (async () => {
       try {
-        await AffinityGroupService.addPlanStep({
-          groupId: group.id,
-          title,
-          description: addStepDescription,
-        });
+        if (editStepId) {
+          await AffinityGroupService.updatePlanStep({
+            groupId: group.id,
+            stepId: editStepId,
+            title,
+            description: addStepDescription,
+          });
+        } else {
+          await AffinityGroupService.addPlanStep({
+            groupId: group.id,
+            title,
+            description: addStepDescription,
+          });
+        }
         setAddStepVisible(false);
+        setEditStepId(null);
         setAddStepTitle('');
         setAddStepDescription('');
         queryClient.invalidateQueries({ queryKey: ['group-plan-steps', group.blueprint_id] });
-        toast.show('Step added to the shared plan', 'success');
+        toast.show(editStepId ? 'Step updated' : 'Step added to the shared plan', 'success');
       } catch (err) {
-        toast.show((err as Error)?.message || 'Could not add the step', 'error');
+        toast.show((err as Error)?.message || 'Could not save the step', 'error');
       } finally {
         setAddingStep(false);
       }
@@ -490,11 +516,37 @@ export default function GroupDetailPage(): React.ReactElement {
     group?.id,
     group?.blueprint_id,
     addingStep,
+    editStepId,
     addStepTitle,
     addStepDescription,
     queryClient,
     toast,
   ]);
+
+  const handleRemoveStep = useCallback(() => {
+    if (!group?.id || !editStepId) return;
+    const stepId = editStepId;
+    showConfirm(
+      'Remove step',
+      'Remove this step from the shared plan for everyone in the group?',
+      () => {
+        void (async () => {
+          try {
+            await AffinityGroupService.removePlanStep({ groupId: group.id, stepId });
+            setAddStepVisible(false);
+            setEditStepId(null);
+            setAddStepTitle('');
+            setAddStepDescription('');
+            queryClient.invalidateQueries({ queryKey: ['group-plan-steps', group.blueprint_id] });
+            toast.show('Step removed', 'success');
+          } catch (err) {
+            toast.show((err as Error)?.message || 'Could not remove the step', 'error');
+          }
+        })();
+      },
+      { destructive: true, confirmText: 'Remove' },
+    );
+  }, [group?.id, group?.blueprint_id, editStepId, queryClient, toast]);
 
   // Invite by link: ensure the token, build the URL, then share (native) or
   // copy (web). The link IS the access grant — private + unlisted, no queue.
@@ -817,7 +869,12 @@ export default function GroupDetailPage(): React.ReactElement {
                       const showLine = i < planSteps.length - 1 || Boolean(group.goal_at);
                       const category = prettyCategory(step.category);
                       return (
-                        <View key={step.id} style={styles.tlRow}>
+                        <Pressable
+                          key={step.id}
+                          style={styles.tlRow}
+                          onPress={isMember ? () => openEditStep(step) : undefined}
+                          disabled={!isMember}
+                        >
                           <View style={styles.tlRail}>
                             <View
                               style={[
@@ -848,8 +905,10 @@ export default function GroupDetailPage(): React.ReactElement {
                             <Text style={[styles.tlTag, { color: accent.ink, backgroundColor: `${accent.base}1A` }]}>
                               In progress
                             </Text>
+                          ) : isMember ? (
+                            <Ionicons name="pencil" size={14} color={C.muted} style={styles.tlEdit} />
                           ) : null}
-                        </View>
+                        </Pressable>
                       );
                     })}
 
@@ -876,7 +935,7 @@ export default function GroupDetailPage(): React.ReactElement {
                 {!planStepsLoading ? (
                   <Pressable
                     style={styles.addStepRow}
-                    onPress={() => setAddStepVisible(true)}
+                    onPress={openAddStep}
                   >
                     <Ionicons name="add-circle-outline" size={18} color={accent.base} />
                     <Text style={[styles.addStepText, { color: accent.base }]}>
@@ -1092,9 +1151,11 @@ export default function GroupDetailPage(): React.ReactElement {
               <Pressable onPress={() => setAddStepVisible(false)} hitSlop={8}>
                 <Text style={styles.modalCancel}>Cancel</Text>
               </Pressable>
-              <Text style={styles.modalTitle}>Add a prep step</Text>
+              <Text style={styles.modalTitle}>{editStepId ? 'Edit prep step' : 'Add a prep step'}</Text>
               <Pressable onPress={handleAddStep} hitSlop={8} disabled={addingStep}>
-                <Text style={[styles.modalSave, addingStep && { opacity: 0.5 }]}>Add</Text>
+                <Text style={[styles.modalSave, addingStep && { opacity: 0.5 }]}>
+                  {editStepId ? 'Save' : 'Add'}
+                </Text>
               </Pressable>
             </View>
             <ScrollView style={styles.editBody} keyboardShouldPersistTaps="handled">
@@ -1119,6 +1180,12 @@ export default function GroupDetailPage(): React.ReactElement {
                 placeholderTextColor={C.muted}
                 multiline
               />
+              {editStepId ? (
+                <Pressable style={styles.removeStepRow} onPress={handleRemoveStep} disabled={addingStep}>
+                  <Ionicons name="trash-outline" size={16} color="#DC2626" />
+                  <Text style={styles.removeStepText}>Remove from plan</Text>
+                </Pressable>
+              ) : null}
             </ScrollView>
           </View>
         </View>
@@ -1284,6 +1351,15 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     overflow: 'hidden',
   },
+  tlEdit: { marginTop: 2 },
+  removeStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 28,
+    paddingVertical: 10,
+  },
+  removeStepText: { color: '#DC2626', fontSize: 14, fontWeight: '700' },
   planEmptyCard: {
     flexDirection: 'row',
     alignItems: 'center',

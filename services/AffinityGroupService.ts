@@ -260,6 +260,52 @@ export class AffinityGroupService {
   }
 
   /**
+   * Edit a step on the group's shared prep plan. Routes through the member-gated
+   * `update_affinity_group_plan_step` RPC (the step is owned by the blueprint
+   * author, so a non-author member can't UPDATE timeline_steps directly). Any
+   * active member can edit (peer model).
+   */
+  static async updatePlanStep({
+    groupId,
+    stepId,
+    title,
+    description,
+  }: {
+    groupId: string;
+    stepId: string;
+    title: string;
+    description?: string | null;
+  }): Promise<void> {
+    const { error } = await supabase.rpc('update_affinity_group_plan_step', {
+      p_group_id: groupId,
+      p_step_id: stepId,
+      p_title: title.trim(),
+      p_description: description?.trim() || null,
+    });
+    if (error) throw error;
+  }
+
+  /**
+   * Remove a step from the group's shared prep plan. Routes through the
+   * member-gated `remove_affinity_group_plan_step` RPC, which verifies the step
+   * belongs to this group's blueprint before deleting the owned step. Any active
+   * member can remove (peer model).
+   */
+  static async removePlanStep({
+    groupId,
+    stepId,
+  }: {
+    groupId: string;
+    stepId: string;
+  }): Promise<void> {
+    const { error } = await supabase.rpc('remove_affinity_group_plan_step', {
+      p_group_id: groupId,
+      p_step_id: stepId,
+    });
+    if (error) throw error;
+  }
+
+  /**
    * Return the group's invite token, generating one on first call. The link is
    * private + unlisted — sharing it IS the access grant (no open-join queue).
    */
