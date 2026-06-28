@@ -526,6 +526,13 @@ export default function GroupDetailPage(): React.ReactElement {
   const handleRemoveStep = useCallback(() => {
     if (!group?.id || !editStepId) return;
     const stepId = editStepId;
+    // Close the compose modal before confirming: on web the confirm dialog
+    // would otherwise render behind the still-open RN Modal (invisible and
+    // unclickable). We keep stepId in a local so the async still has it.
+    setAddStepVisible(false);
+    setEditStepId(null);
+    setAddStepTitle('');
+    setAddStepDescription('');
     showConfirm(
       'Remove step',
       'Remove this step from the shared plan for everyone in the group?',
@@ -533,10 +540,6 @@ export default function GroupDetailPage(): React.ReactElement {
         void (async () => {
           try {
             await AffinityGroupService.removePlanStep({ groupId: group.id, stepId });
-            setAddStepVisible(false);
-            setEditStepId(null);
-            setAddStepTitle('');
-            setAddStepDescription('');
             queryClient.invalidateQueries({ queryKey: ['group-plan-steps', group.blueprint_id] });
             toast.show('Step removed', 'success');
           } catch (err) {
