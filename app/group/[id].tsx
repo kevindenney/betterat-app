@@ -605,6 +605,26 @@ export default function GroupDetailPage(): React.ReactElement {
     })();
   }, [group?.id, group?.name, inviteBusy, toast]);
 
+  // Share the BetterAt invite link via WhatsApp's own share sheet (wa.me with
+  // no number opens the contact picker, prefilled with the message). This is
+  // the invite to JOIN the group — distinct from the stored group-chat link.
+  const handleShareInviteWhatsapp = useCallback(() => {
+    if (!group?.id || inviteBusy) return;
+    setInviteBusy(true);
+    void (async () => {
+      try {
+        const token = await AffinityGroupService.ensureInviteToken(group.id);
+        const url = buildInviteUrl(token);
+        const text = `Join “${group.name}” on BetterAt: ${url}`;
+        await Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
+      } catch (err) {
+        toast.show((err as Error)?.message || 'Could not open WhatsApp', 'error');
+      } finally {
+        setInviteBusy(false);
+      }
+    })();
+  }, [group?.id, group?.name, inviteBusy, toast]);
+
   // Seed the editor from the current values and open it.
   const openEdit = useCallback(() => {
     if (!group) return;
@@ -852,6 +872,17 @@ export default function GroupDetailPage(): React.ReactElement {
                     <Text style={styles.inviteText}>Invite by link</Text>
                   </>
                 )}
+              </Pressable>
+            ) : null}
+
+            {isMember ? (
+              <Pressable
+                style={[styles.shareWa, inviteBusy && { opacity: 0.6 }]}
+                disabled={inviteBusy}
+                onPress={handleShareInviteWhatsapp}
+              >
+                <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+                <Text style={styles.shareWaText}>Share invite to WhatsApp</Text>
               </Pressable>
             ) : null}
 
@@ -1367,6 +1398,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#25D366',
   },
   whatsappText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  shareWa: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 13,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: '#25D366',
+    backgroundColor: '#FFFFFF',
+  },
+  shareWaText: { color: '#128C3E', fontSize: 15, fontWeight: '700' },
   actionRow: { paddingBottom: 0, flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   stat: {
