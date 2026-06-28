@@ -213,17 +213,21 @@ export class AffinityGroupService {
     goalAt,
     goalLabel,
     affiliations,
+    whatsappUrl,
   }: {
     groupId: string;
     goalAt?: string | null;
     goalLabel?: string | null;
     affiliations?: AffinityGroupAffiliation[];
+    /** undefined = leave unchanged; '' = clear; a value = set the link. */
+    whatsappUrl?: string;
   }): Promise<void> {
     const { error } = await supabase.rpc('set_affinity_group_meta', {
       p_group_id: groupId,
       p_goal_at: goalAt ?? null,
       p_goal_label: goalLabel ?? null,
       p_affiliations: affiliations ?? null,
+      p_whatsapp_invite_url: whatsappUrl ?? null,
     });
     if (error) throw error;
   }

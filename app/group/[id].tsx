@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ActivityIndicator,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -55,6 +56,7 @@ interface GroupRow {
   goal_at: string | null;
   goal_label: string | null;
   affiliations: AffinityGroupAffiliation[] | null;
+  whatsapp_invite_url: string | null;
 }
 
 interface MyPlan {
@@ -202,6 +204,7 @@ export default function GroupDetailPage(): React.ReactElement {
   const [editGoalDate, setEditGoalDate] = useState('');
   const [editGoalLabel, setEditGoalLabel] = useState('');
   const [editTags, setEditTags] = useState<string[]>([]);
+  const [editWhatsapp, setEditWhatsapp] = useState('');
   const [savingMeta, setSavingMeta] = useState(false);
   const [addStepVisible, setAddStepVisible] = useState(false);
   const [addStepTitle, setAddStepTitle] = useState('');
@@ -329,7 +332,7 @@ export default function GroupDetailPage(): React.ReactElement {
         if (!groupId) throw new Error('Group not found.');
         const { data, error } = await supabase
           .from('affinity_groups')
-          .select('id, kind, name, short_name, description, interest_slug, parent_org_id, blueprint_id, goal_at, goal_label, affiliations')
+          .select('id, kind, name, short_name, description, interest_slug, parent_org_id, blueprint_id, goal_at, goal_label, affiliations, whatsapp_invite_url')
           .eq('id', groupId)
           .eq('is_active', true)
           .maybeSingle();
@@ -523,6 +526,7 @@ export default function GroupDetailPage(): React.ReactElement {
     setEditGoalDate(group.goal_at ? group.goal_at.slice(0, 10) : '');
     setEditGoalLabel(group.goal_label ?? '');
     setEditTags((group.affiliations ?? []).map((a) => a.label).filter(Boolean));
+    setEditWhatsapp(group.whatsapp_invite_url ?? '');
     setEditVisible(true);
   }, [group]);
 
@@ -531,7 +535,10 @@ export default function GroupDetailPage(): React.ReactElement {
     const trimmedDate = editGoalDate.trim();
     let goalAt: string | null = null;
     if (trimmedDate) {
-      const parsed = new Date(trimmedDate);
+      // Anchor at local noon, not the bare-date UTC-midnight `new Date()` gives:
+      // formatGoalDate renders in local time, so UTC midnight drifts a day back
+      // in behind-UTC zones. Noon keeps the calendar date stable across zones.
+      const parsed = new Date(`${trimmedDate}T12:00:00`);
       if (Number.isNaN(parsed.getTime())) {
         toast.show('Enter the date as YYYY-MM-DD', 'error');
         return;
@@ -545,11 +552,14 @@ export default function GroupDetailPage(): React.ReactElement {
     setSavingMeta(true);
     void (async () => {
       try {
+        // '' clears the link, a value sets it (validated server-side).
+        const whatsappUrl = editWhatsapp.trim();
         await AffinityGroupService.setMeta({
           groupId: group.id,
           goalAt,
           goalLabel: editGoalLabel.trim() || (goalAt ? 'Goal day' : null),
           affiliations,
+          whatsappUrl,
         });
         setGroup((prev) =>
           prev
@@ -558,6 +568,7 @@ export default function GroupDetailPage(): React.ReactElement {
                 goal_at: goalAt,
                 goal_label: editGoalLabel.trim() || (goalAt ? 'Goal day' : prev.goal_label),
                 affiliations,
+                whatsapp_invite_url: whatsappUrl || null,
               }
             : prev,
         );
@@ -569,7 +580,17 @@ export default function GroupDetailPage(): React.ReactElement {
         setSavingMeta(false);
       }
     })();
-  }, [group?.id, savingMeta, editGoalDate, editGoalLabel, editTags, toast]);
+  }, [group?.id, savingMeta, editGoalDate, editGoalLabel, editTags, editWhatsapp, toast]);
+
+  // Link-out to the group's WhatsApp chat — BetterAt owns the prep plan, the
+  // real conversation stays in WhatsApp. Works on web and native via Linking.
+  const handleOpenWhatsapp = useCallback(() => {
+    const url = group?.whatsapp_invite_url;
+    if (!url) return;
+    void Linking.openURL(url).catch(() => {
+      toast.show('Could not open WhatsApp', 'error');
+    });
+  }, [group?.whatsapp_invite_url, toast]);
 
   const accent = group ? kindAccent(group.kind) : { base: C.muted, ink: C.ink };
   const prep = group ? prepLabel(group.interest_slug) : { label: 'Group', icon: 'people-outline' };
@@ -746,6 +767,13 @@ export default function GroupDetailPage(): React.ReactElement {
                     <Text style={styles.inviteText}>Invite by link</Text>
                   </>
                 )}
+              </Pressable>
+            ) : null}
+
+            {isMember && group.whatsapp_invite_url ? (
+              <Pressable style={styles.whatsapp} onPress={handleOpenWhatsapp}>
+                <Ionicons name="logo-whatsapp" size={18} color="#FFFFFF" />
+                <Text style={styles.whatsappText}>Open group chat in WhatsApp</Text>
               </Pressable>
             ) : null}
 
@@ -1031,6 +1059,22 @@ export default function GroupDetailPage(): React.ReactElement {
                 <Ionicons name="add-circle-outline" size={18} color={accent.base} />
                 <Text style={[styles.addTagText, { color: accent.base }]}>Add a tag</Text>
               </Pressable>
+
+              <Text style={[styles.editLabel, { marginTop: 20 }]}>WhatsApp group chat</Text>
+              <Text style={styles.editHint}>
+                Paste the group’s WhatsApp invite link — the chat stays in WhatsApp,
+                BetterAt just opens it. In WhatsApp: Group info → Invite via link.
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={editWhatsapp}
+                onChangeText={setEditWhatsapp}
+                placeholder="https://chat.whatsapp.com/…"
+                placeholderTextColor={C.muted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType={Platform.OS === 'web' ? 'default' : 'url'}
+              />
             </ScrollView>
           </View>
         </View>
@@ -1168,6 +1212,16 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   inviteText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  whatsapp: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 13,
+    paddingVertical: 13,
+    backgroundColor: '#25D366',
+  },
+  whatsappText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   actionRow: { paddingBottom: 0, flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   stat: {
