@@ -229,6 +229,33 @@ export class AffinityGroupService {
   }
 
   /**
+   * Append a step to the group's shared prep plan. Routes through the
+   * `add_affinity_group_plan_step` SECURITY DEFINER RPC because the step is
+   * owned by the plan's author (so every member can read it via the
+   * co-subscriber policy) and a non-author member can't write timeline_steps /
+   * blueprint_steps directly. Any active member can add. Returns the new step id.
+   */
+  static async addPlanStep({
+    groupId,
+    title,
+    description,
+  }: {
+    groupId: string;
+    title: string;
+    description?: string | null;
+  }): Promise<string> {
+    const { data, error } = await supabase.rpc('add_affinity_group_plan_step', {
+      p_group_id: groupId,
+      p_title: title.trim(),
+      p_description: description?.trim() || null,
+    });
+    if (error) throw error;
+    const stepId = typeof data === 'string' ? data : null;
+    if (!stepId) throw new Error('Could not add the step.');
+    return stepId;
+  }
+
+  /**
    * Return the group's invite token, generating one on first call. The link is
    * private + unlisted — sharing it IS the access grant (no open-join queue).
    */

@@ -203,6 +203,10 @@ export default function GroupDetailPage(): React.ReactElement {
   const [editGoalLabel, setEditGoalLabel] = useState('');
   const [editTags, setEditTags] = useState<string[]>([]);
   const [savingMeta, setSavingMeta] = useState(false);
+  const [addStepVisible, setAddStepVisible] = useState(false);
+  const [addStepTitle, setAddStepTitle] = useState('');
+  const [addStepDescription, setAddStepDescription] = useState('');
+  const [addingStep, setAddingStep] = useState(false);
 
   const { membership, refetch: refetchMembership } = useGroupViewerMembership(group?.id);
   const isMember = Boolean(membership?.isMember);
@@ -450,6 +454,44 @@ export default function GroupDetailPage(): React.ReactElement {
     },
     [group?.id, attaching, invalidateMembership, toast],
   );
+
+  // Append a step to the shared plan. Any member can add (peer model); the
+  // RPC writes it as the plan author's step so every member reads it back.
+  const handleAddStep = useCallback(() => {
+    if (!group?.id || addingStep) return;
+    const title = addStepTitle.trim();
+    if (title.length < 2) {
+      toast.show('Give the step a title of at least 2 characters', 'error');
+      return;
+    }
+    setAddingStep(true);
+    void (async () => {
+      try {
+        await AffinityGroupService.addPlanStep({
+          groupId: group.id,
+          title,
+          description: addStepDescription,
+        });
+        setAddStepVisible(false);
+        setAddStepTitle('');
+        setAddStepDescription('');
+        queryClient.invalidateQueries({ queryKey: ['group-plan-steps', group.blueprint_id] });
+        toast.show('Step added to the shared plan', 'success');
+      } catch (err) {
+        toast.show((err as Error)?.message || 'Could not add the step', 'error');
+      } finally {
+        setAddingStep(false);
+      }
+    })();
+  }, [
+    group?.id,
+    group?.blueprint_id,
+    addingStep,
+    addStepTitle,
+    addStepDescription,
+    queryClient,
+    toast,
+  ]);
 
   // Invite by link: ensure the token, build the URL, then share (native) or
   // copy (web). The link IS the access grant — private + unlisted, no queue.
@@ -802,6 +844,18 @@ export default function GroupDetailPage(): React.ReactElement {
                 ) : (
                   <Text style={styles.planEmpty}>This plan has no steps yet.</Text>
                 )}
+
+                {!planStepsLoading ? (
+                  <Pressable
+                    style={styles.addStepRow}
+                    onPress={() => setAddStepVisible(true)}
+                  >
+                    <Ionicons name="add-circle-outline" size={18} color={accent.base} />
+                    <Text style={[styles.addStepText, { color: accent.base }]}>
+                      Add a prep step
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
             ) : isMember ? (
               <Pressable style={styles.planEmptyCard} onPress={openAttach}>
@@ -977,6 +1031,50 @@ export default function GroupDetailPage(): React.ReactElement {
                 <Ionicons name="add-circle-outline" size={18} color={accent.base} />
                 <Text style={[styles.addTagText, { color: accent.base }]}>Add a tag</Text>
               </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={addStepVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAddStepVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Pressable onPress={() => setAddStepVisible(false)} hitSlop={8}>
+                <Text style={styles.modalCancel}>Cancel</Text>
+              </Pressable>
+              <Text style={styles.modalTitle}>Add a prep step</Text>
+              <Pressable onPress={handleAddStep} hitSlop={8} disabled={addingStep}>
+                <Text style={[styles.modalSave, addingStep && { opacity: 0.5 }]}>Add</Text>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.editBody} keyboardShouldPersistTaps="handled">
+              <Text style={styles.editLabel}>Step</Text>
+              <Text style={styles.editHint}>
+                A prep step everyone in the group works toward together.
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={addStepTitle}
+                onChangeText={setAddStepTitle}
+                placeholder="Tune the rig for heavy air"
+                placeholderTextColor={C.muted}
+                autoFocus
+              />
+              <Text style={[styles.editLabel, { marginTop: 20 }]}>Notes (optional)</Text>
+              <TextInput
+                style={[styles.input, styles.inputMultiline]}
+                value={addStepDescription}
+                onChangeText={setAddStepDescription}
+                placeholder="What does “done” look like?"
+                placeholderTextColor={C.muted}
+                multiline
+              />
             </ScrollView>
           </View>
         </View>
@@ -1198,9 +1296,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: C.ink,
   },
+  inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
   tagRemove: { padding: 2 },
   addTagRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
   addTagText: { fontSize: 14, fontWeight: '600' },
+  addStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 12,
+    marginTop: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: C.line,
+  },
+  addStepText: { fontSize: 14, fontWeight: '700' },
   modalSub: {
     fontSize: 13,
     lineHeight: 18,
