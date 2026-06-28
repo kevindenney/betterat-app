@@ -1,9 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IOSDetailNavBar, RelationshipButton } from '@/components/discover/detail';
 import { supabase } from '@/services/supabase';
@@ -11,8 +22,15 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useToast } from '@/components/ui/AppToast';
 import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { useGroupViewerMembership } from '@/hooks/useGroupViewerMembership';
-import { AffinityGroupService } from '@/services/AffinityGroupService';
+import {
+  AffinityGroupService,
+  type AffinityGroupAffiliation,
+} from '@/services/AffinityGroupService';
 import type { AffinityGroupKind } from '@/hooks/useUserAffinityGroups';
+import { useAffinityGroupRoster } from '@/hooks/useAffinityGroupRoster';
+import { AddPeoplePicker } from '@/components/step/plan-tab/AddPeoplePicker';
+import type { StepCollaborator } from '@/types/step-detail';
+import { getUserBlueprints, getBlueprintById } from '@/services/BlueprintService';
 
 const C = {
   bg: '#F7FAFC',
@@ -31,6 +49,15 @@ interface GroupRow {
   description: string | null;
   interest_slug: string | null;
   parent_org_id: string | null;
+  blueprint_id: string | null;
+  goal_at: string | null;
+  goal_label: string | null;
+  affiliations: AffinityGroupAffiliation[] | null;
+}
+
+interface MyPlan {
+  id: string;
+  title: string;
 }
 
 // The whole page tints from one accent derived from the group kind, so a
@@ -56,12 +83,76 @@ function kindLabel(kind: AffinityGroupKind): string {
     case 'cohort':
       return 'Cohort';
     case 'crew_pod':
-      return 'Crew pod';
     case 'practice_group':
-      return 'Practice group';
     default:
       return 'Group';
   }
+}
+
+// The prep-pill noun is the persona's word for "a peer crew prepping for one
+// dated event" — a sailor reads "Prep crew", a nursing student "Study group".
+// Generic "Prep group" is the safe default for any other interest.
+function prepLabel(interestSlug: string | null): { label: string; icon: string } {
+  const slug = (interestSlug || '').toLowerCase();
+  if (slug.includes('sail') || slug.includes('race') || slug.includes('peaks')) {
+    return { label: 'Prep crew', icon: 'boat-outline' };
+  }
+  if (slug.includes('nurs') || slug.includes('nclex') || slug.includes('exam')) {
+    return { label: 'Study group', icon: 'school-outline' };
+  }
+  if (slug.includes('run') || slug.includes('marathon')) {
+    return { label: 'Training group', icon: 'walk-outline' };
+  }
+  return { label: 'Prep group', icon: 'flag-outline' };
+}
+
+function formatGoalDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// Coarse, human countdown for the anchor chip ("in ~6 mo" / "in 3 weeks" /
+// "this week" / "today" / "passed"). Deliberately fuzzy — the exact date is
+// already shown next to it; this is the at-a-glance "how far out".
+function countdownLabel(iso: string): string {
+  const target = new Date(iso).getTime();
+  if (Number.isNaN(target)) return '';
+  const days = Math.round((target - Date.now()) / 86_400_000);
+  if (days < 0) return 'passed';
+  if (days === 0) return 'today';
+  if (days < 7) return days === 1 ? 'tomorrow' : `in ${days} days`;
+  if (days < 31) {
+    const w = Math.round(days / 7);
+    return w <= 1 ? 'this week' : `in ${w} weeks`;
+  }
+  const months = Math.round(days / 30);
+  if (months < 12) return `in ~${months} mo`;
+  return `in ~${Math.round(months / 12)} yr`;
+}
+
+function initialsFor(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '·';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Stable per-user fallback tint when sailor_profiles has no avatar_color, so
+// the roster never collapses to a wall of grey circles.
+const ROSTER_TINTS = ['#FF9500', '#34C759', '#5856D6', '#FF2D55', '#30B0C7', '#C2410C'] as const;
+function tintFor(userId: string, fallbackIndex: number): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i += 1) hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  return ROSTER_TINTS[(hash + fallbackIndex) % ROSTER_TINTS.length];
+}
+
+function buildInviteUrl(token: string): string {
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://better.at';
+  return `${origin}/group/join/${token}`;
 }
 
 export default function GroupDetailPage(): React.ReactElement {
@@ -76,10 +167,26 @@ export default function GroupDetailPage(): React.ReactElement {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string | null>(null);
   const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [countNonce, setCountNonce] = useState(0);
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [addPeopleVisible, setAddPeopleVisible] = useState(false);
+  const [addingPeople, setAddingPeople] = useState(false);
+  const [attachVisible, setAttachVisible] = useState(false);
+  const [attaching, setAttaching] = useState(false);
+  const [myPlans, setMyPlans] = useState<MyPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [attachedPlan, setAttachedPlan] = useState<MyPlan | null>(null);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
+  const [editGoalDate, setEditGoalDate] = useState('');
+  const [editGoalLabel, setEditGoalLabel] = useState('');
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [savingMeta, setSavingMeta] = useState(false);
 
   const { membership, refetch: refetchMembership } = useGroupViewerMembership(group?.id);
+  const isMember = Boolean(membership?.isMember);
+  const { data: roster = [] } = useAffinityGroupRoster(group?.id, isMember);
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -94,6 +201,9 @@ export default function GroupDetailPage(): React.ReactElement {
     queryClient.invalidateQueries({ queryKey: ['user-affinity-groups'] });
     queryClient.invalidateQueries({ queryKey: ['group-viewer-membership', group?.id] });
     queryClient.invalidateQueries({ queryKey: ['atlas-search'] });
+    // Force the member-count effect to re-run: add/leave doesn't flip
+    // membership.isMember, so its deps wouldn't otherwise change.
+    setCountNonce((n) => n + 1);
   }, [refetchMembership, queryClient, group?.id]);
 
   const runJoin = useCallback(async () => {
@@ -101,6 +211,9 @@ export default function GroupDetailPage(): React.ReactElement {
     setJoining(true);
     try {
       await AffinityGroupService.join({ groupId: group.id, userId: authUser.id });
+      // Self-join inserts the membership row directly (not via the add RPC),
+      // so seed this joiner from the group's plan to match added members.
+      await AffinityGroupService.seedFromBlueprint({ groupId: group.id, userId: authUser.id });
       invalidateMembership();
       toast.show('You’re in — welcome!', 'success');
     } catch (err) {
@@ -123,6 +236,41 @@ export default function GroupDetailPage(): React.ReactElement {
       setLeaving(false);
     }
   }, [authUser?.id, group?.id, leaving, invalidateMembership, toast]);
+
+  // Any active member can bring people in (peer model — there's no
+  // owner/leader gate, matching the add_affinity_group_member RPC). The
+  // picker returns the full desired set; we only act on platform users
+  // (external invites have no account to add) and skip the viewer.
+  const handleAddPeople = useCallback(
+    (selections: StepCollaborator[]) => {
+      setAddPeopleVisible(false);
+      if (!group?.id || addingPeople) return;
+      const userIds = selections
+        .filter((s) => s.type === 'platform' && s.user_id && s.user_id !== authUser?.id)
+        .map((s) => s.user_id as string);
+      if (userIds.length === 0) return;
+      setAddingPeople(true);
+      void (async () => {
+        try {
+          await Promise.all(
+            userIds.map((userId) =>
+              AffinityGroupService.addMember({ groupId: group.id, userId }),
+            ),
+          );
+          invalidateMembership();
+          toast.show(
+            userIds.length === 1 ? 'Added to the group' : `Added ${userIds.length} people`,
+            'success',
+          );
+        } catch (err) {
+          toast.show((err as Error)?.message || 'Could not add people', 'error');
+        } finally {
+          setAddingPeople(false);
+        }
+      })();
+    },
+    [group?.id, addingPeople, authUser?.id, invalidateMembership, toast],
+  );
 
   const handleJoinPress = useCallback(() => {
     showConfirm(
@@ -153,7 +301,7 @@ export default function GroupDetailPage(): React.ReactElement {
         if (!groupId) throw new Error('Group not found.');
         const { data, error } = await supabase
           .from('affinity_groups')
-          .select('id, kind, name, short_name, description, interest_slug, parent_org_id')
+          .select('id, kind, name, short_name, description, interest_slug, parent_org_id, blueprint_id, goal_at, goal_label, affiliations')
           .eq('id', groupId)
           .eq('is_active', true)
           .maybeSingle();
@@ -217,9 +365,151 @@ export default function GroupDetailPage(): React.ReactElement {
     return () => {
       cancelled = true;
     };
-  }, [group?.id, membership?.isMember]);
+  }, [group?.id, membership?.isMember, countNonce]);
+
+  // Resolve the attached plan's title for the About card. getBlueprintById
+  // works for any published blueprint (and the owner's drafts), so this
+  // resolves for members once a plan is attached.
+  useEffect(() => {
+    let cancelled = false;
+    if (!group?.blueprint_id) {
+      setAttachedPlan(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void (async () => {
+      const bp = await getBlueprintById(group.blueprint_id as string);
+      if (!cancelled) {
+        setAttachedPlan(bp ? { id: bp.id, title: bp.title } : null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [group?.blueprint_id]);
+
+  // Open the attach sheet and load the viewer's own plans to pick from.
+  const openAttach = useCallback(() => {
+    if (!authUser?.id) return;
+    setAttachVisible(true);
+    setLoadingPlans(true);
+    void (async () => {
+      try {
+        const plans = await getUserBlueprints(authUser.id);
+        setMyPlans(plans.map((p) => ({ id: p.id, title: p.title })));
+      } catch {
+        setMyPlans([]);
+      } finally {
+        setLoadingPlans(false);
+      }
+    })();
+  }, [authUser?.id]);
+
+  const handleAttach = useCallback(
+    (blueprintId: string) => {
+      if (!group?.id || attaching) return;
+      setAttaching(true);
+      void (async () => {
+        try {
+          await AffinityGroupService.attachBlueprint({ groupId: group.id, blueprintId });
+          setAttachVisible(false);
+          setGroup((prev) => (prev ? { ...prev, blueprint_id: blueprintId } : prev));
+          invalidateMembership();
+          toast.show('Plan attached — members get the first steps', 'success');
+        } catch (err) {
+          toast.show((err as Error)?.message || 'Could not attach plan', 'error');
+        } finally {
+          setAttaching(false);
+        }
+      })();
+    },
+    [group?.id, attaching, invalidateMembership, toast],
+  );
+
+  // Invite by link: ensure the token, build the URL, then share (native) or
+  // copy (web). The link IS the access grant — private + unlisted, no queue.
+  const handleInvite = useCallback(() => {
+    if (!group?.id || inviteBusy) return;
+    setInviteBusy(true);
+    void (async () => {
+      try {
+        const token = await AffinityGroupService.ensureInviteToken(group.id);
+        const url = buildInviteUrl(token);
+        const message = `Join “${group.name}” on BetterAt: ${url}`;
+        if (Platform.OS === 'web') {
+          await Clipboard.setStringAsync(url);
+          toast.show('Invite link copied — paste it anywhere', 'success');
+        } else {
+          await Share.share({ message });
+        }
+      } catch (err) {
+        toast.show((err as Error)?.message || 'Could not create an invite link', 'error');
+      } finally {
+        setInviteBusy(false);
+      }
+    })();
+  }, [group?.id, group?.name, inviteBusy, toast]);
+
+  // Seed the editor from the current values and open it.
+  const openEdit = useCallback(() => {
+    if (!group) return;
+    setEditGoalDate(group.goal_at ? group.goal_at.slice(0, 10) : '');
+    setEditGoalLabel(group.goal_label ?? '');
+    setEditTags((group.affiliations ?? []).map((a) => a.label).filter(Boolean));
+    setEditVisible(true);
+  }, [group]);
+
+  const handleSaveMeta = useCallback(() => {
+    if (!group?.id || savingMeta) return;
+    const trimmedDate = editGoalDate.trim();
+    let goalAt: string | null = null;
+    if (trimmedDate) {
+      const parsed = new Date(trimmedDate);
+      if (Number.isNaN(parsed.getTime())) {
+        toast.show('Enter the date as YYYY-MM-DD', 'error');
+        return;
+      }
+      goalAt = parsed.toISOString();
+    }
+    const affiliations: AffinityGroupAffiliation[] = editTags
+      .map((label) => label.trim())
+      .filter(Boolean)
+      .map((label) => ({ label }));
+    setSavingMeta(true);
+    void (async () => {
+      try {
+        await AffinityGroupService.setMeta({
+          groupId: group.id,
+          goalAt,
+          goalLabel: editGoalLabel.trim() || (goalAt ? 'Goal day' : null),
+          affiliations,
+        });
+        setGroup((prev) =>
+          prev
+            ? {
+                ...prev,
+                goal_at: goalAt,
+                goal_label: editGoalLabel.trim() || (goalAt ? 'Goal day' : prev.goal_label),
+                affiliations,
+              }
+            : prev,
+        );
+        setEditVisible(false);
+        toast.show('Group updated', 'success');
+      } catch (err) {
+        toast.show((err as Error)?.message || 'Could not save changes', 'error');
+      } finally {
+        setSavingMeta(false);
+      }
+    })();
+  }, [group?.id, savingMeta, editGoalDate, editGoalLabel, editTags, toast]);
 
   const accent = group ? kindAccent(group.kind) : { base: C.muted, ink: C.ink };
+  const prep = group ? prepLabel(group.interest_slug) : { label: 'Group', icon: 'people-outline' };
+  const affiliations = group?.affiliations ?? [];
+  const rosterShown = roster.slice(0, 5);
+  const rosterExtra = Math.max(0, roster.length - rosterShown.length);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -244,61 +534,127 @@ export default function GroupDetailPage(): React.ReactElement {
           </View>
         ) : (
           <>
-            <View style={styles.header}>
-              <LinearGradient
-                colors={[accent.base, accent.ink]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cover}
-              />
-              <View style={styles.identity}>
-                <View style={[styles.mark, { backgroundColor: accent.base }]}>
-                  <Text style={styles.markText}>{group.name.slice(0, 1).toUpperCase()}</Text>
+            <View style={styles.hero}>
+              <View style={styles.heroTopRow}>
+                <View style={[styles.prepPill, { backgroundColor: `${accent.base}1A` }]}>
+                  <Ionicons name={prep.icon as never} size={12} color={accent.ink} />
+                  <Text style={[styles.prepPillText, { color: accent.ink }]}>{prep.label}</Text>
                 </View>
-                <View style={styles.identityText}>
-                  <Text style={[styles.eyebrow, { color: accent.ink }]}>
-                    {kindLabel(group.kind)}
-                  </Text>
-                  <Text style={styles.name}>{group.name}</Text>
-                  <View style={styles.metaRow}>
-                    {orgName ? (
-                      <Text style={styles.metaText} numberOfLines={1}>
-                        {orgName}
-                      </Text>
-                    ) : null}
-                    {group.interest_slug ? (
-                      <Text style={styles.metaText} numberOfLines={1}>
-                        {group.interest_slug}
-                      </Text>
-                    ) : null}
-                  </View>
-                </View>
+                {isMember ? (
+                  <Pressable onPress={openEdit} hitSlop={8} style={styles.editLink}>
+                    <Ionicons name="create-outline" size={15} color={accent.base} />
+                    <Text style={[styles.editLinkText, { color: accent.base }]}>Edit</Text>
+                  </Pressable>
+                ) : null}
               </View>
 
-              {membership?.isMember ? (
-                <View style={styles.memberBadge}>
-                  <Ionicons name="shield-checkmark-outline" size={14} color={C.green} />
-                  <Text style={styles.memberBadgeText}>
-                    {membership.role !== 'member' ? `You're a ${membership.role}` : "You're a member"}
+              <Text style={styles.heroTitle}>{group.name}</Text>
+
+              {group.goal_at ? (
+                <View style={[styles.anchor, { backgroundColor: `${accent.base}14` }]}>
+                  <Ionicons name="flag" size={18} color={accent.ink} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.anchorMain, { color: accent.ink }]}>
+                      {(group.goal_label || 'Goal day')} · {formatGoalDate(group.goal_at)}
+                    </Text>
+                    <Text style={styles.anchorSub}>Everything in here builds toward this</Text>
+                  </View>
+                  <Text style={[styles.anchorCount, { color: accent.ink }]}>
+                    {countdownLabel(group.goal_at)}
                   </Text>
+                </View>
+              ) : isMember ? (
+                <Pressable
+                  onPress={openEdit}
+                  style={[styles.anchor, styles.anchorEmpty]}
+                >
+                  <Ionicons name="flag-outline" size={18} color={C.muted} />
+                  <Text style={styles.anchorEmptyText}>
+                    Set the goal — the one dated event this group builds toward
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              {affiliations.length > 0 ? (
+                <View style={styles.tags}>
+                  {affiliations.map((a, i) => (
+                    <View key={`${a.label}-${i}`} style={styles.tag}>
+                      {a.icon ? (
+                        <Ionicons name={a.icon as never} size={12} color={C.muted} />
+                      ) : null}
+                      <Text style={styles.tagText}>{a.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {isMember && rosterShown.length > 0 ? (
+                <View style={styles.roster}>
+                  {rosterShown.map((m, i) => (
+                    <View
+                      key={m.userId}
+                      style={[
+                        styles.av,
+                        { backgroundColor: m.avatarColor || tintFor(m.userId, i), marginLeft: i === 0 ? 0 : -8 },
+                      ]}
+                    >
+                      <Text style={styles.avText}>{initialsFor(m.name)}</Text>
+                    </View>
+                  ))}
+                  {rosterExtra > 0 ? (
+                    <View style={[styles.av, styles.avExtra, { marginLeft: -8 }]}>
+                      <Text style={styles.avText}>+{rosterExtra}</Text>
+                    </View>
+                  ) : null}
+                  <Text style={styles.rosterWho}>
+                    {roster.length} {roster.length === 1 ? 'of us' : 'of us'}{' '}
+                    {prep.label === 'Study group' ? 'studying this' : 'on this'}
+                  </Text>
+                </View>
+              ) : null}
+
+              {(orgName || group.interest_slug) && !isMember ? (
+                <View style={styles.metaRow}>
+                  {orgName ? (
+                    <Text style={styles.metaText} numberOfLines={1}>
+                      {orgName}
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
             </View>
 
             <View style={styles.actionRow}>
               {membership?.isMember ? (
-                // Leaders/coaches manage the roster elsewhere; only plain
-                // members self-leave from here.
-                membership.role === 'member' ? (
+                <>
                   <RelationshipButton
-                    label="Leave"
-                    icon="exit-outline"
+                    label="Add people"
+                    icon="person-add-outline"
+                    fullWidth={false}
+                    loading={addingPeople}
+                    onPress={() => setAddPeopleVisible(true)}
+                  />
+                  <RelationshipButton
+                    label={group.blueprint_id ? 'Change plan' : 'Attach a plan'}
+                    icon="map-outline"
                     secondary
                     fullWidth={false}
-                    loading={leaving}
-                    onPress={handleLeavePress}
+                    loading={attaching}
+                    onPress={openAttach}
                   />
-                ) : null
+                  {/* Leaders/coaches manage the roster elsewhere; only plain
+                      members self-leave from here. */}
+                  {membership.role === 'member' ? (
+                    <RelationshipButton
+                      label="Leave"
+                      icon="exit-outline"
+                      secondary
+                      fullWidth={false}
+                      loading={leaving}
+                      onPress={handleLeavePress}
+                    />
+                  ) : null}
+                </>
               ) : (
                 <RelationshipButton
                   label="Join group"
@@ -310,11 +666,51 @@ export default function GroupDetailPage(): React.ReactElement {
               )}
             </View>
 
+            {isMember ? (
+              <Pressable
+                style={[styles.invite, { backgroundColor: accent.base }, inviteBusy && { opacity: 0.6 }]}
+                disabled={inviteBusy}
+                onPress={handleInvite}
+              >
+                {inviteBusy ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="link" size={17} color="#FFFFFF" />
+                    <Text style={styles.inviteText}>Invite by link</Text>
+                  </>
+                )}
+              </Pressable>
+            ) : null}
+
             {group.description ? (
               <View style={styles.card}>
                 <Text style={styles.sectionTitle}>About</Text>
                 <Text style={styles.body}>{group.description}</Text>
               </View>
+            ) : null}
+
+            {attachedPlan ? (
+              <Pressable
+                style={styles.planCard}
+                onPress={() => router.push(`/library/blueprints/${attachedPlan.id}` as never)}
+              >
+                <View style={[styles.planIcon, { backgroundColor: accent.base }]}>
+                  <Ionicons name="map" size={18} color="#FFFFFF" />
+                </View>
+                <View style={styles.planText}>
+                  <Text style={styles.planEyebrow}>Group plan</Text>
+                  <Text style={styles.planTitle} numberOfLines={2}>
+                    {attachedPlan.title}
+                  </Text>
+                  {membership?.isMember ? (
+                    <Text style={styles.planSub}>
+                      You’re subscribed — first steps are on your timeline, pull the rest anytime.
+                    </Text>
+                  ) : null}
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={C.muted} />
+              </Pressable>
             ) : null}
 
             <View style={styles.grid}>
@@ -343,6 +739,149 @@ export default function GroupDetailPage(): React.ReactElement {
           </>
         )}
       </ScrollView>
+
+      <AddPeoplePicker
+        visible={addPeopleVisible}
+        existingUserIds={[]}
+        onClose={() => setAddPeopleVisible(false)}
+        onConfirm={handleAddPeople}
+      />
+
+      <Modal
+        visible={attachVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAttachVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Pressable onPress={() => setAttachVisible(false)} hitSlop={8}>
+                <Text style={styles.modalCancel}>Cancel</Text>
+              </Pressable>
+              <Text style={styles.modalTitle}>Attach a plan</Text>
+              <View style={{ minWidth: 56 }} />
+            </View>
+            <Text style={styles.modalSub}>
+              Pick one of your plans. Everyone in the group gets subscribed and starts with
+              the first step (and any dated steps); they pull the rest themselves.
+            </Text>
+            {loadingPlans ? (
+              <View style={styles.modalLoading}>
+                <ActivityIndicator color={accent.base} />
+              </View>
+            ) : myPlans.length === 0 ? (
+              <Text style={styles.modalEmpty}>
+                You don’t have any plans yet. Build one with “Get inspired” in your Library,
+                then attach it here.
+              </Text>
+            ) : (
+              <ScrollView style={styles.modalList}>
+                {myPlans.map((plan) => {
+                  const isCurrent = plan.id === group?.blueprint_id;
+                  return (
+                    <Pressable
+                      key={plan.id}
+                      style={styles.planRow}
+                      disabled={attaching || isCurrent}
+                      onPress={() => handleAttach(plan.id)}
+                    >
+                      <Ionicons
+                        name={isCurrent ? 'checkmark-circle' : 'map-outline'}
+                        size={20}
+                        color={isCurrent ? C.green : accent.base}
+                      />
+                      <Text style={styles.planRowText} numberOfLines={2}>
+                        {plan.title}
+                      </Text>
+                      {isCurrent ? (
+                        <Text style={styles.planRowTag}>Attached</Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={editVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setEditVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Pressable onPress={() => setEditVisible(false)} hitSlop={8}>
+                <Text style={styles.modalCancel}>Cancel</Text>
+              </Pressable>
+              <Text style={styles.modalTitle}>Edit group</Text>
+              <Pressable onPress={handleSaveMeta} hitSlop={8} disabled={savingMeta}>
+                <Text style={[styles.modalSave, savingMeta && { opacity: 0.5 }]}>Save</Text>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.editBody} keyboardShouldPersistTaps="handled">
+              <Text style={styles.editLabel}>The goal</Text>
+              <Text style={styles.editHint}>
+                The one dated event this group builds toward.
+              </Text>
+              <View style={styles.editRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={editGoalLabel}
+                  onChangeText={setEditGoalLabel}
+                  placeholder="Race day"
+                  placeholderTextColor={C.muted}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={editGoalDate}
+                  onChangeText={setEditGoalDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={C.muted}
+                  autoCapitalize="none"
+                  keyboardType={Platform.OS === 'web' ? 'default' : 'numbers-and-punctuation'}
+                />
+              </View>
+
+              <Text style={[styles.editLabel, { marginTop: 20 }]}>Affiliation tags</Text>
+              <Text style={styles.editHint}>
+                Informational context — “Mostly RHKYC”. The group is owned by no club or org.
+              </Text>
+              {editTags.map((tag, i) => (
+                <View key={`tag-${i}`} style={styles.editRow}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={tag}
+                    onChangeText={(t) =>
+                      setEditTags((prev) => prev.map((p, idx) => (idx === i ? t : p)))
+                    }
+                    placeholder="Mostly RHKYC"
+                    placeholderTextColor={C.muted}
+                  />
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() => setEditTags((prev) => prev.filter((_, idx) => idx !== i))}
+                    style={styles.tagRemove}
+                  >
+                    <Ionicons name="close-circle" size={22} color={C.muted} />
+                  </Pressable>
+                </View>
+              ))}
+              <Pressable
+                style={styles.addTagRow}
+                onPress={() => setEditTags((prev) => [...prev, ''])}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={accent.base} />
+                <Text style={[styles.addTagText, { color: accent.base }]}>Add a tag</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -352,39 +891,87 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { width: '100%', maxWidth: 960, alignSelf: 'center', padding: 20, gap: 16 },
   center: { minHeight: 260, alignItems: 'center', justifyContent: 'center' },
-  header: { gap: 12 },
-  cover: { height: 120, borderRadius: 16 },
-  identity: { flexDirection: 'row', gap: 14, paddingHorizontal: 4, alignItems: 'flex-start' },
-  mark: {
-    width: 72,
-    height: 72,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: C.bg,
-    marginTop: -48,
-  },
-  markText: { color: '#FFFFFF', fontSize: 32, fontWeight: '800' },
-  identityText: { flex: 1, gap: 4, paddingTop: 8 },
-  eyebrow: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3 },
-  name: { color: C.ink, fontSize: 26, lineHeight: 30, fontWeight: '800', letterSpacing: -0.4 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   metaText: { color: C.muted, fontSize: 13, fontWeight: '600', flexShrink: 1 },
-  memberBadge: {
+  hero: {
+    backgroundColor: C.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.line,
+    padding: 16,
+    gap: 12,
+  },
+  heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  prepPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    gap: 5,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(56, 175, 122, 0.10)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(56, 175, 122, 0.35)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
-  memberBadgeText: { fontSize: 12, fontWeight: '700', color: C.ink, letterSpacing: -0.1 },
-  actionRow: { paddingBottom: 8, flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  prepPillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase' },
+  editLink: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  editLinkText: { fontSize: 14, fontWeight: '600' },
+  heroTitle: { color: C.ink, fontSize: 24, lineHeight: 28, fontWeight: '800', letterSpacing: -0.5 },
+  anchor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  anchorMain: { fontSize: 14, fontWeight: '700' },
+  anchorSub: { fontSize: 12, color: C.muted, marginTop: 1 },
+  anchorCount: {
+    fontSize: 12,
+    fontWeight: '700',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    overflow: 'hidden',
+  },
+  anchorEmpty: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.line, borderStyle: 'dashed' },
+  anchorEmptyText: { flex: 1, fontSize: 13, color: C.muted, fontWeight: '600' },
+  tags: { flexDirection: 'row', gap: 7, flexWrap: 'wrap' },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: C.bg,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: C.line,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  tagText: { fontSize: 12, fontWeight: '600', color: '#555' },
+  roster: { flexDirection: 'row', alignItems: 'center' },
+  av: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  avExtra: { backgroundColor: C.muted },
+  rosterWho: { marginLeft: 10, fontSize: 13, color: C.muted, fontWeight: '600' },
+  invite: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 13,
+    paddingVertical: 13,
+  },
+  inviteText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  actionRow: { paddingBottom: 0, flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   stat: {
     flexGrow: 1,
@@ -409,4 +996,99 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   noticeBody: { color: C.ink, fontSize: 15, lineHeight: 22 },
+  planCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.line,
+    padding: 14,
+  },
+  planIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planText: { flex: 1, gap: 2 },
+  planEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    color: C.muted,
+  },
+  planTitle: { color: C.ink, fontSize: 16, fontWeight: '700' },
+  planSub: { color: C.muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '80%',
+    paddingBottom: 28,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.line,
+  },
+  modalCancel: { fontSize: 16, color: '#007AFF', minWidth: 56 },
+  modalSave: { fontSize: 16, fontWeight: '700', color: '#007AFF', minWidth: 56, textAlign: 'right' },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: C.ink },
+  editBody: { paddingHorizontal: 16, paddingTop: 16 },
+  editLabel: { fontSize: 15, fontWeight: '700', color: C.ink, marginBottom: 4 },
+  editHint: { fontSize: 13, lineHeight: 18, color: C.muted, marginBottom: 10 },
+  editRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  input: {
+    backgroundColor: C.bg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.line,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: C.ink,
+  },
+  tagRemove: { padding: 2 },
+  addTagRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
+  addTagText: { fontSize: 14, fontWeight: '600' },
+  modalSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: C.muted,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  modalLoading: { paddingVertical: 40, alignItems: 'center' },
+  modalEmpty: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: C.muted,
+    padding: 16,
+  },
+  modalList: { paddingHorizontal: 8 },
+  planRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.line,
+  },
+  planRowText: { flex: 1, fontSize: 15, fontWeight: '600', color: C.ink },
+  planRowTag: { fontSize: 12, fontWeight: '700', color: C.green },
 });

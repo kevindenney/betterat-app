@@ -25,14 +25,39 @@ interface GroupMembershipArgs {
 
 export interface CreateSelfServeGroupArgs {
   name: string;
-  kind: Extract<AffinityGroupKind, 'crew_pod' | 'practice_group'>;
   description?: string | null;
   interestSlug?: string | null;
 }
 
+// Self-serve groups are a single neutral primitive ("Group"). The kind
+// column still exists for legacy institutional groupings (class_fleet /
+// cohort), but everything a user creates is one kind so there's no
+// meaningless picker — see the A1 collapse decision.
+const SELF_SERVE_GROUP_KIND: Extract<AffinityGroupKind, 'practice_group'> = 'practice_group';
+
 export interface CreatedAffinityGroup {
   id: string;
   name: string;
+}
+
+export interface AffinityGroupAffiliation {
+  /** Ionicons name for the chip's leading glyph (e.g. 'anchor'). */
+  icon?: string | null;
+  label: string;
+}
+
+export interface AffinityGroupRosterEntry {
+  userId: string;
+  name: string;
+  avatarColor: string | null;
+  role: 'member' | 'leader' | 'coach';
+}
+
+interface RosterRow {
+  user_id: string;
+  full_name: string | null;
+  avatar_color: string | null;
+  role: string;
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -49,7 +74,6 @@ export class AffinityGroupService {
    */
   static async createSelfServeGroup({
     name,
-    kind,
     description,
     interestSlug,
   }: CreateSelfServeGroupArgs): Promise<CreatedAffinityGroup> {
@@ -61,7 +85,7 @@ export class AffinityGroupService {
     const { data, error } = await supabase.functions.invoke('create-affinity-group', {
       body: {
         name: trimmedName,
-        kind,
+        kind: SELF_SERVE_GROUP_KIND,
         description: description?.trim() || null,
         interestSlug: interestSlug || null,
       },
@@ -109,6 +133,127 @@ export class AffinityGroupService {
       if (isUniqueViolation(error)) return;
       throw error;
     }
+  }
+
+  /**
+   * Add another person to a self-serve group as an active member. Routes
+   * through the `add_affinity_group_member` SECURITY DEFINER RPC because
+   * the self-only INSERT policy blocks inserting someone else's row. The
+   * caller must already be an active member of the group. Idempotent.
+   */
+  static async addMember({ groupId, userId }: GroupMembershipArgs): Promise<void> {
+    const { error } = await supabase.rpc('add_affinity_group_member', {
+      p_group_id: groupId,
+      p_user_id: userId,
+    });
+    if (error) throw error;
+  }
+
+  /**
+   * Attach a plan (timeline_blueprint) the caller owns to a self-serve group.
+   * The `attach_affinity_group_blueprint` RPC publishes the plan (so members
+   * can pull its steps) and seeds every existing active member with the
+   * anchors + first step. Caller must own the plan and be an active member.
+   */
+  static async attachBlueprint({
+    groupId,
+    blueprintId,
+  }: {
+    groupId: string;
+    blueprintId: string;
+  }): Promise<void> {
+    const { error } = await supabase.rpc('attach_affinity_group_blueprint', {
+      p_group_id: groupId,
+      p_blueprint_id: blueprintId,
+    });
+    if (error) throw error;
+  }
+
+  /**
+   * Seed the viewer from the group's attached plan (subscribe + auto-adopt
+   * anchors and the first step). The add-member RPC already seeds people added
+   * by others, but a self-join inserts the membership row directly, so this is
+   * called after join() to give the self-joiner the same starting steps. No-op
+   * when the group has no plan attached.
+   */
+  static async seedFromBlueprint({ groupId, userId }: GroupMembershipArgs): Promise<void> {
+    const { error } = await supabase.rpc('seed_group_member_from_blueprint', {
+      p_group_id: groupId,
+      p_user_id: userId,
+    });
+    if (error) throw error;
+  }
+
+  /**
+   * Member-gated roster with display name + avatar tint for the avatar stack.
+   * Routes through the `affinity_group_roster` SECURITY DEFINER RPC because the
+   * members-read RLS gates non-members out and a direct users-table join isn't
+   * grant-able client-side. Returns [] for non-members.
+   */
+  static async getRoster(groupId: string): Promise<AffinityGroupRosterEntry[]> {
+    const { data, error } = await supabase.rpc('affinity_group_roster', {
+      p_group_id: groupId,
+    });
+    if (error) throw error;
+    return ((data as RosterRow[] | null) ?? []).map((r) => ({
+      userId: r.user_id,
+      name: r.full_name?.trim() || 'Member',
+      avatarColor: r.avatar_color,
+      role: (r.role as AffinityGroupRosterEntry['role']) ?? 'member',
+    }));
+  }
+
+  /**
+   * Set the dated goal anchor and/or affiliation tags. Any active member can
+   * edit (peer model). Undefined fields are left unchanged server-side, so
+   * callers can patch the goal and the tags independently.
+   */
+  static async setMeta({
+    groupId,
+    goalAt,
+    goalLabel,
+    affiliations,
+  }: {
+    groupId: string;
+    goalAt?: string | null;
+    goalLabel?: string | null;
+    affiliations?: AffinityGroupAffiliation[];
+  }): Promise<void> {
+    const { error } = await supabase.rpc('set_affinity_group_meta', {
+      p_group_id: groupId,
+      p_goal_at: goalAt ?? null,
+      p_goal_label: goalLabel ?? null,
+      p_affiliations: affiliations ?? null,
+    });
+    if (error) throw error;
+  }
+
+  /**
+   * Return the group's invite token, generating one on first call. The link is
+   * private + unlisted — sharing it IS the access grant (no open-join queue).
+   */
+  static async ensureInviteToken(groupId: string): Promise<string> {
+    const { data, error } = await supabase.rpc('ensure_affinity_group_invite_token', {
+      p_group_id: groupId,
+    });
+    if (error) throw error;
+    const token = typeof data === 'string' ? data : null;
+    if (!token) throw new Error('Could not create an invite link.');
+    return token;
+  }
+
+  /**
+   * Redeem an invite token: join the caller as an active member and return the
+   * group id so the join route can redirect. Idempotent for existing members.
+   */
+  static async joinByToken(token: string): Promise<string> {
+    const { data, error } = await supabase.rpc('join_affinity_group_by_token', {
+      p_token: token,
+    });
+    if (error) throw error;
+    const groupId = typeof data === 'string' ? data : null;
+    if (!groupId) throw new Error('This invite link is invalid or expired.');
+    return groupId;
   }
 
   /**
