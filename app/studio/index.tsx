@@ -377,7 +377,7 @@ function getInitials(name: string): string {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#EFEAD8',  // stage warmth bleeds in around the iPad on web
+    backgroundColor: '#F2F2F7',
     ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),
   },
 

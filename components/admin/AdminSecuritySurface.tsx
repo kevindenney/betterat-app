@@ -354,7 +354,7 @@ function ToggleRow({
 }
 
 const s = StyleSheet.create({
-  body: { flex: 1, backgroundColor: '#F5F4EE' },
+  body: { flex: 1, backgroundColor: '#F2F2F7' },
   bodyInner: { paddingHorizontal: 32, paddingTop: 18, paddingBottom: 40 },
 
   twoCol: { flexDirection: 'row', gap: 18, alignItems: 'flex-start' },

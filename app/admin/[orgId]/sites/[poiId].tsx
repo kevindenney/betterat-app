@@ -402,7 +402,7 @@ function StatCard({
 }
 
 const s = StyleSheet.create({
-  body: { flex: 1, backgroundColor: '#F5F4EE' },
+  body: { flex: 1, backgroundColor: '#F2F2F7' },
   bodyInner: { paddingHorizontal: 32, paddingTop: 18, paddingBottom: 40, gap: 18 },
 
   loading: { textAlign: 'center', paddingVertical: 48, color: 'rgba(60, 60, 67, 0.6)' },

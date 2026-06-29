@@ -343,7 +343,7 @@ function shortNameLabel(orgName: string): string {
 const s = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#EFEAD8',
+    backgroundColor: '#F2F2F7',
     ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),
   },
   seatsLabel: {

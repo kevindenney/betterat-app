@@ -24,7 +24,7 @@ export function StudioLoading() {
 const s = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#EFEAD8',
+    backgroundColor: '#F2F2F7',
     alignItems: 'center',
     justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),

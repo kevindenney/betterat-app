@@ -634,7 +634,7 @@ function shortNameLabel(orgName: string): string {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#EFEAD8',
+    backgroundColor: '#F2F2F7',
     ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),
   },
   subText: { fontSize: 13.5, color: 'rgba(60, 60, 67, 0.6)' },

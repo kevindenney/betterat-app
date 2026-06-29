@@ -309,7 +309,7 @@ function sinceLabel(iso: string | null | undefined): string {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#EFEAD8',
+    backgroundColor: '#F2F2F7',
     ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),
   },
 
