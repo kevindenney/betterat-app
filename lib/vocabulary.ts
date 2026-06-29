@@ -373,6 +373,20 @@ export function getFallbackVocabulary(interestSlug?: string | null): VocabularyM
   return INTEREST_FALLBACK_VOCABULARIES[interestSlug] ?? GENERIC_VOCABULARY;
 }
 
+/**
+ * Verticals whose org-admin view is a funder/earnings rollup — members run
+ * income-generating work that the org's funder (NGO, govt, microfinance) is
+ * watching, so "cohort earnings / reached loan-tier" is the artifact the
+ * funder buys. Academic/institutional verticals (nursing, etc.) where the
+ * org pays and members just get access never show it, even if a stray
+ * cross-vertical member happens to have logged business outcomes.
+ */
+const FUNDER_OUTCOME_VERTICALS = new Set<string>(['entrepreneur', 'lac-craft-business']);
+
+export function isFunderOutcomeVertical(interestSlug?: string | null): boolean {
+  return !!interestSlug && FUNDER_OUTCOME_VERTICALS.has(interestSlug);
+}
+
 // ---------------------------------------------------------------------------
 // Admin-domain vocabulary (org-admin chrome)
 // ---------------------------------------------------------------------------

@@ -17,6 +17,8 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
+import { useProfileMenuData } from '@/hooks/useProfileMenuData';
+import { isFunderOutcomeVertical } from '@/lib/vocabulary';
 
 // Monthly run-rate (in major currency units) at which an SHG member is
 // considered loan-tier eligible — the microfinance milestone a funder
@@ -60,9 +62,19 @@ export function useAdminCohortOutcomes(
   orgId: string,
   cohortId?: string | null,
 ): AdminCohortOutcomesData {
+  // The funder/earnings rollup only makes sense for income-outcome verticals
+  // (entrepreneur, craft-business). For institutional academic orgs (nursing,
+  // etc.) the org pays and members just get access — there are no cohort
+  // earnings, so skip the RPC entirely even if a stray cross-vertical member
+  // happens to have logged business outcomes.
+  const menu = useProfileMenuData();
+  const interestSlug =
+    menu.memberships.find((m) => m.org_id === orgId)?.interest_slug ?? null;
+  const isFunderOrg = isFunderOutcomeVertical(interestSlug);
+
   const { data = [], isLoading } = useQuery({
     queryKey: ['admin-cohort-outcomes', orgId, cohortId ?? null],
-    enabled: !!orgId,
+    enabled: !!orgId && isFunderOrg,
     staleTime: 60_000,
     queryFn: async (): Promise<OutcomeRpcRow[]> => {
       const { data, error } = await supabase.rpc('admin_cohort_outcomes', {
@@ -80,6 +92,19 @@ export function useAdminCohortOutcomes(
   });
 
   return useMemo(() => {
+    if (!isFunderOrg) {
+      return {
+        loading: false,
+        hasOutcomes: false,
+        currency: 'INR',
+        earningMemberCount: 0,
+        totalMajor: 0,
+        lastMonthMajor: 0,
+        loanTierCount: 0,
+        members: [],
+      };
+    }
+
     const currency = data.find((r) => r.currency)?.currency ?? 'INR';
     const members: CohortOutcomeMember[] = data.map((r) => {
       const lastMonthMajor = Math.round((r.last_month_revenue_minor ?? 0) / 100);
@@ -105,5 +130,5 @@ export function useAdminCohortOutcomes(
       loanTierCount: members.filter((m) => m.loanTier).length,
       members,
     };
-  }, [data, isLoading]);
+  }, [data, isLoading, isFunderOrg]);
 }
