@@ -19,6 +19,7 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
@@ -36,6 +37,7 @@ import {
   StudioPanel,
   StudioButton,
   StudioNavSection,
+  STUDIO_COMPACT_BREAKPOINT,
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 
@@ -44,6 +46,8 @@ export default function StudioPayoutsPage() {
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
   const data = useStudioPayouts();
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -52,21 +56,30 @@ export default function StudioPayoutsPage() {
   const displayName =
     userProfile?.full_name || userProfile?.display_name || user?.email || 'You';
   const initials = getInitials(displayName);
-  const isInstitutional = menu.hasActiveOrg;
+  const isInstitutional = !!menu.activeOrg;
 
   const navSections: StudioNavSection[] = [
     {
       eyebrow: 'Studio',
       items: [
-        { key: 'home', icon: 'grid-outline', label: 'Home', onPress: () => router.push('/studio') },
-        { key: 'blueprints', icon: 'git-branch-outline', label: 'Blueprints', count: 3 },
-        { key: 'subscribers', icon: 'people-outline', label: 'Subscribers', count: '1,284' },
+        {
+          key: 'blueprints',
+          icon: 'git-branch-outline',
+          label: 'Blueprints',
+          onPress: () => router.push('/studio'),
+        },
+        {
+          key: 'subscribers',
+          icon: 'people-outline',
+          label: 'Subscribers',
+          onPress: () => router.push('/studio/subscribers'),
+        },
         {
           key: 'threads',
           icon: 'chatbubbles-outline',
           label: 'Threads',
-          count: 31,
           countTone: 'coral',
+          onPress: () => router.push('/studio/threads'),
         },
       ],
     },
@@ -118,6 +131,102 @@ export default function StudioPayoutsPage() {
     },
   ];
 
+  const bodyContent = (
+    <>
+      {isInstitutional ? (
+        <InstitutionalBanner
+          orgName={menu.activeOrg!.org_name}
+          orgShort={shortNameLabel(menu.activeOrg!.org_name)}
+        />
+      ) : !data.isIndependent ? (
+        <NotConnectedBanner userId={user.id} />
+      ) : null}
+
+      <View style={[styles.heroRow, compact && styles.stackCompact]}>
+        <View style={[styles.heroCard, compact && styles.cardCompact]}>
+          <Text style={styles.heroEyebrow}>Next payout · {data.nextPayout.dateLabel}</Text>
+          <Text style={styles.heroAmount}>
+            {data.currencySymbol}
+            {data.nextPayout.amount.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </Text>
+          <Text style={styles.heroBody}>
+            From {data.nextPayout.renewalsCount} subscription renewals,{' '}
+            {data.nextPayout.firstTimeCount} first-time purchases.
+          </Text>
+          {data.nextPayout.deltaWeekPct !== null ? (
+            <Text style={styles.heroDelta}>
+              <Text style={styles.heroDeltaPositive}>+{data.nextPayout.deltaWeekPct}%</Text> vs.
+              last week
+            </Text>
+          ) : null}
+        </View>
+        <View style={[compact ? styles.statPairCompact : styles.statPair]}>
+          <StatCard
+            compact={compact}
+            label="Lifetime earnings"
+            value={`${data.currencySymbol}${data.lifetime.amount.toLocaleString('en-US')}`}
+            footnote={`since ${data.lifetime.sinceLabel}`}
+          />
+          <StatCard
+            compact={compact}
+            label="Active subscribers"
+            value={data.activeSubscribers.count.toLocaleString('en-US')}
+            footnote={`+${data.activeSubscribers.weeklyDelta} this week`}
+            footnoteTone="positive"
+          />
+        </View>
+      </View>
+
+      <View style={[styles.twoCol, compact && styles.stackCompact]}>
+        <View style={[styles.leftCol, compact && styles.cardCompact]}>
+          <StudioPanel
+            title="Weekly earnings · last 12 weeks"
+            meta={<Text style={styles.panelMeta}>Net of fees · {data.currencySymbol}</Text>}
+          >
+            <View style={styles.chartWrap}>
+              <WeeklyChart series={data.weeklySeries} currencySymbol={data.currencySymbol} />
+            </View>
+          </StudioPanel>
+
+          <StudioPanel
+            title="Earnings by blueprint"
+            meta={<Text style={styles.panelMeta}>This payout</Text>}
+          >
+            <View>
+              {data.blueprintEarnings.map((bp, i) => (
+                <BlueprintEarningRow
+                  key={bp.id}
+                  bp={bp}
+                  last={i === data.blueprintEarnings.length - 1}
+                />
+              ))}
+            </View>
+          </StudioPanel>
+        </View>
+
+        <StudioPanel
+          title="Recent"
+          meta={<Text style={styles.panelMeta}>Last 24 hours</Text>}
+          width={compact ? undefined : 360}
+        >
+          <View>
+            {data.recentTransactions.map((t) => (
+              <TransactionRow key={t.id} t={t} currencySymbol={data.currencySymbol} />
+            ))}
+            <Pressable style={styles.viewAllRow}>
+              <Text style={styles.viewAllText}>
+                View all {data.totalTransactionCount} transactions →
+              </Text>
+            </Pressable>
+          </View>
+        </StudioPanel>
+      </View>
+    </>
+  );
+
   return (
     <View style={styles.root}>
       <StudioShell
@@ -134,6 +243,32 @@ export default function StudioPayoutsPage() {
           if (lens === 'practice') router.push('/');
         }}
         navSections={navSections}
+        compactBottomTabs={[
+          {
+            key: 'blueprints',
+            icon: 'git-branch-outline',
+            label: 'Blueprints',
+            onPress: () => router.push('/studio'),
+          },
+          {
+            key: 'subscribers',
+            icon: 'people-outline',
+            label: 'Subscribers',
+            onPress: () => router.push('/studio/subscribers'),
+          },
+          {
+            key: 'threads',
+            icon: 'chatbubbles-outline',
+            label: 'Threads',
+            onPress: () => router.push('/studio/threads'),
+          },
+          {
+            key: 'payouts',
+            icon: 'cash-outline',
+            label: 'Payouts',
+            active: true,
+          },
+        ]}
         user={{ name: displayName, email: user?.email ?? '', initials }}
       >
         <StudioHeader
@@ -157,104 +292,17 @@ export default function StudioPayoutsPage() {
           }
         />
 
-        {isInstitutional ? (
-          <InstitutionalBanner
-            orgName={menu.activeOrg!.org_name}
-            orgShort={shortNameLabel(menu.activeOrg!.org_name)}
-          />
-        ) : !data.isIndependent ? (
-          <NotConnectedBanner userId={user.id} />
-        ) : null}
-
-        <View style={styles.heroRow}>
-          <View style={styles.heroCard}>
-            <Text style={styles.heroEyebrow}>
-              Next payout · {data.nextPayout.dateLabel}
-            </Text>
-            <Text style={styles.heroAmount}>
-              {data.currencySymbol}
-              {data.nextPayout.amount.toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </Text>
-            <Text style={styles.heroBody}>
-              From {data.nextPayout.renewalsCount} subscription renewals,{' '}
-              {data.nextPayout.firstTimeCount} first-time purchases.
-            </Text>
-            {data.nextPayout.deltaWeekPct !== null ? (
-              <Text style={styles.heroDelta}>
-                <Text style={styles.heroDeltaPositive}>
-                  +{data.nextPayout.deltaWeekPct}%
-                </Text>{' '}
-                vs. last week
-              </Text>
-            ) : null}
-          </View>
-          <StatCard
-            label="Lifetime earnings"
-            value={`${data.currencySymbol}${data.lifetime.amount.toLocaleString('en-US')}`}
-            footnote={`since ${data.lifetime.sinceLabel}`}
-          />
-          <StatCard
-            label="Active subscribers"
-            value={data.activeSubscribers.count.toLocaleString('en-US')}
-            footnote={`+${data.activeSubscribers.weeklyDelta} this week`}
-            footnoteTone="positive"
-          />
-        </View>
-
-        <View style={styles.twoCol}>
-          <View style={styles.leftCol}>
-            <StudioPanel
-              title="Weekly earnings · last 12 weeks"
-              meta={
-                <Text style={styles.panelMeta}>
-                  Net of fees · {data.currencySymbol}
-                </Text>
-              }
-            >
-              <View style={styles.chartWrap}>
-                <WeeklyChart
-                  series={data.weeklySeries}
-                  currencySymbol={data.currencySymbol}
-                />
-              </View>
-            </StudioPanel>
-
-            <StudioPanel
-              title="Earnings by blueprint"
-              meta={<Text style={styles.panelMeta}>This payout</Text>}
-            >
-              <View>
-                {data.blueprintEarnings.map((bp, i) => (
-                  <BlueprintEarningRow
-                    key={bp.id}
-                    bp={bp}
-                    last={i === data.blueprintEarnings.length - 1}
-                  />
-                ))}
-              </View>
-            </StudioPanel>
-          </View>
-
-          <StudioPanel
-            title="Recent"
-            meta={<Text style={styles.panelMeta}>Last 24 hours</Text>}
-            width={360}
+        {compact ? (
+          <ScrollView
+            style={styles.compactScroll}
+            contentContainerStyle={styles.compactScrollInner}
+            showsVerticalScrollIndicator={false}
           >
-            <ScrollView>
-              {data.recentTransactions.map((t) => (
-                <TransactionRow key={t.id} t={t} currencySymbol={data.currencySymbol} />
-              ))}
-              <Pressable style={styles.viewAllRow}>
-                <Text style={styles.viewAllText}>
-                  View all {data.totalTransactionCount} transactions →
-                </Text>
-              </Pressable>
-            </ScrollView>
-          </StudioPanel>
-        </View>
+            {bodyContent}
+          </ScrollView>
+        ) : (
+          bodyContent
+        )}
       </StudioShell>
     </View>
   );
@@ -269,14 +317,16 @@ function StatCard({
   value,
   footnote,
   footnoteTone = 'neutral',
+  compact = false,
 }: {
   label: string;
   value: string;
   footnote: string;
   footnoteTone?: 'neutral' | 'positive';
+  compact?: boolean;
 }) {
   return (
-    <View style={styles.statCard}>
+    <View style={[styles.statCard, compact && styles.statCardCompact]}>
       <Text style={styles.statLabel}>{label}</Text>
       <Text style={styles.statValue}>{value}</Text>
       <View style={styles.statFootRow}>
@@ -587,6 +637,18 @@ const styles = StyleSheet.create({
   subText: { fontSize: 13.5, color: 'rgba(60, 60, 67, 0.6)' },
   panelMeta: { fontSize: 12, color: 'rgba(60, 60, 67, 0.6)' },
 
+  // Compact (phone) — vertical scroll + stacked sections
+  compactScroll: { flex: 1 },
+  compactScrollInner: { paddingBottom: 24 },
+  // Turn a side-by-side row into a vertical stack; children that used `flex`
+  // to share horizontal space get `cardCompact` to grow full-width instead.
+  stackCompact: { flexDirection: 'column' },
+  cardCompact: { flex: 0, width: '100%', minWidth: 0 },
+  // Lifetime + Active subscribers: side by side on desktop (within heroRow),
+  // a 2-up row on phone so neither label wraps mid-word.
+  statPair: { flex: 2, flexDirection: 'row', gap: 12, minWidth: 0 },
+  statPairCompact: { flexDirection: 'row', gap: 12, width: '100%' },
+
   // Sidebar bank
   bankRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   bankFlag: {
@@ -668,6 +730,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
     ...({ boxShadow: '0 1px 2px rgba(0,0,0,0.04)' } as any),
   },
+  statCardCompact: { minWidth: 0 },
   statLabel: {
     fontSize: 11,
     fontWeight: '600',

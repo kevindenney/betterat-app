@@ -1,21 +1,20 @@
 /**
- * Creator Studio · Home (Frame 4 of the institutions pass)
+ * Creator Studio · Blueprints (the Studio landing)
  *
- * iPad/desktop class — institutional author variant (Hopkins-managed,
- * no payouts). Composition:
+ * Minimization pass (studio-consolidation-mock.html): Studio no longer has a
+ * Home greeting + KPI dashboard. It lands directly on Blueprints — the list is
+ * the page. The four KPI cards collapse into one muted stat line under the
+ * title, and there is a single create action (the list footer). Subscribers /
+ * Threads / Payouts are their own tabs; Threads stays the reply surface.
  *
  *   StudioShell
  *     ├── sidebar (org card, ctx switch, Studio/Money/Co-authors nav,
  *     │             user card pinned bottom)
  *     └── main
- *           ├── StudioHeader (crumbs, greeting, sub-h1, actions)
- *           ├── KPI strip (4 cards)
- *           └── two-column grid
- *                 ├── Your blueprints panel
- *                 └── Threads awaiting you panel
+ *           ├── StudioHeader (crumbs, "Blueprints", one stat line)
+ *           └── blueprint list (full width) + one "New blueprint" footer
  *
- * Data is sourced from useStudioHomeData() — currently stubbed empty so
- * the surface renders in empty-state copy until the backing queries land.
+ * Data is sourced from useStudioHomeData().
  */
 
 import React from 'react';
@@ -32,27 +31,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
-import {
-  useStudioHomeData,
-  StudioBlueprint,
-  StudioThread,
-} from '@/hooks/useStudioHomeData';
+import { useStudioHomeData, StudioBlueprint } from '@/hooks/useStudioHomeData';
 import {
   StudioShell,
   StudioHeader,
-  StudioPanel,
   StudioButton,
   StudioNavSection,
   STUDIO_COMPACT_BREAKPOINT,
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
+import { showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { Gradient } from '@/components/studio/Gradient';
-import { StatRow } from '@/components/studio/StatRow';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 
-export default function StudioHomePage() {
+export default function StudioBlueprintsPage() {
   const router = useRouter();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const menu = useProfileMenuData();
   const data = useStudioHomeData();
   const { width } = useWindowDimensions();
@@ -73,18 +67,19 @@ export default function StudioHomePage() {
     {
       eyebrow: 'Studio',
       items: [
-        { key: 'home', icon: 'grid-outline', label: 'Home', active: true },
         {
           key: 'blueprints',
           icon: 'git-branch-outline',
           label: 'Blueprints',
           count: data.blueprintCount || undefined,
+          active: true,
         },
         {
           key: 'subscribers',
           icon: 'people-outline',
           label: 'Subscribers',
           count: data.kpis.activeSubscribers || undefined,
+          onPress: () => router.push('/studio/subscribers'),
         },
         {
           key: 'threads',
@@ -92,6 +87,7 @@ export default function StudioHomePage() {
           label: 'Threads',
           count: data.threadAwaitingCount || undefined,
           countTone: data.threadAwaitingCount > 0 ? 'coral' : 'neutral',
+          onPress: () => router.push('/studio/threads'),
         },
         { key: 'insights', icon: 'trending-up-outline', label: 'Insights' },
       ],
@@ -104,6 +100,7 @@ export default function StudioHomePage() {
           icon: 'cash-outline',
           label: 'Payouts',
           count: isInstitutional ? '—' : undefined,
+          onPress: () => router.push('/studio/payouts'),
         },
         {
           key: 'earnings',
@@ -128,14 +125,65 @@ export default function StudioHomePage() {
     },
   ];
 
+  // One muted stat line replaces the greeting + the 4-up KPI grid.
+  const liveCount = data.blueprints.filter((b) => b.status === 'live').length;
   const totalSubscribers = data.kpis.activeSubscribers;
+  const statLine =
+    data.blueprintCount === 0
+      ? 'No blueprints yet'
+      : `${liveCount} live${data.draftCount ? ` · ${data.draftCount} draft` : ''} · ` +
+        `${totalSubscribers} subscriber${totalSubscribers === 1 ? '' : 's'} · ` +
+        `${data.threadAwaitingCount} awaiting`;
   const subtitleParts: React.ReactNode[] = [
-    <Text style={styles.subText} key="counts">
-      {data.blueprintCount === 0
-        ? 'No blueprints yet'
-        : `${data.blueprintCount} ${data.blueprintCount === 1 ? 'blueprint' : 'blueprints'} · ${totalSubscribers} active subscribers · ${data.threadAwaitingCount} threads awaiting reply`}
+    <Text style={styles.subText} key="stat">
+      {statLine}
     </Text>,
   ];
+
+  const blueprintsBody =
+    data.blueprints.length === 0 ? (
+      <BlueprintsEmptyState onCreate={() => router.push('/studio/blueprints/new')} />
+    ) : (
+      <>
+        {data.blueprints.map((bp) => (
+          <BlueprintRow
+            key={bp.id}
+            bp={bp}
+            onPress={() => router.push(`/studio/blueprints/${bp.id}`)}
+          />
+        ))}
+        <Pressable
+          style={styles.newBlueprintRow}
+          onPress={() => router.push('/studio/blueprints/new')}
+        >
+          <Ionicons name="add" size={15} color="#007AFF" />
+          <Text style={styles.newBlueprintText}>New blueprint</Text>
+        </Pressable>
+      </>
+    );
+
+  // The blueprint list IS the page — no card chrome, no second column. On
+  // desktop the main area is fixed-height so the list scrolls internally; on
+  // phone the whole surface scrolls (handled by the compact wrapper below).
+  const body = (
+    <>
+      <StudioHeader
+        compact={compact}
+        crumbs={['Creator Studio', 'Blueprints']}
+        title="Blueprints"
+        subtitleParts={subtitleParts}
+        pill={
+          isInstitutional
+            ? { label: `${activeOrg!.org_name.split(' · ')[0]}-managed`, tone: 'purple' }
+            : undefined
+        }
+      />
+
+      <View style={styles.listWrap}>
+        {compact ? blueprintsBody : <ScrollView showsVerticalScrollIndicator={false}>{blueprintsBody}</ScrollView>}
+      </View>
+    </>
+  );
 
   return (
     <View style={styles.root}>
@@ -152,173 +200,54 @@ export default function StudioHomePage() {
           if (lens === 'practice') router.push('/');
         }}
         navSections={navSections}
+        compactBottomTabs={[
+          {
+            key: 'blueprints',
+            icon: 'git-branch-outline',
+            label: 'Blueprints',
+            count: data.blueprintCount || undefined,
+            active: true,
+          },
+          {
+            key: 'subscribers',
+            icon: 'people-outline',
+            label: 'Subscribers',
+            count: data.kpis.activeSubscribers || undefined,
+            onPress: () => router.push('/studio/subscribers'),
+          },
+          {
+            key: 'threads',
+            icon: 'chatbubbles-outline',
+            label: 'Threads',
+            count: data.threadAwaitingCount || undefined,
+            onPress: () => router.push('/studio/threads'),
+          },
+          {
+            key: 'payouts',
+            icon: 'cash-outline',
+            label: 'Payouts',
+            onPress: () => router.push('/studio/payouts'),
+          },
+        ]}
         user={{ name: displayName, email: user?.email ?? '', initials }}
+        onUserCardPress={() =>
+          showConfirm('Sign out', `Sign out of ${displayName}?`, () => {
+            void signOut();
+          })
+        }
       >
-        <StudioHeader
-          crumbs={['Creator Studio', 'Home']}
-          title={`Good ${greeting()}, ${firstName(displayName)}.`}
-          subtitleParts={subtitleParts}
-          pill={
-            isInstitutional
-              ? { label: `${activeOrg!.org_name.split(' · ')[0]}-managed`, tone: 'purple' }
-              : undefined
-          }
-          actions={
-            <>
-              <StudioButton variant="ghost" icon="eye-outline" label="Preview as student" />
-              <StudioButton
-                variant="primary"
-                accent="purple"
-                icon="add"
-                label="New blueprint"
-                onPress={() => router.push('/studio/blueprints/new')}
-              />
-            </>
-          }
-        />
-
-        <StatRow style={styles.kpiStrip}>
-          <KpiCard
-            label="Active subscribers"
-            value={String(data.kpis.activeSubscribers)}
-            footnote={
-              data.kpis.activeSubscribersDelta !== null
-                ? `+${data.kpis.activeSubscribersDelta} this week`
-                : 'No new this week'
-            }
-            footnoteTone={data.kpis.activeSubscribersDelta ? 'positive' : 'neutral'}
-          />
-          <KpiCard
-            label="Steps reflected"
-            value={data.kpis.stepsReflectedPct !== null ? `${data.kpis.stepsReflectedPct}%` : '—'}
-            footnote="Across this week's cohort"
-          />
-          <KpiCard
-            label="Need attention"
-            value={
-              data.kpis.needAttention !== null ? String(data.kpis.needAttention) : '—'
-            }
-            valueTone={(data.kpis.needAttention ?? 0) > 0 ? 'coral' : 'neutral'}
-            footnote="Students flagged this week"
-          />
-          <KpiCard
-            label="Avg. session"
-            value={
-              data.kpis.avgSessionMinutes !== null ? `${data.kpis.avgSessionMinutes} m` : '—'
-            }
-            footnote="Per active day"
-          />
-        </StatRow>
-
-        <View style={[styles.twoCol, compact && styles.twoColStacked]}>
-          <StudioPanel
-            title="Your blueprints"
-            meta={
-              <Text style={styles.panelMeta}>
-                {isInstitutional ? 'Hopkins-managed · no payouts' : 'Independent · payouts via Stripe'}
-              </Text>
-            }
-            flex={1}
+        {compact ? (
+          <ScrollView
+            style={styles.compactScroll}
+            contentContainerStyle={styles.compactScrollInner}
+            showsVerticalScrollIndicator={false}
           >
-            <ScrollView>
-              {data.blueprints.length === 0 ? (
-                <BlueprintsEmptyState onCreate={() => router.push('/studio/blueprints/new')} />
-              ) : (
-                <>
-                  {data.blueprints.map((bp) => (
-                    <BlueprintRow
-                      key={bp.id}
-                      bp={bp}
-                      onPress={() => router.push(`/studio/blueprints/${bp.id}`)}
-                    />
-                  ))}
-                  <Pressable
-                    style={styles.newBlueprintRow}
-                    onPress={() => router.push('/studio/blueprints/new')}
-                  >
-                    <Ionicons name="add" size={14} color="#007AFF" />
-                    <Text style={styles.newBlueprintText}>Create a new blueprint</Text>
-                  </Pressable>
-                </>
-              )}
-            </ScrollView>
-          </StudioPanel>
-
-          <StudioPanel
-            title="Threads awaiting you"
-            meta={
-              <Text
-                style={[
-                  styles.panelMeta,
-                  data.threadAwaitingCount > 0 && styles.panelMetaCoral,
-                ]}
-              >
-                {data.threadAwaitingCount > 0 ? data.threadAwaitingCount : '0'}
-              </Text>
-            }
-            width={compact ? undefined : 360}
-          >
-            <ScrollView>
-              {data.threads.length === 0 ? (
-                <ThreadsEmptyState />
-              ) : (
-                <>
-                  {data.threads.map((t) => (
-                    <ThreadRow key={t.id} t={t} />
-                  ))}
-                  <Pressable style={styles.viewAllRow}>
-                    <Text style={styles.viewAllText}>
-                      View all {data.threads.length} threads →
-                    </Text>
-                  </Pressable>
-                </>
-              )}
-            </ScrollView>
-          </StudioPanel>
-        </View>
+            {body}
+          </ScrollView>
+        ) : (
+          body
+        )}
       </StudioShell>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// KPI card
-// ---------------------------------------------------------------------------
-
-function KpiCard({
-  label,
-  value,
-  footnote,
-  footnoteTone = 'neutral',
-  valueTone = 'neutral',
-}: {
-  label: string;
-  value: string;
-  footnote: string;
-  footnoteTone?: 'neutral' | 'positive';
-  valueTone?: 'neutral' | 'coral';
-}) {
-  return (
-    <View style={styles.kpiCard}>
-      <Text style={styles.kpiLabel}>{label}</Text>
-      <Text
-        style={[styles.kpiValue, valueTone === 'coral' && styles.kpiValueCoral]}
-      >
-        {value}
-      </Text>
-      <View style={styles.kpiFootRow}>
-        {footnoteTone === 'positive' ? (
-          <Ionicons name="trending-up" size={13} color="#1E8F47" />
-        ) : null}
-        <Text
-          style={[
-            styles.kpiFootnote,
-            footnoteTone === 'positive' && styles.kpiFootnotePositive,
-          ]}
-        >
-          {footnote}
-        </Text>
-      </View>
     </View>
   );
 }
@@ -383,9 +312,9 @@ function BlueprintRow({ bp, onPress }: { bp: StudioBlueprint; onPress?: () => vo
       </View>
       <View style={styles.bpActions}>
         {isDraft ? (
-          <StudioButton variant="primary" accent="purple" label="Continue" small />
+          <StudioButton variant="primary" accent="purple" label="Continue" small onPress={onPress} />
         ) : (
-          <StudioButton variant="ghost" icon="create-outline" label="Edit" small />
+          <StudioButton variant="ghost" icon="create-outline" label="Edit" small onPress={onPress} />
         )}
         <Text style={styles.bpLastEdit}>Last edit · {bp.lastEditLabel}</Text>
       </View>
@@ -438,71 +367,8 @@ function BlueprintsEmptyState({ onCreate }: { onCreate: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// Thread row + empty state
-// ---------------------------------------------------------------------------
-
-function ThreadRow({ t }: { t: StudioThread }) {
-  return (
-    <Pressable style={styles.threadRow}>
-      <View style={[styles.threadAvi, { backgroundColor: t.gradient[0] }]}>
-        <Text style={styles.threadAviText}>{t.fromInitials}</Text>
-      </View>
-      <View style={styles.threadBody}>
-        <View style={styles.threadHeadRow}>
-          <Text style={styles.threadName}>{t.fromName}</Text>
-          <Text style={styles.threadCtx}> · {t.blueprintLabel}</Text>
-        </View>
-        <Text style={styles.threadPreview} numberOfLines={2}>
-          {t.preview}
-        </Text>
-        <View style={styles.threadAgeRow}>
-          {t.awaiting ? (
-            <Ionicons name="ellipse" size={6} color="#FF6B6B" />
-          ) : null}
-          <Text style={[styles.threadAge, t.awaiting && styles.threadAgeAwaiting]}>
-            {t.ageLabel}
-            {t.awaiting ? ' · awaiting' : ''}
-          </Text>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-function ThreadsEmptyState() {
-  return (
-    <View style={styles.emptyStateThin}>
-      <Ionicons name="chatbubbles-outline" size={22} color="rgba(60, 60, 67, 0.3)" />
-      <Text style={styles.emptyThinTitle}>No threads yet</Text>
-      <Text style={styles.emptyThinBody}>
-        Subscriber questions and reflections will surface here.
-      </Text>
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 5) return 'evening';
-  if (h < 12) return 'morning';
-  if (h < 18) return 'afternoon';
-  return 'evening';
-}
-
-function firstName(displayName: string): string {
-  const tokens = displayName.split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return displayName;
-  // Strip leading "Dr." / "Mr." / "Ms." titles for a friendlier greeting.
-  const first = tokens[0].replace(/\.$/, '');
-  if (/^(dr|mr|ms|mrs|prof)$/i.test(first) && tokens.length > 1) {
-    return tokens[1];
-  }
-  return tokens[0];
-}
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -534,62 +400,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Header subtitle
+  // Header subtitle — the single muted stat line.
   subText: { fontSize: 13.5, color: 'rgba(60, 60, 67, 0.6)' },
 
-  // KPI strip
-  kpiStrip: {
-    marginTop: 18,
-    marginBottom: 18,
-  },
-  kpiCard: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 0.5,
-    borderColor: 'rgba(0,0,0,0.06)',
-    ...({
-      boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-    } as any),
-  },
-  kpiLabel: {
-    fontSize: 11,
-    color: 'rgba(60, 60, 67, 0.6)',
-    fontFamily: fontFamily.mono,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  kpiValue: {
-    fontSize: 26,
-    fontFamily: fontFamily.mono,
-    fontWeight: '500',
-    color: '#1C1C1E',
-    letterSpacing: -0.5,
-    marginTop: 6,
-    marginBottom: 2,
-    fontVariant: ['tabular-nums'],
-  },
-  kpiValueCoral: { color: '#FF6B6B' },
-  kpiFootRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  kpiFootnote: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)' },
-  kpiFootnotePositive: { color: '#1E8F47' },
+  // Phone page scroll.
+  compactScroll: { flex: 1 },
+  compactScrollInner: { paddingBottom: 24 },
 
-  // Two-column grid
-  twoCol: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 16,
-    minHeight: 0,
-  },
-  // <600pt — stack the two panels vertically so neither is squeezed to ~190pt.
-  twoColStacked: { flexDirection: 'column' },
-
-  // Panel meta
-  panelMeta: { fontSize: 12, color: 'rgba(60, 60, 67, 0.6)' },
-  panelMetaCoral: { color: '#FF6B6B', fontWeight: '600' },
+  // Blueprint list — the page itself, no card chrome.
+  listWrap: { flex: 1, marginTop: 10 },
 
   // Blueprint row
   blueprintRow: {
@@ -664,7 +483,7 @@ const styles = StyleSheet.create({
   bpActions: { alignItems: 'flex-end', gap: 6 },
   bpLastEdit: { fontSize: 10.5, fontFamily: fontFamily.mono, fontWeight: '500', color: 'rgba(60, 60, 67, 0.6)' },
 
-  // New-blueprint row
+  // New-blueprint row — the single create action.
   newBlueprintRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -672,7 +491,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 16,
   },
-  newBlueprintText: { color: '#007AFF', fontSize: 13.5, fontWeight: '500' },
+  newBlueprintText: { color: '#007AFF', fontSize: 13.5, fontWeight: '600' },
 
   // Empty state — big
   emptyState: {
@@ -699,54 +518,4 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     marginBottom: 8,
   },
-
-  // Empty state — thin (threads panel)
-  emptyStateThin: {
-    paddingHorizontal: 16,
-    paddingVertical: 28,
-    alignItems: 'center',
-    gap: 6,
-  },
-  emptyThinTitle: { fontSize: 13, fontWeight: '600', color: '#1C1C1E', marginTop: 4 },
-  emptyThinBody: {
-    fontSize: 11.5,
-    color: 'rgba(60, 60, 67, 0.6)',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-
-  // Thread row
-  threadRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#E5E5EA',
-  },
-  threadAvi: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  threadAviText: { color: '#FFFFFF', fontSize: 11, fontFamily: fontFamily.mono, fontWeight: '500' },
-  threadBody: { flex: 1, minWidth: 0 },
-  threadHeadRow: { flexDirection: 'row', alignItems: 'baseline' },
-  threadName: { fontSize: 12.5, fontWeight: '600', color: '#1C1C1E' },
-  threadCtx: { fontSize: 10.5, color: 'rgba(60, 60, 67, 0.6)' },
-  threadPreview: {
-    fontSize: 11.5,
-    color: 'rgba(60, 60, 67, 0.85)',
-    lineHeight: 16,
-    marginTop: 2,
-  },
-  threadAgeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
-  threadAge: { fontSize: 10.5, fontFamily: fontFamily.mono, fontWeight: '500', color: 'rgba(60, 60, 67, 0.6)' },
-  threadAgeAwaiting: { color: '#FF6B6B', fontWeight: '600' },
-
-  // View-all
-  viewAllRow: { paddingVertical: 12, alignItems: 'center' },
-  viewAllText: { color: '#007AFF', fontSize: 12.5, fontWeight: '500' },
 });

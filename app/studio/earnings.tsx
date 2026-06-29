@@ -60,16 +60,30 @@ export default function StudioEarningsPage() {
   const displayName =
     userProfile?.full_name || userProfile?.display_name || user?.email || 'You';
   const initials = getInitials(displayName);
-  const isInstitutional = menu.hasActiveOrg;
+  const isInstitutional = !!menu.activeOrg;
 
   const navSections: StudioNavSection[] = [
     {
       eyebrow: 'Studio',
       items: [
-        { key: 'home', icon: 'grid-outline', label: 'Home', onPress: () => router.push('/studio') },
-        { key: 'blueprints', icon: 'git-branch-outline', label: 'Blueprints' },
-        { key: 'subscribers', icon: 'people-outline', label: 'Subscribers' },
-        { key: 'threads', icon: 'chatbubbles-outline', label: 'Threads' },
+        {
+          key: 'blueprints',
+          icon: 'git-branch-outline',
+          label: 'Blueprints',
+          onPress: () => router.push('/studio'),
+        },
+        {
+          key: 'subscribers',
+          icon: 'people-outline',
+          label: 'Subscribers',
+          onPress: () => router.push('/studio/subscribers'),
+        },
+        {
+          key: 'threads',
+          icon: 'chatbubbles-outline',
+          label: 'Threads',
+          onPress: () => router.push('/studio/threads'),
+        },
       ],
     },
     {
@@ -111,6 +125,22 @@ export default function StudioEarningsPage() {
           if (lens === 'practice') router.push('/');
         }}
         navSections={navSections}
+        compactBottomTabs={[
+          {
+            key: 'blueprints',
+            icon: 'git-branch-outline',
+            label: 'Blueprints',
+            onPress: () => router.push('/studio'),
+          },
+          { key: 'subscribers', icon: 'people-outline', label: 'Subscribers' },
+          { key: 'threads', icon: 'chatbubbles-outline', label: 'Threads' },
+          {
+            key: 'payouts',
+            icon: 'cash-outline',
+            label: 'Payouts',
+            onPress: () => router.push('/studio/payouts'),
+          },
+        ]}
         user={{ name: displayName, email: user?.email ?? '', initials }}
       >
         <StudioHeader
