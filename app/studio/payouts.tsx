@@ -93,12 +93,6 @@ export default function StudioPayoutsPage() {
           count: data.currencySymbol,
           active: true,
         },
-        {
-          key: 'earnings',
-          icon: 'receipt-outline',
-          label: 'Earnings',
-          onPress: () => router.push('/studio/earnings'),
-        },
       ],
     },
     {
@@ -222,6 +216,16 @@ export default function StudioPayoutsPage() {
           </View>
         </StudioPanel>
       </View>
+
+      <View style={styles.payoutNote}>
+        <Ionicons name="information-circle-outline" size={16} color="#28406B" />
+        <Text style={styles.payoutNoteText}>
+          Earnings are credited to your Stripe Connect account on each invoice clear. Your
+          configured author payout % (default 70%) applies — the platform takes the remainder
+          as an application fee. Cancellations reflect immediately; access continues through
+          the end of the paid period.
+        </Text>
+      </View>
     </>
   );
 
@@ -230,10 +234,10 @@ export default function StudioPayoutsPage() {
       <StudioShell
         accent="drawing"
         org={{
-          name: isInstitutional ? (menu.activeOrg!.org_name) : `${displayName} · Studio`,
-          role: isInstitutional ? `Studio · ${displayName.split(' ').slice(0, 2).join(' ')}` : 'Independent · payouts',
-          mono: isInstitutional ? menu.activeOrg!.org_short_name : '·',
-          monoColor: isInstitutional ? 'navy' : 'drawing',
+          name: menu.activeOrg ? menu.activeOrg.org_name : 'Personal',
+          role: `Studio · ${displayName.split(' ').slice(0, 2).join(' ')}`,
+          mono: menu.activeOrg ? menu.activeOrg.org_short_name : initials,
+          monoColor: menu.activeOrg ? 'navy' : 'solo',
         }}
         ctxLens="studio"
         ctxLensOptions={['practice', 'studio']}
@@ -635,6 +639,21 @@ const styles = StyleSheet.create({
   },
   subText: { fontSize: 13.5, color: 'rgba(60, 60, 67, 0.6)' },
   panelMeta: { fontSize: 12, color: 'rgba(60, 60, 67, 0.6)' },
+  payoutNote: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(40, 64, 107, 0.06)',
+  },
+  payoutNoteText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    color: 'rgba(60, 60, 67, 0.75)',
+  },
 
   // Compact (phone) — vertical scroll + stacked sections
   compactScroll: { flex: 1 },

@@ -101,12 +101,6 @@ export default function StudioBlueprintsPage() {
           count: isInstitutional ? '—' : undefined,
           onPress: () => router.push('/studio/payouts'),
         },
-        {
-          key: 'earnings',
-          icon: 'receipt-outline',
-          label: 'Earnings',
-          onPress: () => router.push('/studio/earnings'),
-        },
       ],
       footer: isInstitutional ? (
         <Text style={styles.institutionalNote}>
@@ -264,7 +258,7 @@ function BlueprintRow({ bp, onPress }: { bp: StudioBlueprint; onPress?: () => vo
     >
       <BlueprintCover bp={bp} />
       <View style={styles.bpContent}>
-        <Text style={[styles.bpTitle, isDraft && styles.bpTitleDraft]} numberOfLines={1}>
+        <Text style={[styles.bpTitle, isDraft && styles.bpTitleDraft]} numberOfLines={2}>
           {bp.title}
           {isDraft ? <Text style={styles.bpDraftLabel}>{'  '}— draft</Text> : null}
         </Text>

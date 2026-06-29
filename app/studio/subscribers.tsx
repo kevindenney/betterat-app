@@ -95,12 +95,6 @@ export default function StudioSubscribersPage() {
           count: isInstitutional ? '—' : undefined,
           onPress: () => router.push('/studio/payouts'),
         },
-        {
-          key: 'earnings',
-          icon: 'receipt-outline',
-          label: 'Earnings',
-          onPress: () => router.push('/studio/earnings'),
-        },
       ],
     },
     {

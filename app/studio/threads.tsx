@@ -110,12 +110,6 @@ export default function StudioThreadsPage() {
           count: isInstitutional ? '—' : undefined,
           onPress: () => router.push('/studio/payouts'),
         },
-        {
-          key: 'earnings',
-          icon: 'receipt-outline',
-          label: 'Earnings',
-          onPress: () => router.push('/studio/earnings'),
-        },
       ],
     },
     {

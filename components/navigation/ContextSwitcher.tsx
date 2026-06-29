@@ -53,7 +53,7 @@ export function ContextSwitcher() {
 
     if (surface === 'admin') {
       return {
-        label: activeOrganization ? 'Admin' : 'Admin',
+        label: 'Admin',
         dotColor: '#475569',
         monogram: workspaceName ? workspaceMono : null,
         tone: 'admin' as const,

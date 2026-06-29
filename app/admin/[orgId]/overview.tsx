@@ -109,7 +109,7 @@ export default function AdminOverviewPage() {
           evidence.cohortName !== 'No cohort'
             ? [
                 <Text key="sub" style={s.sub}>
-                  {evidence.cohortName} · {evidence.cohortSize} {av.members} ·{' '}
+                  {evidence.cohortName} · {evidence.cohortSize} {av.members} in cohort ·{' '}
                   {evidence.competencies.length} competencies · {evidence.sites.length}{' '}
                   {av.Sites.toLowerCase()}
                 </Text>,
