@@ -272,6 +272,7 @@ export default function StudioPayoutsPage() {
         user={{ name: displayName, email: user?.email ?? '', initials }}
       >
         <StudioHeader
+          compact={compact}
           crumbs={['Creator Studio', 'Payouts']}
           title="Payouts"
           subtitleParts={[
