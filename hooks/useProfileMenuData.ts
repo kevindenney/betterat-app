@@ -14,7 +14,6 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { useInterest } from '@/providers/InterestProvider';
 import { useOrganization } from '@/providers/OrganizationProvider';
 import { isOrgAdminRole } from '@/lib/organizations/roleLabels';
 import {
@@ -118,21 +117,12 @@ export function useProfileMenuData(): ProfileMenuData {
       });
   }, [rawRows]);
 
-  // Prefer the explicit active organization selected in OrganizationProvider.
-  // This matters when a user belongs to multiple orgs under the same interest
-  // (e.g. two nursing orgs): interest_slug alone cannot distinguish them.
-  // Fall back to the older interest-derived behavior when no active org has
-  // been selected yet.
-  const { currentInterest } = useInterest();
-  const activeInterestSlug = currentInterest?.slug ?? null;
   const activeOrgById = activeOrganizationId
     ? memberships.find((m) => m.org_id === activeOrganizationId) ?? null
     : null;
-  const activeOrgByInterest =
-    (activeInterestSlug
-      ? memberships.find((m) => m.interest_slug === activeInterestSlug)
-      : undefined) ?? null;
-  const activeOrg = activeOrgById ?? activeOrgByInterest ?? null;
+  const activeOrg = activeOrgById;
+  const activeOrgIdForCounts = activeOrg?.org_id ?? null;
+  const authoredWorkspaceKey = activeOrgIdForCounts ?? 'personal';
 
   const isAdmin = !!activeOrg?.is_admin;
   const isFaculty = !!activeOrg?.is_faculty;
@@ -142,15 +132,19 @@ export function useProfileMenuData(): ProfileMenuData {
   // creator regardless of org role — this is what makes the "Creator Studio"
   // entry appear for solo authors who published to the marketplace.
   const { data: authoredBlueprintsCount = 0 } = useQuery({
-    queryKey: ['profile-menu-authored', userId],
+    queryKey: ['profile-menu-authored', userId, authoredWorkspaceKey],
     enabled: !!userId,
     staleTime: 60_000,
     queryFn: async (): Promise<number> => {
       if (!userId) return 0;
-      const { count, error } = await supabase
+      let query = supabase
         .from('blueprints')
         .select('id', { count: 'exact', head: true })
         .eq('author_user_id', userId);
+      query = activeOrgIdForCounts
+        ? query.eq('org_id', activeOrgIdForCounts)
+        : query.is('org_id', null);
+      const { count, error } = await query;
       if (error) {
         console.warn('[useProfileMenuData] authored-blueprints count failed', error);
         return 0;
@@ -185,18 +179,17 @@ export function useProfileMenuData(): ProfileMenuData {
   });
 
   // For admins, the People badge count = active memberships at their active org
-  const activeOrgId = activeOrg?.org_id ?? null;
   const isAdminFlag = !!activeOrg?.is_admin;
   const { data: seatsCount = 0 } = useQuery({
-    queryKey: ['profile-menu-seats', activeOrgId, isAdminFlag],
-    enabled: !!activeOrgId && isAdminFlag,
+    queryKey: ['profile-menu-seats', activeOrgIdForCounts, isAdminFlag],
+    enabled: !!activeOrgIdForCounts && isAdminFlag,
     staleTime: 60_000,
     queryFn: async (): Promise<number> => {
-      if (!activeOrgId) return 0;
+      if (!activeOrgIdForCounts) return 0;
       const { count, error } = await supabase
         .from('organization_memberships')
         .select('id', { count: 'exact', head: true })
-        .eq('organization_id', activeOrgId)
+        .eq('organization_id', activeOrgIdForCounts)
         .in('status', ['active', 'verified']);
       if (error) {
         console.warn('[useProfileMenuData] seats count failed', error);

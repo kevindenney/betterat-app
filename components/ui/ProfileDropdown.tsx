@@ -43,6 +43,7 @@ import { useUserHomeVenue } from '@/hooks/useUserHomeVenue';
 import { useInboxCount } from '@/hooks/useInboxCount';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { fontFamily } from '@/lib/design-tokens-editorial';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -174,8 +175,7 @@ export function ProfileDropdown({
     setOpen(false);
     showAlert('Support', 'Email us at info@better.at');
   };
-  // Switch the active context to an org by switching to that org's interest
-  // (active-org is derived from the active interest; see useProfileMenuData).
+  // Switch the active workspace to an org and then align the interest.
   // An org with no interest mapping can't be switched-to, so fall back to
   // opening its page instead.
   const handleSwitchToOrg = async (org: OrgMembership) => {
@@ -191,11 +191,12 @@ export function ProfileDropdown({
       /* switch failures are non-fatal; menu just stays put */
     }
   };
-  // "Personal" isn't its own interest — it's the absence of an org mapping.
-  // Switching to it means jumping to the user's first interest not covered
-  // by any org membership.
+  // "Personal" is the absence of an active org. If the user has a personal
+  // interest, align to it too; the workspace switch should still happen even
+  // when every interest is covered by an org.
   const handleSwitchToPersonal = async () => {
     setOpen(false);
+    await setActiveOrganizationId(null);
     const orgSlugs = new Set(
       menu.memberships.map((m) => m.interest_slug).filter(Boolean) as string[],
     );
@@ -325,7 +326,7 @@ export function ProfileDropdown({
 
       {/* Inbox unread badge — separate press target. Tapping the avatar opens
           this menu; tapping the red badge deep-links straight to Inbox. */}
-      {isLoggedIn && inboxCount > 0 ? (
+      {isLoggedIn && !FEATURE_FLAGS.CONTEXT_SWITCHER_V1 && inboxCount > 0 ? (
         <Pressable
           style={s.inboxBadge}
           onPress={openInbox}
@@ -439,6 +440,7 @@ function LoggedInMenu({
   // label must not name an org — "Sign out of {org}" wrongly read as
   // org-scoped (it's not; switching context is the roles section above).
   const signOutLabel = 'Sign out';
+  const slim = FEATURE_FLAGS.CONTEXT_SWITCHER_V1;
 
   return (
     <View style={s.popInner}>
@@ -457,35 +459,41 @@ function LoggedInMenu({
         onEditProfile={() => onNavigate('/settings/public-face')}
       />
 
-      <RolesSection
-        memberships={menu.memberships}
-        activeOrg={menu.activeOrg}
-        onSwitchToOrg={onSwitchToOrg}
-        onSwitchToPersonal={onSwitchToPersonal}
-        onJoinOrg={() => onNavigate('/(tabs)/library?zone=orgs')}
-      />
+      {!slim ? (
+        <RolesSection
+          memberships={menu.memberships}
+          activeOrg={menu.activeOrg}
+          onSwitchToOrg={onSwitchToOrg}
+          onSwitchToPersonal={onSwitchToPersonal}
+          onJoinOrg={() => onNavigate('/(tabs)/library?zone=orgs')}
+        />
+      ) : null}
 
-      {(menu.isAdmin || menu.isAuthor) && (
+      {!slim && (menu.isAdmin || menu.isAuthor) && (
         <RoleShortcuts menu={menu} onNavigate={onNavigate} />
       )}
 
       <View style={s.linkSection}>
-        <DropdownItem
-          icon="checkmark-circle"
-          label="My Practice"
-          onPress={() => onNavigate('/(tabs)/practice')}
-          trailing="chevron"
-        />
-        <ItemDivider />
-        <DropdownItem
-          icon="mail"
-          label="Inbox"
-          onPress={() => onNavigate('/(tabs)/inbox')}
-          trailing={inboxCount > 0 ? 'count' : 'none'}
-          count={inboxCount}
-          countTone={inboxCount > 0 ? 'coral' : 'neutral'}
-        />
-        <ItemDivider />
+        {!slim ? (
+          <>
+            <DropdownItem
+              icon="checkmark-circle"
+              label="My Practice"
+              onPress={() => onNavigate('/(tabs)/practice')}
+              trailing="chevron"
+            />
+            <ItemDivider />
+            <DropdownItem
+              icon="mail"
+              label="Inbox"
+              onPress={() => onNavigate('/(tabs)/inbox')}
+              trailing={inboxCount > 0 ? 'count' : 'none'}
+              count={inboxCount}
+              countTone={inboxCount > 0 ? 'coral' : 'neutral'}
+            />
+            <ItemDivider />
+          </>
+        ) : null}
         <DropdownItem
           icon="settings"
           label="Account & settings"
@@ -563,6 +571,7 @@ function PublicFaceStrip({
   onEditProfile: () => void;
 }) {
   const descriptor = [currentInterestName, homeVenueName].filter(Boolean).join(' · ');
+  const slim = FEATURE_FLAGS.CONTEXT_SWITCHER_V1;
   return (
     <View style={s.publicFaceStrip}>
       <Text style={s.publicFaceKicker}>Your public face</Text>
@@ -572,25 +581,27 @@ function PublicFaceStrip({
       <Pressable
         onPress={onViewProfile}
         accessibilityRole="button"
-        accessibilityLabel="View as others see you"
+        accessibilityLabel="View and edit profile"
         style={s.publicFaceRow}
       >
         <Ionicons name="eye" size={18} color="#A67C52" style={{ marginRight: 12 }} />
         <Text style={s.publicFaceTitle} numberOfLines={1}>
-          View as others see you
+          View & edit profile
         </Text>
-        <Pressable
-          onPress={(event) => {
-            event.stopPropagation?.();
-            onEditProfile();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Edit public profile"
-          hitSlop={8}
-          style={s.publicFaceEdit}
-        >
-          <Text style={s.publicFaceEditText}>Edit</Text>
-        </Pressable>
+        {!slim ? (
+          <Pressable
+            onPress={(event) => {
+              event.stopPropagation?.();
+              onEditProfile();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Edit public profile"
+            hitSlop={8}
+            style={s.publicFaceEdit}
+          >
+            <Text style={s.publicFaceEditText}>Edit</Text>
+          </Pressable>
+        ) : null}
         <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
       </Pressable>
     </View>
@@ -612,7 +623,7 @@ function RolesSection({
 }) {
   return (
     <View style={s.roles}>
-      <Text style={s.rolesKey}>Signed in at</Text>
+      <Text style={s.rolesKey}>Workspace</Text>
       {memberships.map((m) => (
         <RoleCard
           key={m.org_id}

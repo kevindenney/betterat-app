@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Switch workspace, redesigned</title>
+<style>
+  :root {
+    --bg:      #F2F2F7;
+    --card:    #FFFFFF;
+    --ink:     #1C1C1E;
+    --ink-2:   #5B6068;
+    --ink-3:   #9097A1;
+    --label:   #8E8E93;
+    --hair:    #E6E7EB;
+    --hair-2:  #F0F1F4;
+    --blue:    #007AFF;
+    --studio:  #6366F1;
+    --admin:   #475569;
+    --green:   #1E9E6A;
+    --amber:   #E08A2B;
+    --red:     #FF3B30;
+    --jhu:     #0B4DA2;
+    --fleet:   #0E7490;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    background: #DCDCE1; color: var(--ink); line-height: 1.42;
+    padding: 44px 24px 90px;
+  }
+  .masthead { max-width: 1180px; margin: 0 auto 8px; text-align: center; }
+  .masthead h1 { font-size: 25px; font-weight: 800; letter-spacing: -.02em; }
+  .masthead p  { color: #4b5057; font-size: 14px; margin: 9px auto 0; max-width: 800px; }
+  .masthead p b { color: #2a2d33; }
+
+  /* problem callout */
+  .problem { max-width: 920px; margin: 24px auto 0; background:#FFF7F6; border:1px solid #F6D6D2;
+    border-radius:16px; padding: 18px 22px; }
+  .problem h3 { font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--red); }
+  .problem ul { margin:12px 0 0; padding:0; list-style:none; display:grid; gap:9px; }
+  .problem li { font-size:13.5px; color:#4b5057; display:flex; gap:10px; align-items:flex-start; }
+  .problem li b { color:#1f2329; }
+  .problem li .x { flex-shrink:0; color:var(--red); font-weight:800; }
+
+  .rule { max-width: 920px; margin: 22px auto 0; background:#fff; border:1px solid var(--hair);
+    border-radius:16px; padding: 18px 22px; }
+  .rule h3 { font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--studio); }
+  .rule .big { font-size:18px; font-weight:780; letter-spacing:-.01em; margin-top:8px; }
+  .rule .big span { color:var(--blue); }
+  .rule p { font-size:13.5px; color:#4b5057; margin-top:9px; }
+  .rule p b { color:#1f2329; }
+
+  .row-tag { max-width: 1180px; margin: 46px auto 18px; }
+  .row-tag .t { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--studio); }
+  .row-tag .h { font-size: 19px; font-weight: 750; letter-spacing: -.01em; margin-top: 6px; }
+  .row-tag .d { font-size: 13.5px; color: #4b5057; margin-top: 5px; max-width: 820px; }
+  .row-tag .d b { color: #2a2d33; }
+
+  .stage { display: flex; gap: 38px; justify-content: center; align-items: flex-start; flex-wrap: wrap;
+    max-width: 1180px; margin: 0 auto; }
+  .col { width: 320px; }
+  .col .cap { text-align: center; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 13px; }
+  .col .cap.blue { color: var(--blue); } .col .cap.purple { color: var(--studio); } .col .cap.admin { color: var(--admin); }
+  .col .note { font-size: 12.5px; color: #4b5057; line-height: 1.55; margin-top: 14px; }
+  .col .note b { color: #1f2329; }
+
+  .phone { width: 320px; border-radius: 44px; padding: 11px; background: #0b0b0d; box-shadow: 0 20px 52px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.18); }
+  .screen { position: relative; border-radius: 34px; overflow: hidden; background: var(--bg); height: 690px; }
+  .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 112px; height: 30px; background: #000; border-radius: 17px; z-index: 9; }
+  .status { height: 46px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 24px 6px; font-size: 13px; font-weight: 600; }
+  .status .dots { letter-spacing: 2px; }
+
+  .appbar { display:flex; align-items:center; gap:8px; padding: 4px 14px 12px; }
+  .ctxchip { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--hair); border-radius: 999px; padding: 6px 13px 6px 7px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .ctxchip .led { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .ctxchip .mono { width:21px; height:21px; border-radius:6px; color:#fff; font-size:9px; font-weight:800; display:grid; place-items:center; flex-shrink:0; }
+  .ctxchip .nm { font-size:13px; font-weight:750; }
+  .ctxchip .sf { font-size:13px; font-weight:750; }
+  .ctxchip .chev { font-size:11px; color: var(--ink-3); }
+  .ctxchip.practice .led { background:var(--blue); }
+  .appbar .spacer { flex:1; }
+  .iconbtn { width:33px; height:33px; border-radius:10px; background:#fff; border:1px solid var(--hair); display:grid; place-items:center; font-size:15px; color: var(--ink-2); position:relative; }
+  .iconbtn .dot { position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px; background:var(--red); color:#fff; font-size:9.5px; font-weight:800; border-radius:999px; display:grid; place-items:center; border:2px solid var(--bg); }
+  .avbtn { width:33px; height:33px; border-radius:50%; background:#C9CDD6; color:#fff; font-size:12px; font-weight:700; display:grid; place-items:center; }
+
+  /* sheet */
+  .sheet { position:absolute; inset:0; background: var(--bg); overflow:hidden; display:flex; flex-direction:column; }
+  .sheetbar { display:flex; align-items:center; justify-content:space-between; padding: 8px 16px 10px; }
+  .sheetbar .kick { font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--label); }
+  .sheetbar .ttl { font-size:21px; font-weight:780; letter-spacing:-.015em; margin-top:1px; }
+  .sheetbar .x { width:30px; height:30px; border-radius:50%; background:#E9E9EE; color:var(--ink-2); font-size:14px; display:grid; place-items:center; }
+  .sheetscroll { flex:1; overflow:hidden; padding: 2px 12px 12px; }
+
+  .wslabel { display:flex; align-items:center; gap:9px; padding: 14px 6px 7px; }
+  .wslabel .mono { width:24px; height:24px; border-radius:7px; color:#fff; font-size:9.5px; font-weight:800; display:grid; place-items:center; }
+  .wslabel .t { font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--label); }
+  .wslabel .role { margin-left:auto; font-size:9.5px; font-weight:800; color:var(--admin); background:#EEF1F5; border-radius:999px; padding:2px 8px; }
+  .wslabel .role.leader { color:var(--fleet); background:#E6F4F6; }
+
+  .group { background:#fff; border-radius:14px; overflow:hidden; border:1px solid var(--hair); }
+  .ghead { font-size:9px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--label); padding:11px 14px 4px; }
+
+  /* destination row */
+  .drow { display:flex; align-items:center; gap:12px; padding: 11px 14px; position:relative; }
+  .drow + .drow::before, .surf::before { content:""; position:absolute; top:0; left:48px; right:0; height:1px; background:var(--hair-2); }
+  .drow .ic { width:30px; height:30px; border-radius:9px; display:grid; place-items:center; color:#fff; font-size:14px; flex-shrink:0; }
+  .drow .ic.blue { background:var(--blue); } .drow .ic.purple { background:var(--studio); } .drow .ic.admin { background:var(--admin); } .drow .ic.fleet { background:var(--fleet); }
+  .drow .nm { font-size:14.5px; font-weight:700; }
+  .drow .d { font-size:11px; color:var(--ink-3); margin-top:1px; }
+  .drow .go { margin-left:auto; color:var(--ink-3); font-size:16px; font-weight:600; }
+  .drow .check { margin-left:auto; color:var(--blue); font-weight:800; font-size:16px; }
+  .drow.on { background:#F4F9FF; }
+
+  /* interest = practice destination */
+  .irow { display:flex; align-items:center; gap:12px; padding: 10px 14px; position:relative; }
+  .irow + .irow::before, .irow::before { content:""; position:absolute; top:0; left:48px; right:0; height:1px; background:var(--hair-2); }
+  .irow .dot { width:20px; display:grid; place-items:center; }
+  .irow .dot i { width:10px; height:10px; border-radius:50%; }
+  .irow .nm { font-size:14px; font-weight:650; }
+  .irow .go { margin-left:auto; color:var(--ink-3); font-size:16px; }
+  .irow .check { margin-left:auto; color:var(--blue); font-weight:800; font-size:16px; }
+  .irow.on { background:#F4F9FF; }
+  .irow.on .nm { font-weight:800; color:var(--blue); }
+  .irow.add { color:var(--blue); font-weight:700; font-size:13px; }
+  .irow.add::before { display:none; }
+  .irow.add .plus { width:20px; text-align:center; font-size:16px; }
+  .surf { position:relative; border-top:6px solid #F4F4F7; }
+
+  .join { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:14px; padding:13px; background:#EAF4FF; border-radius:13px; color:var(--blue); font-size:13.5px; font-weight:800; }
+
+  /* practice result screen */
+  .body { padding: 4px 16px; height: 470px; overflow:hidden; }
+  .h1 { font-size:22px; font-weight:780; letter-spacing:-.015em; margin-top:2px; }
+  .sub { font-size:12px; color: var(--ink-3); margin-top:3px; }
+  .seg { display:flex; gap:7px; margin-top:14px; }
+  .seg .s { padding:7px 13px; border-radius:999px; font-size:12px; font-weight:700; background:#fff; border:1px solid var(--hair); color:var(--ink-2); }
+  .seg .s.on { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .listrow { display:flex; gap:11px; align-items:center; background:#fff; border:1px solid var(--hair); border-radius:12px; padding:11px; margin-top:11px; }
+  .listrow .sq { width:38px; height:38px; border-radius:10px; flex-shrink:0; display:grid; place-items:center; color:#fff; font-size:14px; }
+  .listrow .nm { font-size:13.5px; font-weight:700; }
+  .listrow .mt { font-size:11px; color:var(--ink-3); margin-top:3px; }
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:74px; background:rgba(255,255,255,.94); backdrop-filter: blur(14px); border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:flex-start; padding-top:9px; }
+  .tab { flex:1; display:grid; justify-items:center; gap:4px; font-size:9px; font-weight:600; color:var(--ink-3); }
+  .tab .ic { font-size:17px; }
+  .tab.on.blue { color: var(--blue); }
+
+  .takeaways { max-width:1180px; margin: 52px auto 0; background:#fff; border:1px solid var(--hair); border-radius:16px; padding:22px 24px; }
+  .takeaways h3 { font-size:15px; font-weight:780; }
+  .takeaways ul { margin:14px 0 0; padding:0; list-style:none; display:grid; gap:12px; }
+  .takeaways li { font-size:13.5px; color:#4b5057; display:flex; gap:12px; align-items:flex-start; }
+  .takeaways li b { color:#1f2329; }
+  .takeaways li .n { flex-shrink:0; width:22px; height:22px; border-radius:7px; background:#EEEEFE; color:var(--studio); font-size:11px; font-weight:800; display:grid; place-items:center; margin-top:1px; }
+  .takeaways code { background:#F2F2F7; border-radius:5px; padding:1px 6px; font-size:12px; color:#1f2329; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <h1>Switch workspace — redesigned</h1>
+  <p>The shipped sheet conflates three different things. This redesign makes the rule literal:
+  <b>everything in the sheet is a destination you go to</b> — workspaces, surfaces, and interests alike.
+  Nothing is a silent checkbox.</p>
+
+  <div class="problem">
+    <h3>What's broken today</h3>
+    <ul>
+      <li><span class="x">✕</span><div><b>Two ways to reach the same place.</b> The Personal <i>header</i> goes to Practice, and there's <i>also</i> a "Practice" row right under it that does the same thing. Which is the real control?</div></li>
+      <li><span class="x">✕</span><div><b>Interests behave differently from everything else.</b> Tap Studio → you go to Studio. Tap Personal → you go to Personal. But tap <b>Golf</b> while in Studio and it only flips a checkmark underneath you — you never leave Studio. Same-looking rows, two different behaviors.</div></li>
+      <li><span class="x">✕</span><div><b>An interest looks "active" on a surface where interest is meaningless.</b> A Golf checkmark shows while you're in Studio, even though Studio isn't scoped to an interest.</div></li>
+    </ul>
+  </div>
+
+  <div class="rule">
+    <h3>The fix — one rule</h3>
+    <div class="big">An interest <span>is</span> the Practice destination. Tapping it means "take me to Practice, in that interest."</div>
+    <p><b>Practice = practicing some interest</b>, so the interests <i>are</i> the Practice rows — no separate redundant "Practice" line. Tapping Golf clears any org context, switches the interest, and routes to the Practice tab. The checkmark only appears on the interest you're <b>actually practicing right now</b>; switch to Studio and nothing is checked, because you've left Practice.</p>
+  </div>
+</div>
+
+<!-- ROW: before / after / result -->
+<div class="row-tag">
+  <div class="t">The sheet</div>
+  <div class="h">Workspace → its surfaces, every row a real destination</div>
+  <div class="d">Personal's surfaces are the interests (Practice) plus Studio. Each org shows only the surfaces your
+  role unlocks. The chevron on each row says "this navigates" — so an interest reads exactly like Studio or Admin.</div>
+</div>
+
+<div class="stage">
+  <!-- BEFORE -->
+  <div class="col">
+    <div class="cap">Before — today's sheet</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheet">
+        <div class="sheetbar"><div><div class="kick">Context</div><div class="ttl">Switch workspace</div></div><span class="x">✕</span></div>
+        <div class="sheetscroll">
+          <div class="wslabel"><span class="t">Personal</span></div>
+          <div class="group" style="background:#F8FAFC">
+            <div class="drow" style="background:#F8FAFC"><div class="ic" style="background:#E0F2FE;color:#0369A1">KD</div><div><div class="nm">Personal</div><div class="d">Your practice across interests</div></div></div>
+            <div class="drow on"><div class="ic blue">◎</div><div><div class="nm">Practice</div></div><span class="check">✓</span></div>
+            <div style="margin-left:30px;border-left:2px solid #DBEAFE;padding:2px 0 4px">
+              <div class="irow on" style="padding-left:14px"><span class="nm">Nursing</span><span class="check">✓</span></div>
+              <div class="irow" style="padding-left:14px"><span class="nm">Sailing</span></div>
+              <div class="irow" style="padding-left:14px"><span class="nm">Golf</span></div>
+              <div class="irow add" style="padding-left:14px">＋ Add interest</div>
+            </div>
+            <div class="drow"><div class="ic purple">⬚</div><div><div class="nm">Studio</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div class="note"><b>Redundant Practice row + nested interest tree.</b> Interests sit behind a decorative left
+    rail and carry a checkmark even though tapping them does nothing but re-tick the box. Header, "Practice", and
+    the interest list are three controls for one idea.</div>
+  </div>
+
+  <!-- AFTER -->
+  <div class="col">
+    <div class="cap purple">After — redesigned sheet</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheet">
+        <div class="sheetbar"><div><div class="kick">Context</div><div class="ttl">Switch workspace</div></div><span class="x">✕</span></div>
+        <div class="sheetscroll">
+
+          <div class="wslabel"><div class="mono" style="background:#111">KD</div><span class="t">Personal</span></div>
+          <div class="group">
+            <div class="ghead">Practice — pick an interest</div>
+            <div class="irow on"><div class="dot"><i style="background:var(--blue)"></i></div><span class="nm">Nursing</span><span class="check">✓</span></div>
+            <div class="irow"><div class="dot"><i style="background:#34C759"></i></div><span class="nm">Sailing</span><span class="go">›</span></div>
+            <div class="irow"><div class="dot"><i style="background:#FF9500"></i></div><span class="nm">Golf</span><span class="go">›</span></div>
+            <div class="irow add"><span class="plus">＋</span> Add interest</div>
+            <div class="drow surf"><div class="ic purple">⬚</div><div><div class="nm">Studio</div><div class="d">Blueprints you sell · 3</div></div><span class="go">›</span></div>
+          </div>
+
+          <div class="wslabel"><div class="mono" style="background:var(--jhu)">JH</div><span class="t">Johns Hopkins</span><span class="role">Admin</span></div>
+          <div class="group">
+            <div class="drow"><div class="ic purple">⬚</div><div><div class="nm">Studio</div><div class="d">Org blueprints · 5</div></div><span class="go">›</span></div>
+            <div class="drow"><div class="ic admin">⚙</div><div><div class="nm">Admin</div><div class="d">142 students · 6 cohorts</div></div><span class="go">›</span></div>
+          </div>
+
+          <div class="wslabel"><div class="mono" style="background:var(--fleet)">AF</div><span class="t">Aberdeen Fleet</span><span class="role leader">Leader</span></div>
+          <div class="group">
+            <div class="drow"><div class="ic fleet">⛵</div><div><div class="nm">Group steps</div><div class="d">Shared blueprint · 12 members</div></div><span class="go">›</span></div>
+          </div>
+
+          <div class="join">＋ Join another organization</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="note"><b>Interests ARE the Practice rows</b> — chevrons mark them as destinations, just like Studio /
+    Admin. No duplicate "Practice" line, no decorative rail. One checkmark, on the interest you're in <b>right now</b>.</div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="col">
+    <div class="cap blue">Tap "Golf" → lands in Practice · Golf</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="appbar">
+        <div class="ctxchip practice"><span class="led"></span><span class="nm">Golf</span><span class="chev">⌄</span></div>
+        <div class="spacer"></div>
+        <div class="iconbtn">＋</div>
+        <div class="iconbtn">✉<div class="dot">2</div></div>
+        <div class="avbtn">KD</div>
+      </div>
+      <div class="body">
+        <div class="h1">Golf</div>
+        <div class="sub">Your practice · short game focus this week</div>
+        <div class="seg"><span class="s on">Do</span><span class="s">Plan</span><span class="s">Review</span><span class="s">Atlas</span></div>
+        <div class="listrow"><div class="sq" style="background:#FF9500">⛳</div><div><div class="nm">100 putts · gate drill</div><div class="mt">Lag distance control · due today</div></div></div>
+        <div class="listrow"><div class="sq" style="background:#5B8C6E">🏌</div><div><div class="nm">Range — wedge ladder</div><div class="mt">40 / 60 / 80 yd · 30 balls</div></div></div>
+        <div class="listrow"><div class="sq" style="background:#7B86C8">📒</div><div><div class="nm">Log Saturday's round</div><div class="mt">Tag fairways &amp; GIR</div></div></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on blue"><span class="ic">◎</span> Do</div>
+        <div class="tab"><span class="ic">◷</span> Plan</div>
+        <div class="tab"><span class="ic">✓</span> Review</div>
+        <div class="tab"><span class="ic">🗺</span> Atlas</div>
+        <div class="tab"><span class="ic">≡</span> Library</div>
+      </div>
+    </div></div>
+    <div class="note">Tapping the interest <b>navigated</b> — chip now reads "Golf", the Practice tabs are live, org
+    context is cleared. Identical behavior to tapping Studio or Admin: every sheet row takes you somewhere.</div>
+  </div>
+</div>
+
+<div class="takeaways">
+  <h3>What changes in <code>ContextSheet.tsx</code></h3>
+  <ul>
+    <li><span class="n">1</span><div><b>Interests become Practice destinations.</b> <code>switchInterestOnly</code> → <code>switchToInterestPractice</code>: clear active org (<code>setActiveOrganizationId(null)</code>), <code>switchInterest(slug)</code>, then <code>router.replace('/(tabs)/practice')</code> — mirroring <code>switchToPersonalPractice</code>.</div></li>
+    <li><span class="n">2</span><div><b>Drop the redundant "Practice" <code>SheetRow</code>.</b> The interest list <i>is</i> Practice. Keep a section header ("Practice — pick an interest") above the interests instead.</div></li>
+    <li><span class="n">3</span><div><b>Checkmark is Practice-scoped.</b> An interest shows its check only when <code>!activeOrgId && surface === 'practice'</code>. In Studio/Admin no interest is ticked — interest is meaningless there.</div></li>
+    <li><span class="n">4</span><div><b>Every row gets a trailing chevron</b> (or check when current). The affordance now matches the behavior: each row navigates. Removes the "is this a toggle or a link?" ambiguity.</div></li>
+    <li><span class="n">5</span><div><b>Flatten the nesting.</b> Drop the decorative left rail / extra indent; interests and Studio live as sibling rows inside the one Personal card, separated by a hairline. Workspace = card; surfaces = its rows.</div></li>
+  </ul>
+</div>
+
+</body>
+</html>

@@ -178,6 +178,12 @@ export const FEATURE_FLAGS = {
   USE_WEB_SIDEBAR_LAYOUT: true,
 
   /**
+   * Phase A context switcher: one Workspace x Surface chip replacing the
+   * interest-only header pill, plus a slim profile menu and header inbox bell.
+   */
+  CONTEXT_SWITCHER_V1: readBooleanEnv(process.env.EXPO_PUBLIC_FF_CONTEXT_SWITCHER_V1, true),
+
+  /**
    * Enable master-detail split view on web for list-to-detail screens
    * When true: On wide screens (>= 1024px), lists show detail in right pane
    * When false: All platforms use full-screen push navigation

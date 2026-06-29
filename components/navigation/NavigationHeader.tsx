@@ -17,7 +17,11 @@ import { TufteTokens } from '@/constants/designSystem';
 import { NavigationDrawer, getCurrentSectionName } from './NavigationDrawer';
 import { TUFTE_BACKGROUND } from '@/components/cards/constants';
 import { InterestSwitcher } from '@/components/InterestSwitcher';
+import { ContextSwitcher } from '@/components/navigation/ContextSwitcher';
+import { NotificationBell } from '@/components/social/NotificationBell';
+import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { useVocabulary } from '@/hooks/useVocabulary';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 interface NavigationHeaderProps {
   backgroundColor?: string;
@@ -87,7 +91,7 @@ export function NavigationHeader({
 
             {showDrawer && (user || isGuest) && !isOnboardingPage && (
               <View style={styles.centerGroup}>
-                <InterestSwitcher />
+                {FEATURE_FLAGS.CONTEXT_SWITCHER_V1 ? <ContextSwitcher /> : <InterestSwitcher />}
                 {showSectionName && <Text style={styles.sectionTitle}>{sectionName}</Text>}
               </View>
             )}
@@ -95,6 +99,14 @@ export function NavigationHeader({
 
           {/* Right: Navigation Actions (only for unauthenticated non-guest users) */}
           <View style={styles.navigationActions}>
+            {FEATURE_FLAGS.CONTEXT_SWITCHER_V1 && user && !isGuest ? (
+              <View style={styles.signedInActions}>
+                <View style={styles.headerIconButton}>
+                  <NotificationBell size={19} color="#374151" />
+                </View>
+                <ProfileDropdown size={30} />
+              </View>
+            ) : null}
             {!user && !isGuest && (
               <View style={styles.authButtons}>
                 {!isLoginPage && (
@@ -164,6 +176,18 @@ const styles = StyleSheet.create({
   navigationActions: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  signedInActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerIconButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
   },
   // Hamburger Menu (Tufte mode)
   hamburgerButton: {

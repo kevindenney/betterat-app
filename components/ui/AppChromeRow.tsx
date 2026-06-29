@@ -33,6 +33,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { InterestSwitcher } from '@/components/InterestSwitcher';
+import { ContextSwitcher } from '@/components/navigation/ContextSwitcher';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { useUniversalPlus } from '@/components/capture';
@@ -117,7 +118,7 @@ export function AppChromeRow({
             </View>
           </Pressable>
         )}
-        <InterestSwitcher />
+        {FEATURE_FLAGS.CONTEXT_SWITCHER_V1 ? <ContextSwitcher /> : <InterestSwitcher />}
         {leftExtras}
       </View>
 
@@ -135,9 +136,7 @@ export function AppChromeRow({
             <Ionicons name="add" size={22} color={iconColor} />
           </Pressable>
         ) : null}
-        {/* Inbox now rides as a badge on the avatar (ProfileDropdown), so the
-            standalone bell only shows on surfaces with no avatar. */}
-        {showInboxBell && !showAvatar ? (
+        {showInboxBell && (FEATURE_FLAGS.CONTEXT_SWITCHER_V1 || !showAvatar) ? (
           <View style={styles.iconBtn}>
             <NotificationBell size={bellSize} color={iconColor} />
           </View>

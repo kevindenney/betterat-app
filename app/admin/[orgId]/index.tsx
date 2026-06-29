@@ -1,13 +1,13 @@
 /**
- * /admin/[orgId] · redirect to People (the default admin landing).
+ * /admin/[orgId] · redirect to Overview (the default admin landing).
  *
- * Frame 7 lands on People; until the Overview drawer ships, "go to admin"
- * funnels here.
+ * ContextSwitcher lands on this route, then the admin shell opens on the
+ * Overview tab so the phone bottom nav has a stable first destination.
  */
 
 import { Redirect, useLocalSearchParams } from 'expo-router';
 
 export default function AdminOrgIndex() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
-  return <Redirect href={`/admin/${orgId}/people`} />;
+  return <Redirect href={`/admin/${orgId}/overview`} />;
 }

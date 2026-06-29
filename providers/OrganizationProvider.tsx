@@ -123,6 +123,7 @@ function byCreatedAtDesc(a: OrganizationMembershipRecord, b: OrganizationMembers
 }
 const STORAGE_KEY = 'betterat.active_org_id';
 const LEGACY_STORAGE_KEY = 'rf_active_organization_id';
+const PERSONAL_WORKSPACE_STORAGE_VALUE = '__personal__';
 let hasLoggedMissingOrganizationProvider = false;
 
 const Ctx = createContext<OrganizationContextValue>({
@@ -168,7 +169,7 @@ const storeActiveOrganizationId = async (organizationId: string | null): Promise
         window.localStorage.setItem(STORAGE_KEY, organizationId);
         window.localStorage.removeItem(LEGACY_STORAGE_KEY);
       } else {
-        window.localStorage.removeItem(STORAGE_KEY);
+        window.localStorage.setItem(STORAGE_KEY, PERSONAL_WORKSPACE_STORAGE_VALUE);
         window.localStorage.removeItem(LEGACY_STORAGE_KEY);
       }
       return;
@@ -177,7 +178,7 @@ const storeActiveOrganizationId = async (organizationId: string | null): Promise
       await AsyncStorage.setItem(STORAGE_KEY, organizationId);
       await AsyncStorage.removeItem(LEGACY_STORAGE_KEY);
     } else {
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.setItem(STORAGE_KEY, PERSONAL_WORKSPACE_STORAGE_VALUE);
       await AsyncStorage.removeItem(LEGACY_STORAGE_KEY);
     }
   } catch {
@@ -244,7 +245,12 @@ function getMembershipStatusValue(row: OrganizationMembershipRecord): string {
 }
 
 function isActiveMembership(row: OrganizationMembershipRecord): boolean {
-  return ACTIVE_STATUSES.has(getMembershipStatusValue(row));
+  return ACTIVE_STATUSES.has(getMembershipStatusValue(row)) && row.organization?.is_active !== false;
+}
+
+function isVisibleMembership(row: OrganizationMembershipRecord): boolean {
+  return MEMBERSHIP_DB_STATUSES.has(String(row.status || '').toLowerCase()) &&
+    row.organization?.is_active !== false;
 }
 
 function rankActiveMembershipStatus(row: OrganizationMembershipRecord): number {
@@ -564,9 +570,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       // the provider's old DB semantics client-side: status ∈ the 4-set,
       // then created_at desc (stable), then dedupe (keeps newest per org).
       const normalized = (data as unknown as RawOrganizationMembershipRecord[]).map(normalizeMembershipRow);
-      const filtered = normalized.filter((row) =>
-        MEMBERSHIP_DB_STATUSES.has(String(row.status || '').toLowerCase())
-      );
+      const filtered = normalized.filter(isVisibleMembership);
       const sorted = [...filtered].sort(byCreatedAtDesc);
       const rows = dedupeMemberships(sorted);
       membershipRealtimeCommitRef.current.clear();
@@ -590,12 +594,13 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         ? activeRows.find((row) => row.organization_id === storedId)
         : null;
 
-      const preferredMembership =
-        inMemoryActive ||
-        storedActive ||
-        activeManagerRows[0] ||
-        activeRows[0] ||
-        null;
+      const preferredMembership = storedId === PERSONAL_WORKSPACE_STORAGE_VALUE
+        ? null
+        : inMemoryActive ||
+          storedActive ||
+          activeManagerRows[0] ||
+          activeRows[0] ||
+          null;
 
       const nextId = preferredMembership?.organization_id ?? null;
       setActiveOrganizationIdState(nextId);
@@ -705,11 +710,13 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           const existing = prev.find((row) => row.id === incomingId);
           const normalized = normalizeRealtimeMembershipRow(incoming, existing);
           const withoutIncoming = prev.filter((row) => row.id !== incomingId);
-          next = dedupeMemberships([normalized, ...withoutIncoming]).sort((a, b) => {
-            const statusRank = rankActiveMembershipStatus(a) - rankActiveMembershipStatus(b);
-            if (statusRank !== 0) return statusRank;
-            return String(a.organization?.name || '').localeCompare(String(b.organization?.name || ''));
-          });
+          next = dedupeMemberships([normalized, ...withoutIncoming])
+            .filter(isVisibleMembership)
+            .sort((a, b) => {
+              const statusRank = rankActiveMembershipStatus(a) - rankActiveMembershipStatus(b);
+              if (statusRank !== 0) return statusRank;
+              return String(a.organization?.name || '').localeCompare(String(b.organization?.name || ''));
+            });
         }
 
         const nextActiveOrgId = resolvePreferredActiveOrgId(next, activeOrganizationIdRef.current);

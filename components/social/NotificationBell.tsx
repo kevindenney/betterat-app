@@ -48,10 +48,7 @@ export function NotificationBell({
 
   return (
     <Pressable
-      style={({ pressed }) => [
-        styles.container,
-        pressed && styles.containerPressed,
-      ]}
+      style={styles.container}
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={tooltip}
@@ -60,7 +57,7 @@ export function NotificationBell({
       title={tooltip}
     >
       <View style={styles.iconWrap}>
-        <Ionicons name="mail" size={size} color={color} />
+        <Ionicons name="notifications-outline" size={size} color={color} />
         {unreadCount > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{formatBadge(unreadCount)}</Text>
@@ -75,9 +72,6 @@ const styles = StyleSheet.create({
   container: {
     padding: IOS_SPACING.xs,
     position: 'relative',
-  },
-  containerPressed: {
-    opacity: 0.7,
   },
   // Wrap the glyph so the absolutely-positioned badge anchors to the
   // icon's bounding box, not the touch-target. Without the wrap the

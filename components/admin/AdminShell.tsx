@@ -259,6 +259,43 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
           if (lens === 'practice') router.push('/');
         }}
         navSections={navSections}
+        compactBottomTabs={[
+          {
+            key: 'overview',
+            icon: 'grid-outline',
+            label: 'Overview',
+            active: activeKey === 'overview',
+            onPress: () => goto('overview'),
+          },
+          {
+            key: 'cohorts',
+            icon: 'school-outline',
+            label: 'Cohorts',
+            active: activeKey === 'cohorts',
+            onPress: () => goto('cohorts'),
+          },
+          {
+            key: 'members',
+            icon: 'people-outline',
+            label: 'Members',
+            active: activeKey === 'people',
+            onPress: () => goto('people'),
+          },
+          {
+            key: 'blueprints',
+            icon: 'git-branch-outline',
+            label: 'Blueprints',
+            active: activeKey === 'blueprints',
+            onPress: () => goto('blueprints'),
+          },
+          {
+            key: 'settings',
+            icon: 'settings-outline',
+            label: 'Settings',
+            active: activeKey === 'sso' || activeKey === 'domain' || activeKey === 'billing',
+            onPress: () => goto('domain'),
+          },
+        ]}
         user={{
           name: displayName,
           email: user?.email ?? '',

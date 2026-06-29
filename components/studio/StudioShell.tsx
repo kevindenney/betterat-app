@@ -22,18 +22,16 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  Modal,
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { ContextSwitcher } from '@/components/navigation/ContextSwitcher';
+import { AppChromeRow } from '@/components/ui/AppChromeRow';
 import {
   IOS_REGISTER,
-  IOS_RADIUS,
-  IOS_SHADOWS,
-  IOS_TOUCH,
   REGISTER_SECTION_ACCENT,
 } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
@@ -79,6 +77,8 @@ export interface StudioShellProps {
   /** Restrict context switcher options (e.g. independent author has no Mentor lens). */
   ctxLensOptions?: StudioCtxLens[];
   navSections: StudioNavSection[];
+  /** Phone bottom nav. Defaults to the first five primary nav items. */
+  compactBottomTabs?: StudioNavItem[];
   user: {
     name: string;
     email: string;
@@ -165,79 +165,77 @@ function StudioShellRegular({
   );
 }
 
-/** <600pt — top bar + slide-over drawer (iOS register), full-width main. */
+/**
+ * <600pt — shared AppChromeRow shell (context chip left, account avatar right,
+ * identical to Practice) + full-width main + bottom tabs. The page composes its
+ * own StudioHeader (crumbs + title) inside `children`, so the chrome row carries
+ * only identity + account — no redundant workspace/title row.
+ *
+ * We share the *shell* (chip + avatar) but NOT Practice's action cluster: the
+ * universal `+` opens a personal-practice "new step" composer and the bell is a
+ * personal capture inbox — both meaningless while authoring. So `showPlus` and
+ * `showInboxBell` are off here; the surface's create-action lives in the page
+ * header (New blueprint / Publish) and the author's "needs you" signal is the
+ * Threads tab's coral badge. No hamburger drawer: bottom tabs are the single nav
+ * spine and the context chip switches workspace.
+ */
 function StudioShellCompact({
   accent = 'purple',
-  org,
-  ctxLens,
-  onCtxChange,
-  ctxLensOptions,
   navSections,
-  user,
-  onUserCardPress,
+  compactBottomTabs,
   children,
 }: StudioShellProps) {
   const accentColor = ACCENT_COLORS[accent];
   const insets = useSafeAreaInsets();
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const activeLabel = React.useMemo(
-    () => navSections.flatMap((sec) => sec.items).find((it) => it.active)?.label,
-    [navSections],
-  );
-  const close = React.useCallback(() => setDrawerOpen(false), []);
   return (
     <View style={c.shell}>
-      <View style={[c.topBar, { paddingTop: insets.top + 8 }]}>
-        <Pressable
-          onPress={() => setDrawerOpen(true)}
-          style={c.menuBtn}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Open menu"
-        >
-          <Ionicons name="menu" size={24} color={IOS_REGISTER.label} />
-        </Pressable>
-        <View style={[c.topMono, { backgroundColor: MONO_BG[org.monoColor] }]}>
-          <Text style={c.topMonoText}>{org.mono}</Text>
-        </View>
-        <View style={c.topTitleCol}>
-          <Text style={c.topTitle} numberOfLines={1}>
-            {activeLabel ?? org.name}
-          </Text>
-          <Text style={c.topSub} numberOfLines={1}>
-            {org.name}
-          </Text>
-        </View>
+      <View style={[c.header, { paddingTop: insets.top + 6 }]}>
+        <AppChromeRow showPlus={false} showInboxBell={false} />
       </View>
 
-      <View style={[c.main, { paddingBottom: insets.bottom + 14 }]}>{children}</View>
+      <View style={c.contentWrap}>
+        <View style={[c.main, { paddingBottom: insets.bottom + 76 }]}>{children}</View>
+        <CompactBottomTabs
+          tabs={compactBottomTabs ?? navSections[0]?.items.slice(0, 5) ?? []}
+          accentColor={accentColor}
+          bottomInset={insets.bottom}
+        />
+      </View>
+    </View>
+  );
+}
 
-      <Modal
-        visible={drawerOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={close}
-      >
-        <View style={c.drawerRoot}>
-          <Pressable style={c.scrim} onPress={close} accessibilityLabel="Close menu" />
-          <View style={c.drawerPanel}>
-            <SidebarBody
-              accentColor={accentColor}
-              org={org}
-              ctxLens={ctxLens}
-              onCtxChange={(lens) => {
-                onCtxChange?.(lens);
-                close();
-              }}
-              ctxLensOptions={ctxLensOptions}
-              navSections={navSections}
-              user={user}
-              onUserCardPress={onUserCardPress}
-              onItemPress={close}
-            />
-          </View>
-        </View>
-      </Modal>
+function CompactBottomTabs({
+  tabs,
+  accentColor,
+  bottomInset,
+}: {
+  tabs: StudioNavItem[];
+  accentColor: string;
+  bottomInset: number;
+}) {
+  if (tabs.length === 0) return null;
+  return (
+    <View style={[c.bottomTabs, { paddingBottom: Math.max(8, bottomInset) }]}>
+      {tabs.map((tab) => {
+        const active = !!tab.active;
+        const color = active ? accentColor : 'rgba(60, 60, 67, 0.62)';
+        return (
+          <Pressable
+            key={tab.key}
+            style={c.bottomTab}
+            onPress={tab.onPress}
+            disabled={!tab.onPress && !active}
+            accessibilityRole="button"
+            accessibilityLabel={tab.label}
+          >
+            <Ionicons name={tab.icon} size={19} color={color} />
+            <Text style={[c.bottomTabText, active && { color, fontWeight: '700' }]} numberOfLines={1}>
+              {tab.label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -280,7 +278,11 @@ function SidebarBody({
         </View>
       </View>
 
-      {ctxLens ? (
+      {FEATURE_FLAGS.CONTEXT_SWITCHER_V1 ? (
+        <View style={s.contextSwitcherSlot}>
+          <ContextSwitcher />
+        </View>
+      ) : ctxLens ? (
         <View style={s.ctxSwitch}>
           {(ctxLensOptions ?? (['practice', 'studio', 'mentor'] as StudioCtxLens[])).map((lens) => (
             <Pressable
@@ -353,6 +355,7 @@ function NavItem({
 }) {
   const isActive = !!item.active;
   const isCta = !!item.cta;
+  const isActionable = !!item.onPress;
   const labelColor = isActive ? '#FFFFFF' : isCta ? '#007AFF' : 'rgba(60, 60, 67, 0.85)';
   const iconColor = isActive ? 'rgba(255,255,255,0.85)' : isCta ? '#007AFF' : 'rgba(60, 60, 67, 0.4)';
   const countColor = isActive
@@ -363,6 +366,7 @@ function NavItem({
   const countWeight = item.countTone === 'coral' ? '700' : '400';
   return (
     <Pressable
+      disabled={!isActionable && !isActive}
       onPress={() => {
         item.onPress?.();
         onItemPress?.();
@@ -370,6 +374,7 @@ function NavItem({
       style={[
         s.navItem,
         isActive && { backgroundColor: accentColor },
+        !isActionable && !isActive && { opacity: 0.55 },
       ]}
     >
       <Ionicons name={item.icon} size={17} color={iconColor} style={s.navItemIcon} />
@@ -396,34 +401,54 @@ function NavItem({
 
 export interface StudioHeaderProps {
   crumbs: string[];         // ["Creator Studio", "Home"]
+  onCrumbPress?: (crumb: string, index: number) => void;
   title: string;
   subtitleParts?: React.ReactNode[];  // tokens between dot separators
   pill?: { label: string; tone: 'purple' | 'navy' | 'amber' | 'green' };
   actions?: React.ReactNode;
+  /**
+   * Phone reflow: drop the breadcrumb (the context chip + active tab already
+   * say where you are), shrink the serif title, and stack the actions below
+   * the title block so they don't fight it for width.
+   */
+  compact?: boolean;
 }
 
 export function StudioHeader({
   crumbs,
+  onCrumbPress,
   title,
   subtitleParts,
   pill,
   actions,
+  compact,
 }: StudioHeaderProps) {
   return (
     <View style={h.wrap}>
-      <View style={h.crumbs}>
-        {crumbs.map((c, i) => (
-          <React.Fragment key={`${c}-${i}`}>
-            <Text style={h.crumbText}>{c}</Text>
-            {i < crumbs.length - 1 ? (
-              <Ionicons name="chevron-forward" size={12} color="rgba(60, 60, 67, 0.4)" />
-            ) : null}
-          </React.Fragment>
-        ))}
-      </View>
-      <View style={h.row}>
-        <View style={h.titleCol}>
-          <Text style={h.title}>{title}</Text>
+      {compact ? null : (
+        <View style={h.crumbs}>
+          {crumbs.map((c, i) => {
+            const canPress = !!onCrumbPress && i < crumbs.length - 1;
+            return (
+              <React.Fragment key={`${c}-${i}`}>
+                <Pressable
+                  disabled={!canPress}
+                  onPress={() => onCrumbPress?.(c, i)}
+                  hitSlop={6}
+                >
+                  <Text style={[h.crumbText, canPress && h.crumbLink]}>{c}</Text>
+                </Pressable>
+                {i < crumbs.length - 1 ? (
+                  <Ionicons name="chevron-forward" size={12} color="rgba(60, 60, 67, 0.4)" />
+                ) : null}
+              </React.Fragment>
+            );
+          })}
+        </View>
+      )}
+      <View style={[h.row, compact && h.rowCompact]}>
+        <View style={[h.titleCol, compact && h.titleColCompact]}>
+          <Text style={[h.title, compact && h.titleCompact]}>{title}</Text>
           {(subtitleParts && subtitleParts.length > 0) || pill ? (
             <View style={h.sub}>
               {subtitleParts?.map((part, i) => (
@@ -458,7 +483,7 @@ export function StudioHeader({
             </View>
           ) : null}
         </View>
-        {actions ? <View style={h.actions}>{actions}</View> : null}
+        {actions ? <View style={[h.actions, compact && h.actionsCompact]}>{actions}</View> : null}
       </View>
     </View>
   );
@@ -478,34 +503,46 @@ export function StudioTabs({
   tabs,
   active,
   accent = 'purple',
+  scrollable = false,
   onChange,
 }: {
   tabs: StudioTab[];
   active: string;
   accent?: StudioAccent;
+  /** Phone: lay tabs in a horizontal scroll so 5+ sections don't clip. */
+  scrollable?: boolean;
   onChange?: (key: string) => void;
 }) {
   const underlineColor = ACCENT_COLORS[accent];
-  return (
-    <View style={t.bar}>
-      {tabs.map((tab) => {
-        const isActive = tab.key === active;
-        return (
-          <Pressable key={tab.key} onPress={() => onChange?.(tab.key)} style={t.tab}>
-            <Text style={[t.label, isActive && t.labelOn]}>
-              {tab.label}
-              {tab.count ? (
-                <Text style={t.count}>{` · ${tab.count}`}</Text>
-              ) : null}
-            </Text>
-            {isActive ? (
-              <View style={[t.underline, { backgroundColor: underlineColor }]} />
-            ) : null}
-          </Pressable>
-        );
-      })}
-    </View>
-  );
+  const tabEls = tabs.map((tab) => {
+    const isActive = tab.key === active;
+    return (
+      <Pressable key={tab.key} onPress={() => onChange?.(tab.key)} style={t.tab}>
+        <Text style={[t.label, isActive && t.labelOn]} numberOfLines={1}>
+          {tab.label}
+          {tab.count ? <Text style={t.count}>{` · ${tab.count}`}</Text> : null}
+        </Text>
+        {isActive ? (
+          <View style={[t.underline, { backgroundColor: underlineColor }]} />
+        ) : null}
+      </Pressable>
+    );
+  });
+
+  if (scrollable) {
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={t.barScroll}
+        contentContainerStyle={t.barScrollContent}
+      >
+        {tabEls}
+      </ScrollView>
+    );
+  }
+
+  return <View style={t.bar}>{tabEls}</View>;
 }
 
 // ---------------------------------------------------------------------------
@@ -639,6 +676,10 @@ const s = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 14,
   },
+  contextSwitcherSlot: {
+    marginBottom: 14,
+    alignItems: 'flex-start',
+  },
   ctxOpt: {
     flex: 1,
     paddingVertical: 5,
@@ -732,67 +773,47 @@ const c = StyleSheet.create({
     flex: 1,
     backgroundColor: IOS_REGISTER.groundBg,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    minHeight: IOS_TOUCH.minHeight + 12,
+  contentWrap: {
+    flex: 1,
+  },
+  header: {
+    paddingBottom: 6,
     backgroundColor: IOS_REGISTER.cardBg,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: IOS_REGISTER.separator,
-  },
-  topMono: {
-    width: 30,
-    height: 30,
-    borderRadius: IOS_RADIUS.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topMonoText: { color: '#FFFFFF', fontSize: 11, fontFamily: fontFamily.mono, fontWeight: '500', letterSpacing: 0.4 },
-  topTitleCol: { flex: 1, minWidth: 0 },
-  topTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: IOS_REGISTER.label,
-    letterSpacing: -0.3,
-  },
-  topSub: {
-    fontSize: 12,
-    color: IOS_REGISTER.labelSecondary,
-    marginTop: 1,
-  },
-  menuBtn: {
-    width: IOS_TOUCH.minWidth,
-    height: IOS_TOUCH.minHeight,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   main: {
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  drawerRoot: {
-    flex: 1,
+  bottomTabs: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    minHeight: 64,
+    paddingTop: 8,
+    paddingHorizontal: 8,
     flexDirection: 'row',
-  },
-  scrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.32)',
-  },
-  drawerPanel: {
-    width: 288,
-    maxWidth: '82%',
-    height: '100%',
-    paddingHorizontal: 10,
-    paddingTop: 56,
-    paddingBottom: 16,
+    alignItems: 'flex-start',
     backgroundColor: IOS_REGISTER.cardBg,
-    borderTopRightRadius: IOS_RADIUS.lg,
-    borderBottomRightRadius: IOS_RADIUS.lg,
-    ...IOS_SHADOWS.modal,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: IOS_REGISTER.separator,
+  },
+  bottomTab: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    minHeight: 46,
+    paddingHorizontal: 2,
+  },
+  bottomTabText: {
+    color: 'rgba(60, 60, 67, 0.62)',
+    fontSize: 10.5,
+    fontWeight: '600',
   },
 });
 
@@ -805,13 +826,20 @@ const h = StyleSheet.create({
     marginBottom: 8,
   },
   crumbText: { fontSize: 12, color: 'rgba(60, 60, 67, 0.6)', letterSpacing: -0.05 },
+  crumbLink: { color: '#6F56D9', fontWeight: '600' },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     gap: 16,
   },
+  rowCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 12,
+  },
   titleCol: { flex: 1, minWidth: 200 },
+  titleColCompact: { flex: 0, minWidth: 0 },
   title: {
     fontSize: 28,
     fontFamily: fontFamily.serif,
@@ -820,6 +848,11 @@ const h = StyleSheet.create({
     letterSpacing: -0.4,
     marginBottom: 6,
     lineHeight: 32,
+  },
+  titleCompact: {
+    fontSize: 22,
+    lineHeight: 27,
+    marginBottom: 4,
   },
   sub: {
     flexDirection: 'row',
@@ -856,6 +889,9 @@ const h = StyleSheet.create({
     flexShrink: 1,
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
+  },
+  actionsCompact: {
+    justifyContent: 'flex-start',
   },
 });
 
@@ -904,6 +940,20 @@ const t = StyleSheet.create({
     marginBottom: 16,
     borderBottomWidth: 0.5,
     borderBottomColor: 'rgba(0,0,0,0.12)',
+  },
+  // Horizontal-scroll variant (phone): the bottom rule rides the scroll view so
+  // it spans the full width, while the tabs themselves scroll inside it.
+  barScroll: {
+    marginTop: 4,
+    marginBottom: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.12)',
+    flexGrow: 0,
+  },
+  barScrollContent: {
+    flexDirection: 'row',
+    gap: 4,
+    paddingRight: 16,
   },
   tab: {
     paddingHorizontal: 12,

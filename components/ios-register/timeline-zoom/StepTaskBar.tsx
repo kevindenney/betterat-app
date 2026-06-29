@@ -22,6 +22,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_COLORS, IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { openInterestSwitcher } from '@/components/InterestSwitcher';
+import { ContextSwitcher } from '@/components/navigation/ContextSwitcher';
+import { NotificationBell } from '@/components/social/NotificationBell';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { useUniversalPlus } from '@/components/capture';
 import { useInterest } from '@/providers/InterestProvider';
@@ -188,54 +190,79 @@ export function StepTaskBar({
         </Pressable>
       ) : null}
 
-      {/* Persistent breadcrumb chrome: [ ● Interest › Step N ▾ ].
-          The accent dot + interest name tap to the interest switcher (sheet UP);
-          the › Step N leaf taps to the step list (menu DOWN). One pill, one place. */}
-      <View style={styles.intpill}>
-        <Pressable
-          testID="step-taskbar-interest-switcher"
-          onPress={openInterestSwitcher}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
-          style={styles.segInt}
-          accessibilityRole="button"
-          accessibilityLabel={`Interest: ${interestLabel}. Tap to switch.`}
-        >
-          <View style={styles.dotWrap}>
-            <View style={[styles.dotRing, { backgroundColor: accentColor }]} />
-            <View style={[styles.dot, { backgroundColor: accentColor }]} />
-          </View>
-          <Text style={styles.segIntText} numberOfLines={1}>
-            {interestLabel}
-          </Text>
-        </Pressable>
-
-        <View style={styles.crumb} pointerEvents="none">
-          <Ionicons name="chevron-forward" size={12} color={IOS_REGISTER.labelTertiary} />
+      {FEATURE_FLAGS.CONTEXT_SWITCHER_V1 ? (
+        <View style={styles.contextCluster}>
+          <ContextSwitcher />
+          <Pressable
+            ref={stepselRef}
+            onPress={openMenu}
+            disabled={!canChoose}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+            style={styles.stepOnlyPill}
+            accessibilityRole="button"
+            accessibilityLabel={
+              focusedStep ? `${stepselLabel}. Tap to jump to another step.` : undefined
+            }
+          >
+            <Text style={styles.segStepText} numberOfLines={1}>
+              {stepselLabel}
+            </Text>
+            {canChoose ? (
+              <Ionicons
+                name={menuOpen ? 'chevron-up' : 'chevron-down'}
+                size={13}
+                color={IOS_REGISTER.labelTertiary}
+              />
+            ) : null}
+          </Pressable>
         </View>
+      ) : (
+        <View style={styles.intpill}>
+          <Pressable
+            testID="step-taskbar-interest-switcher"
+            onPress={openInterestSwitcher}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+            style={styles.segInt}
+            accessibilityRole="button"
+            accessibilityLabel={`Interest: ${interestLabel}. Tap to switch.`}
+          >
+            <View style={styles.dotWrap}>
+              <View style={[styles.dotRing, { backgroundColor: accentColor }]} />
+              <View style={[styles.dot, { backgroundColor: accentColor }]} />
+            </View>
+            <Text style={styles.segIntText} numberOfLines={1}>
+              {interestLabel}
+            </Text>
+          </Pressable>
 
-        <Pressable
-          ref={stepselRef}
-          onPress={openMenu}
-          disabled={!canChoose}
-          hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
-          style={styles.segStep}
-          accessibilityRole="button"
-          accessibilityLabel={
-            focusedStep ? `${stepselLabel}. Tap to jump to another step.` : undefined
-          }
-        >
-          <Text style={styles.segStepText} numberOfLines={1}>
-            {stepselLabel}
-          </Text>
-          {canChoose ? (
-            <Ionicons
-              name={menuOpen ? 'chevron-up' : 'chevron-down'}
-              size={13}
-              color={IOS_REGISTER.labelTertiary}
-            />
-          ) : null}
-        </Pressable>
-      </View>
+          <View style={styles.crumb} pointerEvents="none">
+            <Ionicons name="chevron-forward" size={12} color={IOS_REGISTER.labelTertiary} />
+          </View>
+
+          <Pressable
+            ref={stepselRef}
+            onPress={openMenu}
+            disabled={!canChoose}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+            style={styles.segStep}
+            accessibilityRole="button"
+            accessibilityLabel={
+              focusedStep ? `${stepselLabel}. Tap to jump to another step.` : undefined
+            }
+          >
+            <Text style={styles.segStepText} numberOfLines={1}>
+              {stepselLabel}
+            </Text>
+            {canChoose ? (
+              <Ionicons
+                name={menuOpen ? 'chevron-up' : 'chevron-down'}
+                size={13}
+                color={IOS_REGISTER.labelTertiary}
+              />
+            ) : null}
+          </Pressable>
+        </View>
+      )}
 
       <View style={styles.icons}>
         <Pressable
@@ -248,6 +275,11 @@ export function StepTaskBar({
         >
           <Ionicons name="add" size={19} color="#FFFFFF" />
         </Pressable>
+        {FEATURE_FLAGS.CONTEXT_SWITCHER_V1 ? (
+          <View style={styles.bellWrap}>
+            <NotificationBell size={18} color={IOS_REGISTER.label} />
+          </View>
+        ) : null}
         <ProfileDropdown size={28} />
       </View>
 
@@ -347,6 +379,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   // Breadcrumb interest pill — persistent chrome, never a plain label.
+  contextCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  stepOnlyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 34,
+    paddingLeft: 11,
+    paddingRight: 12,
+    borderRadius: 17,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: IOS_REGISTER.separatorStrong,
+    backgroundColor: IOS_REGISTER.cardBg,
+    flexShrink: 0,
+  },
   intpill: {
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -419,9 +471,16 @@ const styles = StyleSheet.create({
   icons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
+    gap: 9,
     marginLeft: 'auto',
     paddingLeft: 8,
+  },
+  bellWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   plusbtn: {
     width: 28,
