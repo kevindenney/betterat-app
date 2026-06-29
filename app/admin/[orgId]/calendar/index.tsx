@@ -28,6 +28,16 @@ const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
   skipped: { bg: 'rgba(60, 60, 67, 0.10)', fg: 'rgba(60, 60, 67, 0.7)' },
 };
 
+// Only badge statuses that carry signal. The default "on the books" states
+// (settled/pending) are the norm for org calendar steps — badging every row
+// with an identical pill is noise, and "SETTLED" reads as financial here.
+const STATUS_LABEL: Record<string, string> = {
+  in_progress: 'In progress',
+  completed: 'Completed',
+  skipped: 'Skipped',
+  cancelled: 'Cancelled',
+};
+
 function timeLabel(ev: AdminCalendarEvent): string | null {
   if (!ev.startsAt) return null;
   const start = new Date(ev.startsAt);
@@ -159,11 +169,13 @@ function EventRow({ event, onPress }: { event: AdminCalendarEvent; onPress: () =
               <Text style={s.raceTagText}>RACE</Text>
             </View>
           ) : null}
-          <View style={[s.statusTag, { backgroundColor: tone.bg }]}>
-            <Text style={[s.statusTagText, { color: tone.fg }]}>
-              {event.status.replace('_', ' ').toUpperCase()}
-            </Text>
-          </View>
+          {STATUS_LABEL[event.status] ? (
+            <View style={[s.statusTag, { backgroundColor: tone.bg }]}>
+              <Text style={[s.statusTagText, { color: tone.fg }]}>
+                {STATUS_LABEL[event.status].toUpperCase()}
+              </Text>
+            </View>
+          ) : null}
         </View>
         <View style={s.rowMetaRow}>
           {time ? (

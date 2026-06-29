@@ -83,7 +83,6 @@ export default function StudioSubscribersPage() {
           countTone: home.threadAwaitingCount > 0 ? 'coral' : 'neutral',
           onPress: () => router.push('/studio/threads'),
         },
-        { key: 'insights', icon: 'trending-up-outline', label: 'Insights' },
       ],
     },
     {

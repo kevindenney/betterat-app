@@ -99,8 +99,6 @@ export default function StudioPayoutsPage() {
           label: 'Earnings',
           onPress: () => router.push('/studio/earnings'),
         },
-        { key: 'pricing', icon: 'pricetag-outline', label: 'Pricing' },
-        { key: 'legal', icon: 'document-text-outline', label: 'Tax & legal' },
       ],
     },
     {

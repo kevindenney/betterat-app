@@ -89,7 +89,6 @@ export default function StudioBlueprintsPage() {
           countTone: data.threadAwaitingCount > 0 ? 'coral' : 'neutral',
           onPress: () => router.push('/studio/threads'),
         },
-        { key: 'insights', icon: 'trending-up-outline', label: 'Insights' },
       ],
     },
     {

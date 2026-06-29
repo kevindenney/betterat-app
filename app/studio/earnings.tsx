@@ -105,8 +105,6 @@ export default function StudioEarningsPage() {
           label: 'Earnings',
           active: true,
         },
-        { key: 'pricing', icon: 'pricetag-outline', label: 'Pricing' },
-        { key: 'legal', icon: 'document-text-outline', label: 'Tax & legal' },
       ],
     },
   ];
@@ -136,8 +134,18 @@ export default function StudioEarningsPage() {
             label: 'Blueprints',
             onPress: () => router.push('/studio'),
           },
-          { key: 'subscribers', icon: 'people-outline', label: 'Subscribers' },
-          { key: 'threads', icon: 'chatbubbles-outline', label: 'Threads' },
+          {
+            key: 'subscribers',
+            icon: 'people-outline',
+            label: 'Subscribers',
+            onPress: () => router.push('/studio/subscribers'),
+          },
+          {
+            key: 'threads',
+            icon: 'chatbubbles-outline',
+            label: 'Threads',
+            onPress: () => router.push('/studio/threads'),
+          },
           {
             key: 'payouts',
             icon: 'cash-outline',

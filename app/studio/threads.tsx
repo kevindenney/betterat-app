@@ -98,7 +98,6 @@ export default function StudioThreadsPage() {
           countTone: data.threadAwaitingCount > 0 ? 'coral' : 'neutral',
           active: true,
         },
-        { key: 'insights', icon: 'trending-up-outline', label: 'Insights' },
       ],
     },
     {

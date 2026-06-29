@@ -28,7 +28,6 @@ import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { useAdminOrgSites, AdminOrgSite } from '@/hooks/useAdminOrgSites';
 import {
   StudioHeader,
-  StudioButton,
   StudioTabs,
   STUDIO_COMPACT_BREAKPOINT,
 } from '@/components/studio/StudioShell';
@@ -103,17 +102,6 @@ function AdminSitesBody() {
                 : 'Open-precision sites · sailors can pin exact coords'}
             </Text>,
           ]}
-          actions={
-            <>
-              <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
-              <StudioButton
-                variant="primary"
-                accent="blue"
-                icon="add"
-                label="Claim a site"
-              />
-            </>
-          }
         />
 
         <StudioTabs
