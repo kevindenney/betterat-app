@@ -79,6 +79,16 @@ export interface StudioShellProps {
   navSections: StudioNavSection[];
   /** Phone bottom nav. Defaults to the first five primary nav items. */
   compactBottomTabs?: StudioNavItem[];
+  /**
+   * Surface's primary create/save action, docked as a FAB pill above the bottom
+   * tabs on phone. The page should drop the same button from its header on
+   * compact so the action lives in exactly one place (thumb-reach).
+   */
+  compactPrimaryAction?: {
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    onPress: () => void;
+  };
   user: {
     name: string;
     email: string;
@@ -183,10 +193,12 @@ function StudioShellCompact({
   accent = 'purple',
   navSections,
   compactBottomTabs,
+  compactPrimaryAction,
   children,
 }: StudioShellProps) {
   const accentColor = ACCENT_COLORS[accent];
   const insets = useSafeAreaInsets();
+  const bottomBar = Math.max(8, insets.bottom) + 52;
   return (
     <View style={c.shell}>
       <View style={[c.header, { paddingTop: insets.top + 6 }]}>
@@ -195,6 +207,17 @@ function StudioShellCompact({
 
       <View style={c.contentWrap}>
         <View style={[c.main, { paddingBottom: insets.bottom + 76 }]}>{children}</View>
+        {compactPrimaryAction ? (
+          <Pressable
+            style={[c.fab, { bottom: bottomBar + 14, backgroundColor: accentColor }]}
+            onPress={compactPrimaryAction.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={compactPrimaryAction.label}
+          >
+            <Ionicons name={compactPrimaryAction.icon} size={18} color="#FFFFFF" />
+            <Text style={c.fabText}>{compactPrimaryAction.label}</Text>
+          </Pressable>
+        ) : null}
         <CompactBottomTabs
           tabs={compactBottomTabs ?? navSections[0]?.items.slice(0, 5) ?? []}
           accentColor={accentColor}
@@ -814,6 +837,26 @@ const c = StyleSheet.create({
     color: 'rgba(60, 60, 67, 0.62)',
     fontSize: 10.5,
     fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 26,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+  fabText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
 

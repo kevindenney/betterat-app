@@ -7,13 +7,13 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useAdminCohorts, AdminCohort } from '@/hooks/useAdminCohorts';
 import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StudioHeader, StudioButton, STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 import { CohortCreateSheet } from '@/components/admin/CohortCreateSheet';
 
 export default function AdminCohortsListPage() {
@@ -21,6 +21,8 @@ export default function AdminCohortsListPage() {
   const router = useRouter();
   const data = useAdminCohorts(orgId as string);
   const av = useAdminOrgVocab(orgId as string);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -33,8 +35,16 @@ export default function AdminCohortsListPage() {
     : data.cohorts;
 
   return (
-    <AdminShell activeKey="cohorts">
+    <AdminShell
+      activeKey="cohorts"
+      primaryAction={{
+        icon: 'add',
+        label: `New ${av.Cohort.toLowerCase()}`,
+        onPress: () => setCreateOpen(true),
+      }}
+    >
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', av.Cohorts]}
         title={av.Cohorts}
         subtitleParts={[
@@ -53,13 +63,15 @@ export default function AdminCohortsListPage() {
         actions={
           <>
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
-            <StudioButton
-              variant="primary"
-              accent="blue"
-              icon="add"
-              label={`New ${av.Cohort.toLowerCase()}`}
-              onPress={() => setCreateOpen(true)}
-            />
+            {compact ? null : (
+              <StudioButton
+                variant="primary"
+                accent="blue"
+                icon="add"
+                label={`New ${av.Cohort.toLowerCase()}`}
+                onPress={() => setCreateOpen(true)}
+              />
+            )}
           </>
         }
       />

@@ -61,8 +61,16 @@ export default function AdminInsightsPage() {
   const orgShortName = activeOrg ? shortNameFor(activeOrg.org_name) : 'Your org';
 
   return (
-    <AdminShell activeKey="insights">
+    <AdminShell
+      activeKey="insights"
+      primaryAction={{
+        icon: 'document-text-outline',
+        label: 'Accreditation report',
+        onPress: () => router.push(`/admin/${orgId}/accreditation`),
+      }}
+    >
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', 'Insights']}
         title="Competency evidence"
         subtitleParts={[
@@ -113,13 +121,15 @@ export default function AdminInsightsPage() {
               onPress={() => setManageOpen(true)}
             />
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
-            <StudioButton
-              variant="primary"
-              accent="blue"
-              icon="document-text-outline"
-              label="Accreditation report"
-              onPress={() => router.push(`/admin/${orgId}/accreditation`)}
-            />
+            {compact ? null : (
+              <StudioButton
+                variant="primary"
+                accent="blue"
+                icon="document-text-outline"
+                label="Accreditation report"
+                onPress={() => router.push(`/admin/${orgId}/accreditation`)}
+              />
+            )}
           </>
         }
       />

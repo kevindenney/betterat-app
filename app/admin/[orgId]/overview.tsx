@@ -13,11 +13,11 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StudioHeader, StudioButton, STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 import { StatRow } from '@/components/studio/StatRow';
 import { useAdminCohorts } from '@/hooks/useAdminCohorts';
 import { useAdminPeople } from '@/hooks/useAdminPeople';
@@ -37,6 +37,8 @@ export default function AdminOverviewPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
   const av = useAdminOrgVocab(orgId as string);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
   const cohorts = useAdminCohorts(orgId as string);
   const people = useAdminPeople(orgId as string);
   const evidence = useAdminCompetencyEvidence(orgId as string);
@@ -100,6 +102,7 @@ export default function AdminOverviewPage() {
   return (
     <AdminShell activeKey="overview">
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', 'Overview']}
         title={`${av.Program} at a glance`}
         subtitleParts={

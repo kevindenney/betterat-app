@@ -11,11 +11,11 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StudioHeader, StudioButton, STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 import { CreateOrgEventSheet } from '@/components/admin/CreateOrgEventSheet';
 import { useAdminCalendar } from '@/hooks/useAdminCalendar';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
@@ -48,6 +48,8 @@ export default function AdminCalendarPage() {
   const router = useRouter();
   const data = useAdminCalendar(orgId as string);
   const menu = useProfileMenuData();
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
   const [showCreate, setShowCreate] = useState(false);
 
   const orgName =
@@ -58,8 +60,16 @@ export default function AdminCalendarPage() {
   const groups = useMemo(() => groupByMonth(data.events), [data.events]);
 
   return (
-    <AdminShell activeKey="calendar">
+    <AdminShell
+      activeKey="calendar"
+      primaryAction={{
+        icon: 'add',
+        label: 'New event',
+        onPress: () => setShowCreate(true),
+      }}
+    >
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', 'Calendar']}
         title="Calendar"
         subtitleParts={[
@@ -76,13 +86,15 @@ export default function AdminCalendarPage() {
           </Text>,
         ]}
         actions={
-          <StudioButton
-            variant="primary"
-            accent="navy"
-            icon="add"
-            label="New event"
-            onPress={() => setShowCreate(true)}
-          />
+          compact ? null : (
+            <StudioButton
+              variant="primary"
+              accent="navy"
+              icon="add"
+              label="New event"
+              onPress={() => setShowCreate(true)}
+            />
+          )
         }
       />
 

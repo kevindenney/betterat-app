@@ -7,11 +7,11 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StudioHeader, StudioButton, STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 import { StatRow } from '@/components/studio/StatRow';
 import {
   useAdminOrgBlueprints,
@@ -48,6 +48,8 @@ export default function AdminBlueprintsPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
   const { blueprints, loading } = useAdminOrgBlueprints(orgId as string);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   const stats = useMemo(() => {
     const live = blueprints.filter((b) => b.status === 'live').length;
@@ -64,8 +66,16 @@ export default function AdminBlueprintsPage() {
   }, [blueprints]);
 
   return (
-    <AdminShell activeKey="blueprints">
+    <AdminShell
+      activeKey="blueprints"
+      primaryAction={{
+        icon: 'add',
+        label: 'New blueprint',
+        onPress: () => router.push('/studio'),
+      }}
+    >
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', 'Blueprints']}
         title="Blueprints"
         subtitleParts={[
@@ -81,13 +91,15 @@ export default function AdminBlueprintsPage() {
         actions={
           <>
             <StudioButton variant="ghost" icon="download-outline" label="Export · CSV" />
-            <StudioButton
-              variant="primary"
-              accent="blue"
-              icon="add"
-              label="New blueprint"
-              onPress={() => router.push('/studio')}
-            />
+            {compact ? null : (
+              <StudioButton
+                variant="primary"
+                accent="blue"
+                icon="add"
+                label="New blueprint"
+                onPress={() => router.push('/studio')}
+              />
+            )}
           </>
         }
       />

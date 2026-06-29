@@ -247,6 +247,7 @@ export default function AdminAuditPage() {
   return (
     <AdminShell activeKey="audit">
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', 'Security', 'Audit log']}
         title="Audit log"
         subtitleParts={[

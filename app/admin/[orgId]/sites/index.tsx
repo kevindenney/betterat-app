@@ -20,6 +20,7 @@ import {
   ScrollView,
   TextInput,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -29,6 +30,7 @@ import {
   StudioHeader,
   StudioButton,
   StudioTabs,
+  STUDIO_COMPACT_BREAKPOINT,
 } from '@/components/studio/StudioShell';
 import { AdminShell } from '@/components/admin/AdminShell';
 
@@ -47,6 +49,8 @@ function AdminSitesBody() {
   const router = useRouter();
   const menu = useProfileMenuData();
   const data = useAdminOrgSites(orgId as string);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   const [tab, setTab] = useState<SitesTab>('all');
   const [search, setSearch] = useState('');
@@ -82,6 +86,7 @@ function AdminSitesBody() {
   return (
     <>
         <StudioHeader
+          compact={compact}
           crumbs={[orgShortLabel, 'Sites']}
           title="Sites"
           subtitleParts={[

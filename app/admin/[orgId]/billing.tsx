@@ -1,8 +1,8 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StudioHeader, StudioButton, STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 import { AdminBillingSurface } from '@/components/admin/AdminBillingSurface';
 import { useAdminOrgBilling, formatMoneyShort } from '@/hooks/useAdminOrgBilling';
 
@@ -12,6 +12,8 @@ const subStrong = { fontWeight: '600' as const, color: 'rgba(60, 60, 67, 0.95)' 
 export default function AdminBillingPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const { billing, loading, source } = useAdminOrgBilling(orgId as string);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   let subtitle: React.ReactNode;
   if (loading) {
@@ -39,6 +41,7 @@ export default function AdminBillingPage() {
   return (
     <AdminShell activeKey="billing">
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', 'Plan', 'Billing & invoices']}
         title="Billing & invoices"
         subtitleParts={[subtitle]}

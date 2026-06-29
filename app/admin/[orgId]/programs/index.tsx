@@ -8,13 +8,13 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, Platform, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useAdminPrograms, AdminProgram } from '@/hooks/useAdminPrograms';
 import { useAdminOrgVocab } from '@/hooks/useAdminOrgVocab';
-import { StudioHeader } from '@/components/studio/StudioShell';
+import { StudioHeader, STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 
 const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
   active: { bg: 'rgba(48, 209, 88, 0.14)', fg: '#1B873F' },
@@ -30,6 +30,8 @@ export default function AdminProgramsListPage() {
   const router = useRouter();
   const data = useAdminPrograms(orgId as string);
   const av = useAdminOrgVocab(orgId as string);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
   const [search, setSearch] = useState('');
 
   const filtered = search
@@ -45,6 +47,7 @@ export default function AdminProgramsListPage() {
   return (
     <AdminShell activeKey="programs">
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', av.Programs]}
         title={av.Programs}
         subtitleParts={[

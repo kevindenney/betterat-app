@@ -47,11 +47,7 @@ import { PersonDetailDrawer } from '@/components/admin/PersonDetailDrawer';
 type PeopleTab = 'all' | 'students' | 'authors' | 'mentors' | 'admins' | 'pending';
 
 export default function AdminPeoplePage() {
-  return (
-    <AdminShell activeKey="people">
-      <AdminPeopleBody />
-    </AdminShell>
-  );
+  return <AdminPeopleBody />;
 }
 
 function AdminPeopleBody() {
@@ -106,8 +102,16 @@ function AdminPeopleBody() {
   ];
 
   return (
-    <>
+    <AdminShell
+      activeKey="people"
+      primaryAction={{
+        icon: 'person-add-outline',
+        label: 'Add person',
+        onPress: () => setShowAddSheet(true),
+      }}
+    >
         <StudioHeader
+          compact={compact}
           crumbs={[orgShortLabel, 'People']}
           title="People"
           subtitleParts={[
@@ -140,14 +144,16 @@ function AdminPeopleBody() {
                 icon="mail-outline"
                 label="Bulk invite"
               />
-              <StudioButton
-                testID="admin-people-add-person"
-                variant="primary"
-                accent="blue"
-                icon="person-add-outline"
-                label="Add person"
-                onPress={() => setShowAddSheet(true)}
-              />
+              {compact ? null : (
+                <StudioButton
+                  testID="admin-people-add-person"
+                  variant="primary"
+                  accent="blue"
+                  icon="person-add-outline"
+                  label="Add person"
+                  onPress={() => setShowAddSheet(true)}
+                />
+              )}
             </>
           }
         />
@@ -256,7 +262,7 @@ function AdminPeopleBody() {
           router.push(`/admin/${orgId}/person/${selected.userId}`);
         }}
       />
-    </>
+    </AdminShell>
   );
 }
 

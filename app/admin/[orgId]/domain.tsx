@@ -1,8 +1,8 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StudioHeader, StudioButton, STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 import { AdminSecuritySurface } from '@/components/admin/AdminSecuritySurface';
 import { useOrgSecurity } from '@/hooks/useOrgSecurity';
 
@@ -11,6 +11,8 @@ const subStyle = { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' };
 export default function AdminDomainPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const { config, domains, loading } = useOrgSecurity(orgId);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   const verifiedCount = domains.filter((d) => d.status === 'verified').length;
   const pendingCount = domains.filter((d) => d.status === 'pending').length;
@@ -27,6 +29,7 @@ export default function AdminDomainPage() {
   return (
     <AdminShell activeKey="domain">
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', 'Security', 'Domain claim']}
         title="SSO & domain"
         subtitleParts={[

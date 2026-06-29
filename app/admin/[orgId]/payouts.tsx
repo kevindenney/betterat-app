@@ -1,8 +1,8 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { StudioHeader, StudioButton } from '@/components/studio/StudioShell';
+import { StudioHeader, StudioButton, STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 import { AdminPayoutsSurface } from '@/components/admin/AdminPayoutsSurface';
 import { useAdminOrgPayouts } from '@/hooks/useAdminOrgPayouts';
 
@@ -12,6 +12,8 @@ const subStrong = { fontWeight: '600' as const, color: 'rgba(60, 60, 67, 0.95)' 
 export default function AdminPayoutsPage() {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const data = useAdminOrgPayouts(orgId as string);
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   const paidYtd = `$${Math.round(data.paidYtdCents / 100).toLocaleString()}`;
   const authorCount = data.authors.length;
@@ -43,6 +45,7 @@ export default function AdminPayoutsPage() {
   return (
     <AdminShell activeKey="payouts">
       <StudioHeader
+        compact={compact}
         crumbs={['Admin', 'Plan', 'Author payouts']}
         title="Author payouts"
         subtitleParts={[subtitle]}

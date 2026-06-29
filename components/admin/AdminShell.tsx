@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { getDashboardRoute } from '@/lib/utils/userTypeRouting';
@@ -48,10 +49,20 @@ export type AdminNavKey =
 export interface AdminShellProps {
   activeKey: AdminNavKey;
   accent?: StudioAccent;
+  /**
+   * The page's primary action, docked as a FAB above the bottom tabs on phone.
+   * Pages should also drop the matching header button on compact so it lives in
+   * one place.
+   */
+  primaryAction?: {
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    onPress: () => void;
+  };
   children: React.ReactNode;
 }
 
-export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellProps) {
+export function AdminShell({ activeKey, accent = 'navy', primaryAction, children }: AdminShellProps) {
   const { orgId } = useLocalSearchParams<{ orgId: string }>();
   const router = useRouter();
   const pathname = usePathname();
@@ -259,6 +270,7 @@ export function AdminShell({ activeKey, accent = 'navy', children }: AdminShellP
           if (lens === 'practice') router.push('/');
         }}
         navSections={navSections}
+        compactPrimaryAction={primaryAction}
         compactBottomTabs={[
           {
             key: 'overview',
