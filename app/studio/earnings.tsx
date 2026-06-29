@@ -14,6 +14,7 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -24,6 +25,7 @@ import {
   StudioShell,
   StudioHeader,
   StudioNavSection,
+  STUDIO_COMPACT_BREAKPOINT,
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 
@@ -52,6 +54,8 @@ export default function StudioEarningsPage() {
   const { user, userProfile } = useAuth();
   const menu = useProfileMenuData();
   const { stats, loading } = useAuthorMarketplaceStats();
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   if (!user || menu.loading) {
     return <StudioLoading />;
@@ -144,6 +148,7 @@ export default function StudioEarningsPage() {
         user={{ name: displayName, email: user?.email ?? '', initials }}
       >
         <StudioHeader
+          compact={compact}
           crumbs={['Creator Studio', 'Earnings']}
           title="Earnings"
           subtitleParts={[
