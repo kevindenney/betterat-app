@@ -237,7 +237,7 @@ export default function WatchScreen() {
   const peopleCategoryChips: WatchFilterChip[] = useMemo(
     () => [
       { id: 'all', label: 'All' },
-      { id: 'following', label: 'Following' },
+      { id: 'following', label: 'Their own' },
       { id: 'blueprint', label: 'From blueprints' },
     ],
     [],
