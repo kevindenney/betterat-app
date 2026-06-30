@@ -82,10 +82,17 @@ export function useFollowedStepsFeed(
       const { data: steps, error: stepsErr } = await supabase
         .from('timeline_steps')
         .select(
-          'id, user_id, title, description, status, interest_id, organization_id, source_blueprint_id, location_name, updated_at',
+          'id, user_id, title, description, status, interest_id, organization_id, source_blueprint_id, metadata, location_name, updated_at',
         )
         .in('user_id', followedIds)
+        // Recency = updated_at DESC, but batch backfills can clobber updated_at
+        // identically across many rows, tying them. Tiebreak by completed_at
+        // (NULLS LAST so a just-completed step beats untouched siblings in the
+        // tied group) then created_at, so a fresh completion still surfaces at
+        // the top instead of getting buried mid-feed by the tie.
         .order('updated_at', { ascending: false })
+        .order('completed_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
         .limit(limit);
       if (stepsErr) {
         console.warn('[useFollowedStepsFeed] timeline_steps query failed', stepsErr);
@@ -100,6 +107,7 @@ export function useFollowedStepsFeed(
         interest_id: string | null;
         organization_id: string | null;
         source_blueprint_id: string | null;
+        metadata: { blueprint_id?: string | null } | null;
         location_name: string | null;
         updated_at: string;
       }[];
@@ -174,7 +182,13 @@ export function useFollowedStepsFeed(
             : null,
           locationName: coarseLocationLabel(s.location_name),
           updatedAt: s.updated_at,
-          sourceBlueprintId: s.source_blueprint_id,
+          // System-A copies stamp the source_blueprint_id column (FK →
+          // timeline_blueprints). Institutional/marketplace copies can't use
+          // that column (it FKs the wrong table), so their provenance lives in
+          // metadata.blueprint_id. Fall back to it so blueprint-sourced steps
+          // from every system land under the "From blueprints" lens.
+          sourceBlueprintId:
+            s.source_blueprint_id ?? s.metadata?.blueprint_id ?? null,
           interestId: s.interest_id,
         };
       });

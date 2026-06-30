@@ -42,6 +42,7 @@ import { Star, Bell, BellOff, UserMinus } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { SuggestStepComposer } from '@/components/sailor/SuggestStepComposer';
+import { ReflectComposer } from '@/components/sailor/ReflectComposer';
 import { IOSActionSheet, type ActionSheetAction } from '@/components/ui/IOSActionSheet';
 
 import {
@@ -118,6 +119,7 @@ function PublicFaceScreenInner({
   const viewedAsOwn = isOwnProfile && !previewAsPublic;
   const [docked, setDocked] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [reflectOpen, setReflectOpen] = useState(false);
 
   // Interaction permissions from the public-face RPC. Default-allow until the
   // RPC resolves (interactions === null), matching the section data's
@@ -438,7 +440,7 @@ function PublicFaceScreenInner({
   const genericWhereRows: { k: string; v: string }[] = [];
   if (personInterests.length) {
     genericWhereRows.push({
-      k: personInterests.length === 1 ? 'Focus' : 'Focuses',
+      k: personInterests.length === 1 ? 'Interest' : 'Interests',
       v: personInterests.map((i) => i.name).join(', '),
     });
   }
@@ -450,6 +452,12 @@ function PublicFaceScreenInner({
     : genericWhereRows.length
       ? genericWhereRows
       : null;
+  // The descriptor rows are about practice context (venues, conditions), so
+  // "Where X practises" fits. The generic fallback just lists interests +
+  // location, so a neutral "Interests" header reads truer than "practises".
+  const realWhereHeader = realWhereRows.length
+    ? `Where ${(displayName.split(' ')[0] || displayName)} practises`
+    : 'Interests';
 
   return (
     <SafeAreaView style={styles.ground} edges={['top']}>
@@ -552,12 +560,7 @@ function PublicFaceScreenInner({
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel={`Reflect on ${displayName}'s practice`}
-                onPress={() =>
-                  showAlert(
-                    'Reflect',
-                    `Leave a reflection on ${displayName}'s practice — coming soon.`,
-                  )
-                }
+                onPress={() => setReflectOpen(true)}
                 activeOpacity={0.7}
                 style={dualCtaStyles.secondary}
               >
@@ -810,7 +813,7 @@ function PublicFaceScreenInner({
             ))}
           </IOSDetailSection>
         ) : realWhere ? (
-          <IOSDetailSection header={`Where ${(displayName.split(' ')[0] || displayName)} practises`}>
+          <IOSDetailSection header={realWhereHeader}>
             {realWhere.map((r, i) => (
               <WhereFormRow key={i} k={r.k} v={r.v} isFirst={i === 0} />
             ))}
@@ -875,14 +878,23 @@ function PublicFaceScreenInner({
       </ScrollView>
 
       {!isOwnProfile ? (
-        <SuggestStepComposer
-          visible={composerOpen}
-          onClose={() => setComposerOpen(false)}
-          recipientId={userId}
-          recipientName={displayName}
-          recipientInitials={initials}
-          reContext={enrichment.concept?.weekTail ?? null}
-        />
+        <>
+          <SuggestStepComposer
+            visible={composerOpen}
+            onClose={() => setComposerOpen(false)}
+            recipientId={userId}
+            recipientName={displayName}
+            recipientInitials={initials}
+            reContext={enrichment.concept?.weekTail ?? null}
+          />
+          <ReflectComposer
+            visible={reflectOpen}
+            onClose={() => setReflectOpen(false)}
+            recipientId={userId}
+            recipientName={displayName}
+            recipientInitials={initials}
+          />
+        </>
       ) : null}
 
       {!isOwnProfile ? (

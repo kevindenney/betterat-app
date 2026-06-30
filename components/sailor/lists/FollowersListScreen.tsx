@@ -120,8 +120,8 @@ export function FollowersListScreen({
         </Text>
         <Text style={styles.emptyText}>
           {type === 'followers'
-            ? 'When others follow this sailor, they will appear here.'
-            : 'When this sailor follows others, they will appear here.'}
+            ? 'When others follow this person, they will appear here.'
+            : 'When this person follows others, they will appear here.'}
         </Text>
       </View>
     );

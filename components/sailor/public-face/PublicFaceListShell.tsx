@@ -8,14 +8,13 @@
  */
 
 import React, { useCallback } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 
 import {
   IOSDetailNavBar,
   IOSDetailSection,
-  IOSOnlyNotice,
 } from '@/components/discover/detail';
 
 import { PUBLIC_FACE_GROUND_BG } from './PublicFacePrimitives';
@@ -33,12 +32,7 @@ export interface PublicFaceListShellProps {
   emptyLabel?: string;
 }
 
-export function PublicFaceListShell(props: PublicFaceListShellProps) {
-  if (Platform.OS === 'web') return <IOSOnlyNotice surface={props.navContextLabel} />;
-  return <PublicFaceListShellInner {...props} />;
-}
-
-function PublicFaceListShellInner({
+export function PublicFaceListShell({
   firstName,
   navContextLabel,
   sectionHeader,

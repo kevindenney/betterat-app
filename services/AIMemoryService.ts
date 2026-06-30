@@ -162,7 +162,12 @@ Only extract insights with genuine evidence from the conversation. Be conservati
 
     return created;
   } catch (err) {
-    logger.error('extractInsights failed', err);
+    // The LLM occasionally returns prose or truncated/malformed JSON; that's an
+    // expected, recoverable miss (we just learn nothing this round), not a
+    // failure worth a red-box. Logging it via logger.error trips the global
+    // console.error → dev error-overlay in app/_layout.tsx, which surfaced over
+    // the capture "Saving…" spinner and made saves look stuck. Warn instead.
+    logger.warn('extractInsights skipped (unparseable AI output)', err);
     return [];
   }
 }
