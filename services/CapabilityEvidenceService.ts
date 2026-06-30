@@ -1,6 +1,9 @@
 import { supabase } from './supabase';
 import { logger } from '@/lib/logger';
-import { suggestCapabilityTags } from '@/services/CapabilityTagService';
+import {
+  suggestCapabilityTags,
+  type OrgCompetencyOption,
+} from '@/services/CapabilityTagService';
 import type { StepActData, StepPlanData, StepReviewData } from '@/types/step-detail';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type {
@@ -27,6 +30,97 @@ async function competencyNameMapForInterest(
     return new Map();
   }
   return new Map((data ?? []).map((row: { id: string; title: string }) => [row.id, row.title]));
+}
+
+function normalizeLabel(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * The owner's org competency framework for one interest. Loaded so that
+ * capabilities the learner practiced can be linked to org_competencies — the
+ * only evidence the org admin's competency rollup reads. Empty (no link) when
+ * the owner has no active org for this interest, which is the correct
+ * solo-learner default. Reads run as the owner; org_competencies is
+ * authed-readable, so RLS doesn't block this.
+ */
+export async function fetchOwnerOrgCompetencies(
+  userId: string | null | undefined,
+  interestId: string | null | undefined,
+): Promise<OrgCompetencyOption[]> {
+  if (!userId || !interestId) return [];
+
+  const { data: interest, error: interestErr } = await supabase
+    .from('interests')
+    .select('slug')
+    .eq('id', interestId)
+    .maybeSingle();
+  if (interestErr || !interest?.slug) return [];
+
+  const { data: memberships, error: memErr } = await supabase
+    .from('organization_memberships')
+    .select('organization_id')
+    .eq('user_id', userId)
+    .eq('status', 'active');
+  if (memErr) {
+    logger.warn('fetchOwnerOrgCompetencies memberships failed', memErr);
+    return [];
+  }
+  const orgIds = (memberships ?? [])
+    .map((m: { organization_id: string }) => m.organization_id)
+    .filter(Boolean);
+  if (orgIds.length === 0) return [];
+
+  const { data: orgs, error: orgErr } = await supabase
+    .from('organizations')
+    .select('id')
+    .in('id', orgIds)
+    .eq('interest_slug', interest.slug);
+  if (orgErr) {
+    logger.warn('fetchOwnerOrgCompetencies orgs failed', orgErr);
+    return [];
+  }
+  const scopedOrgIds = (orgs ?? []).map((o: { id: string }) => o.id);
+  if (scopedOrgIds.length === 0) return [];
+
+  const { data: comps, error: compErr } = await supabase
+    .from('org_competencies')
+    .select('id, short_label, full_label')
+    .in('org_id', scopedOrgIds)
+    .eq('is_active', true);
+  if (compErr) {
+    logger.warn('fetchOwnerOrgCompetencies competencies failed', compErr);
+    return [];
+  }
+  return (comps ?? []).map(
+    (c: { id: string; short_label: string | null; full_label: string | null }) => ({
+      id: c.id,
+      shortLabel: c.short_label ?? '',
+      fullLabel: c.full_label ?? '',
+    }),
+  );
+}
+
+/**
+ * Resolves a capability row to an org_competency_id. Honors a link the AI
+ * catalog already set; otherwise falls back to an exact normalized name match
+ * against the org framework's short/full labels. Returns null when nothing
+ * matches — the evidence stays free-text and simply doesn't reach the rollup.
+ */
+function buildOrgCompetencyMatcher(
+  options: OrgCompetencyOption[],
+): (row: CapabilityEvidenceRow) => string | null {
+  const byName = new Map<string, string>();
+  for (const o of options) {
+    for (const label of [o.fullLabel, o.shortLabel]) {
+      const key = normalizeLabel(label ?? '');
+      if (key && !byName.has(key)) byName.set(key, o.id);
+    }
+  }
+  return (row) => {
+    if (row.orgCompetencyId) return row.orgCompetencyId;
+    return byName.get(normalizeLabel(row.capabilityName)) ?? null;
+  };
 }
 
 interface BuildEvidenceRowsInput {
@@ -158,6 +252,8 @@ export async function autoTagAndWriteStepCapabilityEvidence({
   const act = metadata.act ?? {};
   const review = metadata.review ?? {};
   const competencyNameById = await competencyNameMapForInterest(step.interest_id);
+  const orgCompetencies = await fetchOwnerOrgCompetencies(step.user_id, step.interest_id);
+  const matchOrgCompetency = buildOrgCompetencyMatcher(orgCompetencies);
   const base = baseRows ?? buildCapabilityEvidenceRows({ plan, act, review, competencyNameById });
   // Backstop the display-side resolve: any row whose id is a known
   // competency UUID gets its canonical title, so the persisted
@@ -179,12 +275,15 @@ export async function autoTagAndWriteStepCapabilityEvidence({
           (act.observations?.length ?? 0) +
           (act.media_uploads?.length ?? 0) +
           (act.media_links?.length ?? 0),
+        orgCompetencies,
       })
     : [];
+  // Link every final row to the owner's org framework so confirmed evidence
+  // reaches the admin competency rollup; unmatched rows stay free-text.
   const rows = mergeCapabilityRows(
     autoTagBase,
     suggestions.map((row) => ({ ...row, confirmed: true })),
-  );
+  ).map((row) => ({ ...row, orgCompetencyId: matchOrgCompetency(row) }));
   await writeStepCapabilityEvidence({
     stepId: step.id,
     rows,
@@ -250,6 +349,7 @@ export async function writeStepCapabilityEvidence({
     step_id: stepId,
     capability_id: row.capabilityId,
     capability_name: row.capabilityName,
+    org_competency_id: row.orgCompetencyId ?? null,
     confirmed: row.confirmed,
     strength: row.strength,
     pip_level: row.pipLevel,

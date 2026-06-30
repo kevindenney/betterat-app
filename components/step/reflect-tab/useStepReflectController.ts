@@ -18,6 +18,7 @@ import { draftReflectSynthesis } from '@/services/SynthesisService';
 import {
   autoTagAndWriteStepCapabilityEvidence,
   buildCapabilityEvidenceRows,
+  fetchOwnerOrgCompetencies,
 } from '@/services/CapabilityEvidenceService';
 import { suggestCapabilityTags } from '@/services/CapabilityTagService';
 import { extractInsightsFromStepReflection } from '@/services/AIMemoryService';
@@ -610,12 +611,17 @@ export function useStepReflectController({
     setCapabilitySuggestState('loading');
     try {
       const base = localCapabilities ?? seededCapabilities;
+      const interestId = step?.interest_id ?? currentInterest?.id ?? null;
+      const orgCompetencies = step?.user_id
+        ? await fetchOwnerOrgCompetencies(step.user_id, interestId)
+        : [];
       const suggestions = await suggestCapabilityTags({
-        interestId: step?.interest_id ?? currentInterest?.id ?? null,
+        interestId,
         captures: captureSnippets(actData),
         reflection: reflectionTextFromFields(fields),
         existingNames: base.map((row) => row.capabilityName),
         capturesCount,
+        orgCompetencies,
       });
       aiUsage.refresh();
       if (suggestions.length > 0) {
@@ -631,6 +637,7 @@ export function useStepReflectController({
     seededCapabilities,
     fields,
     step?.interest_id,
+    step?.user_id,
     currentInterest?.id,
     actData,
     capturesCount,

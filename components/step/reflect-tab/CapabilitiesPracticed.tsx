@@ -28,6 +28,9 @@ export interface CapabilityEvidenceRow {
   /** Verbatim snippet from the learner's own notes that justifies the tag.
       Surfaced on the public face; absent when no clean substring was found. */
   evidenceQuote?: string;
+  /** Resolved link to the owner's org competency framework. When set, the
+      evidence reaches the org admin's competency rollup; NULL stays free-text. */
+  orgCompetencyId?: string | null;
 }
 
 export type CapabilitySuggestState = 'idle' | 'loading' | 'done';

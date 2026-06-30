@@ -6,6 +6,16 @@ import type {
   EvidenceStrength,
 } from '@/components/step/reflect-tab/CapabilitiesPracticed';
 
+/** A single org's competency framework entry, used as the suggestion catalog
+ *  when the step owner belongs to an org for this interest. Matching one links
+ *  the evidence into that org's admin competency rollup. */
+export interface OrgCompetencyOption {
+  /** org_competencies.id — becomes the row's org_competency_id when matched. */
+  id: string;
+  shortLabel: string;
+  fullLabel: string;
+}
+
 interface SuggestCapabilityTagsInput {
   /** interests.id — used to constrain suggestions to that interest's competency catalog. */
   interestId?: string | null;
@@ -14,11 +24,19 @@ interface SuggestCapabilityTagsInput {
   /** Capability names already on the row list — never re-suggested. */
   existingNames: string[];
   capturesCount: number;
+  /**
+   * The owner's org competency framework for this interest. When present and
+   * non-empty it REPLACES the betterat catalog so matches carry an
+   * org_competency_id and reach the org admin's rollup.
+   */
+  orgCompetencies?: OrgCompetencyOption[];
 }
 
 interface CatalogRow {
   id: string;
   title: string | null;
+  /** Set when this catalog row is an org competency — copied onto the match. */
+  orgCompetencyId?: string | null;
 }
 
 const STRENGTHS: EvidenceStrength[] = ['worth-noting', 'material', 'strong'];
@@ -38,7 +56,12 @@ export async function suggestCapabilityTags(
   const reflection = input.reflection.trim();
   if (captures.length === 0 && !reflection) return [];
 
-  const catalog = await fetchCatalog(input.interestId);
+  // An org framework, when present, takes precedence over the betterat catalog
+  // so suggestions resolve to org_competencies the admin rollup can read.
+  const catalog =
+    input.orgCompetencies && input.orgCompetencies.length > 0
+      ? orgCompetenciesToCatalog(input.orgCompetencies)
+      : await fetchCatalog(input.interestId);
   const hasCatalog = catalog.length > 0;
 
   const system = hasCatalog
@@ -94,6 +117,9 @@ export async function suggestCapabilityTags(
   const titleById = new Map(
     catalog.map((c) => [c.id, (c.title ?? '').trim()] as const),
   );
+  const orgCompetencyIdById = new Map(
+    catalog.map((c) => [c.id, c.orgCompetencyId ?? null] as const),
+  );
   // Whitespace-collapsed haystack of the learner's own words — a quote only
   // survives if it's a genuine substring, so the model can't slip in prose the
   // learner never wrote (see capability-tagging-facade memory).
@@ -111,6 +137,7 @@ export async function suggestCapabilityTags(
     const strength = normalizeStrength((item as Record<string, unknown>).strength);
     let id: string;
     let name: string;
+    let orgCompetencyId: string | null = null;
 
     if (hasCatalog) {
       const cid = String((item as Record<string, unknown>).competency_id ?? '').trim();
@@ -118,6 +145,7 @@ export async function suggestCapabilityTags(
       if (!cid || !title) continue; // not in catalog → drop hallucination
       id = cid;
       name = title;
+      orgCompetencyId = orgCompetencyIdById.get(cid) ?? null;
     } else {
       name = String((item as Record<string, unknown>).capability_name ?? '').trim();
       if (!name) continue;
@@ -136,12 +164,24 @@ export async function suggestCapabilityTags(
       pipLevel: strength === 'strong' ? 5 : strength === 'material' ? 3 : 2,
       evidenceCount: input.capturesCount,
       source: 'ai',
+      orgCompetencyId,
       evidenceQuote: verbatimQuote((item as Record<string, unknown>).evidence_quote),
     });
     if (rows.length >= 4) break;
   }
 
   return rows;
+}
+
+function orgCompetenciesToCatalog(options: OrgCompetencyOption[]): CatalogRow[] {
+  return options
+    .map((o): CatalogRow | null => {
+      const full = (o.fullLabel ?? '').trim();
+      const short = (o.shortLabel ?? '').trim();
+      const title = full || short;
+      return title ? { id: o.id, title, orgCompetencyId: o.id } : null;
+    })
+    .filter((row): row is CatalogRow => row !== null);
 }
 
 async function fetchCatalog(interestId?: string | null): Promise<CatalogRow[]> {
