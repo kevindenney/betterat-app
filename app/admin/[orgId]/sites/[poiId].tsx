@@ -25,6 +25,7 @@ import {
   SiteRecentRow,
   SiteRosterRow,
 } from '@/hooks/useAdminSiteActivity';
+import { EditSiteSheet } from '@/components/admin/EditSiteSheet';
 
 const AVI_TONES = ['#28406B', '#6E8B5A', '#5A6B8B', '#7A5A8B', '#B8855A', '#8B5A3C'];
 
@@ -99,6 +100,7 @@ export default function AdminSiteDetailPage() {
     orgId as string,
     poiId as string,
   );
+  const [showEdit, setShowEdit] = React.useState(false);
 
   const siteName = poi?.name ?? 'Site';
   const kind = poi?.kind ?? 'place';
@@ -127,12 +129,23 @@ export default function AdminSiteDetailPage() {
           </Text>,
         ]}
         actions={
-          <StudioButton
-            variant="ghost"
-            icon="arrow-back-outline"
-            label="Back to Sites"
-            onPress={() => router.push(`/admin/${orgId}/sites`)}
-          />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <StudioButton
+              variant="ghost"
+              icon="arrow-back-outline"
+              label="Back to Sites"
+              onPress={() => router.push(`/admin/${orgId}/sites`)}
+            />
+            {poi ? (
+              <StudioButton
+                variant="primary"
+                accent="navy"
+                icon="create-outline"
+                label="Edit"
+                onPress={() => setShowEdit(true)}
+              />
+            ) : null}
+          </View>
         }
       />
 
@@ -327,6 +340,14 @@ export default function AdminSiteDetailPage() {
           </>
         )}
       </ScrollView>
+
+      <EditSiteSheet
+        visible={showEdit}
+        orgId={orgId as string}
+        site={poi}
+        locatedStepCount={stats?.steps ?? 0}
+        onClose={() => setShowEdit(false)}
+      />
     </AdminShell>
   );
 }

@@ -7,8 +7,9 @@
  * racing areas. Each row carries lat/lng, kind icon, healthcare pill
  * where applicable, and the institution's metadata.
  *
- * Future: a "Claim a new site" sheet (parallel to AddPersonSheet) lets
- * an admin propose a new POI for their org without leaving this page.
+ * Writes: the "…" row menu edits / unclaims / opens on Atlas, and the
+ * header "Claim a place" action opens the claim/create sheet. Both go
+ * through useAdminSiteMutations (SECURITY DEFINER RPCs).
  */
 
 import React, { useMemo, useState } from 'react';
@@ -26,33 +27,80 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import { useAdminOrgSites, AdminOrgSite } from '@/hooks/useAdminOrgSites';
+import { useAdminSiteMutations } from '@/hooks/useAdminSiteMutations';
+import { showConfirm, showAlert } from '@/lib/utils/crossPlatformAlert';
 import {
   StudioHeader,
   StudioTabs,
+  StudioButton,
   STUDIO_COMPACT_BREAKPOINT,
 } from '@/components/studio/StudioShell';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { EditSiteSheet } from '@/components/admin/EditSiteSheet';
+import { ClaimSiteSheet } from '@/components/admin/ClaimSiteSheet';
 
 type SitesTab = 'all' | 'hospital' | 'sim_lab' | 'club' | 'racing_area';
 
 export default function AdminSitesPage() {
+  const { orgId } = useLocalSearchParams<{ orgId: string }>();
+  const [showClaim, setShowClaim] = useState(false);
   return (
-    <AdminShell activeKey="sites">
-      <AdminSitesBody />
+    <AdminShell
+      activeKey="sites"
+      primaryAction={{ icon: 'add', label: 'Claim a place', onPress: () => setShowClaim(true) }}
+    >
+      <AdminSitesBody
+        orgId={orgId as string}
+        showClaim={showClaim}
+        onOpenClaim={() => setShowClaim(true)}
+        onCloseClaim={() => setShowClaim(false)}
+      />
     </AdminShell>
   );
 }
 
-function AdminSitesBody() {
-  const { orgId } = useLocalSearchParams<{ orgId: string }>();
+function AdminSitesBody({
+  orgId,
+  showClaim,
+  onOpenClaim,
+  onCloseClaim,
+}: {
+  orgId: string;
+  showClaim: boolean;
+  onOpenClaim: () => void;
+  onCloseClaim: () => void;
+}) {
   const router = useRouter();
   const menu = useProfileMenuData();
-  const data = useAdminOrgSites(orgId as string);
+  const data = useAdminOrgSites(orgId);
+  const { unclaim } = useAdminSiteMutations(orgId);
   const { width } = useWindowDimensions();
   const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   const [tab, setTab] = useState<SitesTab>('all');
   const [search, setSearch] = useState('');
+  const [menuFor, setMenuFor] = useState<AdminOrgSite | null>(null);
+  const [editSite, setEditSite] = useState<AdminOrgSite | null>(null);
+
+  function handleUnclaim(site: AdminOrgSite) {
+    setMenuFor(null);
+    showConfirm(
+      'Unclaim site',
+      `Release "${site.name}" from your organization? The place stays on the Atlas but is no longer curated by you.`,
+      () => {
+        unclaim.mutate(site.id, {
+          onError: (e) =>
+            showAlert('Could not unclaim', e instanceof Error ? e.message : 'Try again.'),
+        });
+      },
+      { destructive: true, confirmText: 'Unclaim' },
+    );
+  }
+
+  function handleViewOnAtlas(site: AdminOrgSite) {
+    setMenuFor(null);
+    router.push(`/atlas?lat=${site.lat}&lng=${site.lng}` as any);
+  }
 
   const filteredSites = useMemo(() => {
     let rows = data.sites;
@@ -122,6 +170,15 @@ function AdminSitesBody() {
               style={styles.searchInputField}
             />
           </View>
+          {compact ? null : (
+            <StudioButton
+              variant="primary"
+              accent="navy"
+              icon="add"
+              label="Claim a place"
+              onPress={onOpenClaim}
+            />
+          )}
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
@@ -145,11 +202,76 @@ function AdminSitesBody() {
                 key={s.id}
                 site={s}
                 onPress={() => router.push(`/admin/${orgId}/sites/${s.id}`)}
+                onMenu={() => setMenuFor(s)}
               />
             ))
           )}
         </ScrollView>
+
+      {menuFor ? (
+        <View style={styles.menuScrim} pointerEvents="auto">
+          <Pressable style={styles.menuScrimPress} onPress={() => setMenuFor(null)} />
+          <View style={styles.menuCard}>
+            <Text style={styles.menuTitle} numberOfLines={1}>
+              {menuFor.name}
+            </Text>
+            <MenuItem
+              icon="create-outline"
+              label="Edit site"
+              onPress={() => {
+                const site = menuFor;
+                setMenuFor(null);
+                setEditSite(site);
+              }}
+            />
+            <MenuItem
+              icon="map-outline"
+              label="View on Atlas"
+              onPress={() => handleViewOnAtlas(menuFor!)}
+            />
+            <MenuItem
+              icon="remove-circle-outline"
+              label="Unclaim"
+              destructive
+              onPress={() => handleUnclaim(menuFor!)}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      <EditSiteSheet
+        visible={!!editSite}
+        orgId={orgId}
+        site={editSite}
+        onClose={() => setEditSite(null)}
+      />
+
+      <ClaimSiteSheet
+        visible={showClaim}
+        orgId={orgId}
+        onClose={onCloseClaim}
+        onDone={(poiId) => router.push(`/admin/${orgId}/sites/${poiId}`)}
+      />
     </>
+  );
+}
+
+function MenuItem({
+  icon,
+  label,
+  destructive,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  destructive?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={styles.menuItem} onPress={onPress}>
+      <Ionicons name={icon} size={17} color={destructive ? '#C8392E' : '#1C1C1E'} />
+      <Text style={[styles.menuItemText, destructive && { color: '#C8392E' }]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -157,7 +279,15 @@ function AdminSitesBody() {
 // Site row
 // ---------------------------------------------------------------------------
 
-function SiteRow({ site, onPress }: { site: AdminOrgSite; onPress?: () => void }) {
+function SiteRow({
+  site,
+  onPress,
+  onMenu,
+}: {
+  site: AdminOrgSite;
+  onPress?: () => void;
+  onMenu?: () => void;
+}) {
   const city = site.metadata?.city as string | undefined;
   const role = site.metadata?.role as string | undefined;
   return (
@@ -184,9 +314,16 @@ function SiteRow({ site, onPress }: { site: AdminOrgSite; onPress?: () => void }
           </Text>
         </Text>
       </View>
-      <View style={styles.siteAction}>
-        <Ionicons name="ellipsis-horizontal" size={16} color="rgba(60, 60, 67, 0.4)" />
-      </View>
+      <Pressable
+        style={styles.siteAction}
+        hitSlop={8}
+        onPress={(e) => {
+          e.stopPropagation?.();
+          onMenu?.();
+        }}
+      >
+        <Ionicons name="ellipsis-horizontal" size={16} color="rgba(60, 60, 67, 0.55)" />
+      </Pressable>
     </Pressable>
   );
 }
@@ -334,7 +471,44 @@ const styles = StyleSheet.create({
     fontFamily: Platform.select({ ios: 'ui-monospace', default: 'monospace' }),
     fontSize: 11,
   },
-  siteAction: { padding: 4 },
+  siteAction: { padding: 6, borderRadius: 8 },
+
+  menuScrim: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  menuScrimPress: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
+  menuCard: {
+    width: 260,
+    maxWidth: '90%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 6,
+    ...({ boxShadow: '0 20px 60px -16px rgba(0,0,0,0.4)' } as any),
+  },
+  menuTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.6)',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  menuItemText: { fontSize: 14, color: '#1C1C1E', fontWeight: '500' },
 
   empty: { alignItems: 'center', paddingVertical: 64, gap: 8 },
   emptyTitle: { fontSize: 15, fontWeight: '600', color: '#1C1C1E', marginTop: 8 },
