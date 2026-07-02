@@ -576,11 +576,19 @@ function AuthGate() {
     const isPublicHkdwSurface =
       firstSegment === 'practice' &&
       (segments[1] === 'step' || segments[1] === 'blueprint');
+    // The pre-signup value funnel (/onboarding/value/* → auth-choice-new) is
+    // the landing page's "Get started" target — anonymous by definition. The
+    // rest of /onboarding (profile, trial, telegram…) is post-signup and
+    // stays protected.
+    const isPublicOnboardingFunnel =
+      firstSegment === 'onboarding' &&
+      (segments[1] === 'value' || segments[1] === 'auth-choice-new');
     const isPublicRoute =
       !firstSegment ||
       publicSegments.includes(firstSegment) ||
       isPublicVenuePost ||
-      isPublicHkdwSurface;
+      isPublicHkdwSurface ||
+      isPublicOnboardingFunnel;
 
     if (isPublicRoute) return;
 
