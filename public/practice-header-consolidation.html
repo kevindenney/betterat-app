@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Practice header consolidation — mock</title>
+<style>
+  :root {
+    --accent: #007AFF;
+    --now: #FF6B5A;
+    --done: #16A34A;
+    --label: #1C1C1E;
+    --label2: rgba(60,60,67,0.6);
+    --label3: rgba(60,60,67,0.3);
+    --sep: rgba(60,60,67,0.16);
+    --ground: #F2F2F7;
+    --card: #FFFFFF;
+    --pillbg: rgba(118,118,128,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: #E7E7EC; color: var(--label); padding: 48px 40px 120px;
+  }
+  h1 { font-size: 22px; letter-spacing: -0.4px; margin-bottom: 6px; }
+  .intro { color: var(--label2); font-size: 14px; max-width: 720px; line-height: 1.5; margin-bottom: 8px; }
+  .frame { margin-top: 44px; }
+  .frame > h2 {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--label2); margin-bottom: 12px;
+  }
+  .note {
+    font-size: 12.5px; color: var(--label2); line-height: 1.55; max-width: 700px; margin-top: 12px;
+  }
+  .note b { color: var(--label); }
+  .kill { color: #C2410C; }
+
+  /* ————— shared chrome pieces ————— */
+  .surface { background: var(--ground); border-radius: 18px; border: 1px solid var(--sep); overflow: hidden; }
+  .bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px; min-height: 48px;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--card); border: 0.5px solid rgba(60,60,67,0.29);
+    border-radius: 17px; height: 34px; padding: 0 12px;
+    font-size: 14px; font-weight: 600; white-space: nowrap;
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #1E9E6A; }
+  .chev { color: var(--label3); font-size: 11px; }
+  .icons { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+  .plus {
+    width: 28px; height: 28px; border-radius: 50%; background: #34C759;
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 600; box-shadow: 0 3px 9px rgba(52,199,89,0.4);
+  }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
+    color: #fff; font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ————— THE control: stepper pill ————— */
+  .stepper {
+    display: inline-flex; align-items: center; height: 34px;
+    background: var(--card); border: 0.5px solid rgba(60,60,67,0.29);
+    border-radius: 17px; overflow: hidden; white-space: nowrap;
+  }
+  .stepper .seg { display: flex; align-items: center; gap: 6px; padding: 0 11px; height: 100%; }
+  .stepper .seg + .seg { border-left: 0.5px solid var(--sep); }
+  .stepper .ord { font-size: 14px; font-weight: 600; color: var(--label); }
+  .stepper .of { color: var(--label2); font-weight: 500; }
+  .rel {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.5px; color: #fff;
+    border-radius: 6px; padding: 3px 7px;
+  }
+  .rel.done { background: var(--done); }
+  .rel.now { background: var(--now); }
+  .rel.next { background: var(--accent); }
+  .stepper .arrows { display: flex; gap: 2px; padding: 0 6px; }
+  .stepper .arr {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--pillbg);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--label2); font-size: 12px;
+  }
+
+  /* ————— canvas hint ————— */
+  .canvas { padding: 16px 14px 22px; display: flex; gap: 14px; }
+  .cardmock {
+    background: var(--card); border-radius: 16px; border: 0.5px solid var(--sep);
+    padding: 16px; min-height: 170px; flex: 1;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+  .cardmock.nowcard { border-left: 5px solid var(--now); position: relative; }
+  .nowtag {
+    position: absolute; top: 0; left: 0; background: var(--now); color: #fff;
+    font-size: 9px; font-weight: 800; letter-spacing: 1px; padding: 3px 7px;
+    border-bottom-right-radius: 8px;
+  }
+  .cardmock .t { font-family: Georgia, serif; font-size: 17px; margin-bottom: 8px; }
+  .cardmock .l { height: 9px; border-radius: 5px; background: var(--ground); margin-top: 8px; }
+  .cardmock .l.short { width: 60%; }
+  .ghosthint { opacity: 0.45; }
+
+  /* ————— dropdown menu ————— */
+  .menu {
+    width: 330px; background: var(--card); border-radius: 16px;
+    border: 0.5px solid rgba(60,60,67,0.24); overflow: hidden;
+    box-shadow: 0 18px 44px rgba(11,18,32,0.28); margin: 10px 0 0 118px;
+  }
+  .menu .mh {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.6px; padding: 13px 15px 10px;
+    border-bottom: 0.5px solid var(--sep);
+  }
+  .mrow { display: flex; align-items: center; gap: 11px; padding: 12px 15px; border-bottom: 0.5px solid var(--sep); font-size: 15px; font-weight: 600; }
+  .mrow:last-child { border-bottom: none; }
+  .mrow .sdot { width: 11px; height: 11px; border-radius: 50%; }
+  .mrow .rt { margin-left: auto; font-size: 10px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: var(--label3); font-family: ui-monospace, monospace; }
+  .mdivider { display: flex; align-items: center; gap: 8px; padding: 4px 15px; }
+  .mdivider .line { flex: 1; border-top: 1.5px solid var(--now); opacity: 0.6; }
+  .mdivider .nl { font-size: 9px; font-weight: 800; letter-spacing: 1.4px; color: var(--now); }
+  .mrow.addrow { color: var(--accent); font-size: 13.5px; }
+
+  /* ————— phone frame ————— */
+  .phones { display: flex; gap: 28px; flex-wrap: wrap; }
+  .phone {
+    width: 300px; border-radius: 30px; border: 1px solid var(--sep);
+    background: var(--ground); overflow: hidden; padding-bottom: 14px;
+  }
+  .phone .bar { padding: 10px 10px; }
+  .phone .pill { height: 30px; font-size: 12.5px; padding: 0 10px; }
+  .phone .stepper { height: 30px; }
+  .phone .stepper .seg { padding: 0 8px; gap: 4px; }
+  .phone .stepper .ord { font-size: 12.5px; }
+  .phone .rel { font-size: 8.5px; padding: 2px 5px; }
+  .phone .canvas { padding: 8px 10px 0; }
+  .phone .avatar, .phone .plus { width: 24px; height: 24px; font-size: 10px; }
+  .strike { text-decoration: line-through; text-decoration-color: #C2410C; }
+  .floatpill {
+    display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.9);
+    border: 0.5px solid var(--sep); border-radius: 16px; padding: 6px 11px;
+    box-shadow: 0 6px 16px rgba(20,28,45,0.18); margin: -30px auto 12px; position: relative; z-index: 2;
+  }
+  .minidots { display: flex; gap: 4px; align-items: center; }
+  .minidots i { width: 6px; height: 6px; border-radius: 50%; background: var(--label3); }
+  .minidots i.g { background: var(--done); }
+  .minidots i.v { width: 16px; height: 7px; border-radius: 4px; background: var(--accent); }
+  .center { text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>Practice header — one control for “where am I”</h1>
+<p class="intro">
+  Today four systems answer position-in-sequence: the <b>Step N ⌄</b> chip, the floating
+  <b>◂ DONE / ▸ NOW</b> pill, the <b>minimap dots</b>, and (web only) the header <b>NowStrip</b>.
+  This mock fuses them into one <b>stepper pill</b> that lives where navigation already lives.
+  The floating pill dies on <b>every</b> platform — which also fixes the native occlusion
+  (it currently sits on the “Key takeaway” input mid-scroll).
+</p>
+
+<!-- ——————————————————— Frame 1 ——————————————————— -->
+<div class="frame">
+  <h2>1 · STEP level — web &amp; native share one header</h2>
+  <div class="surface">
+    <div class="bar">
+      <span class="pill"><span class="dot"></span> Golf <span class="chev">▾</span></span>
+      <span class="stepper">
+        <span class="seg"><span class="ord">Step 2 <span class="of">of 4</span></span> <span class="rel now">▸ NOW</span> <span class="chev">▾</span></span>
+        <span class="arrows"><span class="arr">‹</span><span class="arr">›</span></span>
+      </span>
+      <span class="icons"><span class="plus">＋</span><span class="avatar">ER</span></span>
+    </div>
+    <div class="canvas">
+      <div class="cardmock ghosthint"><div class="t">Short game — chipping &amp; putting</div><div class="l"></div><div class="l short"></div></div>
+      <div class="cardmock nowcard"><div class="nowtag">NOW</div><div class="t">Saturday round — front nine</div><div class="l"></div><div class="l"></div><div class="l short"></div></div>
+      <div class="cardmock ghosthint"><div class="t">Range session — driver dispersion</div><div class="l"></div><div class="l short"></div></div>
+    </div>
+  </div>
+  <p class="note">
+    The stepper reads <b>ordinal · relation · jump</b> in one glance: “Step 2 of 4 · ▸ NOW.”
+    The relation token is the DONE/NOW/NEXT pill, same colors as today. ‹ › are the
+    prev/next taps (arrow keys still work on web; swipe still works everywhere).
+    <span class="kill">Killed: the floating pill, the separate minimap, web’s inline NowStrip.</span>
+  </p>
+</div>
+
+<!-- ——————————————————— Frame 2 ——————————————————— -->
+<div class="frame">
+  <h2>2 · The stepper’s menu — the minimap grows into the jump list</h2>
+  <div class="menu">
+    <div class="mh">JUMP TO STEP</div>
+    <div class="mrow"><span class="sdot" style="background:var(--done)"></span> Short game — chipping &amp; putting <span class="rt" style="color:var(--done)">done</span></div>
+    <div class="mdivider"><span class="line"></span><span class="nl">NOW</span><span class="line"></span></div>
+    <div class="mrow"><span class="sdot" style="background:var(--now)"></span> Saturday round — front nine <span class="rt" style="color:var(--now)">now</span></div>
+    <div class="mrow"><span class="sdot" style="background:var(--label3)"></span> Range session — driver dispersion <span class="rt">queued</span></div>
+    <div class="mrow"><span class="sdot" style="background:var(--label3)"></span> Sketch course layouts from aerial photos… <span class="rt">queued</span></div>
+    <div class="mrow addrow">＋ Add a step</div>
+  </div>
+  <p class="note">
+    The existing jump menu already has done/now/queued rows — it <b>is</b> the minimap, at
+    readable size. Two upgrades: the <b>NOW divider</b> from ARC renders inside the list
+    (same semantics everywhere), and <b>＋ Add a step</b> ends the list (the plan-next idiom).
+    Tiny dots you could barely tap are gone.
+  </p>
+</div>
+
+<!-- ——————————————————— Frame 3 ——————————————————— -->
+<div class="frame">
+  <h2>3 · Phone — before / after (the float dies)</h2>
+  <div class="phones">
+    <div class="phone">
+      <div class="bar">
+        <span class="pill"><span class="dot"></span> Golf</span>
+        <span class="pill">Step 2 <span class="chev">▾</span></span>
+        <span class="icons"><span class="plus">＋</span><span class="avatar">ER</span></span>
+      </div>
+      <div class="canvas"><div class="cardmock nowcard"><div class="nowtag">NOW</div><div class="t">Saturday round — front nine</div><div class="l"></div><div class="l"></div><div class="l"></div><div class="l short"></div></div></div>
+      <div class="center">
+        <span class="floatpill"><span class="rel now">▸ NOW</span><span class="minidots"><i class="g"></i><i class="v"></i><i></i><i></i></span></span>
+      </div>
+      <div class="center note" style="margin:0 14px;">BEFORE — float sits on card text mid-scroll</div>
+    </div>
+    <div class="phone">
+      <div class="bar">
+        <span class="pill"><span class="dot"></span> Golf</span>
+        <span class="stepper"><span class="seg"><span class="ord">2 <span class="of">of 4</span></span> <span class="rel now">NOW</span> <span class="chev">▾</span></span></span>
+        <span class="icons"><span class="plus">＋</span><span class="avatar">ER</span></span>
+      </div>
+      <div class="canvas"><div class="cardmock nowcard"><div class="nowtag">NOW</div><div class="t">Saturday round — front nine</div><div class="l"></div><div class="l"></div><div class="l"></div><div class="l short"></div></div></div>
+      <div class="center note" style="margin:8px 14px 0;">AFTER — nothing floats; “Step” word dropped, ‹ › dropped (swipe is the phone’s next/prev)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ——————————————————— Frame 4 ——————————————————— -->
+<div class="frame">
+  <h2>4 · ARC level — arc-scoped chrome, not a stale step chip</h2>
+  <div class="surface">
+    <div class="bar">
+      <span class="pill"><span class="dot"></span> Golf <span class="chev">▾</span></span>
+      <span class="stepper">
+        <span class="seg"><span class="ord">Current season</span> <span class="of" style="font-size:12.5px;">wk 1 of 2 · 1/4 settled</span> <span class="chev">▾</span></span>
+      </span>
+      <span class="icons"><span class="plus">＋</span><span class="avatar">ER</span></span>
+    </div>
+    <div class="canvas" style="display:block;">
+      <div class="cardmock" style="min-height:56px;"><div class="l" style="margin-top:2px;"></div><div class="l short"></div></div>
+    </div>
+  </div>
+  <p class="note">
+    At ARC the stepper swaps its subject: <b>arc name + honest context</b> (“wk 1 of 2 · 1/4 settled”)
+    with the arc switcher behind the same ▾. <span class="kill">Killed: the “Step 1 ⌄” chip rendering
+    at arc level</span> — step-scoped chrome no longer leaks onto an arc-scoped surface. This is
+    also where the #10 “header band earns its keep” context lands.
+  </p>
+</div>
+
+<div class="frame">
+  <h2>Decisions this mock encodes</h2>
+  <p class="note">
+    <b>1.</b> One control answers identity + position + jump; relation is a token inside it, not separate chrome.<br/>
+    <b>2.</b> The jump menu absorbs the minimap and gains the NOW divider + add-row — one grammar from L1 to ARC.<br/>
+    <b>3.</b> The floating pill is deleted on all platforms (NowFloat component retires; native occlusion fixed).<br/>
+    <b>4.</b> Phone drops the ‹ › arrows (swipe owns next/prev) and the word “Step” (ordinal + total suffice).<br/>
+    <b>5.</b> The stepper is level-aware: step-subject at STEP, arc-subject at ARC — no stale chips across levels.
+  </p>
+</div>
+
+</body>
+</html>
