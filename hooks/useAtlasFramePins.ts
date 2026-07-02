@@ -470,6 +470,9 @@ export function useAtlasFramePins({
         lng: poi.lng,
         kind,
         label,
+        // The map label is trimmed to fit beside a pin; list surfaces
+        // (Atlas Sites rows) have full width and must not inherit the cut.
+        fullName: poi.name,
         subtitle,
         provenance,
         orgId: poi.claimed_by_org_id,

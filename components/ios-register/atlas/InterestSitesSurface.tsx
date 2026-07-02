@@ -85,7 +85,7 @@ export function InterestSitesSurface({
       seen.add(poiId);
       rows.push({
         poiId,
-        name: p.label ?? 'Site',
+        name: p.fullName ?? p.label ?? 'Site',
         lat: p.lat,
         lng: p.lng,
         stepCount: stepsByPoi.get(poiId) ?? 0,

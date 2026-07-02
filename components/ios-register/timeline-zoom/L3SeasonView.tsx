@@ -998,6 +998,21 @@ export function L3SeasonView({
         />
       ) : null}
 
+      {/* Plan-next lives IN the sequence, after the last queued card — the
+          same idiom as Library's "Create a plan" row and L1's ghost card.
+          Hidden while filtering (the list isn't the full sequence then). */}
+      {!isReordering && !selectEnabled && !filtering && snakeSteps.length > 0 && onAddStep ? (
+        <Pressable
+          style={styles.addStepRow}
+          onPress={onAddStep}
+          accessibilityRole="button"
+          accessibilityLabel="Add a step"
+        >
+          <Ionicons name="add-circle-outline" size={18} color={IOS_REGISTER.accentUserAction} />
+          <Text style={styles.addStepRowText}>Add a step</Text>
+        </Pressable>
+      ) : null}
+
       {/* No color legend — the cards already carry their status in words
           (DONE / NEXT / PLANNED pills + the NOW divider), so a fourth
           encoding at the bottom of the list explained nothing. */}
@@ -1627,6 +1642,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
+  },
+  addStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    marginHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 122, 255, 0.07)',
+  },
+  addStepRowText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: IOS_REGISTER.accentUserAction,
   },
   toolbar: {
     flexDirection: 'row',

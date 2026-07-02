@@ -4866,7 +4866,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
           <BottomSheet
             key="poi-club"
             eyebrow="CLUB"
-            title={selectedPin.label ?? 'Club'}
+            title={selectedPin.fullName ?? selectedPin.label ?? 'Club'}
             body={[
               selectedPin.orgSlug
                 ? 'Linked BetterAt organization.'

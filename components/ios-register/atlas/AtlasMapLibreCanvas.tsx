@@ -492,6 +492,10 @@ export interface AtlasPinSpec {
     | 'my-step-done-old';
   /** Optional short label rendered next to the pin (POIs get names). */
   label?: string;
+  /** Untrimmed place name. List surfaces (Atlas Sites rows) read this —
+   *  `label` is cut to ~22 chars to fit beside a map pin and reads as a
+   *  mid-word truncation bug anywhere with full width. */
+  fullName?: string;
   /**
    * Peer cluster count when this pin is a merged-cluster badge. Per the
    * design's cluster behavior rule: 5+ peer pins in 2km merge to "+N",
