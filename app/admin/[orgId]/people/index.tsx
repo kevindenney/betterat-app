@@ -237,9 +237,9 @@ function AdminPeopleBody() {
         orgShortName={orgShortLabel}
         seatsAvailable={seatsAvailable}
         seatsTotal={data.seats.total}
-        verifiedDomains={['jh.edu', 'jhmi.edu']}
-        defaultBlueprints={['Adult Health I · M4', 'MSN second-year onboarding']}
-        defaultCohortLabel="Spring '26 · MSN second-year"
+        verifiedDomains={[]}
+        defaultBlueprints={[]}
+        defaultCohortLabel=""
         onClose={() => setShowAddSheet(false)}
       />
 

@@ -107,7 +107,7 @@ export function AddPersonSheet({
         status: 'sent' as const,
         metadata: {
           auto_subscribe: autoSubscribe,
-          cohort_label: cohort,
+          cohort_label: cohort.trim() || null,
           verified_domain: chip.isValid,
         },
       }));
@@ -157,7 +157,7 @@ export function AddPersonSheet({
             count: queuedEmails.length,
             method: queuedEmails.length > 1 ? 'manual_batch' : 'manual_single',
             role_key: ROLE_KEY[role],
-            cohort_label: cohort,
+            cohort_label: cohort.trim() || null,
             auto_subscribe: autoSubscribe,
           },
         })
@@ -201,7 +201,7 @@ export function AddPersonSheet({
       .filter(Boolean);
     return tokens.filter(isValidEmail).map((token) => {
       const domain = token.split('@')[1]?.toLowerCase() ?? '';
-      return { email: token, isValid: verifiedDomains.includes(domain) };
+      return { email: token, isValid: (verifiedDomains.length === 0 || verifiedDomains.includes(domain)) };
     });
   }
 
@@ -258,7 +258,7 @@ export function AddPersonSheet({
         continue;
       }
       const domain = lower.split('@')[1] ?? '';
-      collected.push({ email: candidate, isValid: verifiedDomains.includes(domain) });
+      collected.push({ email: candidate, isValid: (verifiedDomains.length === 0 || verifiedDomains.includes(domain)) });
     }
     if (collected.length > 0) {
       setEmails((prev) => [...prev, ...collected]);
@@ -354,16 +354,22 @@ export function AddPersonSheet({
                     style={s.chipInput}
                   />
                 </View>
-                <Text style={s.helper}>
-                  Only emails on your verified domains (
-                  {verifiedDomains.map((d, i) => (
-                    <React.Fragment key={d}>
-                      <Text style={s.helperStrong}>@{d}</Text>
-                      {i < verifiedDomains.length - 1 ? <Text>, </Text> : null}
-                    </React.Fragment>
-                  ))}
-                  ) will auto-redeem via SSO. Others get a regular invite email.
-                </Text>
+                {verifiedDomains.length > 0 ? (
+                  <Text style={s.helper}>
+                    Only emails on your verified domains (
+                    {verifiedDomains.map((d, i) => (
+                      <React.Fragment key={d}>
+                        <Text style={s.helperStrong}>@{d}</Text>
+                        {i < verifiedDomains.length - 1 ? <Text>, </Text> : null}
+                      </React.Fragment>
+                    ))}
+                    ) will auto-redeem via SSO. Others get a regular invite email.
+                  </Text>
+                ) : (
+                  <Text style={s.helper}>
+                    Invitees receive an invite email to join your organization.
+                  </Text>
+                )}
               </Field>
 
               <Field label="Role">
@@ -447,14 +453,20 @@ export function AddPersonSheet({
                 <View style={s.autoSubText}>
                   <Text style={s.autoSubTitle}>Auto-subscribe to cohort blueprints</Text>
                   <Text style={s.autoSubBody}>
-                    On redemption, each invitee will be subscribed to{' '}
-                    {defaultBlueprints.map((b, i) => (
-                      <React.Fragment key={b}>
-                        <Text style={s.autoSubStrong}>{b}</Text>
-                        {i < defaultBlueprints.length - 1 ? <Text> and </Text> : null}
-                      </React.Fragment>
-                    ))}{' '}
-                    — the cohort's default blueprints.
+                    {defaultBlueprints.length > 0 ? (
+                      <>
+                        On redemption, each invitee will be subscribed to{' '}
+                        {defaultBlueprints.map((b, i) => (
+                          <React.Fragment key={b}>
+                            <Text style={s.autoSubStrong}>{b}</Text>
+                            {i < defaultBlueprints.length - 1 ? <Text> and </Text> : null}
+                          </React.Fragment>
+                        ))}{' '}
+                        — the cohort's default blueprints.
+                      </>
+                    ) : (
+                      <>On redemption, each invitee will be subscribed to the cohort&apos;s default blueprints.</>
+                    )}
                   </Text>
                 </View>
               </Pressable>
@@ -700,7 +712,7 @@ function SsoDirectoryPanel({
       if (!selectedIds.has(c.id)) continue;
       if (queuedEmails.has(c.email.toLowerCase())) continue;
       const domain = c.email.split('@')[1]?.toLowerCase() ?? '';
-      additions.push({ email: c.email, isValid: verifiedDomains.includes(domain) });
+      additions.push({ email: c.email, isValid: (verifiedDomains.length === 0 || verifiedDomains.includes(domain)) });
     }
     if (additions.length > 0) {
       setEmails((prev) => [...prev, ...additions]);
@@ -753,6 +765,7 @@ function SsoDirectoryPanel({
           {candidates.map((c) => {
             const checked = selectedIds.has(c.id);
             const validDomain =
+              verifiedDomains.length === 0 ||
               verifiedDomains.includes(c.email.split('@')[1]?.toLowerCase() ?? '');
             return (
               <Pressable key={c.id} onPress={() => toggle(c.id)} style={s.directoryRow}>

@@ -118,11 +118,15 @@ export class CoursePaymentService {
           .single();
 
         if (course?.requires_subscription) {
-          // Check if user's tier is sufficient
+          // Check if user's tier is sufficient. 'individual' is the live name for
+          // the entry paid tier ('basic' is its legacy alias) — without this
+          // normalization it falls outside tierOrder (indexOf → -1) and every
+          // 'individual' subscriber is denied, even for free-min courses.
+          const normalizeTier = (t: string) => (t === 'individual' ? 'basic' : t);
           const tierOrder = ['free', 'basic', 'pro', 'team', 'enterprise'];
-          const userTierIndex = tierOrder.indexOf(user.subscription_tier || 'free');
-          const requiredTierIndex = tierOrder.indexOf(course.min_subscription_tier || 'free');
-          
+          const userTierIndex = tierOrder.indexOf(normalizeTier(user.subscription_tier || 'free'));
+          const requiredTierIndex = tierOrder.indexOf(normalizeTier(course.min_subscription_tier || 'free'));
+
           return userTierIndex >= requiredTierIndex;
         }
       }
@@ -288,20 +292,12 @@ export class CoursePaymentService {
    * Apply promo code to get course access
    */
   async applyPromoCode(
-    userId: string,
-    courseId: string,
-    promoCode: string
+    _userId: string,
+    _courseId: string,
+    _promoCode: string
   ): Promise<{ success: boolean; error?: string }> {
-    try {
-      // This would typically validate against a promo_codes table
-      // For now, we'll just return an error
-      return { 
-        success: false, 
-        error: 'Promo codes not yet implemented' 
-      };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
+    // TODO: validate against a promo_codes table. Not yet implemented.
+    return { success: false, error: 'Promo codes not yet implemented' };
   }
 }
 

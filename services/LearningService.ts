@@ -897,9 +897,12 @@ export class LearningService {
   }
 
   /**
-   * Pro subscription tiers that get all courses included
+   * Pro subscription tiers that get all courses included. Must include 'pro' —
+   * that's the value the Stripe and RevenueCat webhooks actually write; the old
+   * list ('sailor_pro'/'championship'/'professional') matched no live tier, so
+   * every real Pro subscriber was denied "included with Pro" courses.
    */
-  static readonly PRO_TIERS = ['sailor_pro', 'championship', 'professional'];
+  static readonly PRO_TIERS = ['pro', 'sailor_pro', 'championship', 'professional'];
 
   /**
    * Check user's subscription tier and if they have Pro access

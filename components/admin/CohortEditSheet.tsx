@@ -139,7 +139,7 @@ export function CohortEditSheet({
     setStartDate(formatDateForInput(initialStartDate));
     setEndDate(formatDateForInput(initialEndDate));
     setMaxSeats(initialMaxSeats != null ? String(initialMaxSeats) : '');
-    setProgram(initialProgram ?? 'BSN · pre-licensure');
+    setProgram(initialProgram ?? '');
     setSavedAt(null);
   }, [
     visible,
