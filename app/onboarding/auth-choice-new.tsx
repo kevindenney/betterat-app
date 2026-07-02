@@ -22,8 +22,6 @@ import { OnboardingProgressDots } from '@/components/onboarding/OnboardingProgre
 import { nativeAppleSignIn, nativeGoogleSignIn, isAppleSignInAvailable } from '@/lib/auth/nativeOAuth';
 import { useGoogleAuth, useAppleAuth } from '@/lib/auth/useOAuth';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
-import { useAuth } from '@/providers/AuthProvider';
-import { OnboardingStateService } from '@/services/onboarding/OnboardingStateService';
 
 // Icons as SVG paths for social buttons
 const AppleLogo = () => (
@@ -45,8 +43,7 @@ export default function AuthChoiceNewScreen() {
   // onboarding_interest_slug AsyncStorage key for the social-auth paths).
   const params = useLocalSearchParams<{ interest?: string }>();
   const interest = typeof params.interest === 'string' ? params.interest : undefined;
-  const { enterGuestMode } = useAuth();
-  const [isLoading, setIsLoading] = useState<'apple' | 'google' | 'guest' | null>(null);
+  const [isLoading, setIsLoading] = useState<'apple' | 'google' | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(Platform.OS === 'ios');
 
   // OAuth hooks for web fallback
@@ -118,22 +115,6 @@ export default function AuthChoiceNewScreen() {
 
   const handleSignIn = () => {
     router.push('/(auth)/login');
-  };
-
-  const handleBrowseAsGuest = async () => {
-    setIsLoading('guest');
-    try {
-      // Mark onboarding as seen so they don't see it again
-      await OnboardingStateService.markOnboardingSeen();
-      // Enter guest mode
-      enterGuestMode();
-      // Navigate to races tab
-      router.replace('/(tabs)/races');
-    } catch (error) {
-      console.error('Failed to enter guest mode:', error);
-    } finally {
-      setIsLoading(null);
-    }
   };
 
   const handleBack = () => {
@@ -239,25 +220,6 @@ export default function AuthChoiceNewScreen() {
             >
               <Ionicons name="mail-outline" size={20} color="#3B82F6" />
               <Text style={styles.emailButtonText}>Sign up with Email</Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* Browse as Guest */}
-          <Animated.View entering={FadeIn.delay(550).duration(400)}>
-            <TouchableOpacity
-              style={styles.guestButton}
-              onPress={handleBrowseAsGuest}
-              disabled={isLoading !== null}
-              activeOpacity={0.8}
-            >
-              {isLoading === 'guest' ? (
-                <ActivityIndicator size="small" color="#64748B" />
-              ) : (
-                <>
-                  <Ionicons name="eye-outline" size={20} color="#64748B" />
-                  <Text style={styles.guestButtonText}>Browse as Guest</Text>
-                </>
-              )}
             </TouchableOpacity>
           </Animated.View>
 
@@ -418,20 +380,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#3B82F6',
-  },
-  guestButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-    gap: 10,
-    marginBottom: 24,
-  },
-  guestButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#64748B',
   },
   termsText: {
     fontSize: 13,
