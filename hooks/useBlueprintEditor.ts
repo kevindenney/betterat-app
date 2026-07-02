@@ -79,7 +79,7 @@ export function useCreateBlueprint() {
       return { id: (data as { id: string }).id };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['studio-home'] });
+      queryClient.invalidateQueries({ queryKey: ['studio-home-blueprints'] });
       queryClient.invalidateQueries({ queryKey: ['marketplace-blueprints'] });
     },
   });
@@ -167,7 +167,7 @@ export function useAddBlueprintCoAuthor(blueprintId: string, orgId: string | nul
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['studio-blueprint', blueprintId] });
-      queryClient.invalidateQueries({ queryKey: ['studio-home'] });
+      queryClient.invalidateQueries({ queryKey: ['studio-home-blueprints'] });
       if (orgId) queryClient.invalidateQueries({ queryKey: ['admin-people', orgId] });
     },
   });
@@ -188,7 +188,7 @@ export function useRemoveBlueprintCoAuthor(blueprintId: string, orgId: string | 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['studio-blueprint', blueprintId] });
-      queryClient.invalidateQueries({ queryKey: ['studio-home'] });
+      queryClient.invalidateQueries({ queryKey: ['studio-home-blueprints'] });
       if (orgId) queryClient.invalidateQueries({ queryKey: ['admin-people', orgId] });
     },
   });

@@ -59,6 +59,10 @@ export function useInboxActions(): UseInboxActionsResult {
     // accept and on-deck place mutate the recipient's timeline so every
     // consumer of that key needs to refetch.
     qc.invalidateQueries({ queryKey: ['timeline-steps'] });
+    // "Save to deck" writes a step_deck row and accept/dismiss/archive on
+    // on_deck items mutate it; the On Deck banner reads ['phase7-on-deck', …],
+    // so it must refetch too (prefix match covers the user/interest suffixes).
+    qc.invalidateQueries({ queryKey: ['phase7-on-deck'] });
   }, [qc]);
 
   const accept = useCallback(
