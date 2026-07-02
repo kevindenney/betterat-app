@@ -283,6 +283,51 @@
   .ax-card a{display:inline-block;margin-top:8px;font-size:13px;font-weight:700;color:var(--accent-ink);text-decoration:none}
   .ax-card a:hover{text-decoration:underline}
 
+  /* ---------- FIRST BLUEPRINT ---------- */
+  .bp-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:26px;align-items:stretch;margin-top:38px;max-width:1000px;margin-left:auto;margin-right:auto}
+  @media(max-width:860px){.bp-grid{grid-template-columns:1fr}}
+  .bp-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+  .bp-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .bp-tag{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--txt-3);letter-spacing:.02em}
+  .bp-badge{font-size:11px;font-weight:800;color:#1e7c3c;background:rgba(52,199,89,.14);border-radius:980px;padding:4px 10px}
+  .bp-card h3{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
+  .bp-author{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+  .bp-av{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:9.5px;font-weight:800}
+  .bp-author span{font-size:12.5px;color:var(--txt-2)}
+  .bp-steps{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.bp-steps{grid-template-columns:1fr}}
+  .bp-step{border:1px solid var(--line-soft);border-radius:12px;padding:12px 13px}
+  .bp-step .ph{font-size:9.5px;font-weight:800;letter-spacing:.8px;margin-bottom:4px;display:block}
+  .bp-step .t{font-size:13.5px;font-weight:600;line-height:1.35;display:block}
+  .bp-step .s{font-family:ui-monospace,monospace;font-size:10.5px;color:var(--txt-3);margin-top:3px;display:block}
+  .bp-access{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px;display:flex;flex-direction:column;justify-content:center}
+  .bp-access h4{font-size:18px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+  .bp-access p{font-size:14px;color:var(--txt-2);line-height:1.55;margin-bottom:16px}
+  .bp-access .btn-fill{width:100%;text-align:center}
+  .bp-or{display:flex;align-items:center;gap:10px;margin:14px 0}
+  .bp-or i{flex:1;border-top:1px solid var(--line-soft)}
+  .bp-or span{font-size:11px;color:var(--txt-3)}
+  .bp-join{display:block;text-align:center;font-size:14px;font-weight:700;color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:980px;padding:11px;text-decoration:none}
+  .bp-join:hover{background:var(--accent-soft)}
+  .bp-note{font-size:12px;color:var(--txt-3);text-align:center;margin-top:12px;line-height:1.5}
+
+  /* ---------- APPS STRIP ---------- */
+  .gstep .gi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:var(--accent-soft);margin-bottom:14px}
+  .gstep p b{color:var(--txt);font-weight:700}
+
+  /* ---------- CLAIM ORG ---------- */
+  .org-steps{display:flex;flex-direction:column}
+  .org-step{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--line-soft)}
+  .org-step:last-child{border-bottom:none}
+  .org-n{width:30px;height:30px;border-radius:10px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13.5px;flex-shrink:0}
+  .org-step h4{font-size:16px;font-weight:700;letter-spacing:-.01em;margin-bottom:4px}
+  .org-step p{font-size:13.5px;color:var(--txt-2);line-height:1.5}
+  .org-cta{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+  .org-cta h4{font-size:15.5px;font-weight:700;margin-bottom:12px}
+  .org-tile{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;background:var(--band);border-radius:11px;padding:10px 12px;margin-bottom:8px}
+  .org-cta .btn-fill{width:100%;text-align:center;margin-top:10px}
+  .org-note{font-size:12px;color:var(--txt-3);line-height:1.5;margin-top:12px;text-align:center}
+
   /* ---------- PRICING ---------- */
   .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:38px;max-width:880px;margin-left:auto;margin-right:auto}
   @media(max-width:740px){.price-grid{grid-template-columns:1fr}}
@@ -719,6 +764,41 @@
   </div>
 </section>
 
+<!-- FIRST BLUEPRINT -->
+<section class="sec warm" id="blueprint">
+  <div class="wrap">
+    <div class="intro">
+      <div class="kicker">The first blueprint</div>
+      <h2 class="serif rv">One real path, <em>broken into&nbsp;steps.</em></h2>
+      <p class="sub rv">BetterAt is launching with a single author-owned blueprint — the Dragon World
+      Championship race-week prep. Subscribe and every step lands in your timeline, one
+      Plan → Do → Review at a time.</p>
+    </div>
+    <div class="bp-grid">
+      <div class="bp-card rv">
+        <div class="bp-top"><span class="bp-tag">Sail Racing · 9 steps</span><span class="bp-badge">First blueprint</span></div>
+        <h3>Dragon World Championship — race-week prep</h3>
+        <div class="bp-author"><span class="bp-av">KD</span><span>Kevin Denney · author</span></div>
+        <div class="bp-steps">
+          <div class="bp-step"><span class="ph" style="color:var(--review)">REVIEW</span><span class="t">Measure &amp; log boat vs. minimums</span><span class="s">scrutineering</span></div>
+          <div class="bp-step"><span class="ph" style="color:var(--do)">DO</span><span class="t">Tuning matrix · 8–22 kt</span><span class="s">two practice days</span></div>
+          <div class="bp-step"><span class="ph" style="color:var(--plan)">PLAN</span><span class="t">Start-line routine &amp; bias drill</span><span class="s">timed runs</span></div>
+          <div class="bp-step"><span class="ph" style="color:var(--plan)">PLAN</span><span class="t">Debrief race 1 · speed vs. fleet</span><span class="s">with your coach</span></div>
+        </div>
+      </div>
+      <div class="bp-access rv">
+        <h4>Free for Dragon Worlds participants</h4>
+        <p>Racing the championship? Enter your event code and the full blueprint is yours —
+        every step drops straight into your timeline.</p>
+        <a class="btn-fill" href="#final">Open the Dragon Worlds blueprint</a>
+        <div class="bp-or"><i></i><span>or</span><i></i></div>
+        <a class="bp-join" href="#final">Join BetterAt to subscribe</a>
+        <div class="bp-note">Not racing? Subscribe by joining BetterAt · 85% goes to the author</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- GET GOING -->
 <section class="sec" id="going">
   <div class="wrap">
@@ -743,6 +823,68 @@
         <h4>Capture as you go</h4>
         <p>Log a shift, a round, a batch — by photo, voice, or a quick note. Reflection turns it into evidence and your next step.</p>
         <span class="tg">💬 Or just message the Telegram assistant</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- APPS / MEET YOU WHERE YOU ARE -->
+<section class="sec band" id="apps">
+  <div class="wrap">
+    <div class="intro">
+      <div class="kicker" style="color:var(--txt-3)">Meets you where you are</div>
+      <h2>Reach BetterAt from the tools you already use.</h2>
+      <p class="sub">Capture in the moment on your phone, review on the web — and plug your practice
+      into the assistants you already talk to.</p>
+    </div>
+    <div class="steps3">
+      <div class="gstep rv">
+        <div class="gi">🔌</div>
+        <h4>Plug into your AI</h4>
+        <p>Connect BetterAt over <b>MCP</b> to Claude, ChatGPT, or your favorite AI — ask about
+        your timeline and capture steps right from the chat.</p>
+      </div>
+      <div class="gstep rv">
+        <div class="gi">💬</div>
+        <h4>Telegram on the go</h4>
+        <p>Message the <b>BetterAt bot</b> to log and review on the move, and get tailored
+        notifications on your phone.</p>
+      </div>
+      <div class="gstep rv">
+        <div class="gi">📤</div>
+        <h4>Your data is portable</h4>
+        <p>Export everything any time. No lock-in — your full practice history is always
+        yours to take.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOR ORGANIZATIONS -->
+<section class="sec" id="orgs">
+  <div class="wrap">
+    <div class="intro">
+      <div class="kicker">For organizations</div>
+      <h2 class="serif rv">Run a club, school, or program? <em>Claim&nbsp;it.</em></h2>
+      <p class="sub rv">BetterAt verifies organizations through their official domain. Once you claim
+      yours, you can publish blueprints, run cohorts, and verify your members — in your field's
+      own vocabulary.</p>
+    </div>
+    <div class="ax-grid">
+      <div class="org-steps rv">
+        <div class="org-step"><span class="org-n">1</span><div><h4>Verify your domain</h4><p>Prove you officially represent the organization with an authorized email or DNS record. No one gets listed until they've verified.</p></div></div>
+        <div class="org-step"><span class="org-n">2</span><div><h4>Publish blueprints</h4><p>Turn your curriculum or training plan into steps members can subscribe to — Plan → Do → Review, in your craft's words.</p></div></div>
+        <div class="org-step"><span class="org-n">3</span><div><h4>Run cohorts &amp; verify members</h4><p>Move a group through together and confirm who's really in your program. You set the price; 85% stays with you.</p></div></div>
+      </div>
+      <div class="org-cta rv">
+        <h4>Built for organizations like…</h4>
+        <div class="org-tile">⛵ Sailing &amp; racing clubs</div>
+        <div class="org-tile">✚ Nursing &amp; health schools</div>
+        <div class="org-tile">🌱 Livelihood &amp; entrepreneurship NGOs</div>
+        <div class="org-tile">🎓 Counseling &amp; training programs</div>
+        <a class="btn-fill" href="#final">Claim your organization</a>
+        <div class="org-note">We're onboarding founding organizations now. These are the kinds of orgs
+        BetterAt is built for — not a list of current members.</div>
       </div>
     </div>
   </div>
