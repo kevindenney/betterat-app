@@ -290,7 +290,7 @@ function AnchorBanner({ step, total, ordById, focusStepId, selectEnabled, isSele
   const isNext = step.id === nextId;
   return (
     <Pressable
-      style={[styles.anchor, { borderLeftColor: isNext ? NOW_RED : tint, borderLeftWidth: isNext ? 5 : 4 }, isFocused && styles.cardFocused, selected && styles.cardSelected]}
+      style={[styles.anchor, { borderLeftColor: isNext ? AZURE : tint, borderLeftWidth: isNext ? 5 : 4 }, isFocused && styles.cardFocused, selected && styles.cardSelected]}
       onPress={selectEnabled ? () => onToggleSelect?.(step.id) : () => onOpenStep(step.id)}
       onLongPress={onLongPressStep}
       delayLongPress={300}
@@ -385,29 +385,6 @@ function indexLabel(ord: number | undefined, total: number): string {
   return ord ? `${ord}/${total}` : '';
 }
 
-/* ───────────────────────── legend ───────────────────────── */
-
-export function WorkColumnLegend({ steps, anchorNoun = 'anchor' }: { steps: TimelineStep[]; anchorNoun?: string }) {
-  const hasAnchor = steps.some(isAnchor);
-  return (
-    <View style={styles.legend}>
-      <Legend color={GREEN} label="done" />
-      <Legend color={AZURE} label="next" />
-      <Legend color="#C7C7CC" label="planned" />
-      {hasAnchor ? <Legend color={ROSE} label={anchorNoun} /> : null}
-    </View>
-  );
-}
-
-function Legend({ color, label }: { color: string; label: string }) {
-  return (
-    <View style={styles.legendKey}>
-      <View style={[styles.legendSw, { backgroundColor: color }]} />
-      <Text style={styles.legendText}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   col: { paddingHorizontal: 2, paddingTop: 4 },
 
@@ -434,10 +411,10 @@ const styles = StyleSheet.create({
 
   /* cards */
   card: { backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: 'rgba(60,60,67,0.16)', borderRadius: 16, paddingHorizontal: 15, paddingVertical: 14, marginTop: 11, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-  // The NOW-red left rail ties the next card to the NowDivider directly above
-  // it, so "NOW → do this" reads as a single unit; the rest of the card keeps
-  // its blue NEXT treatment.
-  cardNext: { borderWidth: 1.5, borderColor: AZURE, borderLeftWidth: 5, borderLeftColor: NOW_RED, backgroundColor: 'rgba(0,122,255,0.05)', shadowColor: AZURE, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  // Pure blue NEXT treatment. Red is reserved for the NOW cursor itself
+  // (the divider above) — a red edge here dressed queued work in NOW's
+  // color and muddied the red-means-now rule.
+  cardNext: { borderWidth: 1.5, borderColor: AZURE, borderLeftWidth: 5, borderLeftColor: AZURE, backgroundColor: 'rgba(0,122,255,0.05)', shadowColor: AZURE, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
   cardDone: { backgroundColor: '#F4F6F4', borderColor: 'rgba(31,134,54,0.20)', shadowOpacity: 0, elevation: 0, marginTop: 9 },
   cardFocused: { borderColor: AZURE, borderWidth: 1 },
   cardSelected: { borderColor: AZURE, backgroundColor: 'rgba(0,122,255,0.06)' },
@@ -475,9 +452,4 @@ const styles = StyleSheet.create({
   checkbox: { width: 18, height: 18, borderRadius: 999, borderWidth: 1.5, borderColor: IOS_REGISTER.separatorStrong },
   checkboxOn: { backgroundColor: AZURE, borderColor: AZURE },
 
-  /* legend */
-  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 16, paddingTop: 14, paddingHorizontal: 2, borderTopWidth: 0.5, borderTopColor: 'rgba(60,60,67,0.16)' },
-  legendKey: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendSw: { width: 9, height: 9, borderRadius: 3 },
-  legendText: { fontSize: 11, color: IOS_REGISTER.labelTertiary },
 });

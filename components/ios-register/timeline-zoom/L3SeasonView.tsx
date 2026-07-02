@@ -35,7 +35,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { SnakeReorderList } from './SnakeTimeline';
-import { LinearWorkColumn, WorkColumnLegend } from './LinearWorkColumn';
+import { LinearWorkColumn } from './LinearWorkColumn';
 import { CapabilityMix } from './CapabilityMix';
 import { PeerJourneyChart } from './PeerJourneyChart';
 import { CrewSparseList } from './CrewSparseList';
@@ -998,9 +998,9 @@ export function L3SeasonView({
         />
       ) : null}
 
-      {!isReordering && snakeSteps.length > 0 ? (
-        <WorkColumnLegend steps={snakeSteps} anchorNoun={interestVocab.anchorNoun} />
-      ) : null}
+      {/* No color legend — the cards already carry their status in words
+          (DONE / NEXT / PLANNED pills + the NOW divider), so a fourth
+          encoding at the bottom of the list explained nothing. */}
     </ScrollView>
 
       <PickerListSheet<TimelineSeason>

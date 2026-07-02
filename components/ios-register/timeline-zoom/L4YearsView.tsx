@@ -360,13 +360,13 @@ export function L4YearsView({
         const isNow = dataset.nowStepId != null && step.id === dataset.nowStepId;
         const isMilestone = milestoneSet.has(step.title.trim().toLowerCase());
         const firstOfSeason = j === 0;
-        const label = isNow
-          ? 'NOW'
-          : isMilestone
-            ? shortenLabel(step.title)
-            : firstOfSeason
-              ? season.title
-              : '';
+        // The NOW node is labeled once, by the red flag the thread floats
+        // above it — no duplicate text under the node.
+        const label = isMilestone
+          ? shortenLabel(step.title)
+          : firstOfSeason
+            ? season.title
+            : '';
         nodes.push({
           id: step.id,
           label,
@@ -421,7 +421,6 @@ export function L4YearsView({
         arcCount={arcCount}
         totalSteps={dataset.totalSteps}
         peopleCount={peopleCount}
-        periodNoun={periodNoun}
         periodPlural={periodPlural}
         duration={lifetimeDuration}
         sinceDate={dataset.sinceDate}
@@ -634,12 +633,8 @@ export function L4YearsView({
               <Text style={styles.riverLegendStar}>★</Text>
               <Text style={styles.riverLegendText}>milestone</Text>
             </View>
-            <View style={styles.riverLegendKey}>
-              <View
-                style={[styles.riverLegendSwatch, { backgroundColor: '#FF6B5A' }]}
-              />
-              <Text style={styles.riverLegendText}>now</Text>
-            </View>
+            {/* No "now" legend entry — the red NOW flag on the thread
+                already says it in words. */}
           </View>
         </View>
       ) : null}
@@ -714,7 +709,6 @@ interface LifetimePosterProps {
   arcCount: number;
   totalSteps: number;
   peopleCount: number;
-  periodNoun: string;
   periodPlural: string;
   duration: string | null;
   sinceDate: string | null;
@@ -726,7 +720,6 @@ function LifetimePoster({
   arcCount,
   totalSteps,
   peopleCount,
-  periodNoun,
   periodPlural,
   duration,
   sinceDate,
@@ -745,16 +738,14 @@ function LifetimePoster({
         : `You're ${totalSteps} ${stepsWord} into ${interestLabel}.`
       : `${totalSteps} ${stepsWord} across ${arcCount} ${periodPlural}${duration ? `, over ${duration}` : ''}.`;
 
-  const metrics: { value: string; label: string }[] = [
-    { value: String(totalSteps), label: stepsWord },
-    { value: String(arcCount), label: arcCount === 1 ? periodNoun : periodPlural },
-  ];
-  if (peopleCount > 0) {
-    metrics.push({
-      value: String(peopleCount),
-      label: peopleCount === 1 ? 'person' : 'people',
-    });
-  }
+  // Step/season counts already live in the headline sentence AND the page
+  // subtitle ("1 season · 2 steps") — chip them here and the same fact
+  // appears three times in the first 120pt. Only people earns a chip: it's
+  // stated nowhere else on this surface.
+  const metrics: { value: string; label: string }[] =
+    peopleCount > 0
+      ? [{ value: String(peopleCount), label: peopleCount === 1 ? 'person' : 'people' }]
+      : [];
 
   return (
     <LinearGradient
@@ -764,17 +755,19 @@ function LifetimePoster({
       style={styles.poster}
     >
       <Text style={styles.posterHeadline}>{headline}</Text>
-      <View style={styles.posterMetrics}>
-        {metrics.map((m, i) => (
-          <React.Fragment key={m.label}>
-            {i > 0 ? <View style={styles.posterMetricDivider} /> : null}
-            <View style={styles.posterMetric}>
-              <Text style={styles.posterMetricValue}>{m.value}</Text>
-              <Text style={styles.posterMetricLabel}>{m.label}</Text>
-            </View>
-          </React.Fragment>
-        ))}
-      </View>
+      {metrics.length > 0 ? (
+        <View style={styles.posterMetrics}>
+          {metrics.map((m, i) => (
+            <React.Fragment key={m.label}>
+              {i > 0 ? <View style={styles.posterMetricDivider} /> : null}
+              <View style={styles.posterMetric}>
+                <Text style={styles.posterMetricValue}>{m.value}</Text>
+                <Text style={styles.posterMetricLabel}>{m.label}</Text>
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
+      ) : null}
       {sinceDate ? (
         <Text style={styles.posterSince}>since {sinceDate}</Text>
       ) : null}
