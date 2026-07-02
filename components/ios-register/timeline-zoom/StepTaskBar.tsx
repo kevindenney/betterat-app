@@ -50,6 +50,13 @@ interface StepTaskBarProps {
   onJumpToStep: (stepId: string) => void;
   /** Arc the user is viewing — threaded to StepAddSheet's creation stamp. */
   viewedSeasonId?: string | null;
+  /**
+   * The DONE/NOW/NEXT relation pill + minimap (a <NowStrip />), rendered
+   * inline after the step selector. Chrome belongs in this header band —
+   * floating it over the canvas kept occluding card text on web. Hidden on
+   * narrow windows where the bar has no room for it.
+   */
+  nowStrip?: React.ReactNode;
 }
 
 export function StepTaskBar({
@@ -59,6 +66,7 @@ export function StepTaskBar({
   nowStepId,
   onJumpToStep,
   viewedSeasonId = null,
+  nowStrip,
 }: StepTaskBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -271,6 +279,10 @@ export function StepTaskBar({
         </View>
       )}
 
+      {nowStrip && windowWidth >= 700 ? (
+        <View style={styles.nowStripWrap}>{nowStrip}</View>
+      ) : null}
+
       <View style={styles.icons}>
         <Pressable
           testID="step-taskbar-add-step"
@@ -474,6 +486,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: -0.2,
     color: IOS_REGISTER.labelSecondary,
+  },
+  // Sits between the step selector and the right-side icons; marginLeft
+  // pushes it off the selector, the icons' marginLeft:'auto' keeps it left-
+  // leaning so it reads as part of the interest → step → position breadcrumb.
+  nowStripWrap: {
+    marginLeft: 14,
+    flexShrink: 0,
   },
   icons: {
     flexDirection: 'row',

@@ -56,7 +56,7 @@ import { InterestHeader } from './InterestHeader';
 import { StepTaskBar } from './StepTaskBar';
 import { StepAddSheet } from './StepAddSheet';
 import { useUniversalPlus } from '@/components/capture';
-import { NowFloat, type NowRelation } from './NowFloat';
+import { NowFloat, NowStrip, type NowRelation } from './NowFloat';
 import { L1StepView } from './L1StepView';
 import { L3SeasonView } from './L3SeasonView';
 import { L4YearsView } from './L4YearsView';
@@ -568,6 +568,25 @@ export function TimelineZoomCanvas({
   const nowFloatIndex =
     dataset.nowStepId == null ? orderedArcSteps.length : nowArcStepIdx;
 
+  // Where the DONE/NOW/NEXT strip lives. On web it belongs in the task bar's
+  // header band — floating it over the canvas kept landing on card text no
+  // matter which corner it docked in (focused card at center, prev card in
+  // the left gutter). Native keeps the bottom-center float (thumb-reachable,
+  // and the full-width card scrolls clear of it via bottomInset).
+  const showNowStrip = level === 1 && embedFullDetailAtL1 && !select.enabled && !!focusedStep;
+  const nowStripInTaskBar = showNowStrip && Platform.OS === 'web' && hideInterestHeader;
+  const nowStrip = showNowStrip ? (
+    <NowStrip
+      relation={nowRelation}
+      nowIndex={nowFloatIndex}
+      viewedIndex={Math.max(focusedArcStepIdx, 0)}
+      total={orderedArcSteps.length}
+      onJumpToIndex={jumpToArcIndex}
+      onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
+      onNext={nextStep ? () => swipeToNeighbor('next') : undefined}
+    />
+  ) : null;
+
   // Compute the level the user is about to snap to, given direction +
   // current level. Returns null when at a boundary (can't go further).
   const targetLevel: ZoomLevel | null = useMemo(() => {
@@ -598,6 +617,7 @@ export function TimelineZoomCanvas({
                   nowStepId={dataset.nowStepId}
                   onJumpToStep={(id) => setFocusStepId(id)}
                   viewedSeasonId={selectedSeason?.id ?? null}
+                  nowStrip={nowStripInTaskBar ? nowStrip : undefined}
                 />
               ) : (
                 <AppChromeRow onPlusPress={() => setAddOpen(true)} />
@@ -766,7 +786,7 @@ export function TimelineZoomCanvas({
           />
         )}
 
-        {level === 1 && embedFullDetailAtL1 && !select.enabled && focusedStep ? (
+        {showNowStrip && !nowStripInTaskBar ? (
           <NowFloat
             relation={nowRelation}
             nowIndex={nowFloatIndex}
@@ -776,9 +796,6 @@ export function TimelineZoomCanvas({
             onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
             onNext={nextStep ? () => swipeToNeighbor('next') : undefined}
             bottomOffset={tabBarClearance + 20}
-            // Web's L1 lane leaves a gutter left of the focused card — dock
-            // the float there so it never covers the card's readable text.
-            align={Platform.OS === 'web' ? 'left' : 'center'}
           />
         ) : null}
         <StepAddSheet

@@ -25,7 +25,7 @@ const PAGER_WINDOW = 6;
 
 export type NowRelation = 'done' | 'now' | 'next';
 
-interface NowFloatProps {
+interface NowStripProps {
   relation: NowRelation;
   /** Index of the canonical now-step in the flat step list. */
   nowIndex: number;
@@ -36,20 +36,23 @@ interface NowFloatProps {
   onJumpToIndex?: (index: number) => void;
   onPrev?: () => void;
   onNext?: () => void;
+}
+
+interface NowFloatProps extends NowStripProps {
   /**
    * Distance from the bottom edge, in points. Lets the host lift the float
    * above the floating tab bar. Defaults to 86 (legacy standalone placement).
    */
   bottomOffset?: number;
-  /**
-   * Horizontal anchor. 'center' floats mid-canvas (native, where the card is
-   * full-width anyway). 'left' docks it over the L1 gutter on web so it never
-   * sits on top of the focused card's text.
-   */
-  align?: 'center' | 'left';
 }
 
-export function NowFloat({
+/**
+ * The relation pill + minimap row, free of any floating chrome. Hosts choose
+ * where it lives: inline in the StepTaskBar (web — chrome belongs in the
+ * header band, floating it over cards kept occluding their text) or wrapped
+ * by NowFloat as the bottom-center float (native).
+ */
+export function NowStrip({
   relation,
   nowIndex,
   viewedIndex,
@@ -57,9 +60,7 @@ export function NowFloat({
   onJumpToIndex,
   onPrev,
   onNext,
-  bottomOffset = 86,
-  align = 'center',
-}: NowFloatProps) {
+}: NowStripProps) {
   const { start, end } = useMemo(() => {
     if (total <= PAGER_WINDOW) return { start: 0, end: total };
     const half = Math.floor(PAGER_WINDOW / 2);
@@ -107,29 +108,37 @@ export function NowFloat({
   }
 
   return (
+    <View style={styles.strip}>
+      <Pressable
+        testID="timeline-now-primary-action"
+        accessibilityRole="button"
+        accessibilityLabel={
+          relation === 'done'
+            ? 'Previous step'
+            : relation === 'next'
+              ? 'Next step'
+              : 'Current step'
+        }
+        disabled={pillDisabled}
+        onPress={pillAction}
+        style={[styles.np, { backgroundColor: pillColor }, pillDisabled && styles.npDisabled]}
+      >
+        <Text style={styles.npText}>{pillLabel}</Text>
+      </Pressable>
+      {total > 1 ? <View style={styles.pager}>{dots}</View> : null}
+    </View>
+  );
+}
+
+export function NowFloat({ bottomOffset = 86, ...strip }: NowFloatProps) {
+  return (
     <View
       testID="timeline-now-float"
-      style={[styles.wrap, align === 'left' && styles.wrapLeft, { bottom: bottomOffset }]}
+      style={[styles.wrap, { bottom: bottomOffset }]}
       pointerEvents="box-none"
     >
       <View style={styles.float}>
-        <Pressable
-          testID="timeline-now-primary-action"
-          accessibilityRole="button"
-          accessibilityLabel={
-            relation === 'done'
-              ? 'Previous step'
-              : relation === 'next'
-                ? 'Next step'
-                : 'Current step'
-          }
-          disabled={pillDisabled}
-          onPress={pillAction}
-          style={[styles.np, { backgroundColor: pillColor }, pillDisabled && styles.npDisabled]}
-        >
-          <Text style={styles.npText}>{pillLabel}</Text>
-        </Pressable>
-        {total > 1 ? <View style={styles.pager}>{dots}</View> : null}
+        <NowStrip {...strip} />
       </View>
     </View>
   );
@@ -143,14 +152,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 45,
   },
-  wrapLeft: {
-    alignItems: 'flex-start',
-    paddingLeft: 24,
+  strip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   float: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 18,
