@@ -776,6 +776,9 @@ export function TimelineZoomCanvas({
             onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
             onNext={nextStep ? () => swipeToNeighbor('next') : undefined}
             bottomOffset={tabBarClearance + 20}
+            // Web's L1 lane leaves a gutter left of the focused card — dock
+            // the float there so it never covers the card's readable text.
+            align={Platform.OS === 'web' ? 'left' : 'center'}
           />
         ) : null}
         <StepAddSheet

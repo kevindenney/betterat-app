@@ -9,7 +9,7 @@
  * Pinch out → L2. Tap the right-rail pill → jump.
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   LayoutChangeEvent,
@@ -37,6 +37,7 @@ import { fontFamily } from '@/lib/design-tokens-editorial';
 import { resolveDoTabInterestKind } from '@/lib/interest-config';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
 import { PickerListSheet } from './PickerListSheet';
+import { ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
 import type { StepStatus, TimelineDataset, TimelineStep } from './types';
 
 // The embedded StepDetailContent loads its own step record async, so on first
@@ -189,6 +190,8 @@ function PagerCard({
   isFocused,
   isNow,
   forceInteractive,
+  onPress,
+  accessibilityLabel,
   children,
 }: {
   scrollX: SharedValue<number>;
@@ -202,6 +205,15 @@ function PagerCard({
    * it's only peeking (web shows neighbours at rest).
    */
   forceInteractive?: boolean;
+  /**
+   * Click-to-focus for peeking neighbours. Mouse users click what they can
+   * see rather than drag-swiping, so a visible unfocused card acts as one
+   * big "bring me to the centre" button: its content stays inert behind a
+   * full-card press target. Swipe still works — the pan gesture on the lane
+   * activates after 15px of movement and cancels the press.
+   */
+  onPress?: () => void;
+  accessibilityLabel?: string;
   children: React.ReactNode;
 }) {
   const style = useAnimatedStyle(
@@ -216,14 +228,28 @@ function PagerCard({
         isNow && styles.pagerCardNow,
         style,
       ]}
-      pointerEvents={isFocused || forceInteractive ? 'auto' : 'none'}
+      pointerEvents={isFocused || forceInteractive || onPress ? 'auto' : 'none'}
     >
       {isNow ? (
         <View style={styles.pagerNowRail} pointerEvents="none">
           <Text style={styles.pagerNowRailText}>NOW</Text>
         </View>
       ) : null}
-      {children}
+      {onPress ? (
+        <>
+          <View style={styles.pagerCardBody} pointerEvents="none">
+            {children}
+          </View>
+          <Pressable
+            style={styles.pagerCardFocusHit}
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel ?? 'View this step'}
+          />
+        </>
+      ) : (
+        children
+      )}
     </Animated.View>
   );
 }
@@ -356,6 +382,32 @@ export function L1StepView({
     Haptics.selectionAsync().catch(() => {});
   }, []);
 
+  // Web: ← / → switch steps (mirrors CardGrid.web's grid navigation). The
+  // activeElement guard keeps arrows working normally inside the step
+  // detail's text inputs and composers.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !embedFullDetail) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      const el = document.activeElement as HTMLElement | null;
+      if (
+        el &&
+        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+      ) {
+        return;
+      }
+      if (event.key === 'ArrowLeft' && canPrev) {
+        event.preventDefault();
+        fireSwipe('prev');
+      } else if (event.key === 'ArrowRight' && canNext) {
+        event.preventDefault();
+        fireSwipe('next');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [embedFullDetail, canPrev, canNext, fireSwipe]);
+
   // Horizontal pan that only activates after 15px of x movement so vertical
   // scroll inside the embedded StepDetailContent still works untouched.
   const swipeGesture = Gesture.Pan()
@@ -409,7 +461,7 @@ export function L1StepView({
 
   if (embedFullDetail) {
     return (
-      <View style={styles.embedHost} onLayout={handleHostLayout}>
+      <View style={styles.embedHost}>
         {showStepSwitcher ? (
           <View style={styles.switcherBar}>
             <Pressable
@@ -427,10 +479,23 @@ export function L1StepView({
           </View>
         ) : null}
         <GestureDetector gesture={swipeGesture}>
-          <View style={styles.embedGestureLayer}>
+          {/* onLayout lives on the lane (not embedHost) so the stride math and
+              the cards' percentage widths resolve against the same box — on
+              web the lane is narrower than the host by the zoom rail's
+              reserved width. */}
+          <View style={styles.embedGestureLayer} onLayout={handleHostLayout}>
             {(useList ? buildWindow(steps, pinIndex) : [{ step, index: 0 }]).map(
               ({ step: cardStep, index }) => {
                 const isFocused = !onGhost && cardStep.id === step.id;
+                const focusCard =
+                  !isFocused && onJumpToStep
+                    ? () => {
+                        // The parent already focuses this step while the ghost
+                        // holds the pager — just step back off the ghost.
+                        if (onGhost && cardStep.id === step.id) setGhostFocused(false);
+                        else onJumpToStep(cardStep.id);
+                      }
+                    : undefined;
                 return (
                   <PagerCard
                     key={cardStep.id}
@@ -438,6 +503,8 @@ export function L1StepView({
                     cardBase={index * swipeStridePx}
                     isFocused={isFocused}
                     isNow={cardStep.id === dataset.nowStepId}
+                    onPress={focusCard}
+                    accessibilityLabel={`View step: ${cardStep.title}`}
                   >
                     <EmbeddedStepCard
                       step={cardStep}
@@ -816,6 +883,24 @@ const styles = StyleSheet.create({
   embedGestureLayer: {
     flex: 1,
     position: 'relative',
+    ...Platform.select({
+      // Reserve the zoom rail's lane on web so the peeking next card ends
+      // before the rail instead of running underneath its tap targets.
+      web: { marginRight: ZOOM_RAIL_RESERVED_WIDTH },
+      default: {},
+    }),
+  },
+  pagerCardBody: {
+    flex: 1,
+  },
+  // Full-card press target above the inert content of a peeking neighbour.
+  pagerCardFocusHit: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 5,
+    ...Platform.select({
+      web: { cursor: 'pointer' } as any,
+      default: {},
+    }),
   },
   embedDetailHost: { flex: 1, position: 'relative' },
   // Every card in the pager lane shares this geometry. They're absolutely

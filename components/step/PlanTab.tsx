@@ -38,6 +38,7 @@ import { PlanWithCard } from './plan-tab/PlanWithCard';
 import { PlanWhereCard } from './plan-tab/PlanWhereCard';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { useCrossInterestSuggestions } from '@/hooks/useCrossInterestSuggestions';
+import { stepTitleFromText } from '@/lib/utils/stepTitle';
 import { useStepLinkedConcepts } from '@/hooks/useStepLinkedConcepts';
 import { useStepBeatsBinding } from '@/hooks/useStepBeats';
 import { BeatsList } from '@/components/step/do-tab/BeatsList';
@@ -665,7 +666,7 @@ export function PlanTab({
                 const created = await createStep({
                   user_id: user.id,
                   interest_id: targetInterest.id,
-                  title: suggestion.suggestion.slice(0, 80),
+                  title: stepTitleFromText(suggestion.suggestion),
                   status: 'pending',
                   source_type: 'manual',
                   category: suggestion.suggestedCategory || 'general',
@@ -1187,7 +1188,7 @@ export function PlanTab({
               const created = await createStep({
                 user_id: user.id,
                 interest_id: targetInterest.id,
-                title: suggestion.suggestion.slice(0, 80),
+                title: stepTitleFromText(suggestion.suggestion),
                 status: 'pending',
                 source_type: 'manual',
                 category: suggestion.suggestedCategory || 'general',

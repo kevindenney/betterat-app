@@ -55,6 +55,7 @@ import { useAIUsage } from '@/hooks/useAIUsage';
 import { useLibraryBeforeBinding } from '@/hooks/useStepLibraryBefore';
 import { useStepLocationSuggestions } from '@/hooks/useStepLocationSuggestions';
 import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
+import { stepTitleFromText } from '@/lib/utils/stepTitle';
 import { getAtlasStepData, isAtlasRaceCourseStep } from '@/lib/atlasRaceStep';
 
 function normalizeCapabilityLabel(label: string): string {
@@ -1051,7 +1052,7 @@ RULES:
         const created = await createStep({
           user_id: user.id,
           interest_id: targetInterestId,
-          title: suggestion.suggestion.slice(0, 80),
+          title: stepTitleFromText(suggestion.suggestion),
           status: 'pending',
           source_type: 'manual',
           category: suggestion.suggestedCategory || 'general',
@@ -1820,7 +1821,7 @@ RULES:
                 const created = await createStep({
                   user_id: user.id,
                   interest_id: targetInterest.id,
-                  title: suggestion.suggestion.slice(0, 80),
+                  title: stepTitleFromText(suggestion.suggestion),
                   status: 'pending',
                   source_type: 'manual',
                   category: suggestion.suggestedCategory || 'general',
@@ -2612,7 +2613,7 @@ RULES:
             const created = await createStep({
               user_id: user.id,
               interest_id: targetInterest.id,
-              title: suggestion.suggestion.slice(0, 80),
+              title: stepTitleFromText(suggestion.suggestion),
               status: 'pending',
               source_type: 'manual',
               category: suggestion.suggestedCategory || 'general',
