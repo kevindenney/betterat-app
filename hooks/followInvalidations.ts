@@ -23,4 +23,8 @@ export function invalidateFollowQueries(
   queryClient.invalidateQueries({ queryKey: ['library-people', actorUserId] });
   queryClient.invalidateQueries({ queryKey: ['library-counts', actorUserId] });
   queryClient.invalidateQueries({ queryKey: ['followed-steps-feed', actorUserId] });
+  // Crew Finder keeps its own following-id / discover caches; refresh them so a
+  // follow made on any other surface reflects there too.
+  queryClient.invalidateQueries({ queryKey: ['crew-finder-following-ids', actorUserId] });
+  queryClient.invalidateQueries({ queryKey: ['crew-finder-discover', actorUserId] });
 }

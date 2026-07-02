@@ -20,6 +20,7 @@ import {
 } from '@/services/CrewFinderService';
 import { RaceCollaborationService } from '@/services/RaceCollaborationService';
 import { AccessLevel } from '@/types/raceCollaboration';
+import { invalidateFollowQueries } from '@/hooks/followInvalidations';
 
 interface UseCrewFinderResult {
   // Search users
@@ -230,6 +231,9 @@ export function useCrewFinder(options?: UseCrewFinderOptions): UseCrewFinderResu
       // Invalidate queries to refetch
       queryClient.invalidateQueries({ queryKey: ['crew-finder-following-ids', effectiveUserId] });
       queryClient.invalidateQueries({ queryKey: ['crew-finder-discover', effectiveUserId] });
+      // Also refresh the shared follows-derived surfaces (Watch, Library
+      // "Following", discovery) so a follow made here isn't stale elsewhere.
+      invalidateFollowQueries(queryClient, effectiveUserId);
     },
   });
 
@@ -278,6 +282,7 @@ export function useCrewFinder(options?: UseCrewFinderOptions): UseCrewFinderResu
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['crew-finder-following-ids', effectiveUserId] });
       queryClient.invalidateQueries({ queryKey: ['crew-finder-discover', effectiveUserId] });
+      invalidateFollowQueries(queryClient, effectiveUserId);
     },
   });
 

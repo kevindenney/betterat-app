@@ -1244,8 +1244,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
         queryClient.invalidateQueries({ queryKey: ['user-atlas-steps'] });
         // The settle path just wrote step_capability_evidence via autoTag;
-        // refresh the timeline CapabilityMix "proven" layer that reads it.
+        // refresh the timeline CapabilityMix "proven" layer plus the Atlas
+        // Capabilities ring and org competency rollup that also read it (the
+        // same keys the manual useRecordCompetencyEvidence path invalidates).
         queryClient.invalidateQueries({ queryKey: ['step-capability-evidence'] });
+        queryClient.invalidateQueries({ queryKey: ['interest-capability-coverage'] });
+        queryClient.invalidateQueries({ queryKey: ['viewer-org-competency-evidence'] });
       })
       .catch((error) => {
         const message =

@@ -787,8 +787,12 @@ export function useStepReflectController({
       queryClient.invalidateQueries({ queryKey: ['timeline-steps', 'detail', stepId] });
       // The proven/evidence signal on the L3 librarian card reads
       // step_capability_evidence via useStepCapabilityEvidence; refresh it
-      // so freshly auto-tagged rows light the card without a relaunch.
+      // so freshly auto-tagged rows light the card without a relaunch. Also
+      // refresh the Atlas Capabilities ring and org competency rollup, which
+      // read the same evidence (matching useRecordCompetencyEvidence).
       queryClient.invalidateQueries({ queryKey: ['step-capability-evidence'] });
+      queryClient.invalidateQueries({ queryKey: ['interest-capability-coverage'] });
+      queryClient.invalidateQueries({ queryKey: ['viewer-org-competency-evidence'] });
 
       let nextStepId: string | null = null;
       if (FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER && step.user_id && step.interest_id) {
