@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Onboarding value funnel — redesign mock</title>
+<style>
+  :root {
+    --accent: #007AFF; --now: #FF6B5A; --done: #16A34A;
+    --label: #1C1C1E; --label2: rgba(60,60,67,0.6); --label3: rgba(60,60,67,0.33);
+    --sep: rgba(60,60,67,0.16); --ground: #F2F2F7; --card: #fff;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: -apple-system, "SF Pro Text", sans-serif; background: #E7E7EC; color: var(--label); padding: 44px 40px 120px; }
+  h1 { font-size: 22px; letter-spacing: -0.4px; margin-bottom: 6px; }
+  .intro { color: var(--label2); font-size: 14px; max-width: 760px; line-height: 1.55; }
+  .frames { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 36px; }
+  .phone { width: 290px; border-radius: 34px; border: 1px solid var(--sep); background: var(--ground); padding: 18px 16px 20px; display: flex; flex-direction: column; min-height: 560px; }
+  .phone h2 { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--label2); text-transform: uppercase; margin-bottom: 14px; text-align: center; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; }
+  .big { font-family: Georgia, serif; font-size: 25px; line-height: 1.22; letter-spacing: -0.3px; margin-bottom: 10px; }
+  .sub { font-size: 14px; line-height: 1.5; color: var(--label2); margin-bottom: 16px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--sep); background: var(--card); border-radius: 999px; padding: 9px 14px; font-size: 14px; font-weight: 600; }
+  .chip.sel { border-color: var(--accent); background: rgba(0,122,255,0.08); color: var(--accent); }
+  .chip .em { font-size: 15px; }
+  .ghostchip { color: var(--label2); font-weight: 500; border-style: dashed; }
+  .cta { margin-top: auto; background: var(--accent); color: #fff; text-align: center; border-radius: 14px; padding: 13px; font-size: 15px; font-weight: 700; }
+  .skip { text-align: center; color: var(--label3); font-size: 12.5px; margin-top: 10px; }
+  .loop { background: var(--card); border: 0.5px solid var(--sep); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  .loop .stage { display: flex; align-items: center; gap: 9px; padding: 7px 0; }
+  .loop .dot { width: 22px; height: 22px; border-radius: 11px; color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .loop .t { font-size: 13.5px; line-height: 1.35; }
+  .loop .t b { display: block; font-size: 11px; letter-spacing: 0.7px; color: var(--label2); }
+  .nowline { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+  .nowline .l { flex: 1; border-top: 1.5px solid var(--now); opacity: 0.55; }
+  .nowline .n { font-size: 8px; font-weight: 800; letter-spacing: 1.2px; color: var(--now); }
+  .peoplecard { background: var(--card); border: 0.5px solid var(--sep); border-radius: 14px; padding: 11px 12px; margin-bottom: 9px; }
+  .peoplecard .who { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--label2); margin-bottom: 5px; }
+  .av { width: 22px; height: 22px; border-radius: 11px; background: var(--accent); color: #fff; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .peoplecard .what { font-size: 13.5px; font-weight: 600; }
+  .adapt { display: inline-block; margin-top: 7px; font-size: 12px; font-weight: 700; color: var(--accent); background: rgba(0,122,255,0.08); border-radius: 8px; padding: 5px 9px; }
+  .note { font-size: 12.5px; color: var(--label2); line-height: 1.55; max-width: 760px; margin-top: 14px; }
+  .note b { color: var(--label); } .kill { color: #C2410C; }
+  .decisions { margin-top: 40px; }
+  .decisions h2 { font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--label2); text-transform: uppercase; margin-bottom: 10px; }
+  .vswap { font-size: 11.5px; background: var(--card); border: 0.5px solid var(--sep); border-radius: 10px; padding: 8px 10px; margin-top: 10px; color: var(--label2); line-height: 1.6; }
+  .vswap code { font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--label); }
+</style>
+</head>
+<body>
+
+<h1>Onboarding value funnel — craft-first, vocabulary-driven</h1>
+<p class="intro">
+  Today every signup sees three <b>sailing</b> animations (Track Every Race → Prepare Pro → Join Crew)
+  before they've said what they care about. This mock flips the order: <b>ask the craft first</b>
+  (cached via the existing <code>onboarding_interest_slug</code> mechanism), then tell the SAME
+  three-beat value story rendered in that craft's own vocabulary — persona difference becomes
+  data (Phase D principle), not six hardcoded screens.
+</p>
+
+<div class="frames">
+  <!-- Frame 1 -->
+  <div class="phone">
+    <h2>1 · Pick the craft (new)</h2>
+    <div class="eyebrow">BetterAt</div>
+    <div class="big">What are you getting better at?</div>
+    <div class="sub">One thing you're working on. You can add more later.</div>
+    <div class="chips">
+      <span class="chip sel"><span class="em">⛳️</span> Golf</span>
+      <span class="chip"><span class="em">⛵️</span> Sail racing</span>
+      <span class="chip"><span class="em">🩺</span> Nursing</span>
+      <span class="chip"><span class="em">✏️</span> Drawing</span>
+      <span class="chip"><span class="em">🧶</span> Knitting</span>
+      <span class="chip"><span class="em">💼</span> A business</span>
+      <span class="chip"><span class="em">🏃</span> Running</span>
+      <span class="chip ghostchip">Something else…</span>
+    </div>
+    <div class="cta">Continue</div>
+    <div class="skip">I'll decide later</div>
+  </div>
+
+  <!-- Frame 2 -->
+  <div class="phone">
+    <h2>2 · The loop — in THEIR words (golf pick)</h2>
+    <div class="eyebrow">How it works</div>
+    <div class="big">Every round makes the next one smarter.</div>
+    <div class="loop">
+      <div class="stage"><span class="dot" style="background:var(--accent)">P</span>
+        <span class="t"><b>PLAN</b> Saturday round — front nine: commit to a game plan per hole.</span></div>
+      <div class="stage"><span class="dot" style="background:var(--done)">D</span>
+        <span class="t"><b>DO</b> Jot mid-round notes — "driver drifting right on 4."</span></div>
+      <div class="nowline"><span class="l"></span><span class="n">NOW</span><span class="l"></span></div>
+      <div class="stage"><span class="dot" style="background:var(--now)">R</span>
+        <span class="t"><b>REVIEW</b> What stuck? What's next? Your notes become the next plan.</span></div>
+    </div>
+    <div class="sub" style="margin-bottom:0">Undated by default. Your work flows toward the rounds that matter.</div>
+    <div class="cta">Next</div>
+    <div class="vswap">Same screen, nursing pick:<br/>
+      <code>"Every shift makes the next one smarter." · PLAN Pre-shift — ICU rotation · DO "First central line assist" · REVIEW What stuck?</code></div>
+  </div>
+
+  <!-- Frame 3 -->
+  <div class="phone">
+    <h2>3 · People — watch & adapt (golf pick)</h2>
+    <div class="eyebrow">You're not doing this alone</div>
+    <div class="big">See how other golfers practice — take what works.</div>
+    <div class="peoplecard">
+      <div class="who"><span class="av">MR</span> Maya · golfer you could follow</div>
+      <div class="what">Short game ladder — 30 balls to 3 targets</div>
+      <span class="adapt">⊕ Adapt to my practice</span>
+    </div>
+    <div class="peoplecard">
+      <div class="who"><span class="av" style="background:#8B5CF6">CB</span> City Golf Club · blueprint</div>
+      <div class="what">Winter fundamentals — 6-step program</div>
+      <span class="adapt">⊕ Subscribe</span>
+    </div>
+    <div class="sub" style="margin-bottom:0">Follow people. Join clubs. Subscribe to programs. Steps arrive only when you pull them.</div>
+    <div class="cta">Create account</div>
+    <div class="skip">Sign in</div>
+  </div>
+</div>
+
+<div class="decisions">
+  <h2>Decisions this mock encodes</h2>
+  <p class="note">
+    <b>1. Craft-first.</b> Screen 1 replaces the sailing showcase's front door; the pick is cached via the
+    existing <code>onboarding_interest_slug</code> AsyncStorage key (already read post-signup), so the funnel
+    exit lands the new account in the right interest with zero extra steps. "I'll decide later" keeps the
+    guest path alive.<br/>
+    <b>2. One story, data-driven copy.</b> Screens 2–3 are ONE component pair fed by an
+    <code>onboardingVocab[slug]</code> table (loop line, plan/do/review examples, peer/club nouns) — the same
+    pattern as <code>interestVocab</code>. Adding a craft = adding a row, not a screen.
+    Unknown/"something else" picks fall back to universal copy.<br/>
+    <b>3. The story beats mirror the product's real idioms</b> — sequence-to-anchor with the NOW divider
+    (screen 2), watch → adapt-to-my-practice + learner-pull subscribe (screen 3). No invented features,
+    no fake social proof (launch truth-state).<br/>
+    <b>4.</b> <span class="kill">Killed: track-races.tsx, prepare-pro.tsx, join-crew.tsx and their sailing
+    animations</span> — replaced by pick-craft.tsx + two vocab-driven screens. Route: welcome-back →
+    value/pick-craft → value/loop → value/people → auth-choice (unchanged tail).<br/>
+    <b>5. Illustration style:</b> static product-shaped vignettes (cards above) instead of bespoke animated
+    scenes per craft — the loop card IS the product, so the funnel previews reality instead of a cartoon.
+  </p>
+</div>
+
+</body>
+</html>
