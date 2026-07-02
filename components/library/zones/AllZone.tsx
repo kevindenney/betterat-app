@@ -462,7 +462,9 @@ export function AllZone({
   const interestId = currentInterest?.id;
   const interestSlug = currentInterest?.slug;
   const isSailRacing = interestSlug === 'sail-racing';
-  const circlesScale = isSailRacing ? 'crew -> club' : interestSlug === 'nursing' ? 'cohort -> school' : 'group -> org';
+  // Typographic arrow, not ASCII "->" — the scale hint sits in user-facing
+  // chrome and the code-y form read as a leaked dev annotation.
+  const circlesScale = isSailRacing ? 'crew → club' : interestSlug === 'nursing' ? 'cohort → school' : 'group → org';
 
   const { groups: userAffinityGroups, isLoading: affinityGroupsLoading } =
     useUserAffinityGroups(interestSlug);
@@ -631,7 +633,11 @@ export function AllZone({
         kind: 'Plan',
         dot: '#3B82F6',
         title: plan.title,
-        foot: plan.progressContext ?? `${plan.doneCount} of ${plan.stepCount || '—'}`,
+        // Mirror PlanRowCard: a step-less plan has no progress fraction to
+        // show — "0 of —" reads as broken.
+        foot:
+          plan.progressContext ??
+          (plan.stepCount > 0 ? `${plan.doneCount} of ${plan.stepCount}` : 'no steps yet'),
         route: plan.route ?? `/(tabs)/library/blueprints/${plan.blueprintId}`,
       });
     }

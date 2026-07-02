@@ -120,22 +120,26 @@ export function PlanRowCard({ plan, onPress }: Props) {
         {plan.title}
       </Text>
 
-      <View style={styles.progressRow}>
-        <View style={styles.progressTrack}>
-          <LinearGradient
-            colors={['#34C759', '#007AFF']}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={[styles.progressFill, { width: `${progressPct}%` }]}
-          />
-        </View>
-        <Text style={styles.progressMeta}>
-          <Text style={styles.progressMetaEm}>
-            {plan.doneCount} of {plan.stepCount || '—'}
+      {/* A step-less plan has no progress to show — the header already says
+          "no steps yet", and an empty track reading "0 of —" looks broken. */}
+      {plan.stepCount > 0 ? (
+        <View style={styles.progressRow}>
+          <View style={styles.progressTrack}>
+            <LinearGradient
+              colors={['#34C759', '#007AFF']}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[styles.progressFill, { width: `${progressPct}%` }]}
+            />
+          </View>
+          <Text style={styles.progressMeta}>
+            <Text style={styles.progressMetaEm}>
+              {plan.doneCount} of {plan.stepCount}
+            </Text>
+            {plan.progressContext ? ` · ${plan.progressContext}` : ''}
           </Text>
-          {plan.progressContext ? ` · ${plan.progressContext}` : ''}
-        </Text>
-      </View>
+        </View>
+      ) : null}
 
       <View style={styles.foot}>
         <View style={styles.footItem}>

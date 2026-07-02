@@ -626,7 +626,9 @@ export function L3SeasonView({
                       ? ` · ${capabilityHeadline.weeksPresent}/${capabilityHeadline.elapsed} wks`
                       : ''
                   }`
-                : undefined
+                : // A bare labeled bar reads as a dead block (cross-tab idiom:
+                  // empty states are words). Say what fills it in.
+                  'Fills in as you practice'
             }
           >
             {(w) => (
