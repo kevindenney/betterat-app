@@ -8,7 +8,7 @@
  * - Claim the club (if unclaimed)
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -40,12 +40,14 @@ import {
   IOS_RADIUS,
 } from '@/lib/design-tokens-ios';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
+import { ClaimClubModal } from '@/components/club/ClaimClubModal';
 
 export default function GlobalClubDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
 
   // Fetch club details
   const { data: club, isLoading, error } = useQuery({
@@ -106,11 +108,11 @@ export default function GlobalClubDetailScreen() {
   }, [user, isMember, club?.name, joinMutation, leaveMutation]);
 
   const handleClaimClub = useCallback(() => {
-    router.push({
-      pathname: '/club-onboarding',
-      params: { claimClubId: id },
-    });
-  }, [id, router]);
+    // Open the purpose-built claim modal. This previously pushed
+    // '/club-onboarding', a route that doesn't exist, dead-ending on the
+    // Unmatched Route screen.
+    setClaimModalOpen(true);
+  }, []);
 
   const handleOpenWebsite = useCallback(() => {
     if (club?.website) {
@@ -301,6 +303,12 @@ export default function GlobalClubDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      <ClaimClubModal
+        visible={claimModalOpen}
+        club={club}
+        onClose={() => setClaimModalOpen(false)}
+      />
     </>
   );
 }
