@@ -165,7 +165,7 @@ export function usePracticeSession({
 
   const inviteLink = useMemo(() => {
     if (!inviteCode) return null;
-    return `regattaflow://join-practice?code=${inviteCode}`;
+    return `betterat://join-practice?code=${inviteCode}`;
   }, [inviteCode]);
 
   const confirmedCount = useMemo(

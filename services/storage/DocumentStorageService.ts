@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 /**
- * Document Storage Service for RegattaFlow
+ * Document Storage Service for BetterAt
  * Handles document upload, storage, and retrieval with Supabase
  */
 

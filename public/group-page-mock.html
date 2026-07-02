@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Group page — 4 Peaks Challenge prep · UX mock</title>
+<style>
+  :root {
+    --bg: #F2F2F7;
+    --card: #FFFFFF;
+    --blue: #007AFF;
+    --ink: #1C1C1E;
+    --sub: #8E8E93;
+    --sep: rgba(60,60,67,0.18);
+    --sep-strong: rgba(60,60,67,0.29);
+    --red: #FF3B30;
+    --green: #34C759;
+    --race: #5856D6;
+    --teal: #30B0C7;
+    --amber: #C77700;
+    --ghost: #F4F4F6;
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    background: #E5E5EA;
+    color: var(--ink);
+    padding: 40px 24px 80px;
+  }
+  h1.title { font-size: 26px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.4px; }
+  p.lede { color: #636366; font-size: 15px; margin: 0 0 28px; max-width: 760px; line-height: 1.55; }
+  p.lede b { color: var(--ink); }
+
+  .stage { display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; }
+
+  /* phone */
+  .phone {
+    width: 372px; height: 760px; background: var(--bg); border-radius: 44px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.24), inset 0 0 0 1px rgba(0,0,0,0.05);
+    border: 9px solid #1c1c1e; overflow: hidden; position: relative; flex: 0 0 auto;
+  }
+  .statusbar {
+    height: 44px; display:flex; align-items:center; justify-content:space-between;
+    padding: 0 24px 0 28px; font-size: 14px; font-weight: 600;
+  }
+  .navbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 2px 16px 8px;
+  }
+  .nav-back { color: var(--blue); font-size: 16px; display:flex; align-items:center; gap:1px; }
+  .nav-dots { color: var(--blue); font-size: 22px; font-weight: 700; letter-spacing:1px; }
+  .screen { padding: 0 14px; height: calc(100% - 44px); overflow-y: auto; position:relative; padding-bottom: 24px; }
+  .screen::-webkit-scrollbar { display:none; }
+
+  .card {
+    background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+
+  .pill {
+    display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700;
+    padding: 3px 10px; border-radius: 20px; letter-spacing:0.4px; text-transform:uppercase;
+  }
+  .pill.prep { background: #E5F6F9; color: var(--teal); }
+
+  .g-title { font-size: 23px; font-weight: 800; letter-spacing: -0.5px; margin: 9px 0 8px; line-height:1.12; }
+
+  .anchor {
+    display:flex; align-items:center; gap:9px; background: #EDEDFB; border-radius: 11px;
+    padding: 9px 12px; margin-bottom: 12px;
+  }
+  .anchor .flag { font-size: 17px; }
+  .anchor .a-main { font-size: 14px; font-weight: 700; color: var(--race); }
+  .anchor .a-sub { font-size: 12px; color: #7D7CC9; margin-top:1px; }
+  .anchor .a-count { margin-left:auto; font-size: 12px; font-weight:700; color: var(--race);
+    background:#fff; border-radius: 8px; padding: 4px 8px; }
+
+  .tags { display:flex; gap:7px; flex-wrap:wrap; margin-bottom: 14px; }
+  .tag {
+    display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600;
+    padding: 5px 10px; border-radius: 9px; background: var(--ghost); color: #555;
+    border: 1px solid var(--sep);
+  }
+
+  .roster { display:flex; align-items:center; gap:0; }
+  .av {
+    width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; margin-left: -8px;
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:700;
+  }
+  .av:first-child { margin-left:0; }
+  .roster .who { margin-left: 10px; font-size: 13px; color: var(--sub); }
+
+  .seg {
+    display:flex; background:#E9E9EB; border-radius: 10px; padding:2px; margin: 2px 0 14px;
+  }
+  .seg div { flex:1; text-align:center; font-size:13px; font-weight:600; color:#555;
+    padding: 7px 0; border-radius: 8px; }
+  .seg div.on { background:#fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+
+  .sect-h { font-size: 12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+    color: var(--sub); margin: 4px 4px 8px; }
+
+  .step {
+    display:flex; align-items:flex-start; gap:11px; padding: 11px 4px; border-bottom: 1px solid var(--sep);
+  }
+  .step:last-child { border-bottom: none; }
+  .tick {
+    width: 21px; height: 21px; border-radius: 50%; flex:0 0 auto; margin-top:1px;
+    display:flex; align-items:center; justify-content:center; font-size:12px;
+  }
+  .tick.done { background: var(--green); color:#fff; }
+  .tick.now { background:#fff; border: 2px solid var(--blue); color: var(--blue); }
+  .tick.todo { background:#fff; border: 2px solid var(--sep-strong); }
+  .step .s-body { flex:1; }
+  .step .s-title { font-size: 15px; font-weight: 600; line-height:1.25; }
+  .step.is-done .s-title { color: var(--sub); text-decoration: line-through; }
+  .step .s-meta { font-size: 12px; color: var(--sub); margin-top: 2px; display:flex; gap:8px; align-items:center; }
+  .who-mini { display:inline-flex; align-items:center; gap:3px; }
+  .dot-av { width:15px;height:15px;border-radius:50%; font-size:8px; color:#fff; display:inline-flex; align-items:center;justify-content:center; font-weight:700;}
+
+  .anchor-step {
+    display:flex; align-items:center; gap:11px; padding: 12px; margin-top: 4px;
+    background:#EDEDFB; border-radius: 12px;
+  }
+  .anchor-step .flag { font-size: 18px; }
+  .anchor-step .as-t { font-size: 15px; font-weight: 800; color: var(--race); }
+  .anchor-step .as-s { font-size: 12px; color:#7D7CC9; margin-top:1px; }
+
+  .addrow { display:flex; align-items:center; gap:8px; color: var(--blue); font-size:14px;
+    font-weight:600; padding: 12px 4px 2px; }
+  .addrow .plus { width:21px;height:21px;border-radius:50%; border:2px dashed var(--blue);
+    display:flex;align-items:center;justify-content:center; font-size:14px; }
+
+  .chat { display:flex; gap:9px; padding: 9px 4px; align-items:flex-start; }
+  .chat .bubble { background: var(--ghost); border-radius: 12px; padding: 8px 11px; font-size:13px; line-height:1.35; max-width: 230px; }
+  .chat .cn { font-size:11px; font-weight:700; color:#555; margin-bottom:2px; }
+  .chat .ct { font-size:10px; color: var(--sub); margin-top:3px; }
+
+  .invite {
+    display:flex; align-items:center; justify-content:center; gap:8px; margin-top: 6px;
+    background: var(--blue); color:#fff; font-size:15px; font-weight:700; padding: 13px;
+    border-radius: 13px;
+  }
+
+  /* annotation rail */
+  .rail { flex: 1 1 300px; min-width: 280px; max-width: 420px; }
+  .note {
+    display:flex; gap:12px; margin-bottom: 18px; align-items:flex-start;
+  }
+  .num {
+    flex:0 0 auto; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color:#fff;
+    font-size: 13px; font-weight: 700; display:flex; align-items:center; justify-content:center;
+  }
+  .num.warn { background: var(--amber); }
+  .note h3 { margin: 2px 0 3px; font-size: 15px; font-weight: 700; }
+  .note p { margin: 0; font-size: 13.5px; line-height: 1.5; color: #4a4a4f; }
+  .note code { background:#fff; border:1px solid var(--sep); border-radius:5px; padding: 0 4px; font-size: 12px; }
+
+  .divider { height:1px; background: rgba(0,0,0,0.1); margin: 8px 0 26px; }
+
+  /* other interests strip */
+  .strip-h { font-size: 18px; font-weight: 700; margin: 48px 0 6px; }
+  .strip-sub { font-size: 14px; color:#636366; margin: 0 0 20px; max-width: 720px; line-height:1.5; }
+  .mini-row { display:flex; gap:18px; flex-wrap: wrap; }
+  .mini {
+    width: 240px; background:#fff; border-radius: 16px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  .mini .mp { font-size: 10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px;
+    padding: 3px 9px; border-radius: 20px; display:inline-block; }
+  .mini h4 { margin: 10px 0 8px; font-size: 17px; font-weight: 800; letter-spacing:-0.3px; line-height:1.15; }
+  .mini .ma { display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; padding: 7px 9px;
+    border-radius: 9px; margin-bottom: 8px; }
+  .mini .mt { font-size:11.5px; color:#666; background:#F4F4F6; border:1px solid var(--sep);
+    border-radius:8px; padding:4px 8px; display:inline-block; }
+  .mini .vocab { font-size:12px; color: var(--sub); margin-top:10px; }
+  .mini .vocab b { color: var(--ink); }
+
+  .footernote { margin-top: 44px; padding: 16px 18px; background:#FFF8E7; border:1px solid #F0D9A0;
+    border-radius: 12px; font-size: 13.5px; line-height:1.55; color:#6b5a20; max-width: 760px; }
+  .footernote b { color: var(--ink); }
+</style>
+</head>
+<body>
+  <h1 class="title">Group page — “4 Peaks Challenge 2027”</h1>
+  <p class="lede">
+    A <b>peer prep group</b> for a single race, built on the affinity-group primitive — not a club, not an org.
+    Members are mostly RHKYC; the race is run by Aberdeen Boat Club; the group attaches to <b>neither</b>.
+    It replaces the WhatsApp thread with a shared plan that converges on race day. The three dials
+    (<b>lifespan</b>: event-scoped · <b>who-pays</b>: nobody · <b>authority</b>: none) put it in the lightest
+    corner of the model — so no billing, no admin console, no vetting.
+  </p>
+
+  <div class="stage">
+    <!-- PHONE -->
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>5G &nbsp; &#9646;&#9646;&#9646;&#9646;</span></div>
+      <div class="navbar">
+        <span class="nav-back">&#8249; Groups</span>
+        <span class="nav-dots">&#183;&#183;&#183;</span>
+      </div>
+      <div class="screen">
+
+        <!-- HERO -->
+        <div class="card">
+          <span class="pill prep">&#9973; Prep group</span>
+          <div class="g-title">4 Peaks Challenge 2027</div>
+
+          <div class="anchor">
+            <span class="flag">&#127937;</span>
+            <div>
+              <div class="a-main">Race day · 10 Jan 2027</div>
+              <div class="a-sub">Everything in here builds toward this</div>
+            </div>
+            <span class="a-count">in ~6 mo</span>
+          </div>
+
+          <div class="tags">
+            <span class="tag">&#9875; Mostly RHKYC</span>
+            <span class="tag">&#129309; Racing with Aberdeen Boat Club</span>
+          </div>
+
+          <div class="roster">
+            <span class="av" style="background:#FF9500">KD</span>
+            <span class="av" style="background:#34C759">JL</span>
+            <span class="av" style="background:#5856D6">AW</span>
+            <span class="av" style="background:#FF2D55">RT</span>
+            <span class="av" style="background:#30B0C7">+2</span>
+            <span class="who">6 of us sailing this</span>
+          </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="seg">
+          <div class="on">Plan</div>
+          <div>Chat</div>
+          <div>Crew</div>
+        </div>
+
+        <!-- PLAN -->
+        <div class="card">
+          <div class="sect-h">Shared prep · 4 steps to race day</div>
+
+          <div class="step is-done">
+            <span class="tick done">&#10003;</span>
+            <div class="s-body">
+              <div class="s-title">Confirm crew &amp; watch system</div>
+              <div class="s-meta"><span class="who-mini"><span class="dot-av" style="background:#FF9500">KD</span> Kevin</span> · done</div>
+            </div>
+          </div>
+
+          <div class="step">
+            <span class="tick now"></span>
+            <div class="s-body">
+              <div class="s-title">Two-handed night sailing practice</div>
+              <div class="s-meta"><span class="who-mini"><span class="dot-av" style="background:#34C759">JL</span> Jess</span> · in progress · 2 sessions logged</div>
+            </div>
+          </div>
+
+          <div class="step">
+            <span class="tick todo"></span>
+            <div class="s-body">
+              <div class="s-title">Provisioning &amp; safety brief</div>
+              <div class="s-meta">unassigned · open</div>
+            </div>
+          </div>
+
+          <div class="step">
+            <span class="tick todo"></span>
+            <div class="s-body">
+              <div class="s-title">Boat prep — rig check &amp; spares</div>
+              <div class="s-meta"><span class="who-mini"><span class="dot-av" style="background:#5856D6">AW</span> Andy</span> · open</div>
+            </div>
+          </div>
+
+          <div class="anchor-step">
+            <span class="flag">&#127937;</span>
+            <div>
+              <div class="as-t">4 Peaks Challenge</div>
+              <div class="as-s">10 Jan 2027 · Aberdeen Boat Club start</div>
+            </div>
+          </div>
+
+          <div class="addrow"><span class="plus">+</span> Add a prep step</div>
+        </div>
+
+        <!-- CHAT PEEK -->
+        <div class="card">
+          <div class="sect-h">Chat · last in here</div>
+          <div class="chat">
+            <span class="av" style="background:#FF2D55; width:28px;height:28px;margin:0;">RT</span>
+            <div>
+              <div class="cn">Ryan</div>
+              <div class="bubble">Tide gate at Tap Mun is brutal after 14:00 — let’s lock the start watch tonight.</div>
+              <div class="ct">9:12 AM</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="invite">&#128279; Invite by link</div>
+      </div>
+    </div>
+
+    <!-- ANNOTATIONS -->
+    <div class="rail">
+      <div class="note">
+        <span class="num">1</span>
+        <div>
+          <h3>Affiliations are tags, not membership</h3>
+          <p>“Mostly RHKYC” and “Racing with Aberdeen Boat Club” are <b>informational context</b>. The group
+          isn’t owned by either org and doesn’t inherit their members, billing, or admin. A free-floating crew.</p>
+        </div>
+      </div>
+
+      <div class="note">
+        <span class="num">2</span>
+        <div>
+          <h3>One dated goal anchors everything</h3>
+          <p>The group points at a single event (10 Jan 2027). Same shape as a step timeline flowing toward a
+          race anchor — prep steps are a fluid sequence; the race is the fixed point at the bottom.</p>
+        </div>
+      </div>
+
+      <div class="note">
+        <span class="num">3</span>
+        <div>
+          <h3>Shared plan replaces scattered WhatsApp planning</h3>
+          <p>Who’s doing what, what’s left, what’s done — assigned to people, visible to all. The part WhatsApp
+          can’t hold. This is the reason to leave the group chat.</p>
+        </div>
+      </div>
+
+      <div class="note">
+        <span class="num">4</span>
+        <div>
+          <h3>Chat is the WhatsApp replacement</h3>
+          <p>Discussion lives <i>next to</i> the plan, not in a separate app. Banter and logistics stay; the
+          durable decisions graduate into prep steps.</p>
+        </div>
+      </div>
+
+      <div class="note">
+        <span class="num warn">5</span>
+        <div>
+          <h3>Invite-by-link · private &amp; unlisted</h3>
+          <p>You add people the WhatsApp way — share a link. Nothing public, so the “no vetting” worry
+          dissolves: there’s no open-join queue to police. Join mode is <code>invite_only</code>.</p>
+        </div>
+      </div>
+
+      <div class="note">
+        <span class="num warn">6</span>
+        <div>
+          <h3>No billing, no admin console, no “club”</h3>
+          <p>Peer group → none of the org machinery. The word <b>“club”</b> never appears; this is a
+          <b>group</b> (sailing voice: a one-race <b>campaign</b> / <b>crew</b>).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTHER INTERESTS -->
+  <div class="strip-h">Same primitive, other interests</div>
+  <p class="strip-sub">
+    The invariant is <b>people + shared plan + one dated goal + optional affiliation tags</b>. Only the vocabulary
+    and the anchor change — the chrome is identical.
+  </p>
+  <div class="mini-row">
+    <div class="mini">
+      <span class="mp" style="background:#E5F6F9;color:#30B0C7;">&#9973; Sailing</span>
+      <h4>4 Peaks Challenge 2027</h4>
+      <div class="ma" style="background:#EDEDFB;color:#5856D6;">&#127937; Race day · 10 Jan 2027</div>
+      <span class="mt">&#9875; Mostly RHKYC</span>
+      <div class="vocab">Called a <b>campaign</b> / <b>prep crew</b></div>
+    </div>
+    <div class="mini">
+      <span class="mp" style="background:#FDEBF1;color:#FF2D55;">&#129658; Nursing</span>
+      <h4>NCLEX summer study group</h4>
+      <div class="ma" style="background:#FDEBF1;color:#FF2D55;">&#128197; Exam day · 18 Aug 2026</div>
+      <span class="mt">&#127979; Mostly JHU</span>
+      <div class="vocab">Called a <b>study group</b></div>
+    </div>
+    <div class="mini">
+      <span class="mp" style="background:#E9F8EE;color:#34C759;">&#127939; Running</span>
+      <h4>Boston 2027 training group</h4>
+      <div class="ma" style="background:#E9F8EE;color:#1E9E4A;">&#127937; Race day · 19 Apr 2027</div>
+      <span class="mt">&#128205; Mostly Island Pacers</span>
+      <div class="vocab">Called a <b>training group</b></div>
+    </div>
+  </div>
+
+  <div class="footernote">
+    <b>Where this differs from a club/org today:</b> a club/yacht_club/institution is verified, claimed, and
+    authority-bearing — you <b>join</b> it and it can credential you. This is the opposite: you <b>create</b> it,
+    you <b>invite</b> people, it credentials no one, and it can quietly archive after the race (or roll to “2028”).
+    The two should never share the same creation flow or the same word. Pull <code>study_group</code> out of the
+    org-kind list so a JHU student never has to “make a club” to start a study group.
+  </div>
+</body>
+</html>

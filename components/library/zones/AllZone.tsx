@@ -2,7 +2,7 @@
  * <AllZone> — the unified Library feed (the "Librarian" / all landing).
  *
  * This is the curated front door of the consolidated Library tab. It is
- * organized on a single "yours ↔ the stacks" axis, and — crucially —
+ * organized on a single "yours ↔ blueprints" axis, and — crucially —
  * every section previews REAL top items as cards, never a bare "browse"
  * nav row:
  *
@@ -11,7 +11,7 @@
  *     Plans        — your subscribed Plans            → Blueprints zone
  *     Concepts     — mental models you're forming     → Concepts zone
  *     Resources    — things you've saved              → Resources zone
- *   THE STACKS
+ *   BLUEPRINTS
  *     Plans to follow — published, subscribable Plans → Discover · plans
  *     Orgs            — orgs to join in this craft    → Discover · orgs
  *     Interests       — adjacent interests to add     → Discover · interests
@@ -37,13 +37,15 @@ import { fontFamily } from '@/lib/design-tokens-editorial';
 import type { LibraryZone } from '@/components/library/SegmentedZoneHeader';
 import { useSubscribedPlansForLibrary } from '@/hooks/useSubscribedPlansForLibrary';
 import { useLifecycleConcepts } from '@/hooks/usePlaybook';
-import { useInbox } from '@/hooks/useInbox';
+import { useUnsortedInboxCount } from '@/hooks/useInbox';
 import { useLibraryResourcesPreview } from '@/hooks/useLibraryResourcesPreview';
 import { useDiscoverBlueprints } from '@/hooks/useBlueprint';
 import { useMarketplaceBlueprints, type MarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprints';
-import { useQuery } from '@tanstack/react-query';
+import { useAssignedBlueprints, type AssignedBlueprint } from '@/hooks/useAssignedBlueprints';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { BlueprintSubscribeSheet } from '@/components/blueprint/BlueprintSubscribeSheet';
+import { addRemainingInstitutionalSteps } from '@/services/BlueprintSubscribeService';
 import { useTopOrgsForInterest, type TopOrgRow } from '@/hooks/useTopOrgsForInterest';
-import { useTrendingFleets } from '@/hooks/useFleetDiscovery';
 import { useMyOrgs, type MyOrg } from '@/hooks/useMyOrgs';
 import {
   useDiscoverableAffinityGroups,
@@ -57,10 +59,9 @@ import {
   orgMembershipsQueryKey,
 } from '@/hooks/orgMembershipsQuery';
 import { resolveOrgMembershipStatus } from '@/hooks/orgMembershipStatus';
-import { useUserFleets } from '@/hooks/useFleetData';
+import { initialsForGroup } from './groupInitials';
 import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { useAuth } from '@/providers/AuthProvider';
-import { groupRoleDescriptor } from '@/components/library/zones/GroupsZone';
 import { PlanRowCard } from '@/components/library/plans/PlanRowCard';
 import { ConceptCard } from '@/components/playbook/ConceptCard';
 import { RecentItemRow } from '@/components/library/resources/RecentItemRow';
@@ -71,7 +72,6 @@ import {
   pickSquareMarkColor,
 } from '@/components/discover/canonical';
 import type { DiscoveredBlueprint } from '@/services/BlueprintService';
-import type { Fleet as DiscoveryFleet } from '@/services/FleetDiscoveryService';
 
 const PREVIEW_LIMIT = 3;
 
@@ -80,7 +80,7 @@ interface AllZoneProps {
   onJumpToZone: (zone: LibraryZone) => void;
   /** Librarian ask-strip + noticed card, rendered above the feed. */
   librarianSlot?: React.ReactNode;
-  /** Optional deep-link target for the yours ↔ stacks axis. */
+  /** Optional deep-link target for the yours ↔ blueprints axis. */
   initialSegment?: 'yours' | 'stacks';
 }
 
@@ -88,7 +88,7 @@ interface SectionHeaderProps {
   title: string;
   dotColor: string;
   count?: number;
-  onSeeAll: () => void;
+  onSeeAll?: () => void;
 }
 
 function SectionHeader({ title, dotColor, count, onSeeAll }: SectionHeaderProps) {
@@ -100,15 +100,17 @@ function SectionHeader({ title, dotColor, count, onSeeAll }: SectionHeaderProps)
         <Text style={styles.eyebrow}>{title}</Text>
         {showInlineCount ? <Text style={styles.eyebrowCount}>{count}</Text> : null}
       </View>
-      <Pressable
-        onPress={onSeeAll}
-        accessibilityRole="link"
-        accessibilityLabel={`See all ${title}`}
-        hitSlop={6}
-        style={styles.seeAllBtn}
-      >
-        <Ionicons name="chevron-forward" size={12} color={IOS_COLORS.systemBlue} />
-      </Pressable>
+      {onSeeAll ? (
+        <Pressable
+          onPress={onSeeAll}
+          accessibilityRole="link"
+          accessibilityLabel={`See all ${title}`}
+          hitSlop={6}
+          style={styles.seeAllBtn}
+        >
+          <Ionicons name="chevron-forward" size={12} color={IOS_COLORS.systemBlue} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -205,11 +207,6 @@ function compactOrgName(name?: string | null): string | null {
   return initials.length >= 2 ? initials : name;
 }
 
-function formatSailorCount(count?: number): string {
-  if (!count || count <= 0) return 'Open fleet';
-  return `${count} ${count === 1 ? 'sailor' : 'sailors'}`;
-}
-
 function formatOrgRole(role: string): string {
   switch (role) {
     case 'owner':
@@ -255,11 +252,6 @@ function descriptorForMyOrg(org: MyOrg, interestSlug?: string | null): string {
   return `${role} · runs the program`;
 }
 
-function descriptorForDiscoverableFleet(fleet: DiscoveryFleet): string {
-  const org = compactOrgName(fleet.organizations?.name);
-  return [formatSailorCount(fleet.member_count), org].filter(Boolean).join(' · ');
-}
-
 function descriptorForUserAffinityGroup(group: UserAffinityGroup): string {
   const org = compactOrgName(group.parent_org_name);
   return [formatAffinityGroupRole(group.role), org].filter(Boolean).join(' · ');
@@ -303,6 +295,67 @@ function FollowPlanRow({ row }: { row: FollowRow }) {
         <Ionicons name="chevron-forward" size={16} color={IOS_COLORS.tertiaryLabel} />
       )}
     </Pressable>
+  );
+}
+
+/** A blueprint a student was assigned through one of their cohorts. Unlike
+ *  the marketplace "follow" rows, these are institution-managed: the action is
+ *  to materialize the blueprint's steps straight into the student's own plan. */
+function AssignedBlueprintRow({
+  blueprint,
+  pending,
+  onAdopt,
+  onOpen,
+}: {
+  blueprint: AssignedBlueprint;
+  pending: boolean;
+  onAdopt: () => void;
+  onOpen: () => void;
+}) {
+  const fullyAdopted =
+    blueprint.adoptedSteps >= blueprint.totalSteps && blueprint.totalSteps > 0;
+  const remaining = blueprint.totalSteps - blueprint.adoptedSteps;
+  const viaLabel = [blueprint.orgName, blueprint.cohortName]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <View style={styles.followPlanRow}>
+      <Pressable
+        style={styles.followPlanText}
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`Preview ${blueprint.title}`}
+      >
+        <Text style={styles.followPlanTitle} numberOfLines={2}>
+          {blueprint.title}
+        </Text>
+        <Text style={styles.followPlanMeta} numberOfLines={1}>
+          {viaLabel ? `${viaLabel} · ` : ''}
+          {blueprint.totalSteps} step{blueprint.totalSteps !== 1 ? 's' : ''}
+        </Text>
+      </Pressable>
+      {fullyAdopted ? (
+        <View style={styles.planBadge}>
+          <Text style={styles.planBadgeText}>{`Added · ${blueprint.totalSteps}`}</Text>
+        </View>
+      ) : (
+        <Pressable
+          style={[styles.assignedAddBtn, pending && styles.assignedAddBtnPending]}
+          disabled={pending}
+          onPress={onAdopt}
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${blueprint.title} to my plan`}
+        >
+          {pending ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.assignedAddText}>
+              {blueprint.adoptedSteps > 0 ? `Add ${remaining} more` : 'Add to plan'}
+            </Text>
+          )}
+        </Pressable>
+      )}
+    </View>
   );
 }
 
@@ -368,7 +421,7 @@ function JumpBackInRail({ tiles }: { tiles: RecentTile[] }) {
   );
 }
 
-/** The "yours ↔ the stacks" axis as a segmented control. */
+/** The "yours ↔ blueprints" axis as a segmented control. */
 function TopSegment({
   value,
   onChange,
@@ -389,7 +442,7 @@ function TopSegment({
             accessibilityState={{ selected: active }}
           >
             <Text style={[styles.segText, active && styles.segTextActive]}>
-              {key === 'yours' ? 'Yours' : 'The stacks'}
+              {key === 'yours' ? 'Yours' : 'Blueprints'}
             </Text>
           </Pressable>
         );
@@ -411,15 +464,12 @@ export function AllZone({
   const isSailRacing = interestSlug === 'sail-racing';
   const circlesScale = isSailRacing ? 'crew -> club' : interestSlug === 'nursing' ? 'cohort -> school' : 'group -> org';
 
-  const { fleets, loading: fleetsLoading } = useUserFleets(user?.id);
   const { groups: userAffinityGroups, isLoading: affinityGroupsLoading } =
     useUserAffinityGroups(interestSlug);
   const { cohorts: userOrgCohorts, isLoading: orgCohortsLoading } =
     useUserOrgCohorts(interestSlug);
-  const groupsLoading = isSailRacing ? fleetsLoading : affinityGroupsLoading || orgCohortsLoading;
-  const fleetGroupPreview = isSailRacing ? fleets.slice(0, PREVIEW_LIMIT) : [];
-  const nonSailingGroupRows = React.useMemo<LibraryGroupRow[]>(() => {
-    if (isSailRacing) return [];
+  const groupsLoading = affinityGroupsLoading || orgCohortsLoading;
+  const groupRows = React.useMemo<LibraryGroupRow[]>(() => {
     const seen = new Set<string>();
     const keyFor = (name: string, orgId?: string | null) =>
       `${name.trim().toLowerCase()}::${orgId ?? ''}`;
@@ -450,18 +500,13 @@ export function AllZone({
     }
 
     return rows;
-  }, [isSailRacing, userAffinityGroups, userOrgCohorts]);
-  const nonSailingGroupPreview = nonSailingGroupRows.slice(0, PREVIEW_LIMIT);
-  const groupCount = isSailRacing ? fleets.length : nonSailingGroupRows.length;
-  const joinedFleetIds = React.useMemo(
-    () => new Set(fleets.map((m) => m.fleet.id)),
-    [fleets],
-  );
+  }, [userAffinityGroups, userOrgCohorts]);
+  const groupPreview = groupRows.slice(0, PREVIEW_LIMIT);
+  const groupCount = groupRows.length;
   const joinedAffinityGroupIds = React.useMemo(
     () => new Set(userAffinityGroups.map((g) => g.id)),
     [userAffinityGroups],
   );
-  const { fleets: trendingFleets, loading: trendingFleetsLoading } = useTrendingFleets(8);
   const { groups: discoverableAffinityGroups, isLoading: discoverableGroupsLoading } =
     useDiscoverableAffinityGroups(interestSlug, 8);
 
@@ -471,12 +516,32 @@ export function AllZone({
     useLifecycleConcepts(interestId);
   const { data: resources, isLoading: resourcesLoading } =
     useLibraryResourcesPreview(interestId, PREVIEW_LIMIT);
-  const { data: inboxItems } = useInbox(interestId);
-  const inboxCount = inboxItems?.length ?? 0;
+  const { data: inboxCount = 0 } = useUnsortedInboxCount();
   const { data: catalog, isLoading: catalogLoading } =
     useDiscoverBlueprints(interestId);
   const { blueprints: marketPlans, loading: marketLoading } =
     useMarketplaceBlueprints(interestId ?? null);
+  const { assigned: assignedBlueprints } = useAssignedBlueprints(interestId);
+  const queryClient = useQueryClient();
+  const [subscribeSheetBp, setSubscribeSheetBp] = React.useState<AssignedBlueprint | null>(null);
+  const [addingRemainingId, setAddingRemainingId] = React.useState<string | null>(null);
+
+  const handleAddRemaining = React.useCallback(
+    async (bp: AssignedBlueprint) => {
+      if (!user?.id) return;
+      setAddingRemainingId(bp.id);
+      try {
+        await addRemainingInstitutionalSteps(user.id, bp.id, bp.interestId);
+        queryClient.invalidateQueries({ queryKey: ['timeline-steps'], refetchType: 'all' });
+        queryClient.invalidateQueries({ queryKey: ['assigned-blueprints', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['library-plans'], refetchType: 'all' });
+        queryClient.invalidateQueries({ queryKey: ['library-counts'], refetchType: 'all' });
+      } finally {
+        setAddingRemainingId(null);
+      }
+    },
+    [user?.id, queryClient],
+  );
   const { data: topOrgs, isLoading: orgsLoading } =
     useTopOrgsForInterest(interestSlug, PREVIEW_LIMIT);
   const { data: myOrgs } = useMyOrgs();
@@ -500,13 +565,14 @@ export function AllZone({
   const planPreview = (plans ?? []).slice(0, PREVIEW_LIMIT);
   const conceptPreview = (concepts ?? []).slice(0, PREVIEW_LIMIT);
   const resourcePreview = resources ?? [];
-  // "Plans to follow" unifies the real authored catalog (System B,
-  // marketplace) with System-A discover blueprints — marketplace first,
-  // deduped by title — so newly authored Plans surface here too.
+  // "Blueprints to follow" unifies the real authored catalog (System B)
+  // with System-A discover blueprints — independent first, deduped by title.
   const followPreview = React.useMemo(() => {
     const rows: FollowRow[] = [];
     const seen = new Set<string>();
+    const subscribedIds = new Set((plans ?? []).map((plan) => plan.blueprintId));
     const push = (row: FollowRow) => {
+      if (subscribedIds.has(row.id)) return;
       const key = row.title.trim().toLowerCase();
       if (seen.has(key)) return;
       seen.add(key);
@@ -515,7 +581,7 @@ export function AllZone({
     for (const p of marketPlans) push(marketplaceToFollowRow(p));
     for (const bp of catalog ?? []) push(discoveredToFollowRow(bp));
     return rows.slice(0, PREVIEW_LIMIT);
-  }, [marketPlans, catalog]);
+  }, [marketPlans, catalog, plans]);
   const myOrgRows = React.useMemo(
     () => (myOrgs ?? []).filter((org) => org.interest_slug === interestSlug).slice(0, PREVIEW_LIMIT),
     [myOrgs, interestSlug],
@@ -526,25 +592,13 @@ export function AllZone({
   );
   const groupJoinPreview = React.useMemo(
     () =>
-      isSailRacing
-        ? trendingFleets
-            .filter((fleet) => !joinedFleetIds.has(fleet.id))
-            .slice(0, PREVIEW_LIMIT)
-        : [],
-    [isSailRacing, trendingFleets, joinedFleetIds],
+      discoverableAffinityGroups
+        .filter((group) => !joinedAffinityGroupIds.has(group.id))
+        .slice(0, PREVIEW_LIMIT),
+    [discoverableAffinityGroups, joinedAffinityGroupIds],
   );
-  const affinityGroupJoinPreview = React.useMemo(
-    () =>
-      isSailRacing
-        ? []
-        : discoverableAffinityGroups
-            .filter((group) => !joinedAffinityGroupIds.has(group.id))
-            .slice(0, PREVIEW_LIMIT),
-    [isSailRacing, discoverableAffinityGroups, joinedAffinityGroupIds],
-  );
-  const joinGroupsLoading = isSailRacing ? trendingFleetsLoading : discoverableGroupsLoading;
 
-  // Top-level "yours ↔ the stacks" axis, made literal as a segmented
+  // Top-level "yours ↔ blueprints" axis, made literal as a segmented
   // control. Each half is a full screen so the user never scrolls their
   // own shelf to reach catalog content (or vice versa).
   const [topSegment, setTopSegment] = React.useState<'yours' | 'stacks'>(initialSegment);
@@ -578,7 +632,7 @@ export function AllZone({
         dot: '#3B82F6',
         title: plan.title,
         foot: plan.progressContext ?? `${plan.doneCount} of ${plan.stepCount || '—'}`,
-        route: `/(tabs)/library/blueprints/${plan.blueprintId}`,
+        route: plan.route ?? `/(tabs)/library/blueprints/${plan.blueprintId}`,
       });
     }
     const resource = (resources ?? [])[0];
@@ -698,7 +752,7 @@ export function AllZone({
       </Pressable>
 
       {/* ---------------------------------------------------------------- */}
-      {/* The "yours ↔ the stacks" axis, made literal.                     */}
+      {/* The "yours ↔ blueprints" axis, made literal.                     */}
       {/* ---------------------------------------------------------------- */}
       <View style={styles.segWrap}>
         <TopSegment value={topSegment} onChange={setTopSegment} />
@@ -724,7 +778,7 @@ export function AllZone({
           <LoadingRow />
         ) : planPreview.length === 0 ? (
           <EmptyHint>
-            Follow a coach-bundled Plan from the stacks below to see it here.
+            Follow a blueprint below to see it here.
           </EmptyHint>
         ) : (
           <View style={styles.cardList}>
@@ -733,7 +787,7 @@ export function AllZone({
                 key={plan.blueprintId}
                 plan={plan}
                 onPress={() =>
-                  router.push(`/(tabs)/library/blueprints/${plan.blueprintId}` as never)
+                  router.push((plan.route ?? `/(tabs)/library/blueprints/${plan.blueprintId}`) as never)
                 }
               />
             ))}
@@ -824,33 +878,17 @@ export function AllZone({
               : 'The people moving through the work with you.'}
           </SectionSubline>
           <CanonicalList>
-            {isSailRacing
-              ? fleetGroupPreview.map((m, idx) => (
-                  <CanonicalOrgRow
-                    key={m.fleet.id}
-                    first={idx === 0}
-                    initials={initialsForName(m.fleet.name)}
-                    markColor={pickSquareMarkColor(m.fleet.id)}
-                    name={m.fleet.name}
-                    descriptor={
-                      [groupRoleDescriptor(m), compactOrgName(m.fleet.organization?.name)]
-                        .filter(Boolean)
-                        .join(' · ')
-                    }
-                    onPress={() => router.push('/(tabs)/fleet' as never)}
-                  />
-                ))
-              : nonSailingGroupPreview.map((group, idx) => (
-                  <CanonicalOrgRow
-                    key={group.id}
-                    first={idx === 0}
-                    initials={initialsForName(group.initialsSource)}
-                    markColor={pickSquareMarkColor(group.id)}
-                    name={group.name}
-                    descriptor={group.descriptor}
-                    onPress={() => router.push(group.route as never)}
-                  />
-                ))}
+            {groupPreview.map((group, idx) => (
+              <CanonicalOrgRow
+                key={group.id}
+                first={idx === 0}
+                initials={initialsForGroup(group.initialsSource, group.name)}
+                markColor={pickSquareMarkColor(group.id)}
+                name={group.name}
+                descriptor={group.descriptor}
+                onPress={() => router.push(group.route as never)}
+              />
+            ))}
           </CanonicalList>
           </>
         )}
@@ -905,9 +943,33 @@ export function AllZone({
         </>
       ) : (
         <>
+      {assignedBlueprints.length > 0 && (
+        <View style={styles.section}>
+          <SectionHeader title="ASSIGNED TO YOU" dotColor="#7C3AED" />
+          <SectionSubline>
+            Published by your program — add it to start the steps.
+          </SectionSubline>
+          <View style={styles.followList}>
+            {assignedBlueprints.map((bp) => (
+              <AssignedBlueprintRow
+                key={bp.id}
+                blueprint={bp}
+                pending={addingRemainingId === bp.id}
+                onAdopt={() =>
+                  bp.adoptedSteps > 0
+                    ? handleAddRemaining(bp)
+                    : setSubscribeSheetBp(bp)
+                }
+                onOpen={() => router.push(`/blueprint/assigned/${bp.id}` as never)}
+              />
+            ))}
+          </View>
+        </View>
+      )}
+
       <View style={styles.section}>
         <SectionHeader
-          title="PLANS TO FOLLOW"
+          title="BLUEPRINTS TO FOLLOW"
           dotColor="#0EA5E9"
           onSeeAll={() => onJumpToZone('follow')}
         />
@@ -915,8 +977,8 @@ export function AllZone({
           <LoadingRow />
         ) : followPreview.length === 0 ? (
           <EmptyHint>
-            No published {currentInterest?.name ?? ''} Plans yet — you'll be among the
-            first to follow one when they land.
+            No published {currentInterest?.name ?? ''} blueprints yet — you'll be among
+            the first to follow one when they land.
           </EmptyHint>
         ) : (
           <View style={styles.followList}>
@@ -935,9 +997,9 @@ export function AllZone({
           dotColor="#14B8A6"
           onSeeAll={() => onJumpToZone('groups')}
         />
-        {joinGroupsLoading && groupJoinPreview.length === 0 && affinityGroupJoinPreview.length === 0 ? (
+        {discoverableGroupsLoading && groupJoinPreview.length === 0 ? (
           <LoadingRow />
-        ) : groupJoinPreview.length === 0 && affinityGroupJoinPreview.length === 0 ? (
+        ) : groupJoinPreview.length === 0 ? (
           <EmptyHint>
             {isSailRacing
               ? 'Crews near you taking on members will show up here.'
@@ -951,29 +1013,17 @@ export function AllZone({
                 : 'People you could practice with next.'}
             </SectionSubline>
           <CanonicalList>
-              {isSailRacing
-                ? groupJoinPreview.map((fleet, idx) => (
-                    <CanonicalOrgRow
-                      key={fleet.id}
-                      first={idx === 0}
-                      initials={initialsForName(fleet.name)}
-                      markColor={pickSquareMarkColor(fleet.id)}
-                      name={fleet.name}
-                      descriptor={descriptorForDiscoverableFleet(fleet)}
-                      onPress={() => router.push('/(tabs)/fleet/select' as never)}
-                    />
-                  ))
-                : affinityGroupJoinPreview.map((group, idx) => (
-                    <CanonicalOrgRow
-                      key={group.id}
-                      first={idx === 0}
-                      initials={initialsForName(group.short_name ?? group.name)}
-                      markColor={pickSquareMarkColor(group.id)}
-                      name={group.name}
-                      descriptor={descriptorForDiscoverableAffinityGroup(group)}
-                      onPress={() => router.push(`/group/${group.id}` as never)}
-                    />
-                  ))}
+              {groupJoinPreview.map((group, idx) => (
+                <CanonicalOrgRow
+                  key={group.id}
+                  first={idx === 0}
+                  initials={initialsForGroup(group.short_name, group.name)}
+                  markColor={pickSquareMarkColor(group.id)}
+                  name={group.name}
+                  descriptor={descriptorForDiscoverableAffinityGroup(group)}
+                  onPress={() => router.push(`/group/${group.id}` as never)}
+                />
+              ))}
           </CanonicalList>
           </>
         )}
@@ -1076,6 +1126,22 @@ export function AllZone({
       </View>
         </>
       )}
+
+      {subscribeSheetBp ? (
+        <BlueprintSubscribeSheet
+          visible={!!subscribeSheetBp}
+          onClose={() => setSubscribeSheetBp(null)}
+          blueprint={{
+            id: subscribeSheetBp.id,
+            system: 'institutional',
+            title: subscribeSheetBp.title,
+            authorInterestId: subscribeSheetBp.interestId,
+            authorInterestSlug: subscribeSheetBp.interestSlug,
+            authorInterestLabel: subscribeSheetBp.interestName,
+            orgLabel: subscribeSheetBp.orgName,
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -1400,6 +1466,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     backgroundColor: IOS_COLORS.secondarySystemGroupedBackground,
+  },
+  assignedAddBtn: {
+    minWidth: 84,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: IOS_COLORS.systemBlue,
+  },
+  assignedAddBtnPending: {
+    opacity: 0.6,
+  },
+  assignedAddText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   planBadgeText: {
     fontSize: 11,

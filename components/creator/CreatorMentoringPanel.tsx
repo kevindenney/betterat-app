@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useStepDetail, useUpdateStepMetadata } from '@/hooks/useStepDetail';
 import { useAuth } from '@/providers/AuthProvider';
 import { NotificationService } from '@/services/NotificationService';
@@ -140,6 +141,7 @@ function StatusBadge({
 
 export function CreatorMentoringPanel({ stepId }: Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: step } = useStepDetail(stepId);
   const updateMetadata = useUpdateStepMetadata(stepId);
 
@@ -200,6 +202,7 @@ export function CreatorMentoringPanel({ stepId }: Props) {
       );
       return;
     }
+    queryClient.invalidateQueries({ queryKey: ['studio-author-subscriber-steps'] });
     setReviewSaved(true);
     setSelectedStatus(null);
 
@@ -212,9 +215,11 @@ export function CreatorMentoringPanel({ stepId }: Props) {
         stepId,
         stepTitle: step.title ?? 'Step',
         reviewStatus: selectedStatus,
+        reviewNote: reviewNote.trim() || undefined,
+        suggestedNext: suggestedNext.trim() || undefined,
       }).catch(() => {}); // fire-and-forget
     }
-  }, [selectedStatus, reviewNote, updateMetadata, step?.title, step?.user_id, stepId, user?.id, user?.user_metadata?.full_name]);
+  }, [selectedStatus, reviewNote, suggestedNext, updateMetadata, queryClient, step?.title, step?.user_id, stepId, user?.id, user?.user_metadata?.full_name]);
 
   const handleSaveSuggestion = useCallback(async () => {
     try {
@@ -230,8 +235,9 @@ export function CreatorMentoringPanel({ stepId }: Props) {
       );
       return;
     }
+    queryClient.invalidateQueries({ queryKey: ['studio-author-subscriber-steps'] });
     setSuggestionSaved(true);
-  }, [suggestedNext, updateMetadata]);
+  }, [suggestedNext, updateMetadata, queryClient]);
 
   // ---- Render ----
 

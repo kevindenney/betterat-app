@@ -1,7 +1,7 @@
 /**
  * Generate Race Coaching Edge Function
  *
- * Analyzes post-race responses using the RegattaFlow Playbook frameworks
+ * Analyzes post-race responses using the BetterAt Playbook frameworks
  * and provides personalized coaching feedback.
  *
  * Security: Runs server-side to protect Anthropic API key

@@ -3,7 +3,7 @@
 /**
  * Venue Intelligence Agent
  * Autonomous AI agent for venue detection, intelligence loading, and cultural adaptation
- * Core of RegattaFlow's "OnX Maps for Sailing" global intelligence system
+ * Core of BetterAt's "OnX Maps for Sailing" global intelligence system
  */
 
 import { supabase } from '@/services/supabase';
@@ -24,7 +24,7 @@ export class VenueIntelligenceAgent extends BaseAgentService {
       maxTokens: 2048, // Optimized for cost
       temperature: 0.3, // Lower temperature for more consistent venue detection
       systemPrompt: useSkills
-        ? `You are a venue intelligence specialist for RegattaFlow, a global sailing platform.
+        ? `You are a venue intelligence specialist for BetterAt, a global sailing platform.
 Your mission: Help sailors seamlessly switch between sailing venues worldwide.
 
 You have access to the venue-intelligence skill which provides:
@@ -36,7 +36,7 @@ You have access to the venue-intelligence skill which provides:
 
 Use the venue-intelligence skill to inform your recommendations.
 Execute venue tools in optimal order. Prioritize sailor safety - ensure weather data is current and accurate.`
-        : `You are a venue intelligence specialist for RegattaFlow, a global sailing platform.
+        : `You are a venue intelligence specialist for BetterAt, a global sailing platform.
 
 Your mission: Help sailors seamlessly switch between sailing venues worldwide, loading the right intelligence, weather, and cultural context for each location.
 
@@ -278,7 +278,7 @@ Critical for race safety and strategy planning.`,
       description: `Apply cultural settings to the app UI based on venue location.
 Updates language, currency, terminology, and protocol reminders.
 Call this after loading intelligence to adapt the app to the local context.
-Makes RegattaFlow feel native to sailors everywhere.`,
+Makes BetterAt feel native to sailors everywhere.`,
       input_schema: z.object({
         venueId: z.string().describe('The venue ID'),
         language: z.string().describe('Primary language code (e.g., "en", "zh", "fr")'),

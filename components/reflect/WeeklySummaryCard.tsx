@@ -61,7 +61,7 @@ ${formatTime(summary.timeOnWater)} on the water
 ${summary.avgFinish ? `Avg finish: ${summary.avgFinish.toFixed(1)}` : ''}
 ${summary.highlightRace ? `\nHighlight: ${getOrdinal(summary.highlightRace.position)} in ${summary.highlightRace.name}` : ''}
 
-#RegattaFlow #Sailing`;
+#BetterAt #Sailing`;
 
     try {
       await Share.share({

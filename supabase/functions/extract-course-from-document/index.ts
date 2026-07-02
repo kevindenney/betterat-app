@@ -57,7 +57,7 @@ async function geocodeStartFinishLocations(
       
       const response = await fetch(geocodeUrl, {
         headers: {
-          'User-Agent': 'RegattaFlow/1.0 (Sailing Race Management App)',
+          'User-Agent': 'BetterAt/1.0 (Sailing Race Management App)',
         },
       });
       
@@ -97,7 +97,7 @@ async function geocodeStartFinishLocations(
       
       const response = await fetch(geocodeUrl, {
         headers: {
-          'User-Agent': 'RegattaFlow/1.0 (Sailing Race Management App)',
+          'User-Agent': 'BetterAt/1.0 (Sailing Race Management App)',
         },
       });
       
@@ -309,4 +309,3 @@ serve(async (req: Request) => {
     );
   }
 });
-

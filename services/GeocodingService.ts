@@ -91,7 +91,7 @@ export class GeocodingService {
 
       const response = await fetch(`${this.NOMINATIM_URL}?${params}`, {
         headers: {
-          'User-Agent': 'RegattaFlow/1.0',
+          'User-Agent': 'BetterAt/1.0',
           Accept: 'application/json',
         },
       });

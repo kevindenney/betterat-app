@@ -969,6 +969,10 @@ export function AtlasMapLibreCanvas({
   // (NEXT / DONE) render last — otherwise a neighboring step dot draws
   // over the badge text and "NEXT" reads as "EXT".
   const orderedPins = useMemo(() => sortHeroPinsLast(pins), [pins]);
+  const orderedDisplayPins = useMemo(
+    () => spreadOverlappingStepPins(orderedPins),
+    [orderedPins],
+  );
 
   // Wrap the supplied preview polygon (circle, rectangle, …) in a
   // FeatureCollection so MapLibre can paint it via the same source
@@ -1646,8 +1650,9 @@ export function AtlasMapLibreCanvas({
           </MLMarker>
         ) : null}
 
-        {orderedPins.map((pin) => {
-          const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
+        {orderedDisplayPins.map(({pin, lng, lat, hideLabel, disableTap}) => {
+          const isTappable = Boolean(onPinPress) && !disableTap && TAPPABLE_PIN_KINDS.has(pin.kind);
+          const showLabel = shouldShowLabel(pin, pins) && !hideLabel;
           const inner = (
             <LabeledPin
               kind={pin.kind}
@@ -1656,7 +1661,7 @@ export function AtlasMapLibreCanvas({
               clusterCount={pin.clusterCount}
               clusterUnit={pin.clusterUnit ?? clusterUnit}
               glowCluster={pin.glowCluster}
-              showLabel={shouldShowLabel(pin, pins)}
+              showLabel={showLabel}
               hideArrowChips={hideArrowChips}
             />
           );
@@ -1674,7 +1679,7 @@ export function AtlasMapLibreCanvas({
                   : `${pin.id}:${nextPillVisible ? 'n1' : 'n0'}`
               }
               id={pin.id}
-              lngLat={[pin.lng, pin.lat]}
+              lngLat={[lng, lat]}
               onPress={
                 MARKER_NATIVE_PRESS && isTappable
                   ? () => handlePinTap(pin)
@@ -2121,35 +2126,37 @@ function WebAtlasMapLibreCanvas({
     if (!map || !Marker || !isLoaded) return;
 
     pinMarkersRef.current.forEach((marker) => marker.remove());
-    pinMarkersRef.current = sortHeroPinsLast(pins).map((pin) => {
-      const isTappable = Boolean(onPinPress) && TAPPABLE_PIN_KINDS.has(pin.kind);
-      const showLabel = shouldShowLabel(pin, pins);
-      // POI pins carry a name label. Stack it BELOW the dot and anchor the
-      // marker at top-center so the DOT — not the middle of the label text —
-      // lands on the coordinate. Without this the default center anchor puts
-      // the geographic point mid-label, so any pin sharing the coordinate
-      // (e.g. a step-stack dot on the same POI) punches through the words.
-      const labelBelow = showLabel && Boolean(pin.label) && pin.kind.startsWith('poi-');
-      const element = createWebPinElement({
-        pin,
-        showLabel,
-        labelBelow,
-        isTappable,
-        hideArrowChips,
-        onPress: isTappable
-          ? () => {
-              onPinPress?.(pin);
-              map.easeTo({
-                center: [pin.lng, pin.lat],
-                padding: { top: 120, bottom: 380 },
-                duration: 400,
-              });
-            }
-          : undefined,
-      });
-      const marker = labelBelow ? new Marker({ element, anchor: 'top' }) : new Marker({ element });
-      return marker.setLngLat([pin.lng, pin.lat]).addTo(map);
-    });
+    pinMarkersRef.current = spreadOverlappingStepPins(sortHeroPinsLast(pins)).map(
+      ({pin, lng, lat, hideLabel, disableTap}) => {
+        const isTappable = Boolean(onPinPress) && !disableTap && TAPPABLE_PIN_KINDS.has(pin.kind);
+        const showLabel = shouldShowLabel(pin, pins) && !hideLabel;
+        // POI pins carry a name label. Stack it BELOW the dot and anchor the
+        // marker at top-center so the DOT — not the middle of the label text —
+        // lands on the coordinate. Without this the default center anchor puts
+        // the geographic point mid-label, so any pin sharing the coordinate
+        // (e.g. a step-stack dot on the same POI) punches through the words.
+        const labelBelow = showLabel && Boolean(pin.label) && pin.kind.startsWith('poi-');
+        const element = createWebPinElement({
+          pin,
+          showLabel,
+          labelBelow,
+          isTappable,
+          hideArrowChips,
+          onPress: isTappable
+            ? () => {
+                onPinPress?.(pin);
+                map.easeTo({
+                  center: [pin.lng, pin.lat],
+                  padding: { top: 120, bottom: 380 },
+                  duration: 400,
+                });
+              }
+            : undefined,
+        });
+        const marker = labelBelow ? new Marker({element, anchor: 'top'}) : new Marker({element});
+        return marker.setLngLat([lng, lat]).addTo(map);
+      },
+    );
   }, [isLoaded, onPinPress, pins, hideArrowChips]);
 
   useEffect(() => {
@@ -2804,6 +2811,137 @@ function approxDistanceKm(a: AtlasPinSpec, b: AtlasPinSpec): number {
   return Math.sqrt(dLat * dLat + dLng * dLng);
 }
 
+type DisplayAtlasPin = {
+  pin: AtlasPinSpec;
+  lat: number;
+  lng: number;
+  hideLabel?: boolean;
+  disableTap?: boolean;
+};
+
+const STEP_PIN_SPREAD_KINDS = new Set<AtlasPinSpec['kind']>([
+  'org-event',
+  'my-step-next',
+  'my-step-planned',
+  'my-step-done-just',
+  'my-step-done-recent',
+  'my-step-done-old',
+]);
+const STEP_PIN_SPREAD_THRESHOLD_KM = 0.35;
+const STEP_PIN_SPREAD_LABEL_THRESHOLD = 4;
+const STEP_PIN_SPREAD_LANE_STEP_M = 34;
+
+function isStepPinSpreadCandidate(pin: AtlasPinSpec): boolean {
+  return STEP_PIN_SPREAD_KINDS.has(pin.kind);
+}
+
+function offsetLngLat(
+  origin: {lat: number; lng: number},
+  eastMeters: number,
+  northMeters: number,
+): {lat: number; lng: number} {
+  const lat = origin.lat + northMeters / 111_320;
+  const lng =
+    origin.lng +
+    eastMeters / (111_320 * Math.max(0.2, Math.cos((origin.lat * Math.PI) / 180)));
+  return {lat, lng};
+}
+
+function spreadOverlappingStepPins(pins: AtlasPinSpec[]): DisplayAtlasPin[] {
+  const displayPins: DisplayAtlasPin[] = [];
+  const visited = new Set<number>();
+
+  for (let i = 0; i < pins.length; i += 1) {
+    if (visited.has(i)) continue;
+    if (!isStepPinSpreadCandidate(pins[i])) {
+      visited.add(i);
+      displayPins.push({pin: pins[i], lat: pins[i].lat, lng: pins[i].lng});
+      continue;
+    }
+
+    const group = [i];
+    visited.add(i);
+
+    for (let j = i + 1; j < pins.length; j += 1) {
+      if (visited.has(j)) continue;
+      if (!isStepPinSpreadCandidate(pins[j])) continue;
+      if (approxDistanceKm(pins[i], pins[j]) > STEP_PIN_SPREAD_THRESHOLD_KM) continue;
+      group.push(j);
+      visited.add(j);
+    }
+
+    if (group.length <= 1) {
+      displayPins.push({pin: pins[i], lat: pins[i].lat, lng: pins[i].lng});
+      continue;
+    }
+
+    const center = group.reduce(
+      (acc, idx) => ({
+        lat: acc.lat + pins[idx].lat / group.length,
+        lng: acc.lng + pins[idx].lng / group.length,
+      }),
+      {lat: 0, lng: 0},
+    );
+    const orderedGroup = [...group].sort((a, b) => pins[a].id.localeCompare(pins[b].id));
+    const dense = orderedGroup.length > STEP_PIN_SPREAD_LABEL_THRESHOLD;
+
+    if (dense) {
+      const members = orderedGroup.map((idx) => pins[idx]);
+      const clusterUnit = members.some((pin) => pin.kind === 'org-event') ? 'shift' : 'step';
+      const stackedSteps = members
+        .filter((pin): pin is AtlasPinSpec & {stepId: string} => Boolean(pin.stepId))
+        .map((pin) => ({
+          stepId: pin.stepId,
+          title: pin.label?.split('|')[0]?.trim() || pin.subtitle || 'Untitled shift',
+          statusNote: pin.kind === 'org-event' ? 'Program' : 'Planned',
+          isRace: pin.isRace === true,
+        }));
+      const clusterPin: AtlasPinSpec = {
+        ...members[0],
+        id: `display-step-group:${members[0].id}:${members.length}`,
+        lat: center.lat,
+        lng: center.lng,
+        kind: 'my-step-planned',
+        label: undefined,
+        subtitle: `${members.length} nearby ${clusterUnit}s`,
+        provenance: undefined,
+        clusterCount: members.length,
+        clusterUnit,
+        isRace: false,
+        stepId: undefined,
+        stackedSteps,
+        peer: undefined,
+        peerMembers: undefined,
+        orgId: undefined,
+        orgSlug: undefined,
+      };
+      displayPins.push({
+        pin: clusterPin,
+        lat: center.lat,
+        lng: center.lng,
+      });
+      continue;
+    }
+
+    orderedGroup.forEach((pinIndex, displayIndex) => {
+      const northMeters =
+        ((orderedGroup.length - 1) / 2 - displayIndex) * STEP_PIN_SPREAD_LANE_STEP_M;
+      const shifted = offsetLngLat(
+        center,
+        0,
+        northMeters,
+      );
+      displayPins.push({
+        pin: pins[pinIndex],
+        lat: shifted.lat,
+        lng: shifted.lng,
+      });
+    });
+  }
+
+  return displayPins;
+}
+
 /**
  * Per design rule §1 (LABEL LEGIBILITY): at z11 with >8 POI labels in 2km,
  * hide labels until tap or zoom. We approximate that here without a live
@@ -2829,6 +2967,7 @@ function shouldShowLabel(pin: AtlasPinSpec, allPins: AtlasPinSpec[]): boolean {
   if (!pin.label) return false;
   if (pin.kind === 'race-mark') return true;
   if (pin.kind === 'mentor-cluster-alert' || pin.kind === 'mentor-cluster-ok') return true;
+  if (pin.kind === 'org-event') return true;
   // Diamond curation pins (preceptor, sim-lab) always show their label —
   // they're intentional faculty/institutional guidance, named by design.
   // The label-hide-when-dense rule applies only to interchangeable
@@ -3545,7 +3684,7 @@ function LabeledPin({
             <Ionicons name="calendar" size={13} color="#FFFFFF" />
           </View>
         </View>
-        {label ? (
+        {showLabel && label ? (
           <View style={styles.orgEventLabelPill}>
             <Text style={styles.orgEventLabelText} numberOfLines={1}>
               {label}

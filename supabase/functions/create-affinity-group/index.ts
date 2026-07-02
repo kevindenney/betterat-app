@@ -66,6 +66,7 @@ Deno.serve(async (req: Request) => {
       description: description || null,
       interest_slug: interestSlug || null,
       is_active: true,
+      created_by: authData.user.id,
     })
     .select("id, name")
     .single();
@@ -77,7 +78,7 @@ Deno.serve(async (req: Request) => {
   const { error: memberError } = await admin.from("affinity_group_members").insert({
     group_id: group.id,
     user_id: authData.user.id,
-    role: "member",
+    role: "leader",
     status: "active",
   });
 

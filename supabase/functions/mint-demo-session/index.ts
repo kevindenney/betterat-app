@@ -18,11 +18,11 @@ type Persona = {
 
 const PERSONAS: Record<string, Persona> = {
   markus: {
-    email: 'demo-markus@regattaflow.app',
+    email: 'demo-markus@betterat.app',
     landingRoute: '/practice',
   },
   yvonne: {
-    email: 'demo-yvonne@regattaflow.app',
+    email: 'demo-yvonne@betterat.app',
     landingRoute: '/practice',
   },
   szanton: {
@@ -35,7 +35,7 @@ const PERSONAS: Record<string, Persona> = {
     landingRoute: '/faculty-dashboard',
   },
   maya: {
-    email: 'nursing-peer-1@demo.regattaflow.io',
+    email: 'nursing-peer-1@demo.betterat.app',
     landingRoute: '/practice',
   },
   suman: {

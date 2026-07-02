@@ -440,7 +440,7 @@ function PublicFaceScreenInner({
   const genericWhereRows: { k: string; v: string }[] = [];
   if (personInterests.length) {
     genericWhereRows.push({
-      k: personInterests.length === 1 ? 'Interest' : 'Interests',
+      k: '',
       v: personInterests.map((i) => i.name).join(', '),
     });
   }

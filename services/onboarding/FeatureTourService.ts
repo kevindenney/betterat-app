@@ -56,7 +56,7 @@ export const TOUR_STEP_CONFIGS: Record<TourStep, TourStepConfig> = {
   welcome: {
     id: 'welcome',
     title: 'Your race companion',
-    description: 'RegattaFlow helps you prepare for races, learn tactics, and track your progress.',
+    description: 'BetterAt helps you prepare for races, learn tactics, and track your progress.',
     position: 'bottom',
     targetElement: 'none',
     renderMode: 'fullscreen_card',

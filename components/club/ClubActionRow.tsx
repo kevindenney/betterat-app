@@ -97,13 +97,13 @@ export function ClubActionRow({
   const handleShare = useCallback(async () => {
     triggerHaptic('selection');
 
-    const clubUrl = `https://regattaflow.app/club/${clubId}`;
-    const message = `Check out ${clubName} on RegattaFlow! ${clubUrl}`;
+    const clubUrl = `https://better.at/club/${clubId}`;
+    const message = `Check out ${clubName} on BetterAt! ${clubUrl}`;
 
     try {
       await Share.share({
         message,
-        title: `${clubName} on RegattaFlow`,
+        title: `${clubName} on BetterAt`,
         url: clubUrl,
       });
     } catch (error) {

@@ -111,7 +111,7 @@ const getApiBase = () => {
   }
   
   // Use environment variable or fallback to production
-  return process.env.EXPO_PUBLIC_API_URL || 'https://regattaflow.com';
+  return process.env.EXPO_PUBLIC_API_URL || 'https://better.at';
 };
 
 const API_BASE = getApiBase();
@@ -145,7 +145,7 @@ export default function PublicStrategyPage() {
           // Try Vercel dev server first (port 3000)
           endpoints.push({ url: `http://localhost:3000/api/public/strategies/${token}`, timeout: 5000 });
           // Fallback to production API
-          endpoints.push({ url: `https://regattaflow.com/api/public/strategies/${token}`, timeout: 10000 });
+          endpoints.push({ url: `https://better.at/api/public/strategies/${token}`, timeout: 10000 });
         } else {
           // Production - use API_BASE
           endpoints.push({ url: `${API_BASE}/api/public/strategies/${token}`, timeout: 10000 });
@@ -687,8 +687,8 @@ export default function PublicStrategyPage() {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Powered by RegattaFlow</Text>
-        <TouchableOpacity onPress={() => Linking.openURL('https://regattaflow.com')}>
+        <Text style={styles.footerText}>Powered by BetterAt</Text>
+        <TouchableOpacity onPress={() => Linking.openURL('https://better.at')}>
           <Text style={styles.footerLink}>Create your own strategy →</Text>
         </TouchableOpacity>
       </View>

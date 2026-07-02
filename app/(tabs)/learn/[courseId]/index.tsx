@@ -56,7 +56,7 @@ export default function CourseDetailScreen() {
           text: 'Contact Support',
           onPress: () =>
             Linking.openURL(
-              `mailto:support@regattaflow.com?subject=${encodeURIComponent('Course setup issue')}&body=${encodeURIComponent(`Course: ${String(courseId || '')}\n\nIssue: ${message}`)}`
+              `mailto:info@better.at?subject=${encodeURIComponent('Course setup issue')}&body=${encodeURIComponent(`Course: ${String(courseId || '')}\n\nIssue: ${message}`)}`
             ),
         },
       ]

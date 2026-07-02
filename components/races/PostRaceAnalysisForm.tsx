@@ -1,7 +1,7 @@
 /**
  * Post-Race Analysis Form
  *
- * Multi-step form for structured post-race analysis with RegattaFlow Playbook framework integration.
+ * Multi-step form for structured post-race analysis with BetterAt Playbook framework integration.
  * Works on iOS, Android, and Web (React Native Universal).
  */
 
@@ -44,7 +44,7 @@ const ANALYSIS_STEPS: AnalysisStep[] = [
     title: 'Equipment & Planning',
     description: 'How prepared were you for this race?',
     playbook_context:
-      '💡 RegattaFlow Playbook: "Boat handling must be second nature, boat speed second to none, THEN tactics will win races."',
+      '💡 BetterAt Playbook: "Boat handling must be second nature, boat speed second to none, THEN tactics will win races."',
     questions: [
       {
         id: 'equipment_rating',

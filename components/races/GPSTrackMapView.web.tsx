@@ -97,7 +97,7 @@ export function GPSTrackMapView({
       <View style={styles.fallback}>
         <Text style={styles.fallbackTitle}>Map preview is native-only right now</Text>
         <Text style={styles.fallbackCopy}>
-          Open the RegattaFlow mobile app to see a live map with GPS breadcrumbs, fleet overlays,
+          Open the BetterAt mobile app to see a live map with GPS breadcrumbs, fleet overlays,
           and course marks.
         </Text>
       </View>

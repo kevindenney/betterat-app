@@ -1,7 +1,7 @@
 /**
- * RegattaFlow Playbook Coaching Display
+ * BetterAt Playbook Coaching Display
  *
- * Shows personalized coaching feedback based on the RegattaFlow Playbook frameworks
+ * Shows personalized coaching feedback based on the BetterAt Playbook frameworks
  * after post-race analysis is completed.
  */
 
@@ -62,7 +62,7 @@ export function RegattaFlowPlaybookCoaching({
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerEmoji}>🏆</Text>
-        <Text style={styles.headerTitle}>RegattaFlow Playbook Coaching</Text>
+        <Text style={styles.headerTitle}>BetterAt Playbook Coaching</Text>
         <Text style={styles.headerSubtitle}>
           Championship racing tactics tailored for your crew
         </Text>
@@ -130,7 +130,7 @@ export function RegattaFlowPlaybookCoaching({
       {/* Attribution */}
       <View style={styles.attribution}>
         <Text style={styles.attributionText}>
-          💡 All coaching generated from the RegattaFlow Playbook championship knowledge base.
+          💡 All coaching generated from the BetterAt Playbook championship knowledge base.
         </Text>
         <Text style={styles.attributionText}>
           Confidence: 95% (physics-based, champion-tested frameworks)

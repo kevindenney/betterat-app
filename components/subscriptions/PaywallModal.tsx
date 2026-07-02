@@ -137,7 +137,7 @@ export default function PaywallModal({
       default:
         return {
           title: title || '⭐ Premium Features',
-          description: description || 'Unlock the full potential of RegattaFlow',
+          description: description || 'Unlock the full potential of BetterAt',
           benefits: benefits || [
             'Unlimited race tracking and strategy',
             'Global venue intelligence',
@@ -209,8 +209,8 @@ export default function PaywallModal({
                 <ThemedText style={styles.previewTitle}>Premium Feature</ThemedText>
               </View>
               <ThemedText style={styles.previewText}>
-                This feature requires a RegattaFlow Pro subscription to unlock the full potential
-                of professional sailing strategy and analysis.
+                This feature requires a BetterAt subscription to unlock premium
+                practice, analysis, and strategy tools.
               </ThemedText>
             </View>
           </View>
@@ -306,7 +306,7 @@ export default function PaywallModal({
           {/* Footer */}
           <View style={styles.footer}>
             <ThemedText style={styles.footerText}>
-              Join thousands of sailors who've improved their racing with RegattaFlow Pro
+              Join people using BetterAt to improve what matters to them
             </ThemedText>
           </View>
         </ScrollView>

@@ -96,7 +96,7 @@ export class PaymentService {
 
       // Initialize the payment sheet
       const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: 'RegattaFlow Coach Marketplace',
+        merchantDisplayName: 'BetterAt Coach Marketplace',
         paymentIntentClientSecret: paymentIntent.client_secret,
         appearance: {
           colors: {

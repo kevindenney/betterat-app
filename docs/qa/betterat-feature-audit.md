@@ -1,13 +1,13 @@
 # BetterAt Feature Audit
 
-Canonical QA tracker for the BetterAt product-quality loop.
+Legacy Markdown QA tracker for the BetterAt product-quality loop. The single canonical spreadsheet is `docs/ai/betterat_feature_user_story_audit.xlsx`.
 
-Last updated: 2026-06-22
-Agent phase: Phase 5 re-verification; full Jest green, exact build script still absent
+Last updated: 2026-06-24
+Agent phase: Spreadsheet-led feature loop; full lint/typecheck/Jest, web export, Android export, and iOS export are green; exact build script still absent
 
 ## Scope And Method
 
-This tracker is code-derived. The first pass scanned:
+This tracker is code-derived historical context for the canonical spreadsheet. The first pass scanned:
 - `app/` route and screen files: 476 non-test files
 - `components/`, `hooks/`, `services/`, `providers/`, `api/`
 - Supabase edge functions: 73 `supabase/functions/*/index.ts` entries
@@ -15,6 +15,17 @@ This tracker is code-derived. The first pass scanned:
 - Maestro workflows under `.maestro/`
 
 Important finding: the user prompt describes BetterAt as React/Firebase, but the current repo is Expo/React Native + React web using Supabase (`@supabase/supabase-js`), Supabase Edge Functions, Supabase Storage, Postgres/RLS migrations, and some bridge files named `firebaseBridge`. Firebase interactions were not the primary data layer in the scanned app code.
+
+## Canonical Artifact
+
+The active source of truth is `docs/ai/betterat_feature_user_story_audit.xlsx`, generated from code and focused audit passes. Current spreadsheet coverage:
+- 558 total user stories
+- 119 curated workflow stories
+- 129 automated-pass stories, including newly covered route-derived auth, phone OTP, and club onboarding stories
+- 19 blueprint workflows, including creation, subscriber mentoring, subscription, and unsubscribe behavior
+- Chrome web, Android, and iOS verification columns
+- 0 open issues after the latest auth onboarding and phone OTP triage
+- Latest recorded SHA: `19812ad5c74df40e0238256fa9a41fa3a0e42ad317c9a101c983a318cf19b538`
 
 ## Existing Commands
 
@@ -78,7 +89,7 @@ Per `AGENTS.md`, missing commands are documented rather than invented.
 | BA-SEARCH-001 | Search and navigation shell | `app/(tabs)/search.tsx`, `components/navigation/**`, `lib/navigation/**`, `services/search/GlobalSearchService.ts` | As a user, I can navigate tabs/drawer/profile menu and search across entities. | Tabs vary by persona/capabilities; search resolves users/orgs/resources/routes. | `users`, `organizations`, search service tables | Mixed; signed-in for personalized nav | Empty search, route alias regressions | Navigation route tests and tab route contracts | Medium | discovered |
 | BA-OFFLINE-001 | Offline/network/realtime resilience | `services/offlineService.ts`, `MutationQueueService.ts`, `RealtimeService.ts`, `hooks/useOffline.ts`, realtime hooks | As a user, I can keep app state resilient across offline/realtime changes. | Queues mutations, listens to realtime, exposes network/offline state, handles reconnect. | Supabase realtime channels, local queue storage | Signed-in for most mutations | Offline banner/queue errors/retry failures | `services/__tests__/RealtimeService.test.ts`, realtime contracts | High | needs-test |
 | BA-AI-001 | AI coach, suggestions, drafting | `services/ai/**`, `components/ai/**`, `hooks/useAIConversation.ts`, AI edge functions | As a user, I can ask AI for planning/coaching, suggestions, documents, tags, evaluations. | Invokes domain-gated edge functions, parses structured output, records usage. | `step-plan-suggest`, `race-coaching-chat`, `clinical-reasoning-evaluate`, usage counters, many AI tables | Signed-in and feature usage limits | AI unavailable, parse errors, limit/gating states | AI endpoint/domain-gate tests, WorkedExample test | High | discovered |
-| BA-QA-001 | QA tracker and verification gates | `docs/qa/betterat-feature-audit.md`, `app/__tests__/betterat-feature-audit.contract.test.ts`, `package.json`, `.maestro/**` | As a maintainer, I can keep the feature audit and verification commands aligned with the repo. | Tracker records route/backend counts, feature IDs, coverage, risks, failures, and package command availability. | None directly; reads repo files in tests | Developer-only | Missing dependency/tooling blocks, stale tracker counts, missing feature IDs, native-module Jest gaps | Audit contract test added and verified in this loop; full Jest still has step-suite failures | Medium | failing |
+| BA-QA-001 | QA tracker and verification gates | `docs/ai/betterat_feature_user_story_audit.xlsx`, `docs/qa/betterat-feature-audit.md`, `app/__tests__/betterat-feature-audit.contract.test.ts`, `package.json`, `.maestro/**` | As a maintainer, I can keep the feature audit, user stories, and verification commands aligned with the repo. | Spreadsheet records user stories, route/backend counts, Chrome/Android/iOS status, blueprint workflows, coverage, risks, failures, and package command availability. | None directly; reads repo files in tests | Developer-only | Missing dependency/tooling blocks, stale tracker counts, missing feature IDs, native-module Jest gaps | Canonical spreadsheet generated and verified; audit contract, full Jest, lint, typecheck, web export, Android export, and iOS export are green; exact `build` script remains absent and documented | Medium | verified |
 
 ## Route Cluster Inventory
 
@@ -540,4 +551,4 @@ Attempted commands for this loop:
 - `npm run typecheck`: exit 0 after org billing edge-function auth fixes.
 - `npx eslint jest.config.js test/jest/*.js app/__tests__/betterat-feature-audit.contract.test.ts services/ai/WorkedExampleService.ts services/ai/__tests__/WorkedExampleService.test.ts components/step/ConversationalCapture.tsx components/step/plan-tab/PlanTabInterior.tsx components/step/do-tab/__tests__/DoCaptureRow.test.tsx components/step/do-tab/__tests__/DoTabInterior.contract.test.ts components/step/do-tab/__tests__/DoTabInterior.test.tsx components/step/reflect-tab/__tests__/useStepReflectController.test.tsx components/step/__tests__/ActTab.test.tsx components/step/__tests__/ReviewTab.test.tsx hooks/__tests__/useStepActCaptureController.test.tsx --ext .js,.ts,.tsx`: exit 0.
 
-Next loop should focus on turning more `needs-test` high-risk features into practical contracts, especially remaining organization admin invite/link mutation paths and broader AI generation paths beyond the covered extraction guardrails. Exact `npm run build` remains unavailable by package script; use `build:web` only if a future task explicitly broadens verification beyond the AGENTS.md command list.
+Next loop should continue from the canonical spreadsheet, especially browser/manual validation for Chrome web plus device-level Android and iOS checks. Exact `npm run build` remains unavailable by package script; `build:web` and native Expo exports were used to verify the runnable platform bundles.

@@ -98,19 +98,6 @@ export default function StepDetailScreen() {
                 <Text style={styles.nativeBackLabel}>{backLabel}</Text>
               </Pressable>
             ),
-          headerRight: () => (
-            sourceOrigin === 'atlas' || sourceOrigin === 'watch' ? null : (
-              <Pressable
-                onPress={() => router.push(`/race/ios/${actualId}` as any)}
-                style={styles.iosPreviewBtn}
-                accessibilityLabel="Preview in iOS register"
-                hitSlop={8}
-              >
-                <Ionicons name="sparkles-outline" size={18} color="#007AFF" />
-                <Text style={styles.iosPreviewLabel}>iOS</Text>
-              </Pressable>
-            )
-          ),
         }}
       />
       <StepDetailContent stepId={actualId} readOnly={isReadOnly} initialTab={initialTab} />
@@ -176,18 +163,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#007AFF',
     letterSpacing: -0.2,
-  },
-  iosPreviewBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  iosPreviewLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#007AFF',
-    letterSpacing: -0.1,
   },
 });

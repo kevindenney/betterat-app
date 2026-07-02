@@ -89,7 +89,7 @@ serve(async (req: Request) => {
     const { data: blueprint, error: bpErr } = await supabase
       .from('blueprints')
       .select(
-        'id, org_id, author_user_id, title, description, access_mode, price_per_seat_cents, billing_cadence, stripe_product_id, stripe_price_id',
+        'id, org_id, author_user_id, title, description, access_mode, price_per_seat_cents, billing_cadence, currency, stripe_product_id, stripe_price_id',
       )
       .eq('id', blueprintId)
       .maybeSingle();
@@ -141,6 +141,7 @@ serve(async (req: Request) => {
 
     const cadence = (blueprint.billing_cadence ?? 'monthly') as Cadence;
     const interval = cadenceToInterval(cadence);
+    const currency = String(blueprint.currency ?? 'usd').toLowerCase();
     const blueprintTitle = blueprint.title || 'Untitled blueprint';
     const productName = blueprintTitle.startsWith('Blueprint:')
       ? blueprintTitle
@@ -158,12 +159,21 @@ serve(async (req: Request) => {
     // 1) Product — create or update
     let productId = blueprint.stripe_product_id as string | null;
     if (productId) {
-      await stripe.products.update(productId, {
-        name: productName,
-        description: productDescription,
-        metadata: stripeMetadata,
-      });
-    } else {
+      try {
+        await stripe.products.update(productId, {
+          name: productName,
+          description: productDescription,
+          metadata: stripeMetadata,
+        });
+      } catch (err) {
+        if (err instanceof Error && /No such product/i.test(err.message)) {
+          productId = null;
+        } else {
+          throw err;
+        }
+      }
+    }
+    if (!productId) {
       const product = await stripe.products.create({
         name: productName,
         description: productDescription,
@@ -172,20 +182,39 @@ serve(async (req: Request) => {
       productId = product.id;
     }
 
+    if (productId !== blueprint.stripe_product_id) {
+      await supabase
+        .from('blueprints')
+        .update({ stripe_product_id: productId, stripe_price_id: null })
+        .eq('id', blueprint.id);
+      blueprint.stripe_price_id = null;
+    }
+
     // 2) Price — recurring or one-time
     let priceId = blueprint.stripe_price_id as string | null;
     let priceChanged = false;
     if (priceId) {
       // Stripe prices are immutable. Compare current price to what we want.
-      const existing = await stripe.prices.retrieve(priceId);
+      let existing: any = null;
+      try {
+        existing = await stripe.prices.retrieve(priceId);
+      } catch (err) {
+        if (err instanceof Error && /No such price/i.test(err.message)) {
+          priceId = null;
+          priceChanged = true;
+        } else {
+          throw err;
+        }
+      }
       const wantRecurring = interval.recurring;
       const matches =
+        existing &&
         existing.product === productId &&
         existing.unit_amount === blueprint.price_per_seat_cents &&
-        existing.currency === 'usd' &&
+        existing.currency === currency &&
         ((wantRecurring && existing.recurring?.interval === interval.interval) ||
           (!wantRecurring && existing.recurring == null));
-      if (!matches) {
+      if (existing && !matches) {
         // Archive old, create new
         await stripe.prices.update(priceId, { active: false });
         priceId = null;
@@ -196,11 +225,12 @@ serve(async (req: Request) => {
     if (!priceId) {
       const priceParams: any = {
         product: productId,
-        currency: 'usd',
+        currency,
         unit_amount: blueprint.price_per_seat_cents,
         metadata: {
           ...stripeMetadata,
           billing_cadence: cadence,
+          currency,
         },
       };
       if (interval.recurring) {
@@ -238,6 +268,7 @@ serve(async (req: Request) => {
             stripe_product_id: productId,
             stripe_price_id: priceId,
             unit_amount: blueprint.price_per_seat_cents,
+            currency,
             interval: interval.interval ?? null,
             price_changed: priceChanged,
           },

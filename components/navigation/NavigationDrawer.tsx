@@ -560,7 +560,7 @@ export function NavigationDrawer({
   const getCurrentSectionName = () => {
     const allItems = [...primary, ...secondary, ...COMMON_FOOTER_ITEMS];
     const activeItem = allItems.find(item => isActive(item.route));
-    return activeItem?.label || 'RegattaFlow';
+    return activeItem?.label || 'BetterAt';
   };
 
   const userInitial = isGuest ? 'G' : (userProfile?.full_name || user?.email || 'U').charAt(0).toUpperCase();

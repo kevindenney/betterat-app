@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { logAuditEvent } from '@/services/auditLog';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 
 export interface BlueprintCohortRow {
   id: string;
@@ -116,6 +117,12 @@ export function useBlueprintCohorts(blueprintId: string, orgId: string | null) {
         queryClient.invalidateQueries({ queryKey: ['blueprint-activity', blueprintId] });
       }
     },
+    onError: (err: unknown) => {
+      showAlert(
+        'Could not assign cohort',
+        err instanceof Error ? err.message : 'Something went wrong linking this cohort.',
+      );
+    },
   });
 
   const unassign = useMutation({
@@ -150,6 +157,12 @@ export function useBlueprintCohorts(blueprintId: string, orgId: string | null) {
         });
         queryClient.invalidateQueries({ queryKey: ['blueprint-activity', blueprintId] });
       }
+    },
+    onError: (err: unknown) => {
+      showAlert(
+        'Could not remove cohort',
+        err instanceof Error ? err.message : 'Something went wrong unlinking this cohort.',
+      );
     },
   });
 

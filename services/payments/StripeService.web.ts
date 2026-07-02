@@ -1,5 +1,5 @@
 /**
- * Stripe Payment Service for RegattaFlow (Web)
+ * Stripe Payment Service for BetterAt (Web)
  * Handles subscriptions, payment methods, and billing for web platform
  *
  * Updated: 2026-03-30

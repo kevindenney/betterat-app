@@ -721,7 +721,7 @@ export default function ScoringDashboard() {
           <TouchableOpacity
             style={styles.shareLink}
             onPress={() => {
-              const url = `https://regattaflow.com/p/results/${regattaId}`;
+              const url = `https://better.at/p/results/${regattaId}`;
               if (Platform.OS === 'web') {
                 navigator.clipboard.writeText(url);
                 showAlert('Copied', 'Link copied to clipboard');
@@ -1357,4 +1357,3 @@ const styles = StyleSheet.create({
     color: '#0EA5E9',
   },
 });
-

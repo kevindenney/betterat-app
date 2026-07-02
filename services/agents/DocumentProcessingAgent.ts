@@ -20,7 +20,7 @@ export class DocumentProcessingAgent extends BaseAgentService {
       model: 'claude-3-5-haiku-20241022',
       maxTokens: 3000,
       temperature: 0.4, // Balanced for extraction accuracy
-      systemPrompt: `You are a sailing document processing specialist for RegattaFlow.
+      systemPrompt: `You are a sailing document processing specialist for BetterAt.
 
 Your mission: Transform sailing instructions, notices of race, and course diagrams into structured race data that sailors can use for strategy planning.
 
@@ -324,7 +324,7 @@ Provide tactical analysis in JSON format:
   private createSaveToKnowledgeBaseTool(): AgentTool {
     return {
       name: 'save_to_knowledge_base',
-      description: `Save processed document data to RegattaFlow knowledge base for future reference.
+      description: `Save processed document data to BetterAt knowledge base for future reference.
 Use this as the final step after extracting course, generating visualization, and analyzing strategy.
 Stores all data associated with the document for later retrieval.
 Returns confirmation with database IDs.`,

@@ -32,9 +32,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 
 import { useSailorSuggestions } from '@/hooks/useSailorSuggestions';
+import { useAuth } from '@/providers/AuthProvider';
+import { CrewFinderService } from '@/services/CrewFinderService';
 import { useInterest } from '@/providers/InterestProvider';
 import { getConnectDemoData } from '@/configs/connectDemoData';
 import type { DemoPeer } from '@/configs/connectDemoData';
@@ -161,18 +164,41 @@ function DemoPath({
   onToggleFollow: _onToggleFollow,
 }: DemoPathProps) {
   const router = useRouter();
-  const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return peers;
-    const needle = searchQuery.toLowerCase();
+  const { user } = useAuth();
+
+  // When the user actually types, search real people across the whole app
+  // (profiles + users, by name or email) — the demo peers are ambient browse
+  // content only. Without this, a non-sailing register's search filtered just
+  // the hardcoded demo peers, so a real classmate or an exact email returned
+  // nothing while a mock peer ("Emily Watson") surfaced instead.
+  const trimmedQuery = searchQuery.trim();
+  const isSearching = trimmedQuery.length >= 2;
+  const { data: realHits = [], isLoading: realLoading } = useQuery({
+    queryKey: ['people-search', trimmedQuery],
+    queryFn: () => CrewFinderService.searchUsers(trimmedQuery, 50),
+    enabled: isSearching,
+    staleTime: 30_000,
+  });
+
+  const realPeople = useMemo(
+    () => realHits.filter((hit) => hit.userId !== user?.id),
+    [realHits, user?.id],
+  );
+
+  const demoFiltered = useMemo(() => {
+    if (!trimmedQuery) return peers;
+    const needle = trimmedQuery.toLowerCase();
     return peers.filter(
       (p) =>
         p.name.toLowerCase().includes(needle) ||
         p.subtitle.toLowerCase().includes(needle)
     );
-  }, [peers, searchQuery]);
+  }, [peers, trimmedQuery]);
+
+  const resultCount = isSearching ? realPeople.length : demoFiltered.length;
 
   const eyebrow = searchQuery
-    ? { plain: 'Search · ', em: `${filtered.length} ${filtered.length === 1 ? 'person' : 'people'}` }
+    ? { plain: 'Search · ', em: `${resultCount} ${resultCount === 1 ? 'person' : 'people'}` }
     : interestName
       ? { plain: 'Other ', em: interestName, tail: ' practitioners' }
       : { plain: 'People in your register', em: '' };
@@ -194,11 +220,42 @@ function DemoPath({
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        {filtered.length > 0 ? (
+        {isSearching ? (
+          realLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={IOS_COLORS.systemBlue} />
+            </View>
+          ) : realPeople.length > 0 ? (
+            <>
+              <CanonicalListEyebrow {...eyebrow} />
+              <CanonicalList>
+                {realPeople.map((hit, idx) => {
+                  const descriptor = hit.email ?? 'On BetterAt';
+                  return (
+                    <CanonicalPersonRow
+                      key={hit.userId}
+                      first={idx === 0}
+                      initials={initialsForName(hit.fullName)}
+                      markColor={hit.avatarColor || pickAvatarMarkColor(hit.userId)}
+                      name={hit.fullName}
+                      descriptor={descriptor}
+                      onPress={() => {
+                        triggerHaptic('selection');
+                        router.push(`/discover/person/${hit.userId}?from=people` as any);
+                      }}
+                    />
+                  );
+                })}
+              </CanonicalList>
+            </>
+          ) : (
+            <EmptyState label={`No people match “${searchQuery}” yet.`} />
+          )
+        ) : demoFiltered.length > 0 ? (
           <>
             <CanonicalListEyebrow {...eyebrow} />
             <CanonicalList>
-              {filtered.map((peer, idx) => {
+              {demoFiltered.map((peer, idx) => {
                 // Pass 11 — no Following chip on list view. Suggested stays as
                 // the system-recommendation signal for not-yet-followed peers.
                 const tag: PersonTag | undefined = { kind: 'weak', label: 'Suggested' };
@@ -227,9 +284,7 @@ function DemoPath({
             </CanonicalList>
           </>
         ) : (
-          <EmptyState
-            label={searchQuery ? `No people match “${searchQuery}” yet.` : 'No people available.'}
-          />
+          <EmptyState label="No people available." />
         )}
       </ScrollView>
     </View>

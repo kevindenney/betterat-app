@@ -239,7 +239,7 @@ export function ProfessionalMapScreen({
             'Offline map packs are managed by support right now.',
             () =>
               Linking.openURL(
-                'mailto:support@regattaflow.com?subject=Offline%20Map%20Pack%20Request'
+                'mailto:info@better.at?subject=Offline%20Map%20Pack%20Request'
               )
           )
         }

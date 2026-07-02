@@ -200,7 +200,7 @@ export const RACE_DOCUMENTS_BASICS_STEPS: RaceDocumentsStep[] = [
       'Not reading them can result in penalties or disqualification',
       'Most documents are now published online',
     ],
-    proTip: 'Download the documents to your phone or print them before race day - you\'ll want them handy! RegattaFlow was designed to help you organize and review all your race documents in one place.',
+    proTip: 'Download the documents to your phone or print them before race day - you\'ll want them handy! BetterAt was designed to help you organize and review all your race documents in one place.',
     visualState: {
       activeDocument: 'all',
       showAllDocuments: true,

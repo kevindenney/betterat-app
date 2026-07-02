@@ -40,11 +40,11 @@ interface SkillDefinition {
 
 const BUILT_IN_SKILL_DEFINITIONS: Record<string, SkillDefinition> = {
   'race-strategy-analyst': {
-    description: 'Expert sailing race strategist combining RegattaFlow Playbook and RegattaFlow Coach frameworks with championship execution techniques',
+    description: 'Expert sailing race strategist combining BetterAt Playbook and BetterAt Coach frameworks with championship execution techniques',
     aliases: ['race-strategy', 'sailing-strategy', 'regatta-strategy', 'tactical-racing'],
     content: `# Race Strategy Analyst
 
-Elite sailing race strategist trained on championship playbooks from RegattaFlow Playbook, RegattaFlow Coach, Hans Fogh, and Olympic-level coaches. Your role is to transform course data, venue intelligence, and live conditions into a decisive plan that blends theory (why) with execution (how).
+Elite sailing race strategist trained on championship playbooks from BetterAt Playbook, BetterAt Coach, Hans Fogh, and Olympic-level coaches. Your role is to transform course data, venue intelligence, and live conditions into a decisive plan that blends theory (why) with execution (how).
 
 ## Core Expertise
 - Oscillating vs persistent shift logic, header/lift math, and line bias detection  
@@ -185,7 +185,7 @@ Return JSON:
 Provide specific coordinates or mark references when recommending moves. If data sources disagree, surface both options with pros/cons.`
   },
   'boat-tuning-analyst': {
-    description: 'Transforms RegattaFlow tuning guides into class-specific rig and sail settings matched to live race conditions',
+    description: 'Transforms BetterAt tuning guides into class-specific rig and sail settings matched to live race conditions',
     aliases: ['rig-tuning-analyst', 'boat-tuning', 'tuning-analyst'],
     content: BOAT_TUNING_SKILL_CONTENT
   },
@@ -306,11 +306,11 @@ Return JSON:
 Always note if recommendations rely on unverified intel (e.g., simulated eddy). When in doubt, present two contingencies: conservative coverage vs aggressive punch.`
   },
   'finishing-line-tactics': {
-    description: 'Master finish line strategy using four-laylines concept, favored end identification, and tactical ducking from RegattaFlow Coach doctrine',
+    description: 'Master finish line strategy using four-laylines concept, favored end identification, and tactical ducking from BetterAt Coach doctrine',
     aliases: ['finishing-tactics', 'finish-line-strategy', 'finish-tactics'],
     content: `# Finishing Line Tactics
 
-Master the often-overlooked final leg where positions are won or lost. Apply RegattaFlow Coach's proven principles for identifying the favored end, managing the four-laylines approach, and executing tactical finishes.
+Master the often-overlooked final leg where positions are won or lost. Apply BetterAt Coach's proven principles for identifying the favored end, managing the four-laylines approach, and executing tactical finishes.
 
 ## Core Principle: The Downwind End is Favored
 Just as the **upwind end** is favored at the start, the **downwind end** is favored at the finish. This principle accounts for more places won or lost than any other finishing tactic.
@@ -446,7 +446,7 @@ Return JSON:
 - **Advanced**: Calculated high-risk moves (ducking multiple boats) when justified
 
 ## Source
-RegattaFlow Coach's *The Yachtsman's Guide to Racing Tactics*, Chapter 13. Includes Buddy Friedrichs 1968 Olympics, Harry Sindle technique, and Sleuth vs Whirlwind scenario.`
+BetterAt Coach's *The Yachtsman's Guide to Racing Tactics*, Chapter 13. Includes Buddy Friedrichs 1968 Olympics, Harry Sindle technique, and Sleuth vs Whirlwind scenario.`
   },
   'team-racing-analyst': {
     description: 'Expert team racing tactician encoding World Sailing Call Book 2025-2028 scenarios, combination scoring, and RRS Appendix D',
@@ -455,7 +455,7 @@ RegattaFlow Coach's *The Yachtsman's Guide to Racing Tactics*, Chapter 13. Inclu
   }
 };
 
-// RegattaFlow Playbook Tactics Skills Registry
+// BetterAt Playbook Tactics Skills Registry
 export const SKILL_REGISTRY = {
   // Core strategy skills
   'race-strategy-analyst': 'skill_01KGEyGE97qaPmquNwc48MqT',
@@ -463,7 +463,7 @@ export const SKILL_REGISTRY = {
   'slack-window-planner': 'skill_01FCQFcE8NTV1eouW4pjoutE',
   'current-counterplay-advisor': 'skill_01PefwFB6ANCctXtzn4G1kj8',
 
-  // Tactical execution skills (RegattaFlow Playbook + RegattaFlow Coach)
+  // Tactical execution skills (BetterAt Playbook + BetterAt Coach)
   'starting-line-mastery': 'skill_012pEW2MsTCL43kPzqAR21Km',
   'upwind-strategic-positioning': 'skill_01AuNhbjToKmtQtUes4VJRW9',
   'upwind-tactical-combat': 'skill_011j4LTzxf7c1Fn4nwZbLWA7',
@@ -479,7 +479,7 @@ export const SKILL_REGISTRY = {
   // Adaptive learning event extraction skill
   'learning-event-extractor': 'skill_builtin_learning_event_extractor',
 
-  // RegattaFlow Coach finishing tactics (built-in fallback until API upload succeeds)
+  // BetterAt Coach finishing tactics (built-in fallback until API upload succeeds)
   'finishing-line-tactics': 'skill_builtin_finishing_line_tactics',
 
   // Long distance / offshore racing skill

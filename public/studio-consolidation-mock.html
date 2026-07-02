@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Studio, minimized (no Home · one create · one inbox)</title>
+<style>
+  :root {
+    --bg:      #F2F2F7;
+    --card:    #FFFFFF;
+    --ink:     #1C1C1E;
+    --ink-2:   #5B6068;
+    --ink-3:   #9097A1;
+    --label:   #8E8E93;
+    --hair:    #E6E7EB;
+    --hair-2:  #F0F1F4;
+    --blue:    #007AFF;
+    --studio:  #6366F1;
+    --admin:   #475569;
+    --green:   #1E9E6A;
+    --amber:   #E08A2B;
+    --red:     #FF3B30;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    background: #DCDCE1; color: var(--ink); line-height: 1.42;
+    padding: 44px 24px 90px;
+  }
+  .masthead { max-width: 1100px; margin: 0 auto 10px; text-align: center; }
+  .masthead h1 { font-size: 25px; font-weight: 800; letter-spacing: -.02em; }
+  .masthead p  { color: #4b5057; font-size: 14px; margin: 9px auto 0; max-width: 760px; }
+  .masthead p b { color: #2a2d33; }
+
+  .cuts { max-width: 900px; margin: 22px auto 0; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .cut { background:#fff; border:1px solid var(--hair); border-radius:14px; padding:15px 16px; }
+  .cut h4 { font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--studio); }
+  .cut p { font-size:12.5px; color:#4b5057; margin-top:7px; }
+  .cut p b { color:#1f2329; }
+  .cut .was { display:inline-block; margin-top:9px; font-size:11px; color:var(--ink-3); text-decoration:line-through; }
+
+  .stage { display: flex; gap: 40px; justify-content: center; align-items: flex-start; flex-wrap: wrap;
+    max-width: 1100px; margin: 46px auto 0; }
+  .col { width: 320px; }
+  .col .cap { text-align: center; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 13px; }
+  .col .cap.purple { color: var(--studio); } .col .cap.blue { color: var(--blue); }
+  .col .note { font-size: 12.5px; color: #4b5057; line-height: 1.55; margin-top: 14px; }
+  .col .note b { color: #1f2329; }
+
+  .phone { width: 320px; border-radius: 44px; padding: 11px; background: #0b0b0d; box-shadow: 0 20px 52px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.18); }
+  .screen { position: relative; border-radius: 34px; overflow: hidden; background: var(--bg); height: 690px; }
+  .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 112px; height: 30px; background: #000; border-radius: 17px; z-index: 9; }
+  .status { height: 46px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 24px 6px; font-size: 13px; font-weight: 600; }
+  .status .dots { letter-spacing: 2px; }
+
+  .appbar { display:flex; align-items:center; gap:8px; padding: 4px 16px 10px; }
+  .ctxchip { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--hair); border-radius: 999px; padding: 6px 13px 6px 11px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .ctxchip .led { width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--studio); }
+  .ctxchip .sf { font-size:13px; font-weight:750; }
+  .ctxchip .chev { font-size:11px; color: var(--ink-3); }
+  .appbar .spacer { flex:1; }
+  .avbtn { width:34px; height:34px; border-radius:50%; background:var(--blue); color:#fff; font-size:12px; font-weight:700; display:grid; place-items:center; position:relative; }
+  .avbtn .dot { position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; padding:0 4px; background:var(--red); color:#fff; font-size:10px; font-weight:800; border-radius:999px; display:grid; place-items:center; border:2px solid var(--bg); }
+
+  .body { padding: 2px 16px; height: 498px; overflow:hidden; }
+  .scrtitle { font-size:26px; font-weight:800; letter-spacing:-.02em; }
+  .scrstat { font-size:12.5px; color: var(--ink-3); margin-top:3px; }
+
+  .bp { display:flex; gap:13px; align-items:center; padding:13px 2px; border-bottom:1px solid var(--hair-2); }
+  .bp .sq { width:46px; height:46px; border-radius:11px; flex-shrink:0; }
+  .bp .nm { font-size:14.5px; font-weight:700; letter-spacing:-.01em; }
+  .bp .mt { font-size:11.5px; color:var(--ink-3); margin-top:3px; }
+  .bp .mt .live { color:var(--green); font-weight:700; }
+  .bp .chev { margin-left:auto; color:#CBD5E1; font-size:17px; }
+
+  .addbp { display:flex; align-items:center; gap:8px; padding:15px 2px 4px; color:var(--blue); font-size:14px; font-weight:700; }
+
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:74px; background:rgba(255,255,255,.94); backdrop-filter: blur(14px); border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:flex-start; padding-top:9px; }
+  .tab { flex:1; display:grid; justify-items:center; gap:4px; font-size:9.5px; font-weight:600; color:var(--ink-3); }
+  .tab .ic { font-size:18px; position:relative; }
+  .tab .ic .b { position:absolute; top:-4px; right:-10px; min-width:15px; height:15px; padding:0 3px; background:var(--amber); color:#fff; font-size:8.5px; font-weight:800; border-radius:999px; display:grid; place-items:center; }
+  .tab.on.purple { color: var(--studio); }
+
+  /* inbox panel */
+  .sheetdim { position:absolute; inset:0; background:rgba(15,23,42,.28); }
+  .panel { position:absolute; top:54px; right:12px; width:266px; background:#fff; border-radius:18px; box-shadow:0 18px 44px rgba(0,0,0,.26); overflow:hidden; }
+  .panel .phead { display:flex; align-items:center; gap:10px; padding:14px 15px 12px; border-bottom:1px solid var(--hair-2); }
+  .panel .phead .av { width:34px; height:34px; border-radius:50%; background:var(--blue); color:#fff; font-size:12px; font-weight:700; display:grid; place-items:center; }
+  .panel .phead .nm { font-size:14px; font-weight:750; }
+  .panel .phead .em { font-size:11px; color:var(--ink-3); }
+  .ilabel { font-size:9.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--label); padding:11px 15px 4px; display:flex; align-items:center; gap:7px; }
+  .ilabel .led { width:7px; height:7px; border-radius:50%; }
+  .ilabel .led.studio { background:var(--studio); } .ilabel .led.personal { background:var(--blue); } .ilabel .led.admin { background:var(--admin); }
+  .ii { display:flex; gap:10px; padding:8px 15px; align-items:flex-start; }
+  .ii .ic { width:26px; height:26px; border-radius:8px; flex-shrink:0; display:grid; place-items:center; font-size:12px; color:#fff; }
+  .ii .tx { font-size:12.5px; font-weight:600; line-height:1.3; }
+  .ii .tm { font-size:10.5px; color:var(--ink-3); margin-top:2px; }
+  .ii .when { margin-left:auto; font-size:10px; color:var(--ink-3); }
+  .pfoot { border-top:1px solid var(--hair-2); display:flex; padding:8px 6px; }
+  .pfoot .a { flex:1; text-align:center; font-size:11.5px; font-weight:650; color:var(--ink-2); padding:6px 0; }
+
+  .takeaways { max-width:1100px; margin: 52px auto 0; background:#fff; border:1px solid var(--hair); border-radius:16px; padding:22px 24px; }
+  .takeaways h3 { font-size:15px; font-weight:780; }
+  .takeaways ul { margin:14px 0 0; padding:0; list-style:none; display:grid; gap:12px; }
+  .takeaways li { font-size:13.5px; color:#4b5057; display:flex; gap:12px; align-items:flex-start; }
+  .takeaways li b { color:#1f2329; }
+  .takeaways li .n { flex-shrink:0; width:22px; height:22px; border-radius:7px; background:#EEEEFE; color:var(--studio); font-size:11px; font-weight:800; display:grid; place-items:center; margin-top:1px; }
+  .takeaways code { background:#F2F2F7; border-radius:5px; padding:1px 6px; font-size:12px; color:#1f2329; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <h1>Studio, minimized</h1>
+  <p>Same minimalism as the workspace switcher: strip anything that repeats, label only the spine, let the
+  list be the page. Three cuts — <b>no Home tab</b>, <b>one create action</b>, <b>one inbox</b> on the avatar
+  (workspace-aware).</p>
+
+  <div class="cuts">
+    <div class="cut">
+      <h4>Cut 1 — Home</h4>
+      <p>Home re-rendered the blueprint list, the threads preview, and a KPI card-grid — all of which are
+      their own tabs. <b>Land on Blueprints.</b> Stats become one muted line under the title.</p>
+      <span class="was">tabs: Home · Blueprints · Subscribers · Threads · Payouts</span>
+    </div>
+    <div class="cut">
+      <h4>Cut 2 — double create</h4>
+      <p>"New blueprint" (header) + "Create a new blueprint" (footer) were the same action twice. <b>One
+      create</b>, sitting at the foot of the list it adds to.</p>
+      <span class="was">＋ New blueprint  ·  ＋ Create a new blueprint</span>
+    </div>
+    <div class="cut">
+      <h4>Cut 3 — where "needs you" lives</h4>
+      <p>No separate Studio/Admin inboxes. <b>One inbox on the avatar</b>, workspace-aware: Studio threads,
+      Personal captures, Admin flags in one place. Threads stays a tab — it's where you reply.</p>
+      <span class="was">bell + threads + per-surface inboxes</span>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <!-- STUDIO: blueprints as landing -->
+  <div class="col">
+    <div class="cap purple">Studio — lands on Blueprints</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="appbar">
+        <div class="ctxchip"><span class="led"></span><span class="sf" style="color:var(--studio)">Studio</span><span class="chev">⌄</span></div>
+        <div class="spacer"></div>
+        <div class="avbtn">ER<div class="dot">2</div></div>
+      </div>
+      <div class="body">
+        <div class="scrtitle">Blueprints</div>
+        <div class="scrstat">3 live · 0 subscribers · 2 threads awaiting</div>
+
+        <div class="bp"><div class="sq" style="background:linear-gradient(135deg,#3F4D8A,#6E7BBE)"></div><div><div class="nm">Launch &amp; Grow a Handmade Scarf Business</div><div class="mt"><span class="live">Live</span> · v1.0 · 0 subscribers · 8 steps</div></div><span class="chev">›</span></div>
+        <div class="bp"><div class="sq" style="background:linear-gradient(135deg,#4E7A5C,#86B894)"></div><div><div class="nm">Pre-Clinical Clinical Rotation Ramp</div><div class="mt"><span class="live">Live</span> · v1.0 · 0 subscribers · 4 steps</div></div><span class="chev">›</span></div>
+        <div class="bp"><div class="sq" style="background:linear-gradient(135deg,#3F4D8A,#6E7BBE)"></div><div><div class="nm">Launch a Direct-to-Consumer Brand</div><div class="mt"><span class="live">Live</span> · v1.0 · 0 subscribers · 0 steps</div></div><span class="chev">›</span></div>
+
+        <div class="addbp">＋ New blueprint</div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on purple"><span class="ic">◳</span> Blueprints</div>
+        <div class="tab"><span class="ic">⚇</span> Subscribers</div>
+        <div class="tab"><span class="ic">✉<span class="b">2</span></span> Threads</div>
+        <div class="tab"><span class="ic">$</span> Payouts</div>
+      </div>
+    </div></div>
+    <div class="note">Title + one stat line replace the greeting and the KPI card-grid. The blueprint list <b>is</b>
+    the page; one create at its foot. Four tabs, every one a destination — no aggregator.</div>
+  </div>
+
+  <!-- AVATAR INBOX: workspace-aware -->
+  <div class="col">
+    <div class="cap blue">Tap avatar — one inbox, workspace-aware</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="appbar">
+        <div class="ctxchip"><span class="led"></span><span class="sf" style="color:var(--studio)">Studio</span><span class="chev">⌄</span></div>
+        <div class="spacer"></div>
+        <div class="avbtn">ER<div class="dot">2</div></div>
+      </div>
+      <div class="body" style="opacity:.42">
+        <div class="scrtitle">Blueprints</div>
+        <div class="scrstat">3 live · 0 subscribers · 2 threads awaiting</div>
+        <div class="bp"><div class="sq" style="background:linear-gradient(135deg,#3F4D8A,#6E7BBE)"></div><div><div class="nm">Launch &amp; Grow a Handmade Scarf Business</div><div class="mt">Live · 8 steps</div></div></div>
+        <div class="bp"><div class="sq" style="background:linear-gradient(135deg,#4E7A5C,#86B894)"></div><div><div class="nm">Pre-Clinical Clinical Rotation Ramp</div><div class="mt">Live · 4 steps</div></div></div>
+      </div>
+      <div class="sheetdim"></div>
+      <div class="panel">
+        <div class="phead"><div class="av">ER</div><div><div class="nm">Emily Rodriguez</div><div class="em">Inbox · across workspaces</div></div></div>
+
+        <div class="ilabel"><span class="led studio"></span>Studio</div>
+        <div class="ii"><div class="ic" style="background:var(--studio)">?</div><div><div class="tx">Sarah asked about step 3 of Scarf Business</div><div class="tm">Launch &amp; Grow · subscriber</div></div><div class="when">2h</div></div>
+        <div class="ii"><div class="ic" style="background:var(--studio)">✦</div><div><div class="tx">New reflection on Pre-Clinical step 2</div><div class="tm">Pre-Clinical · subscriber</div></div><div class="when">5h</div></div>
+
+        <div class="ilabel"><span class="led personal"></span>Personal</div>
+        <div class="ii"><div class="ic" style="background:var(--blue)">↯</div><div><div class="tx">3 captured links waiting to triage</div><div class="tm">Inbox · your captures</div></div><div class="when">›</div></div>
+
+        <div class="pfoot"><span class="a">Account</span><span class="a">Settings</span><span class="a" style="color:var(--red)">Sign out</span></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on purple"><span class="ic">◳</span> Blueprints</div>
+        <div class="tab"><span class="ic">⚇</span> Subscribers</div>
+        <div class="tab"><span class="ic">✉<span class="b">2</span></span> Threads</div>
+        <div class="tab"><span class="ic">$</span> Payouts</div>
+      </div>
+    </div></div>
+    <div class="note">The avatar is the single "needs you" beacon — its badge sums every workspace. Open it and
+    inbound is grouped by workspace (Studio threads, Personal captures, Admin flags). Tapping a Studio item
+    deep-links into the <b>Threads</b> tab to reply — the inbox routes, the tab is where you work.</div>
+  </div>
+</div>
+
+<div class="takeaways">
+  <h3>If you like it, here's the build</h3>
+  <ul>
+    <li><span class="n">1</span><div><b>Remove the Studio Home route + tab.</b> Make <code>Blueprints</code> the default Studio surface (route redirect <code>/studio</code> → blueprints). Compact bottom tabs drop to Blueprints/Subscribers/Threads/Payouts.</div></li>
+    <li><span class="n">2</span><div><b>Fold the KPI dashboard into a one-line stat</b> under the "Blueprints" title (<code>N live · N subscribers · N awaiting</code>). Retire the 4-up <code>StatRow</code> grid on this surface.</div></li>
+    <li><span class="n">3</span><div><b>One create.</b> Keep the list-footer "＋ New blueprint"; drop the header button (and vice-versa on the editor). Never a chrome <code>+</code> — that's the personal step composer.</div></li>
+    <li><span class="n">4</span><div><b>Avatar badge goes workspace-aware.</b> <code>ProfileDropdown</code> already carries the inbox; extend its count + body to sum Studio threads + Admin review + Personal captures, grouped by workspace. Items deep-link to the working surface (Threads tab / Admin review), which stay put.</div></li>
+    <li><span class="n">5</span><div><b>Threads stays a tab</b> — it's a reply surface, not triage. The inbox <i>points</i> at it; it doesn't replace it.</div></li>
+  </ul>
+</div>
+
+</body>
+</html>

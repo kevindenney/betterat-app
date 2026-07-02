@@ -68,6 +68,9 @@ import { CourseStrategyCard, strategyHeadline } from './CourseStrategyCard';
 import { RaceTimeBar } from './RaceTimeBar';
 import { compassFromDegrees } from './VenueMasterySheet';
 import { deriveCourseStrategy, type CourseStrategy } from '@/lib/courseStrategy';
+import { rigTuneFor } from '@/lib/rigTune';
+import { RigTuneCard } from '@/components/step/RigTuneCard';
+import { useUserBoatClasses } from '@/hooks/useUserBoatClasses';
 import { useShoreSide } from '@/hooks/useShoreSide';
 import { ProfileDropdown } from '@/components/ui/ProfileDropdown';
 import { AtlasSearchSheet, type AtlasSearchResult } from './AtlasSearchSheet';
@@ -166,6 +169,7 @@ import {
 import { GolfAtlasSurface } from './GolfAtlasSurface';
 
 export type AtlasFrameId = 'f1' | 'f2' | 'f3' | 'f4' | 'f5' | 'f6' | 'f7' | 'f8' | 'f9';
+export type AtlasSegmentView = 'sites' | 'coverage' | 'capabilities' | 'map';
 
 /** Phase N.4 — royal blue for the "Races" filter dot, matching the ⛵ pin. */
 const RACE_FILTER_DOT = '#0E7490';
@@ -411,7 +415,9 @@ export interface AtlasFrameHandlers {
    */
   initialPeerFocus?: AtlasPeerMember | null;
   /** Optional initial segment inside frames that support Sites/Coverage/Map. */
-  initialView?: 'map';
+  initialView?: AtlasSegmentView;
+  /** Notifies the live Atlas route when the user changes a segment. */
+  onViewChange?: (view: AtlasSegmentView) => void;
   /**
    * Opens the "people & sites nearby" overlay. F4 nursing passes this so
    * Nearby surfaces as a quiet TopChrome action; sailing frames keep the
@@ -486,6 +492,7 @@ export function AtlasScreen({
   initialFocusStepId,
   initialPeerFocus,
   initialView,
+  onViewChange,
   onNearbyPress,
   nearbyOverlayOpen,
   useMapLibre = false,
@@ -515,6 +522,7 @@ export function AtlasScreen({
     initialFocusStepId,
     initialPeerFocus,
     initialView,
+    onViewChange,
     onNearbyPress,
     nearbyOverlayOpen,
     useMapLibre,
@@ -2077,8 +2085,19 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // generalized to every F1 interest). Lands on Sites so the frame leads with
   // structure; Map keeps the full sailing/MapLibre experience byte-identical.
   const [f1View, setF1View] = useState<'sites' | 'capabilities' | 'map'>(
-    handlers.initialView === 'map' ? 'map' : 'sites',
+    handlers.initialView === 'map'
+      ? 'map'
+      : handlers.initialView === 'capabilities'
+        ? 'capabilities'
+        : 'sites',
   );
+  useEffect(() => {
+    if (handlers.initialView === 'map' || handlers.initialView === 'capabilities') {
+      setF1View(handlers.initialView);
+      return;
+    }
+    if (handlers.initialView === 'sites') setF1View('sites');
+  }, [handlers.initialView]);
   // Measured height of the floating chrome so the Sites/Capabilities surfaces
   // inset their scroll content clear of it (the chrome floats on top).
   const [f1ChromeH, setF1ChromeH] = useState(140);
@@ -3329,6 +3348,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
     enabled: showWind || showTide || showWaves || selectedRaceStepOpen || knowledgeArea !== null,
     targetTime: selectedRaceStepOpen ? selectedRaceStartAt : null,
   });
+  const { classes: userBoatClasses } = useUserBoatClasses();
   const { data: raceTrendWindow } = useMarineTrendWindow({
     lat: mapCenter.lat,
     lng: mapCenter.lng,
@@ -3699,6 +3719,10 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
       shoreSide,
     });
   }, [scrubWindow.wind, scrubWindow.tide, shoreSide]);
+  const raceRigTune = useMemo(() => {
+    const wind = parseConditionsLine(scrubWindow.wind);
+    return rigTuneFor(userBoatClasses[0] ?? null, wind?.kn);
+  }, [scrubWindow.wind, userBoatClasses]);
   const windSourceLabel = useMemo(() => {
     if (hkoWind) return `${hkoWind.place} obs`;
     if (marineSnapshot?.wind) return 'JMA model';
@@ -4289,6 +4313,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   ]}
                   onPress={() => {
                     setF1View(mode);
+                    handlers.onViewChange?.(mode);
                     if (mode !== 'map') setSelectedPin(null);
                   }}
                   accessibilityRole="button"
@@ -4531,6 +4556,15 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               raceForecastOpensLabel
                 ? `Race-time forecast opens ${raceForecastOpensLabel} — showing now`
                 : null
+            }
+            caption={
+              raceScrubPoints
+                ? scrubIndex === scrubStartIndex
+                  ? 'Forecast at race start'
+                  : 'Forecast'
+                : scrubIndex === 0
+                  ? 'Live now'
+                  : 'Projected forecast'
             }
             windows={scrubWindows.map((w) => w.label)}
             value={scrubIndex}
@@ -4989,6 +5023,7 @@ function FrameF1({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
             expandedContent={
               <RaceStepSheetContent
                 strategy={courseStrategy}
+                rigTune={raceRigTune}
                 raceStartLabel={formatRaceStartLabel(selectedPin.raceStartAt)}
                 courseSummary={
                   [
@@ -6151,8 +6186,19 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
   // street map is near content-free for a nursing student, so it's demoted to
   // a secondary toggle (kept for cold first-run POI discovery + orientation).
   const [f4View, setF4View] = useState<'sites' | 'coverage' | 'map'>(
-    handlers.initialView === 'map' ? 'map' : 'sites',
+    handlers.initialView === 'map'
+      ? 'map'
+      : handlers.initialView === 'coverage'
+        ? 'coverage'
+        : 'sites',
   );
+  useEffect(() => {
+    if (handlers.initialView === 'map' || handlers.initialView === 'coverage') {
+      setF4View(handlers.initialView);
+      return;
+    }
+    if (handlers.initialView === 'sites') setF4View('sites');
+  }, [handlers.initialView]);
   // Measured floating-chrome height. The chrome grows on the Map view (it
   // adds a FilterChipsRow), so a hardcoded toolbarOffset underlapped the
   // surfaces; measure the actual chrome and feed it to each surface inset.
@@ -6507,6 +6553,7 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
                   ]}
                   onPress={() => {
                     setF4View(mode);
+                    handlers.onViewChange?.(mode);
                     if (mode === 'map') setSelectedPin(null);
                   }}
                   accessibilityRole="button"
@@ -6670,6 +6717,28 @@ function FrameF4({ embedded, handlers }: { embedded: boolean; handlers: AtlasFra
               />
             );
           })()
+        ) : selectedPin.id.startsWith('display-step-group:') ? (
+          <BottomSheet
+            key="nursing-shift-group"
+            eyebrow="GROUPED MAP PIN"
+            title={`${selectedPin.clusterCount ?? selectedPin.stackedSteps?.length ?? 0} ${selectedPin.clusterUnit ?? 'shift'}s nearby`}
+            body="These shifts are grouped because they share the same campus area. Use the list below to open a shift when available."
+            expandedContent={
+              selectedPin.stackedSteps && selectedPin.stackedSteps.length > 0 ? (
+                <StackedStepList
+                  steps={selectedPin.stackedSteps}
+                  onOpenStep={(stepId) => {
+                    clearF4SelectedPin();
+                    handlers.onStepPress?.(stepId);
+                  }}
+                />
+              ) : undefined
+            }
+            secondary={{ label: 'Close', onPress: clearF4SelectedPin }}
+            onClose={clearF4SelectedPin}
+            bottomOffset={(handlers as { bottomSheetOffset?: number }).bottomSheetOffset}
+            initialState="expanded"
+          />
         ) : isUserStepPin(selectedPin) ? (
           // Viewer's own step pin — open the step detail, don't offer a
           // create-a-new-step CTA (that would silently duplicate the step
@@ -8997,6 +9066,7 @@ function WindTideScrubber({
   title,
   flipNote,
   notice,
+  caption,
 }: {
   windows: string[];
   value: number;
@@ -9010,6 +9080,8 @@ function WindTideScrubber({
   flipNote?: string | null;
   /** Honesty line when the race forecast isn't open yet. */
   notice?: string | null;
+  /** Disambiguates whether the readout is live or a forecast/projection. */
+  caption?: string | null;
 }) {
   const [strategyOpen, setStrategyOpen] = useState(false);
   if (windows.length === 0) return null;
@@ -9036,6 +9108,11 @@ function WindTideScrubber({
             {windows[Math.min(value, windows.length - 1)]?.toUpperCase()}
           </Text>
         </View>
+        {caption ? (
+          <Text style={scrubberRaceStyles.caption} numberOfLines={1}>
+            {caption}
+          </Text>
+        ) : null}
         {flipNote ? (
           <View style={scrubberRaceStyles.flipPill}>
             <Ionicons name="warning-outline" size={11} color="#B25E09" />
@@ -9377,6 +9454,7 @@ function RaceStepSheetContent({
   metrics,
   trends,
   strategy,
+  rigTune,
   onSetStart,
   onSetCourse,
   fallbackBody,
@@ -9388,6 +9466,7 @@ function RaceStepSheetContent({
   metrics: { label: string; value: string | null; detail?: string | null }[];
   trends: { label: string; value: string | null; values: (number | null)[]; color: string }[];
   strategy: CourseStrategy | null;
+  rigTune: ReturnType<typeof rigTuneFor>;
   onSetStart: () => void;
   onSetCourse: () => void;
   fallbackBody: string;
@@ -9396,6 +9475,7 @@ function RaceStepSheetContent({
     conditions: true,
     trends: true,
     strategy: false,
+    rig: false,
   });
   const visibleMetrics = metrics.filter((m) => m.value);
   const visibleTrends = trends.filter((t) => t.value);
@@ -9502,6 +9582,22 @@ function RaceStepSheetContent({
         >
           <View style={raceStepStyles.strategyWrap}>
             <CourseStrategyCard strategy={strategy} />
+          </View>
+        </RacePopupSection>
+      ) : null}
+      {rigTune ? (
+        <RacePopupSection
+          title="Rig tune"
+          summary={`${rigTune.guide.boatClass} · ${rigTune.band.label}`}
+          open={openSections.rig}
+          onToggle={() => toggleSection('rig')}
+        >
+          <View style={raceStepStyles.strategyWrap}>
+            <RigTuneCard
+              boatClass={rigTune.guide.boatClass}
+              source={rigTune.guide.source}
+              band={rigTune.band}
+            />
           </View>
         </RacePopupSection>
       ) : null}
@@ -10099,6 +10195,12 @@ const scrubberRaceStyles = StyleSheet.create({
     fontSize: 11,
     color: IOS_REGISTER.labelSecondary,
     fontStyle: 'italic',
+  },
+  caption: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '500',
+    color: IOS_REGISTER.labelTertiary,
   },
 });
 

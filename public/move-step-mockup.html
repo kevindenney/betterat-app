@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Move step — L1 reorder mockup</title>
+<style>
+  :root {
+    --label: #1c1c1e;
+    --label-2: #3c3c43;
+    --label-3: rgba(60,60,67,0.6);
+    --label-4: rgba(60,60,67,0.3);
+    --sep: rgba(60,60,67,0.18);
+    --blue: #007AFF;
+    --green: #34C759;
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --race: #C2410C;
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--label);
+    padding: 32px 16px 64px;
+  }
+  h1 { font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 4px; }
+  .sub { text-align: center; color: var(--label-3); font-size: 13px; margin: 0 0 28px; }
+  .stage {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .phone {
+    width: 320px;
+    background: var(--bg);
+    border-radius: 30px;
+    padding: 14px 10px 16px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.18);
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  .phone-cap { text-align: center; font-size: 12px; font-weight: 600; color: var(--label-3); margin: 0 0 10px; letter-spacing: 0.2px; }
+  .dim-map {
+    height: 96px;
+    border-radius: 14px;
+    margin: 0 6px 10px;
+    background:
+      radial-gradient(120px 80px at 30% 20%, rgba(0,122,255,0.10), transparent),
+      linear-gradient(160deg, #dceaf6, #cfe0ee);
+    position: relative;
+    overflow: hidden;
+  }
+  .dim-map .pin { position:absolute; font-size: 20px; }
+  /* iOS action sheet */
+  .sheet {
+    background: var(--card);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  }
+  .sheet-head {
+    padding: 14px 16px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--sep);
+  }
+  .sheet-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.7px; color: var(--label-3); }
+  .sheet-title { font-size: 16px; font-weight: 600; margin-top: 2px; }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--sep);
+    font-size: 16px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row .ic { width: 22px; text-align: center; font-size: 17px; color: var(--blue); }
+  .row.destructive { color: #FF3B30; }
+  .row.destructive .ic { color: #FF3B30; }
+  .row.new {
+    background: rgba(0,122,255,0.06);
+  }
+  .row.new .label { font-weight: 600; }
+  .row .trail { margin-left: auto; color: var(--label-4); font-size: 15px; }
+  .badge-new {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #fff;
+    background: var(--blue);
+    padding: 2px 7px;
+    border-radius: 8px;
+  }
+  .cancel {
+    margin-top: 8px;
+    text-align: center;
+    padding: 15px;
+    background: var(--card);
+    border-radius: 14px;
+    color: var(--blue);
+    font-weight: 600;
+    font-size: 16px;
+  }
+  /* Move-step position picker */
+  .pick-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--sep);
+    position: relative;
+  }
+  .pick-row:last-child { border-bottom: none; }
+  .ord {
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: var(--bg);
+    color: var(--label-3);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .pick-row .titl { font-size: 15px; flex: 1; }
+  .pick-row .pill {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+    padding: 2px 7px; border-radius: 7px;
+  }
+  .pill.done { background: rgba(52,199,89,0.14); color: #248A3D; }
+  .pill.now { background: rgba(0,122,255,0.14); color: var(--blue); }
+  .pill.race { background: rgba(194,65,12,0.12); color: var(--race); }
+  .pick-row.current {
+    background: rgba(0,122,255,0.07);
+  }
+  .pick-row.current .titl { font-weight: 700; color: var(--blue); }
+  .grip { color: var(--label-4); font-size: 16px; }
+  /* insertion affordance: a thin blue line + "drop here" between rows on hover */
+  .insert {
+    height: 0;
+    border-top: 2px solid var(--blue);
+    margin: 0 16px;
+    position: relative;
+  }
+  .insert::after {
+    content: "Move here";
+    position: absolute;
+    right: 0; top: -9px;
+    font-size: 10px; font-weight: 700;
+    color: #fff; background: var(--blue);
+    padding: 1px 6px; border-radius: 7px;
+  }
+  .insert.lead::before {
+    content: "";
+    position: absolute; left: -6px; top: -5px;
+    width: 8px; height: 8px; border-radius: 4px; background: var(--blue);
+  }
+  .hint { font-size: 12px; color: var(--label-3); padding: 10px 16px 4px; }
+  .note {
+    max-width: 700px; margin: 36px auto 0; font-size: 13px; line-height: 1.55;
+    color: var(--label-2); background: #fff; padding: 18px 20px; border-radius: 14px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+  }
+  .note b { color: var(--label); }
+  .note code { background: var(--bg); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+  .arrow { align-self: center; font-size: 30px; color: var(--label-4); }
+</style>
+</head>
+<body>
+  <h1>Moving a step at L1 (single-step zoom)</h1>
+  <p class="sub">There's no list to drag at L1 — so reorder becomes an explicit "Move step…" action that opens a position picker. Works on web + touch.</p>
+
+  <div class="stage">
+
+    <!-- Panel A: the ⋯ Step actions sheet, with the new action -->
+    <div class="phone">
+      <p class="phone-cap">1 · Step actions ( ⋯ )</p>
+      <div class="dim-map"><span class="pin" style="left:42%;top:30%">📍</span></div>
+      <div class="sheet">
+        <div class="sheet-head">
+          <div class="sheet-eyebrow">STEP</div>
+          <div class="sheet-title">Dragon rig setup</div>
+        </div>
+        <div class="row"><span class="ic">✓</span><span class="label">Mark done</span></div>
+        <div class="row new"><span class="ic">↕</span><span class="label">Move step…</span><span class="badge-new">NEW</span></div>
+        <div class="row"><span class="ic">↗</span><span class="label">Share</span></div>
+        <div class="row"><span class="ic">↻</span><span class="label">Redo as new step</span></div>
+        <div class="row"><span class="ic">◷</span><span class="label">Change timing</span></div>
+        <div class="row"><span class="ic">＋</span><span class="label">Add due date</span></div>
+        <div class="row"><span class="ic">📌</span><span class="label">Pin to other interests</span></div>
+        <div class="row"><span class="ic">🔗</span><span class="label">Link to concept</span></div>
+        <div class="row destructive"><span class="ic">🗑</span><span class="label">Delete step</span></div>
+      </div>
+      <div class="cancel">Cancel</div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Panel B: the Move step position picker -->
+    <div class="phone">
+      <p class="phone-cap">2 · Move step</p>
+      <div class="dim-map"><span class="pin" style="left:42%;top:30%">📍</span></div>
+      <div class="sheet">
+        <div class="sheet-head">
+          <div class="sheet-eyebrow">MOVE · WINTER SERIES 2025–26</div>
+          <div class="sheet-title">Where should "Dragon rig setup" go?</div>
+        </div>
+        <div class="hint">Tap a step to drop this one right after it.</div>
+
+        <!-- leading insertion = "move to top" -->
+        <div class="insert lead"></div>
+
+        <div class="pick-row"><span class="ord">1</span><span class="titl">Pre-season haul-out &amp; antifoul</span><span class="pill done">DONE</span><span class="grip">≡</span></div>
+        <div class="pick-row"><span class="ord">2</span><span class="titl">Boat-handling tune-up — Race 1</span><span class="pill done">DONE</span><span class="grip">≡</span></div>
+        <div class="pick-row"><span class="ord">3</span><span class="titl">Port Shelter — Race 2</span><span class="pill race">RACE</span><span class="grip">≡</span></div>
+
+        <!-- active insertion point -->
+        <div class="insert"></div>
+
+        <div class="pick-row current"><span class="ord">4</span><span class="titl">Dragon rig setup</span><span class="pill now">MOVING</span><span class="grip">≡</span></div>
+        <div class="pick-row"><span class="ord">5</span><span class="titl">Improve upwind speed</span><span class="grip">≡</span></div>
+        <div class="pick-row"><span class="ord">6</span><span class="titl">Worlds prep — Jamie McWilliams seminar</span><span class="grip">≡</span></div>
+        <div class="pick-row"><span class="ord">7</span><span class="titl">Middle Island — Race 3</span><span class="pill race">RACE</span><span class="grip">≡</span></div>
+      </div>
+      <div class="cancel">Cancel</div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <b>How it behaves.</b> "Move step…" is added to the L1 ⋯ sheet (it's the only zoom level with no drag handle).
+    It opens a list of the <b>current arc's steps in order</b>, with the moving step highlighted (<span class="pill now" style="font-size:9px">MOVING</span>).
+    Tapping any row inserts the step <b>immediately after it</b>; the blue line + <b>Move here</b> chip previews the landing slot.
+    A leading "move to top" slot sits above row 1. On confirm it calls the same <code>onReorder(stepId, fromIndex, toIndex)</code> path the L3 drag list already uses, so persistence + the sort_order spine are unchanged.
+    <br><br>
+    <b>Open questions for you:</b> (a) is "after the tapped row" the right mental model, or do you prefer explicit "before / after" affordances? (b) should it scope to the whole arc, or only the undated steps between race anchors? (c) label — "Move step…" vs "Reorder…" vs "Change position".
+  </div>
+</body>
+</html>

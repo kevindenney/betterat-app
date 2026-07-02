@@ -1,5 +1,5 @@
 /**
- * Stripe Payment Service for RegattaFlow
+ * Stripe Payment Service for BetterAt
  * Handles subscriptions, payment methods, and billing
  */
 

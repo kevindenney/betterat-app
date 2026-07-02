@@ -11,8 +11,8 @@ import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('EmailService');
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
-const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'noreply@regattaflow.com';
-const SENDGRID_FROM_NAME = 'RegattaFlow';
+const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'noreply@better.at';
+const SENDGRID_FROM_NAME = 'BetterAt';
 
 export interface EmailTemplate {
   subject: string;
@@ -479,7 +479,7 @@ export class EmailService {
             </ul>
 
             <div style="text-align: center;">
-              <a href="https://regattaflow.com/races/entries/${data.entry_number}" class="button">
+              <a href="https://better.at/races/entries/${data.entry_number}" class="button">
                 View Entry Details
               </a>
             </div>
@@ -488,8 +488,8 @@ export class EmailService {
           <div class="footer">
             <p>Questions? Contact the race organizers or reply to this email.</p>
             <p style="font-size: 12px; color: #9ca3af;">
-              RegattaFlow - Your Complete Sailing Competition Platform<br>
-              © ${new Date().getFullYear()} RegattaFlow. All rights reserved.
+              BetterAt - Your Complete Sailing Competition Platform<br>
+              © ${new Date().getFullYear()} BetterAt. All rights reserved.
             </p>
           </div>
         </body>
@@ -526,12 +526,12 @@ ${!data.documents_complete ? '- Upload any remaining required documents' : ''}
 - Prepare your boat and equipment
 - Confirm crew availability
 
-View your entry details at: https://regattaflow.com/races/entries/${data.entry_number}
+View your entry details at: https://better.at/races/entries/${data.entry_number}
 
 Questions? Contact the race organizers or reply to this email.
 
-RegattaFlow - Your Complete Sailing Competition Platform
-© ${new Date().getFullYear()} RegattaFlow. All rights reserved.
+BetterAt - Your Complete Sailing Competition Platform
+© ${new Date().getFullYear()} BetterAt. All rights reserved.
     `;
 
     return { subject, html, text };
@@ -596,12 +596,12 @@ RegattaFlow - Your Complete Sailing Competition Platform
               </ul>
             `}
             <div style="text-align: center;">
-              <a href="https://regattaflow.com/coaching/sessions" class="button">View Session Details</a>
+              <a href="https://better.at/coaching/sessions" class="button">View Session Details</a>
             </div>
           </div>
           <div class="footer">
             <p>Need to reschedule? Please contact ${otherName} at least 24 hours in advance.</p>
-            <p>RegattaFlow Coach Marketplace<br>© ${new Date().getFullYear()} RegattaFlow. All rights reserved.</p>
+            <p>BetterAt Coach Marketplace<br>© ${new Date().getFullYear()} BetterAt. All rights reserved.</p>
           </div>
         </body>
       </html>
@@ -622,10 +622,10 @@ ${recipient === 'sailor' ? `- Fee: ${data.currency} ${data.fee_amount.toFixed(2)
 
 A calendar invite is attached for your convenience.
 
-View details: https://regattaflow.com/coaching/sessions
+View details: https://better.at/coaching/sessions
 
-RegattaFlow Coach Marketplace
-© ${new Date().getFullYear()} RegattaFlow. All rights reserved.`;
+BetterAt Coach Marketplace
+© ${new Date().getFullYear()} BetterAt. All rights reserved.`;
 
     return { subject, html, text };
   }
@@ -694,8 +694,8 @@ RegattaFlow Coach Marketplace
             <p style="text-align: center; font-size: 18px; color: #D97706; font-weight: bold;">Good luck out there! ⛵</p>
           </div>
           <div class="footer">
-            <p>View full race details and strategy in RegattaFlow</p>
-            <p>RegattaFlow - Your Complete Sailing Platform<br>© ${new Date().getFullYear()} RegattaFlow. All rights reserved.</p>
+            <p>View full race details and strategy in BetterAt</p>
+            <p>BetterAt - Your Complete Sailing Platform<br>© ${new Date().getFullYear()} BetterAt. All rights reserved.</p>
           </div>
         </body>
       </html>
@@ -729,8 +729,8 @@ PRE-RACE CHECKLIST:
 
 Good luck out there! ⛵
 
-RegattaFlow - Your Complete Sailing Platform
-© ${new Date().getFullYear()} RegattaFlow. All rights reserved.`;
+BetterAt - Your Complete Sailing Platform
+© ${new Date().getFullYear()} BetterAt. All rights reserved.`;
 
     return { subject, html, text };
   }
@@ -811,11 +811,11 @@ RegattaFlow - Your Complete Sailing Platform
             <p>Hi ${data.coach_name},</p>
             ${content}
             <div style="text-align: center;">
-              <a href="https://regattaflow.com/coach/dashboard" class="button">View Dashboard</a>
+              <a href="https://better.at/coach/dashboard" class="button">View Dashboard</a>
             </div>
           </div>
           <div class="footer">
-            <p>RegattaFlow Coach Marketplace<br>© ${new Date().getFullYear()} RegattaFlow. All rights reserved.</p>
+            <p>BetterAt Coach Marketplace<br>© ${new Date().getFullYear()} BetterAt. All rights reserved.</p>
           </div>
         </body>
       </html>
@@ -835,10 +835,10 @@ Hi ${data.coach_name},
 
 ${textContent}
 
-View Dashboard: https://regattaflow.com/coach/dashboard
+View Dashboard: https://better.at/coach/dashboard
 
-RegattaFlow Coach Marketplace
-© ${new Date().getFullYear()} RegattaFlow. All rights reserved.`;
+BetterAt Coach Marketplace
+© ${new Date().getFullYear()} BetterAt. All rights reserved.`;
 
     return { subject, html, text };
   }
@@ -905,11 +905,11 @@ RegattaFlow Coach Marketplace
           <div class="content">
             ${content}
             <div style="text-align: center;">
-              <a href="https://regattaflow.com/club/dashboard" class="button">View Dashboard</a>
+              <a href="https://better.at/club/dashboard" class="button">View Dashboard</a>
             </div>
           </div>
           <div class="footer">
-            <p>RegattaFlow Club Management<br>© ${new Date().getFullYear()} RegattaFlow. All rights reserved.</p>
+            <p>BetterAt Club Management<br>© ${new Date().getFullYear()} BetterAt. All rights reserved.</p>
           </div>
         </body>
       </html>
@@ -919,10 +919,10 @@ RegattaFlow Coach Marketplace
 
 ${content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
 
-View Dashboard: https://regattaflow.com/club/dashboard
+View Dashboard: https://better.at/club/dashboard
 
-RegattaFlow Club Management
-© ${new Date().getFullYear()} RegattaFlow. All rights reserved.`;
+BetterAt Club Management
+© ${new Date().getFullYear()} BetterAt. All rights reserved.`;
 
     return { subject, html, text };
   }
@@ -1065,7 +1065,7 @@ RegattaFlow Club Management
               </div>
             </div>
             <div class="footer">
-              <p>RegattaFlow - Your Sailing Performance Platform<br>© ${new Date().getFullYear()} RegattaFlow. All rights reserved.</p>
+              <p>BetterAt - Your Sailing Performance Platform<br>© ${new Date().getFullYear()} BetterAt. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -1089,7 +1089,7 @@ ${data.homework ? `Homework & Next Steps:\n${data.homework}\n\n` : ''}
 We'd love to hear about your experience. Please leave feedback at:
 ${process.env.EXPO_PUBLIC_APP_URL}/feedback?type=session
 
-RegattaFlow - Your Sailing Performance Platform
+BetterAt - Your Sailing Performance Platform
     `;
 
     return { subject, html, text };
@@ -1144,7 +1144,7 @@ RegattaFlow - Your Sailing Performance Platform
               </p>
             </div>
             <div class="footer">
-              <p>RegattaFlow - Your Sailing Performance Platform<br>© ${new Date().getFullYear()} RegattaFlow. All rights reserved.</p>
+              <p>BetterAt - Your Sailing Performance Platform<br>© ${new Date().getFullYear()} BetterAt. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -1163,7 +1163,7 @@ Your feedback helps us maintain quality coaching and helps other sailors find th
 Please leave your feedback at:
 ${process.env.EXPO_PUBLIC_APP_URL}/coach/session/${data.session_id}/feedback
 
-RegattaFlow - Your Sailing Performance Platform
+BetterAt - Your Sailing Performance Platform
     `;
 
     return { subject, html, text };
@@ -1239,7 +1239,7 @@ RegattaFlow - Your Sailing Performance Platform
               </p>
             </div>
             <div class="footer">
-              <p>RegattaFlow - Your Sailing Performance Platform<br>© ${new Date().getFullYear()} RegattaFlow. All rights reserved.</p>
+              <p>BetterAt - Your Sailing Performance Platform<br>© ${new Date().getFullYear()} BetterAt. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -1266,7 +1266,7 @@ ${process.env.EXPO_PUBLIC_APP_URL}/coach/sessions
 
 Need to reschedule? Please contact ${otherParty} as soon as possible.
 
-RegattaFlow - Your Sailing Performance Platform
+BetterAt - Your Sailing Performance Platform
     `;
 
     return { subject, html, text };

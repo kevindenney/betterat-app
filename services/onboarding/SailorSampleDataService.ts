@@ -550,7 +550,7 @@ async function createSampleCrew(userId: string, boatId: string): Promise<void> {
     class_id: DRAGON_CLASS_ID,
     boat_id: boatId,
     name: crew.name,
-    email: `sample-crew-${index + 1}@regattaflow.local`, // Unique placeholder email
+    email: `sample-crew-${index + 1}@betterat.local`, // Unique placeholder email
     role: crew.role,
     access_level: 'view' as const,
     status: 'active' as const,

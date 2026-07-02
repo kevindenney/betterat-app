@@ -653,7 +653,7 @@ class StrategicPlanningService {
     }
     
     // Use environment variable or fallback to production
-    return process.env.EXPO_PUBLIC_API_URL || 'https://regattaflow.com';
+    return process.env.EXPO_PUBLIC_API_URL || 'https://better.at';
   }
 
   /**

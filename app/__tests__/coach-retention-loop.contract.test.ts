@@ -33,4 +33,16 @@ describe('coach retention loop contract', () => {
     expect(source).toContain('countActiveDaysWithin');
     expect(source).toContain('setRetention(');
   });
+
+  it('sends coach retention emails with BetterAt sender branding', () => {
+    const source = readAppFile('api/cron/coach-retention-loop.ts');
+
+    expect(source).toContain("from: { email: input.fromEmail, name: 'BetterAt' }");
+    expect(source).toContain("const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@better.at';");
+    expect(source).toContain("hasPendingChannel(row as RetentionDispatchRow, 'email')");
+    expect(source).toContain('await sendEmailViaSendGrid({');
+    expect(source).toContain('next.email_dispatched_at = nowIso;');
+    expect(source).not.toContain("name: 'RegattaFlow'");
+    expect(source).not.toContain('noreply@regattaflow.com');
+  });
 });

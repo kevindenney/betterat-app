@@ -120,7 +120,7 @@ export function TacticalChip({
                   color={Colors.text.secondary}
                   style={styles.sectionIcon}
                 />
-                <Text style={styles.sectionLabel}>RegattaFlow Coach Execution</Text>
+                <Text style={styles.sectionLabel}>BetterAt Coach Execution</Text>
               </View>
               <Text style={styles.executionText}>{chip.execution}</Text>
             </View>

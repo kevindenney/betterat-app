@@ -1398,6 +1398,7 @@ class CoachingService {
       message?: string;
       availabilitySlotId?: string;
       totalAmountCents: number;
+      customCharges?: CustomCharge[];
     }
   ): Promise<any> {
     const user = await this.requireAuth();

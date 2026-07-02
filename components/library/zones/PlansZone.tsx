@@ -80,7 +80,9 @@ export function PlansZone() {
           key={plan.blueprintId}
           plan={plan}
           onPress={() =>
-            router.push(`/(tabs)/library/blueprints/${plan.blueprintId}` as never)
+            router.push(
+              (plan.route ?? `/(tabs)/library/blueprints/${plan.blueprintId}`) as never,
+            )
           }
         />
       ))}

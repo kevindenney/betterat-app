@@ -115,7 +115,7 @@ export default function AccountModalContent() {
     }
 
     const fallbackEmail =
-      userProfile?.email || user?.email || `regatta-${user?.id ?? 'demo'}@demo.regattaflow.io`;
+      userProfile?.email || user?.email || `betterat-${user?.id ?? 'demo'}@demo.betterat.app`;
 
     setClaimLoading(true);
     try {

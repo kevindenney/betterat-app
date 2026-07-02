@@ -421,8 +421,8 @@ async function handleCoursePurchaseSuccess(
             <p>Your payment has been received and you now have access to:</p>
             <h3>${course?.title || 'Your Course'}</h3>
             <p>Start learning now and improve your racing skills!</p>
-            <p><a href="https://regattaflow.com/learn/${courseId}" style="display:inline-block;background-color:#3B82F6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;">Start Learning</a></p>
-            <p>Thank you for choosing RegattaFlow!</p>
+            <p><a href="https://better.at/learn/${courseId}" style="display:inline-block;background-color:#3B82F6;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;">Start Learning</a></p>
+            <p>Thank you for choosing BetterAt!</p>
           `,
         },
       });
@@ -1712,12 +1712,12 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     await supabase.functions.invoke('send-email', {
       body: {
         to: user.email,
-        subject: 'Payment Failed - RegattaFlow Subscription',
+        subject: 'Payment Failed - BetterAt Subscription',
         html: `
           <h2>Payment Failed</h2>
-          <p>We were unable to process your payment for your RegattaFlow subscription.</p>
+          <p>We were unable to process your payment for your BetterAt subscription.</p>
           <p>Please update your payment method to continue enjoying premium features.</p>
-          <p><a href="https://regattaflow.com/settings/billing">Update Payment Method</a></p>
+          <p><a href="https://better.at/settings/billing">Update Payment Method</a></p>
         `,
       },
     });

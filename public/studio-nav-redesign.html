@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — One shell: Practice ⇄ Studio, cleaned profile, promoted Inbox</title>
+<style>
+  :root {
+    --bg:      #E9E9EE;
+    --canvas:  #F7F7F9;
+    --card:    #FFFFFF;
+    --ink:     #1C1C1E;
+    --ink-2:   #5B6068;
+    --ink-3:   #9097A1;
+    --label:   #8E8E93;
+    --hair:    #E6E7EB;
+    --hair-2:  #EFF0F3;
+    --blue:    #007AFF;
+    --studio:  #6366F1;
+    --studio-bg:#EEEEFE;
+    --green:   #1E9E6A;
+    --coral:   #FF6B5E;
+    --red:     #FF3B30;
+    --amber:   #E08A2B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.45;
+    padding: 44px 28px 110px;
+  }
+  a { color: inherit; }
+
+  /* ---- page header / nav ---- */
+  .masthead { max-width: 1140px; margin: 0 auto 26px; }
+  .masthead h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+  .masthead p  { color: var(--ink-2); font-size: 14.5px; margin-top: 8px; max-width: 780px; }
+  .jump { display: flex; gap: 8px; flex-wrap: wrap; margin: 22px auto 0; max-width: 1140px; }
+  .jump a { font-size: 12.5px; font-weight: 600; text-decoration: none; color: var(--ink-2);
+    background: #fff; border: 1px solid var(--hair); padding: 7px 13px; border-radius: 999px; }
+  .jump a:hover { border-color: #c9ccd2; }
+
+  section { max-width: 1140px; margin: 0 auto; padding-top: 56px; }
+  .sec-tag { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--studio); }
+  .sec-h { font-size: 21px; font-weight: 750; letter-spacing: -.015em; margin: 8px 0 6px; }
+  .sec-p { font-size: 14px; color: var(--ink-2); max-width: 820px; }
+  .sec-p b { color: var(--ink); }
+
+  .grid2 { display: flex; gap: 30px; flex-wrap: wrap; align-items: flex-start; margin-top: 26px; }
+  .cap { font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    margin-bottom: 12px; }
+  .cap.bad  { color: var(--coral); }
+  .cap.good { color: var(--green); }
+  .cap.alt  { color: var(--ink-3); }
+  .colnote { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin-top: 14px; max-width: 360px; }
+  .colnote b { color: var(--ink); }
+
+  /* ---- browser window frame ---- */
+  .win { width: 540px; background: #fff; border-radius: 13px; overflow: hidden;
+    box-shadow: 0 20px 54px rgba(20,20,40,.18), 0 2px 6px rgba(0,0,0,.08);
+    border: 1px solid rgba(0,0,0,.05); }
+  .win.wide { width: 700px; }
+  .chrome { height: 38px; background: #F1F2F4; display: flex; align-items: center; gap: 8px;
+    padding: 0 13px; border-bottom: 1px solid #E2E3E6; }
+  .lights { display: flex; gap: 6px; }
+  .lights i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+  .lights .r { background: #FF5F57; } .lights .y { background: #FEBC2E; } .lights .g { background: #28C840; }
+  .url { flex: 1; height: 22px; background: #fff; border-radius: 6px; border: 1px solid #E2E3E6;
+    display: flex; align-items: center; padding: 0 10px; font-size: 11.5px; color: var(--ink-3); }
+
+  /* ---- app shell inside the window ---- */
+  .app { display: flex; height: 470px; }
+  .rail { width: 188px; flex-shrink: 0; background: #FBFBFC; border-right: 1px solid var(--hair);
+    padding: 12px 10px; display: flex; flex-direction: column; }
+  .content { flex: 1; background: var(--canvas); padding: 18px 20px; overflow: hidden; }
+
+  /* workspace switcher */
+  .ws { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 10px;
+    border: 1px solid var(--hair); background: #fff; cursor: default; }
+  .ws .av { width: 26px; height: 26px; border-radius: 7px; background: #111; color: #fff;
+    font-size: 11px; font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
+  .ws .av.jhu { background: #0B4DA2; }
+  .ws .nm { font-size: 12.5px; font-weight: 650; line-height: 1.15; }
+  .ws .sb { font-size: 10.5px; color: var(--ink-3); }
+  .ws .chev { margin-left: auto; color: var(--ink-3); font-size: 11px; }
+
+  .railgroup { margin-top: 16px; }
+  .glabel { font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--label); padding: 0 9px; margin-bottom: 6px; }
+  .nav { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 8px;
+    font-size: 13px; color: var(--ink-2); font-weight: 550; }
+  .nav .ic { width: 17px; text-align: center; font-size: 14px; opacity: .8; }
+  .nav .badge { margin-left: auto; font-size: 10.5px; font-weight: 700; background: var(--red);
+    color: #fff; border-radius: 999px; padding: 1px 6px; }
+  .nav .ct { margin-left: auto; font-size: 11px; color: var(--ink-3); }
+  .nav.on { background: var(--blue); color: #fff; }
+  .nav.on .ic { opacity: 1; }
+  .nav.on.studio { background: var(--studio); }
+  .nav.on .ct { color: rgba(255,255,255,.8); }
+
+  .railfoot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--hair-2);
+    display: flex; align-items: center; gap: 9px; }
+  .railfoot .av { width: 26px; height: 26px; border-radius: 50%; background: #C9CDD6; color:#fff;
+    font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .railfoot .nm { font-size: 12px; font-weight: 600; }
+  .railfoot .sb { font-size: 10px; color: var(--ink-3); }
+
+  /* content placeholders */
+  .ctitle { font-size: 19px; font-weight: 750; letter-spacing: -.01em; }
+  .csub { font-size: 12.5px; color: var(--ink-3); margin-top: 3px; }
+  .statrow { display: flex; gap: 10px; margin-top: 16px; }
+  .stat { flex: 1; background: #fff; border: 1px solid var(--hair); border-radius: 10px; padding: 10px 11px; }
+  .stat .k { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--label); }
+  .stat .v { font-size: 20px; font-weight: 750; margin-top: 4px; }
+  .ph { background: #fff; border: 1px solid var(--hair); border-radius: 10px; margin-top: 14px;
+    padding: 13px; }
+  .ph .bar { height: 9px; border-radius: 5px; background: #EEF0F3; }
+  .ph .bar.s { width: 55%; margin-top: 8px; }
+  .skel-card { display: flex; gap: 11px; align-items: center; padding: 9px 0; }
+  .skel-card + .skel-card { border-top: 1px solid var(--hair-2); }
+  .skel-card .sq { width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0; }
+  .skel-card .l1 { height: 9px; width: 60%; background: #E9EBEF; border-radius: 5px; }
+  .skel-card .l2 { height: 7px; width: 38%; background: #F0F1F4; border-radius: 5px; margin-top: 6px; }
+
+  /* step card preview (practice) */
+  .stepcard { background:#fff; border:1px solid var(--hair); border-radius: 12px; padding: 13px; margin-top: 14px;
+    border-left: 3px solid var(--coral); }
+  .stepcard .now { font-size: 9px; font-weight: 800; letter-spacing: .1em; color: var(--coral); }
+  .stepcard .st { font-size: 15px; font-weight: 700; margin-top: 5px; line-height: 1.25; }
+  .stepcard .seg { display:flex; gap:6px; margin-top:9px; }
+  .stepcard .seg span { font-size:10.5px; color: var(--ink-3); }
+  .stepcard .seg span.a { color: var(--blue); font-weight:700; }
+
+  /* header-toggle option */
+  .topbar { height: 46px; border-bottom: 1px solid var(--hair); background:#fff;
+    display:flex; align-items:center; gap:12px; padding: 0 14px; }
+  .brand { font-size: 14px; font-weight: 800; letter-spacing:-.02em; }
+  .modeseg { display:flex; background: #EFEFF3; border-radius: 9px; padding: 3px; gap:2px; }
+  .modeseg button { border:0; background:transparent; font: inherit; font-size:12px; font-weight:650;
+    color: var(--ink-2); padding: 5px 14px; border-radius: 7px; cursor:default; display:flex; align-items:center; gap:6px; }
+  .modeseg button.on { background:#fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .modeseg button.on.create { color: var(--studio); }
+  .topbar .spacer { flex:1; }
+  .iconbtn { width: 30px; height: 30px; border-radius: 8px; display:grid; place-items:center;
+    font-size: 15px; color: var(--ink-2); position: relative; }
+  .iconbtn .dot { position:absolute; top:3px; right:3px; min-width:15px; height:15px; padding:0 4px;
+    background: var(--red); color:#fff; font-size:9px; font-weight:800; border-radius:999px;
+    display:grid; place-items:center; border:2px solid #fff; }
+  .miniav { width: 28px; height: 28px; border-radius: 50%; background:#C9CDD6; color:#fff;
+    font-size: 11px; font-weight:700; display:grid; place-items:center; }
+  .tabstrip { display:flex; gap: 4px; padding: 8px 12px; border-bottom:1px solid var(--hair); background:#FBFBFC; }
+  .tabstrip .t { font-size:12.5px; font-weight:600; color: var(--ink-2); padding:6px 12px; border-radius:8px; display:flex; gap:7px; align-items:center; }
+  .tabstrip .t.on { background:#fff; color: var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08); border:1px solid var(--hair); }
+  .tabstrip .t.on.create { color: var(--studio); }
+
+  /* dropdown mock */
+  .menu { width: 300px; background:#fff; border-radius: 14px; overflow:hidden;
+    box-shadow: 0 20px 54px rgba(20,20,40,.22), 0 2px 8px rgba(0,0,0,.1); border:1px solid rgba(0,0,0,.06); }
+  .menu .mhead { padding: 14px; display:flex; gap:11px; align-items:center; border-bottom:1px solid var(--hair-2); }
+  .menu .mhead .av { width: 38px; height:38px; border-radius:50%; background:#C9CDD6; color:#fff; font-size:14px; font-weight:700; display:grid; place-items:center; }
+  .menu .mhead .nm { font-size:14px; font-weight:700; }
+  .menu .mhead .em { font-size:11.5px; color: var(--ink-3); }
+  .mgroup { padding: 6px; }
+  .mgroup + .mgroup { border-top: 1px solid var(--hair-2); }
+  .mglabel { font-size:9.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--label); padding: 8px 10px 4px; }
+  .mrow { display:flex; align-items:center; gap:11px; padding: 9px 10px; border-radius:9px; font-size:13px; }
+  .mrow .ic { width:18px; text-align:center; font-size:14px; color: var(--ink-2); }
+  .mrow .badge { margin-left:auto; font-size:10px; font-weight:800; background:var(--red); color:#fff; border-radius:999px; padding:1px 6px; }
+  .mrow .ct { margin-left:auto; font-size:11px; color:var(--ink-3); }
+  .mrow .chev { margin-left:auto; color: var(--ink-3); }
+  .mrow.danger { color: var(--red); } .mrow.danger .ic { color: var(--red); }
+  .mrow.strike { opacity:.45; }
+  .mrow.strike .lbl { text-decoration: line-through; }
+  .killtag { margin-left:auto; font-size:9.5px; font-weight:700; color: var(--coral); letter-spacing:.04em; }
+  .movetag { margin-left:auto; font-size:9.5px; font-weight:700; color: var(--studio); letter-spacing:.04em; }
+  .wsrow { display:flex; align-items:center; gap:11px; padding: 9px 10px; border-radius:9px; }
+  .wsrow .av { width:26px; height:26px; border-radius:7px; font-size:10px; font-weight:700; color:#fff; display:grid; place-items:center; }
+  .wsrow .check { margin-left:auto; color: var(--blue); font-weight:800; }
+  .pubface { margin: 6px; background: linear-gradient(180deg,#F4F5FF,#FbFbFF); border:1px solid #E3E4F5;
+    border-radius:11px; padding: 11px; }
+  .pubface .t { font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color: var(--studio); }
+  .pubface .d { font-size:12px; color: var(--ink-2); margin-top:4px; }
+  .pubface .row { display:flex; align-items:center; gap:8px; margin-top:9px; font-size:13px; font-weight:650; }
+  .pubface .row .ed { margin-left:auto; font-size:11px; font-weight:700; color: var(--blue); }
+
+  /* profile combine */
+  .profilewin .seg2 { display:flex; background:#EFEFF3; border-radius:9px; padding:3px; gap:2px; width: max-content; }
+  .profilewin .seg2 button { border:0; background:transparent; font:inherit; font-size:12px; font-weight:650;
+    color: var(--ink-2); padding:5px 16px; border-radius:7px; }
+  .profilewin .seg2 button.on { background:#fff; color: var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .pcover { height: 70px; border-radius: 12px; background: linear-gradient(120deg,#6366F1,#8B5CF6); margin-top:14px; position:relative; }
+  .pcover .pa { position:absolute; left:16px; bottom:-22px; width:50px; height:50px; border-radius:50%;
+    background:#fff; border:3px solid #fff; display:grid; place-items:center; box-shadow:0 2px 8px rgba(0,0,0,.15); font-size:18px; }
+  .psec { background:#fff; border:1px solid var(--hair); border-radius:11px; padding:12px; margin-top:12px; position:relative; }
+  .psec .eb { position:absolute; top:10px; right:10px; font-size:10.5px; font-weight:700; color:var(--blue);
+    border:1px solid #CFE2FF; background:#F0F7FF; border-radius:999px; padding:3px 9px; }
+  .psec .h { font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--label); }
+  .psec .v { font-size:14px; font-weight:600; margin-top:5px; }
+  .psec .m { font-size:12px; color:var(--ink-2); margin-top:4px; }
+  .viewing-as { font-size:11px; color: var(--amber); background:#FFF6E9; border:1px solid #F6E2BE;
+    border-radius:8px; padding:6px 10px; margin-top:12px; display:flex; align-items:center; gap:7px; }
+
+  .legend { display:flex; gap:18px; flex-wrap:wrap; margin-top:18px; font-size:12px; color:var(--ink-2); }
+  .legend span { display:flex; align-items:center; gap:7px; }
+  .legend i { width:11px; height:11px; border-radius:3px; display:block; }
+
+  .takeaways { background:#fff; border:1px solid var(--hair); border-radius:14px; padding:20px 22px; margin-top:30px; }
+  .takeaways h3 { font-size:14px; font-weight:750; }
+  .takeaways ul { margin:12px 0 0; padding-left:0; list-style:none; display:grid; gap:11px; }
+  .takeaways li { font-size:13.5px; color:var(--ink-2); display:flex; gap:11px; align-items:flex-start; }
+  .takeaways li b { color: var(--ink); }
+  .takeaways li .n { flex-shrink:0; width:20px; height:20px; border-radius:6px; background:var(--studio-bg);
+    color:var(--studio); font-size:11px; font-weight:800; display:grid; place-items:center; margin-top:1px; }
+  .q { font-size:13px; color:var(--ink-2); background:#FBFBFC; border:1px dashed var(--hair); border-radius:10px;
+    padding:12px 14px; margin-top:16px; }
+  .q b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <h1>One shell — Practice ⇄ Studio</h1>
+  <p>The real problem isn't the dropdown — it's that <b>practitioner</b> and <b>creator</b> are two
+  separate apps today, bridged by a cluttered profile menu. Every fix below follows one rule:
+  <b>one workspace, two contexts, no duplicate doors.</b></p>
+</div>
+<div class="jump">
+  <a href="#thesis">① The model</a>
+  <a href="#a">② Option A — shared left rail</a>
+  <a href="#b">③ Option B — Do · Create toggle</a>
+  <a href="#menu">④ Cleaned profile menu</a>
+  <a href="#profile">⑤ Public face = profile (one screen)</a>
+  <a href="#summary">Summary</a>
+</div>
+
+<!-- ================= THESIS ================= -->
+<section id="thesis">
+  <div class="sec-tag">The model</div>
+  <div class="sec-h">Two contexts inside one frame, not two apps</div>
+  <p class="sec-p">You're always in <b>one workspace</b> (Personal, or an org like JHU where you're admin).
+  Inside it you flip between <b>Practice</b> (do &amp; learn) and <b>Studio</b> (create &amp; mentor).
+  "Mentor" was never a third thing — subscriber threads &amp; cohorts are just Studio's audience side, so they fold in.
+  Switching context becomes a single click in the same frame — never a jump to a different-looking app.</p>
+  <div class="legend">
+    <span><i style="background:var(--blue)"></i> Practice context — your tabs today (Practice · Library · Watch · Atlas)</span>
+    <span><i style="background:var(--studio)"></i> Studio context — blueprints · subscribers · threads · payouts</span>
+    <span><i style="background:var(--red)"></i> Inbox — promoted out of the menu into the chrome</span>
+  </div>
+</section>
+
+<!-- ================= OPTION A ================= -->
+<section id="a">
+  <div class="sec-tag">Option A · recommended for web</div>
+  <div class="sec-h">Shared left rail — Practice and Studio live in the same shell</div>
+  <p class="sec-p">The rail never changes shape. Workspace switcher up top, two labelled groups below, you &amp; Inbox at the
+  bottom. Going Studio→Practice is just clicking a nav item — the "Profile → Creator Studio" round-trip disappears.</p>
+
+  <div class="grid2">
+    <!-- Practice context active -->
+    <div>
+      <div class="cap good">PRACTICE CONTEXT — same rail</div>
+      <div class="win">
+        <div class="chrome"><div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+          <div class="url">localhost:8081/practice</div></div>
+        <div class="app">
+          <div class="rail">
+            <div class="ws"><div class="av">KD</div><div><div class="nm">Personal</div><div class="sb">Your practice</div></div><div class="chev">⌄</div></div>
+            <div class="railgroup">
+              <div class="glabel">Practice</div>
+              <div class="nav on"><span class="ic">◎</span> Practice</div>
+              <div class="nav"><span class="ic">▤</span> Library</div>
+              <div class="nav"><span class="ic">👁</span> Watch</div>
+              <div class="nav"><span class="ic">⌖</span> Atlas</div>
+            </div>
+            <div class="railgroup">
+              <div class="glabel">Studio</div>
+              <div class="nav"><span class="ic">⬚</span> Home</div>
+              <div class="nav"><span class="ic">◳</span> Blueprints <span class="ct">9</span></div>
+              <div class="nav"><span class="ic">⚇</span> Subscribers</div>
+              <div class="nav"><span class="ic">✉</span> Threads</div>
+            </div>
+            <div class="railfoot"><div class="av">KD</div><div><div class="nm">Kevin</div><div class="sb">Inbox · 5</div></div></div>
+          </div>
+          <div class="content">
+            <div class="ctitle">Nursing · Step 1</div>
+            <div class="csub">Your active practice</div>
+            <div class="stepcard">
+              <div class="now">NOW</div>
+              <div class="st">Pre-shift huddle: review the new lasix protocol</div>
+              <div class="seg"><span class="a">① Plan</span><span>›</span><span>Do</span><span>›</span><span>Review</span></div>
+            </div>
+            <div class="ph"><div class="bar"></div><div class="bar s"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="colnote">Today's 5 tabs become the <b>Practice</b> group — nothing lost. The blue accent =
+      practitioner mode.</div>
+    </div>
+
+    <!-- Studio context active -->
+    <div>
+      <div class="cap good">STUDIO CONTEXT — identical frame</div>
+      <div class="win">
+        <div class="chrome"><div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+          <div class="url">localhost:8081/studio</div></div>
+        <div class="app">
+          <div class="rail">
+            <div class="ws"><div class="av">KD</div><div><div class="nm">Personal</div><div class="sb">Your practice</div></div><div class="chev">⌄</div></div>
+            <div class="railgroup">
+              <div class="glabel">Practice</div>
+              <div class="nav"><span class="ic">◎</span> Practice</div>
+              <div class="nav"><span class="ic">▤</span> Library</div>
+              <div class="nav"><span class="ic">👁</span> Watch</div>
+              <div class="nav"><span class="ic">⌖</span> Atlas</div>
+            </div>
+            <div class="railgroup">
+              <div class="glabel">Studio</div>
+              <div class="nav on studio"><span class="ic">⬚</span> Home</div>
+              <div class="nav"><span class="ic">◳</span> Blueprints <span class="ct">9</span></div>
+              <div class="nav"><span class="ic">⚇</span> Subscribers</div>
+              <div class="nav"><span class="ic">✉</span> Threads</div>
+              <div class="nav"><span class="ic">$</span> Payouts</div>
+            </div>
+            <div class="railfoot"><div class="av">KD</div><div><div class="nm">Kevin</div><div class="sb">Inbox · 5</div></div></div>
+          </div>
+          <div class="content">
+            <div class="ctitle">Good morning, Kevin.</div>
+            <div class="csub">9 blueprints · 0 active subscribers</div>
+            <div class="statrow">
+              <div class="stat"><div class="k">Subscribers</div><div class="v">0</div></div>
+              <div class="stat"><div class="k">Reflected</div><div class="v">—</div></div>
+              <div class="stat"><div class="k">Threads</div><div class="v">0</div></div>
+            </div>
+            <div class="ph">
+              <div class="skel-card"><div class="sq" style="background:#7B86C8"></div><div><div class="l1"></div><div class="l2"></div></div></div>
+              <div class="skel-card"><div class="sq" style="background:#A05B6E"></div><div><div class="l1"></div><div class="l2"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="colnote">Same rail, same window — only the active item + accent (purple) change. <b>No jarring
+      jump, no separate back-door.</b> "Cohorts I mentor" / "Subscriber threads" become Studio's
+      <b>Subscribers</b> / <b>Threads</b> — one home, not two.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= OPTION B ================= -->
+<section id="b">
+  <div class="sec-tag">Option B · better for phone / tab-bar</div>
+  <div class="sec-h">A "Do · Create" toggle in the header — chrome stays put, the tab set swaps</div>
+  <p class="sec-p">If the rail feels heavy (esp. on phone), keep the outer chrome <b>frozen</b> and flip one segmented
+  control. The avatar, Inbox bell, and brand never move; only the row of destinations underneath changes.
+  Same anti-jarring goal, lighter footprint.</p>
+
+  <div class="grid2">
+    <div>
+      <div class="cap good">DO mode</div>
+      <div class="win">
+        <div class="chrome"><div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+          <div class="url">localhost:8081/practice</div></div>
+        <div class="topbar">
+          <div class="brand">BetterAt</div>
+          <div class="modeseg"><button class="on">◎ Do</button><button>⬚ Create</button></div>
+          <div class="spacer"></div>
+          <div class="iconbtn">✉<span class="dot">5</span></div>
+          <div class="miniav">KD</div>
+        </div>
+        <div class="tabstrip">
+          <div class="t on"><span>◎</span> Practice</div>
+          <div class="t"><span>▤</span> Library</div>
+          <div class="t"><span>👁</span> Watch</div>
+          <div class="t"><span>⌖</span> Atlas</div>
+        </div>
+        <div class="content" style="height:330px">
+          <div class="stepcard">
+            <div class="now">NOW</div>
+            <div class="st">Pre-shift huddle: review the new lasix protocol</div>
+            <div class="seg"><span class="a">① Plan</span><span>›</span><span>Do</span><span>›</span><span>Review</span></div>
+          </div>
+          <div class="ph"><div class="bar"></div><div class="bar s"></div></div>
+        </div>
+      </div>
+      <div class="colnote">Inbox lives in the header as a bell with its badge — out of the menu, always reachable.</div>
+    </div>
+
+    <div>
+      <div class="cap good">CREATE mode — same chrome, swapped tabs</div>
+      <div class="win">
+        <div class="chrome"><div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+          <div class="url">localhost:8081/studio</div></div>
+        <div class="topbar">
+          <div class="brand">BetterAt</div>
+          <div class="modeseg"><button>◎ Do</button><button class="on create">⬚ Create</button></div>
+          <div class="spacer"></div>
+          <div class="iconbtn">✉<span class="dot">5</span></div>
+          <div class="miniav">KD</div>
+        </div>
+        <div class="tabstrip">
+          <div class="t on create"><span>⬚</span> Home</div>
+          <div class="t"><span>◳</span> Blueprints</div>
+          <div class="t"><span>⚇</span> Subscribers</div>
+          <div class="t"><span>✉</span> Threads</div>
+          <div class="t"><span>$</span> Payouts</div>
+        </div>
+        <div class="content" style="height:330px">
+          <div class="ctitle">Good morning, Kevin.</div>
+          <div class="csub">9 blueprints · 0 active subscribers</div>
+          <div class="statrow">
+            <div class="stat"><div class="k">Subscribers</div><div class="v">0</div></div>
+            <div class="stat"><div class="k">Threads</div><div class="v">0</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="colnote">The brand, bell and avatar are pixel-identical across modes — that shared frame is
+      what removes the "different app" feeling.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MENU CLEANUP ================= -->
+<section id="menu">
+  <div class="sec-tag">Profile menu</div>
+  <div class="sec-h">Strip it to identity + account. Everything else has a real home now.</div>
+  <p class="sec-p">Once Studio owns create+mentor and Inbox is in the chrome, the menu stops being a junk drawer.
+  Workspace switching moves into the rail/header switcher; the menu just confirms who you are and links to settings.</p>
+
+  <div class="grid2">
+    <div>
+      <div class="cap bad">TODAY — 6 doors, half redundant</div>
+      <div class="menu">
+        <div class="mhead"><div class="av">KD</div><div><div class="nm">Kevin Denney</div><div class="em">denneyke@gmail.com</div></div></div>
+        <div class="pubface">
+          <div class="t">Your public face</div>
+          <div class="d">Nursing · Aberdeen Harbor — what peers and orgs see.</div>
+          <div class="row">👁 View as others see you <span class="ed">Edit</span></div>
+        </div>
+        <div class="mgroup">
+          <div class="mglabel">Workspace</div>
+          <div class="wsrow"><div class="av jhu" style="background:#0B4DA2">JH</div><div><div style="font-size:13px;font-weight:600">Johns Hopkins…</div><div style="font-size:10.5px;color:var(--ink-3)">Administrator</div></div></div>
+          <div class="wsrow"><div class="av" style="background:#111">P</div><div style="font-size:13px;font-weight:600">Personal</div><div class="check">✓</div></div>
+        </div>
+        <div class="mgroup">
+          <div class="mrow"><span class="ic">⬚</span><span class="lbl">Creator Studio</span><span class="ct">9 blueprints</span></div>
+          <div class="mrow"><span class="ic">⚇</span><span class="lbl">Cohorts I mentor</span><span class="ct">0</span></div>
+          <div class="mrow"><span class="ic">✉</span><span class="lbl">Subscriber threads</span><span class="ct">0</span></div>
+          <div class="mrow"><span class="ic">◎</span><span class="lbl">My Practice</span></div>
+          <div class="mrow"><span class="ic">📥</span><span class="lbl">Inbox</span><span class="badge">5</span></div>
+        </div>
+        <div class="mgroup">
+          <div class="mrow"><span class="ic">⚙</span><span class="lbl">Account &amp; settings</span><span class="chev">›</span></div>
+          <div class="mrow danger"><span class="ic">⎋</span><span class="lbl">Sign out</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="cap good">AFTER — identity, switch, settings</div>
+      <div class="menu">
+        <div class="mhead"><div class="av">KD</div><div><div class="nm">Kevin Denney</div><div class="em">denneyke@gmail.com</div></div></div>
+        <div class="pubface">
+          <div class="t">Your profile</div>
+          <div class="d">One screen — preview exactly what peers &amp; orgs see, edit inline.</div>
+          <div class="row">👤 View &amp; edit profile <span class="ed">Open</span></div>
+        </div>
+        <div class="mgroup">
+          <div class="mglabel">Switch workspace</div>
+          <div class="wsrow"><div class="av" style="background:#111">P</div><div style="font-size:13px;font-weight:600">Personal</div><div class="check">✓</div></div>
+          <div class="wsrow"><div class="av" style="background:#0B4DA2">JH</div><div><div style="font-size:13px;font-weight:600">Johns Hopkins…</div><div style="font-size:10.5px;color:var(--ink-3)">Administrator</div></div></div>
+          <div class="wsrow" style="color:var(--studio);font-size:12.5px;font-weight:650"><span style="width:26px;text-align:center">＋</span> Join another organization</div>
+        </div>
+        <div class="mgroup">
+          <div class="mrow strike"><span class="ic">⬚</span><span class="lbl">Creator Studio</span><span class="movetag">→ in rail</span></div>
+          <div class="mrow strike"><span class="ic">⚇</span><span class="lbl">Cohorts I mentor</span><span class="movetag">→ Studio · Subscribers</span></div>
+          <div class="mrow strike"><span class="ic">✉</span><span class="lbl">Subscriber threads</span><span class="movetag">→ Studio · Threads</span></div>
+          <div class="mrow strike"><span class="ic">◎</span><span class="lbl">My Practice</span><span class="killtag">remove · it's the tab</span></div>
+          <div class="mrow strike"><span class="ic">📥</span><span class="lbl">Inbox</span><span class="movetag">→ chrome bell</span></div>
+        </div>
+        <div class="mgroup">
+          <div class="mrow"><span class="ic">⚙</span><span class="lbl">Account &amp; settings</span><span class="chev">›</span></div>
+          <div class="mrow"><span class="ic">？</span><span class="lbl">Help &amp; feedback</span><span class="chev">›</span></div>
+          <div class="mrow danger"><span class="ic">⎋</span><span class="lbl">Sign out</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="q"><b>Why "My Practice" can die:</b> it was a shortcut for web users arriving from a marketing
+  landing who needed a route to their dashboard. Once Practice is a permanent context (rail or Do toggle),
+  the menu link is a duplicate door. Keep the deep-link <code>/practice</code> for the landing CTA — just drop it from the menu.</div>
+</section>
+
+<!-- ================= PROFILE COMBINE ================= -->
+<section id="profile">
+  <div class="sec-tag">Public face = profile</div>
+  <div class="sec-h">One screen with a Preview ⇄ Edit toggle — stop bouncing between two pages</div>
+  <p class="sec-p">Today "View as others see you" is a separate read-only page and editing happens back in Profile.
+  Collapse them: a single profile screen defaults to <b>Preview</b> (literally the stranger's view); flip to
+  <b>Edit</b> and the same sections become tappable in place. What you see is what they get.</p>
+
+  <div class="grid2">
+    <div>
+      <div class="cap good">PREVIEW — exactly what others see</div>
+      <div class="win profilewin">
+        <div class="chrome"><div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+          <div class="url">localhost:8081/profile</div></div>
+        <div class="content" style="height:432px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="ctitle" style="font-size:16px">Profile</div>
+            <div class="seg2"><button class="on">Preview</button><button>Edit</button></div>
+          </div>
+          <div class="viewing-as">👁 Viewing as a stranger sees you — nothing here is editable in this mode.</div>
+          <div class="pcover"><div class="pa">⛵</div></div>
+          <div style="margin-top:28px"><div style="font-size:16px;font-weight:750">Kevin Denney</div>
+            <div style="font-size:12.5px;color:var(--ink-3)">Nursing · Aberdeen Harbor</div></div>
+          <div class="psec"><div class="h">About</div><div class="m">Cardiac stepdown RN building toward CCRN. Sailing on weekends.</div></div>
+          <div class="psec"><div class="h">Public steps</div><div class="v">Head-to-toe on the cardiac stepdown pt</div></div>
+        </div>
+      </div>
+      <div class="colnote">Same route as the menu's "View &amp; edit profile". This <b>is</b> the public face —
+      reuses your existing <code>public-face-populated-mock</code> layout.</div>
+    </div>
+
+    <div>
+      <div class="cap good">EDIT — same layout, sections go live</div>
+      <div class="win profilewin">
+        <div class="chrome"><div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+          <div class="url">localhost:8081/profile</div></div>
+        <div class="content" style="height:432px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="ctitle" style="font-size:16px">Profile</div>
+            <div class="seg2"><button>Preview</button><button class="on">Edit</button></div>
+          </div>
+          <div class="pcover"><div class="pa">⛵</div>
+            <div style="position:absolute;right:10px;bottom:8px;background:rgba(255,255,255,.92);border-radius:7px;padding:3px 9px;font-size:10.5px;font-weight:700;color:var(--studio)">Change cover</div>
+          </div>
+          <div style="margin-top:28px"><div style="font-size:16px;font-weight:750">Kevin Denney</div>
+            <div style="font-size:12.5px;color:var(--ink-3)">Nursing · Aberdeen Harbor</div></div>
+          <div class="psec"><div class="eb">Edit</div><div class="h">About</div><div class="m">Cardiac stepdown RN building toward CCRN. Sailing on weekends.</div></div>
+          <div class="psec"><div class="eb">Manage</div><div class="h">Public steps</div><div class="m">Choose which steps appear · 1 shown</div></div>
+          <div class="psec"><div class="eb">Sections</div><div class="h">Visibility</div><div class="m">Toggle what each audience can see</div></div>
+        </div>
+      </div>
+      <div class="colnote">The section-visibility toggles you already shipped live here. Flip back to Preview to
+      confirm — no second page, no guessing.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SUMMARY ================= -->
+<section id="summary">
+  <div class="takeaways">
+    <h3>What I'd actually ship</h3>
+    <ul>
+      <li><span class="n">1</span><div><b>Pick Option A for web, Option B for phone.</b> Same principle — one frozen
+        frame, contexts swap inside it — expressed as a left rail on wide screens and a Do·Create toggle on narrow.</div></li>
+      <li><span class="n">2</span><div><b>Studio is the single home for create + mentor.</b> Delete "Cohorts I mentor"
+        and "Subscriber threads" from the menu; they're already Studio's Subscribers &amp; Threads.</div></li>
+      <li><span class="n">3</span><div><b>Promote Inbox to the chrome</b> (rail footer / header bell) with its badge.
+        It's a capture surface, not an account setting.</div></li>
+      <li><span class="n">4</span><div><b>Drop "My Practice" from the menu.</b> Keep the <code>/practice</code> deep-link
+        for marketing CTAs; the menu entry is a duplicate once Practice is a permanent context.</div></li>
+      <li><span class="n">5</span><div><b>Merge public face + edit into one Profile</b> with a Preview ⇄ Edit toggle.
+        Preview is literally the stranger's render; Edit makes the same sections live.</div></li>
+      <li><span class="n">6</span><div><b>Make the workspace switcher real.</b> Personal vs JHU should swap the shell's
+        data/permissions — that's the one menu item worth keeping prominent.</div></li>
+    </ul>
+  </div>
+  <div class="q">Open question for you: should the workspace switcher sit <b>top of the rail</b> (Option A) or get its
+  own slot in the header next to the avatar (Option B)? And do you want Studio always visible in the rail, or only
+  after you've published your first blueprint?</div>
+</section>
+
+</body>
+</html>

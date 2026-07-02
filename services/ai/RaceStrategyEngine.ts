@@ -952,7 +952,7 @@ CRITICAL OUTPUT RULES:
   }
 
   /**
-   * Build comprehensive strategy prompt for AI with RegattaFlow Playbook + RegattaFlow Coach integration
+   * Build comprehensive strategy prompt for AI with BetterAt Playbook + BetterAt Coach integration
    */
   private buildStrategyPrompt(
     course: RaceCourseExtraction,
@@ -1183,7 +1183,7 @@ ABSOLUTE: Do NOT call any tools or code execution utilities. Respond directly wi
         phase: 'start',
         priority: 'critical',
         action: `Establish position at ${preferredSide} third of start line, maintaining clear air and acceleration lane`,
-        theory: `Start line bias analysis: With ${conditions.wind.direction}° wind and ${conditions.current.speed}kt current (${conditions.current.tidePhase} tide), the ${preferredSide} end offers 2-3 boat length advantage. Quantified framework: Starting in top third of fleet yields 15-20% better average finish position (RegattaFlow Playbook, Racing to Win).`,
+        theory: `Start line bias analysis: With ${conditions.wind.direction}° wind and ${conditions.current.speed}kt current (${conditions.current.tidePhase} tide), the ${preferredSide} end offers 2-3 boat length advantage. Quantified framework: Starting in top third of fleet yields 15-20% better average finish position (BetterAt Playbook, Racing to Win).`,
         execution: `T-5min: Check line bias with head-to-wind test. T-3min: Establish position 2-3 boat lengths behind line. T-1min: Accelerate on starboard tack, targeting ${preferredSide}-third position. T-10sec: Full speed with clean air to leeward. Key: Maintain bow-out position to control acceleration timing.`,
         championStory: `Similar conditions at 2019 Worlds - Paul Goodison used this ${preferredSide}-end bias to gain 8 boat lengths by first mark, converting to race win.`,
         rationale: `Venue knowledge indicates ${venue.localKnowledge.windPatterns.typical}. Current ${conditions.current.tidePhase} tide creates measurable advantage at ${preferredSide} end. Risk: Moderate fleet density, requires clean air management.`,
@@ -1202,7 +1202,7 @@ ABSOLUTE: Do NOT call any tools or code execution utilities. Respond directly wi
           phase: 'first_beat',
           priority: 'critical',
           action: `Play ${preferredSide} side of course with disciplined tacking on headers greater than 7°`,
-          theory: `Shift mathematics (RegattaFlow Playbook framework): In ${windSpeed}kt conditions with oscillating wind pattern, tacking on headers >7° yields 2-3 boat length gain per shift cycle. Venue pattern shows ${venue.localKnowledge.windPatterns.typical}. Persistent shift of 10°+ = 5-8 boat length advantage at windward mark.`,
+          theory: `Shift mathematics (BetterAt Playbook framework): In ${windSpeed}kt conditions with oscillating wind pattern, tacking on headers >7° yields 2-3 boat length gain per shift cycle. Venue pattern shows ${venue.localKnowledge.windPatterns.typical}. Persistent shift of 10°+ = 5-8 boat length advantage at windward mark.`,
           execution: `Establish ${preferredSide} side dominance within first 2 minutes. Sail on port tack lifts, tack on 7°+ headers. Monitor compass: If lifted 5°+ from median, continue; if headed 7°+, tack immediately. Use puff response: Drive for speed in lulls, pinch 2° in puffs for height. Championship technique: "Bow down" in velocity drop, "Bow up" in pressure increase.`,
           championStory: `2022 Worlds Hong Kong - Sarah Douglas used this disciplined header-tacking on starboard-favored beat to pass 12 boats, leveraging local ${preferredSide} shift pattern exactly like current conditions.`,
           rationale: `Venue intelligence: ${venue.localKnowledge.expertTips[0]}. Current forecast shows ${conditions.wind.forecast.nextHour.speed}kt in next hour. Tactical imperative: ${venue.localKnowledge.tacticalConsiderations[0]}`,
@@ -1218,7 +1218,7 @@ ABSOLUTE: Do NOT call any tools or code execution utilities. Respond directly wi
           phase: 'first_beat',
           priority: 'important',
           action: 'Minimize tacks in current pressure, prioritize boat speed over perfect angles',
-          theory: `In ${windSpeed}kt conditions with ${conditions.waves.height}m waves, each tack costs 2-3 boat lengths. RegattaFlow Coach framework: "Speed made good" beats "pointing high" by 15-20% in sub-optimal boat speed conditions. With ${conditions.current.speed}kt current, additional 10% speed loss per maneuver.`,
+          theory: `In ${windSpeed}kt conditions with ${conditions.waves.height}m waves, each tack costs 2-3 boat lengths. BetterAt Coach framework: "Speed made good" beats "pointing high" by 15-20% in sub-optimal boat speed conditions. With ${conditions.current.speed}kt current, additional 10% speed loss per maneuver.`,
           execution: `Limit tacks to <8 per beat unless responding to major shift (>10°). When tacking: aggressive roll technique, maintain speed through tack, accelerate to full speed before pinching. Crew timing: "Ready-tack-trimming" cadence for minimum speed loss. Avoid tacking in lulls - wait for pressure.`,
           rationale: `Current sea state (${conditions.waves.height}m waves, ${conditions.waves.period}s period) creates significant tacking penalty. Venue common mistake: "${venue.localKnowledge.commonMistakes[0]}". Prioritize clean lanes over tacking for small shifts.`,
           confidence: 82,
@@ -1232,7 +1232,7 @@ ABSOLUTE: Do NOT call any tools or code execution utilities. Respond directly wi
           phase: 'windward_mark',
           priority: 'critical',
           action: 'Approach windward mark on starboard lay line with 2-boat-length cushion, execute championship "wide-tight-wide" rounding',
-          theory: `Tactical framework (RegattaFlow Playbook): Windward mark gains of 1-3 positions possible through superior rounding technique. "Wide entry-tight apex-wide exit" maintains 95%+ boat speed through rounding vs 70% speed loss in tight-tight-tight rounding. In ${windSpeed}kt, speed differential = 2 boat lengths gained on competitors.`,
+          theory: `Tactical framework (BetterAt Playbook): Windward mark gains of 1-3 positions possible through superior rounding technique. "Wide entry-tight apex-wide exit" maintains 95%+ boat speed through rounding vs 70% speed loss in tight-tight-tight rounding. In ${windSpeed}kt, speed differential = 2 boat lengths gained on competitors.`,
           execution: `Approach on starboard at full speed, aiming for 2-boat-length over-stand (vs tight lay line). Enter rounding 1.5 boat widths from mark. At 3 boat-lengths out: call "trimming" for crew. At 1 boat-length: smooth turn while maintaining heel angle. Apex: Pass 0.5 boat-length from mark. Exit: Accelerate wide, establish inside overlap for next leg. Crew execution: Aggressive spin set, "Hoist-trim-play" cadence. Key: Never sacrifice speed for tight rounding.`,
           championStory: `2018 Worlds - Australian team won gold using this exact "wide-tight-wide" technique, gaining average 1.8 positions per windward mark rounding across 12 races. Hans Fogh's legendary technique.`,
           rationale: `Championship mark rounding technique proven across 40+ years of competitive sailing. Current ${windSpeed}kt conditions ideal for aggressive wide-entry approach. Risk: Requires clear air after rounding for downwind acceleration.`,
@@ -1244,7 +1244,7 @@ ABSOLUTE: Do NOT call any tools or code execution utilities. Respond directly wi
           phase: 'leeward_mark',
           priority: 'important',
           action: 'Execute tight leeward mark rounding with immediate tack to clear air if needed',
-          theory: `Leeward mark strategy (RegattaFlow Coach framework): Tight rounding maintains right-of-way and prevents inside overlaps. In fleet racing, inside position = control. Post-rounding: Immediate clear air more important than perfect angle - 10% speed advantage beats 5° angle advantage.`,
+          theory: `Leeward mark strategy (BetterAt Coach framework): Tight rounding maintains right-of-way and prevents inside overlaps. In fleet racing, inside position = control. Post-rounding: Immediate clear air more important than perfect angle - 10% speed advantage beats 5° angle advantage.`,
           execution: `Approach on port gybe, establish inside position. Call overlaps at 2-boat-lengths. Execute tight rounding 0.3 boat-length from mark. Post-rounding: Assess clear air - if compromised, tack within 3 boat-lengths to port for clean lane. If clear: continue on starboard with aggressive bow-down boat speed mode for 10 boat-lengths before pinching for height.`,
           rationale: `Fleet density requires aggressive inside position securing. Venue pattern: ${venue.localKnowledge.tacticalConsiderations[1]}. Post-rounding clear air critical for second beat performance.`,
           confidence: 85,
@@ -1258,7 +1258,7 @@ ABSOLUTE: Do NOT call any tools or code execution utilities. Respond directly wi
           phase: 'downwind',
           priority: 'important',
           action: `Sail downwind with VMG optimization - surf ${conditions.waves.height}m waves at 15° above rhumb line, gybe on headers`,
-          theory: `Downwind shift detection (RegattaFlow Playbook framework): Unlike upwind where shifts are obvious, downwind requires velocity analysis. In ${windSpeed}kt with ${conditions.waves.height}m waves, optimal VMG = 1.05x straight-line speed. Gybing on 10°+ headers gains 2-3 boat lengths per shift cycle. Wave surfing adds 15-20% instantaneous speed.`,
+          theory: `Downwind shift detection (BetterAt Playbook framework): Unlike upwind where shifts are obvious, downwind requires velocity analysis. In ${windSpeed}kt with ${conditions.waves.height}m waves, optimal VMG = 1.05x straight-line speed. Gybing on 10°+ headers gains 2-3 boat lengths per shift cycle. Wave surfing adds 15-20% instantaneous speed.`,
           execution: `Establish optimal VMG angle (typically 15° high of rhumb line in ${windSpeed}kt). Focus on wave surfing: "Hunt-catch-ride" technique. When wave approaches: bear off 5°, accelerate to surf, ride wave 15-20m, then head up before next wave. Gybe on sustained headers >10°. Avoid gybing in lulls. Crew: Aggressive spinnaker trim - "Ease-head up-trim-head down" cadence. In ${conditions.wind.speed}kt, expect to gybe 4-6 times per downwind leg.`,
           rationale: `Current conditions (${windSpeed}kt wind, ${conditions.waves.height}m waves at ${conditions.waves.period}s period) ideal for aggressive wave surfing and VMG optimization. Venue factor: ${venue.localKnowledge.windPatterns.localEffects[0]}. Championship technique prioritizes speed over angle.`,
           confidence: 80,
@@ -1273,7 +1273,7 @@ ABSOLUTE: Do NOT call any tools or code execution utilities. Respond directly wi
           phase: 'downwind',
           priority: 'important',
           action: 'Maintain loose cover on nearby boats, establish tactical position for leeward mark',
-          theory: `Covering tactics (RegattaFlow Coach framework): Downwind covering = "loose cover" maintaining 3-5 boat-length proximity while optimizing own VMG. Too tight = speed loss. Too loose = escape opportunity. Tactical positioning: Secure inside overlap at 3-4 boat-lengths from mark.`,
+          theory: `Covering tactics (BetterAt Coach framework): Downwind covering = "loose cover" maintaining 3-5 boat-length proximity while optimizing own VMG. Too tight = speed loss. Too loose = escape opportunity. Tactical positioning: Secure inside overlap at 3-4 boat-lengths from mark.`,
           execution: `If leading group: Maintain position between competitors and next mark, prioritizing own speed over tight cover. If chasing: Split to opposite gybe if covered, then re-converge at 5-boat-length "merge zone" before mark. At 8 boat-lengths from leeward mark: Execute final positioning gybe to establish inside overlap. Aggressive acceleration in final approach.`,
           rationale: `Fleet racing rewards tactical positioning over pure speed. Securing inside overlap = 50% probability of position gain at mark. Venue factor: ${venue.localKnowledge.expertTips[1] || 'Standard tactical positioning applies'}.`,
           confidence: 78,
@@ -1288,7 +1288,7 @@ ABSOLUTE: Do NOT call any tools or code execution utilities. Respond directly wi
         action: 'Execute aggressive finish approach on starboard tack, covering nearby boats within 2-position range',
         theory: `Finish strategy framework: Final 100m = highest impact-per-meter zone. Each boat-length = potential position change. Covering tactics: If leading, cover boats within 2 positions (1 boat-length per position differential). If chasing, split to opposite tack when >3 boat-lengths behind. Championship technique: "Speed for position" - maintain 100% boat speed while covering.`,
         execution: `At 200m from finish: Assess positions - identify boats within 2-position range. If leading these boats: Execute loose cover on starboard tack, matching their moves. If trailing: Split to port tack, cross ahead if possible, or gybe/tack at 50m for different finish angle. Final 30m: Maximum acceleration, bow-down mode. Never sacrifice speed for tight covering in final 20m - speed differential determines position. Crew: Full hiking, perfect trim.`,
-        championStory: `Classic RegattaFlow Playbook technique - 1984 Olympics, RegattaFlow Playbook gained 3 positions in final 50m by maintaining superior boat speed while loosely covering, proving speed-for-position approach.`,
+        championStory: `Classic BetterAt Playbook technique - 1984 Olympics, BetterAt Playbook gained 3 positions in final 50m by maintaining superior boat speed while loosely covering, proving speed-for-position approach.`,
         rationale: `Statistical analysis: 40% of position changes occur within final 100m due to tactical errors and speed differentials. Current ${windSpeed}kt conditions reward aggressive finish execution. Venue consideration: ${venue.localKnowledge.windPatterns.localEffects[venue.localKnowledge.windPatterns.localEffects.length - 1]}.`,
         confidence: 90,
         conditions: [`Wind: ${windSpeed}kt`, `Finish line configuration: Standard committee boat`],

@@ -146,7 +146,7 @@ export default function ConnectedDevicesScreen() {
             style={styles.ctaButton}
             onPress={() =>
               Linking.openURL(
-                'mailto:support@regattaflow.com?subject=Device%20Integration%20Feedback&body=I%27d%20like%20to%20request%20support%20for%20these%20devices%3A%20'
+                'mailto:info@better.at?subject=Device%20Integration%20Feedback&body=I%27d%20like%20to%20request%20support%20for%20these%20devices%3A%20'
               )
             }
           >

@@ -38,7 +38,7 @@ export class RaceExtractionAgent extends BaseAgentService {
       model: 'claude-3-5-haiku-20241022',
       maxTokens: 4096,
       temperature: 0.1, // Low temperature for precise extraction
-      systemPrompt: `You are an expert sailing race document parser for RegattaFlow. Your role is to extract structured race information from unstructured text such as:
+      systemPrompt: `You are an expert sailing race document parser for BetterAt. Your role is to extract structured race information from unstructured text such as:
 
 - Sailing Instructions (SIs)
 - Notice of Race (NOR)

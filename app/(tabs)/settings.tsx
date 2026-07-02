@@ -150,7 +150,7 @@ export default function SettingsScreen() {
     const fallbackEmail =
       userProfile?.email ||
       user?.email ||
-      `regatta-${user?.id ?? 'demo'}@demo.regattaflow.io`;
+      `betterat-${user?.id ?? 'demo'}@demo.betterat.app`;
 
     setClaimLoading(true);
     try {
@@ -462,7 +462,7 @@ export default function SettingsScreen() {
             icon="help-circle-outline"
             title="Help & Support"
             subtitle="Get help and contact support"
-            onPress={() => showAlert('Support', 'Email us at support@regattaflow.com')}
+            onPress={() => showAlert('Support', 'Email us at info@better.at')}
           />
           <SettingItem
             icon="document-text-outline"

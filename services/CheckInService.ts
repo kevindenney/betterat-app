@@ -617,7 +617,7 @@ class CheckInService {
   /**
    * Generate QR code URL for self-check-in
    */
-  getQRCodeUrl(qrToken: string, baseUrl: string = 'https://regattaflow.com'): string {
+  getQRCodeUrl(qrToken: string, baseUrl: string = 'https://better.at'): string {
     return `${baseUrl}/check-in/${qrToken}`;
   }
 

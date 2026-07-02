@@ -107,7 +107,7 @@ export default function EmbedDiscussWidget() {
   const handlePostPress = useCallback(
     (post: FeedPost) => {
       // Open in new tab or deep link to app
-      const url = `https://regattaflow.com/venue/post/${post.id}`;
+      const url = `https://better.at/venue/post/${post.id}`;
       if (Platform.OS === 'web') {
         window.open(url, '_blank');
       }
@@ -236,7 +236,7 @@ export default function EmbedDiscussWidget() {
         <AppDownloadBanner
           variant="sticky"
           headline="Want more sailing discussions?"
-          subheadline="Join 100+ communities on RegattaFlow"
+          subheadline="Join 100+ communities on BetterAt"
           ctaText="Get the App"
           bottomOffset={bottomOffset}
           dismissible

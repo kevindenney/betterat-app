@@ -38,11 +38,11 @@ export class CalendarService {
 
     let icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//RegattaFlow//Coaching Session//EN
+PRODID:-//BetterAt//Coaching Session//EN
 CALSCALE:GREGORIAN
 METHOD:REQUEST
 BEGIN:VEVENT
-UID:${Date.now()}@regattaflow.com
+UID:${Date.now()}@better.at
 DTSTAMP:${formatDate(new Date())}
 DTSTART:${formatDate(event.startTime)}
 DTEND:${formatDate(event.endTime)}
@@ -92,7 +92,7 @@ END:VCALENDAR`;
 
     return this.generateICSFile({
       summary: `Coaching Session: ${params.sessionType}`,
-      description: `Coaching session with ${params.coachName}\\n\\nType: ${params.sessionType}\\nDuration: ${params.durationMinutes} minutes\\n\\nManaged by RegattaFlow Coach Marketplace`,
+      description: `Coaching session with ${params.coachName}\\n\\nType: ${params.sessionType}\\nDuration: ${params.durationMinutes} minutes\\n\\nManaged by BetterAt Coach Marketplace`,
       location: params.location,
       startTime,
       endTime,
@@ -125,7 +125,7 @@ END:VCALENDAR`;
 
     return this.generateICSFile({
       summary: params.regattaName,
-      description: params.description || `Race at ${params.venueName}\\n\\nManaged by RegattaFlow`,
+      description: params.description || `Race at ${params.venueName}\\n\\nManaged by BetterAt`,
       location: params.location,
       startTime,
       endTime,

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Two dials: Workspace × Surface (Practice · Studio · Admin)</title>
+<style>
+  :root {
+    --bg:      #F2F2F7;
+    --card:    #FFFFFF;
+    --ink:     #1C1C1E;
+    --ink-2:   #5B6068;
+    --ink-3:   #9097A1;
+    --label:   #8E8E93;
+    --hair:    #E6E7EB;
+    --hair-2:  #F0F1F4;
+    --blue:    #007AFF;
+    --studio:  #6366F1;
+    --admin:   #475569;
+    --studio-bg:#EEEEFE;
+    --green:   #1E9E6A;
+    --coral:   #FF6B5E;
+    --red:     #FF3B30;
+    --amber:   #E08A2B;
+    --jhu:     #0B4DA2;
+    --fleet:   #0E7490;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    background: #DCDCE1; color: var(--ink); line-height: 1.42;
+    padding: 44px 24px 90px;
+  }
+  .masthead { max-width: 1180px; margin: 0 auto 20px; text-align: center; }
+  .masthead h1 { font-size: 25px; font-weight: 800; letter-spacing: -.02em; }
+  .masthead p  { color: #4b5057; font-size: 14px; margin: 9px auto 0; max-width: 760px; }
+  .masthead p b { color: #2a2d33; }
+
+  /* two-dial diagram */
+  .dials { max-width: 920px; margin: 26px auto 0; background:#fff; border:1px solid var(--hair);
+    border-radius:18px; padding: 22px 24px; }
+  .dials h3 { font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); text-align:center; }
+  .matrix { margin-top:18px; display:grid; grid-template-columns: 200px 1fr; gap: 12px 18px; align-items:center; }
+  .ws-cell { display:flex; align-items:center; gap:10px; }
+  .ws-cell .badge { width:32px; height:32px; border-radius:9px; color:#fff; font-size:11px; font-weight:800; display:grid; place-items:center; flex-shrink:0; }
+  .ws-cell .nm { font-size:14px; font-weight:750; }
+  .ws-cell .role { font-size:10.5px; color:var(--ink-3); }
+  .surf-cell { display:flex; gap:9px; flex-wrap:wrap; }
+  .schip { display:inline-flex; align-items:center; gap:7px; border-radius:999px; padding:6px 13px; font-size:12.5px; font-weight:700; }
+  .schip i { width:8px; height:8px; border-radius:50%; }
+  .schip.practice { background:#EAF4FF; color:var(--blue); } .schip.practice i { background:var(--blue); }
+  .schip.studio { background:#EFEFFE; color:var(--studio); } .schip.studio i { background:var(--studio); }
+  .schip.admin { background:#EEF1F5; color:var(--admin); } .schip.admin i { background:var(--admin); }
+  .schip.muted { background:#F4F4F6; color:var(--ink-3); } .schip.muted i { background:#C9CDD6; }
+  .mrowline { grid-column:1 / -1; height:1px; background:var(--hair-2); }
+  .dials .foot { margin-top:18px; font-size:12.5px; color:#4b5057; text-align:center; line-height:1.55; }
+  .dials .foot b { color:#1f2329; }
+
+  .row-tag { max-width: 1180px; margin: 46px auto 18px; }
+  .row-tag .t { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--studio); }
+  .row-tag .h { font-size: 19px; font-weight: 750; letter-spacing: -.01em; margin-top: 6px; }
+  .row-tag .d { font-size: 13.5px; color: #4b5057; margin-top: 5px; max-width: 780px; }
+  .row-tag .d b { color: #2a2d33; }
+
+  .stage { display: flex; gap: 38px; justify-content: center; align-items: flex-start; flex-wrap: wrap;
+    max-width: 1180px; margin: 0 auto; }
+  .col { width: 312px; }
+  .col .cap { text-align: center; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 13px; }
+  .col .cap.blue { color: var(--blue); } .col .cap.purple { color: var(--studio); } .col .cap.admin { color: var(--admin); } .col .cap.fleet { color: var(--fleet); }
+  .col .note { font-size: 12.5px; color: #4b5057; line-height: 1.55; margin-top: 14px; }
+  .col .note b { color: #1f2329; }
+
+  .phone { width: 312px; border-radius: 44px; padding: 11px; background: #0b0b0d; box-shadow: 0 20px 52px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.18); }
+  .screen { position: relative; border-radius: 34px; overflow: hidden; background: var(--bg); height: 668px; }
+  .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 112px; height: 30px; background: #000; border-radius: 17px; z-index: 9; }
+  .status { height: 46px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 24px 6px; font-size: 13px; font-weight: 600; }
+  .status .dots { letter-spacing: 2px; }
+
+  .appbar { display:flex; align-items:center; gap:8px; padding: 4px 14px 12px; }
+  .ctxchip { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--hair); border-radius: 999px; padding: 6px 13px 6px 7px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .ctxchip .led { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .ctxchip .mono { width:21px; height:21px; border-radius:6px; color:#fff; font-size:9px; font-weight:800; display:grid; place-items:center; flex-shrink:0; }
+  .ctxchip .nm { font-size:13px; font-weight:750; }
+  .ctxchip .sf { font-size:13px; font-weight:750; }
+  .ctxchip .chev { font-size:11px; color: var(--ink-3); }
+  .ctxchip.practice .led { background:var(--blue); }
+  .ctxchip.studio .led { background:var(--studio); }
+  .appbar .spacer { flex:1; }
+  .iconbtn { width:33px; height:33px; border-radius:10px; background:#fff; border:1px solid var(--hair); display:grid; place-items:center; font-size:15px; color: var(--ink-2); position:relative; }
+  .iconbtn .dot { position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px; background:var(--red); color:#fff; font-size:9.5px; font-weight:800; border-radius:999px; display:grid; place-items:center; border:2px solid var(--bg); }
+  .avbtn { width:33px; height:33px; border-radius:50%; background:#C9CDD6; color:#fff; font-size:12px; font-weight:700; display:grid; place-items:center; }
+
+  .body { padding: 4px 14px; height: 432px; overflow:hidden; }
+  .h1 { font-size:20px; font-weight:780; letter-spacing:-.015em; }
+  .sub { font-size:12px; color: var(--ink-3); margin-top:2px; }
+  .statrow { display:flex; gap:9px; margin-top:10px; }
+  .stat { flex:1; background:#fff; border:1px solid var(--hair); border-radius:12px; padding:10px 10px; }
+  .stat .k { font-size:8.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--label); }
+  .stat .v { font-size:19px; font-weight:780; margin-top:4px; }
+  .stat .s { font-size:9.5px; color:var(--ink-3); margin-top:2px; }
+  .listrow { display:flex; gap:11px; align-items:center; background:#fff; border:1px solid var(--hair); border-radius:12px; padding:11px; margin-top:10px; }
+  .listrow .sq { width:40px; height:40px; border-radius:10px; flex-shrink:0; display:grid; place-items:center; color:#fff; font-size:9px; font-weight:800; text-align:center; line-height:1.05; }
+  .listrow .nm { font-size:13.5px; font-weight:700; }
+  .listrow .mt { font-size:11px; color:var(--ink-3); margin-top:3px; }
+  .listrow .flag { margin-left:auto; font-size:10px; font-weight:800; color:var(--amber); background:#FFF6E9; border-radius:999px; padding:2px 8px; }
+  .live { font-size:9.5px; font-weight:800; color:var(--green); }
+
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:74px; background:rgba(255,255,255,.94); backdrop-filter: blur(14px); border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:flex-start; padding-top:9px; }
+  .tab { flex:1; display:grid; justify-items:center; gap:4px; font-size:9px; font-weight:600; color:var(--ink-3); }
+  .tab .ic { font-size:17px; }
+  .tab.on.blue { color: var(--blue); } .tab.on.purple { color: var(--studio); } .tab.on.admin { color: var(--admin); }
+
+  /* context sheet */
+  .sheet { position:absolute; inset:0; background: var(--bg); overflow:hidden; }
+  .sheetbar { display:flex; align-items:center; justify-content:space-between; padding: 6px 16px 8px; }
+  .sheetbar .ttl { font-size:16px; font-weight:750; }
+  .sheetbar .x { font-size:15px; color:var(--blue); font-weight:600; }
+  .wslabel { display:flex; align-items:center; gap:9px; padding: 13px 18px 6px; }
+  .wslabel .mono { width:22px; height:22px; border-radius:6px; color:#fff; font-size:9px; font-weight:800; display:grid; place-items:center; }
+  .wslabel .t { font-size:10.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--label); }
+  .wslabel .role { margin-left:auto; font-size:9.5px; font-weight:800; color:var(--admin); background:#EEF1F5; border-radius:999px; padding:2px 8px; }
+  .wslabel .role.leader { color:var(--fleet); background:#E6F4F6; }
+  .ctxgroup { background:#fff; border-radius:14px; margin: 0 12px; overflow:hidden; }
+  .srow { display:flex; align-items:center; gap:12px; padding: 12px 14px; position:relative; }
+  .srow + .srow::before { content:""; position:absolute; top:0; left:50px; right:0; height:1px; background:var(--hair-2); }
+  .srow .ic { width:30px; height:30px; border-radius:9px; display:grid; place-items:center; color:#fff; font-size:14px; flex-shrink:0; }
+  .srow .ic.blue { background:var(--blue); } .srow .ic.purple { background:var(--studio); } .srow .ic.admin { background:var(--admin); } .srow .ic.fleet { background:var(--fleet); }
+  .srow .nm { font-size:14.5px; font-weight:700; }
+  .srow .d { font-size:11px; color:var(--ink-3); margin-top:1px; }
+  .srow .check { margin-left:auto; color:var(--blue); font-weight:800; font-size:15px; }
+  .srow.on { background:#F4F9FF; }
+  .interests { background:#FAFAFC; border-top:1px solid var(--hair-2); padding: 3px 0 5px; }
+  .ilabel { font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--label); padding:8px 16px 3px; }
+  .irow { display:flex; align-items:center; gap:10px; padding: 7px 16px; font-size:13px; }
+  .irow .d { width:6px; height:6px; border-radius:50%; background:#C9CDD6; }
+  .irow.on .d { background: var(--blue); } .irow.on { font-weight:700; }
+  .irow .check { margin-left:auto; color:var(--blue); font-weight:800; }
+  .irow.add { color:var(--blue); font-weight:650; }
+
+  .takeaways { max-width:1180px; margin: 52px auto 0; background:#fff; border:1px solid var(--hair); border-radius:16px; padding:22px 24px; }
+  .takeaways h3 { font-size:15px; font-weight:780; }
+  .takeaways ul { margin:14px 0 0; padding:0; list-style:none; display:grid; gap:12px; }
+  .takeaways li { font-size:13.5px; color:#4b5057; display:flex; gap:12px; align-items:flex-start; }
+  .takeaways li b { color:#1f2329; }
+  .takeaways li .n { flex-shrink:0; width:22px; height:22px; border-radius:7px; background:var(--studio-bg); color:var(--studio); font-size:11px; font-weight:800; display:grid; place-items:center; margin-top:1px; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <h1>Two dials: <span style="color:#1f2329">Workspace</span> × <span style="color:#1f2329">Surface</span></h1>
+  <p>Admin, org-blueprints, group-steps and personal-sell all stop fighting once you separate <b>whose hat
+  you're wearing</b> (Workspace) from <b>what you're doing</b> (Surface). Interest drops a level — it's a control
+  inside Practice, never a peer of Studio or Admin.</p>
+
+  <div class="dials">
+    <h3>The model</h3>
+    <div class="matrix">
+      <div class="ws-cell"><div class="badge" style="background:#111">KD</div><div><div class="nm">Personal</div><div class="role">you</div></div></div>
+      <div class="surf-cell">
+        <span class="schip practice"><i></i>Practice · 4 tabs</span>
+        <span class="schip studio"><i></i>Studio · blueprints you sell</span>
+      </div>
+      <div class="mrowline"></div>
+      <div class="ws-cell"><div class="badge" style="background:var(--jhu)">JH</div><div><div class="nm">Johns Hopkins</div><div class="role">role: Admin</div></div></div>
+      <div class="surf-cell">
+        <span class="schip studio"><i></i>Studio · org blueprints</span>
+        <span class="schip admin"><i></i>Admin · cohorts &amp; members</span>
+      </div>
+      <div class="mrowline"></div>
+      <div class="ws-cell"><div class="badge" style="background:var(--fleet)">AF</div><div><div class="nm">Aberdeen Fleet</div><div class="role">role: Leader</div></div></div>
+      <div class="surf-cell">
+        <span class="schip studio"><i></i>Group steps · shared blueprint</span>
+        <span class="schip muted"><i></i>Admin · only if leader</span>
+      </div>
+    </div>
+    <div class="foot"><b>Practice is always you</b> (your getting-better, across interests). <b>Studio &amp; Admin
+    are workspace-scoped</b> and role-gated. Switch the workspace → the available surfaces change with it.</div>
+  </div>
+</div>
+
+<!-- ROW 1: the context sheet -->
+<div class="row-tag">
+  <div class="t">The switch</div>
+  <div class="h">One sheet, two levels — Workspace → Surface</div>
+  <div class="d">Tap the chip and you get your workspaces as headers, each showing only the surfaces your role unlocks.
+  "Johns Hopkins → Admin" is two taps, not a hunt through settings. Interests stay tucked under Practice.</div>
+</div>
+
+<div class="stage">
+  <div class="col">
+    <div class="cap purple">Chip tapped — context sheet</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheet">
+        <div class="sheetbar"><span class="x">✕</span><span class="ttl">Switch context</span><span style="width:14px"></span></div>
+
+        <div class="wslabel"><div class="mono" style="background:#111">KD</div><span class="t">Personal</span></div>
+        <div class="ctxgroup">
+          <div class="srow on">
+            <div class="ic blue">◎</div>
+            <div><div class="nm">Practice</div><div class="d">My own getting-better</div></div>
+            <div class="check">✓</div>
+          </div>
+          <div class="interests">
+            <div class="ilabel">Interest</div>
+            <div class="irow on"><span class="d"></span> Nursing <span class="check">✓</span></div>
+            <div class="irow"><span class="d"></span> Sailing</div>
+            <div class="irow"><span class="d"></span> Golf</div>
+            <div class="irow add"><span style="width:6px"></span>＋ Add interest</div>
+          </div>
+          <div class="srow"><div class="ic purple">⬚</div><div><div class="nm">Studio</div><div class="d">Blueprints you sell · independent</div></div><div class="d" style="margin-left:auto;font-size:11px">3</div></div>
+        </div>
+
+        <div class="wslabel"><div class="mono" style="background:var(--jhu)">JH</div><span class="t">Johns Hopkins</span><span class="role">Admin</span></div>
+        <div class="ctxgroup">
+          <div class="srow"><div class="ic purple">⬚</div><div><div class="nm">Studio</div><div class="d">Org blueprints · 5</div></div></div>
+          <div class="srow"><div class="ic admin">⚙</div><div><div class="nm">Admin</div><div class="d">142 students · 6 cohorts</div></div></div>
+        </div>
+
+        <div class="wslabel"><div class="mono" style="background:var(--fleet)">AF</div><span class="t">Aberdeen Fleet</span><span class="role leader">Leader</span></div>
+        <div class="ctxgroup">
+          <div class="srow"><div class="ic fleet">⛵</div><div><div class="nm">Group steps</div><div class="d">Shared blueprint · 12 members</div></div></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="note">Grouped by workspace, role badge on each header. A pure practitioner only sees the
+    <b>Personal → Practice</b> block; Studio/org/group blocks appear only as you earn them.</div>
+  </div>
+
+  <!-- ADMIN SURFACE -->
+  <div class="col">
+    <div class="cap admin">Johns Hopkins → Admin</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="appbar">
+        <div class="ctxchip"><span class="mono" style="background:var(--jhu)">JH</span><span class="sf" style="color:var(--admin)">Admin</span><span class="chev">⌄</span></div>
+        <div class="spacer"></div>
+        <div class="iconbtn">✉<div class="dot">5</div></div>
+        <div class="avbtn">KD</div>
+      </div>
+      <div class="body">
+        <div class="h1" style="margin-top:2px">Johns Hopkins</div>
+        <div class="sub" style="margin-bottom:6px">School of Nursing · your admin view</div>
+        <div class="statrow">
+          <div class="stat"><div class="k">Students</div><div class="v">142</div><div class="s">enrolled</div></div>
+          <div class="stat"><div class="k">Cohorts</div><div class="v">6</div><div class="s">active</div></div>
+          <div class="stat"><div class="k">Flagged</div><div class="v" style="color:var(--amber)">3</div><div class="s">need review</div></div>
+        </div>
+        <div class="listrow"><div class="sq" style="background:#3F6FB0">SP26</div><div><div class="nm">Spring '26 · Med-Surg</div><div class="mt">38 students · 82% on pace</div></div><div class="flag">2 flags</div></div>
+        <div class="listrow"><div class="sq" style="background:#7B86C8">SP26</div><div><div class="nm">Spring '26 · Critical Care</div><div class="mt">24 students · 91% on pace</div></div></div>
+        <div class="listrow"><div class="sq" style="background:#A05B6E">F25</div><div><div class="nm">Fall '25 · Fundamentals</div><div class="mt">40 students · graduated</div></div></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on admin"><span class="ic">⚙</span> Overview</div>
+        <div class="tab"><span class="ic">⚇</span> Cohorts</div>
+        <div class="tab"><span class="ic">👥</span> Members</div>
+        <div class="tab"><span class="ic">◳</span> Blueprints</div>
+        <div class="tab"><span class="ic">⛭</span> Settings</div>
+      </div>
+    </div></div>
+    <div class="note">Chip = <b>JH monogram + "Admin"</b>, slate accent so admin never reads as practice. Reached
+    in two taps from the chip — no buried settings panel. Bottom tabs are the admin surfaces.</div>
+  </div>
+
+  <!-- ORG STUDIO -->
+  <div class="col">
+    <div class="cap purple">Johns Hopkins → Studio</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="appbar">
+        <div class="ctxchip"><span class="mono" style="background:var(--jhu)">JH</span><span class="sf" style="color:var(--studio)">Studio</span><span class="chev">⌄</span></div>
+        <div class="spacer"></div>
+        <div class="iconbtn">✉<div class="dot">5</div></div>
+        <div class="avbtn">KD</div>
+      </div>
+      <div class="body">
+        <div class="h1" style="margin-top:2px">JHU Studio</div>
+        <div class="sub" style="margin-bottom:6px">Org blueprints · governed by Johns Hopkins</div>
+        <div class="listrow"><div class="sq" style="background:#A05B6E">ISBAR</div><div><div class="nm">ISBAR handoff communication</div><div class="mt">6 steps · <span class="live">Live</span> · 38 subscribers</div></div></div>
+        <div class="listrow"><div class="sq" style="background:#7B86C8">MED</div><div><div class="nm">Medication administration</div><div class="mt">8 steps · <span class="live">Live</span> · 64 subscribers</div></div></div>
+        <div class="listrow"><div class="sq" style="background:#5B8C6E">A&amp;P</div><div><div class="nm">Head-to-toe assessment</div><div class="mt">5 steps · Draft</div></div></div>
+        <div class="sub" style="margin-top:14px;text-align:center">Same Studio tabs — scoped to JHU, not your personal sales.</div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on purple"><span class="ic">⬚</span> Home</div>
+        <div class="tab"><span class="ic">◳</span> Blueprints</div>
+        <div class="tab"><span class="ic">⚇</span> Subscribers</div>
+        <div class="tab"><span class="ic">✉</span> Threads</div>
+        <div class="tab"><span class="ic">$</span> Payouts</div>
+      </div>
+    </div></div>
+    <div class="note">Same Studio surface, different workspace. Your <b>personal sell</b> blueprints live under
+    Personal → Studio; these are JHU's. Provenance = which workspace you're in.</div>
+  </div>
+</div>
+
+<div class="takeaways">
+  <h3>How this answers your questions</h3>
+  <ul>
+    <li><span class="n">1</span><div><b>Reaching Admin:</b> it's a surface inside the org workspace, role-gated — switch
+      to Johns Hopkins, Admin appears. No separate hidden panel to find.</div></li>
+    <li><span class="n">2</span><div><b>Three kinds of blueprints:</b> personal-sell → Personal · Studio; org curricula →
+      JHU · Studio; group sets → Aberdeen Fleet · Group steps. Each workspace owns its blueprints; you're never staring at one mixed pile.</div></li>
+    <li><span class="n">3</span><div><b>Is a flat 3-part switcher too messy?</b> Yes — so it's two levels: Workspace headers,
+      surfaces nested under each. Scannable, and it scales to N orgs and groups.</div></li>
+    <li><span class="n">4</span><div><b>Are interests bundled with blueprints/admin?</b> No. Interests are a Practice-only
+      sub-control — one level below the switcher. Keeping them out of the workspace list is what removes the mess.</div></li>
+    <li><span class="n">5</span><div><b>Progressive disclosure:</b> a plain practitioner sees only Personal · Practice.
+      Studio appears after a first blueprint; an org block appears when you join/are-granted a role; Admin only when that role is admin.</div></li>
+  </ul>
+</div>
+
+</body>
+</html>

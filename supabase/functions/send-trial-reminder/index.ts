@@ -6,7 +6,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const FROM_EMAIL = 'RegattaFlow <hello@regattaflow.io>';
+const FROM_EMAIL = Deno.env.get('FROM_EMAIL') || 'BetterAt <hello@better.at>';
 
 interface TrialReminderRequest {
   email: string;
@@ -52,12 +52,12 @@ serve(async (req) => {
     // Different messaging based on days remaining
     let urgencyColor = '#0284c7'; // blue
     let urgencyText = `${daysRemaining} days`;
-    let subject = `⏰ ${daysRemaining} days left in your RegattaFlow trial`;
+    let subject = `⏰ ${daysRemaining} days left in your BetterAt trial`;
 
     if (daysRemaining <= 3) {
       urgencyColor = '#dc2626'; // red
       urgencyText = daysRemaining === 1 ? 'Tomorrow!' : `Only ${daysRemaining} days`;
-      subject = `🚨 Your RegattaFlow trial ends ${daysRemaining === 1 ? 'tomorrow' : `in ${daysRemaining} days`}!`;
+      subject = `🚨 Your BetterAt trial ends ${daysRemaining === 1 ? 'tomorrow' : `in ${daysRemaining} days`}!`;
     } else if (daysRemaining <= 7) {
       urgencyColor = '#d97706'; // amber
       subject = `⚠️ ${daysRemaining} days left - Don't lose your ${clubName} data`;
@@ -114,7 +114,7 @@ serve(async (req) => {
               
               <!-- Benefits Reminder -->
               <h2 style="color: #111827; font-size: 18px; margin: 30px 0 16px;">
-                Keep the momentum going with RegattaFlow Pro:
+                Keep the momentum going with BetterAt:
               </h2>
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -138,7 +138,7 @@ serve(async (req) => {
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
-                    <a href="https://app.regattaflow.io/subscription" 
+                    <a href="https://better.at/subscription"
                        style="display: inline-block; background-color: #0284c7; color: #ffffff; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
                       Upgrade Now →
                     </a>
@@ -156,7 +156,7 @@ serve(async (req) => {
           <tr>
             <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                © ${new Date().getFullYear()} RegattaFlow
+                © ${new Date().getFullYear()} BetterAt
               </p>
             </td>
           </tr>
@@ -205,4 +205,3 @@ serve(async (req) => {
     );
   }
 });
-

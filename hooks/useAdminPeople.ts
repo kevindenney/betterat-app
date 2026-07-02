@@ -375,3 +375,32 @@ export function useApproveMembership(orgId: string) {
     },
   });
 }
+
+/**
+ * Reject a pending join request (or decline an unredeemed invite) by flipping
+ * the membership to rejected. Same RLS gate as approve
+ * (organization_memberships_update_org_admin_v2). The row stays for the audit
+ * trail rather than being deleted.
+ */
+export function useRejectMembership(orgId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (membershipId: string) => {
+      const { data, error } = await supabase
+        .from('organization_memberships')
+        .update({
+          status: 'rejected',
+          membership_status: 'rejected',
+        })
+        .eq('id', membershipId)
+        .eq('organization_id', orgId)
+        .select('id')
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('Membership could not be rejected. It may have changed or you may not have access.');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-people', orgId] });
+    },
+  });
+}

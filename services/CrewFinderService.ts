@@ -2396,7 +2396,7 @@ class CrewFinderServiceClass {
         avatarColor: sailorProfile?.avatar_color,
         sailingExperience: sailorProfile?.experience_level,
         similarityScore: 0,
-        similarityReasons: ['On RegattaFlow'],
+        similarityReasons: ['On BetterAt'],
         isFollowing: followingSet.has(profile.id),
       });
     }

@@ -1,7 +1,7 @@
 /**
  * AppDownloadBanner - Promotional banner for app downloads
  *
- * Displays a compelling CTA to download the RegattaFlow app.
+ * Displays a compelling CTA to open or download BetterAt.
  * Designed for use in embedded web views or promotional contexts.
  *
  * Variants:
@@ -31,10 +31,11 @@ import {
   IOS_SHADOWS,
 } from '@/lib/design-tokens-ios';
 
-// App Store URLs
-const APP_STORE_URL = 'https://apps.apple.com/app/regattaflow';
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.regattaflow';
-const WEB_URL = 'https://regattaflow.com';
+// App Store URLs. Use the web destination until public store listing URLs are
+// configured by the caller via appStoreUrl or replaced with official listings.
+const APP_STORE_URL = 'https://better.at';
+const PLAY_STORE_URL = 'https://better.at';
+const WEB_URL = 'https://better.at';
 
 interface AppDownloadBannerProps {
   /** Headline text */
@@ -58,9 +59,9 @@ interface AppDownloadBannerProps {
 }
 
 export function AppDownloadBanner({
-  headline = 'Join the sailing community',
-  subheadline = '100+ communities discussing races, tactics & conditions',
-  ctaText = 'Get the App',
+  headline = 'Get BetterAt',
+  subheadline = 'Plan, do, reflect, and keep improving across your interests',
+  ctaText = 'Open BetterAt',
   dismissible = true,
   onDismiss,
   onPress,

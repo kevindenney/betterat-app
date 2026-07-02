@@ -1,7 +1,7 @@
 /**
  * ClaimClubModal - Modal for claiming a club from the directory
  *
- * Allows club administrators to claim their club on RegattaFlow.
+ * Allows club administrators to claim their club on BetterAt.
  * Collects verification information and creates a platform club.
  */
 
@@ -151,7 +151,7 @@ export function ClaimClubModal({
           {/* Explanation */}
           <View style={styles.explanation}>
             <Text style={styles.explanationText}>
-              Claiming this club will allow you to manage it on RegattaFlow. You'll be able to:
+              Claiming this club will allow you to manage it on BetterAt. You'll be able to:
             </Text>
             <View style={styles.benefitsList}>
               <View style={styles.benefitItem}>
@@ -228,7 +228,7 @@ export function ClaimClubModal({
               <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Any additional context about your role or how you'd like to use RegattaFlow..."
+                  placeholder="Any additional context about your role or how you'd like to use BetterAt..."
                   placeholderTextColor={IOS_COLORS.placeholderText}
                   value={message}
                   onChangeText={setMessage}

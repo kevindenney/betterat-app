@@ -1,16 +1,15 @@
 /**
  * /(tabs)/inbox — v3 Inbox tab (Screen 04 from the v3 screen designs).
  *
- * "Act / Read / Done. The Act headline is *suggestions waiting*; the Read
- * headline is *peer reflections*. Source is metadata."
+ * One attention surface. Needs-action items appear first; unread messages,
+ * discussions, reflections, and activity follow. Source is metadata.
  *
  * Verb-first triage with practice-grouping as the secondary cut. Suggestions
  * get a coral border-left (Discover-accent grammar); reflections get a lilac
  * border-left (AI/synthesis grammar). One-tap accept on every suggestion.
  *
- * v1 wiring reads from the existing inbox_items view via useInboxItems and
- * routes accept/decline through useInboxActions. Read and Done are skeletal
- * — peer_reflections schema lands in a follow-up.
+ * Wiring reads from the existing inbox_items view via useInboxItems and
+ * routes accept/decline through useInboxActions.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -38,13 +37,13 @@ import { fontFamily } from '@/lib/design-tokens-editorial';
 import { useQueryClient } from '@tanstack/react-query';
 import { useInboxItems } from '@/hooks/useInboxItems';
 import { useFleetInvites, FLEET_INVITES_QUERY_KEY } from '@/hooks/useFleetInvites';
+import { useCrewThreads, type CrewThread } from '@/hooks/useCrewThreads';
 import { useNotifications } from '@/hooks/useNotifications';
 import type { SocialNotification } from '@/services/NotificationService';
 import type { NotificationGroup } from '@/lib/notifications/dedupe';
 import { useAuth } from '@/providers/AuthProvider';
 import { routeCohortDiscussionNotification } from '@/lib/notifications/routeDiscussionNotification';
 import { fleetService, type FleetInvite } from '@/services/fleetService';
-import { useInboxDoneItems } from '@/hooks/useInboxDoneItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
 import type { InboxItem } from '@/components/practice/types';
 import { SuggestStepComposer } from '@/components/sailor/SuggestStepComposer';
@@ -58,8 +57,6 @@ import { useUserHomeVenue, isSailingInterest } from '@/hooks/useUserHomeVenue';
 import { useInterest } from '@/providers/InterestProvider';
 import { Ionicons } from '@expo/vector-icons';
 
-type Segment = 'act' | 'read' | 'done';
-
 const CORAL = IOS_REGISTER.accentMarkedContent; // suggestion border-left
 const LILAC = '#AF52DE'; // reflection / AI border-left
 
@@ -67,7 +64,6 @@ export default function InboxTabScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const toast = useToast();
-  const [segment, setSegment] = useState<Segment>('act');
 
   // Deep-link tap on a cohort_discussion_post notification — resolve
   // the viewer's own forked timeline_step for the blueprint_step the
@@ -82,11 +78,10 @@ export default function InboxTabScreen() {
   );
   const { data: fetched, isLoading } = useInboxItems();
   const { data: fleetInvitesFetched, isLoading: invitesLoading } = useFleetInvites();
+  const { threads: crewThreads, isLoading: crewThreadsLoading } = useCrewThreads();
   const inboxActions = useInboxActions();
   const queryClient = useQueryClient();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
-
-  const { data: doneFetched, isLoading: doneLoading } = useInboxDoneItems();
 
   // Option-4 Pass 2: the Inbox absorbs social notifications. They land
   // in the Read panel as an ACTIVITY group below peer reflections —
@@ -99,7 +94,6 @@ export default function InboxTabScreen() {
   // card — so the count must match what the user can actually see.
   const {
     unreadGroups,
-    unreadGroupCount,
     isLoading: notifsLoading,
     markAsRead: markNotificationAsRead,
     markAllAsRead: markAllNotificationsAsRead,
@@ -110,13 +104,8 @@ export default function InboxTabScreen() {
     () => (fetched ?? []).filter((it) => !dismissedIds.has(it.id)),
     [fetched, dismissedIds],
   );
-  const doneItems = useMemo(
-    () => (doneFetched ?? []).filter((it) => !dismissedIds.has(it.id)),
-    [doneFetched, dismissedIds],
-  );
 
-  // Split by kind: suggestions + on_deck → Act, reflections → Read.
-  // Done is still a stub until per-user inbox state column lands.
+  // Split by behavior: suggestions + on_deck need action; reflections are read-only.
   const actItems = useMemo(
     () => items.filter((it) => it.kind !== 'reflection'),
     [items],
@@ -129,13 +118,31 @@ export default function InboxTabScreen() {
     () => items.filter((it) => it.kind === 'reflection'),
     [items],
   );
+  const unreadMessageThreads = useMemo(
+    () => crewThreads.filter((thread) => thread.unreadCount > 0),
+    [crewThreads],
+  );
+  const messageNotificationGroups = useMemo(
+    () => unreadGroups.filter((group) => group.latest.type === 'new_message'),
+    [unreadGroups],
+  );
+  const activityGroups = useMemo(
+    () => unreadGroups.filter((group) => group.latest.type !== 'new_message'),
+    [unreadGroups],
+  );
   const actCount = actItems.length + fleetInvites.length;
-  // Read segment count = active reflections + unread notification *groups*,
-  // so the segment-pill total stays in sync with the bottom Inbox tab badge
-  // (useInboxCount also counts groups) and with what the panel renders —
-  // a burst of 15 blueprint-step notifications collapses to one digest row,
-  // so it should add 1 to this count, not 15.
-  const readCount = readItems.length + unreadGroupCount;
+  // Read count mirrors visible cards: unread message threads, peer
+  // reflections, and non-message activity groups. Message notifications are
+  // folded into the message-thread cards so the same chat appears once.
+  const readCount = readItems.length + unreadMessageThreads.length + activityGroups.length;
+  const actionCount = actCount;
+  const hasActionItems = actionCount > 0;
+  const hasReadItems = readCount > 0;
+  const isBootLoading =
+    (isLoading || invitesLoading || crewThreadsLoading || notifsLoading) &&
+    !hasActionItems &&
+    !hasReadItems;
+  const isEmpty = !isBootLoading && !hasActionItems && !hasReadItems;
 
   // Practice grouping — design key is "the practice each item is about."
   // The closest analog in the current data model is the source step the
@@ -222,6 +229,12 @@ export default function InboxTabScreen() {
     });
   const handleDeclineInvite = (invite: FleetInvite) =>
     respondToInvite(invite, (id) => fleetService.declineFleetInvite(id));
+  const handleOpenMessageThread = (thread: CrewThread) => {
+    messageNotificationGroups
+      .filter((group) => notificationGroupThreadId(group) === thread.id)
+      .forEach((group) => void markNotificationGroupAsRead(group.ids));
+    router.push(`/crew-thread/${thread.id}` as never);
+  };
 
   // Hide-on-scroll wiring for the in-screen header. The header is
   // overlaid (position:absolute) so when it translates up the body
@@ -240,7 +253,7 @@ export default function InboxTabScreen() {
     // Translate by headerHeight + insets.top so the bottom edge of the
     // header (which sits at y = insets.top before the slide) clears
     // the safe-area band too. Without the +insets.top, the bottom of
-    // the header (segment pills, etc.) stays visible behind the
+    // the header stays visible behind the
     // dynamic island / clock when the user scrolls.
     hideOffset.value = withTiming(
       toolbarHidden ? -(headerHeight + insets.top) : 0,
@@ -270,24 +283,9 @@ export default function InboxTabScreen() {
               reachable from /inbox too. */}
           <InboxTopRow />
           <Text style={styles.title}>Inbox</Text>
-          <View style={styles.segRow}>
-            <SegmentPill
-              label="Act"
-              count={actCount}
-              active={segment === 'act'}
-              onPress={() => setSegment('act')}
-            />
-            <SegmentPill
-              label="Read"
-              count={readCount}
-              active={segment === 'read'}
-              onPress={() => setSegment('read')}
-            />
-            <SegmentPill
-              label="Done"
-              active={segment === 'done'}
-              onPress={() => setSegment('done')}
-            />
+          <View style={styles.summaryRow}>
+            <InboxSummaryPill label="Needs action" count={actionCount} tone="action" />
+            <InboxSummaryPill label="Unread" count={readCount} tone="read" />
           </View>
         </Animated.View>
 
@@ -300,35 +298,43 @@ export default function InboxTabScreen() {
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
-          {segment === 'act' && (
-            <ActPanel
-              isLoading={isLoading || invitesLoading}
-              suggestionCount={actItems.length}
-              groups={groups}
-              invites={fleetInvites}
-              onAccept={handleAccept}
-              onDecline={handleDecline}
-              onArchive={handleArchive}
-              onAcceptInvite={handleAcceptInvite}
-              onDeclineInvite={handleDeclineInvite}
-            />
-          )}
-          {segment === 'read' && (
-            <ReadPanel
-              isLoading={isLoading}
-              items={readItems}
-              onArchive={handleArchive}
-              notificationGroups={unreadGroups}
-              notifsLoading={notifsLoading}
-              notifUnreadCount={unreadGroupCount}
-              onMarkNotificationRead={(id) => void markNotificationAsRead(id)}
-              onMarkGroupRead={(ids) => void markNotificationGroupAsRead(ids)}
-              onMarkAllNotificationsRead={() => void markAllNotificationsAsRead()}
-              onCohortNotificationTap={handleCohortNotificationTap}
-            />
-          )}
-          {segment === 'done' && (
-            <DonePanel isLoading={doneLoading} items={doneItems} />
+          {isBootLoading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
+            </View>
+          ) : isEmpty ? (
+            <UnifiedEmptyState />
+          ) : (
+            <>
+              <ActPanel
+                isLoading={false}
+                suggestionCount={actItems.length}
+                groups={groups}
+                invites={fleetInvites}
+                showEmpty={false}
+                onAccept={handleAccept}
+                onDecline={handleDecline}
+                onArchive={handleArchive}
+                onAcceptInvite={handleAcceptInvite}
+                onDeclineInvite={handleDeclineInvite}
+              />
+              <ReadPanel
+                isLoading={false}
+                items={readItems}
+                onArchive={handleArchive}
+                messageThreads={unreadMessageThreads}
+                messagesLoading={false}
+                onOpenMessageThread={handleOpenMessageThread}
+                notificationGroups={activityGroups}
+                notifsLoading={false}
+                notifUnreadCount={activityGroups.length}
+                showEmpty={false}
+                onMarkNotificationRead={(id) => void markNotificationAsRead(id)}
+                onMarkGroupRead={(ids) => void markNotificationGroupAsRead(ids)}
+                onMarkAllNotificationsRead={() => void markAllNotificationsAsRead()}
+                onCohortNotificationTap={handleCohortNotificationTap}
+              />
+            </>
           )}
         </ScrollView>
       </View>
@@ -401,34 +407,39 @@ function InboxTopRow() {
   );
 }
 
-function SegmentPill({
+function InboxSummaryPill({
   label,
   count,
-  active,
-  onPress,
+  tone,
 }: {
   label: string;
-  count?: number;
-  active: boolean;
-  onPress: () => void;
+  count: number;
+  tone: 'action' | 'read';
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      style={[styles.seg, active && styles.segActive]}
-    >
-      <Text style={[styles.segLabel, active && styles.segLabelActive]}>
-        {label}
-        {count != null && count > 0 ? (
-          <Text style={[styles.segCount, active && styles.segCountActive]}>
-            {'  '}
-            {count}
-          </Text>
-        ) : null}
+    <View style={styles.summaryPill}>
+      <View
+        style={[
+          styles.summaryDot,
+          { backgroundColor: tone === 'action' ? CORAL : IOS_REGISTER.accentUserAction },
+        ]}
+      />
+      <Text style={styles.summaryLabel}>
+        {label}{' '}
+        <Text style={styles.summaryCount}>{count}</Text>
       </Text>
-    </Pressable>
+    </View>
+  );
+}
+
+function UnifiedEmptyState() {
+  return (
+    <View style={styles.emptyWrap}>
+      <Text style={styles.emptyTitle}>Inbox clear.</Text>
+      <Text style={styles.emptyBody}>
+        Suggestions, messages, discussions, reflections, and activity will land here.
+      </Text>
+    </View>
   );
 }
 
@@ -442,6 +453,7 @@ function ActPanel({
   onArchive,
   onAcceptInvite,
   onDeclineInvite,
+  showEmpty = true,
 }: {
   isLoading: boolean;
   suggestionCount: number;
@@ -452,6 +464,7 @@ function ActPanel({
   onArchive: (it: InboxItem) => void;
   onAcceptInvite: (iv: FleetInvite) => void;
   onDeclineInvite: (iv: FleetInvite) => void;
+  showEmpty?: boolean;
 }) {
   if (isLoading) {
     return (
@@ -461,6 +474,7 @@ function ActPanel({
     );
   }
   if (invites.length === 0 && groups.length === 0) {
+    if (!showEmpty) return null;
     return (
       <View style={styles.emptyWrap}>
         <Text style={styles.emptyTitle}>Nothing waiting.</Text>
@@ -694,9 +708,13 @@ function ReadPanel({
   isLoading,
   items,
   onArchive,
+  messageThreads,
+  messagesLoading,
+  onOpenMessageThread,
   notificationGroups,
   notifsLoading,
   notifUnreadCount,
+  showEmpty = true,
   onMarkNotificationRead,
   onMarkGroupRead,
   onMarkAllNotificationsRead,
@@ -705,15 +723,19 @@ function ReadPanel({
   isLoading: boolean;
   items: InboxItem[];
   onArchive: (it: InboxItem) => void;
+  messageThreads: CrewThread[];
+  messagesLoading: boolean;
+  onOpenMessageThread: (thread: CrewThread) => void;
   notificationGroups: NotificationGroup[];
   notifsLoading: boolean;
   notifUnreadCount: number;
+  showEmpty?: boolean;
   onMarkNotificationRead: (id: string) => void;
   onMarkGroupRead: (ids: string[]) => void;
   onMarkAllNotificationsRead: () => void;
   onCohortNotificationTap: (notification: SocialNotification) => void | Promise<void>;
 }) {
-  if (isLoading && notifsLoading) {
+  if (isLoading && notifsLoading && messagesLoading) {
     return (
       <View style={styles.loadingWrap}>
         <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
@@ -721,16 +743,18 @@ function ReadPanel({
     );
   }
 
+  const hasMessages = messageThreads.length > 0;
   const hasReflections = items.length > 0;
   const hasNotifications = notificationGroups.length > 0;
 
-  if (!hasReflections && !hasNotifications) {
+  if (!hasMessages && !hasReflections && !hasNotifications) {
+    if (!showEmpty) return null;
     return (
       <View style={styles.emptyWrap}>
         <Text style={styles.emptyTitle}>Nothing to read yet.</Text>
         <Text style={styles.emptyBody}>
-          Peer reflections and system activity will land here when they
-          come in.
+          Messages, discussions, peer reflections, and system activity
+          will land here when they come in.
         </Text>
       </View>
     );
@@ -738,9 +762,29 @@ function ReadPanel({
 
   return (
     <View>
-      {hasReflections ? (
+      {hasMessages ? (
         <>
           <View style={styles.eyebrowRow}>
+            <Text style={styles.eyebrow}>MESSAGES</Text>
+            <View style={[styles.eyebrowPip, { backgroundColor: IOS_REGISTER.accentUserAction }]}>
+              <Text style={styles.eyebrowPipText}>{messageThreads.length}</Text>
+            </View>
+          </View>
+          <View style={styles.group}>
+            {messageThreads.map((thread) => (
+              <MessageThreadCard
+                key={thread.id}
+                thread={thread}
+                onPress={() => onOpenMessageThread(thread)}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
+
+      {hasReflections ? (
+        <>
+          <View style={[styles.eyebrowRow, hasMessages && styles.eyebrowRowSpace]}>
             <Text style={styles.eyebrow}>PEER REFLECTIONS</Text>
             <View style={[styles.eyebrowPip, { backgroundColor: LILAC }]}>
               <Text style={styles.eyebrowPipText}>{items.length}</Text>
@@ -760,7 +804,7 @@ function ReadPanel({
 
       {hasNotifications ? (
         <>
-          <View style={[styles.eyebrowRow, hasReflections && styles.eyebrowRowSpace]}>
+          <View style={[styles.eyebrowRow, (hasMessages || hasReflections) && styles.eyebrowRowSpace]}>
             <Text style={styles.eyebrow}>ACTIVITY</Text>
             {notifUnreadCount > 0 ? (
               <View style={[styles.eyebrowPip, { backgroundColor: IOS_REGISTER.accentUserAction }]}>
@@ -804,6 +848,86 @@ function ReadPanel({
         </>
       ) : null}
     </View>
+  );
+}
+
+function notificationGroupThreadId(group: NotificationGroup): string | null {
+  const data = group.latest.data ?? {};
+  const raw = data.thread_id ?? data.threadId;
+  return raw ? String(raw) : null;
+}
+
+function threadDisplayName(thread: CrewThread): string {
+  if (thread.threadType === 'direct' && thread.otherUser?.fullName) {
+    return thread.otherUser.fullName;
+  }
+  return thread.name;
+}
+
+function threadInitials(thread: CrewThread): string {
+  const name = threadDisplayName(thread).trim();
+  if (!name) return '·';
+  const parts = name.split(/\s+/);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase() || '·';
+}
+
+function MessageThreadCard({
+  thread,
+  onPress,
+}: {
+  thread: CrewThread;
+  onPress: () => void;
+}) {
+  const isDirect = thread.threadType === 'direct';
+  const name = threadDisplayName(thread);
+  const tint = isDirect
+    ? thread.otherUser?.avatarColor ?? IOS_REGISTER.accentUserAction
+    : IOS_REGISTER.accentUserAction;
+  const latest = thread.lastMessage?.trim() || 'New message';
+  const when = formatRelativeTime(thread.lastMessageAt || thread.updatedAt);
+  const meta =
+    thread.threadType === 'direct'
+      ? 'direct message'
+      : `${thread.memberCount || 1} member${(thread.memberCount || 1) === 1 ? '' : 's'} chat`;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.card, styles.cardActivity, styles.cardActivityUnread]}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${name} messages`}
+    >
+      <View style={styles.cardHeader}>
+        <View style={[styles.activityAvatar, { backgroundColor: tint }]}>
+          <Text style={styles.activityAvatarText}>
+            {isDirect && thread.otherUser?.avatarEmoji
+              ? thread.otherUser.avatarEmoji
+              : thread.avatarEmoji || threadInitials(thread)}
+          </Text>
+        </View>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.activityTitle} numberOfLines={1}>
+            {name}
+          </Text>
+          <Text style={styles.activityBody} numberOfLines={2}>
+            {latest}
+          </Text>
+          <Text style={styles.messageMeta} numberOfLines={1}>
+            {meta}
+          </Text>
+        </View>
+        <View style={styles.messageRightRail}>
+          <Text style={styles.activityWhen}>{when}</Text>
+          <View style={styles.messageUnreadBadge}>
+            <Text style={styles.messageUnreadBadgeText}>
+              {thread.unreadCount > 99 ? '99+' : thread.unreadCount}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -1072,74 +1196,6 @@ function ReflectionCard({
   );
 }
 
-function DonePanel({
-  isLoading,
-  items,
-}: {
-  isLoading: boolean;
-  items: InboxItem[];
-}) {
-  if (isLoading) {
-    return (
-      <View style={styles.loadingWrap}>
-        <ActivityIndicator color={IOS_COLORS.tertiaryLabel} />
-      </View>
-    );
-  }
-  if (items.length === 0) {
-    return (
-      <View style={styles.emptyWrap}>
-        <Text style={styles.emptyTitle}>Nothing here.</Text>
-        <Text style={styles.emptyBody}>
-          Accepted and dismissed items archive here.
-        </Text>
-      </View>
-    );
-  }
-  return (
-    <View>
-      <View style={styles.eyebrowRow}>
-        <Text style={styles.eyebrow}>DONE</Text>
-      </View>
-      <View style={styles.group}>
-        {items.map((it) => (
-          <DoneCard key={it.id} item={it} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function DoneCard({ item }: { item: InboxItem }) {
-  const isReflection = item.kind === 'reflection';
-  return (
-    <View
-      style={[
-        styles.card,
-        styles.cardDone,
-        isReflection && styles.cardReflection,
-      ]}
-    >
-      <View style={styles.cardHeader}>
-        <View style={[styles.avatar, { backgroundColor: item.fromTint || IOS_COLORS.systemGray3 }]}>
-          <Text style={styles.avatarText}>{item.fromInitials || '·'}</Text>
-        </View>
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.cardFrom}>
-            <Text style={styles.cardFromName}>{item.fromContext}</Text>
-            <Text style={styles.cardFromVerb}>
-              {isReflection ? ' · archived reflection' : ` · ${item.chipLabel.toLowerCase()}`}
-            </Text>
-          </Text>
-        </View>
-        <Text style={styles.cardWhen}>{item.when}</Text>
-      </View>
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      {item.blurb ? <Text style={styles.cardBody}>{item.blurb}</Text> : null}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1204,37 +1260,36 @@ const styles = StyleSheet.create({
     color: IOS_REGISTER.label,
     letterSpacing: -0.4,
   },
-  segRow: {
+  summaryRow: {
     flexDirection: 'row',
     gap: 8,
     marginTop: 14,
   },
-  seg: {
-    paddingHorizontal: 14,
+  summaryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
     backgroundColor: IOS_REGISTER.fillPill,
   },
-  segActive: {
-    backgroundColor: IOS_REGISTER.label,
+  summaryDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
   },
-  segLabel: {
+  summaryLabel: {
     fontSize: 13,
     fontWeight: '600',
     color: IOS_REGISTER.label,
   },
-  segLabelActive: {
-    color: '#FFFFFF',
-  },
-  segCount: {
+  summaryCount: {
     fontSize: 12,
     fontFamily: fontFamily.mono,
     fontWeight: '500',
     color: IOS_REGISTER.labelSecondary,
     fontVariant: ['tabular-nums'],
-  },
-  segCountActive: {
-    color: '#FFFFFF',
   },
   body: {
     flex: 1,
@@ -1328,6 +1383,33 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontVariant: ['tabular-nums'],
   },
+  messageMeta: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.labelTertiary,
+    marginTop: 4,
+  },
+  messageRightRail: {
+    alignItems: 'flex-end',
+    gap: 7,
+    marginLeft: 6,
+  },
+  messageUnreadBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_REGISTER.accentUserAction,
+  },
+  messageUnreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontFamily: fontFamily.mono,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
   digestCountChip: {
     minWidth: 22,
     height: 20,
@@ -1419,10 +1501,6 @@ const styles = StyleSheet.create({
   },
   cardReflection: {
     borderLeftColor: LILAC,
-  },
-  cardDone: {
-    opacity: 0.7,
-    borderLeftColor: IOS_REGISTER.separatorStrong,
   },
   swipeArchive: {
     backgroundColor: IOS_COLORS.systemRed,

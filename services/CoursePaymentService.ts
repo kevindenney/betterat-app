@@ -153,7 +153,7 @@ export class CoursePaymentService {
       // Default URLs based on platform
       const baseUrl = Platform.OS === 'web' 
         ? window.location.origin 
-        : 'regattaflow://';
+        : 'betterat://';
       
       const finalSuccessUrl = successUrl || `${baseUrl}/learn/${courseId}?purchase=success`;
       const finalCancelUrl = cancelUrl || `${baseUrl}/learn/${courseId}?purchase=cancelled`;
@@ -306,4 +306,3 @@ export class CoursePaymentService {
 }
 
 export const coursePaymentService = new CoursePaymentService();
-

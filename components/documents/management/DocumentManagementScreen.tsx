@@ -258,7 +258,7 @@ export function DocumentManagementScreen({
               <FileText size={32} color={IOS_COLORS.blue} />
               <Text style={styles.provenanceTitle}>Source Tracking</Text>
               <Text style={styles.provenanceText}>
-                RegattaFlow tracks which document contributed each piece of race
+                BetterAt tracks which document contributed each piece of race
                 information. This helps you understand where data came from and
                 ensures accuracy.
               </Text>

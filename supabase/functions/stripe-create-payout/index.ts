@@ -182,7 +182,7 @@ serve(async (req: Request) => {
       {
         amount: availableAmount,
         currency,
-        description: 'RegattaFlow coach earnings payout',
+        description: 'BetterAt coach earnings payout',
       },
       {
         stripeAccount: coachProfile.stripe_account_id,

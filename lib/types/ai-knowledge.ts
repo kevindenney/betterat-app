@@ -193,9 +193,9 @@ export interface TacticalRecommendation {
   priority: 'critical' | 'important' | 'consider';
   action: string;
 
-  // RegattaFlow Playbook + RegattaFlow Coach Integration
-  theory?: string; // RegattaFlow Playbook framework (quantified what/why)
-  execution?: string; // RegattaFlow Coach technique (how to do it)
+  // BetterAt Playbook + BetterAt Coach Integration
+  theory?: string; // BetterAt Playbook framework (quantified what/why)
+  execution?: string; // BetterAt Coach technique (how to do it)
   championStory?: string; // Optional memorable example from championship racing
   confidence?: number; // 0-100 based on proven frameworks
 

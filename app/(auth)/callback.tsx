@@ -33,6 +33,9 @@ const readDemoPersonaLanding = (
   return landing
 }
 
+const isSafeReturnPath = (path: string | null): path is string =>
+  typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')
+
 // [TRAIL] Persist a diagnostic trail of the OAuth flow to localStorage so we
 // can post-mortem failures by reading it via Chrome DevTools after the fact.
 // Capped to last 50 entries. Key: 'auth_trail'.
@@ -114,15 +117,37 @@ export default function Callback(){
         // [TRAIL] Also capture query for PKCE detection
         const queryParams = new URLSearchParams(window.location.search)
         const codeParam = queryParams.get('code')
+        const returnToParam = queryParams.get('returnTo')
         trail('callback:parsed_url', {
           hasAccessToken: !!accessToken,
           hasRefreshToken: !!refreshToken,
           hasCodeParam: !!codeParam,
+          hasSafeReturnToParam: isSafeReturnPath(returnToParam),
           hashLen: window.location.hash.length,
           searchLen: window.location.search.length,
         })
 
-        if (!accessToken) {
+        let session: any = null
+        let tokenError: any = null
+
+        if (!accessToken && codeParam) {
+          setStatus('Signing you in...')
+          try {
+            window.sessionStorage.setItem('auth_settling_at', String(Date.now()))
+          } catch {}
+          trail('callback:code_exchange:start')
+          const {data, error} = await supabase.auth.exchangeCodeForSession(codeParam)
+          tokenError = error
+          session = data?.session ?? null
+          trail('callback:code_exchange:returned', {
+            hasError: !!tokenError,
+            errorMsg: tokenError?.message,
+            hasSession: !!session,
+            userId: session?.user?.id,
+          })
+        }
+
+        if (!accessToken && !session) {
           trail('callback:no_access_token:start_getSession')
           // If we don't see tokens in the hash, check if a session already exists (e.g. user reloaded /callback)
           const { data: existingSession } = await supabase.auth.getSession()
@@ -147,124 +172,128 @@ export default function Callback(){
           return
         }
 
-        setStatus('Signing you in...')
+        if (!session) {
+          setStatus('Signing you in...')
+          const authAccessToken = accessToken || ''
 
-        // Stash auth_settling_at BEFORE setSession runs. setSession can take
-        // several seconds on slow networks (it calls /auth/v1/user to validate
-        // the token), and if the safety timeout fires mid-call, AuthGate must
-        // still see this hold-off marker and not bounce the user to /.
-        try {
-          window.sessionStorage.setItem('auth_settling_at', String(Date.now()))
-        } catch {}
-
-        trail('callback:setSession:start')
-        // Race setSession() against a 5s timeout. setSession internally calls
-        // /auth/v1/user to validate the access_token; on flaky LTE this hangs
-        // for >25s and trips the safety timeout, dumping users on /. The JWT
-        // itself is signed by Supabase, so if validation hangs we fall back to
-        // decoding it locally and writing the session to storage directly. The
-        // user's subsequent PostgREST/RPC calls will validate the JWT server
-        // side, so we lose nothing security-wise.
-        const setSessionPromise = supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || ''
-        }).then(r => ({ kind: 'resolved' as const, ...r }))
-        const setSessionTimeoutPromise = new Promise<{kind: 'timeout'}>(resolve =>
-          setTimeout(() => resolve({ kind: 'timeout' }), 5000)
-        )
-        const setSessionRaceResult = await Promise.race([setSessionPromise, setSessionTimeoutPromise])
-
-        let session: any = null
-        let tokenError: any = null
-
-        if (setSessionRaceResult.kind === 'timeout') {
-          // Manual fallback: decode JWT, build a session, write to localStorage
-          // in Supabase v2 storage format, then HARD-NAVIGATE to the
-          // destination so the next page's supabase client re-initializes from
-          // the fresh stored session. The current client is stuck on
-          // initializePromise (its initial refresh of a stale stored token
-          // never resolved) so any further supabase call here will also hang.
-          // A full page load sidesteps the wedged client entirely.
-          trail('callback:setSession:timeout_falling_back')
+          // Stash auth_settling_at BEFORE setSession runs. setSession can take
+          // several seconds on slow networks (it calls /auth/v1/user to validate
+          // the token), and if the safety timeout fires mid-call, AuthGate must
+          // still see this hold-off marker and not bounce the user to /.
           try {
-            const parts = accessToken.split('.')
-            const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-            const padded = b64 + '==='.slice((b64.length + 3) % 4)
-            const payload = JSON.parse(atob(padded))
-            const user = {
-              id: payload.sub,
-              email: payload.email,
-              app_metadata: payload.app_metadata || { provider: 'email', providers: ['email'] },
-              user_metadata: payload.user_metadata || {},
-              aud: payload.aud || 'authenticated',
-              role: payload.role || 'authenticated',
-              created_at: new Date((payload.iat || Math.floor(Date.now()/1000)) * 1000).toISOString(),
-            }
-            const sessionData = {
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-              token_type: 'bearer',
-              expires_in: (payload.exp || 0) - Math.floor(Date.now()/1000),
-              expires_at: payload.exp,
-              user,
-            }
-            const url = (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim()
-            const ref = url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
-            if (ref && typeof window !== 'undefined') {
-              window.localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify(sessionData))
-              trail('callback:setSession:manual_write_storage', { ref, userId: user.id })
-            }
+            window.sessionStorage.setItem('auth_settling_at', String(Date.now()))
+          } catch {}
 
-            // Compute the destination from the same sources the normal-path
-            // routing checks, then hard-navigate. We can't use router.replace()
-            // because expo-router's navigation needs the JS context that's
-            // about to be replaced, but more importantly we WANT a full page
-            // load so the new supabase client picks up the fresh session.
-            let destination: string | null = null
+          trail('callback:setSession:start')
+          // Race setSession() against a 5s timeout. setSession internally calls
+          // /auth/v1/user to validate the access_token; on flaky LTE this hangs
+          // for >25s and trips the safety timeout, dumping users on /. The JWT
+          // itself is signed by Supabase, so if validation hangs we fall back to
+          // decoding it locally and writing the session to storage directly. The
+          // user's subsequent PostgREST/RPC calls will validate the JWT server
+          // side, so we lose nothing security-wise.
+          const setSessionPromise = supabase.auth.setSession({
+            access_token: authAccessToken,
+            refresh_token: refreshToken || ''
+          }).then(r => ({ kind: 'resolved' as const, ...r }))
+          const setSessionTimeoutPromise = new Promise<{kind: 'timeout'}>(resolve =>
+            setTimeout(() => resolve({ kind: 'timeout' }), 5000)
+          )
+          const setSessionRaceResult = await Promise.race([setSessionPromise, setSessionTimeoutPromise])
+
+          if (setSessionRaceResult.kind === 'timeout') {
+            // Manual fallback: decode JWT, build a session, write to localStorage
+            // in Supabase v2 storage format, then HARD-NAVIGATE to the
+            // destination so the next page's supabase client re-initializes from
+            // the fresh stored session. The current client is stuck on
+            // initializePromise (its initial refresh of a stale stored token
+            // never resolved) so any further supabase call here will also hang.
+            // A full page load sidesteps the wedged client entirely.
+            trail('callback:setSession:timeout_falling_back')
             try {
-              const fromSession = window.sessionStorage.getItem('oauth_return_to')
-              if (fromSession && fromSession.startsWith('/')) {
-                destination = fromSession
-                window.sessionStorage.removeItem('oauth_return_to')
+              const parts = authAccessToken.split('.')
+              const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+              const padded = b64 + '==='.slice((b64.length + 3) % 4)
+              const payload = JSON.parse(atob(padded))
+              const user = {
+                id: payload.sub,
+                email: payload.email,
+                app_metadata: payload.app_metadata || { provider: 'email', providers: ['email'] },
+                user_metadata: payload.user_metadata || {},
+                aud: payload.aud || 'authenticated',
+                role: payload.role || 'authenticated',
+                created_at: new Date((payload.iat || Math.floor(Date.now()/1000)) * 1000).toISOString(),
               }
-            } catch {}
-            if (!destination) {
+              const sessionData = {
+                access_token: authAccessToken,
+                refresh_token: refreshToken || '',
+                token_type: 'bearer',
+                expires_in: (payload.exp || 0) - Math.floor(Date.now()/1000),
+                expires_at: payload.exp,
+                user,
+              }
+              const url = (process.env.EXPO_PUBLIC_SUPABASE_URL || '').trim()
+              const ref = url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+              if (ref && typeof window !== 'undefined') {
+                window.localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify(sessionData))
+                trail('callback:setSession:manual_write_storage', { ref, userId: user.id })
+              }
+
+              // Compute the destination from the same sources the normal-path
+              // routing checks, then hard-navigate. We can't use router.replace()
+              // because expo-router's navigation needs the JS context that's
+              // about to be replaced, but more importantly we WANT a full page
+              // load so the new supabase client picks up the fresh session.
+              let destination: string | null = null
+              if (isSafeReturnPath(returnToParam)) {
+                destination = returnToParam
+              } else {
+                try {
+                  const fromSession = window.sessionStorage.getItem('oauth_return_to')
+                  if (isSafeReturnPath(fromSession)) {
+                    destination = fromSession
+                    window.sessionStorage.removeItem('oauth_return_to')
+                  }
+                } catch {}
+              }
+              if (!destination) {
+                try {
+                  destination = await AsyncStorage.getItem('post_onboarding_return_to')
+                  if (destination) {
+                    await AsyncStorage.removeItem('post_onboarding_return_to')
+                  }
+                } catch {}
+              }
+              if (!destination) destination = getDashboardRoute(null) as string
+
+              // Demo persona landing wins over generic dashboard fallback.
+              const demoLanding = readDemoPersonaLanding(user.user_metadata)
+              if (demoLanding) destination = demoLanding
+
+              // Mark auth as settling so AuthGate on the destination page holds
+              // off the bounce-to-/ until onAuthStateChange broadcasts.
               try {
-                destination = await AsyncStorage.getItem('post_onboarding_return_to')
-                if (destination) {
-                  await AsyncStorage.removeItem('post_onboarding_return_to')
-                }
+                window.sessionStorage.setItem('auth_settling_at', String(Date.now()))
               } catch {}
+
+              trail('callback:setSession:manual_write_hard_nav', { destination })
+              clearTimeout(safetyTimeout)
+              window.location.replace(destination)
+              return
+            } catch (e) {
+              tokenError = e
+              trail('callback:setSession:manual_write_failed', { err: String(e) })
             }
-            if (!destination) destination = getDashboardRoute(null) as string
-
-            // Demo persona landing wins over generic dashboard fallback.
-            const demoLanding = readDemoPersonaLanding(user.user_metadata)
-            if (demoLanding) destination = demoLanding
-
-            // Mark auth as settling so AuthGate on the destination page holds
-            // off the bounce-to-/ until onAuthStateChange broadcasts.
-            try {
-              window.sessionStorage.setItem('auth_settling_at', String(Date.now()))
-            } catch {}
-
-            trail('callback:setSession:manual_write_hard_nav', { destination })
-            clearTimeout(safetyTimeout)
-            window.location.replace(destination)
-            return
-          } catch (e) {
-            tokenError = e
-            trail('callback:setSession:manual_write_failed', { err: String(e) })
+          } else {
+            tokenError = setSessionRaceResult.error
+            session = setSessionRaceResult.data?.session
+            trail('callback:setSession:returned', {
+              hasError: !!tokenError,
+              errorMsg: tokenError?.message,
+              hasSession: !!session,
+              userId: session?.user?.id,
+            })
           }
-        } else {
-          tokenError = setSessionRaceResult.error
-          session = setSessionRaceResult.data?.session
-          trail('callback:setSession:returned', {
-            hasError: !!tokenError,
-            errorMsg: tokenError?.message,
-            hasSession: !!session,
-            userId: session?.user?.id,
-          })
         }
 
         if (tokenError) {
@@ -511,11 +540,14 @@ export default function Callback(){
           // back to the older AsyncStorage key used by other flows (e.g.
           // blueprint auto-subscribe).
           let returnTo: string | null = null
+          if (isSafeReturnPath(returnToParam)) {
+            returnTo = returnToParam
+          }
           if (typeof window !== 'undefined') {
             try {
               const fromSession = window.sessionStorage.getItem('oauth_return_to')
               trail('callback:returnTo:read_sessionStorage', { fromSession })
-              if (fromSession && fromSession.startsWith('/')) {
+              if (!returnTo && isSafeReturnPath(fromSession)) {
                 returnTo = fromSession
                 window.sessionStorage.removeItem('oauth_return_to')
               }

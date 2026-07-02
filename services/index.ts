@@ -1,6 +1,6 @@
 /**
  * Core Services Index
- * Central export for all RegattaFlow services
+ * Central export for all BetterAt services
  */
 
 // Venue Intelligence

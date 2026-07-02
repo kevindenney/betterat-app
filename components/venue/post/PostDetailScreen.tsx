@@ -123,7 +123,7 @@ export function PostDetailScreen({ postId, onBack }: PostDetailScreenProps) {
     if (!post) return;
     try {
       await Share.share({
-        message: `${post.title} - RegattaFlow`,
+        message: `${post.title} - BetterAt`,
       });
     } catch {
       // User cancelled

@@ -1,6 +1,6 @@
 /**
  * Public Results Page
- * Accessible without authentication - shareable link for non-RegattaFlow users
+ * Accessible without authentication - shareable link for non-BetterAt users
  * 
  * URL: /p/results/[regattaId]
  */
@@ -214,7 +214,7 @@ export default function PublicResultsPage() {
           style={styles.secondaryButton}
           onPress={() =>
             Linking.openURL(
-              `mailto:support@regattaflow.com?subject=${encodeURIComponent('Public Results Unavailable')}&body=${encodeURIComponent(`Regatta: ${regattaId}\nError: ${error}`)}`
+              `mailto:info@better.at?subject=${encodeURIComponent('Public Results Unavailable')}&body=${encodeURIComponent(`Regatta: ${regattaId}\nError: ${error}`)}`
             )
           }
         >
@@ -390,7 +390,7 @@ export default function PublicResultsPage() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Powered by RegattaFlow</Text>
+          <Text style={styles.footerText}>Powered by BetterAt</Text>
         </View>
       </ScrollView>
     </View>

@@ -162,7 +162,7 @@ export function skillToInstagramSlides(skill: ParsedSkill, maxSlides = 10): Slid
   slides.push({
     type: 'cta',
     title: 'Master Your Racing',
-    content: `Learn ${skill.title} and more with RegattaFlow's AI-powered sailing coach.`,
+    content: `Learn ${skill.title} and more with BetterAt's AI-powered sailing coach.`,
   });
   
   return slides;
@@ -279,7 +279,7 @@ export function generateMarkRoundingSlides(): SlideContent[] {
     {
       type: 'cta',
       title: 'Master Mark Roundings',
-      content: 'Get personalized AI coaching, GPS tracking, and real-time tactics with RegattaFlow.',
+      content: 'Get personalized AI coaching, GPS tracking, and real-time tactics with BetterAt.',
     },
   ];
 }
@@ -416,4 +416,3 @@ export default {
   skillToInstagramSlides,
   generateMarkRoundingSlides,
 };
-

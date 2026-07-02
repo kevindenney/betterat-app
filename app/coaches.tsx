@@ -230,7 +230,7 @@ export default function CoachesPage() {
           <View style={styles.heroContent}>
             {/* Logo */}
             <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>RegattaFlow</Text>
+              <Text style={styles.logoText}>BetterAt</Text>
               <View style={styles.forCoachesBadge}>
                 <Text style={styles.forCoachesText}>FOR COACHES</Text>
               </View>

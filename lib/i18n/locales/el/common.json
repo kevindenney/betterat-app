@@ -1,5 +1,5 @@
 {
-  "app_name": "RegattaFlow",
+  "app_name": "BetterAt",
   "loading": "Φόρτωση...",
   "error": "Σφάλμα",
   "success": "Επιτυχία",
@@ -49,4 +49,3 @@
     "fahrenheit": "°F"
   }
 }
-

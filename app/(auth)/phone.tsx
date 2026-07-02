@@ -46,6 +46,13 @@ const C = {
 
 type Stage = 'phone' | 'code';
 
+const isSafeReturnPath = (path: string | undefined): path is string =>
+  typeof path === 'string' && path.startsWith('/') && !path.startsWith('//');
+
+const isValidE164Phone = (value: string) => /^\+[1-9]\d{7,14}$/.test(value.trim());
+
+const isValidOtpCode = (value: string) => /^\d{4,8}$/.test(value.trim());
+
 export default function PhoneAuthScreen() {
   const { sendPhoneOtp, verifyPhoneOtp } = useAuth();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
@@ -59,9 +66,19 @@ export default function PhoneAuthScreen() {
 
   const handleSend = async () => {
     setError(null);
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone) {
+      setError(t('phone.errors.phoneRequired'));
+      return;
+    }
+    if (!isValidE164Phone(trimmedPhone)) {
+      setError(t('phone.errors.phoneFormat'));
+      return;
+    }
     setBusy(true);
     try {
-      await sendPhoneOtp(phone);
+      await sendPhoneOtp(trimmedPhone);
+      setPhone(trimmedPhone);
       setStage('code');
     } catch (e: any) {
       setError(e?.message ?? t('phone.errors.sendFailed'));
@@ -72,12 +89,18 @@ export default function PhoneAuthScreen() {
 
   const handleVerify = async () => {
     setError(null);
+    const trimmedPhone = phone.trim();
+    const trimmedCode = code.trim();
+    if (!isValidOtpCode(trimmedCode)) {
+      setError(t('phone.errors.codeFormat'));
+      return;
+    }
     setBusy(true);
     try {
-      const { isNewUser } = await verifyPhoneOtp(phone, code);
+      const { isNewUser } = await verifyPhoneOtp(trimmedPhone, trimmedCode);
       // `verifyPhoneOtp` already set signedIn=true; route based on whether
       // the profile needs onboarding.
-      if (returnTo && typeof returnTo === 'string' && returnTo.startsWith('/')) {
+      if (isSafeReturnPath(returnTo)) {
         router.replace(returnTo as any);
         return;
       }

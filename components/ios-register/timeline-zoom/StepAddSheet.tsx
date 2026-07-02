@@ -38,6 +38,9 @@ import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useInterest } from '@/hooks/useInterest';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSuggestedNextSteps, useAdoptBlueprintStep } from '@/hooks/useBlueprint';
+import { useInstitutionalNextSteps } from '@/hooks/useAssignedBlueprints';
+import { addNextInstitutionalStep } from '@/services/BlueprintSubscribeService';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAISuggestions } from '@/hooks/useAISuggestions';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
 import { ComposerWhereField } from '@/components/capture/ComposerWhereField';
@@ -114,6 +117,9 @@ export function StepAddSheet({
   const accent = currentInterest?.accent_color ?? IOS_REGISTER.accentUserAction;
 
   const { data: nextSteps, isLoading: bpLoading } = useSuggestedNextSteps(currentInterest?.id);
+  const { data: institutionalNext } = useInstitutionalNextSteps(currentInterest?.id);
+  const queryClient = useQueryClient();
+  const [pullingBlueprintId, setPullingBlueprintId] = useState<string | null>(null);
   const { data: recentSteps = [] } = useMyTimeline(currentInterest?.id);
   const { data: interestVision } = useInterestVision(currentInterest?.id);
   const adoptStep = useAdoptBlueprintStep();
@@ -278,6 +284,25 @@ export function StepAddSheet({
     setFieldValues((prev) => ({ ...prev, where: next?.name ?? '' }));
   }, []);
 
+  // For a race the racing area IS the "where", so the generic where field is
+  // redundant — drop it on toggle-on and surface the start-time field instead,
+  // since a race without a start time can't anchor conditions/strategy.
+  const handleRaceToggle = useCallback((next: boolean) => {
+    setIsRace(next);
+    if (next) {
+      setWhereLocation(undefined);
+      setFieldValues((prev) => ({ ...prev, where: '' }));
+      setActiveFields((prev) => {
+        const withoutWhere = prev.filter((k) => k !== 'where');
+        if (withoutWhere.includes('when')) return withoutWhere;
+        const next: BlankFieldKey[] = [...withoutWhere, 'when'];
+        return next.sort(
+          (a, b) => BLANK_FIELD_ORDER.indexOf(a) - BLANK_FIELD_ORDER.indexOf(b),
+        );
+      });
+    }
+  }, []);
+
   // Group the flat next-step list by blueprint so each plan reads as one card.
   const blueprintGroups = useMemo(() => {
     const map = new Map<string, { title: string; steps: BlueprintSuggestedNextStep[] }>();
@@ -313,6 +338,29 @@ export function StepAddSheet({
       onClose();
     } catch {
       // adopt mutation logs its own error; keep the sheet open so the user can retry
+    }
+  };
+
+  const handleAdoptInstitutional = async (blueprintId: string, blueprintInterestId: string | null) => {
+    if (!user?.id || pullingBlueprintId) return;
+    setPullingBlueprintId(blueprintId);
+    try {
+      const result = await addNextInstitutionalStep(
+        user.id,
+        blueprintId,
+        blueprintInterestId ?? currentInterest?.id ?? null,
+      );
+      queryClient.invalidateQueries({ queryKey: ['institutional-next-steps'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['timeline-steps'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['assigned-blueprints', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['library-plans'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['library-counts'], refetchType: 'all' });
+      if (result.firstStepId) onStepAdded?.(result.firstStepId);
+      onClose();
+    } catch {
+      // service logs its own error; keep the sheet open for retry
+    } finally {
+      setPullingBlueprintId(null);
     }
   };
 
@@ -435,7 +483,7 @@ export function StepAddSheet({
         </View>
         {bpLoading ? (
           <ActivityIndicator style={styles.loading} color={accent} />
-        ) : blueprintGroups.length === 0 ? (
+        ) : blueprintGroups.length === 0 && (institutionalNext ?? []).length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No followed blueprints yet.</Text>
             <Text style={styles.emptyBody}>
@@ -535,6 +583,74 @@ export function StepAddSheet({
               })}
             </View>
           ))}
+          {(institutionalNext ?? []).map((n) => {
+            const expanded = expandedCardId === n.templateId;
+            return (
+              <View key={`inst-${n.blueprintId}`} style={styles.bpgroup}>
+                <View style={styles.bph}>
+                  <View style={styles.bpLogo}>
+                    <Text style={styles.bpLogoText}>
+                      {n.blueprintTitle.slice(0, 1).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.bpText}>
+                    <Text style={styles.bpName} numberOfLines={1}>
+                      {n.blueprintTitle}
+                    </Text>
+                    <Text style={styles.bpSub}>
+                      {n.orgName ? `${n.orgName} · ` : ''}
+                      {n.remaining} step{n.remaining !== 1 ? 's' : ''} left
+                    </Text>
+                  </View>
+                  <Text style={styles.bpCount}>{n.remaining}</Text>
+                </View>
+                <View style={styles.aitem}>
+                  <Pressable
+                    style={styles.aitemText}
+                    onPress={() => setExpandedCardId(expanded ? null : n.templateId)}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded }}
+                    accessibilityLabel={expanded ? `Collapse ${n.templateTitle}` : `Read more: ${n.templateTitle}`}
+                  >
+                    <Text style={styles.aitemTitle} numberOfLines={expanded ? undefined : 2}>
+                      {n.templateTitle}
+                    </Text>
+                    {n.templateDescription ? (
+                      <Text style={styles.aitemSub} numberOfLines={expanded ? undefined : 2}>
+                        {n.templateDescription}
+                      </Text>
+                    ) : null}
+                    {n.templateDescription ? (
+                      <View style={styles.aitemMoreRow}>
+                        <Text style={[styles.aitemMore, { color: accent }]}>
+                          {expanded ? 'Show less' : 'Read more'}
+                        </Text>
+                        <Ionicons
+                          name={expanded ? 'chevron-up' : 'chevron-down'}
+                          size={13}
+                          color={accent}
+                        />
+                      </View>
+                    ) : null}
+                  </Pressable>
+                  <Pressable
+                    style={[styles.addBtn, { borderColor: hexWithAlpha(accent, 0.4) }]}
+                    onPress={() => handleAdoptInstitutional(n.blueprintId, n.interestId)}
+                    disabled={pullingBlueprintId === n.blueprintId}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add ${n.templateTitle}`}
+                  >
+                    {pullingBlueprintId === n.blueprintId ? (
+                      <ActivityIndicator size="small" color={accent} />
+                    ) : (
+                      <Ionicons name="add" size={18} color={accent} />
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })}
           <Text style={styles.bpDisclosure}>
             The blueprint author can see your progress on these steps.
           </Text>
@@ -689,7 +805,7 @@ export function StepAddSheet({
                   <Text style={styles.fieldEyebrow}>TYPE</Text>
                   <PlanStepRaceSelector
                     isRace={isRace}
-                    onChange={setIsRace}
+                    onChange={handleRaceToggle}
                     hideCourseReveal
                   />
                   {isRace ? (
@@ -839,7 +955,9 @@ export function StepAddSheet({
 
               <Text style={styles.optEyebrow}>DETAILS</Text>
               <View style={styles.chipRow}>
-                {BLANK_FIELDS.map((f) => {
+                {BLANK_FIELDS.filter(
+                  (f) => !(isRace && f.key === 'where'),
+                ).map((f) => {
                   const active = activeFields.includes(f.key);
                   return (
                     <Pressable
@@ -870,14 +988,20 @@ export function StepAddSheet({
                   {activeFields.map((key) => {
                     const config = BLANK_FIELDS.find((f) => f.key === key);
                     if (!config) return null;
+                    // A race's location is its racing area, so never show the
+                    // generic where field for a race even if it was added first.
+                    if (isRace && key === 'where') return null;
+                    // The "when" slot doubles as the race start time.
+                    const fieldLabel =
+                      isRace && key === 'when' ? 'Race start' : config.label;
                     return (
                       <View key={key} style={styles.fieldCard}>
                         <View style={styles.fieldHead}>
-                          <Text style={styles.fieldLabel}>{config.label}</Text>
+                          <Text style={styles.fieldLabel}>{fieldLabel}</Text>
                           <Pressable
                             style={styles.fieldRemove}
                             onPress={() => removeField(key)}
-                            accessibilityLabel={`Remove ${config.label}`}
+                            accessibilityLabel={`Remove ${fieldLabel}`}
                             hitSlop={6}
                           >
                             <Ionicons name="close" size={14} color={IOS_REGISTER.labelSecondary} />
@@ -895,6 +1019,8 @@ export function StepAddSheet({
                           <ComposerWhenField
                             value={whenISO}
                             onChange={(next) => setWhenISO(next ?? null)}
+                            placeholder={isRace ? 'When does the race start?' : undefined}
+                            pickerTitle={isRace ? 'Race start' : undefined}
                           />
                         ) : (
                           <TextInput

@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -216,6 +217,7 @@ export function StepDiscussionInline({
   const queryClient = useQueryClient();
   const [scope, setScope] = useState<DiscussionScope>(initialScope);
   const [draft, setDraft] = useState('');
+  const composerInset = Platform.OS === 'web' ? 0 : composerRightInset;
 
   // Resolve the blueprint_step link so we know whether to surface the
   // Cohort tab. Null = step isn't blueprint-derived (or its forked
@@ -680,28 +682,30 @@ export function StepDiscussionInline({
 
       <View
         style={
-          composerRightInset > 0
-            ? [styles.composer, { paddingRight: composerRightInset }]
+          composerInset > 0
+            ? [styles.composer, { paddingRight: composerInset }]
             : styles.composer
         }
       >
         <View style={styles.composerAvatar}>
           <Text style={styles.composerAvatarText}>{viewerInitials}</Text>
         </View>
-        <TextInput
-          style={styles.composerInput}
-          value={draft}
-          onChangeText={setDraft}
-          placeholder={
-            replyingTo
-              ? `Reply to ${replyingTo.authorName}…`
-              : 'Share your reflection…'
-          }
-          placeholderTextColor={C.label3}
-          editable={!postMutation.isPending}
-          multiline
-          maxLength={4000}
-        />
+        <View style={styles.composerInputWrap}>
+          <TextInput
+            style={styles.composerInput}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder={
+              replyingTo
+                ? `Reply to ${replyingTo.authorName}…`
+                : 'Share your reflection…'
+            }
+            placeholderTextColor={C.label3}
+            editable={!postMutation.isPending}
+            multiline
+            maxLength={4000}
+          />
+        </View>
         <Pressable
           style={styles.quoteButton}
           onPress={() => setQuotePickerOpen(true)}
@@ -1444,6 +1448,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   wrap: {
+    alignSelf: 'stretch',
+    width: '100%',
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 8,
@@ -1476,6 +1482,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   feed: {
+    alignSelf: 'stretch',
+    width: '100%',
     gap: 10,
   },
   // -------- Access card --------
@@ -1835,14 +1843,17 @@ const styles = StyleSheet.create({
   },
   // -------- Composer --------
   composer: {
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
     paddingTop: 4,
+    width: '100%',
   },
   composerAvatar: {
     width: 28,
     height: 28,
+    flexShrink: 0,
     borderRadius: 14,
     backgroundColor: C.blueTint,
     alignItems: 'center',
@@ -1853,8 +1864,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: C.label,
   },
+  composerInputWrap: {
+    flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+  },
   composerInput: {
     flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    minHeight: 36,
+    width: '100%',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: C.line,
     borderRadius: 18,
@@ -1869,6 +1889,7 @@ const styles = StyleSheet.create({
   quoteButton: {
     width: 32,
     height: 32,
+    flexShrink: 0,
     borderRadius: 16,
     backgroundColor: C.gray6,
     alignItems: 'center',
@@ -1877,6 +1898,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 32,
     height: 32,
+    flexShrink: 0,
     borderRadius: 16,
     backgroundColor: C.blue,
     alignItems: 'center',

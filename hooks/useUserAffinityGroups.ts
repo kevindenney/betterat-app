@@ -61,6 +61,12 @@ interface ParentOrgRow {
   slug: string | null;
 }
 
+interface InterestScopeRow {
+  id: string;
+  slug: string;
+  parent_id: string | null;
+}
+
 async function fetchParentOrgMap(groupRows: { parent_org_id: string | null }[]) {
   const orgIds = Array.from(
     new Set(groupRows.map((g) => g.parent_org_id).filter((id): id is string => Boolean(id))),
@@ -126,10 +132,56 @@ async function fetchUserGroups(userId: string): Promise<UserAffinityGroup[]> {
   return attachParentOrgs(groups, parentOrgById);
 }
 
+async function fetchInterestScopeSlugs(
+  interestSlug: string | null | undefined,
+): Promise<Set<string> | null> {
+  if (!interestSlug) return null;
+
+  const { data, error } = await supabase
+    .from('interests')
+    .select('id, slug, parent_id')
+    .eq('status', 'active');
+
+  if (error || !data) return new Set([interestSlug]);
+
+  const rows = data as InterestScopeRow[];
+  const root = rows.find((r) => r.slug === interestSlug);
+  if (!root) return new Set([interestSlug]);
+
+  const byParentId = new Map<string, InterestScopeRow[]>();
+  for (const row of rows) {
+    if (!row.parent_id) continue;
+    const siblings = byParentId.get(row.parent_id) ?? [];
+    siblings.push(row);
+    byParentId.set(row.parent_id, siblings);
+  }
+
+  const slugs = new Set<string>([interestSlug]);
+  const queue = [root.id];
+  while (queue.length > 0) {
+    const parentId = queue.shift()!;
+    for (const child of byParentId.get(parentId) ?? []) {
+      slugs.add(child.slug);
+      queue.push(child.id);
+    }
+  }
+
+  return slugs;
+}
+
+function groupMatchesInterestScope(
+  group: { interest_slug: string | null },
+  scopeSlugs: Set<string> | null,
+): boolean {
+  if (!scopeSlugs) return true;
+  return Boolean(group.interest_slug && scopeSlugs.has(group.interest_slug));
+}
+
 async function fetchDiscoverableGroups(
   interestSlug: string | null | undefined,
   limit: number,
 ): Promise<UserAffinityGroup[]> {
+  const scopeSlugs = await fetchInterestScopeSlugs(interestSlug);
   let query = supabase
     .from('affinity_groups')
     .select('id, kind, name, short_name, interest_slug, parent_org_id, anchor_lat, anchor_lng, is_active')
@@ -137,8 +189,8 @@ async function fetchDiscoverableGroups(
     .order('name', { ascending: true })
     .limit(limit);
 
-  if (interestSlug) {
-    query = query.eq('interest_slug', interestSlug);
+  if (scopeSlugs) {
+    query = query.in('interest_slug', Array.from(scopeSlugs));
   }
 
   const { data, error } = await query;
@@ -153,18 +205,19 @@ export function useUserAffinityGroups(interestSlug?: string | null) {
   const userId = user?.id as string | undefined;
 
   const query = useQuery({
-    queryKey: ['user-affinity-groups', userId],
-    queryFn: () => fetchUserGroups(userId!),
+    queryKey: ['user-affinity-groups', userId, interestSlug ?? 'all'],
+    queryFn: async () => {
+      const [groups, scopeSlugs] = await Promise.all([
+        fetchUserGroups(userId!),
+        fetchInterestScopeSlugs(interestSlug),
+      ]);
+      return groups.filter((g) => groupMatchesInterestScope(g, scopeSlugs));
+    },
     enabled: Boolean(userId),
     staleTime: 5 * 60 * 1000,
   });
 
-  const groups = query.data ?? [];
-  const filtered = interestSlug
-    ? groups.filter((g) => !g.interest_slug || g.interest_slug === interestSlug)
-    : groups;
-
-  return { groups: filtered, isLoading: query.isLoading };
+  return { groups: query.data ?? [], isLoading: query.isLoading };
 }
 
 export function useDiscoverableAffinityGroups(

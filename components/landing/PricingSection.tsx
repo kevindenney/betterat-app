@@ -35,7 +35,7 @@ export function PricingSection({ variant = 'sailor' }: PricingSectionProps) {
             <Ionicons name="cash-outline" size={28} color="#8B5CF6" />
             <Text style={styles.offerTitle}>5% platform fee on coaching fees earned</Text>
             <Text style={styles.offerBody}>
-              No monthly subscription. RegattaFlow takes 5% only on sessions paid inside the platform.
+              No monthly subscription. BetterAt takes 5% only on sessions paid inside the platform.
             </Text>
             <View style={styles.offerList}>
               <Text style={styles.offerItem}>• Keep 95% of each booking</Text>

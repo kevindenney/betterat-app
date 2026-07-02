@@ -1,6 +1,6 @@
 /**
  * InstagramSlide Component
- * Renders a single Instagram-ready slide with RegattaFlow branding
+ * Renders a single Instagram-ready slide with BetterAt branding
  * Designed for 1080x1080 (square) or 1080x1350 (portrait) export
  */
 
@@ -223,7 +223,7 @@ export const InstagramSlide = forwardRef<View, InstagramSlideProps>(
           <Text style={[styles.ctaContent, { color: colors.muted }]}>{slide.content}</Text>
         )}
         <View style={[styles.ctaButton, { backgroundColor: colors.accent }]}>
-          <Text style={styles.ctaButtonText}>Get RegattaFlow</Text>
+          <Text style={styles.ctaButtonText}>Get BetterAt</Text>
         </View>
       </View>
     );
@@ -263,7 +263,7 @@ export const InstagramSlide = forwardRef<View, InstagramSlideProps>(
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <MaterialCommunityIcons name="sail-boat" size={32} color={colors.accent} />
-              <Text style={[styles.logoText, { color: colors.text }]}>RegattaFlow</Text>
+              <Text style={[styles.logoText, { color: colors.text }]}>BetterAt</Text>
             </View>
             <View style={[styles.slideCounter, { backgroundColor: `${colors.accent}30` }]}>
               <Text style={[styles.counterText, { color: colors.accent }]}>
@@ -280,7 +280,7 @@ export const InstagramSlide = forwardRef<View, InstagramSlideProps>(
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: colors.muted }]}>
-              {slide.footer || 'regattaflow.com'}
+              {slide.footer || 'better.at'}
             </Text>
           </View>
         </View>

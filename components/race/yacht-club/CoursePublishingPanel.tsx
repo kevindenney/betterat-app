@@ -51,7 +51,7 @@ export function CoursePublishingPanel({
     },
     {
       id: 'open_entry',
-      name: 'Open Entry (RegattaFlow Network)',
+      name: 'Open Entry (BetterAt Network)',
       type: 'open_entry',
       status: 'pending',
       recipients: 3421

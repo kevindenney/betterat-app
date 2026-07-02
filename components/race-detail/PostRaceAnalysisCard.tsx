@@ -5,7 +5,7 @@
  *
  * Appears in race detail scrollable view after race completion.
  * - Shows "Complete Analysis" prompt if not done
- * - Shows RegattaFlow Playbook coaching if analysis complete
+ * - Shows BetterAt Playbook coaching if analysis complete
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -233,7 +233,7 @@ export function PostRaceAnalysisCard({
         return;
       }
 
-      // Generate coaching feedback using RegattaFlow Playbook frameworks (via Edge Function)
+      // Generate coaching feedback using BetterAt Playbook frameworks (via Edge Function)
       logger.debug('[PostRaceAnalysisCard] Calling generate-race-coaching edge function...');
 
       const { data: coaching, error: coachingError } = await supabase.functions.invoke(
@@ -376,7 +376,7 @@ export function PostRaceAnalysisCard({
   };
 
   /**
-   * Handle RegattaFlow Playbook framework demo clicks
+   * Handle BetterAt Playbook framework demo clicks
    */
   const handleDemoClick = (demoNumber: number) => {
     const demoContent: Record<number, { title: string; description: string; url?: string }> = {
@@ -421,7 +421,7 @@ export function PostRaceAnalysisCard({
     if (!demo) {
       showConfirm(
         'Framework Demo',
-        'Open the RegattaFlow Playbook for the full framework library?',
+        'Open the BetterAt Playbook for the full framework library?',
         () => Linking.openURL('https://regattaflowplaybook.com')
       );
       return;
@@ -434,7 +434,7 @@ export function PostRaceAnalysisCard({
         [
           { text: 'Close', style: 'cancel' },
           {
-            text: 'Learn More at RegattaFlow Playbook',
+            text: 'Learn More at BetterAt Playbook',
             onPress: () => Linking.openURL(demo.url!),
           },
         ]
@@ -468,7 +468,7 @@ export function PostRaceAnalysisCard({
         <StrategyCard
           icon="clipboard-text"
           title="Post-Race Analysis"
-          badge="🏆 RegattaFlow Playbook"
+          badge="🏆 BetterAt Playbook"
           expandable={false}
         >
           <View style={styles.promptContainer}>
@@ -487,7 +487,7 @@ export function PostRaceAnalysisCard({
             </View>
             <Text style={styles.promptTitle}>Complete Your Post-Race Analysis</Text>
             <Text style={styles.promptDescription}>
-              Get championship-level coaching from the RegattaFlow Playbook frameworks.
+              Get championship-level coaching from the BetterAt Playbook frameworks.
               Learn exactly what to improve for your next race.
             </Text>
             <TouchableOpacity
@@ -504,7 +504,7 @@ export function PostRaceAnalysisCard({
               </TouchableOpacity>
             )}
             <Text style={styles.playbookNote}>
-              💡 Powered by the RegattaFlow Playbook's 40+ years of championship coaching
+              💡 Powered by the BetterAt Playbook's 40+ years of championship coaching
             </Text>
           </View>
         </StrategyCard>

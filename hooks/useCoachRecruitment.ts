@@ -241,27 +241,27 @@ export function useCoachRecruitment() {
       const boatClass = profile.boatClasses[0];
       return {
         title: 'Share Your Knowledge',
-        subtitle: `You've been racing ${boatClass} for ${profile.seasonCount} season${profile.seasonCount === 1 ? '' : 's'}. Help others improve — become a RegattaFlow coach.`,
+        subtitle: `You've been racing ${boatClass} for ${profile.seasonCount} season${profile.seasonCount === 1 ? '' : 's'}. Help others improve — become a BetterAt coach.`,
       };
     }
 
     if (profile.seasonCount > 0) {
       return {
         title: 'Share Your Knowledge',
-        subtitle: `${profile.seasonCount} season${profile.seasonCount === 1 ? '' : 's'} of sailing experience? Help others improve — become a RegattaFlow coach.`,
+        subtitle: `${profile.seasonCount} season${profile.seasonCount === 1 ? '' : 's'} of sailing experience? Help others improve — become a BetterAt coach.`,
       };
     }
 
     if (profile.raceCount > 0) {
       return {
         title: 'Share Your Knowledge',
-        subtitle: 'Your racing experience could help others. Become a RegattaFlow coach.',
+      subtitle: 'Your racing experience could help others. Become a BetterAt coach.',
       };
     }
 
     return {
       title: 'Become a Coach',
-      subtitle: 'Experienced sailor? Help others improve — become a RegattaFlow coach.',
+      subtitle: 'Experienced sailor? Help others improve — become a BetterAt coach.',
     };
   }, [sailorData]);
 

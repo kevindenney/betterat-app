@@ -17,6 +17,10 @@ import { useAuth } from '@/providers/AuthProvider';
 
 export type BlueprintAccessMode = 'institutional' | 'independent';
 export type BlueprintStatus = 'draft' | 'in_review' | 'live' | 'archived';
+export type BlueprintSkillLevel = 'introductory' | 'intermediate' | 'advanced';
+export type BlueprintDurationUnit = 'hours' | 'days' | 'weeks' | 'months';
+export type BlueprintCurrency = 'usd' | 'hkd' | 'gbp' | 'eur' | 'aud' | 'cad' | 'sgd';
+export type BlueprintBillingCadence = 'monthly' | 'annual' | 'one_time';
 
 export interface BlueprintAuthor {
   user_id: string;
@@ -38,14 +42,18 @@ export interface BlueprintCohort {
 export interface StudioBlueprintDraft {
   id: string;
   isNew: boolean;
+  slug: string | null;
   title: string;
   subtitle: string;
   description: string;
+  interestId: string | null;
   status: BlueprintStatus;
   version: string;
   lastSavedLabel: string;
   durationLabel: string;
-  skillLevel: 'introductory' | 'intermediate' | 'advanced';
+  durationValue: string;
+  durationUnit: BlueprintDurationUnit;
+  skillLevel: BlueprintSkillLevel;
   estimatedSteps: number;
   stepsWritten: number;
   coverGradient: [string, string];
@@ -55,6 +63,8 @@ export interface StudioBlueprintDraft {
   orgName: string | null;
   accessMode: BlueprintAccessMode;
   pricePerMonth: number | null;
+  currency: BlueprintCurrency;
+  billingCadence: BlueprintBillingCadence;
   authors: BlueprintAuthor[];
   cohorts: BlueprintCohort[];
   coAuthorInvited: string | null;
@@ -125,7 +135,7 @@ function statusFromRow(status: string): BlueprintStatus {
 
 interface BlueprintRow {
   id: string;
-  org_id: string;
+  org_id: string | null;
   author_user_id: string | null;
   title: string;
   subtitle: string | null;
@@ -134,8 +144,14 @@ interface BlueprintRow {
   version: string;
   status: string;
   description: string | null;
+  interest_id: string | null;
   access_mode: string | null;
   price_per_seat_cents: number | null;
+  billing_cadence: string | null;
+  currency: string | null;
+  duration_value: number | null;
+  duration_unit: string | null;
+  skill_level: string | null;
   last_edited_at: string;
   published_at: string | null;
 }
@@ -162,6 +178,38 @@ interface AuthorRow {
   email: string | null;
 }
 
+interface BlueprintAuthorLinkRow {
+  user_id: string;
+  role: string | null;
+  created_at: string | null;
+}
+
+function normalizeDurationUnit(value: string | null | undefined): BlueprintDurationUnit {
+  return value === 'hours' || value === 'days' || value === 'months' ? value : 'weeks';
+}
+
+function normalizeSkillLevel(value: string | null | undefined): BlueprintSkillLevel {
+  return value === 'introductory' || value === 'advanced' ? value : 'intermediate';
+}
+
+function normalizeCurrency(value: string | null | undefined): BlueprintCurrency {
+  const code = (value ?? '').toLowerCase();
+  if (code === 'hkd' || code === 'gbp' || code === 'eur' || code === 'aud' || code === 'cad' || code === 'sgd') {
+    return code;
+  }
+  return 'usd';
+}
+
+function normalizeBillingCadence(value: string | null | undefined): BlueprintBillingCadence {
+  return value === 'annual' || value === 'one_time' ? value : 'monthly';
+}
+
+function durationLabel(value: number | null | undefined, unit: BlueprintDurationUnit): string {
+  if (value == null || value <= 0) return '';
+  const suffix = value === 1 ? unit.replace(/s$/, '') : unit;
+  return `${value} ${suffix}`;
+}
+
 export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
   const menu = useProfileMenuData();
   const { user } = useAuth();
@@ -176,23 +224,33 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
       bp: BlueprintRow | null;
       org: OrgRow | null;
       author: AuthorRow | null;
+      coAuthors: BlueprintAuthorLinkRow[];
+      coAuthorUsers: AuthorRow[];
       cohorts: CohortAssignmentRow[];
       stepsWritten: number;
     }> => {
       const { data: bp, error } = await supabase
         .from('blueprints')
         .select(
-          'id, org_id, author_user_id, title, subtitle, slug, category, version, status, description, access_mode, price_per_seat_cents, last_edited_at, published_at',
+          'id, org_id, author_user_id, title, subtitle, slug, category, version, status, description, interest_id, access_mode, price_per_seat_cents, billing_cadence, currency, duration_value, duration_unit, skill_level, last_edited_at, published_at',
         )
         .eq('id', id)
         .maybeSingle();
       if (error || !bp) {
         if (error) console.warn('[useStudioBlueprint] query failed', error);
-        return { bp: null, org: null, author: null, cohorts: [], stepsWritten: 0 };
+        return {
+          bp: null,
+          org: null,
+          author: null,
+          coAuthors: [],
+          coAuthorUsers: [],
+          cohorts: [],
+          stepsWritten: 0,
+        };
       }
       const row = bp as BlueprintRow;
 
-      const [orgRes, authorRes, cohortsRes, stepsRes] = await Promise.all([
+      const [orgRes, authorRes, coAuthorsRes, cohortsRes, stepsRes] = await Promise.all([
         supabase.from('organizations').select('id, name').eq('id', row.org_id).maybeSingle(),
         row.author_user_id
           ? supabase
@@ -201,6 +259,11 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
               .eq('id', row.author_user_id)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null } as const),
+        supabase
+          .from('blueprint_authors')
+          .select('user_id, role, created_at')
+          .eq('blueprint_id', id)
+          .order('created_at', { ascending: true }),
         supabase
           .from('blueprint_cohorts')
           .select('cohort_id, cohort:betterat_org_cohorts(id, name, status, max_seats, start_date)')
@@ -211,6 +274,29 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
           .eq('blueprint_id', id),
       ]);
 
+      if (coAuthorsRes.error) {
+        console.warn('[useStudioBlueprint] co-authors query failed', coAuthorsRes.error);
+      }
+      const coAuthors = (coAuthorsRes.data ?? []) as BlueprintAuthorLinkRow[];
+      const coAuthorIds = Array.from(
+        new Set(
+          coAuthors
+            .map((a) => a.user_id)
+            .filter((userId) => userId && userId !== row.author_user_id),
+        ),
+      );
+      let coAuthorUsers: AuthorRow[] = [];
+      if (coAuthorIds.length > 0) {
+        const { data: coAuthorUserRows, error: coAuthorUsersError } = await supabase
+          .from('users')
+          .select('id, full_name, email')
+          .in('id', coAuthorIds);
+        if (coAuthorUsersError) {
+          console.warn('[useStudioBlueprint] co-author users query failed', coAuthorUsersError);
+        }
+        coAuthorUsers = (coAuthorUserRows ?? []) as AuthorRow[];
+      }
+
       const cohorts = ((cohortsRes.data ?? []) as unknown as CohortAssignmentRow[]).filter(
         (c) => c.cohort,
       );
@@ -219,6 +305,8 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
         bp: row,
         org: (orgRes.data ?? null) as OrgRow | null,
         author: (authorRes.data ?? null) as AuthorRow | null,
+        coAuthors,
+        coAuthorUsers,
         cohorts,
         stepsWritten: stepsRes.count ?? 0,
       };
@@ -234,13 +322,17 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
       blueprint: {
         id: 'new',
         isNew: true,
+        slug: null,
         title: 'Untitled blueprint',
         subtitle: '',
         description: '',
+        interestId: null,
         status: 'draft',
         version: 'v0.1',
         lastSavedLabel: 'Not yet saved',
         durationLabel: '',
+        durationValue: '',
+        durationUnit: 'weeks',
         skillLevel: 'intermediate',
         estimatedSteps: 30,
         stepsWritten: 0,
@@ -251,6 +343,8 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
         orgName,
         accessMode: activeOrg ? 'institutional' : 'independent',
         pricePerMonth: null,
+        currency: 'usd',
+        billingCadence: 'monthly',
         authors: [
           {
             user_id: user?.id ?? 'self',
@@ -270,6 +364,7 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
   const bp = data?.bp ?? null;
   const org = data?.org ?? null;
   const author = data?.author ?? null;
+  const coAuthorUsers = data?.coAuthorUsers ?? [];
   const rowAccessMode: BlueprintAccessMode =
     bp?.access_mode === 'independent' || bp?.access_mode === 'institutional'
       ? bp.access_mode
@@ -282,28 +377,10 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
     ? (author.full_name?.trim() || author.email || 'Author')
     : 'Unknown author';
   const authorInitials = initialsFor(authorName);
-
-  const blueprint: StudioBlueprintDraft = {
-    id: id,
-    isNew: false,
-    title: bp?.title ?? 'Untitled blueprint',
-    subtitle: bp?.subtitle ?? '',
-    description: bp?.description ?? '',
-    status: statusFromRow(bp?.status ?? 'draft'),
-    version: bp?.version ?? 'v0.1',
-    lastSavedLabel: relativeLabel(bp?.last_edited_at ?? null),
-    durationLabel: '',
-    skillLevel: 'intermediate',
-    estimatedSteps: 30,
-    stepsWritten: data?.stepsWritten ?? 0,
-    coverGradient: gradientForSeed(bp?.id ?? id),
-    coverImageUrl: null,
-    orgId: bp?.org_id ?? null,
-    orgShort: org?.name ? shortNameFor(org.name) : null,
-    orgName: org?.name ?? null,
-    accessMode: rowAccessMode,
-    pricePerMonth: bp?.price_per_seat_cents != null ? bp.price_per_seat_cents / 100 : null,
-    authors: author
+  const rowDurationUnit = normalizeDurationUnit(bp?.duration_unit);
+  const rowDurationValue = bp?.duration_value != null ? String(bp.duration_value) : '';
+  const authors: BlueprintAuthor[] = [
+    ...(author
       ? [
           {
             user_id: author.id,
@@ -313,7 +390,46 @@ export function useStudioBlueprint(id: string): UseStudioBlueprintResult {
             is_primary: true,
           },
         ]
-      : [],
+      : []),
+    ...coAuthorUsers.map((coAuthor) => {
+      const displayName = coAuthor.full_name?.trim() || coAuthor.email || 'Co-author';
+      return {
+        user_id: coAuthor.id,
+        display_name: displayName,
+        initials: initialsFor(displayName),
+        gradient: gradientForSeed(coAuthor.id),
+        is_primary: false,
+      };
+    }),
+  ];
+
+  const blueprint: StudioBlueprintDraft = {
+    id: id,
+    isNew: false,
+    slug: bp?.slug ?? null,
+    title: bp?.title ?? 'Untitled blueprint',
+    subtitle: bp?.subtitle ?? '',
+    description: bp?.description ?? '',
+    interestId: bp?.interest_id ?? null,
+    status: statusFromRow(bp?.status ?? 'draft'),
+    version: bp?.version ?? 'v0.1',
+    lastSavedLabel: relativeLabel(bp?.last_edited_at ?? null),
+    durationLabel: durationLabel(bp?.duration_value, rowDurationUnit),
+    durationValue: rowDurationValue,
+    durationUnit: rowDurationUnit,
+    skillLevel: normalizeSkillLevel(bp?.skill_level),
+    estimatedSteps: 30,
+    stepsWritten: data?.stepsWritten ?? 0,
+    coverGradient: gradientForSeed(bp?.id ?? id),
+    coverImageUrl: null,
+    orgId: bp?.org_id ?? null,
+    orgShort: org?.name ? shortNameFor(org.name) : null,
+    orgName: org?.name ?? null,
+    accessMode: rowAccessMode,
+    pricePerMonth: bp?.price_per_seat_cents != null ? bp.price_per_seat_cents / 100 : null,
+    currency: normalizeCurrency(bp?.currency),
+    billingCadence: normalizeBillingCadence(bp?.billing_cadence),
+    authors,
     cohorts: (data?.cohorts ?? []).map((c) => ({
       id: c.cohort.id,
       name: c.cohort.name,

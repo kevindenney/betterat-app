@@ -454,10 +454,13 @@ export interface WhereFormRowProps {
 }
 
 export function WhereFormRow({ k, v, isFirst }: WhereFormRowProps) {
+  const hasKey = k.trim().length > 0;
   return (
     <View style={[formStyles.row, !isFirst && formStyles.rowBorder]}>
-      <Text style={formStyles.key}>{k}</Text>
-      <Text style={formStyles.value} numberOfLines={2}>{v}</Text>
+      {hasKey ? <Text style={formStyles.key}>{k}</Text> : null}
+      <Text style={formStyles.value} numberOfLines={2}>
+        {v}
+      </Text>
     </View>
   );
 }

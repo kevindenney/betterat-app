@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Mobile: Studio + the context chip (no toggle row)</title>
+<style>
+  :root {
+    --bg:      #F2F2F7;
+    --card:    #FFFFFF;
+    --ink:     #1C1C1E;
+    --ink-2:   #5B6068;
+    --ink-3:   #9097A1;
+    --label:   #8E8E93;
+    --hair:    #E6E7EB;
+    --hair-2:  #F0F1F4;
+    --blue:    #007AFF;
+    --studio:  #6366F1;
+    --studio-bg:#EEEEFE;
+    --green:   #1E9E6A;
+    --coral:   #FF6B5E;
+    --red:     #FF3B30;
+    --amber:   #E08A2B;
+    --jhu:     #0B4DA2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    background: #DCDCE1; color: var(--ink); line-height: 1.42;
+    padding: 44px 24px 90px;
+  }
+  .masthead { max-width: 1180px; margin: 0 auto 14px; text-align: center; }
+  .masthead h1 { font-size: 25px; font-weight: 800; letter-spacing: -.02em; }
+  .masthead p  { color: #4b5057; font-size: 14px; margin: 9px auto 0; max-width: 740px; }
+  .masthead p b { color: #2a2d33; }
+  .pillrow { display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+  .pillrow .p { font-size:12px; font-weight:650; color:#4b5057; background:#fff; border:1px solid #d4d6dc;
+    border-radius:999px; padding:6px 13px; display:flex; align-items:center; gap:7px; }
+  .pillrow .p i { width:10px; height:10px; border-radius:3px; display:block; }
+
+  .row-tag { max-width: 1180px; margin: 42px auto 18px; }
+  .row-tag .t { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--studio); }
+  .row-tag .h { font-size: 19px; font-weight: 750; letter-spacing: -.01em; margin-top: 6px; }
+  .row-tag .d { font-size: 13.5px; color: #4b5057; margin-top: 5px; max-width: 780px; }
+  .row-tag .d b { color: #2a2d33; }
+
+  .stage { display: flex; gap: 38px; justify-content: center; align-items: flex-start; flex-wrap: wrap;
+    max-width: 1180px; margin: 0 auto; }
+  .col { width: 312px; }
+  .col .cap { text-align: center; font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 13px; }
+  .col .cap.blue { color: var(--blue); }
+  .col .cap.purple { color: var(--studio); }
+  .col .note { font-size: 12.5px; color: #4b5057; line-height: 1.55; margin-top: 14px; }
+  .col .note b { color: #1f2329; }
+
+  .phone { width: 312px; border-radius: 44px; padding: 11px; background: #0b0b0d;
+    box-shadow: 0 20px 52px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.18); }
+  .screen { position: relative; border-radius: 34px; overflow: hidden; background: var(--bg); height: 668px; }
+  .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 112px; height: 30px; background: #000; border-radius: 17px; z-index: 9; }
+  .status { height: 46px; display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 24px 6px; font-size: 13px; font-weight: 600; }
+  .status .dots { letter-spacing: 2px; }
+
+  /* shared header — note: NO toggle row. The chip carries mode. */
+  .appbar { display:flex; align-items:center; gap:8px; padding: 4px 14px 12px; }
+  .ctxchip { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--hair);
+    border-radius: 999px; padding: 7px 13px 7px 11px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .ctxchip .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .ctxchip.practice .dot { background: var(--blue); }
+  .ctxchip.studio .dot { background: var(--studio); }
+  .ctxchip.jhu .dot { background: var(--jhu); }
+  .ctxchip .nm { font-size:13.5px; font-weight:750; }
+  .ctxchip .chev { font-size:11px; color: var(--ink-3); }
+  .appbar .spacer { flex:1; }
+  .iconbtn { width:33px; height:33px; border-radius:10px; background:#fff; border:1px solid var(--hair);
+    display:grid; place-items:center; font-size:15px; color: var(--ink-2); position:relative; }
+  .iconbtn .dot { position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px;
+    background:var(--red); color:#fff; font-size:9.5px; font-weight:800; border-radius:999px; display:grid; place-items:center; border:2px solid var(--bg); }
+  .avbtn { width:33px; height:33px; border-radius:50%; background:#C9CDD6; color:#fff; font-size:12px; font-weight:700; display:grid; place-items:center; }
+
+  .savedspace { margin: 0 14px 8px; border:1px dashed #BBD3F0; background:#F2F8FF; border-radius:10px;
+    padding:6px 10px; font-size:10.5px; font-weight:650; color:#3B7BC8; text-align:center; letter-spacing:.02em; }
+  .savedspace.purple { border-color:#D2D2F5; background:#F4F4FE; color:var(--studio); }
+
+  .body { padding: 4px 14px; height: 432px; overflow:hidden; }
+  .h1 { font-size:21px; font-weight:780; letter-spacing:-.015em; }
+  .sub { font-size:12.5px; color: var(--ink-3); margin-top:2px; }
+
+  .stepcard { background:#fff; border:1px solid var(--hair); border-left:3px solid var(--coral);
+    border-radius:13px; padding:13px; margin-top:6px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .stepcard .now { font-size:9px; font-weight:900; letter-spacing:.12em; color:var(--coral); }
+  .stepcard .st { font-size:15.5px; font-weight:750; margin-top:5px; line-height:1.25; }
+  .stepcard .seg { display:flex; gap:7px; margin-top:10px; align-items:center; }
+  .stepcard .seg span { font-size:11px; color:var(--ink-3); }
+  .stepcard .seg span.a { color:var(--blue); font-weight:800; }
+  .stepcard .subs { margin-top:12px; border-top:1px solid var(--hair-2); padding-top:10px; }
+  .stepcard .subs .li { display:flex; gap:9px; align-items:center; font-size:12.5px; color:var(--ink-2); padding:5px 0; }
+  .stepcard .subs .li .n { width:18px; height:18px; border-radius:5px; background:#F0F1F4; font-size:10px; font-weight:700; color:var(--ink-3); display:grid; place-items:center; }
+
+  .statrow { display:flex; gap:9px; margin-top:6px; }
+  .stat { flex:1; background:#fff; border:1px solid var(--hair); border-radius:12px; padding:10px 11px; }
+  .stat .k { font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--label); }
+  .stat .v { font-size:21px; font-weight:780; margin-top:4px; }
+  .stat .s { font-size:10px; color:var(--ink-3); margin-top:2px; }
+  .bpcard { display:flex; gap:11px; align-items:center; background:#fff; border:1px solid var(--hair);
+    border-radius:12px; padding:11px; margin-top:11px; }
+  .bpcard .sq { width:42px; height:42px; border-radius:10px; flex-shrink:0; display:grid; place-items:center; color:#fff; font-size:9px; font-weight:800; text-align:center; line-height:1.1; }
+  .bpcard .nm { font-size:13.5px; font-weight:700; }
+  .bpcard .mt { font-size:11px; color:var(--ink-3); margin-top:3px; }
+  .bpcard .live { font-size:9.5px; font-weight:800; color:var(--green); }
+
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:74px; background:rgba(255,255,255,.94);
+    backdrop-filter: blur(14px); border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:flex-start; padding-top:9px; }
+  .tab { flex:1; display:grid; justify-items:center; gap:4px; font-size:9.5px; font-weight:600; color:var(--ink-3); }
+  .tab .ic { font-size:18px; }
+  .tab.on { color: var(--blue); }
+  .tab.on.create { color: var(--studio); }
+
+  /* ===== context sheet (the chip tapped) ===== */
+  .sheet { position:absolute; inset:0; background: var(--bg); }
+  .sheetbar { display:flex; align-items:center; justify-content:space-between; padding: 6px 16px 10px; }
+  .sheetbar .ttl { font-size:17px; font-weight:750; }
+  .sheetbar .x { font-size:15px; color:var(--blue); font-weight:600; }
+  .sheetbar .done { font-size:15px; color:var(--blue); font-weight:700; }
+  .glabel { font-size:10px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--label); padding: 14px 18px 7px; }
+  .ctxgroup { background:#fff; border-radius:16px; margin: 0 12px; overflow:hidden; }
+  .moderow { display:flex; align-items:center; gap:12px; padding: 14px 15px; position:relative; }
+  .moderow .badge-ic { width:34px; height:34px; border-radius:10px; display:grid; place-items:center; color:#fff; font-size:16px; flex-shrink:0; }
+  .moderow .ttl { font-size:15.5px; font-weight:750; }
+  .moderow .d { font-size:11.5px; color:var(--ink-3); margin-top:1px; }
+  .moderow .check { margin-left:auto; font-size:16px; font-weight:800; }
+  .moderow.on.practice { background: #F4F9FF; }
+  .moderow.on.practice .check { color: var(--blue); }
+  .moderow.studio .badge-ic { background: var(--studio); }
+  .moderow.practice .badge-ic { background: var(--blue); }
+  .moderow .cnt { margin-left:auto; font-size:11px; color:var(--ink-3); }
+  .interests { background:#FAFAFC; border-top:1px solid var(--hair-2); padding: 4px 0 6px; }
+  .ilabel { font-size:9.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--label); padding:9px 18px 4px; }
+  .irow { display:flex; align-items:center; gap:11px; padding: 9px 18px; font-size:13.5px; }
+  .irow .d { width:7px; height:7px; border-radius:50%; background:#C9CDD6; }
+  .irow.on .d { background: var(--blue); }
+  .irow.on { font-weight:700; }
+  .irow .check { margin-left:auto; color:var(--blue); font-weight:800; }
+  .irow.add { color:var(--blue); font-weight:650; }
+  .orgrow { display:flex; align-items:center; gap:12px; padding: 13px 15px; }
+  .orgrow .av { width:30px; height:30px; border-radius:8px; background:var(--jhu); color:#fff; font-size:11px; font-weight:800; display:grid; place-items:center; }
+  .orgrow .ttl { font-size:14.5px; font-weight:700; }
+  .orgrow .d { font-size:11px; color:var(--ink-3); }
+  .addorg { padding: 14px 18px; font-size:13.5px; font-weight:650; color:var(--studio); display:flex; align-items:center; gap:10px; }
+
+  /* avatar sheet (slimmed — workspace moved to the chip) */
+  .menucard { margin: 0 12px; }
+  .mhead { background:#fff; border-radius:16px; padding:14px; display:flex; gap:12px; align-items:center; }
+  .mhead .av { width:46px; height:46px; border-radius:50%; background:#C9CDD6; color:#fff; font-size:16px; font-weight:700; display:grid; place-items:center; }
+  .mhead .nm { font-size:16px; font-weight:750; }
+  .mhead .em { font-size:12px; color:var(--ink-3); }
+  .pubcta { margin-top:11px; background: linear-gradient(180deg,#F4F5FF,#FAFAFF); border:1px solid #E3E4F5;
+    border-radius:14px; padding:13px; display:flex; align-items:center; gap:11px; }
+  .pubcta .ic { width:34px; height:34px; border-radius:10px; background:var(--studio); color:#fff; display:grid; place-items:center; font-size:15px; }
+  .pubcta .t { font-size:13.5px; font-weight:700; }
+  .pubcta .d { font-size:11px; color:var(--ink-2); margin-top:1px; }
+  .pubcta .go { margin-left:auto; color:var(--ink-3); }
+  .group { background:#fff; border-radius:16px; margin-top:11px; overflow:hidden; }
+  .grow { display:flex; align-items:center; gap:13px; padding: 13px 16px; position:relative; }
+  .grow + .grow::before { content:""; position:absolute; top:0; left:52px; right:0; height:1px; background:var(--hair-2); }
+  .grow .ic { width:24px; text-align:center; font-size:16px; color:var(--ink-2); }
+  .grow .lbl { font-size:14.5px; }
+  .grow .chev { margin-left:auto; color:var(--ink-3); }
+  .grow.danger .lbl, .grow.danger .ic { color:var(--red); }
+  .movehint { margin: 12px; font-size:11.5px; color:var(--ink-3); text-align:center; line-height:1.5; }
+  .movehint b { color: var(--ink-2); }
+
+  /* inbox */
+  .segtab { display:flex; gap:6px; padding: 4px 14px 8px; }
+  .segtab .s { font-size:12px; font-weight:650; color:var(--ink-3); padding:5px 12px; border-radius:999px; background:#fff; border:1px solid var(--hair); }
+  .segtab .s.on { background:#111; color:#fff; border-color:#111; }
+  .inboxitem { background:#fff; border:1px solid var(--hair); border-radius:13px; margin:11px 14px 0; padding:12px 13px; display:flex; gap:11px; }
+  .inboxitem .ic { width:36px; height:36px; border-radius:10px; flex-shrink:0; display:grid; place-items:center; font-size:15px; color:#fff; }
+  .inboxitem .t { font-size:13.5px; font-weight:650; line-height:1.3; }
+  .inboxitem .m { font-size:11.5px; color:var(--ink-3); margin-top:3px; }
+  .inboxitem .unread { width:8px; height:8px; border-radius:50%; background:var(--blue); margin-left:auto; flex-shrink:0; margin-top:5px; }
+
+  /* profile preview / edit */
+  .pseg { display:flex; background:#E4E4EA; border-radius:10px; padding:3px; width:max-content; margin: 0 auto; }
+  .pseg button { border:0; background:transparent; font:inherit; font-size:12.5px; font-weight:700; color:var(--ink-2); padding:6px 20px; border-radius:8px; }
+  .pseg button.on { background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.13); }
+  .viewbanner { margin: 10px 14px 0; font-size:11px; color:var(--amber); background:#FFF6E9; border:1px solid #F6E2BE; border-radius:9px; padding:7px 11px; display:flex; gap:7px; align-items:center; }
+  .cover { margin: 12px 14px 0; height:78px; border-radius:14px; background:linear-gradient(120deg,#6366F1,#8B5CF6); position:relative; }
+  .cover .pa { position:absolute; left:16px; bottom:-24px; width:54px; height:54px; border-radius:50%; background:#fff; border:3px solid #fff; display:grid; place-items:center; font-size:22px; box-shadow:0 2px 8px rgba(0,0,0,.18); }
+  .cover .ch { position:absolute; right:10px; bottom:9px; background:rgba(255,255,255,.92); border-radius:8px; padding:4px 10px; font-size:10.5px; font-weight:700; color:var(--studio); }
+  .pname { margin: 32px 16px 0; }
+  .pname .n { font-size:18px; font-weight:780; }
+  .pname .s { font-size:12.5px; color:var(--ink-3); }
+  .psec { background:#fff; border:1px solid var(--hair); border-radius:13px; margin: 12px 14px 0; padding:13px; position:relative; }
+  .psec .eb { position:absolute; top:11px; right:11px; font-size:10.5px; font-weight:700; color:var(--blue); border:1px solid #CFE2FF; background:#F0F7FF; border-radius:999px; padding:3px 10px; }
+  .psec .h { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--label); }
+  .psec .v { font-size:14.5px; font-weight:650; margin-top:5px; }
+  .psec .m { font-size:12.5px; color:var(--ink-2); margin-top:5px; line-height:1.45; }
+
+  .takeaways { max-width:1180px; margin: 52px auto 0; background:#fff; border:1px solid var(--hair); border-radius:16px; padding:22px 24px; }
+  .takeaways h3 { font-size:15px; font-weight:780; }
+  .takeaways ul { margin:14px 0 0; padding:0; list-style:none; display:grid; gap:12px; }
+  .takeaways li { font-size:13.5px; color:#4b5057; display:flex; gap:12px; align-items:flex-start; }
+  .takeaways li b { color:#1f2329; }
+  .takeaways li .n { flex-shrink:0; width:22px; height:22px; border-radius:7px; background:var(--studio-bg); color:var(--studio); font-size:11px; font-weight:800; display:grid; place-items:center; margin-top:1px; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <h1>The context chip — <span style="color:var(--blue)">Practice</span> &amp; <span style="color:var(--studio)">Studio</span>, no toggle row</h1>
+  <p>The Do·Create segment is gone. The top-left chip — the thing that's the <b>interest switcher</b> today —
+  becomes the one context control: it carries mode <i>and</i> workspace, with interests nested under Practice.
+  You reclaim a whole strip of screen, and the accent color tells you where you are.</p>
+  <div class="pillrow">
+    <span class="p"><i style="background:var(--blue)"></i> Practice — my own getting-better</span>
+    <span class="p"><i style="background:var(--studio)"></i> Studio — blueprints I author &amp; mentor</span>
+    <span class="p"><i style="background:var(--jhu)"></i> Johns Hopkins — org admin</span>
+  </div>
+</div>
+
+<!-- ROW 1 -->
+<div class="row-tag">
+  <div class="t">The result</div>
+  <div class="h">Same chrome, the chip changes — no segmented control eating a row</div>
+  <div class="d">In Practice the chip reads your <b>interest</b> ("Nursing"). Tap into Studio and it reads
+  <b>"Studio"</b> in purple. The bell and avatar never move; the bottom tabs swap. The dashed strip marks the
+  vertical space we got back versus v1's Do·Create toggle.</div>
+</div>
+
+<div class="stage">
+  <!-- PRACTICE -->
+  <div class="col">
+    <div class="cap blue">Practice</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="appbar">
+        <div class="ctxchip practice"><span class="dot"></span><span class="nm">Nursing</span><span class="chev">⌄</span></div>
+        <div class="spacer"></div>
+        <div class="iconbtn">✉<div class="dot">5</div></div>
+        <div class="avbtn">KD</div>
+      </div>
+      <div class="savedspace">▲ reclaimed — no Do·Create toggle here</div>
+      <div class="body">
+        <div class="stepcard">
+          <div class="now">NOW · STEP 1</div>
+          <div class="st">Pre-shift huddle: review the new lasix protocol</div>
+          <div class="seg"><span class="a">① Plan</span><span>›</span><span>Do</span><span>›</span><span>Review</span></div>
+          <div class="subs">
+            <div class="li"><span class="n">1</span> Re-read the updated lasix protocol</div>
+            <div class="li"><span class="n">2</span> Pull the two recent titration cases</div>
+            <div class="li"><span class="n">3</span> Note the max-rate change &amp; reasoning</div>
+          </div>
+        </div>
+        <div class="sub" style="margin-top:12px;text-align:center">Step 2 of 6 · swipe for next →</div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on"><span class="ic">◎</span> Practice</div>
+        <div class="tab"><span class="ic">▤</span> Library</div>
+        <div class="tab"><span class="ic">👁</span> Watch</div>
+        <div class="tab"><span class="ic">⌖</span> Atlas</div>
+      </div>
+    </div></div>
+    <div class="note">Chip shows the interest, blue accent. Tapping it opens the context sheet (next row).</div>
+  </div>
+
+  <!-- STUDIO -->
+  <div class="col">
+    <div class="cap purple">Studio</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="appbar">
+        <div class="ctxchip studio"><span class="dot"></span><span class="nm">Studio</span><span class="chev">⌄</span></div>
+        <div class="spacer"></div>
+        <div class="iconbtn">✉<div class="dot">5</div></div>
+        <div class="avbtn">KD</div>
+      </div>
+      <div class="savedspace purple">▲ same reclaimed space</div>
+      <div class="body">
+        <div class="h1" style="margin-top:2px">Good morning, Kevin.</div>
+        <div class="sub" style="margin-bottom:8px">9 blueprints · 0 subscribers</div>
+        <div class="statrow">
+          <div class="stat"><div class="k">Subscribers</div><div class="v">0</div><div class="s">none new</div></div>
+          <div class="stat"><div class="k">Threads</div><div class="v">0</div><div class="s">awaiting you</div></div>
+        </div>
+        <div class="bpcard"><div class="sq" style="background:#7B86C8">FOUR<br>PEAKS</div><div><div class="nm">Four Peaks Race 2027</div><div class="mt">8 steps · <span class="live">Live v1.0</span></div></div></div>
+        <div class="bpcard"><div class="sq" style="background:#A05B6E">ISBAR</div><div><div class="nm">ISBAR handoff communication</div><div class="mt">6 steps · <span class="live">Live v1.0</span></div></div></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on create"><span class="ic">⬚</span> Home</div>
+        <div class="tab"><span class="ic">◳</span> Blueprints</div>
+        <div class="tab"><span class="ic">⚇</span> Subscribers</div>
+        <div class="tab"><span class="ic">✉</span> Threads</div>
+        <div class="tab"><span class="ic">$</span> Payouts</div>
+      </div>
+    </div></div>
+    <div class="note">Chip reads <b>"Studio"</b>, purple accent, Studio tabs below. Subscribers &amp; Threads are
+    tabs here — the old menu rows are gone.</div>
+  </div>
+</div>
+
+<!-- ROW 2 -->
+<div class="row-tag">
+  <div class="t">The switch</div>
+  <div class="h">Tap the chip → one sheet for mode + interest + workspace</div>
+  <div class="d">Everything that used to be three scattered controls (interest chip, the Do·Create toggle, and the
+  workspace switcher buried in the profile menu) collapses into <b>one</b> sheet. Interests sit nested under
+  Practice, because they're a Practice-only concern. Studio only appears once you have a blueprint.</div>
+</div>
+
+<div class="stage">
+  <!-- CONTEXT SHEET -->
+  <div class="col">
+    <div class="cap purple">Chip tapped — context sheet</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheet">
+        <div class="sheetbar"><span class="x">✕</span><span class="ttl">Switch context</span><span style="width:14px"></span></div>
+        <div class="glabel">Personal</div>
+        <div class="ctxgroup">
+          <div class="moderow practice on">
+            <div class="badge-ic">◎</div>
+            <div><div class="ttl">Practice</div><div class="d">My own getting-better</div></div>
+            <div class="check">✓</div>
+          </div>
+          <div class="interests">
+            <div class="ilabel">Interest</div>
+            <div class="irow on"><span class="d"></span> Nursing <span class="check">✓</span></div>
+            <div class="irow"><span class="d"></span> Sailing</div>
+            <div class="irow"><span class="d"></span> Golf</div>
+            <div class="irow add"><span style="width:7px"></span>＋ Add interest</div>
+          </div>
+        </div>
+        <div class="ctxgroup" style="margin-top:11px">
+          <div class="moderow studio">
+            <div class="badge-ic">⬚</div>
+            <div><div class="ttl">Studio</div><div class="d">Author &amp; mentor blueprints</div></div>
+            <div class="cnt">9 blueprints</div>
+          </div>
+        </div>
+        <div class="glabel">Organizations</div>
+        <div class="ctxgroup">
+          <div class="orgrow"><div class="av">JH</div><div><div class="ttl">Johns Hopkins</div><div class="d">Administrator</div></div></div>
+          <div class="addorg"><span style="width:6px"></span>＋ Join another organization</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="note">Pick <b>Studio</b> → sheet closes, chip becomes purple "Studio", tabs swap. Pick <b>Sailing</b>
+    → stays in Practice, chip reads "Sailing". One control, three dials.</div>
+  </div>
+
+  <!-- AVATAR SHEET (slimmed) -->
+  <div class="col">
+    <div class="cap">Avatar → just you</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheet">
+        <div class="sheetbar"><span class="x">✕</span><span class="ttl">You</span><span style="width:14px"></span></div>
+        <div class="menucard">
+          <div class="mhead"><div class="av">KD</div><div><div class="nm">Kevin Denney</div><div class="em">denneyke@gmail.com</div></div></div>
+          <div class="pubcta"><div class="ic">👤</div><div><div class="t">View &amp; edit profile</div><div class="d">See exactly what peers &amp; orgs see</div></div><div class="go">›</div></div>
+          <div class="group">
+            <div class="grow"><span class="ic">⚙</span><span class="lbl">Account &amp; settings</span><span class="chev">›</span></div>
+            <div class="grow"><span class="ic">？</span><span class="lbl">Help &amp; feedback</span><span class="chev">›</span></div>
+            <div class="grow danger"><span class="ic">⎋</span><span class="lbl">Sign out</span></div>
+          </div>
+          <div class="movehint">Workspace switching moved to the <b>context chip</b> — so the avatar sheet is now
+          purely identity, profile &amp; account. No more junk drawer.</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="note">Because the chip owns workspace now, the avatar sheet shrinks to three things. Studio /
+    Mentor / "My Practice" / Inbox are all gone from here.</div>
+  </div>
+
+  <!-- INBOX -->
+  <div class="col">
+    <div class="cap blue">Bell → Inbox</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheetbar" style="padding-top:14px"><span class="x">✕</span><span class="ttl">Inbox</span><span class="done" style="font-weight:600;font-size:14px">Triage</span></div>
+      <div class="segtab"><div class="s on">All · 5</div><div class="s">Captures</div><div class="s">Suggested</div></div>
+      <div style="height:430px;overflow:hidden">
+        <div class="inboxitem"><div class="ic" style="background:#34A0A4">🔗</div><div><div class="t">Saved link: "Lasix titration in acute CHF"</div><div class="m">From Telegram · 2h ago — triage to a step or library</div></div><div class="unread"></div></div>
+        <div class="inboxitem"><div class="ic" style="background:#6366F1">↪</div><div><div class="t">Maya suggested a step</div><div class="m">"Try the head-to-toe under 8 min" · peer</div></div><div class="unread"></div></div>
+        <div class="inboxitem"><div class="ic" style="background:#E08A2B">💡</div><div><div class="t">Idea you dumped</div><div class="m">"Build a worked example for ISBAR" · yesterday</div></div><div class="unread"></div></div>
+        <div class="inboxitem"><div class="ic" style="background:#A05B6E">⚇</div><div><div class="t">2 joined Four Peaks 2027</div><div class="m">Studio · subscribers · 3d ago</div></div></div>
+      </div>
+    </div></div>
+    <div class="note">Bell stays in the header in <b>every</b> context — one tap to capture/triage from anywhere.</div>
+  </div>
+</div>
+
+<!-- ROW 3 -->
+<div class="row-tag">
+  <div class="t">Public face = profile</div>
+  <div class="h">One screen, Preview ⇄ Edit (carried from the recommendation)</div>
+  <div class="d">Reached from the avatar sheet's "View &amp; edit profile". Preview is the stranger's render; Edit
+  makes the same sections live.</div>
+</div>
+
+<div class="stage">
+  <div class="col">
+    <div class="cap">Preview — stranger's view</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheetbar"><span class="x">‹ Back</span><div class="pseg"><button class="on">Preview</button><button>Edit</button></div><span style="width:30px"></span></div>
+      <div style="height:560px;overflow:hidden">
+        <div class="viewbanner">👁 Viewing as others see you — read-only</div>
+        <div class="cover"><div class="pa">⛵</div></div>
+        <div class="pname"><div class="n">Kevin Denney</div><div class="s">Nursing · Aberdeen Harbor</div></div>
+        <div class="psec"><div class="h">About</div><div class="m">Cardiac stepdown RN building toward CCRN. Sailing on weekends.</div></div>
+        <div class="psec"><div class="h">Public steps</div><div class="v">Head-to-toe on the cardiac stepdown pt</div></div>
+      </div>
+    </div></div>
+    <div class="note">This <i>is</i> the public face — reuses your <b>public-face-populated</b> layout.</div>
+  </div>
+
+  <div class="col">
+    <div class="cap purple">Edit — same layout, live</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheetbar"><span class="x">‹ Back</span><div class="pseg"><button>Preview</button><button class="on">Edit</button></div><span class="done">Done</span></div>
+      <div style="height:560px;overflow:hidden">
+        <div class="cover"><div class="pa">⛵</div><div class="ch">Change cover</div></div>
+        <div class="pname"><div class="n">Kevin Denney</div><div class="s">Nursing · Aberdeen Harbor</div></div>
+        <div class="psec"><div class="eb">Edit</div><div class="h">About</div><div class="m">Cardiac stepdown RN building toward CCRN. Sailing on weekends.</div></div>
+        <div class="psec"><div class="eb">Manage</div><div class="h">Public steps</div><div class="m">Choose which steps appear · 1 shown</div></div>
+        <div class="psec"><div class="eb">Sections</div><div class="h">Visibility</div><div class="m">Toggle what each audience can see</div></div>
+      </div>
+    </div></div>
+    <div class="note">Your shipped visibility toggles live here. Flip to Preview to confirm — no second page.</div>
+  </div>
+</div>
+
+<div class="takeaways">
+  <h3>What changed from v1</h3>
+  <ul>
+    <li><span class="n">1</span><div><b>"Create" → "Studio".</b> Reuses your existing brand, no clash with the AI Coach,
+      and holds the whole outward world (blueprints + subscribers + threads + payouts), not just "creating".</div></li>
+    <li><span class="n">2</span><div><b>The Do·Create toggle is gone.</b> The top-left context chip carries mode — Practice
+      shows the interest, Studio reads "Studio". A whole row of vertical space comes back.</div></li>
+    <li><span class="n">3</span><div><b>The chip absorbs the interest switcher.</b> Interests nest under Practice in the
+      one context sheet, since "which interest" only matters when you're practicing.</div></li>
+    <li><span class="n">4</span><div><b>Workspace moves out of the profile menu</b> into that same chip — so the avatar
+      sheet shrinks to identity · profile · account.</div></li>
+    <li><span class="n">5</span><div><b>Progressive disclosure:</b> Studio only appears in the sheet once you've created
+      or been granted a blueprint — practitioners who never author never see it.</div></li>
+  </ul>
+</div>
+
+</body>
+</html>

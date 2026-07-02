@@ -102,10 +102,6 @@ export const SubscriptionManager: React.FC = () => {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>({ active: false });
 
-  useEffect(() => {
-    loadSubscriptionStatus();
-  }, [loadSubscriptionStatus]);
-
   const loadSubscriptionStatus = useCallback(async () => {
     if (!user?.id) return;
 
@@ -119,6 +115,10 @@ export const SubscriptionManager: React.FC = () => {
       setLoading(false);
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    loadSubscriptionStatus();
+  }, [loadSubscriptionStatus]);
 
   const handleSelectPlan = async (plan: SubscriptionPlan) => {
     if (!user?.id) {
@@ -155,7 +155,7 @@ export const SubscriptionManager: React.FC = () => {
       } else {
         if (Platform.OS === 'web') {
           void Linking.openURL(
-            `mailto:support@regattaflow.com?subject=Subscription%20Checkout%20Request&body=User%20ID%3A%20${encodeURIComponent(user.id)}%0APlan%3A%20${encodeURIComponent(plan.name)}`
+            `mailto:info@better.at?subject=Subscription%20Checkout%20Request&body=User%20ID%3A%20${encodeURIComponent(user.id)}%0APlan%3A%20${encodeURIComponent(plan.name)}`
           );
         } else {
           showAlert('Error', result.error);
@@ -184,7 +184,7 @@ export const SubscriptionManager: React.FC = () => {
       } else {
         if (Platform.OS === 'web') {
           void Linking.openURL(
-            `mailto:support@regattaflow.com?subject=Billing%20Portal%20Request&body=User%20ID%3A%20${encodeURIComponent(user.id)}`
+            `mailto:info@better.at?subject=Billing%20Portal%20Request&body=User%20ID%3A%20${encodeURIComponent(user.id)}`
           );
         } else {
           showAlert('Error', result.error);

@@ -9,8 +9,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // Email provider configuration (using Resend as example)
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const FROM_EMAIL = Deno.env.get('FROM_EMAIL') || 'RegattaFlow <noreply@regattaflow.com>'
-const APP_URL = Deno.env.get('APP_URL') || 'https://app.regattaflow.com'
+const FROM_EMAIL = Deno.env.get('FROM_EMAIL') || 'BetterAt <noreply@better.at>'
+const APP_URL = Deno.env.get('APP_URL') || 'https://better.at'
 
 interface EmailSequence {
   id: string
@@ -83,9 +83,9 @@ function generateEmailContent(
 
     default:
       return {
-        subject: `RegattaFlow Update`,
-        html: `<p>Hi ${firstName}, check out what's new in RegattaFlow!</p>`,
-        text: `Hi ${firstName}, check out what's new in RegattaFlow!`,
+        subject: `BetterAt Update`,
+        html: `<p>Hi ${firstName}, check out what's new in BetterAt!</p>`,
+        text: `Hi ${firstName}, check out what's new in BetterAt!`,
       }
   }
 }
@@ -127,11 +127,11 @@ function generateWelcomeEmail(firstName: string, persona: string, data: any) {
     html: `
       <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: ${config.gradient}; padding: 32px; text-align: center; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0;">Welcome to RegattaFlow!</h1>
+          <h1 style="color: white; margin: 0;">Welcome to BetterAt!</h1>
         </div>
         <div style="padding: 24px; background: #fff;">
           <p>Hi ${firstName}! 👋</p>
-          <p>Welcome to RegattaFlow — ${config.tagline}.</p>
+          <p>Welcome to BetterAt — ${config.tagline}.</p>
           <h3>🎯 Get started in 2 minutes:</h3>
           <ol>
             ${config.steps.map(step => `<li>${step}</li>`).join('\n            ')}
@@ -145,7 +145,7 @@ function generateWelcomeEmail(firstName: string, persona: string, data: any) {
         </div>
       </div>
     `,
-    text: `Welcome to RegattaFlow, ${firstName}!\n\n${config.tagline}\n\nGet started:\n${config.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nVisit: ${data.dashboardUrl}`,
+    text: `Welcome to BetterAt, ${firstName}!\n\n${config.tagline}\n\nGet started:\n${config.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nVisit: ${data.dashboardUrl}`,
   }
 }
 
@@ -168,7 +168,7 @@ function generateQuickStartEmail(firstName: string, persona: string, data: any) 
   const config = configs[persona] || configs.sailor
 
   return {
-    subject: `⏰ ${firstName}, finish setting up RegattaFlow`,
+    subject: `⏰ ${firstName}, finish setting up BetterAt`,
     html: `
       <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: ${config.gradient}; padding: 32px; text-align: center; border-radius: 12px 12px 0 0;">
@@ -176,7 +176,7 @@ function generateQuickStartEmail(firstName: string, persona: string, data: any) 
         </div>
         <div style="padding: 24px; background: #fff;">
           <p>Hi ${firstName},</p>
-          <p>We noticed you started setting up RegattaFlow but haven't finished yet. Let's get you ready!</p>
+          <p>We noticed you started setting up BetterAt but haven't finished yet. Let's get you ready!</p>
           <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 24px 0; border-left: 4px solid #8b5cf6;">
             <h3 style="color: #6d28d9; margin: 0 0 12px 0;">🚀 What you're missing:</h3>
             <ul style="color: #475569; margin: 0; padding-left: 20px; line-height: 1.8;">
@@ -189,7 +189,7 @@ function generateQuickStartEmail(firstName: string, persona: string, data: any) 
         </div>
       </div>
     `,
-    text: `Hi ${firstName},\n\nFinish setting up RegattaFlow to access:\n${config.features.map(f => `- ${f}`).join('\n')}\n\nContinue: ${data.dashboardUrl}`,
+    text: `Hi ${firstName},\n\nFinish setting up BetterAt to access:\n${config.features.map(f => `- ${f}`).join('\n')}\n\nContinue: ${data.dashboardUrl}`,
   }
 }
 
@@ -330,7 +330,7 @@ function generateReEngagementEmail(firstName: string, persona: string, data: any
         </div>
         <div style="padding: 24px; background: #fff;">
           <p>Hi ${firstName},</p>
-          <p>It's been a while since you've used RegattaFlow. ${messages[persona] || messages.sailor}</p>
+          <p>It's been a while since you've used BetterAt. ${messages[persona] || messages.sailor}</p>
           <div style="text-align: center; margin: 24px 0;">
             <a href="${data.dashboardUrl}" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Get Back to It</a>
           </div>
@@ -389,7 +389,7 @@ async function sendEmail(payload: EmailPayload): Promise<boolean> {
         subject: payload.subject,
         html: payload.html,
         text: payload.text,
-        reply_to: payload.reply_to || 'support@regattaflow.com',
+        reply_to: payload.reply_to || 'info@better.at',
       }),
     })
     

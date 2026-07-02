@@ -3,8 +3,8 @@
  *
  * Scans QR codes to quickly follow sailors. Supports:
  * - Direct sailor IDs (UUID format)
- * - RegattaFlow profile URLs (regattaflow.app/sailor/{id})
- * - Deep links (regattaflow://profile/{id})
+ * - BetterAt profile URLs
+ * - Legacy RegattaFlow profile URLs and deep links
  *
  * iOS HIG: Full-screen camera with minimal chrome overlay
  */
@@ -134,7 +134,7 @@ function CameraUnavailable({ onClose }: { onClose: () => void }) {
           style={styles.secondaryActionButton}
           onPress={() =>
             Linking.openURL(
-              'mailto:support@regattaflow.com?subject=QR%20Scanner%20Camera%20Setup&body=Please%20help%20me%20enable%20the%20camera%20module%20for%20QR%20scanning.'
+              'mailto:info@better.at?subject=QR%20Scanner%20Camera%20Setup&body=Please%20help%20me%20enable%20the%20camera%20module%20for%20QR%20scanning.'
             )
           }
         >
@@ -200,7 +200,7 @@ export default function ScanQRScreen() {
         // Invalid QR code
         showAlertWithButtons(
           'Invalid QR Code',
-          'This QR code doesn\'t contain a valid RegattaFlow sailor profile.',
+          'This QR code does not contain a valid BetterAt profile.',
           [
             {
               text: 'Try Again',

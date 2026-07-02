@@ -22,7 +22,7 @@ export interface MarketplaceBlueprint {
   pricePerSeatCents: number;
   billingCadence: 'monthly' | 'annual' | 'one_time';
   trialDays: number;
-  stripePriceId: string;
+  stripePriceId: string | null;
   authorUserId: string | null;
   authorName: string;
   authorInitials: string;
@@ -60,7 +60,7 @@ interface Row {
   price_per_seat_cents: number;
   billing_cadence: 'monthly' | 'annual' | 'one_time';
   trial_days: number;
-  stripe_price_id: string;
+  stripe_price_id: string | null;
   author_user_id: string | null;
   author_name: string;
   author_initials: string;

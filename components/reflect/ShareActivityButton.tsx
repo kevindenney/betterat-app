@@ -96,7 +96,7 @@ function generateRaceShareMessage(data: RaceShareData): string {
 
   // Hashtag
   lines.push('');
-  lines.push('#RegattaFlow #Sailing');
+  lines.push('#BetterAt #Sailing');
 
   return lines.join('\n');
 }
@@ -130,7 +130,7 @@ function generateActivityShareMessage(data: ActivityShareData): string {
 
   // Hashtag
   lines.push('');
-  lines.push('#RegattaFlow #Sailing');
+  lines.push('#BetterAt #Sailing');
 
   return lines.join('\n');
 }
@@ -165,7 +165,7 @@ export function ShareActivityButton({
         } else if (activityData) {
           message = generateActivityShareMessage(activityData);
         } else {
-          message = 'Check out my sailing progress on RegattaFlow! #RegattaFlow #Sailing';
+          message = 'Check out my sailing progress on BetterAt! #BetterAt #Sailing';
         }
       }
 

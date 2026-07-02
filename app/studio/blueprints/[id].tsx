@@ -29,15 +29,23 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
-import { useInterest } from '@/providers/InterestProvider';
+import { useInterest, type Interest } from '@/providers/InterestProvider';
 import { useProfileMenuData } from '@/hooks/useProfileMenuData';
 import {
   useStudioBlueprint,
   COVER_GRADIENT_OPTIONS,
   BlueprintAccessMode,
   BlueprintAuthor,
+  BlueprintBillingCadence,
+  BlueprintCurrency,
+  BlueprintDurationUnit,
+  BlueprintSkillLevel,
 } from '@/hooks/useStudioBlueprint';
-import { useCreateBlueprint, useUpdateBlueprintMeta } from '@/hooks/useBlueprintEditor';
+import {
+  useCreateBlueprint,
+  useRemoveBlueprintCoAuthor,
+  useUpdateBlueprintMeta,
+} from '@/hooks/useBlueprintEditor';
 import { useBlueprintPricing } from '@/hooks/useBlueprintPricing';
 import { BlueprintCohortLinkSheet } from '@/components/admin/BlueprintCohortLinkSheet';
 import { showAlert } from '@/lib/utils/crossPlatformAlert';
@@ -52,6 +60,7 @@ import {
 } from '@/components/studio/StudioShell';
 import { StudioLoading } from '@/components/studio/StudioLoading';
 import { Gradient } from '@/components/studio/Gradient';
+import { BlueprintCoAuthorSheet } from '@/components/studio/BlueprintCoAuthorSheet';
 import {
   StepsTabBody,
   CapabilitiesTabBody,
@@ -70,15 +79,46 @@ type EditorTab =
   | 'mentor'
   | 'activity';
 
+const DURATION_UNITS: { value: BlueprintDurationUnit; label: string }[] = [
+  { value: 'hours', label: 'Hours' },
+  { value: 'days', label: 'Days' },
+  { value: 'weeks', label: 'Weeks' },
+  { value: 'months', label: 'Months' },
+];
+
+const SKILL_LEVELS: { value: BlueprintSkillLevel; label: string }[] = [
+  { value: 'introductory', label: 'Introductory' },
+  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'advanced', label: 'Advanced' },
+];
+
+const CURRENCIES: { value: BlueprintCurrency; label: string }[] = [
+  { value: 'usd', label: 'USD' },
+  { value: 'hkd', label: 'HKD' },
+  { value: 'gbp', label: 'GBP' },
+  { value: 'eur', label: 'EUR' },
+  { value: 'aud', label: 'AUD' },
+  { value: 'cad', label: 'CAD' },
+  { value: 'sgd', label: 'SGD' },
+];
+
+const BILLING_OPTIONS: { value: BlueprintBillingCadence; label: string }[] = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'annual', label: 'Annual' },
+  { value: 'one_time', label: 'One-time' },
+];
+
 export default function BlueprintEditorPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const blueprintId = typeof id === 'string' ? id : 'new';
   const { user, userProfile } = useAuth();
-  const { currentInterest } = useInterest();
+  const { currentInterest, userInterests, allInterests } = useInterest();
   const menu = useProfileMenuData();
   const { blueprint, isInstitutional, loading: blueprintLoading } = useStudioBlueprint(blueprintId);
   const isNew = blueprint.isNew;
+  const { width } = useWindowDimensions();
+  const compact = width < STUDIO_COMPACT_BREAKPOINT;
 
   const createBlueprint = useCreateBlueprint();
   const updateMeta = useUpdateBlueprintMeta(blueprintId);
@@ -88,14 +128,31 @@ export default function BlueprintEditorPage() {
   const [title, setTitle] = useState(blueprint.title);
   const [subtitle, setSubtitle] = useState(blueprint.subtitle);
   const [description, setDescription] = useState(blueprint.description);
-  const [duration, setDuration] = useState(blueprint.durationLabel);
+  const [interestId, setInterestId] = useState<string | null>(
+    blueprint.interestId ?? currentInterest?.id ?? null,
+  );
+  const [durationValue, setDurationValue] = useState(blueprint.durationValue);
+  const [durationUnit, setDurationUnit] = useState<BlueprintDurationUnit>(blueprint.durationUnit);
+  const [skillLevel, setSkillLevel] = useState<BlueprintSkillLevel>(blueprint.skillLevel);
   const [accessMode, setAccessMode] = useState<BlueprintAccessMode>(
     blueprint.accessMode,
   );
   const [priceText, setPriceText] = useState(
     blueprint.pricePerMonth != null ? String(blueprint.pricePerMonth) : '',
   );
+  const [currency, setCurrency] = useState<BlueprintCurrency>(blueprint.currency);
+  const [billingCadence, setBillingCadence] = useState<BlueprintBillingCadence>(
+    blueprint.billingCadence,
+  );
   const [coverGradientIdx, setCoverGradientIdx] = useState(0);
+
+  const interestOptions = React.useMemo(() => {
+    const rows = userInterests.length > 0 ? userInterests : allInterests;
+    const byId = new Map<string, Interest>();
+    rows.forEach((interest) => byId.set(interest.id, interest));
+    if (currentInterest) byId.set(currentInterest.id, currentInterest);
+    return Array.from(byId.values());
+  }, [allInterests, currentInterest, userInterests]);
 
   // Seed local form state once per loaded record (on id change or first
   // load). Resyncing on every refetched field value would wipe in-progress
@@ -108,15 +165,41 @@ export default function BlueprintEditorPage() {
     setTitle(blueprint.title);
     setSubtitle(blueprint.subtitle);
     setDescription(blueprint.description);
-    setDuration(blueprint.durationLabel);
+    setInterestId(blueprint.interestId ?? currentInterest?.id ?? null);
+    setDurationValue(blueprint.durationValue);
+    setDurationUnit(blueprint.durationUnit);
+    setSkillLevel(blueprint.skillLevel);
     setAccessMode(blueprint.accessMode);
     setPriceText(blueprint.pricePerMonth != null ? String(blueprint.pricePerMonth) : '');
-  }, [blueprintLoading, blueprint]);
+    setCurrency(blueprint.currency);
+    setBillingCadence(blueprint.billingCadence);
+  }, [blueprintLoading, blueprint, currentInterest?.id]);
+
+  React.useEffect(() => {
+    if (!isNew || interestId || !currentInterest?.id) return;
+    setInterestId(currentInterest.id);
+  }, [currentInterest?.id, interestId, isNew]);
 
   function parsePriceCents(): number | null {
-    const parsed = parseFloat(priceText);
-    if (!isFinite(parsed) || parsed <= 0) return null;
+    const trimmed = priceText.trim();
+    if (trimmed === '') return 0;
+    const parsed = parseFloat(trimmed);
+    if (!isFinite(parsed) || parsed < 0) return null;
     return Math.round(parsed * 100);
+  }
+
+  function parseDurationValue(): number | null {
+    const parsed = parseInt(durationValue, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    return parsed;
+  }
+
+  function liveVersionLabel(current: string): string {
+    const trimmed = current.trim();
+    if (!trimmed || /^v0\./i.test(trimmed)) return 'v1.0 live';
+    if (/draft/i.test(trimmed)) return trimmed.replace(/draft/ig, 'live');
+    if (/live/i.test(trimmed)) return trimmed;
+    return `${trimmed} live`;
   }
 
   const busy = createBlueprint.isPending || updateMeta.isPending || syncStripe.isPending;
@@ -130,8 +213,13 @@ export default function BlueprintEditorPage() {
         description,
         accessMode,
         orgId: blueprint.orgId,
-        interestId: currentInterest?.id ?? null,
+        interestId,
         pricePerSeatCents: accessMode === 'independent' ? parsePriceCents() : null,
+        billingCadence,
+        currency,
+        durationValue: parseDurationValue(),
+        durationUnit,
+        skillLevel,
         authorUserId: user.id,
       });
       router.replace(`/studio/blueprints/${newId}`);
@@ -142,27 +230,54 @@ export default function BlueprintEditorPage() {
 
   async function handlePublish() {
     try {
+      const priceCents = accessMode === 'independent' ? parsePriceCents() : null;
+      if (accessMode === 'independent' && priceCents == null) {
+        showAlert('Enter a valid price', 'Use 0 for a free blueprint, or enter a paid price.');
+        return;
+      }
       await updateMeta.mutateAsync({
         title,
         subtitle,
         description,
+        interestId,
         accessMode,
         orgId: blueprint.orgId,
-        pricePerSeatCents: accessMode === 'independent' ? parsePriceCents() : null,
+        pricePerSeatCents: priceCents,
+        billingCadence,
+        currency,
+        durationValue: parseDurationValue(),
+        durationUnit,
+        skillLevel,
+      });
+      if (accessMode === 'independent' && priceCents != null && priceCents > 0) {
+        await syncStripe.mutateAsync();
+      }
+      await updateMeta.mutateAsync({
+        status: 'live',
+        version: liveVersionLabel(blueprint.version),
+        publishedAt: new Date().toISOString(),
       });
       if (accessMode === 'independent') {
-        if (parsePriceCents() == null) {
-          showAlert('Set a price first', 'Independent blueprints need a price above $0 before they can be listed.');
-          return;
-        }
-        await syncStripe.mutateAsync();
-        showAlert('Published', 'Saved and listed on Stripe. It will now appear in the marketplace catalog.');
+        showAlert(
+          'Published',
+          priceCents != null && priceCents > 0
+            ? 'Saved and listed on Stripe. It will now appear in the marketplace catalog.'
+            : 'Saved as a free blueprint. It will now appear in the marketplace catalog.',
+        );
       } else {
-        showAlert('Saved', 'Your changes have been saved.');
+        showAlert('Published', 'Saved and published to your workspace.');
       }
     } catch (err) {
       showAlert('Publish failed', err instanceof Error ? err.message : 'Please try again.');
     }
+  }
+
+  function handlePreview() {
+    if (accessMode !== 'independent') {
+      showAlert('Preview unavailable', 'Institution-managed blueprint previews are not wired yet.');
+      return;
+    }
+    router.push(`/marketplace/${blueprint.id}` as any);
   }
 
   if (!user || menu.loading) {
@@ -273,6 +388,44 @@ export default function BlueprintEditorPage() {
     { key: 'mentor', label: 'Mentor settings' },
     { key: 'activity', label: 'Activity' },
   ];
+  const compactEditorTabs: StudioNavSection['items'] = [
+    {
+      key: 'overview',
+      icon: 'image-outline',
+      label: 'About',
+      active: tab === 'overview',
+      onPress: () => setTab('overview'),
+    },
+    {
+      key: 'steps',
+      icon: 'list-outline',
+      label: 'Steps',
+      count: blueprint.stepsWritten,
+      active: tab === 'steps',
+      onPress: () => setTab('steps'),
+    },
+    {
+      key: 'capabilities',
+      icon: 'flag-outline',
+      label: 'Skills',
+      active: tab === 'capabilities',
+      onPress: () => setTab('capabilities'),
+    },
+    {
+      key: 'pricing',
+      icon: 'pricetag-outline',
+      label: 'Price',
+      active: tab === 'pricing',
+      onPress: () => setTab('pricing'),
+    },
+    {
+      key: 'cohorts',
+      icon: 'people-outline',
+      label: 'Cohorts',
+      active: tab === 'cohorts',
+      onPress: () => setTab('cohorts'),
+    },
+  ];
 
   return (
     <View style={styles.root}>
@@ -296,9 +449,12 @@ export default function BlueprintEditorPage() {
           initials,
           statusLine: 'Editing now',
         }}
+        compactBottomTabs={compactEditorTabs}
       >
         <StudioHeader
+          compact={compact}
           crumbs={['Creator Studio', 'Blueprints', title || 'Untitled blueprint']}
+          onCrumbPress={() => router.push('/studio')}
           title={title || 'Untitled blueprint'}
           subtitleParts={[
             <Text key="last-saved" style={styles.subText}>
@@ -322,17 +478,30 @@ export default function BlueprintEditorPage() {
           actions={
             <>
               {!isNew ? (
-                <StudioButton variant="muted" icon="eye-outline" label="Preview" />
+                <StudioButton
+                  variant="muted"
+                  icon="eye-outline"
+                  label="Preview"
+                  onPress={handlePreview}
+                />
               ) : null}
               <StudioButton
                 variant="primary"
                 accent="purple"
-                icon={isNew ? 'add-circle-outline' : 'rocket-outline'}
+                icon={
+                  isNew
+                    ? 'add-circle-outline'
+                    : blueprint.status === 'live'
+                    ? 'sync-outline'
+                    : 'rocket-outline'
+                }
                 label={
                   busy
                     ? 'Working…'
                     : isNew
                     ? 'Create blueprint'
+                    : blueprint.status === 'live'
+                    ? 'Update'
                     : isInstitutional && orgShortName
                     ? `Publish to ${orgShortName}`
                     : 'Publish'
@@ -343,30 +512,47 @@ export default function BlueprintEditorPage() {
           }
         />
 
-        <StudioTabs
-          tabs={tabs}
-          active={tab}
-          accent="purple"
-          onChange={(k) => setTab(k as EditorTab)}
-        />
+        {compact ? null : (
+          <StudioTabs
+            tabs={tabs}
+            active={tab}
+            accent="purple"
+            scrollable={compact}
+            onChange={(k) => setTab(k as EditorTab)}
+          />
+        )}
 
-        {tab === 'overview' ? (
+        {tab !== 'overview' && isNew ? (
+          <SaveFirstBody onGoToOverview={() => setTab('overview')} />
+        ) : tab === 'overview' ? (
           <OverviewBody
             blueprint={blueprint}
             isInstitutional={isInstitutional}
             orgShortName={orgShortName}
+            authorCreditOrgId={blueprint.orgId ?? activeOrg?.org_id ?? menu.memberships[0]?.org_id ?? null}
             title={title}
             onTitle={setTitle}
             subtitle={subtitle}
             onSubtitle={setSubtitle}
             description={description}
             onDescription={setDescription}
-            duration={duration}
-            onDuration={setDuration}
+            interests={interestOptions}
+            selectedInterestId={interestId}
+            onInterestId={setInterestId}
+            durationValue={durationValue}
+            onDurationValue={setDurationValue}
+            durationUnit={durationUnit}
+            onDurationUnit={setDurationUnit}
+            skillLevel={skillLevel}
+            onSkillLevel={setSkillLevel}
             accessMode={accessMode}
             onAccessMode={setAccessMode}
             priceText={priceText}
             onPriceText={setPriceText}
+            currency={currency}
+            onCurrency={setCurrency}
+            billingCadence={billingCadence}
+            onBillingCadence={setBillingCadence}
             coverGradientIdx={coverGradientIdx}
             onCoverGradient={setCoverGradientIdx}
           />
@@ -382,7 +568,11 @@ export default function BlueprintEditorPage() {
             orgShort={blueprint.orgShort}
           />
         ) : tab === 'cohorts' ? (
-          <CohortsTabBody blueprintId={blueprintId} orgId={blueprint.orgId} />
+          <CohortsTabBody
+            blueprintId={blueprintId}
+            orgId={blueprint.orgId}
+            accessMode={accessMode}
+          />
         ) : tab === 'mentor' ? (
           <MentorSettingsTabBody blueprintId={blueprintId} orgId={blueprint.orgId} />
         ) : tab === 'activity' ? (
@@ -403,36 +593,60 @@ function OverviewBody({
   blueprint,
   isInstitutional,
   orgShortName,
+  authorCreditOrgId,
   title,
   onTitle,
   subtitle,
   onSubtitle,
   description,
   onDescription,
-  duration,
-  onDuration,
+  interests,
+  selectedInterestId,
+  onInterestId,
+  durationValue,
+  onDurationValue,
+  durationUnit,
+  onDurationUnit,
+  skillLevel,
+  onSkillLevel,
   accessMode,
   onAccessMode,
   priceText,
   onPriceText,
+  currency,
+  onCurrency,
+  billingCadence,
+  onBillingCadence,
   coverGradientIdx,
   onCoverGradient,
 }: {
   blueprint: ReturnType<typeof useStudioBlueprint>['blueprint'];
   isInstitutional: boolean;
   orgShortName: string | null;
+  authorCreditOrgId: string | null;
   title: string;
   onTitle: (v: string) => void;
   subtitle: string;
   onSubtitle: (v: string) => void;
   description: string;
   onDescription: (v: string) => void;
-  duration: string;
-  onDuration: (v: string) => void;
+  interests: Interest[];
+  selectedInterestId: string | null;
+  onInterestId: (v: string | null) => void;
+  durationValue: string;
+  onDurationValue: (v: string) => void;
+  durationUnit: BlueprintDurationUnit;
+  onDurationUnit: (v: BlueprintDurationUnit) => void;
+  skillLevel: BlueprintSkillLevel;
+  onSkillLevel: (v: BlueprintSkillLevel) => void;
   accessMode: BlueprintAccessMode;
   onAccessMode: (m: BlueprintAccessMode) => void;
   priceText: string;
   onPriceText: (v: string) => void;
+  currency: BlueprintCurrency;
+  onCurrency: (v: BlueprintCurrency) => void;
+  billingCadence: BlueprintBillingCadence;
+  onBillingCadence: (v: BlueprintBillingCadence) => void;
   coverGradientIdx: number;
   onCoverGradient: (i: number) => void;
 }) {
@@ -458,8 +672,15 @@ function OverviewBody({
       onSubtitle={onSubtitle}
       description={description}
       onDescription={onDescription}
-      duration={duration}
-      onDuration={onDuration}
+      interests={interests}
+      selectedInterestId={selectedInterestId}
+      onInterestId={onInterestId}
+      durationValue={durationValue}
+      onDurationValue={onDurationValue}
+      durationUnit={durationUnit}
+      onDurationUnit={onDurationUnit}
+      skillLevel={skillLevel}
+      onSkillLevel={onSkillLevel}
     />
   );
   const pricingCard = (
@@ -468,9 +689,16 @@ function OverviewBody({
       onAccessMode={onAccessMode}
       priceText={priceText}
       onPriceText={onPriceText}
+      currency={currency}
+      onCurrency={onCurrency}
+      billingCadence={billingCadence}
+      onBillingCadence={onBillingCadence}
       isInstitutional={isInstitutional}
       orgShortName={orgShortName}
       authors={blueprint.authors}
+      isNew={blueprint.isNew}
+      blueprintId={blueprint.id}
+      orgId={accessMode === 'institutional' ? authorCreditOrgId : null}
     />
   );
   const cohortsCard = (
@@ -480,15 +708,15 @@ function OverviewBody({
       orgId={blueprint.orgId}
       isNew={blueprint.isNew}
       blueprintTitle={title || blueprint.title || 'this blueprint'}
+      accessMode={accessMode}
     />
   );
 
-  // Below the Studio compact breakpoint the two-column row crushes each
-  // column to ~135pt, which wraps the access-mode cards one char per line.
-  // Stack everything into one scroll on phones instead.
+  // Keep Overview in a single scroll container so tall cards and native
+  // select popovers are not clipped by independent fixed-height columns.
   if (compact) {
     return (
-      <ScrollView style={styles.editorBodyCompact} contentContainerStyle={styles.colInner}>
+      <ScrollView style={styles.editorBodyScroll} contentContainerStyle={styles.colInner}>
         {coverCard}
         {aboutCard}
         {pricingCard}
@@ -498,17 +726,19 @@ function OverviewBody({
   }
 
   return (
-    <View style={styles.editorBody}>
-      <ScrollView style={styles.leftCol} contentContainerStyle={styles.colInner}>
-        {coverCard}
-        {aboutCard}
-      </ScrollView>
+    <ScrollView style={styles.editorBodyScroll} contentContainerStyle={styles.editorBodyInner}>
+      <View style={styles.editorGrid}>
+        <View style={styles.leftCol}>
+          {coverCard}
+          {aboutCard}
+        </View>
 
-      <ScrollView style={styles.rightCol} contentContainerStyle={styles.colInner}>
-        {pricingCard}
-        {cohortsCard}
-      </ScrollView>
-    </View>
+        <View style={styles.rightCol}>
+          {pricingCard}
+          {cohortsCard}
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -581,8 +811,15 @@ function AboutCard({
   onSubtitle,
   description,
   onDescription,
-  duration,
-  onDuration,
+  interests,
+  selectedInterestId,
+  onInterestId,
+  durationValue,
+  onDurationValue,
+  durationUnit,
+  onDurationUnit,
+  skillLevel,
+  onSkillLevel,
 }: {
   title: string;
   onTitle: (v: string) => void;
@@ -590,8 +827,15 @@ function AboutCard({
   onSubtitle: (v: string) => void;
   description: string;
   onDescription: (v: string) => void;
-  duration: string;
-  onDuration: (v: string) => void;
+  interests: Interest[];
+  selectedInterestId: string | null;
+  onInterestId: (v: string | null) => void;
+  durationValue: string;
+  onDurationValue: (v: string) => void;
+  durationUnit: BlueprintDurationUnit;
+  onDurationUnit: (v: BlueprintDurationUnit) => void;
+  skillLevel: BlueprintSkillLevel;
+  onSkillLevel: (v: BlueprintSkillLevel) => void;
 }) {
   return (
     <StudioPanel title="About this blueprint" meta={<Text style={styles.panelMetaText}>Shown on Discover detail</Text>}>
@@ -614,6 +858,24 @@ function AboutCard({
             placeholderTextColor="rgba(60, 60, 67, 0.4)"
           />
         </Field>
+        <Field label="Interest">
+          {interests.length === 0 ? (
+            <Text style={about.helpText}>
+              No interests available yet. Add an interest from your profile first.
+            </Text>
+          ) : (
+            <View style={about.optionWrap}>
+              {interests.map((interest) => (
+                <ChoicePill
+                  key={interest.id}
+                  label={interest.name}
+                  selected={selectedInterestId === interest.id}
+                  onPress={() => onInterestId(interest.id)}
+                />
+              ))}
+            </View>
+          )}
+        </Field>
         <Field label="Description">
           <TextInput
             value={description}
@@ -624,25 +886,58 @@ function AboutCard({
             placeholderTextColor="rgba(60, 60, 67, 0.4)"
           />
         </Field>
-        <View style={about.row}>
-          <Field label="Estimated duration" flex={1}>
+        <Field label="Estimated duration">
+          <View style={about.durationRow}>
             <TextInput
-              value={duration}
-              onChangeText={onDuration}
-              placeholder="e.g. 14 weeks"
-              style={about.input}
+              value={durationValue}
+              onChangeText={(next) => onDurationValue(next.replace(/[^\d]/g, ''))}
+              placeholder="12"
+              style={[about.input, about.durationNumberInput]}
               placeholderTextColor="rgba(60, 60, 67, 0.4)"
+              keyboardType="number-pad"
             />
-          </Field>
-          <Field label="Skill level" flex={1}>
-            <Pressable style={about.selectInput}>
-              <Text style={about.selectText}>Intermediate</Text>
-              <Ionicons name="chevron-down" size={14} color="rgba(60, 60, 67, 0.4)" />
-            </Pressable>
-          </Field>
-        </View>
+            <View style={about.optionWrap}>
+              {DURATION_UNITS.map((unit) => (
+                <ChoicePill
+                  key={unit.value}
+                  label={unit.label}
+                  selected={durationUnit === unit.value}
+                  onPress={() => onDurationUnit(unit.value)}
+                />
+              ))}
+            </View>
+          </View>
+        </Field>
+        <Field label="Skill level">
+          <View style={about.optionWrap}>
+            {SKILL_LEVELS.map((level) => (
+              <ChoicePill
+                key={level.value}
+                label={level.label}
+                selected={skillLevel === level.value}
+                onPress={() => onSkillLevel(level.value)}
+              />
+            ))}
+          </View>
+        </Field>
       </View>
     </StudioPanel>
+  );
+}
+
+function ChoicePill({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={[about.choicePill, selected && about.choicePillOn]}>
+      <Text style={[about.choiceText, selected && about.choiceTextOn]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -672,68 +967,103 @@ function PricingCard({
   onAccessMode,
   priceText,
   onPriceText,
+  currency,
+  onCurrency,
+  billingCadence,
+  onBillingCadence,
   isInstitutional,
   orgShortName,
   authors,
+  isNew,
+  blueprintId,
+  orgId,
 }: {
   accessMode: BlueprintAccessMode;
   onAccessMode: (m: BlueprintAccessMode) => void;
   priceText: string;
   onPriceText: (v: string) => void;
+  currency: BlueprintCurrency;
+  onCurrency: (v: BlueprintCurrency) => void;
+  billingCadence: BlueprintBillingCadence;
+  onBillingCadence: (v: BlueprintBillingCadence) => void;
   isInstitutional: boolean;
   orgShortName: string | null;
   authors: BlueprintAuthor[];
+  isNew: boolean;
+  blueprintId: string;
+  orgId: string | null;
 }) {
+  const [coAuthorSheetOpen, setCoAuthorSheetOpen] = useState(false);
+  const removeCoAuthor = useRemoveBlueprintCoAuthor(blueprintId, orgId);
+
+  const handleAddCoAuthor = () => {
+    if (isNew) {
+      showAlert('Create the blueprint first', 'Save this blueprint before inviting a co-author.');
+      return;
+    }
+    setCoAuthorSheetOpen(true);
+  };
+
+  const handleRemoveCoAuthor = async (author: BlueprintAuthor) => {
+    if (author.is_primary || removeCoAuthor.isPending) return;
+    try {
+      await removeCoAuthor.mutateAsync(author.user_id);
+    } catch (err) {
+      showAlert('Could not remove co-author', err instanceof Error ? err.message : 'Please try again.');
+    }
+  };
+
   return (
-    <StudioPanel title="Pricing & access" meta={<Text style={styles.panelMetaText}>How students get this</Text>}>
-      <View style={pricing.body}>
-        <Text style={pricing.eyebrow}>Access mode</Text>
-        <View style={pricing.modeRow}>
-          <Pressable
-            onPress={() => onAccessMode('institutional')}
-            style={[pricing.modeCard, accessMode === 'institutional' && pricing.modeCardOn]}
-          >
-            <View style={pricing.modeHead}>
-              {accessMode === 'institutional' ? (
-                <Ionicons name="checkmark-circle" size={14} color="#6B5BBF" />
-              ) : null}
-              <Text
-                style={[
-                  pricing.modeTitle,
-                  accessMode === 'institutional' && pricing.modeTitleOn,
-                ]}
-              >
-                {orgShortName ? `${orgShortName}-managed` : 'Institution-managed'}
+    <>
+      <StudioPanel title="Pricing & access" meta={<Text style={styles.panelMetaText}>How students get this</Text>}>
+        <View style={pricing.body}>
+          <Text style={pricing.eyebrow}>Access mode</Text>
+          <View style={pricing.modeRow}>
+            <Pressable
+              onPress={() => onAccessMode('institutional')}
+              style={[pricing.modeCard, accessMode === 'institutional' && pricing.modeCardOn]}
+            >
+              <View style={pricing.modeHead}>
+                {accessMode === 'institutional' ? (
+                  <Ionicons name="checkmark-circle" size={14} color="#6B5BBF" />
+                ) : null}
+                <Text
+                  style={[
+                    pricing.modeTitle,
+                    accessMode === 'institutional' && pricing.modeTitleOn,
+                  ]}
+                >
+                  {orgShortName ? `${orgShortName}-managed` : 'Institution-managed'}
+                </Text>
+              </View>
+              <Text style={pricing.modeBody}>
+                {isInstitutional
+                  ? `Free to all seated students. ${orgShortName ?? 'The institution'} pays the institutional fee.`
+                  : 'Requires an institution. Join one to enable.'}
               </Text>
-            </View>
-            <Text style={pricing.modeBody}>
-              {isInstitutional
-                ? `Free to all seated students. ${orgShortName ?? 'The institution'} pays the institutional fee.`
-                : 'Requires an institution. Join one to enable.'}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => onAccessMode('independent')}
-            style={[pricing.modeCard, accessMode === 'independent' && pricing.modeCardOn]}
-          >
-            <View style={pricing.modeHead}>
-              {accessMode === 'independent' ? (
-                <Ionicons name="checkmark-circle" size={14} color="#6B5BBF" />
-              ) : null}
-              <Text
-                style={[
-                  pricing.modeTitle,
-                  accessMode === 'independent' && pricing.modeTitleOn,
-                ]}
-              >
-                Independent sale
+            </Pressable>
+            <Pressable
+              onPress={() => onAccessMode('independent')}
+              style={[pricing.modeCard, accessMode === 'independent' && pricing.modeCardOn]}
+            >
+              <View style={pricing.modeHead}>
+                {accessMode === 'independent' ? (
+                  <Ionicons name="checkmark-circle" size={14} color="#6B5BBF" />
+                ) : null}
+                <Text
+                  style={[
+                    pricing.modeTitle,
+                    accessMode === 'independent' && pricing.modeTitleOn,
+                  ]}
+                >
+                  Independent sale
+                </Text>
+              </View>
+              <Text style={pricing.modeBody}>
+                Anyone can buy it. You receive payouts.
               </Text>
-            </View>
-            <Text style={pricing.modeBody}>
-              Anyone can buy it. You receive payouts.
-            </Text>
-          </Pressable>
-        </View>
+            </Pressable>
+          </View>
 
         {accessMode === 'institutional' && isInstitutional ? (
           <View style={pricing.instNote}>
@@ -753,50 +1083,86 @@ function PricingCard({
             </Pressable>
           </View>
         ) : (
-          <View style={pricing.independentRow}>
-            <Field label="Price">
-              <TextInput
-                value={priceText}
-                onChangeText={onPriceText}
-                placeholder="9"
-                style={about.input}
-                placeholderTextColor="rgba(60, 60, 67, 0.4)"
-                keyboardType="decimal-pad"
-              />
-            </Field>
+          <View style={pricing.independentFields}>
+            <View style={pricing.priceRow}>
+              <Field label="Price" flex={1}>
+                <TextInput
+                  value={priceText}
+                  onChangeText={onPriceText}
+                  placeholder="9"
+                  style={about.input}
+                  placeholderTextColor="rgba(60, 60, 67, 0.4)"
+                  keyboardType="decimal-pad"
+                />
+              </Field>
+            </View>
             <Field label="Currency">
-              <Pressable style={about.selectInput}>
-                <Text style={about.selectText}>USD</Text>
-                <Ionicons name="chevron-down" size={14} color="rgba(60, 60, 67, 0.4)" />
-              </Pressable>
+              <View style={about.optionWrap}>
+                {CURRENCIES.map((option) => (
+                  <ChoicePill
+                    key={option.value}
+                    label={option.label}
+                    selected={currency === option.value}
+                    onPress={() => onCurrency(option.value)}
+                  />
+                ))}
+              </View>
             </Field>
             <Field label="Billing">
-              <Pressable style={about.selectInput}>
-                <Text style={about.selectText}>Monthly</Text>
-                <Ionicons name="chevron-down" size={14} color="rgba(60, 60, 67, 0.4)" />
-              </Pressable>
+              <View style={about.optionWrap}>
+                {BILLING_OPTIONS.map((option) => (
+                  <ChoicePill
+                    key={option.value}
+                    label={option.label}
+                    selected={billingCadence === option.value}
+                    onPress={() => onBillingCadence(option.value)}
+                  />
+                ))}
+              </View>
             </Field>
           </View>
         )}
 
-        <Text style={[pricing.eyebrow, { marginTop: 4 }]}>Author credit · for the cover</Text>
-        <View style={pricing.chipRow}>
-          {authors.map((a) => (
-            <View key={a.user_id} style={pricing.authorChip}>
-              <View style={[pricing.authorAvi, { backgroundColor: a.gradient[0] }]}>
-                <Text style={pricing.authorAviText}>{a.initials}</Text>
+          <Text style={[pricing.eyebrow, { marginTop: 4 }]}>Author credit · for the cover</Text>
+          <View style={pricing.chipRow}>
+            {authors.map((a) => (
+              <View key={a.user_id} style={pricing.authorChip}>
+                <View style={[pricing.authorAvi, { backgroundColor: a.gradient[0] }]}>
+                  <Text style={pricing.authorAviText}>{a.initials}</Text>
+                </View>
+                <Text style={pricing.authorName}>{a.display_name}</Text>
+                {a.is_primary ? null : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${a.display_name}`}
+                    hitSlop={8}
+                    onPress={() => handleRemoveCoAuthor(a)}
+                  >
+                    <Ionicons name="close" size={11} color="rgba(60, 60, 67, 0.55)" />
+                  </Pressable>
+                )}
               </View>
-              <Text style={pricing.authorName}>{a.display_name}</Text>
-              <Ionicons name="close" size={11} color="rgba(60, 60, 67, 0.4)" />
-            </View>
-          ))}
-          <Pressable style={pricing.authorAddChip}>
-            <Ionicons name="add" size={12} color="#007AFF" />
-            <Text style={pricing.authorAddText}>Add co-author</Text>
-          </Pressable>
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add co-author"
+              onPress={handleAddCoAuthor}
+              style={pricing.authorAddChip}
+            >
+              <Ionicons name="add" size={12} color="#007AFF" />
+              <Text style={pricing.authorAddText}>Add co-author</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
-    </StudioPanel>
+      </StudioPanel>
+      <BlueprintCoAuthorSheet
+        visible={coAuthorSheetOpen}
+        blueprintId={blueprintId}
+        orgId={orgId}
+        existingAuthors={authors}
+        onClose={() => setCoAuthorSheetOpen(false)}
+      />
+    </>
   );
 }
 
@@ -810,16 +1176,35 @@ function CohortsCard({
   orgId,
   isNew,
   blueprintTitle,
+  accessMode,
 }: {
   cohorts: ReturnType<typeof useStudioBlueprint>['blueprint']['cohorts'];
   blueprintId: string;
   orgId: string | null;
   isNew: boolean;
   blueprintTitle: string;
+  accessMode: BlueprintAccessMode;
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
   // Linking needs a saved blueprint (real id) and an owning org.
-  const canLink = !isNew && !!orgId;
+  const isInstitutional = accessMode === 'institutional';
+  const canLink = isInstitutional && !isNew && !!orgId;
+
+  if (!isInstitutional) {
+    return (
+      <StudioPanel
+        title="Cohorts & mentors"
+        meta={<Text style={styles.panelMetaText}>Institution-managed only</Text>}
+      >
+        <View style={cohort.body}>
+          <Text style={cohort.empty}>
+            Personal blueprints are shared with individual subscribers. Switch Pricing & access to
+            Institution-managed when this blueprint should be assigned to cohorts.
+          </Text>
+        </View>
+      </StudioPanel>
+    );
+  }
 
   return (
     <StudioPanel title="Cohorts & mentors" meta={<Text style={styles.panelMetaText}>Who's on this blueprint</Text>}>
@@ -880,6 +1265,34 @@ function CohortsCard({
 // Stub for non-Overview tabs
 // ---------------------------------------------------------------------------
 
+// A new blueprint has no persisted row yet, so Steps / Capabilities / Cohorts /
+// Mentor / Activity have nothing to read or write against (querying them by the
+// literal route id "new" 400s). Send the author back to Overview to hit
+// "Create blueprint" first.
+function SaveFirstBody({ onGoToOverview }: { onGoToOverview: () => void }) {
+  return (
+    <View style={styles.stubWrap}>
+      <View style={styles.stubInner}>
+        <View style={styles.stubIconWrap}>
+          <Ionicons name="save-outline" size={28} color="rgba(107, 91, 191, 0.6)" />
+        </View>
+        <Text style={styles.stubTitle}>Create the blueprint first</Text>
+        <Text style={styles.stubBody}>
+          Add a title and the basics on the Overview tab, then tap “Create blueprint.”
+          Once it’s saved you can author steps, capabilities, cohorts, and more.
+        </Text>
+        <StudioButton
+          variant="primary"
+          accent="purple"
+          icon="arrow-back-outline"
+          label="Back to Overview"
+          onPress={onGoToOverview}
+        />
+      </View>
+    </View>
+  );
+}
+
 function StubTabBody({ tab }: { tab: EditorTab }) {
   const labels: Record<EditorTab, string> = {
     overview: 'Overview',
@@ -935,7 +1348,7 @@ function shortNameLabel(orgName: string): string {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#EFEAD8',
+    backgroundColor: '#F2F2F7',
     ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),
   },
   subText: { fontSize: 13.5, color: 'rgba(60, 60, 67, 0.6)' },
@@ -958,16 +1371,16 @@ const styles = StyleSheet.create({
   },
 
   // Two-column editor body
-  editorBody: {
-    flex: 1,
+  editorBodyScroll: { flex: 1, minHeight: 0 },
+  editorBodyInner: { paddingBottom: 80 },
+  editorGrid: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 16,
-    minHeight: 0,
   },
-  leftCol: { flex: 1.3, minWidth: 0 },
-  rightCol: { flex: 1, minWidth: 0 },
-  editorBodyCompact: { flex: 1 },
-  colInner: { gap: 14, paddingRight: 4, paddingBottom: 12 },
+  leftCol: { flex: 1.3, minWidth: 0, gap: 14 },
+  rightCol: { flex: 1, minWidth: 0, gap: 14 },
+  colInner: { gap: 14, paddingRight: 4, paddingBottom: 80 },
 
   // Stub
   stubWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -1090,6 +1503,47 @@ const about = StyleSheet.create({
   },
   inputMultiline: { minHeight: 90, paddingVertical: 11 },
   row: { flexDirection: 'row', gap: 12 },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  durationNumberInput: {
+    width: 96,
+    flexGrow: 0,
+  },
+  optionWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  choicePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: '#D1D1D6',
+    backgroundColor: '#FFFFFF',
+  },
+  choicePillOn: {
+    borderColor: '#6B5BBF',
+    backgroundColor: 'rgba(107, 91, 191, 0.10)',
+  },
+  choiceText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.85)',
+  },
+  choiceTextOn: {
+    color: '#6B5BBF',
+  },
+  helpText: {
+    fontSize: 12.5,
+    color: 'rgba(60, 60, 67, 0.6)',
+    lineHeight: 17,
+  },
   selectInput: {
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -1153,6 +1607,8 @@ const pricing = StyleSheet.create({
   instLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   instLink: { fontSize: 11.5, color: '#28406B', fontWeight: '600' },
   independentRow: { flexDirection: 'row', gap: 12 },
+  independentFields: { gap: 12 },
+  priceRow: { flexDirection: 'row', gap: 12 },
   chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   authorChip: {
     flexDirection: 'row',

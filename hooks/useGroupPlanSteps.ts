@@ -1,26 +1,37 @@
 /**
- * useGroupPlanSteps — the attached plan's curated steps, in order, for the
- * group's shared prep timeline. These are the blueprint author's canonical
- * steps (not per-member copies), so every member sees the same sequence
- * converging on the group's goal anchor.
- *
- * Readable by members via the "Blueprint co-subscribers can view peer steps"
- * RLS policy (members are subscribed to the plan when it's attached/seeded),
- * so this is only enabled once the viewer is known to be a member.
+ * useGroupPlanSteps — the attached blueprint's steps, in order, for a group's
+ * shared prep timeline.
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { getBlueprintSteps } from '@/services/BlueprintService';
-import type { TimelineStepRecord } from '@/types/timeline-steps';
+import { supabase } from '@/services/supabase';
+
+export interface GroupPlanStep {
+  id: string;
+  title: string | null;
+  description: string | null;
+  category: string | null;
+  status: 'pending';
+}
 
 export function useGroupPlanSteps(
-  blueprintId: string | null | undefined,
+  groupId: string | null | undefined,
   enabled: boolean,
 ) {
-  return useQuery<TimelineStepRecord[]>({
-    queryKey: ['group-plan-steps', blueprintId],
-    enabled: Boolean(blueprintId) && enabled,
+  return useQuery<GroupPlanStep[]>({
+    queryKey: ['group-plan-steps', groupId],
+    enabled: Boolean(groupId) && enabled,
     staleTime: 30_000,
-    queryFn: () => getBlueprintSteps(blueprintId as string),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_affinity_group_plan_steps', { p_group_id: groupId as string });
+      if (error) throw error;
+      return ((data ?? []) as {
+        id: string;
+        title: string | null;
+        description: string | null;
+        category: string | null;
+      }[]).map((row) => ({ ...row, status: 'pending' as const }));
+    },
   });
 }

@@ -35,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Canonical URL for this step
-  const baseUrl = process.env.EXPO_PUBLIC_SITE_URL || 'https://regattaflow.com';
+  const baseUrl = process.env.EXPO_PUBLIC_SITE_URL || 'https://better.at';
   const canonicalUrl = `${baseUrl}/p/step/${token}`;
 
   try {

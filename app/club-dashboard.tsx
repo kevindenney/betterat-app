@@ -607,7 +607,7 @@ const ClubDashboardScreen = () => {
         <View style={styles.emptyState}>
           <Text style={styles.emptyHeadline}>Club data not connected yet</Text>
           <Text style={styles.emptyCopy}>
-            Ask your club administrator to connect RegattaFlow so you can manage events, documents, and
+            Ask your club administrator to connect BetterAt so you can manage events, documents, and
             members from one control center.
           </Text>
         </View>
@@ -803,7 +803,7 @@ const ClubDashboardScreen = () => {
                 <Text style={styles.sectionTitle}>Widget snippets</Text>
                 <View style={styles.codeBlock}>
                   <Text style={styles.codeText}>
-                    {`<script src="https://widgets.regattaflow.com/embed.js"\n        data-club="${clubId}"\n        data-view="calendar">\n</script>`}
+                    {`<script src="https://widgets.better.at/embed.js"\n        data-club="${clubId}"\n        data-view="calendar">\n</script>`}
                   </Text>
                 </View>
                 <Text style={styles.codeCaption}>

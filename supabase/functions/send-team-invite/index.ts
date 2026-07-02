@@ -114,8 +114,8 @@ serve(async (req: Request) => {
     }
 
     // Build invite link
-    const inviteLink = `https://regattaflow.com/team-invite/${team.invite_code}`;
-    const ownerName = inviter_name || (team.owner as any)?.full_name || 'A RegattaFlow user';
+    const inviteLink = `https://better.at/team-invite/${team.invite_code}`;
+    const ownerName = inviter_name || (team.owner as any)?.full_name || 'A BetterAt user';
 
     // Send invite email
     const emailHtml = `
@@ -129,11 +129,11 @@ serve(async (req: Request) => {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: #007AFF; margin-bottom: 10px;">You're Invited!</h1>
-            <p style="font-size: 18px; color: #666;">Join <strong>${team.name}</strong> on RegattaFlow</p>
+            <p style="font-size: 18px; color: #666;">Join <strong>${team.name}</strong> on BetterAt</p>
           </div>
 
           <div style="background: #f5f5f7; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-            <p><strong>${ownerName}</strong> has invited you to join their team on RegattaFlow.</p>
+            <p><strong>${ownerName}</strong> has invited you to join their team on BetterAt.</p>
             <p>As a team member, you'll get access to:</p>
             <ul style="color: #666;">
               <li>Unlimited races</li>
@@ -149,7 +149,7 @@ serve(async (req: Request) => {
 
           <div style="border-top: 1px solid #e5e5e5; padding-top: 20px; margin-top: 30px; color: #999; font-size: 14px; text-align: center;">
             <p>Or copy this link: <a href="${inviteLink}" style="color: #007AFF;">${inviteLink}</a></p>
-            <p>This invitation was sent by RegattaFlow on behalf of ${ownerName}.</p>
+            <p>This invitation was sent by BetterAt on behalf of ${ownerName}.</p>
             <p>If you didn't expect this email, you can safely ignore it.</p>
           </div>
         </body>
@@ -160,7 +160,7 @@ serve(async (req: Request) => {
     const { error: emailError } = await supabase.functions.invoke('send-email', {
       body: {
         to: email,
-        subject: `${ownerName} invited you to join ${team.name} on RegattaFlow`,
+        subject: `${ownerName} invited you to join ${team.name} on BetterAt`,
         html: emailHtml,
       },
     });

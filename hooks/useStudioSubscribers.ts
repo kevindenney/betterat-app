@@ -34,6 +34,19 @@ export interface StudioSubscriber {
   trialing: boolean;
 }
 
+export interface StudioSubscriberStep {
+  stepId: string;
+  templateId: string;
+  sortOrder: number;
+  title: string;
+  status: string;
+  updatedAt: string | null;
+  completedAt: string | null;
+  reviewStatus: 'approved' | 'needs_revision' | null;
+  reviewNote: string | null;
+  suggestedNext: string | null;
+}
+
 export interface StudioSubscribersData {
   loading: boolean;
   subscribers: StudioSubscriber[];
@@ -54,11 +67,60 @@ interface Row {
   subscribed_at: string | null;
 }
 
+interface StepRow {
+  step_id: string;
+  template_id: string;
+  sort_order: number | null;
+  title: string | null;
+  status: string | null;
+  updated_at: string | null;
+  completed_at: string | null;
+  review_status: string | null;
+  review_note: string | null;
+  suggested_next: string | null;
+}
+
 function initialsFor(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+export function useStudioSubscriberSteps(
+  blueprintId?: string | null,
+  subscriberId?: string | null,
+) {
+  return useQuery<StudioSubscriberStep[]>({
+    queryKey: ['studio-author-subscriber-steps', blueprintId, subscriberId],
+    enabled: !!blueprintId && !!subscriberId,
+    staleTime: 15_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('studio_author_subscriber_steps', {
+        p_blueprint_id: blueprintId,
+        p_subscriber_id: subscriberId,
+      });
+      if (error) {
+        console.warn('[useStudioSubscriberSteps] RPC failed', error);
+        throw error;
+      }
+      return ((data ?? []) as StepRow[]).map((row) => ({
+        stepId: row.step_id,
+        templateId: row.template_id,
+        sortOrder: row.sort_order ?? 0,
+        title: row.title?.trim() || 'Untitled step',
+        status: row.status ?? 'pending',
+        updatedAt: row.updated_at,
+        completedAt: row.completed_at,
+        reviewStatus:
+          row.review_status === 'approved' || row.review_status === 'needs_revision'
+            ? row.review_status
+            : null,
+        reviewNote: row.review_note,
+        suggestedNext: row.suggested_next,
+      }));
+    },
+  });
 }
 
 export function useStudioSubscribers(): StudioSubscribersData {

@@ -1,7 +1,7 @@
 /**
  * Sailwave BLW File Parser
  *
- * Parses .BLW (INI-style) files into structured data for import into RegattaFlow.
+ * Parses .BLW (INI-style) files into structured data for import into BetterAt.
  * The BLW format is the standard file format used by Sailwave, the dominant
  * regatta scoring software in Europe.
  *
@@ -565,4 +565,3 @@ export class BLWParser {
 
 // Export singleton instance
 export const blwParser = new BLWParser();
-

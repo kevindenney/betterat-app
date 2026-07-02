@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useBlueprintWithAuthor } from '@/hooks/useBlueprint';
 import { useStepDetail } from '@/hooks/useStepDetail';
+import { useInstitutionalBlueprintMeta } from '@/hooks/useAssignedBlueprints';
 import { STEP_COLORS } from '@/lib/step-theme';
 import type { TimelineStepSourceType } from '@/types/timeline-steps';
 
@@ -22,6 +23,11 @@ interface StepProvenanceBannerProps {
   copiedFromUserId?: string | null;
   /** When set, this step was created as a follow-up from another step (via the Critique "Create Next Step" flow). Renders a "Follow-up to: …" row with tap-through. */
   followUpToStepId?: string | null;
+  /** System-B institutional blueprint id (from step metadata) for steps
+   *  materialized out of an assigned blueprint. These have no
+   *  source_blueprint_id (that's a System-A FK), so provenance comes through
+   *  here and routes to the assigned-blueprint preview. */
+  institutionalBlueprintId?: string | null;
   variant: 'compact' | 'full';
 }
 
@@ -30,6 +36,7 @@ export function StepProvenanceBanner({
   sourceType,
   copiedFromUserId,
   followUpToStepId,
+  institutionalBlueprintId,
   variant,
 }: StepProvenanceBannerProps) {
   const router = useRouter();
@@ -37,6 +44,7 @@ export function StepProvenanceBanner({
     sourceType === 'blueprint' ? sourceBlueprintId : null,
   );
   const { data: parentStep } = useStepDetail(followUpToStepId ?? undefined);
+  const { data: institutionalBp } = useInstitutionalBlueprintMeta(institutionalBlueprintId);
 
   // Follow-up provenance — render first when present, even for manual steps.
   if (followUpToStepId && parentStep) {
@@ -62,6 +70,46 @@ export function StepProvenanceBanner({
             <Text style={styles.fullLabel} numberOfLines={1}>
               Follow-up to: {parentTitle}
             </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={14} color={STEP_COLORS.secondaryLabel} />
+        </Pressable>
+      </View>
+    );
+  }
+
+  // Institutional-blueprint provenance — a step materialized out of an
+  // assigned (System-B) blueprint. Takes precedence over the generic source
+  // handling below, which only knows System-A blueprints.
+  if (institutionalBp) {
+    if (variant === 'compact') {
+      return (
+        <Pressable
+          style={styles.compactBadge}
+          onPress={() => router.push(`/blueprint/assigned/${institutionalBp.id}` as any)}
+        >
+          <Ionicons name="layers-outline" size={10} color="#6366F1" />
+          <Text style={styles.compactText} numberOfLines={1}>
+            {institutionalBp.title}
+          </Text>
+        </Pressable>
+      );
+    }
+    return (
+      <View style={styles.fullContainer}>
+        <Pressable
+          style={styles.fullRow}
+          onPress={() => router.push(`/blueprint/assigned/${institutionalBp.id}` as any)}
+        >
+          <Ionicons name="layers-outline" size={16} color={STEP_COLORS.accent} />
+          <View style={styles.fullTextWrap}>
+            <Text style={styles.fullLabel} numberOfLines={1}>
+              From {institutionalBp.title}
+            </Text>
+            {institutionalBp.orgName ? (
+              <Text style={styles.fullOrg} numberOfLines={1}>
+                {institutionalBp.orgName}
+              </Text>
+            ) : null}
           </View>
           <Ionicons name="chevron-forward" size={14} color={STEP_COLORS.secondaryLabel} />
         </Pressable>

@@ -15,8 +15,12 @@ function read(relativePath: string): string {
 }
 
 describe('BetterAt feature audit tracker contract', () => {
-  it('keeps the canonical QA tracker aligned with the current route/backend surface', () => {
+  it('keeps the spreadsheet-led QA tracker aligned with the current route/backend surface', () => {
     const audit = read('docs/qa/betterat-feature-audit.md');
+    const canonicalWorkbookPath = path.resolve(
+      process.cwd(),
+      'docs/ai/betterat_feature_user_story_audit.xlsx',
+    );
     const routeCount = walkFiles(
       'app',
       (filePath) =>
@@ -28,9 +32,14 @@ describe('BetterAt feature audit tracker contract', () => {
       (filePath) => filePath.endsWith(`${path.sep}index.ts`),
     ).length;
 
-    expect(audit).toContain('Canonical QA tracker');
+    expect(fs.existsSync(canonicalWorkbookPath)).toBe(true);
+    expect(audit).toContain('single canonical spreadsheet');
+    expect(audit).toContain('docs/ai/betterat_feature_user_story_audit.xlsx');
     expect(audit).toContain(`\`app/\` route and screen files: ${routeCount} non-test files`);
     expect(audit).toContain(`Supabase edge functions: ${edgeFunctionCount}`);
+    expect(audit).toContain('558 total user stories');
+    expect(audit).toContain('19 blueprint workflows');
+    expect(audit).toContain('Chrome web, Android, and iOS verification columns');
     expect(audit).toContain('## Feature Matrix');
     expect(audit).toContain('## Phase 3 Failure Log');
   });

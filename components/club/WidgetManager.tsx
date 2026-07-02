@@ -379,7 +379,7 @@ export function WidgetManager({ clubId, regattaId, onClose }: WidgetManagerProps
                 ]}>
                   {newWidget.showBranding && <Check size={14} color="#FFFFFF" />}
                 </View>
-                <Text style={styles.brandingLabel}>Show "Powered by RegattaFlow"</Text>
+                <Text style={styles.brandingLabel}>Show "Powered by BetterAt"</Text>
               </TouchableOpacity>
             </ScrollView>
 
@@ -769,4 +769,3 @@ const styles = StyleSheet.create({
 });
 
 export default WidgetManager;
-

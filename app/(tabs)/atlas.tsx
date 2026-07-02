@@ -26,6 +26,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   AtlasScreen,
   type AtlasFrameId,
+  type AtlasSegmentView,
 } from '@/components/ios-register/atlas/AtlasScreen';
 import { DiscoverNearbyContent } from '@/components/discover/DiscoverNearbyContent';
 import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
@@ -137,6 +138,15 @@ function buildSubtitle(slug: string | null, name: string | null): string | undef
 function isSailingInterestSlug(slug: string | null): boolean {
   const s = (slug ?? '').toLowerCase();
   return s === 'sailing' || s === 'sail-racing' || s === 'sail';
+}
+
+function parseAtlasSegmentView(value: string): AtlasSegmentView | undefined {
+  return value === 'sites' ||
+    value === 'coverage' ||
+    value === 'capabilities' ||
+    value === 'map'
+    ? value
+    : undefined;
 }
 
 // Per-interest home geography for the Nearby sheet. The sailing home venue
@@ -487,6 +497,7 @@ export default function AtlasTab() {
   const initialCreateRacingArea = params.intent === 'new-racing-area';
   const orgSlug = typeof params.orgSlug === 'string' ? params.orgSlug.trim() : '';
   const requestedView = typeof params.view === 'string' ? params.view.trim() : '';
+  const atlasView = parseAtlasSegmentView(requestedView);
   const requestedFrame =
     typeof params.frame === 'string' && ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9'].includes(params.frame)
       ? (params.frame as AtlasFrameId)
@@ -697,6 +708,12 @@ export default function AtlasTab() {
   const handleOpenOrgLens = useCallback(
     (slug: string) => {
       router.push({ pathname: '/(tabs)/atlas', params: { orgSlug: slug } } as any);
+    },
+    [router],
+  );
+  const handleAtlasViewChange = useCallback(
+    (view: AtlasSegmentView) => {
+      router.setParams({view});
     },
     [router],
   );
@@ -1220,7 +1237,8 @@ export default function AtlasTab() {
           initialFocusLabel={initialFocusLabel}
           initialFocusStepId={initialFocusStepId}
           initialPeerFocus={initialPeerFocus}
-          initialView={requestedView === 'map' ? 'map' : undefined}
+          initialView={atlasView}
+          onViewChange={handleAtlasViewChange}
           onNearbyPress={
             frame === 'f4' || frame === 'f1' ? () => setNearbyOpen(true) : undefined
           }

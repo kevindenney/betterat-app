@@ -92,7 +92,12 @@ import { useVenueInsights } from '@/hooks/useVenueInsights';
 import { useVenueLiveWeather } from '@/hooks/useVenueLiveWeather';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMyTimeline } from '@/hooks/useTimelineSteps';
-import { createStep as createTimelineStep, deleteStep as deleteTimelineStep, updateStepMetadata } from '@/services/TimelineStepService';
+import {
+  createStep as createTimelineStep,
+  deleteStep as deleteTimelineStep,
+  placeStepBeforeFirstActive,
+  updateStepMetadata,
+} from '@/services/TimelineStepService';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import { RaceCollaborationService } from '@/services/RaceCollaborationService';
 import { timelineStepsToCardRaceData } from '@/lib/timeline/timelineStepAdapter';
@@ -101,7 +106,6 @@ import { StepFilterBar, type StepFilters } from '@/components/step/StepFilterBar
 import { StepDetailContent } from '@/components/step/StepDetailContent';
 import { BlueprintPanelsStack } from '@/components/cards/BlueprintPanelsStack';
 import { ForYouSection } from '@/components/blueprint/ForYouSection';
-import { PublishBlueprintSheet } from '@/components/blueprint/PublishBlueprintSheet';
 import { useUserBlueprints, useSubscribedBlueprints, useSuggestedNextSteps, useAdoptBlueprintStep, useDismissBlueprintStep, useBackfillSubscribedStepActions } from '@/hooks/useBlueprint';
 import { useScrollToolbarHide } from '@/hooks/useScrollToolbarHide';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
@@ -158,6 +162,46 @@ const SIGNUP_MODAL_TAPS_KEY = '@betterat/signup_modal_taps_since_shown';
 const SIGNUP_MODAL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SIGNUP_MODAL_TAP_THRESHOLD = 5;
 
+const DONE_TIMELINE_STATUSES = new Set(['completed', 'done', 'settled', 'folded']);
+
+function isDoneTimelineStep(step: Pick<TimelineStepRecord, 'status'>): boolean {
+  return DONE_TIMELINE_STATUSES.has(String(step.status || '').toLowerCase());
+}
+
+function renumberTimelineStepsForInterest(
+  steps: TimelineStepRecord[],
+  interestId: string,
+): TimelineStepRecord[] {
+  let sortOrder = 0;
+  return steps.map((step) => {
+    if (step.interest_id !== interestId) return step;
+    const next = { ...step, sort_order: sortOrder };
+    sortOrder += 1;
+    return next;
+  });
+}
+
+function placeStepAtFirstPlannedSlot(
+  steps: TimelineStepRecord[],
+  step: TimelineStepRecord,
+): TimelineStepRecord[] {
+  const withoutStep = steps.filter((candidate) => candidate.id !== step.id);
+  const insertAt = withoutStep.findIndex((candidate) =>
+    candidate.interest_id === step.interest_id && !isDoneTimelineStep(candidate)
+  );
+  const next = [...withoutStep];
+  if (insertAt >= 0) {
+    next.splice(insertAt, 0, step);
+  } else {
+    const lastSameInterestIndex = next.reduce(
+      (lastIndex, candidate, index) => candidate.interest_id === step.interest_id ? index : lastIndex,
+      -1,
+    );
+    next.splice(lastSameInterestIndex + 1, 0, step);
+  }
+  return renumberTimelineStepsForInterest(next, step.interest_id);
+}
+
 // Types, constants, and utilities imported from @/lib/races:
 // - ActiveRaceSummary, RaceBriefData, RigPreset, RegulatoryDigestData, RegulatoryAcknowledgements
 // - TacticalWindSnapshot, TacticalCurrentSnapshot, GPSPoint, DebriefSplitTime
@@ -213,7 +257,7 @@ function LegacyRacesScreen() {
   const { currentInterest, effectiveInterestIds, viewMode, toggleDomainView, domainInterestIds, getDomainForInterest } = useInterest();
   const currentDomain = currentInterest ? getDomainForInterest(currentInterest.id) : null;
   // Practice tab still hosts a lot of sail-racing-specific data fetching
-  // inherited from the RegattaFlow era. Gate those hooks on this flag so
+  // inherited from the legacy race-management era. Gate those hooks on this flag so
   // non-sailing interests don't fire dead queries against regatta tables.
   const isSailingInterest = currentInterest?.slug === 'sail-racing';
   const hasSiblingInterests = domainInterestIds.length > 1;
@@ -222,8 +266,7 @@ function LegacyRacesScreen() {
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  // Blueprint publishing
-  const [showBlueprintSheet, setShowBlueprintSheet] = useState(false);
+  // Blueprint authoring is owned by Creator Studio.
   const { data: userBlueprints } = useUserBlueprints();
   const existingBlueprintsForInterest = userBlueprints?.filter(
     (bp) => bp.interest_id === currentInterest?.id,
@@ -1892,10 +1935,7 @@ function LegacyRacesScreen() {
       (old) => {
         if (!old) return old;
         if (old.some((s) => s.id === tempId)) return old;
-        // Append, not prepend: undated steps sort to the tail of the
-        // carousel (next to TODAY), and the auto-scroll target derives
-        // its index from this same list.
-        return [...old, optimisticStep];
+        return placeStepAtFirstPlannedSlot(old, optimisticStep);
       },
     );
     queryClient.setQueryData(['timeline-steps', 'detail', tempId], optimisticStep);
@@ -1932,17 +1972,30 @@ function LegacyRacesScreen() {
         location_lng: initialLocation?.lng ?? null,
       });
 
-      // Swap temp row → server row in list caches (by id).
+      // Swap temp row → server row in list caches (by id), keeping the new
+      // step in the first active/planned slot so older pending work stays
+      // to its right instead of appearing left of NOW.
       queryClient.setQueriesData<TimelineStepRecord[]>(
         { predicate: matchesMineQuery },
         (old) => {
           if (!old) return old;
           const hasTemp = old.some((s) => s.id === tempId);
           const hasReal = old.some((s) => s.id === newStep.id);
-          if (!hasTemp) return hasReal ? old : [...old, newStep];
-          return old.map((s) => (s.id === tempId ? newStep : s));
+          const replaced = hasTemp
+            ? old.map((s) => (s.id === tempId ? newStep : s))
+            : hasReal
+              ? old
+              : [...old, newStep];
+          const placed = placeStepAtFirstPlannedSlot(replaced, newStep);
+          return placed;
         },
       );
+      try {
+        await placeStepBeforeFirstActive(newStep);
+      } catch (orderError) {
+        logger.warn('Step created but timeline placement did not persist', orderError);
+        showAlert('Step created', 'The step was created, but its position could not be saved. Pull to refresh before reordering.');
+      }
       queryClient.removeQueries({ queryKey: ['timeline-steps', 'detail', tempId] });
       queryClient.setQueryData(['timeline-steps', 'detail', newStep.id], newStep);
 
@@ -5211,8 +5264,8 @@ function LegacyRacesScreen() {
           isDomainView={viewMode === 'domain'}
           onToggleDomainView={hasSiblingInterests ? toggleDomainView : undefined}
           domainLabel={currentDomain ? `All ${currentDomain.name}` : undefined}
-          onPublishBlueprint={currentInterest?.id ? () => setShowBlueprintSheet(true) : undefined}
-          blueprintLabel={existingBlueprintsForInterest && existingBlueprintsForInterest.length > 0 ? 'Manage Blueprint' : 'Publish as Blueprint'}
+          onPublishBlueprint={currentInterest?.id ? () => router.push('/studio' as any) : undefined}
+          blueprintLabel="Manage Blueprints"
           isBlueprintPublished={existingBlueprintsForInterest?.some(bp => bp.is_published)}
           useCanonicalSeasonChip={FEATURE_FLAGS.PRACTICE_SERIES_IOS_REGISTER}
         />
@@ -5308,20 +5361,6 @@ function LegacyRacesScreen() {
         onBoatClassSelected={handleBoatClassSelected}
       />
 
-
-
-      {/* Blueprint Publish Sheet */}
-      {currentInterest && (
-        <PublishBlueprintSheet
-          visible={showBlueprintSheet}
-          onClose={() => setShowBlueprintSheet(false)}
-          interestId={currentInterest.id}
-          interestName={currentInterest.name}
-          existingBlueprints={existingBlueprintsForInterest}
-          existingBlueprint={null}
-        />
-      )}
-
       {/* Smart Add Step Sheet */}
       <AddStepSheet
         visible={showAddStepSheet}
@@ -5331,8 +5370,8 @@ function LegacyRacesScreen() {
         onDismissSuggestion={handleDismissSuggestion}
         onAddStep={isSailingInterest ? handleAddStep : handleAddStep}
         onAddRace={isSailingInterest ? handleShowAddRaceSheet : undefined}
-        onPublishBlueprint={currentInterest?.id ? () => setShowBlueprintSheet(true) : undefined}
-        blueprintLabel={existingBlueprintsForInterest && existingBlueprintsForInterest.length > 0 ? 'Manage Blueprint' : 'Publish as Blueprint'}
+        onPublishBlueprint={currentInterest?.id ? () => router.push('/studio' as any) : undefined}
+        blueprintLabel="Manage Blueprints"
       />
 
       <AddStepActionSheet

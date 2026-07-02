@@ -15,6 +15,8 @@ import {
   Pressable,
   Modal,
   Animated,
+  ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
@@ -53,8 +55,12 @@ export function IOSActionSheet({
   actions,
 }: IOSActionSheetProps) {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(400)).current;
+  // Cap the sheet so a long action list never overflows past the status bar;
+  // the actions scroll within this height instead.
+  const maxSheetHeight = screenHeight - insets.top - 12;
 
   React.useEffect(() => {
     if (isOpen) {
@@ -133,6 +139,7 @@ export function IOSActionSheet({
             backgroundColor: '#FFFFFF',
             borderTopLeftRadius: 16,
             borderTopRightRadius: 16,
+            maxHeight: maxSheetHeight,
           }}
         >
           {/* Drag Indicator */}
@@ -197,6 +204,11 @@ export function IOSActionSheet({
           />
 
           {/* Actions */}
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 4 }}
+          >
           {actions.map((action, idx) => {
             const isLast = idx === actions.length - 1;
             const textColor = action.destructive ? '#FF3B30' : '#000000';
@@ -270,6 +282,7 @@ export function IOSActionSheet({
               </Pressable>
             );
           })}
+          </ScrollView>
         </View>
       </Animated.View>
     </Modal>

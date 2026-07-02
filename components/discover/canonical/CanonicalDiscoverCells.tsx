@@ -200,6 +200,7 @@ export interface CanonicalOrgRowProps extends BaseCellProps {
   name: string;
   descriptor: string;
   joinedLabel?: string; // e.g., "Joined" — gray mine tag; omit to render no tag
+  actionLabel?: string; // e.g., "Join" — neutral action tag; omit to render no tag
 }
 
 export function CanonicalOrgRow({
@@ -208,6 +209,7 @@ export function CanonicalOrgRow({
   name,
   descriptor,
   joinedLabel,
+  actionLabel,
   first,
   onPress,
   testID,
@@ -230,6 +232,10 @@ export function CanonicalOrgRow({
       {joinedLabel ? (
         <View style={styles.ctail}>
           <MineTag label={joinedLabel} icon="checkmark" />
+        </View>
+      ) : actionLabel ? (
+        <View style={styles.ctail}>
+          <WeakTag label={actionLabel} />
         </View>
       ) : null}
       <Ionicons

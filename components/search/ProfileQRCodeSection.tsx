@@ -29,7 +29,7 @@ interface ProfileQRCodeSectionProps {
 export function ProfileQRCodeSection({ userId }: ProfileQRCodeSectionProps) {
   const { vocab } = useVocabulary();
   const profileUrl = useMemo(
-    () => `https://regattaflow.app/profile/${userId}`,
+    () => `https://better.at/profile/${userId}`,
     [userId]
   );
 

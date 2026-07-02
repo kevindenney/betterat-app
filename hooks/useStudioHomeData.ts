@@ -144,23 +144,52 @@ export function useStudioHomeData(): StudioHomeData {
       };
       const rows = (data ?? []) as Row[];
 
-      // Active-subscriber counts per blueprint. marketplace_subscriptions is
-      // author-readable (mps_author_self_read); count active + trialing only.
+      // Active-subscriber counts per blueprint. Two sources:
+      //  - marketplace_subscriptions: Stripe-backed paid subscribers.
+      //  - blueprint_subscriptions: institutional / relationship subscribers
+      //    (no payment). Both must count or an institutional author sees 0.
       const subCountById = new Map<string, number>();
+      // Real step counts. blueprints.step_count is a denormalized column that
+      // can lag (institutional blueprints are authored via blueprint_step_templates
+      // without bumping it), so count the templates directly.
+      const stepCountById = new Map<string, number>();
       const blueprintIds = rows.map((r) => r.id);
       if (blueprintIds.length > 0) {
-        const { data: subs, error: subsError } = await supabase
-          .from('marketplace_subscriptions')
-          .select('blueprint_id')
-          .eq('author_user_id', userId)
-          .in('blueprint_id', blueprintIds)
-          .in('status', ['active', 'trialing']);
-        if (subsError) {
-          console.warn('[useStudioHomeData] subscriber count query failed', subsError);
-        } else {
-          for (const s of (subs ?? []) as { blueprint_id: string }[]) {
-            subCountById.set(s.blueprint_id, (subCountById.get(s.blueprint_id) ?? 0) + 1);
-          }
+        const [marketRes, instRes, templateRes] = await Promise.all([
+          supabase
+            .from('marketplace_subscriptions')
+            .select('blueprint_id')
+            .eq('author_user_id', userId)
+            .in('blueprint_id', blueprintIds)
+            .in('status', ['active', 'trialing']),
+          supabase
+            .from('blueprint_subscriptions')
+            .select('blueprint_id')
+            .in('blueprint_id', blueprintIds)
+            .neq('blueprint_system', 'timeline')
+            .eq('subscription_status', 'active'),
+          supabase
+            .from('blueprint_step_templates')
+            .select('blueprint_id')
+            .in('blueprint_id', blueprintIds),
+        ]);
+        if (marketRes.error) {
+          console.warn('[useStudioHomeData] marketplace subscriber count failed', marketRes.error);
+        }
+        if (instRes.error) {
+          console.warn('[useStudioHomeData] institutional subscriber count failed', instRes.error);
+        }
+        if (templateRes.error) {
+          console.warn('[useStudioHomeData] step template count failed', templateRes.error);
+        }
+        for (const s of [
+          ...((marketRes.data ?? []) as { blueprint_id: string }[]),
+          ...((instRes.data ?? []) as { blueprint_id: string }[]),
+        ]) {
+          subCountById.set(s.blueprint_id, (subCountById.get(s.blueprint_id) ?? 0) + 1);
+        }
+        for (const t of (templateRes.data ?? []) as { blueprint_id: string }[]) {
+          stepCountById.set(t.blueprint_id, (stepCountById.get(t.blueprint_id) ?? 0) + 1);
         }
       }
 
@@ -181,7 +210,7 @@ export function useStudioHomeData(): StudioHomeData {
           status,
           version,
           subscriberCount: subCountById.get(r.id) ?? 0,
-          stepCount: r.step_count ?? 0,
+          stepCount: stepCountById.get(r.id) ?? r.step_count ?? 0,
           totalSteps: null,
           coAuthors: [],            // TODO: blueprint co-authors table not wired yet
           coverGradient: gradientFor(r.id),

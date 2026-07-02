@@ -19,7 +19,7 @@ const sanitizeHtml = (html: string, limit = 60000) => {
   return withoutStyles.replace(/\s+/g, " ").slice(0, limit);
 };
 
-const buildPrompt = (url: string, sanitizedContent: string) => `You are onboarding a sailing club to RegattaFlow. Analyze the HTML content that was scraped from ${url} and extract structured data.
+const buildPrompt = (url: string, sanitizedContent: string) => `You are onboarding a sailing club to BetterAt. Analyze the HTML content that was scraped from ${url} and extract structured data.
 
 Return JSON with this exact shape:
 {
@@ -139,7 +139,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const pageResponse = await fetch(parsed.toString(), {
-      headers: { "User-Agent": "RegattaFlowBot/1.0 (+https://regattaflow.io)" },
+      headers: { "User-Agent": "BetterAtBot/1.0 (+https://better.at)" },
     });
 
     if (!pageResponse.ok) {

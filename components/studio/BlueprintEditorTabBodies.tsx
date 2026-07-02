@@ -11,16 +11,27 @@
  */
 
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  useWindowDimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   useBlueprintSteps,
+  BlueprintBeat,
   BlueprintStepTemplate,
   BlueprintSubStep,
   StepCategory,
 } from '@/hooks/useBlueprintSteps';
 import {
   useBlueprintCapabilities,
+  CapabilityGroup,
+  CapabilityRow,
   CapabilityStrength,
   strengthLabel,
 } from '@/hooks/useBlueprintCapabilities';
@@ -28,6 +39,7 @@ import { useBlueprintPricing } from '@/hooks/useBlueprintPricing';
 import { useBlueprintCohorts } from '@/hooks/useBlueprintCohorts';
 import { useBlueprintActivity } from '@/hooks/useBlueprintActivity';
 import { useBlueprintMentorSettings, MentorSettings } from '@/hooks/useBlueprintMentorSettings';
+import type { BlueprintAccessMode, BlueprintCurrency } from '@/hooks/useStudioBlueprint';
 import { ImportTimelineStepsSheet } from '@/components/studio/ImportTimelineStepsSheet';
 
 // =============================================================================
@@ -42,6 +54,16 @@ const CAT_TONES: Record<string, { bg: string; fg: string; label: string }> = {
   gen: { bg: 'rgba(60, 60, 67, 0.10)', fg: 'rgba(60, 60, 67, 0.7)', label: 'General' },
 };
 
+const BLUEPRINT_CURRENCIES: { value: BlueprintCurrency; label: string }[] = [
+  { value: 'usd', label: 'USD' },
+  { value: 'hkd', label: 'HKD' },
+  { value: 'gbp', label: 'GBP' },
+  { value: 'eur', label: 'EUR' },
+  { value: 'aud', label: 'AUD' },
+  { value: 'cad', label: 'CAD' },
+  { value: 'sgd', label: 'SGD' },
+];
+
 export function StepsTabBody({
   blueprintId,
   orgId,
@@ -51,8 +73,18 @@ export function StepsTabBody({
 }) {
   const { steps, loading, addStep, importTimelineSteps, deleteStep, updateStep } =
     useBlueprintSteps(blueprintId, orgId);
+  const { groups: capabilityGroups, loading: capabilitiesLoading } = useBlueprintCapabilities(
+    blueprintId,
+    orgId,
+  );
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const [mobileEditingId, setMobileEditingId] = React.useState<string | null>(null);
   const [importVisible, setImportVisible] = React.useState(false);
+  const { width } = useWindowDimensions();
+  const compact = width < 600;
+  const mobileEditingStep = compact
+    ? steps.find((step) => step.id === mobileEditingId) ?? null
+    : null;
 
   // Auto-expand the second step (or first if there's only one) for visual
   // continuity with the design canonical — shows an in-line editor for at
@@ -65,20 +97,75 @@ export function StepsTabBody({
 
   if (loading) {
     return (
-      <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+      <ScrollView
+        style={s.body}
+        contentContainerStyle={[s.bodyInner, compact && s.bodyInnerCompact]}
+      >
         <Text style={s.sectionHint}>Loading steps…</Text>
       </ScrollView>
     );
   }
 
+  if (compact && mobileEditingStep) {
+    const displayN = steps.findIndex((step) => step.id === mobileEditingStep.id) + 1;
+    return (
+      <ScrollView
+        style={s.body}
+        contentContainerStyle={[s.bodyInner, s.bodyInnerCompact]}
+      >
+        <View style={s.mobileEditorNav}>
+          <Pressable
+            style={s.mobileBackBtn}
+            onPress={() => setMobileEditingId(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Back to steps"
+          >
+            <Ionicons name="chevron-back" size={18} color="#6B5BBF" />
+            <Text style={s.mobileBackText}>Steps</Text>
+          </Pressable>
+          <Pressable
+            style={s.mobileDeleteBtn}
+            onPress={() => {
+              deleteStep.mutate(mobileEditingStep.id);
+              setMobileEditingId(null);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Delete step ${displayN}`}
+          >
+            <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+          </Pressable>
+        </View>
+        <BlueprintStepRow
+          step={mobileEditingStep}
+          displayN={displayN}
+          expanded
+          compactEditor
+          onToggleExpand={() => setMobileEditingId(null)}
+          onSave={(input) => updateStep.mutateAsync({ id: mobileEditingStep.id, ...input })}
+          onDelete={() => {
+            deleteStep.mutate(mobileEditingStep.id);
+            setMobileEditingId(null);
+          }}
+          capabilityGroups={capabilityGroups}
+          capabilitiesLoading={capabilitiesLoading}
+        />
+      </ScrollView>
+    );
+  }
+
   return (
-    <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
-      <View style={s.sectionHead}>
+    <ScrollView
+      style={s.body}
+      contentContainerStyle={[s.bodyInner, compact && s.bodyInnerCompact]}
+    >
+      <View style={[s.sectionHead, compact && s.sectionHeadCompact]}>
         <View>
           <Text style={s.eyebrow}>Steps</Text>
           <Text style={s.sectionH2}>The shape students will work through</Text>
         </View>
-        <Text style={s.sectionHint}>Click any row to expand · changes save inline</Text>
+        {compact ? null : (
+          <Text style={s.sectionHint}>Click any row to expand · changes save inline</Text>
+        )}
       </View>
 
       {steps.length === 0 ? (
@@ -91,48 +178,79 @@ export function StepsTabBody({
       ) : (
         <View style={{ gap: 6 }}>
           {steps.map((step, idx) => (
-            <BlueprintStepRow
-              key={step.id}
-              step={step}
-              displayN={idx + 1}
-              expanded={expandedId === step.id}
-              onToggleExpand={() =>
-                setExpandedId((cur) => (cur === step.id ? null : step.id))
-              }
-              onSave={(input) =>
-                updateStep.mutateAsync({ id: step.id, ...input })
-              }
-              onDelete={() => deleteStep.mutate(step.id)}
-            />
+            compact ? (
+              <MobileStepListCard
+                key={step.id}
+                step={step}
+                displayN={idx + 1}
+                onPress={() => setMobileEditingId(step.id)}
+              />
+            ) : (
+              <BlueprintStepRow
+                key={step.id}
+                step={step}
+                displayN={idx + 1}
+                expanded={expandedId === step.id}
+                onToggleExpand={() =>
+                  setExpandedId((cur) => (cur === step.id ? null : step.id))
+                }
+                onSave={(input) =>
+                  updateStep.mutateAsync({ id: step.id, ...input })
+                }
+                onDelete={() => deleteStep.mutate(step.id)}
+                capabilityGroups={capabilityGroups}
+                capabilitiesLoading={capabilitiesLoading}
+              />
+            )
           ))}
         </View>
       )}
 
       <Pressable
-        style={s.addStep}
-        onPress={() => addStep.mutate({ title: 'New step' })}
+        style={[s.addStep, compact && s.addStepCompact, addStep.isPending && s.addStepDisabled]}
+        onPress={() =>
+          addStep.mutate(
+            { title: 'New step' },
+            {
+              onSuccess: (result) => {
+                setExpandedId(result.id);
+                setMobileEditingId(result.id);
+              },
+            },
+          )
+        }
+        disabled={addStep.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Add step"
       >
         <View style={s.addStepPlus}>
           <Ionicons name="add" size={16} color="#28406B" />
         </View>
-        <Text style={s.addStepLabel}>
-          <Text style={{ fontWeight: '600' }}>
+        <View style={s.addStepTextCol}>
+          <Text style={s.addStepLabel} numberOfLines={1}>
             {addStep.isPending ? 'Adding…' : 'Add step'}
-          </Text>{' '}
-          — blank, or duplicate the last one
-        </Text>
-        <View style={{ flex: 1 }} />
-        <Text style={s.addStepTempl}>Start from template ›</Text>
+          </Text>
+          <Text style={s.addStepSubLabel} numberOfLines={compact ? 2 : 1}>
+            Blank step at the end of this blueprint
+          </Text>
+        </View>
       </Pressable>
 
-      <Pressable style={s.addStep} onPress={() => setImportVisible(true)}>
+      <Pressable
+        style={[s.addStep, compact && s.addStepCompact]}
+        onPress={() => setImportVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Add from my timeline"
+      >
         <View style={s.addStepPlus}>
           <Ionicons name="albums-outline" size={15} color="#28406B" />
         </View>
-        <Text style={s.addStepLabel}>
-          <Text style={{ fontWeight: '600' }}>Add from my timeline</Text> — pull in steps
-          you&apos;ve already done
-        </Text>
+        <View style={s.addStepTextCol}>
+          <Text style={s.addStepLabel} numberOfLines={1}>Add from my timeline</Text>
+          <Text style={s.addStepSubLabel} numberOfLines={compact ? 2 : 1}>
+            Pull in steps you&apos;ve already done
+          </Text>
+        </View>
       </Pressable>
 
       <ImportTimelineStepsSheet
@@ -166,13 +284,17 @@ function BlueprintStepRow({
   step,
   displayN,
   expanded,
+  compactEditor = false,
   onToggleExpand,
   onSave,
   onDelete,
+  capabilityGroups,
+  capabilitiesLoading,
 }: {
   step: BlueprintStepTemplate;
   displayN: number;
   expanded: boolean;
+  compactEditor?: boolean;
   onToggleExpand: () => void;
   onSave: (input: {
     title?: string;
@@ -180,8 +302,18 @@ function BlueprintStepRow({
     whatQuestion?: string | null;
     subSteps?: BlueprintSubStep[];
     preceptorRole?: string | null;
+    capabilityTags?: string[];
+    capabilityCompetencyIds?: string[];
+    planMetadata?: {
+      why?: string | null;
+      whenLabel?: string | null;
+      whereLabel?: string | null;
+      beats?: BlueprintBeat[];
+    };
   }) => Promise<unknown>;
   onDelete: () => void;
+  capabilityGroups: CapabilityGroup[];
+  capabilitiesLoading: boolean;
 }) {
   const catKey = categoryToCatKey(step.category);
   const cat = CAT_TONES[catKey];
@@ -191,6 +323,16 @@ function BlueprintStepRow({
   const [whatQuestion, setWhatQuestion] = React.useState(step.whatQuestion ?? '');
   const [preceptorRole, setPreceptorRole] = React.useState(step.preceptorRole ?? '');
   const [subSteps, setSubSteps] = React.useState<BlueprintSubStep[]>(step.subSteps);
+  const [why, setWhy] = React.useState(step.planMetadata.why ?? '');
+  const [whenLabel, setWhenLabel] = React.useState(step.planMetadata.whenLabel ?? '');
+  const [whereLabel, setWhereLabel] = React.useState(step.planMetadata.whereLabel ?? '');
+  const [beats, setBeats] = React.useState<BlueprintBeat[]>(step.planMetadata.beats);
+  const [selectedCapabilityTags, setSelectedCapabilityTags] = React.useState<string[]>(
+    step.capabilityTags,
+  );
+  const [selectedCapabilityIds, setSelectedCapabilityIds] = React.useState<string[]>(
+    step.capabilityCompetencyIds,
+  );
 
   React.useEffect(() => {
     setTitle(step.title);
@@ -198,7 +340,23 @@ function BlueprintStepRow({
     setWhatQuestion(step.whatQuestion ?? '');
     setPreceptorRole(step.preceptorRole ?? '');
     setSubSteps(step.subSteps);
-  }, [step.id, step.title, step.description, step.whatQuestion, step.preceptorRole, step.subSteps]);
+    setWhy(step.planMetadata.why ?? '');
+    setWhenLabel(step.planMetadata.whenLabel ?? '');
+    setWhereLabel(step.planMetadata.whereLabel ?? '');
+    setBeats(step.planMetadata.beats);
+    setSelectedCapabilityTags(step.capabilityTags);
+    setSelectedCapabilityIds(step.capabilityCompetencyIds);
+  }, [
+    step.id,
+    step.title,
+    step.description,
+    step.whatQuestion,
+    step.preceptorRole,
+    step.subSteps,
+    step.planMetadata,
+    step.capabilityTags,
+    step.capabilityCompetencyIds,
+  ]);
 
   const persistTitle = () => {
     const next = title.trim();
@@ -215,6 +373,41 @@ function BlueprintStepRow({
   const persistPreceptor = () => {
     const next = preceptorRole.trim();
     if (next !== (step.preceptorRole ?? '')) onSave({ preceptorRole: next || null });
+  };
+  const persistWhy = () => {
+    const next = why.trim();
+    if (next !== (step.planMetadata.why ?? '')) onSave({ planMetadata: { why: next || null } });
+  };
+  const persistWhen = () => {
+    const next = whenLabel.trim();
+    if (next !== (step.planMetadata.whenLabel ?? '')) onSave({ planMetadata: { whenLabel: next || null } });
+  };
+  const persistWhere = () => {
+    const next = whereLabel.trim();
+    if (next !== (step.planMetadata.whereLabel ?? '')) onSave({ planMetadata: { whereLabel: next || null } });
+  };
+  const toggleCapability = (capability: CapabilityRow) => {
+    const aliases = new Set([
+      normalizeCapabilityLabel(capability.shortLabel),
+      normalizeCapabilityLabel(capability.fullLabel),
+    ]);
+    const isSelected = selectedCapabilityTags.some((tag) =>
+      aliases.has(normalizeCapabilityLabel(tag)),
+    ) || selectedCapabilityIds.includes(capability.competencyId);
+    const nextTags = isSelected
+      ? selectedCapabilityTags.filter((tag) => !aliases.has(normalizeCapabilityLabel(tag)))
+      : [...selectedCapabilityTags, capability.fullLabel];
+    const nextIds = isSelected
+      ? selectedCapabilityIds.filter((id) => id !== capability.competencyId)
+      : [...new Set([...selectedCapabilityIds, capability.competencyId])];
+    setSelectedCapabilityTags(nextTags);
+    setSelectedCapabilityIds(nextIds);
+    if (
+      JSON.stringify(nextTags) !== JSON.stringify(step.capabilityTags) ||
+      JSON.stringify(nextIds) !== JSON.stringify(step.capabilityCompetencyIds)
+    ) {
+      onSave({ capabilityTags: nextTags, capabilityCompetencyIds: nextIds });
+    }
   };
 
   const updateSubStepAt = (idx: number, text: string) => {
@@ -235,20 +428,61 @@ function BlueprintStepRow({
     const next = [...subSteps, { n: subSteps.length + 1, text: '' }];
     setSubSteps(next);
   };
+  const updateBeatAt = (idx: number, patch: Partial<BlueprintBeat>) => {
+    setBeats((cur) => cur.map((beat, i) => (i === idx ? { ...beat, ...patch } : beat)));
+  };
+  const persistBeats = () => {
+    const cleaned = beats
+      .map((beat) => ({
+        timeLabel: beat.timeLabel.trim(),
+        title: beat.title.trim(),
+        body: beat.body?.trim() || null,
+      }))
+      .filter((beat) => beat.title.length > 0);
+    if (JSON.stringify(cleaned) !== JSON.stringify(step.planMetadata.beats)) {
+      onSave({ planMetadata: { beats: cleaned } });
+    }
+  };
+  const removeBeatAt = (idx: number) => {
+    const next = beats.filter((_, i) => i !== idx);
+    setBeats(next);
+    onSave({ planMetadata: { beats: next } });
+  };
+  const appendBeat = () => {
+    setBeats((cur) => [...cur, { timeLabel: '', title: '', body: null }]);
+  };
 
   return (
-    <View style={[s.stepRow, expanded && s.stepRowExpanded]}>
-      <View style={s.stepGrip}>
-        <Ionicons name="reorder-three-outline" size={18} color="rgba(60, 60, 67, 0.3)" />
-      </View>
-      <View style={s.stepNum}>
-        <Text style={s.stepNumText}>{displayN}</Text>
-      </View>
-      <View style={{ flex: 1 }}>
-        <View style={s.stepTitleRow}>
+    <View style={[s.stepRow, expanded && s.stepRowExpanded, compactEditor && s.stepRowMobileEditor]}>
+      {compactEditor ? null : (
+        <>
+          <View style={s.stepGrip}>
+            <Ionicons name="reorder-three-outline" size={18} color="rgba(60, 60, 67, 0.3)" />
+          </View>
+          <View style={s.stepNum}>
+            <Text style={s.stepNumText}>{displayN}</Text>
+          </View>
+        </>
+      )}
+      <View style={compactEditor ? s.stepContentMobile : { flex: 1 }}>
+        {compactEditor ? (
+          <View style={s.mobileStepMetaRow}>
+            <View style={s.stepNum}>
+              <Text style={s.stepNumText}>{displayN}</Text>
+            </View>
+            <View style={[s.catChip, { backgroundColor: cat.bg }]}>
+              <Text style={[s.catChipText, { color: cat.fg }]}>{cat.label}</Text>
+            </View>
+            <Text style={s.mobileAutosaveText}>Autosaves</Text>
+          </View>
+        ) : null}
+        <View style={[s.stepTitleRow, compactEditor && s.stepTitleRowMobile]}>
           {expanded ? (
             <TextInput
-              style={[s.stepInput, { flex: 1, marginRight: 8 }]}
+              style={[
+                s.stepInput,
+                compactEditor ? s.stepTitleInputMobile : { flex: 1, marginRight: 8 },
+              ]}
               value={title}
               onChangeText={setTitle}
               onBlur={persistTitle}
@@ -259,9 +493,11 @@ function BlueprintStepRow({
               <Text style={s.stepTitle}>{step.title}</Text>
             </Pressable>
           )}
-          <View style={[s.catChip, { backgroundColor: cat.bg }]}>
-            <Text style={[s.catChipText, { color: cat.fg }]}>{cat.label}</Text>
-          </View>
+          {compactEditor ? null : (
+            <View style={[s.catChip, { backgroundColor: cat.bg }]}>
+              <Text style={[s.catChipText, { color: cat.fg }]}>{cat.label}</Text>
+            </View>
+          )}
         </View>
         {expanded ? (
           <TextInput
@@ -291,7 +527,7 @@ function BlueprintStepRow({
         {expanded ? (
           <View style={s.stepEdit}>
             <View style={s.stepField}>
-              <Text style={s.stepFieldLabel}>What — the question the student answers</Text>
+              <Text style={s.stepFieldLabel}>What — prompt or question</Text>
               <TextInput
                 style={s.stepInput}
                 value={whatQuestion}
@@ -303,10 +539,23 @@ function BlueprintStepRow({
             </View>
 
             <View style={s.stepField}>
+              <Text style={s.stepFieldLabel}>Why — reason this matters</Text>
+              <TextInput
+                style={[s.stepInput, { minHeight: 54 }]}
+                value={why}
+                onChangeText={setWhy}
+                onBlur={persistWhy}
+                multiline
+                placeholder="Why does this matter right now?"
+                placeholderTextColor="rgba(60, 60, 67, 0.4)"
+              />
+            </View>
+
+            <View style={s.stepField}>
               <Text style={s.stepFieldLabel}>How — sub-steps shown to the student</Text>
               <View style={{ gap: 6 }}>
                 {subSteps.map((ss, idx) => (
-                  <View key={`${ss.n}-${idx}`} style={s.subStep}>
+                  <View key={`${ss.n}-${idx}`} style={[s.subStep, compactEditor && s.subStepMobile]}>
                     <View style={s.subStepGrip}>
                       <Ionicons
                         name="reorder-three-outline"
@@ -337,51 +586,311 @@ function BlueprintStepRow({
               </Pressable>
             </View>
 
-            <View style={s.stepFieldRow}>
-              <View style={s.stepField}>
-                <Text style={s.stepFieldLabel}>Who — preceptor role (optional)</Text>
+            <View style={s.stepField}>
+              <Text style={s.stepFieldLabel}>Beats — timed run-through or checklist</Text>
+              <View style={{ gap: 6 }}>
+                {beats.map((beat, idx) => (
+                  <View key={`beat-${idx}`} style={[s.beatRow, compactEditor && s.beatRowMobile]}>
+                    <TextInput
+                      style={[s.beatTimeInput, s.subStepInput]}
+                      value={beat.timeLabel}
+                      onChangeText={(text) => updateBeatAt(idx, { timeLabel: text })}
+                      onBlur={persistBeats}
+                      placeholder="0:00"
+                      placeholderTextColor="rgba(60, 60, 67, 0.35)"
+                    />
+                    <TextInput
+                      style={s.subStepInput}
+                      value={beat.title}
+                      onChangeText={(text) => updateBeatAt(idx, { title: text })}
+                      onBlur={persistBeats}
+                      placeholder="Beat title"
+                      placeholderTextColor="rgba(60, 60, 67, 0.4)"
+                    />
+                    <TextInput
+                      style={s.subStepInput}
+                      value={beat.body ?? ''}
+                      onChangeText={(text) => updateBeatAt(idx, { body: text })}
+                      onBlur={persistBeats}
+                      placeholder="What happens / what to watch"
+                      placeholderTextColor="rgba(60, 60, 67, 0.4)"
+                    />
+                    <Pressable hitSlop={4} onPress={() => removeBeatAt(idx)}>
+                      <Ionicons name="close" size={12} color="rgba(60, 60, 67, 0.4)" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+              <Pressable style={s.addSub} onPress={appendBeat}>
+                <Ionicons name="add" size={12} color="rgba(60, 60, 67, 0.6)" />
+                <Text style={s.addSubText}>Add beat</Text>
+              </Pressable>
+            </View>
+
+            <View style={[s.stepFieldRow, compactEditor && s.stepFieldRowMobile]}>
+              <View style={[s.stepField, s.stepHalfField, compactEditor && s.stepFullFieldMobile]}>
+                <Text style={s.stepFieldLabel}>When</Text>
+                <TextInput
+                  style={s.stepInput}
+                  value={whenLabel}
+                  onChangeText={setWhenLabel}
+                  onBlur={persistWhen}
+                  placeholder="When will they do this?"
+                  placeholderTextColor="rgba(60, 60, 67, 0.4)"
+                />
+              </View>
+              <View style={[s.stepField, s.stepHalfField, compactEditor && s.stepFullFieldMobile]}>
+                <Text style={s.stepFieldLabel}>Where</Text>
+                <TextInput
+                  style={s.stepInput}
+                  value={whereLabel}
+                  onChangeText={setWhereLabel}
+                  onBlur={persistWhere}
+                  placeholder="Where will this happen?"
+                  placeholderTextColor="rgba(60, 60, 67, 0.4)"
+                />
+              </View>
+            </View>
+
+            <View style={[s.stepFieldRow, compactEditor && s.stepFieldRowMobile]}>
+              <View style={[s.stepField, s.stepHalfField, compactEditor && s.stepFullFieldMobile]}>
+                <Text style={s.stepFieldLabel}>Who</Text>
                 <TextInput
                   style={s.stepInput}
                   value={preceptorRole}
                   onChangeText={setPreceptorRole}
                   onBlur={persistPreceptor}
-                  placeholder="e.g. Charge nurse or rapid-response RN"
+                  placeholder="Who is involved?"
                   placeholderTextColor="rgba(60, 60, 67, 0.4)"
                 />
               </View>
-              <View style={s.stepField}>
+              <View style={[s.stepField, s.stepHalfField, compactEditor && s.stepFullFieldMobile]}>
                 <Text style={s.stepFieldLabel}>Capabilities trained</Text>
-                <View style={s.tagRow}>
-                  {step.capabilityTags.map((t) => (
-                    <View key={t} style={s.tagChip}>
-                      <Text style={s.tagChipText}>{t}</Text>
-                    </View>
-                  ))}
-                  <View style={s.tagChipAdd}>
-                    <Ionicons name="add" size={11} color="rgba(60, 60, 67, 0.6)" />
-                    <Text style={s.tagChipAddText}>Add</Text>
-                  </View>
-                </View>
-                <Text style={s.stepFieldHelp}>
-                  Capability picker wires from the Capabilities tab.
-                </Text>
+                <StepCapabilityPicker
+                  groups={capabilityGroups}
+                  selectedTags={selectedCapabilityTags}
+                  selectedCompetencyIds={selectedCapabilityIds}
+                  loading={capabilitiesLoading}
+                  onToggle={toggleCapability}
+                />
               </View>
             </View>
           </View>
         ) : null}
       </View>
-      <View style={s.rowActions}>
-        <Pressable style={s.rowActionBtn} onPress={onToggleExpand}>
+      {compactEditor ? null : <View style={s.rowActions}>
+        <Pressable
+          style={[s.rowActionBtn, expanded && s.rowActionBtnOpen]}
+          onPress={onToggleExpand}
+          accessibilityRole="button"
+          accessibilityLabel={expanded ? `Collapse step ${displayN}` : `Expand step ${displayN}`}
+          hitSlop={8}
+        >
           <Ionicons
             name={expanded ? 'chevron-up' : 'chevron-down'}
             size={13}
             color="rgba(60, 60, 67, 0.6)"
           />
+          {expanded ? <Text style={s.rowActionText}>Collapse</Text> : null}
         </Pressable>
-        <Pressable style={s.rowActionBtn} onPress={onDelete}>
+        <Pressable
+          style={s.rowActionBtn}
+          onPress={onDelete}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete step ${displayN}`}
+          hitSlop={8}
+        >
           <Ionicons name="trash-outline" size={13} color="#FF3B30" />
         </Pressable>
+      </View>}
+    </View>
+  );
+}
+
+function MobileStepListCard({
+  step,
+  displayN,
+  onPress,
+}: {
+  step: BlueprintStepTemplate;
+  displayN: number;
+  onPress: () => void;
+}) {
+  const cat = CAT_TONES[categoryToCatKey(step.category)];
+  return (
+    <Pressable
+      style={s.mobileStepCard}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Edit step ${displayN}`}
+    >
+      <View style={s.stepNum}>
+        <Text style={s.stepNumText}>{displayN}</Text>
       </View>
+      <View style={s.mobileStepCardBody}>
+        <Text style={s.mobileStepTitle} numberOfLines={2}>{step.title}</Text>
+        {step.description ? (
+          <Text style={s.mobileStepDesc} numberOfLines={2}>{step.description}</Text>
+        ) : null}
+        <View style={s.mobileStepMeta}>
+          <View style={[s.catChip, { backgroundColor: cat.bg }]}>
+            <Text style={[s.catChipText, { color: cat.fg }]}>{cat.label}</Text>
+          </View>
+          {step.capabilityTags.length > 0 ? (
+            <Text style={s.mobileStepMetaText}>
+              {step.capabilityTags.length} capabilit{step.capabilityTags.length === 1 ? 'y' : 'ies'}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color="rgba(60, 60, 67, 0.35)" />
+    </Pressable>
+  );
+}
+
+function normalizeCapabilityLabel(label: string): string {
+  return label.trim().toLowerCase();
+}
+
+function StepCapabilityPicker({
+  groups,
+  selectedTags,
+  selectedCompetencyIds,
+  loading,
+  onToggle,
+}: {
+  groups: CapabilityGroup[];
+  selectedTags: string[];
+  selectedCompetencyIds: string[];
+  loading: boolean;
+  onToggle: (capability: CapabilityRow) => void;
+}) {
+  const selectedLabels = React.useMemo(
+    () => new Set(selectedTags.map(normalizeCapabilityLabel)),
+    [selectedTags],
+  );
+  const selectedIds = React.useMemo(
+    () => new Set(selectedCompetencyIds),
+    [selectedCompetencyIds],
+  );
+  const selectedGroups = React.useMemo(
+    () =>
+      groups
+        .map((group) => ({
+          ...group,
+          caps: group.caps.filter(
+            (cap) =>
+              selectedIds.has(cap.competencyId) ||
+              selectedLabels.has(normalizeCapabilityLabel(cap.shortLabel)) ||
+              selectedLabels.has(normalizeCapabilityLabel(cap.fullLabel)),
+          ),
+        }))
+        .filter((group) => group.caps.length > 0),
+    [groups, selectedIds, selectedLabels],
+  );
+  const availableGroups = React.useMemo(
+    () =>
+      groups
+        .map((group) => ({
+          ...group,
+          caps: group.caps.filter(
+            (cap) =>
+              !selectedIds.has(cap.competencyId) &&
+              !selectedLabels.has(normalizeCapabilityLabel(cap.shortLabel)) &&
+              !selectedLabels.has(normalizeCapabilityLabel(cap.fullLabel)),
+          ).sort((a, b) => Number(b.selected) - Number(a.selected)),
+        }))
+        .filter((group) => group.caps.length > 0),
+    [groups, selectedIds, selectedLabels],
+  );
+
+  if (loading) {
+    return <Text style={s.stepFieldHelp}>Loading institutional capabilities…</Text>;
+  }
+
+  if (groups.length === 0) {
+    return (
+      <Text style={s.stepFieldHelp}>
+        No institutional capabilities are available for this blueprint’s organization yet.
+      </Text>
+    );
+  }
+
+  return (
+    <View style={s.capPicker}>
+      {selectedGroups.length > 0 ? (
+        <View style={s.capPickerSection}>
+          <Text style={s.capPickerEyebrow}>Selected for this step</Text>
+          <CapabilityChipRows
+            groups={selectedGroups}
+            selectedCompetencyIds={selectedIds}
+            selectedLabels={selectedLabels}
+            onToggle={onToggle}
+          />
+        </View>
+      ) : null}
+      <View style={s.capPickerSection}>
+        <Text style={s.capPickerEyebrow}>
+          {selectedGroups.length > 0 ? 'Add from institution taxonomy' : 'Institution taxonomy'}
+        </Text>
+        <CapabilityChipRows
+          groups={availableGroups}
+          selectedCompetencyIds={selectedIds}
+          selectedLabels={selectedLabels}
+          onToggle={onToggle}
+        />
+      </View>
+    </View>
+  );
+}
+
+function CapabilityChipRows({
+  groups,
+  selectedCompetencyIds,
+  selectedLabels,
+  onToggle,
+}: {
+  groups: CapabilityGroup[];
+  selectedCompetencyIds: Set<string>;
+  selectedLabels: Set<string>;
+  onToggle: (capability: CapabilityRow) => void;
+}) {
+  return (
+    <View style={s.capPickerGroups}>
+      {groups.map((group) => (
+        <View key={group.category} style={s.capPickerGroup}>
+          <Text style={s.capPickerCategory}>{group.category}</Text>
+          <View style={s.capPickerChipRow}>
+            {group.caps.map((capability) => {
+              const selected =
+                selectedCompetencyIds.has(capability.competencyId) ||
+                selectedLabels.has(normalizeCapabilityLabel(capability.shortLabel)) ||
+                selectedLabels.has(normalizeCapabilityLabel(capability.fullLabel));
+              return (
+                <Pressable
+                  key={capability.competencyId}
+                  style={[s.capPickerChip, selected && s.capPickerChipOn]}
+                  onPress={() => onToggle(capability)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                >
+                  <Ionicons
+                    name={selected ? 'checkmark-circle' : 'add-circle-outline'}
+                    size={13}
+                    color={selected ? '#28406B' : 'rgba(60, 60, 67, 0.55)'}
+                  />
+                  <Text
+                    style={[s.capPickerChipText, selected && s.capPickerChipTextOn]}
+                    numberOfLines={2}
+                  >
+                    {capability.fullLabel}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -749,9 +1258,9 @@ export function PricingTabBody({
         <View style={s.cardBody}>
           <View style={s.row3}>
             <View style={{ flex: 1 }}>
-              <Text style={s.fieldLabel}>Per-seat price · month</Text>
+              <Text style={s.fieldLabel}>Per-seat price</Text>
               <View style={[s.input, s.inputAffix]}>
-                <Text style={s.inputAffixPrefix}>USD</Text>
+                <Text style={s.inputAffixPrefix}>{pricing.currency.toUpperCase()}</Text>
                 <TextInput
                   style={s.inputAffixField}
                   value={priceInput}
@@ -786,6 +1295,63 @@ export function PricingTabBody({
                 keyboardType="number-pad"
                 editable={!isInstitutional}
               />
+            </View>
+          </View>
+          <View style={[s.row2, { marginTop: 12 }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.fieldLabel}>Currency</Text>
+              <View style={s.tagRow}>
+                {BLUEPRINT_CURRENCIES.map((option) => {
+                  const active = pricing.currency === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      disabled={isInstitutional}
+                      onPress={() => update.mutate({ currency: option.value })}
+                      style={[
+                        s.tagChip,
+                        active && {
+                          borderWidth: 1,
+                          borderColor: '#28406B',
+                          backgroundColor: 'rgba(40, 64, 107, 0.08)',
+                        },
+                      ]}
+                    >
+                      <Text style={[s.tagChipText, active && { color: '#28406B' }]}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.fieldLabel}>Billing</Text>
+              <View style={s.segControl}>
+                {[
+                  { value: 'monthly', label: 'Monthly' },
+                  { value: 'annual', label: 'Annual' },
+                  { value: 'one_time', label: 'One-time' },
+                ].map((option) => {
+                  const active = pricing.billingCadence === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      style={[s.segOpt, active && s.segOptOn]}
+                      disabled={isInstitutional}
+                      onPress={() =>
+                        update.mutate({
+                          billingCadence: option.value as typeof pricing.billingCadence,
+                        })
+                      }
+                    >
+                      <Text style={active ? s.segOptTextOn : s.segOptText}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           </View>
           <View style={s.licensePrev}>
@@ -835,6 +1401,8 @@ function MarketplaceListingCard({
     });
   };
   const hasListing = !!pricing.stripePriceId && !!pricing.stripeProductId;
+  const isFree = pricing.pricePerSeatCents != null && pricing.pricePerSeatCents <= 0;
+  const canSyncStripe = pricing.pricePerSeatCents != null && pricing.pricePerSeatCents > 0;
   const lastSynced = pricing.stripeSyncedAt
     ? new Date(pricing.stripeSyncedAt).toLocaleString(undefined, {
         month: 'short',
@@ -845,6 +1413,11 @@ function MarketplaceListingCard({
     : null;
   const dollars =
     pricing.pricePerSeatCents != null ? (pricing.pricePerSeatCents / 100).toFixed(2) : null;
+  const amountLabel = isFree
+    ? 'Free'
+    : dollars
+      ? `${pricing.currency.toUpperCase()} ${dollars}`
+      : null;
   const cadenceLabel =
     pricing.billingCadence === 'annual'
       ? 'year'
@@ -858,7 +1431,11 @@ function MarketplaceListingCard({
         <View>
           <Text style={s.eyebrow}>Marketplace listing</Text>
           <Text style={s.cardH3}>
-            {hasListing ? `Listed on Stripe · $${dollars}/${cadenceLabel}` : 'Not yet listed'}
+            {isFree
+              ? 'Free blueprint'
+              : hasListing && amountLabel
+              ? `Listed on Stripe · ${amountLabel}/${cadenceLabel}`
+              : 'Not yet listed'}
           </Text>
           {lastSynced ? (
             <Text style={s.cardHeadMeta}>Last synced {lastSynced}</Text>
@@ -880,9 +1457,9 @@ function MarketplaceListingCard({
           <Pressable
             style={[
               s.btnPrimary,
-              (syncStripe.isPending || pricing.pricePerSeatCents == null) && { opacity: 0.55 },
+              (!canSyncStripe || syncStripe.isPending) && { opacity: 0.55 },
             ]}
-            disabled={syncStripe.isPending || pricing.pricePerSeatCents == null}
+            disabled={!canSyncStripe || syncStripe.isPending}
             onPress={() => syncStripe.mutate()}
           >
             <Ionicons
@@ -895,7 +1472,9 @@ function MarketplaceListingCard({
                 ? 'Syncing…'
                 : hasListing
                   ? 'Resync to Stripe'
-                  : 'List on Stripe'}
+                  : isFree
+                    ? 'Free'
+                    : 'List on Stripe'}
             </Text>
           </Pressable>
         </View>
@@ -915,7 +1494,12 @@ function MarketplaceListingCard({
             <Text style={s.stripeErrorText}>Preview failed: {previewError}</Text>
           </View>
         ) : null}
-        {hasListing ? (
+        {isFree ? (
+          <Text style={s.licenseLine}>
+            Free independent blueprints publish directly to the marketplace. They do not need
+            Stripe Checkout or payout routing.
+          </Text>
+        ) : hasListing ? (
           <View style={{ gap: 8 }}>
             <StripeIdRow label="Product" value={pricing.stripeProductId!} />
             <StripeIdRow label="Price" value={pricing.stripePriceId!} />
@@ -963,15 +1547,39 @@ function formatCohortStartDate(iso: string | null): string | null {
 export function CohortsTabBody({
   blueprintId,
   orgId,
+  accessMode,
 }: {
   blueprintId: string;
   orgId: string | null;
+  accessMode: BlueprintAccessMode;
 }) {
+  const isInstitutional = accessMode === 'institutional';
   const { assigned, unassigned, loading, assign, unassign } = useBlueprintCohorts(
     blueprintId,
     orgId,
   );
   const [pickerOpen, setPickerOpen] = React.useState(false);
+
+  if (!isInstitutional) {
+    return (
+      <ScrollView style={s.body} contentContainerStyle={s.bodyInner}>
+        <View style={s.sectionHead}>
+          <View>
+            <Text style={s.eyebrow}>Cohorts subscribed</Text>
+            <Text style={s.sectionH2}>Institution-managed only</Text>
+          </View>
+        </View>
+
+        <View style={[s.cohortCard, { gap: 8 }]}>
+          <Text style={s.cohortName}>Personal blueprints do not use cohorts</Text>
+          <Text style={s.cohortMeta}>
+            Personal blueprints are shared with individual subscribers. Switch Pricing & access to
+            Institution-managed when this blueprint should be assigned to cohorts.
+          </Text>
+        </View>
+      </ScrollView>
+    );
+  }
 
   const totalStudents = assigned.reduce((sum, c) => sum + c.memberCount, 0);
   const summary =
@@ -1351,8 +1959,9 @@ export function ActivityTabBody({ blueprintId }: { blueprintId: string }) {
 // =============================================================================
 
 const s = StyleSheet.create({
-  body: { flex: 1, backgroundColor: '#F5F4EE' },
+  body: { flex: 1, backgroundColor: '#F2F2F7' },
   bodyInner: { paddingHorizontal: 32, paddingTop: 18, paddingBottom: 40, gap: 18 },
+  bodyInnerCompact: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 120, gap: 14 },
 
   sectionHead: {
     flexDirection: 'row',
@@ -1360,6 +1969,9 @@ const s = StyleSheet.create({
     alignItems: 'flex-end',
     marginBottom: 4,
     gap: 12,
+  },
+  sectionHeadCompact: {
+    alignItems: 'stretch',
   },
   eyebrow: {
     fontSize: 10.5,
@@ -1383,6 +1995,84 @@ const s = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
   },
   stepRowExpanded: { borderColor: 'rgba(40, 64, 107, 0.25)', shadowColor: '#28406B', shadowOpacity: 0.05, shadowRadius: 8 },
+  stepRowMobileEditor: {
+    flexDirection: 'column',
+    gap: 0,
+    padding: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+  },
+  stepContentMobile: { width: '100%' },
+  mobileEditorNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: -2,
+  },
+  mobileBackBtn: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingRight: 12,
+  },
+  mobileBackText: { fontSize: 14, fontWeight: '700', color: '#6B5BBF' },
+  mobileDeleteBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 59, 48, 0.10)',
+  },
+  mobileStepMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  mobileAutosaveText: {
+    marginLeft: 'auto',
+    fontSize: 11,
+    color: 'rgba(60, 60, 67, 0.5)',
+    fontWeight: '600',
+  },
+  mobileStepCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  mobileStepCardBody: { flex: 1, minWidth: 0 },
+  mobileStepTitle: {
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '700',
+    color: '#1C1C1E',
+  },
+  mobileStepDesc: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 16,
+    color: 'rgba(60, 60, 67, 0.62)',
+  },
+  mobileStepMeta: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  mobileStepMetaText: {
+    fontSize: 11,
+    color: 'rgba(60, 60, 67, 0.55)',
+    fontWeight: '600',
+  },
   stepGrip: { paddingTop: 2 },
   stepNum: {
     width: 24,
@@ -1395,7 +2085,15 @@ const s = StyleSheet.create({
   },
   stepNumText: { fontSize: 11, fontWeight: '700', color: 'rgba(60, 60, 67, 0.85)' },
   stepTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  stepTitleRowMobile: { alignItems: 'stretch' },
   stepTitle: { fontSize: 14, fontWeight: '600', color: '#1C1C1E' },
+  stepTitleInputMobile: {
+    width: '100%',
+    minHeight: 48,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '700',
+  },
   stepDesc: { marginTop: 4, fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 19 },
   tagRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 8 },
   tagChip: {
@@ -1432,8 +2130,22 @@ const s = StyleSheet.create({
   },
   catChip: { paddingHorizontal: 6, paddingTop: 2, paddingBottom: 3, borderRadius: 4 },
   catChipText: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
-  rowActions: { flexDirection: 'row', gap: 4 },
-  rowActionBtn: { padding: 4 },
+  rowActions: { flexDirection: 'row', gap: 4, alignItems: 'flex-start' },
+  rowActionBtn: {
+    minHeight: 28,
+    minWidth: 28,
+    paddingHorizontal: 7,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowActionBtnOpen: {
+    flexDirection: 'row',
+    gap: 4,
+    backgroundColor: 'rgba(60, 60, 67, 0.08)',
+  },
+  rowActionText: { fontSize: 10.5, fontWeight: '700', color: 'rgba(60, 60, 67, 0.65)' },
 
   stepEdit: {
     marginTop: 14,
@@ -1443,7 +2155,10 @@ const s = StyleSheet.create({
     gap: 14,
   },
   stepField: { gap: 6 },
-  stepFieldRow: { flexDirection: 'row', gap: 14 },
+  stepFieldRow: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
+  stepFieldRowMobile: { flexDirection: 'column', gap: 14 },
+  stepHalfField: { flex: 1, minWidth: 220 },
+  stepFullFieldMobile: { minWidth: 0, width: '100%' },
   stepFieldLabel: { fontSize: 11, color: 'rgba(60, 60, 67, 0.85)', fontWeight: '600' },
   stepInput: {
     paddingHorizontal: 12,
@@ -1456,6 +2171,47 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   stepFieldHelp: { fontSize: 11, color: 'rgba(60, 60, 67, 0.6)' },
+  capPicker: { gap: 10 },
+  capPickerSection: { gap: 6 },
+  capPickerEyebrow: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: 'rgba(60, 60, 67, 0.48)',
+  },
+  capPickerGroups: { gap: 8 },
+  capPickerGroup: { gap: 5 },
+  capPickerCategory: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: 'rgba(60, 60, 67, 0.65)',
+  },
+  capPickerChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  capPickerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    maxWidth: 220,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 7,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.10)',
+    backgroundColor: '#FFFFFF',
+  },
+  capPickerChipOn: {
+    borderColor: 'rgba(40, 64, 107, 0.35)',
+    backgroundColor: 'rgba(40, 64, 107, 0.08)',
+  },
+  capPickerChipText: {
+    flexShrink: 1,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    color: 'rgba(60, 60, 67, 0.68)',
+  },
+  capPickerChipTextOn: { color: '#28406B' },
 
   subStep: {
     flexDirection: 'row',
@@ -1465,6 +2221,9 @@ const s = StyleSheet.create({
     paddingVertical: 6,
     backgroundColor: '#F5F4EE',
     borderRadius: 8,
+  },
+  subStepMobile: {
+    minHeight: 44,
   },
   subStepGrip: { paddingTop: 1 },
   subStepN: {
@@ -1477,6 +2236,25 @@ const s = StyleSheet.create({
   },
   subStepNText: { fontSize: 10, fontWeight: '700', color: '#28406B' },
   subStepInput: { flex: 1, fontSize: 12.5, color: '#1C1C1E', paddingVertical: 0 },
+  beatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#F5F4EE',
+    borderRadius: 8,
+  },
+  beatRowMobile: {
+    flexWrap: 'wrap',
+    alignItems: 'stretch',
+  },
+  beatTimeInput: {
+    flex: 0,
+    width: 56,
+    fontWeight: '700',
+    color: '#28406B',
+  },
 
   addSub: {
     flexDirection: 'row',
@@ -1515,6 +2293,12 @@ const s = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: 'rgba(40, 64, 107, 0.25)',
   },
+  addStepCompact: {
+    width: '100%',
+    gap: 10,
+    padding: 12,
+  },
+  addStepDisabled: { opacity: 0.55 },
   addStepPlus: {
     width: 28,
     height: 28,
@@ -1523,7 +2307,14 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addStepLabel: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)' },
+  addStepTextCol: { flex: 1, minWidth: 0 },
+  addStepLabel: { fontSize: 12.5, color: 'rgba(60, 60, 67, 0.85)', fontWeight: '700' },
+  addStepSubLabel: {
+    marginTop: 2,
+    fontSize: 11.5,
+    lineHeight: 15,
+    color: 'rgba(60, 60, 67, 0.55)',
+  },
   addStepTempl: { fontSize: 11.5, color: '#28406B', fontWeight: '600' },
 
   emptyStepsCard: {

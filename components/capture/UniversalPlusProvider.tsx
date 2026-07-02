@@ -36,6 +36,25 @@ import type { TimelineStepRecord } from '@/types/timeline-steps';
 import { StepAddSheet } from '@/components/ios-register/timeline-zoom/StepAddSheet';
 import { InspirationWizard } from '@/components/inspiration/InspirationWizard';
 
+const DONE_TIMELINE_STATUSES = new Set(['completed', 'done', 'settled', 'folded']);
+
+function isDoneTimelineStep(step: Pick<TimelineStepRecord, 'status'>): boolean {
+  return DONE_TIMELINE_STATUSES.has(String(step.status || '').toLowerCase());
+}
+
+function renumberTimelineStepsForInterest(
+  steps: TimelineStepRecord[],
+  interestId: string,
+): TimelineStepRecord[] {
+  let sortOrder = 0;
+  return steps.map((step) => {
+    if (step.interest_id !== interestId) return step;
+    const next = { ...step, sort_order: sortOrder };
+    sortOrder += 1;
+    return next;
+  });
+}
+
 function insertOptimisticNextUpStep(
   steps: TimelineStepRecord[] | undefined,
   optimisticStep: TimelineStepRecord,
@@ -43,27 +62,28 @@ function insertOptimisticNextUpStep(
   if (!steps || steps.length === 0) return [optimisticStep];
   if (steps.some((step) => step.id === optimisticStep.id)) return steps;
 
-  const currentStep =
-    steps.find((step) => step.status === 'in_progress') ??
-    steps.find((step) => step.status === 'pending') ??
-    null;
+  return insertAtFirstActiveSlot(steps, optimisticStep);
+}
 
-  if (!currentStep) {
-    const nextSort = (steps.at(-1)?.sort_order ?? 0) + 1;
-    return [...steps, { ...optimisticStep, sort_order: nextSort }];
-  }
-
-  const insertedSort = currentStep.sort_order + 1;
-  const shifted = steps.map((step) =>
-    step.sort_order > currentStep.sort_order
-      ? { ...step, sort_order: step.sort_order + 1 }
-      : step,
+function insertAtFirstActiveSlot(
+  steps: TimelineStepRecord[],
+  step: TimelineStepRecord,
+): TimelineStepRecord[] {
+  const withoutStep = steps.filter((candidate) => candidate.id !== step.id);
+  const insertAt = withoutStep.findIndex((candidate) =>
+    candidate.interest_id === step.interest_id && !isDoneTimelineStep(candidate)
   );
-
-  return [...shifted, { ...optimisticStep, sort_order: insertedSort }].sort((a, b) => {
-    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-    return String(a.created_at).localeCompare(String(b.created_at));
-  });
+  const next = [...withoutStep];
+  if (insertAt >= 0) {
+    next.splice(insertAt, 0, step);
+  } else {
+    const lastSameInterestIndex = next.reduce(
+      (lastIndex, candidate, index) => candidate.interest_id === step.interest_id ? index : lastIndex,
+      -1,
+    );
+    next.splice(lastSameInterestIndex + 1, 0, step);
+  }
+  return renumberTimelineStepsForInterest(next, step.interest_id);
 }
 
 export interface UniversalPlusContextValue {
@@ -213,8 +233,12 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
             if (!old) return old;
             const hasTemp = old.some((step) => step.id === tempId);
             const hasSaved = old.some((step) => step.id === savedStep.id);
-            if (!hasTemp) return hasSaved ? old : [...old, savedStep];
-            return old.map((step) => (step.id === tempId ? savedStep : step));
+            const replaced = hasTemp
+              ? old.map((step) => (step.id === tempId ? savedStep : step))
+              : hasSaved
+                ? old
+                : [...old, savedStep];
+            return insertAtFirstActiveSlot(replaced, savedStep);
           },
         );
         queryClient.setQueryData<TimelineStepRecord[]>(
@@ -223,8 +247,12 @@ export function UniversalPlusProvider({ children }: { children: React.ReactNode 
             if (!old) return [savedStep];
             const hasTemp = old.some((step) => step.id === tempId);
             const hasSaved = old.some((step) => step.id === savedStep.id);
-            if (!hasTemp) return hasSaved ? old : [...old, savedStep];
-            return old.map((step) => (step.id === tempId ? savedStep : step));
+            const replaced = hasTemp
+              ? old.map((step) => (step.id === tempId ? savedStep : step))
+              : hasSaved
+                ? old
+                : [...old, savedStep];
+            return insertAtFirstActiveSlot(replaced, savedStep);
           },
         );
         queryClient.removeQueries({ queryKey: ['timeline-steps', 'detail', tempId] });

@@ -90,13 +90,13 @@ export function PaymentFlowComponent({
         // In a production app, you would implement Stripe Checkout or Elements here
         showAlertWithButtons(
           'Payment Not Available on Web',
-          'Please use the RegattaFlow mobile app to complete payment, or contact the race organizer for alternative payment methods.',
+          'Please use the BetterAt mobile app to complete payment, or contact the race organizer for alternative payment methods.',
           [
             {
               text: 'Contact Support',
               onPress: () =>
                 Linking.openURL(
-                  `mailto:support@regattaflow.com?subject=${encodeURIComponent('Web Payment Support')}&body=${encodeURIComponent(`Entry: ${entryId}\nEvent: ${paymentInfo?.regatta?.event_name || 'Unknown'}\n\nI need help completing payment on web.`)}`
+                  `mailto:info@better.at?subject=${encodeURIComponent('Web Payment Support')}&body=${encodeURIComponent(`Entry: ${entryId}\nEvent: ${paymentInfo?.regatta?.event_name || 'Unknown'}\n\nI need help completing payment on web.`)}`
                 ),
             },
             {
@@ -117,9 +117,9 @@ export function PaymentFlowComponent({
       try {
         // Initialize payment sheet
         const { error: initError } = await initPaymentSheet({
-          merchantDisplayName: 'RegattaFlow',
+          merchantDisplayName: 'BetterAt',
           paymentIntentClientSecret: intentResult.clientSecret,
-          returnURL: 'regattaflow://stripe-redirect',
+          returnURL: 'betterat://stripe-redirect',
           appearance: {
             colors: {
               primary: '#2563eb', // primary-600

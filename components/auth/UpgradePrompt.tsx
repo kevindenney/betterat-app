@@ -252,7 +252,7 @@ export default function UpgradePrompt({
             </View>
 
             <View style={styles.proCardContent}>
-              <ThemedText style={styles.proCardTitle}>RegattaFlow Pro</ThemedText>
+              <ThemedText style={styles.proCardTitle}>BetterAt Pro</ThemedText>
               <View style={styles.priceRow}>
                 <ThemedText style={styles.proCardPrice}>{proTier.priceMonthly}</ThemedText>
                 <ThemedText style={styles.proCardPeriod}>/month</ThemedText>
@@ -303,7 +303,7 @@ export default function UpgradePrompt({
           {/* Footer */}
           <View style={styles.footer}>
             <ThemedText style={styles.footerText}>
-              Join thousands of sailors already using RegattaFlow Pro
+              Join people using BetterAt to improve what matters to them
             </ThemedText>
           </View>
         </ScrollView>

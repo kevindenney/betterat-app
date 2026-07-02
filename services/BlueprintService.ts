@@ -57,6 +57,7 @@ export async function createBlueprint(
         access_level: input.access_level ?? 'public',
         price_cents: input.price_cents ?? null,
         currency: input.currency ?? 'usd',
+        pricing_type: input.pricing_type ?? (input.access_level === 'paid' ? 'recurring' : 'one_time'),
       })
       .select()
       .single();

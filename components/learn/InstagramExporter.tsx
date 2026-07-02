@@ -96,7 +96,7 @@ export function InstagramExporter({
   }, []);
 
   const showMissingNativeExportTools = useCallback(async () => {
-    const quickCaption = `RegattaFlow carousel: ${skillName}\n\nSlides: ${slides.length}\n#Sailing #RegattaFlow`;
+    const quickCaption = `BetterAt carousel: ${skillName}\n\nSlides: ${slides.length}\n#Sailing #BetterAt`;
     showAlertWithButtons(
       'Export Tools Missing',
       'Image export is not available in this build. You can copy a caption template or contact support for setup help.',
@@ -113,7 +113,7 @@ export function InstagramExporter({
           text: 'Contact Support',
           onPress: () =>
             Linking.openURL(
-              'mailto:support@regattaflow.com?subject=Instagram%20Export%20Setup&body=Please%20help%20me%20enable%20Instagram%20image%20export%20on%20my%20build.'
+              'mailto:info@better.at?subject=Instagram%20Export%20Setup&body=Please%20help%20me%20enable%20Instagram%20image%20export%20on%20my%20build.'
             ),
         },
       ]
@@ -193,7 +193,7 @@ export function InstagramExporter({
 
       // Download the ZIP
       setExportProgress(100);
-      saveAs(zipBlob, 'regattaflow-mark-rounding-carousel.zip');
+      saveAs(zipBlob, 'betterat-mark-rounding-carousel.zip');
 
       setIsExporting(false);
 
@@ -249,14 +249,14 @@ export function InstagramExporter({
           savedUris.push(asset.uri);
           
           if (i === 0) {
-            const album = await MediaLibrary.getAlbumAsync('RegattaFlow');
+            const album = await MediaLibrary.getAlbumAsync('BetterAt');
             if (album) {
               await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
             } else {
-              await MediaLibrary.createAlbumAsync('RegattaFlow', asset, false);
+              await MediaLibrary.createAlbumAsync('BetterAt', asset, false);
             }
           } else {
-            const album = await MediaLibrary.getAlbumAsync('RegattaFlow');
+            const album = await MediaLibrary.getAlbumAsync('BetterAt');
             if (album) {
               await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
             }
@@ -271,7 +271,7 @@ export function InstagramExporter({
 
       showAlert(
         'Export Complete!',
-        `${savedUris.length} slides saved to your camera roll in the "RegattaFlow" album.\n\nOpen Instagram → New Post → Select all ${savedUris.length} images as a carousel.`
+        `${savedUris.length} slides saved to your camera roll in the "BetterAt" album.\n\nOpen Instagram → New Post → Select all ${savedUris.length} images as a carousel.`
       );
     } catch (error) {
       console.error('Export error:', error);
@@ -310,7 +310,7 @@ export function InstagramExporter({
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `regattaflow-slide-${index + 1}.png`;
+        link.download = `betterat-slide-${index + 1}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatePill } from '@/components/step-loop';
 import {
@@ -100,6 +101,21 @@ export function ReflectTabIOSRegisterShell({
     view.capturesCount > 0
       ? `✨ seeded from ${view.capturesCount} capture${view.capturesCount === 1 ? '' : 's'}`
       : null;
+  const review = (step?.metadata as {
+    review?: {
+      instructor_review_status?: string;
+      instructor_review_note?: string;
+      instructor_suggested_next?: string;
+    };
+  } | null)?.review;
+  const authorReviewStatus = review?.instructor_review_status;
+  const authorReviewNote = review?.instructor_review_note?.trim();
+  const authorSuggestedNext = review?.instructor_suggested_next?.trim();
+  const hasAuthorFeedback = Boolean(
+    authorReviewStatus || authorReviewNote || authorSuggestedNext,
+  );
+  const authorApproved = authorReviewStatus === 'approved';
+  const authorNeedsRevision = authorReviewStatus === 'needs_revision';
 
   if (controller.loading || controller.missing) {
     return <View style={styles.container} />;
@@ -182,6 +198,50 @@ export function ReflectTabIOSRegisterShell({
         </View>
       ) : null}
 
+      {hasAuthorFeedback ? (
+        <View
+          style={[
+            styles.authorFeedbackCard,
+            authorNeedsRevision && styles.authorFeedbackCardRevision,
+          ]}
+        >
+          <View style={styles.authorFeedbackHeader}>
+            <Ionicons
+              name={authorApproved ? 'checkmark-circle' : 'refresh-circle'}
+              size={16}
+              color={authorApproved ? '#248A3D' : '#C2410C'}
+            />
+            <Text
+              style={[
+                styles.authorFeedbackTitle,
+                authorNeedsRevision && styles.authorFeedbackTitleRevision,
+              ]}
+            >
+              {authorApproved
+                ? 'Reviewed by author'
+                : authorNeedsRevision
+                  ? 'Retry requested by author'
+                  : 'Author feedback'}
+            </Text>
+          </View>
+          {authorReviewNote ? (
+            <Text style={styles.authorFeedbackNote}>{authorReviewNote}</Text>
+          ) : (
+            <Text style={styles.authorFeedbackNote}>
+              {authorApproved
+                ? 'The blueprint author approved this step.'
+                : 'The blueprint author reviewed this step.'}
+            </Text>
+          )}
+          {authorSuggestedNext ? (
+            <View style={styles.authorSuggestedNext}>
+              <Text style={styles.authorSuggestedLabel}>Do this next time</Text>
+              <Text style={styles.authorSuggestedText}>{authorSuggestedNext}</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={styles.fieldStack}>
         {view.fields.map((field, index) => (
           <ReflectField
@@ -223,6 +283,8 @@ export function ReflectTabIOSRegisterShell({
           onClose={view.onCloseCapabilityPicker}
           selectedIds={view.capabilities.map((row) => row.capabilityId)}
           interestId={view.capabilityPickerInterestId}
+          suggestedCapabilities={view.orgCompetencySuggestions}
+          suggestedHeading="Your program's framework"
           selectedSuggestedLabels={view.capabilities.map((row) => row.capabilityName)}
           onToggle={view.onPickCompetency}
           onToggleSuggested={view.onPickCapabilityLabel}
@@ -399,6 +461,62 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: IOS_PURPLE,
     textAlign: 'right',
+    letterSpacing: 0,
+  },
+  authorFeedbackCard: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#BFE8CB',
+    backgroundColor: '#EEF8F1',
+    padding: 12,
+    gap: 8,
+  },
+  authorFeedbackCardRevision: {
+    borderColor: '#FED7AA',
+    backgroundColor: '#FFF7ED',
+  },
+  authorFeedbackHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  authorFeedbackTitle: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
+    color: '#248A3D',
+    letterSpacing: 0,
+  },
+  authorFeedbackTitleRevision: {
+    color: '#C2410C',
+  },
+  authorFeedbackNote: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#1C1C1E',
+    letterSpacing: 0,
+  },
+  authorSuggestedNext: {
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E5E5EA',
+    padding: 10,
+    gap: 4,
+  },
+  authorSuggestedLabel: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    color: LABEL_3,
+    letterSpacing: 0.7,
+  },
+  authorSuggestedText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#1C1C1E',
     letterSpacing: 0,
   },
   conceptPromptWrap: {

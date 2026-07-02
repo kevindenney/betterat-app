@@ -1,5 +1,5 @@
 /**
- * RegattaFlow iOS Design System
+ * BetterAt iOS Design System
  * Apple Human Interface Guidelines compliant design tokens
  */
 
@@ -233,7 +233,7 @@ export const IOS_LIST_INSETS = {
   },
 } as const;
 
-// Semantic colors for RegattaFlow (mapped to iOS colors)
+// Semantic colors for BetterAt (mapped to iOS colors)
 export const REGATTA_SEMANTIC_COLORS = {
   // Race status colors
   raceUpcoming: IOS_COLORS.systemBlue,

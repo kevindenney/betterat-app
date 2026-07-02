@@ -1,6 +1,6 @@
 /**
  * Enhanced AI Integration Service
- * Orchestrates the integration of yacht club educational content with RegattaFlow's AI systems
+ * Orchestrates the integration of yacht club educational content with BetterAt's AI systems
  * Demonstrates how RHKYC seminars and sailing.org.hk content enhance strategic recommendations
  */
 

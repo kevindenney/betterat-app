@@ -1,11 +1,11 @@
 /**
  * CrewMemberFinderModal
  *
- * Modal for discovering and adding existing RegattaFlow users as crew members.
+ * Modal for discovering and adding existing BetterAt users as crew members.
  * Features:
  * - Suggested users (fleet mates, past race collaborators)
  * - Discover tab to browse all users and follow them
- * - Search for any RegattaFlow user by name
+ * - Search for any BetterAt user by name
  * - Add user with proper user_id linking
  */
 
@@ -392,7 +392,7 @@ export function CrewMemberFinderModal({
     if (user.sailingExperience) subtitleParts.push(user.sailingExperience);
     if (user.boatClassName) subtitleParts.push(user.boatClassName);
     if (user.clubName) subtitleParts.push(user.clubName);
-    const subtitle = subtitleParts.join(' · ') || 'RegattaFlow user';
+    const subtitle = subtitleParts.join(' · ') || 'BetterAt user';
 
     return (
       <View key={user.userId} style={styles.userRow}>
@@ -565,7 +565,7 @@ export function CrewMemberFinderModal({
       <Globe size={32} color={IOS_COLORS.gray3} />
       <Text style={styles.emptyText}>No users to discover</Text>
       <Text style={styles.emptySubtext}>
-        Be the first to join RegattaFlow!
+        Be the first to join BetterAt!
       </Text>
     </View>
   );
@@ -788,7 +788,7 @@ export function CrewMemberFinderModal({
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={handleSearchChange}
-              placeholder="Search RegattaFlow users..."
+              placeholder="Search BetterAt users..."
               placeholderTextColor={IOS_COLORS.gray}
               autoCapitalize="none"
               autoCorrect={false}

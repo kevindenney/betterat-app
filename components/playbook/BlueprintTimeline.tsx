@@ -109,6 +109,14 @@ function racePlanOf(step: TimelineStepRecord): RacePlan | null {
   return rp;
 }
 
+function subStepKey(step: SubStep, index: number): string {
+  return step.id?.trim() || `sub-step-${step.sort_order}-${index}`;
+}
+
+function collaboratorKey(collaborator: StepCollaborator, index: number): string {
+  return collaborator.id?.trim() || `${collaborator.display_name}-${index}`;
+}
+
 function extractPreview(step: TimelineStepRecord, sourceLabel: string): TimelineAddPreview {
   const plan = planOf(step);
   return {
@@ -324,8 +332,8 @@ function BlueprintStepCard({
               <>
                 <Text style={styles.facetLead}>How · sub-steps</Text>
                 <View style={styles.subs}>
-                  {subSteps.map((s) => (
-                    <View key={s.id} style={styles.sub}>
+                  {subSteps.map((s, i) => (
+                    <View key={subStepKey(s, i)} style={styles.sub}>
                       <View
                         style={[
                           styles.subBox,
@@ -375,8 +383,8 @@ function BlueprintStepCard({
                     <Text style={[styles.fkText, { color: accent }]}>Who</Text>
                   </View>
                   <View style={styles.who}>
-                    {collaborators.map((c) => (
-                      <View key={c.id} style={styles.person}>
+                    {collaborators.map((c, i) => (
+                      <View key={collaboratorKey(c, i)} style={styles.person}>
                         <View
                           style={[
                             styles.personAv,

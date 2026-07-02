@@ -204,7 +204,7 @@ export function generateMockRigTuning(params: {
   return {
     guideId: 'fallback-mock',
     guideTitle: `${className} General Guidelines`,
-    guideSource: 'RegattaFlow Fallback (AI unavailable)',
+    guideSource: 'BetterAt Fallback (AI unavailable)',
     sectionTitle: `${windRange.charAt(0).toUpperCase() + windRange.slice(1)} Air Setup`,
     conditionSummary: `${windSpeed} knots - ${windRange} conditions`,
     isAIGenerated: false,
@@ -281,4 +281,3 @@ export function generateMockStrategy(params: {
     ],
   };
 }
-

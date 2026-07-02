@@ -110,6 +110,7 @@ export async function fetchOwnerOrgCompetencies(
 function buildOrgCompetencyMatcher(
   options: OrgCompetencyOption[],
 ): (row: CapabilityEvidenceRow) => string | null {
+  const byId = new Set(options.map((o) => o.id));
   const byName = new Map<string, string>();
   for (const o of options) {
     for (const label of [o.fullLabel, o.shortLabel]) {
@@ -119,6 +120,7 @@ function buildOrgCompetencyMatcher(
   }
   return (row) => {
     if (row.orgCompetencyId) return row.orgCompetencyId;
+    if (byId.has(row.capabilityId)) return row.capabilityId;
     return byName.get(normalizeLabel(row.capabilityName)) ?? null;
   };
 }
@@ -133,6 +135,7 @@ interface BuildEvidenceRowsInput {
    * rows render the raw UUID as the capability name.
    */
   competencyNameById?: Map<string, string>;
+  orgCompetencyNameById?: Map<string, string>;
 }
 
 export function buildCapabilityEvidenceRows({
@@ -140,6 +143,7 @@ export function buildCapabilityEvidenceRows({
   act,
   review,
   competencyNameById,
+  orgCompetencyNameById,
 }: BuildEvidenceRowsInput): CapabilityEvidenceRow[] {
   const evidenceCount =
     (act.observations?.length ?? 0) +
@@ -161,7 +165,7 @@ export function buildCapabilityEvidenceRows({
   };
 
   for (const id of plan.competency_ids ?? [])
-    addRow(id, competencyNameById?.get(id) ?? id, 'material');
+    addRow(id, orgCompetencyNameById?.get(id) ?? competencyNameById?.get(id) ?? id, 'material');
   for (const goal of plan.capability_goals ?? []) addRow(goal, goal, 'worth-noting');
 
   const assessment = review.competency_assessment;
@@ -253,13 +257,22 @@ export async function autoTagAndWriteStepCapabilityEvidence({
   const review = metadata.review ?? {};
   const competencyNameById = await competencyNameMapForInterest(step.interest_id);
   const orgCompetencies = await fetchOwnerOrgCompetencies(step.user_id, step.interest_id);
+  const orgCompetencyNameById = new Map(
+    orgCompetencies.map((c) => [c.id, c.fullLabel || c.shortLabel || c.id] as const),
+  );
   const matchOrgCompetency = buildOrgCompetencyMatcher(orgCompetencies);
-  const base = baseRows ?? buildCapabilityEvidenceRows({ plan, act, review, competencyNameById });
+  const base = baseRows ?? buildCapabilityEvidenceRows({
+    plan,
+    act,
+    review,
+    competencyNameById,
+    orgCompetencyNameById,
+  });
   // Backstop the display-side resolve: any row whose id is a known
   // competency UUID gets its canonical title, so the persisted
   // capability_name is never a raw UUID even if a stale name was passed.
   const autoTagBase = base.map((row) => {
-    const resolved = competencyNameById.get(row.capabilityId);
+    const resolved = orgCompetencyNameById.get(row.capabilityId) ?? competencyNameById.get(row.capabilityId);
     const named = resolved ? { ...row, capabilityName: resolved } : row;
     return named.source === 'ai' ? { ...named, confirmed: true } : named;
   });

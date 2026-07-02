@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform, ScrollView, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -141,9 +141,12 @@ export default function ClubsPage() {
   };
 
   const handleContactSales = () => {
+    const url = 'mailto:info@better.at?subject=Club Enterprise Inquiry';
     if (Platform.OS === 'web') {
-      window.location.href = 'mailto:sales@regattaflow.io?subject=Club Enterprise Inquiry';
+      window.location.href = url;
+      return;
     }
+    Linking.openURL(url);
   };
 
   // Native view wrapper for web (allows CSS selectors)

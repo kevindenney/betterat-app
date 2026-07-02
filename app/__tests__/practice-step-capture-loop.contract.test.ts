@@ -20,12 +20,28 @@ describe('practice, step, and capture loop contracts', () => {
     expect(zoomScreen).toContain('saveLastViewState({ interestSlug: slug, zoomLevel: level, selectedStepId: focusStepId });');
     expect(zoomScreen).toContain('router.push(`/step/${stepId}` as never);');
     expect(zoomScreen).toContain('router.push(`/step/${stepId}?tab=review` as never);');
+
+    const canvas = readSource('components/ios-register/timeline-zoom/TimelineZoomCanvas.tsx');
+    expect(canvas).toContain('const [chromeHeight, setChromeHeight] = useState(0);');
+    expect(canvas).toContain('Math.max(chromeHeight, chromeHideFallback) + 8');
+    expect(canvas).toContain('const chromeCollapseStyle = useAnimatedStyle(() => ({');
+    expect(canvas).toContain('marginBottom: -scrollHidden.value * Math.max(chromeHeight, chromeHideFallback)');
+    expect(canvas).toContain('onLayout={handleChromeLayout}');
+    expect(canvas).toContain('function isBehindNowStep(step: TimelineStep): boolean');
+    expect(canvas).toContain('const orderedArcSteps = useMemo(() => {');
+    expect(canvas).toContain('const behindNow = arcSteps.filter((s) => isBehindNowStep(s));');
+    expect(canvas).toContain('const ahead = arcSteps.filter((s) => !isBehindNowStep(s));');
+    expect(canvas).toContain('allSteps={orderedArcSteps}');
+    expect(canvas).toContain('total={orderedArcSteps.length}');
+    expect(canvas).not.toContain('const chromeHideDistance = Platform.OS === \'android\' ? 96 : 72;');
   });
 
   it('keeps the universal plus create-step path optimistic, season-aware, and blueprint-aware', () => {
     const provider = readSource('components/capture/UniversalPlusProvider.tsx');
     const sheet = readSource('components/ios-register/timeline-zoom/StepAddSheet.tsx');
     const logic = readSource('components/ios-register/timeline-zoom/StepAddSheet.logic.ts');
+    const subscribeService = readSource('services/BlueprintSubscribeService.ts');
+    const cohortService = readSource('services/CohortBlueprintService.ts');
 
     expect(provider).toContain('FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER');
     expect(provider).toContain('insertOptimisticNextUpStep');
@@ -48,8 +64,16 @@ describe('practice, step, and capture loop contracts', () => {
     expect(sheet).toContain('The blueprint author can see your progress on these steps.');
     expect(sheet).toContain('From your other interests');
     expect(sheet).toContain('onStartFromLink');
+    expect(sheet).toContain('const result = await addNextInstitutionalStep(');
+    expect(sheet).toContain('if (result.firstStepId) onStepAdded?.(result.firstStepId);');
+    expect(sheet).not.toContain("onStepAdded?.('')");
     expect(logic).toContain('export function buildStepAddPayload');
     expect(logic).toContain('runthroughBeats: workedBeats.length > 0 ? workedBeats : undefined');
+    expect(subscribeService).toContain('Promise<MaterializeAssignedBlueprintResult>');
+    expect(subscribeService).toContain('return materializeAssignedBlueprintDetailed(userId, blueprintId, {');
+    expect(cohortService).toContain('export interface MaterializeAssignedBlueprintResult');
+    expect(cohortService).toContain('.insert(rows)\n    .select(\'id\')');
+    expect(cohortService).toContain('firstStepId: stepIds[0] ?? null');
   });
 
   it('keeps Chrome web, Android, and iOS capture differences explicit', () => {
@@ -85,7 +109,7 @@ describe('practice, step, and capture loop contracts', () => {
 
     expect(detail).toContain("type TabValue = 'plan' | 'act' | 'review' | 'discussion';");
     expect(detail).toContain("case 'in_progress': return 'act';");
-    expect(detail).toContain("case 'completed': return 'review';");
+    expect(detail).toContain("case 'completed':\n    case 'settled': return 'review';");
     expect(detail).toContain("routeParams?.scope === 'cohort' || routeTab === 'discussion'");
     expect(detail).toContain("<PlanTab");
     expect(detail).toContain("<ActTab");
@@ -94,6 +118,19 @@ describe('practice, step, and capture loop contracts', () => {
     expect(detail).toContain("handleNextTab('act')");
     expect(detail).toContain("handleNextTab('review')");
     expect(detail).toContain("router.push(`/(tabs)/practice?selected=${created.id}` as any);");
+  });
+
+  it('keeps the Discuss composer stretched inside the web card rail', () => {
+    const discussion = readSource('components/step/StepDiscussionInline.tsx');
+
+    expect(discussion).toContain("const composerInset = Platform.OS === 'web' ? 0 : composerRightInset;");
+    expect(discussion).toContain('<View style={styles.composerInputWrap}>');
+    expect(discussion).toContain('composer: {\n    alignSelf: \'stretch\'');
+    expect(discussion).toContain("width: '100%',");
+    expect(discussion).toContain('composerInputWrap: {\n    flex: 1,\n    flexBasis: 0,\n    minWidth: 0,');
+    expect(discussion).toContain('composerInput: {\n    flex: 1,\n    flexBasis: 0,\n    minWidth: 0,\n    minHeight: 36,\n    width: \'100%\',');
+    expect(discussion).toContain('quoteButton: {\n    width: 32,\n    height: 32,\n    flexShrink: 0,');
+    expect(discussion).toContain('sendButton: {\n    width: 32,\n    height: 32,\n    flexShrink: 0,');
   });
 
   it('keeps Android due-date editing available through the shared picker modal', () => {

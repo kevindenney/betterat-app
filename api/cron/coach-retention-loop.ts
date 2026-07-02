@@ -78,7 +78,7 @@ async function sendEmailViaSendGrid(input: {
       },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: input.toEmail }] }],
-        from: { email: input.fromEmail, name: 'RegattaFlow' },
+        from: { email: input.fromEmail, name: 'BetterAt' },
         subject: input.subject,
         content: [
           { type: 'text/plain', value: input.body },
@@ -326,7 +326,7 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
     }
 
     const sendGridApiKey = process.env.SENDGRID_API_KEY || '';
-    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@regattaflow.com';
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@better.at';
     const emailRows = rowsToDispatch.filter((row) =>
       hasPendingChannel(row as RetentionDispatchRow, 'email')
     );

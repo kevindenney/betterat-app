@@ -1,7 +1,7 @@
 /**
  * Tracking Services
  * 
- * GPS tracking integration for RegattaFlow supporting:
+ * GPS tracking integration for BetterAt supporting:
  * - Velocitek devices (SpeedPuck, Shift, ProStart, RTK Puck)
  * - TracTrac live race tracking
  * - GPX file imports
@@ -23,4 +23,3 @@ export { TrackingService } from './TrackingService';
 
 // Default export - main service
 export { TrackingService as default } from './TrackingService';
-

@@ -987,6 +987,7 @@ const t = StyleSheet.create({
   // Horizontal-scroll variant (phone): the bottom rule rides the scroll view so
   // it spans the full width, while the tabs themselves scroll inside it.
   barScroll: {
+    width: '100%',
     marginTop: 4,
     marginBottom: 16,
     borderBottomWidth: 0.5,

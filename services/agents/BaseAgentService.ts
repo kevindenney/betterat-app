@@ -109,7 +109,7 @@ export class BaseAgentService {
         model: config.model || 'claude-3-5-haiku-20241022',
         maxTokens: config.maxTokens || 4096,
         temperature: config.temperature || 0.7,
-        systemPrompt: config.systemPrompt || 'You are a helpful AI assistant for RegattaFlow, a sailing race strategy platform.',
+        systemPrompt: config.systemPrompt || 'You are a helpful AI assistant for BetterAt, a sailing race strategy platform.',
       };
       return; // Skip Anthropic client creation
     }
@@ -122,7 +122,7 @@ export class BaseAgentService {
       model: config.model || 'claude-3-5-haiku-20241022',
       maxTokens: config.maxTokens || 4096,
       temperature: config.temperature || 0.7,
-      systemPrompt: config.systemPrompt || 'You are a helpful AI assistant for RegattaFlow, a sailing race strategy platform.',
+      systemPrompt: config.systemPrompt || 'You are a helpful AI assistant for BetterAt, a sailing race strategy platform.',
     };
 
   }

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BetterAt — Mobile: one frame, Do ⇄ Create</title>
+<style>
+  :root {
+    --bg:      #F2F2F7;
+    --card:    #FFFFFF;
+    --ink:     #1C1C1E;
+    --ink-2:   #5B6068;
+    --ink-3:   #9097A1;
+    --label:   #8E8E93;
+    --hair:    #E6E7EB;
+    --hair-2:  #F0F1F4;
+    --blue:    #007AFF;
+    --studio:  #6366F1;
+    --studio-bg:#EEEEFE;
+    --green:   #1E9E6A;
+    --coral:   #FF6B5E;
+    --red:     #FF3B30;
+    --amber:   #E08A2B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    background: #DCDCE1; color: var(--ink); line-height: 1.42;
+    padding: 44px 24px 90px;
+  }
+
+  .masthead { max-width: 1180px; margin: 0 auto 14px; text-align: center; }
+  .masthead h1 { font-size: 25px; font-weight: 800; letter-spacing: -.02em; }
+  .masthead p  { color: #4b5057; font-size: 14px; margin: 9px auto 0; max-width: 720px; }
+  .masthead p b { color: #2a2d33; }
+
+  .row-tag { max-width: 1180px; margin: 40px auto 18px; }
+  .row-tag .t { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--studio); }
+  .row-tag .h { font-size: 19px; font-weight: 750; letter-spacing: -.01em; margin-top: 6px; }
+  .row-tag .d { font-size: 13.5px; color: #4b5057; margin-top: 5px; max-width: 760px; }
+  .row-tag .d b { color: #2a2d33; }
+
+  .stage { display: flex; gap: 38px; justify-content: center; align-items: flex-start; flex-wrap: wrap;
+    max-width: 1180px; margin: 0 auto; }
+  .col { width: 312px; }
+  .col .cap { text-align: center; font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 13px; }
+  .col .cap.blue { color: var(--blue); }
+  .col .cap.purple { color: var(--studio); }
+  .col .note { font-size: 12.5px; color: #4b5057; line-height: 1.55; margin-top: 14px; }
+  .col .note b { color: #1f2329; }
+
+  /* phone */
+  .phone { width: 312px; border-radius: 44px; padding: 11px; background: #0b0b0d;
+    box-shadow: 0 20px 52px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.18); }
+  .screen { position: relative; border-radius: 34px; overflow: hidden; background: var(--bg); height: 668px; }
+  .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 112px; height: 30px; background: #000; border-radius: 17px; z-index: 9; }
+  .status { height: 46px; display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 24px 6px; font-size: 13px; font-weight: 600; }
+  .status .dots { letter-spacing: 2px; }
+
+  /* shared app header */
+  .appbar { display:flex; align-items:center; gap:8px; padding: 4px 14px 10px; background: var(--bg); }
+  .wschip { display:flex; align-items:center; gap:7px; background:#fff; border:1px solid var(--hair);
+    border-radius: 999px; padding: 5px 10px 5px 6px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .wschip .av { width:21px; height:21px; border-radius:6px; background:#111; color:#fff; font-size:9px; font-weight:800; display:grid; place-items:center; }
+  .wschip .nm { font-size:12.5px; font-weight:700; }
+  .wschip .chev { font-size:10px; color: var(--ink-3); }
+  .appbar .spacer { flex:1; }
+  .iconbtn { width:32px; height:32px; border-radius:10px; background:#fff; border:1px solid var(--hair);
+    display:grid; place-items:center; font-size:15px; color: var(--ink-2); position:relative; }
+  .iconbtn .dot { position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px;
+    background:var(--red); color:#fff; font-size:9.5px; font-weight:800; border-radius:999px; display:grid; place-items:center; border:2px solid var(--bg); }
+  .avbtn { width:32px; height:32px; border-radius:50%; background:#C9CDD6; color:#fff; font-size:12px; font-weight:700; display:grid; place-items:center; }
+
+  /* Do·Create segmented control */
+  .modeseg { display:flex; background:#E4E4EA; border-radius:11px; padding:3px; margin: 0 14px 12px; }
+  .modeseg button { flex:1; border:0; background:transparent; font:inherit; font-size:13px; font-weight:700;
+    color: var(--ink-2); padding:7px 0; border-radius:9px; display:flex; align-items:center; justify-content:center; gap:7px; }
+  .modeseg button.on { background:#fff; color: var(--blue); box-shadow:0 1px 3px rgba(0,0,0,.14); }
+  .modeseg button.on.create { color: var(--studio); }
+
+  .body { padding: 2px 14px; height: 430px; overflow:hidden; }
+  .ctxlabel { font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--label); margin: 6px 2px 2px; }
+  .h1 { font-size:21px; font-weight:780; letter-spacing:-.015em; }
+  .sub { font-size:12.5px; color: var(--ink-3); margin-top:2px; }
+
+  .stepcard { background:#fff; border:1px solid var(--hair); border-left:3px solid var(--coral);
+    border-radius:13px; padding:13px; margin-top:13px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .stepcard .now { font-size:9px; font-weight:900; letter-spacing:.12em; color:var(--coral); }
+  .stepcard .st { font-size:15.5px; font-weight:750; margin-top:5px; line-height:1.25; }
+  .stepcard .seg { display:flex; gap:7px; margin-top:10px; align-items:center; }
+  .stepcard .seg span { font-size:11px; color:var(--ink-3); }
+  .stepcard .seg span.a { color:var(--blue); font-weight:800; }
+  .stepcard .subs { margin-top:12px; border-top:1px solid var(--hair-2); padding-top:10px; }
+  .stepcard .subs .li { display:flex; gap:9px; align-items:center; font-size:12.5px; color:var(--ink-2); padding:5px 0; }
+  .stepcard .subs .li .n { width:18px; height:18px; border-radius:5px; background:#F0F1F4; font-size:10px; font-weight:700; color:var(--ink-3); display:grid; place-items:center; }
+
+  .statrow { display:flex; gap:9px; margin-top:13px; }
+  .stat { flex:1; background:#fff; border:1px solid var(--hair); border-radius:12px; padding:10px 11px; }
+  .stat .k { font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--label); }
+  .stat .v { font-size:21px; font-weight:780; margin-top:4px; }
+  .stat .s { font-size:10px; color:var(--ink-3); margin-top:2px; }
+  .bpcard { display:flex; gap:11px; align-items:center; background:#fff; border:1px solid var(--hair);
+    border-radius:12px; padding:11px; margin-top:11px; }
+  .bpcard .sq { width:42px; height:42px; border-radius:10px; flex-shrink:0; display:grid; place-items:center; color:#fff; font-size:9px; font-weight:800; text-align:center; line-height:1.1; }
+  .bpcard .nm { font-size:13.5px; font-weight:700; }
+  .bpcard .mt { font-size:11px; color:var(--ink-3); margin-top:3px; }
+  .bpcard .live { font-size:9.5px; font-weight:800; color:var(--green); }
+
+  /* bottom tab bar (contextual) */
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:74px; background:rgba(255,255,255,.94);
+    backdrop-filter: blur(14px); border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:flex-start;
+    padding-top:9px; }
+  .tab { flex:1; display:grid; justify-items:center; gap:4px; font-size:9.5px; font-weight:600; color:var(--ink-3); }
+  .tab .ic { font-size:18px; }
+  .tab.on { color: var(--blue); }
+  .tab.on.create { color: var(--studio); }
+  .tab .badge { position:relative; }
+  .tab .badge::after { content:""; }
+
+  /* full-screen sheets */
+  .sheet { position:absolute; inset:0; background: var(--bg); }
+  .sheetbar { display:flex; align-items:center; justify-content:space-between; padding: 6px 16px 12px; }
+  .sheetbar .ttl { font-size:17px; font-weight:750; }
+  .sheetbar .x { font-size:15px; color:var(--blue); font-weight:600; }
+  .sheetbar .done { font-size:15px; color:var(--blue); font-weight:700; }
+
+  /* profile menu (mobile sheet) */
+  .menucard { margin: 0 12px; }
+  .mhead { background:#fff; border-radius:16px; padding:14px; display:flex; gap:12px; align-items:center; }
+  .mhead .av { width:46px; height:46px; border-radius:50%; background:#C9CDD6; color:#fff; font-size:16px; font-weight:700; display:grid; place-items:center; }
+  .mhead .nm { font-size:16px; font-weight:750; }
+  .mhead .em { font-size:12px; color:var(--ink-3); }
+  .pubcta { margin-top:11px; background: linear-gradient(180deg,#F4F5FF,#FAFAFF); border:1px solid #E3E4F5;
+    border-radius:14px; padding:13px; display:flex; align-items:center; gap:11px; }
+  .pubcta .ic { width:34px; height:34px; border-radius:10px; background:var(--studio); color:#fff; display:grid; place-items:center; font-size:15px; }
+  .pubcta .t { font-size:13.5px; font-weight:700; }
+  .pubcta .d { font-size:11px; color:var(--ink-2); margin-top:1px; }
+  .pubcta .go { margin-left:auto; color:var(--ink-3); }
+  .group { background:#fff; border-radius:16px; margin-top:11px; overflow:hidden; }
+  .glabel { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--label); padding: 13px 16px 6px; }
+  .grow { display:flex; align-items:center; gap:13px; padding: 12px 16px; position:relative; }
+  .grow + .grow::before { content:""; position:absolute; top:0; left:52px; right:0; height:1px; background:var(--hair-2); }
+  .grow .ic { width:24px; text-align:center; font-size:16px; color:var(--ink-2); }
+  .grow .lbl { font-size:14.5px; }
+  .grow .wsav { width:26px; height:26px; border-radius:7px; color:#fff; font-size:10px; font-weight:800; display:grid; place-items:center; }
+  .grow .check { margin-left:auto; color:var(--blue); font-weight:800; font-size:15px; }
+  .grow .chev { margin-left:auto; color:var(--ink-3); }
+  .grow .sub2 { font-size:11px; color:var(--ink-3); }
+  .grow.add { color:var(--studio); font-weight:650; font-size:13.5px; }
+  .grow.danger .lbl, .grow.danger .ic { color:var(--red); }
+
+  /* profile preview/edit */
+  .pseg { display:flex; background:#E4E4EA; border-radius:10px; padding:3px; width:max-content; margin: 0 auto; }
+  .pseg button { border:0; background:transparent; font:inherit; font-size:12.5px; font-weight:700; color:var(--ink-2); padding:6px 20px; border-radius:8px; }
+  .pseg button.on { background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.13); }
+  .viewbanner { margin: 10px 14px 0; font-size:11px; color:var(--amber); background:#FFF6E9; border:1px solid #F6E2BE; border-radius:9px; padding:7px 11px; display:flex; gap:7px; align-items:center; }
+  .cover { margin: 12px 14px 0; height:78px; border-radius:14px; background:linear-gradient(120deg,#6366F1,#8B5CF6); position:relative; }
+  .cover .pa { position:absolute; left:16px; bottom:-24px; width:54px; height:54px; border-radius:50%; background:#fff; border:3px solid #fff; display:grid; place-items:center; font-size:22px; box-shadow:0 2px 8px rgba(0,0,0,.18); }
+  .cover .ch { position:absolute; right:10px; bottom:9px; background:rgba(255,255,255,.92); border-radius:8px; padding:4px 10px; font-size:10.5px; font-weight:700; color:var(--studio); }
+  .pname { margin: 32px 16px 0; }
+  .pname .n { font-size:18px; font-weight:780; }
+  .pname .s { font-size:12.5px; color:var(--ink-3); }
+  .psec { background:#fff; border:1px solid var(--hair); border-radius:13px; margin: 12px 14px 0; padding:13px; position:relative; }
+  .psec .eb { position:absolute; top:11px; right:11px; font-size:10.5px; font-weight:700; color:var(--blue); border:1px solid #CFE2FF; background:#F0F7FF; border-radius:999px; padding:3px 10px; }
+  .psec .h { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--label); }
+  .psec .v { font-size:14.5px; font-weight:650; margin-top:5px; }
+  .psec .m { font-size:12.5px; color:var(--ink-2); margin-top:5px; line-height:1.45; }
+
+  /* inbox */
+  .inboxitem { background:#fff; border:1px solid var(--hair); border-radius:13px; margin:11px 14px 0; padding:12px 13px; display:flex; gap:11px; }
+  .inboxitem .ic { width:36px; height:36px; border-radius:10px; flex-shrink:0; display:grid; place-items:center; font-size:15px; color:#fff; }
+  .inboxitem .t { font-size:13.5px; font-weight:650; line-height:1.3; }
+  .inboxitem .m { font-size:11.5px; color:var(--ink-3); margin-top:3px; }
+  .inboxitem .unread { width:8px; height:8px; border-radius:50%; background:var(--blue); margin-left:auto; flex-shrink:0; margin-top:5px; }
+  .segtab { display:flex; gap:6px; padding: 4px 14px 8px; }
+  .segtab .s { font-size:12px; font-weight:650; color:var(--ink-3); padding:5px 12px; border-radius:999px; background:#fff; border:1px solid var(--hair); }
+  .segtab .s.on { background:#111; color:#fff; border-color:#111; }
+
+  .takeaways { max-width:1180px; margin: 52px auto 0; background:#fff; border:1px solid var(--hair); border-radius:16px; padding:22px 24px; }
+  .takeaways h3 { font-size:15px; font-weight:780; }
+  .takeaways ul { margin:14px 0 0; padding:0; list-style:none; display:grid; gap:12px; }
+  .takeaways li { font-size:13.5px; color:#4b5057; display:flex; gap:12px; align-items:flex-start; }
+  .takeaways li b { color:#1f2329; }
+  .takeaways li .n { flex-shrink:0; width:22px; height:22px; border-radius:7px; background:var(--studio-bg); color:var(--studio); font-size:11px; font-weight:800; display:grid; place-items:center; margin-top:1px; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <h1>Mobile — one frame, <span style="color:var(--blue)">Do</span> ⇄ <span style="color:var(--studio)">Create</span></h1>
+  <p>The recommended design on phone. The header (workspace · Inbox bell · avatar) is <b>frozen across every
+  screen</b>; a single Do·Create segment re-themes the bottom tab bar. Switching context never feels like a
+  different app — the chrome doesn't move, only the accent (blue → purple) and the tabs.</p>
+</div>
+
+<!-- ROW 1: the two contexts -->
+<div class="row-tag">
+  <div class="t">The core flip</div>
+  <div class="h">Same chrome, contextual bottom tabs</div>
+  <div class="d">Tap <b>Create</b> and the four practice tabs become your Studio tabs — in place, no navigation jump,
+  no "Profile → Creator Studio" detour. The bell and avatar never move.</div>
+</div>
+
+<div class="stage">
+  <!-- DO MODE -->
+  <div class="col">
+    <div class="cap blue">Do — Practice</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="appbar">
+        <div class="wschip"><div class="av">KD</div><div class="nm">Nursing</div><div class="chev">⌄</div></div>
+        <div class="spacer"></div>
+        <div class="iconbtn">✉<div class="dot">5</div></div>
+        <div class="avbtn">KD</div>
+      </div>
+      <div class="modeseg"><button class="on">◎ Do</button><button>⬚ Create</button></div>
+      <div class="body">
+        <div class="stepcard">
+          <div class="now">NOW · STEP 1</div>
+          <div class="st">Pre-shift huddle: review the new lasix protocol</div>
+          <div class="seg"><span class="a">① Plan</span><span>›</span><span>Do</span><span>›</span><span>Review</span></div>
+          <div class="subs">
+            <div class="li"><span class="n">1</span> Re-read the updated lasix protocol</div>
+            <div class="li"><span class="n">2</span> Pull the two recent titration cases</div>
+            <div class="li"><span class="n">3</span> Note the max-rate change &amp; reasoning</div>
+          </div>
+        </div>
+        <div class="sub" style="margin-top:12px;text-align:center">Step 2 of 6 · swipe for next →</div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on"><span class="ic">◎</span> Practice</div>
+        <div class="tab"><span class="ic">▤</span> Library</div>
+        <div class="tab"><span class="ic">👁</span> Watch</div>
+        <div class="tab"><span class="ic">⌖</span> Atlas</div>
+      </div>
+    </div></div>
+    <div class="note">Your today-app, untouched. Blue accent = practitioner. The interest chip (top-left) is the
+    fast switcher you already have.</div>
+  </div>
+
+  <!-- CREATE MODE -->
+  <div class="col">
+    <div class="cap purple">Create — Studio</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="appbar">
+        <div class="wschip"><div class="av">KD</div><div class="nm">Personal</div><div class="chev">⌄</div></div>
+        <div class="spacer"></div>
+        <div class="iconbtn">✉<div class="dot">5</div></div>
+        <div class="avbtn">KD</div>
+      </div>
+      <div class="modeseg"><button>◎ Do</button><button class="on create">⬚ Create</button></div>
+      <div class="body">
+        <div class="h1" style="margin-top:6px">Good morning, Kevin.</div>
+        <div class="sub">9 blueprints · 0 subscribers</div>
+        <div class="statrow">
+          <div class="stat"><div class="k">Subscribers</div><div class="v">0</div><div class="s">none new</div></div>
+          <div class="stat"><div class="k">Threads</div><div class="v">0</div><div class="s">awaiting you</div></div>
+        </div>
+        <div class="bpcard"><div class="sq" style="background:#7B86C8">FOUR<br>PEAKS</div><div><div class="nm">Four Peaks Race 2027</div><div class="mt">8 steps · <span class="live">Live v1.0</span></div></div></div>
+        <div class="bpcard"><div class="sq" style="background:#A05B6E">ISBAR</div><div><div class="nm">ISBAR handoff communication</div><div class="mt">6 steps · <span class="live">Live v1.0</span></div></div></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on create"><span class="ic">⬚</span> Home</div>
+        <div class="tab"><span class="ic">◳</span> Blueprints</div>
+        <div class="tab"><span class="ic">⚇</span> Subscribers</div>
+        <div class="tab"><span class="ic">✉</span> Threads</div>
+        <div class="tab"><span class="ic">$</span> Payouts</div>
+      </div>
+    </div></div>
+    <div class="note"><b>Subscribers</b> &amp; <b>Threads</b> are now tabs here — the old "Cohorts I mentor" /
+    "Subscriber threads" menu rows are gone, folded into their real home. Purple accent = creator.</div>
+  </div>
+</div>
+
+<!-- ROW 2: profile sheet + workspace switch -->
+<div class="row-tag">
+  <div class="t">The avatar sheet</div>
+  <div class="h">Identity, workspace switch, settings — nothing else</div>
+  <div class="d">Tapping the avatar opens a clean sheet. No Studio links, no mentor links, no "My Practice" — those
+  all live in the frame now. The one item worth prominence is the <b>real</b> workspace switch.</div>
+</div>
+
+<div class="stage">
+  <!-- PROFILE MENU -->
+  <div class="col">
+    <div class="cap">Avatar → sheet</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheet">
+        <div class="sheetbar"><span class="x">✕</span><span class="ttl">You</span><span style="width:14px"></span></div>
+        <div class="menucard">
+          <div class="mhead"><div class="av">KD</div><div><div class="nm">Kevin Denney</div><div class="em">denneyke@gmail.com</div></div></div>
+          <div class="pubcta"><div class="ic">👤</div><div><div class="t">View &amp; edit profile</div><div class="d">See exactly what peers &amp; orgs see</div></div><div class="go">›</div></div>
+          <div class="group">
+            <div class="glabel">Switch workspace</div>
+            <div class="grow"><div class="wsav" style="background:#111">P</div><span class="lbl">Personal</span><span class="check">✓</span></div>
+            <div class="grow"><div class="wsav" style="background:#0B4DA2">JH</div><div><span class="lbl">Johns Hopkins</span><div class="sub2">Administrator</div></div></div>
+            <div class="grow add"><span style="width:24px;text-align:center">＋</span> Join another organization</div>
+          </div>
+          <div class="group">
+            <div class="grow"><span class="ic">⚙</span><span class="lbl">Account &amp; settings</span><span class="chev">›</span></div>
+            <div class="grow"><span class="ic">？</span><span class="lbl">Help &amp; feedback</span><span class="chev">›</span></div>
+            <div class="grow danger"><span class="ic">⎋</span><span class="lbl">Sign out</span></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div class="note">From 11 rows down to identity + workspace + settings. Switching to <b>Johns Hopkins</b> reloads
+    the same frame with admin data and a JHU-blue accent — the switcher finally does something.</div>
+  </div>
+
+  <!-- INBOX -->
+  <div class="col">
+    <div class="cap blue">Bell → Inbox</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheetbar" style="padding-top:14px"><span class="x">✕</span><span class="ttl">Inbox</span><span class="done" style="font-weight:600;font-size:14px">Triage</span></div>
+      <div class="segtab"><div class="s on">All · 5</div><div class="s">Captures</div><div class="s">Suggested</div></div>
+      <div style="height:430px;overflow:hidden">
+        <div class="inboxitem"><div class="ic" style="background:#34A0A4">🔗</div><div><div class="t">Saved link: "Lasix titration in acute CHF"</div><div class="m">From Telegram · 2h ago — triage to a step or library</div></div><div class="unread"></div></div>
+        <div class="inboxitem"><div class="ic" style="background:#6366F1">↪</div><div><div class="t">Maya suggested a step</div><div class="m">"Try the head-to-toe under 8 min" · golf-nursing peer</div></div><div class="unread"></div></div>
+        <div class="inboxitem"><div class="ic" style="background:#E08A2B">💡</div><div><div class="t">Idea you dumped</div><div class="m">"Build a worked example for ISBAR" · yesterday</div></div><div class="unread"></div></div>
+        <div class="inboxitem"><div class="ic" style="background:#A05B6E">⚇</div><div><div class="t">2 joined Four Peaks 2027</div><div class="m">Studio · subscribers · 3d ago</div></div></div>
+      </div>
+    </div></div>
+    <div class="note">The Inbox bell is <b>always in the header</b>, in both Do and Create. It was buried under the
+    profile menu before — now it's a first-class capture surface, one tap from anywhere.</div>
+  </div>
+</div>
+
+<!-- ROW 3: profile preview/edit -->
+<div class="row-tag">
+  <div class="t">Public face = profile</div>
+  <div class="h">One screen, Preview ⇄ Edit — no bouncing between two pages</div>
+  <div class="d"><b>Preview</b> renders literally what a stranger sees. Flip to <b>Edit</b> and the same sections
+  become tappable in place. What you see is what they get.</div>
+</div>
+
+<div class="stage">
+  <!-- PREVIEW -->
+  <div class="col">
+    <div class="cap">Preview — stranger's view</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheetbar"><span class="x">‹ Back</span><div class="pseg"><button class="on">Preview</button><button>Edit</button></div><span style="width:30px"></span></div>
+      <div style="height:560px;overflow:hidden">
+        <div class="viewbanner">👁 Viewing as others see you — read-only</div>
+        <div class="cover"><div class="pa">⛵</div></div>
+        <div class="pname"><div class="n">Kevin Denney</div><div class="s">Nursing · Aberdeen Harbor</div></div>
+        <div class="psec"><div class="h">About</div><div class="m">Cardiac stepdown RN building toward CCRN. Sailing on weekends.</div></div>
+        <div class="psec"><div class="h">Public steps</div><div class="v">Head-to-toe on the cardiac stepdown pt</div></div>
+      </div>
+    </div></div>
+    <div class="note">Reuses your <b>public-face-populated</b> layout — this <i>is</i> the public face, not a copy of it.</div>
+  </div>
+
+  <!-- EDIT -->
+  <div class="col">
+    <div class="cap purple">Edit — same layout, live</div>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ▾ 􀙇</span></div>
+      <div class="sheetbar"><span class="x">‹ Back</span><div class="pseg"><button>Preview</button><button class="on">Edit</button></div><span class="done">Done</span></div>
+      <div style="height:560px;overflow:hidden">
+        <div class="cover"><div class="pa">⛵</div><div class="ch">Change cover</div></div>
+        <div class="pname"><div class="n">Kevin Denney</div><div class="s">Nursing · Aberdeen Harbor</div></div>
+        <div class="psec"><div class="eb">Edit</div><div class="h">About</div><div class="m">Cardiac stepdown RN building toward CCRN. Sailing on weekends.</div></div>
+        <div class="psec"><div class="eb">Manage</div><div class="h">Public steps</div><div class="m">Choose which steps appear · 1 shown</div></div>
+        <div class="psec"><div class="eb">Sections</div><div class="h">Visibility</div><div class="m">Toggle what each audience can see</div></div>
+      </div>
+    </div></div>
+    <div class="note">The section-visibility toggles you already shipped live here. Flip to <b>Preview</b> to
+    confirm — no second page, no guessing what landed.</div>
+  </div>
+</div>
+
+<div class="takeaways">
+  <h3>The mobile recommendation in one breath</h3>
+  <ul>
+    <li><span class="n">1</span><div><b>Frozen header, contextual tabs.</b> Workspace chip · Inbox bell · avatar never
+      move. The Do·Create segment swaps the four bottom tabs and the accent color — that shared frame is what kills the jarring jump.</div></li>
+    <li><span class="n">2</span><div><b>Studio owns create + mentor.</b> Subscribers &amp; Threads are tabs in Create mode,
+      not menu rows. "Cohorts I mentor" / "Subscriber threads" deleted from the avatar sheet.</div></li>
+    <li><span class="n">3</span><div><b>Inbox bell in the header, always.</b> Out of the menu, one tap from any screen, badge visible everywhere.</div></li>
+    <li><span class="n">4</span><div><b>"My Practice" gone</b> from the sheet — it's the Do tab now. Keep <code>/practice</code> as a deep-link for marketing CTAs.</div></li>
+    <li><span class="n">5</span><div><b>One Profile, Preview ⇄ Edit.</b> Preview is the stranger's render; Edit makes the same
+      sections live. Collapses the view-page / edit-page split.</div></li>
+    <li><span class="n">6</span><div><b>Real workspace switch.</b> Personal ⇄ JHU reloads the frame with the right data,
+      permissions, and accent — the only switcher worth prominence.</div></li>
+  </ul>
+</div>
+
+</body>
+</html>

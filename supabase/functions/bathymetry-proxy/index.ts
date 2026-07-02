@@ -34,13 +34,13 @@ interface ElevationResult {
 }
 
 interface OpenTopoDataResponse {
-  results: Array<{
+  results: {
     elevation: number | null;
     location: {
       lat: number;
       lng: number;
     };
-  }>;
+  }[];
   status: string;
   error?: string;
 }
@@ -147,7 +147,7 @@ serve(async (req) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'RegattaFlow/1.0 (sailing-app)'
+        'User-Agent': 'BetterAt/1.0 (sailing-app)'
       }
     })
 

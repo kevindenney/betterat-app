@@ -1,7 +1,7 @@
 /**
  * Firebase Auth Bridge Client Utilities
  *
- * Handles authentication flow for Dragon Worlds users accessing RegattaFlow
+ * Handles authentication flow for Dragon Worlds users accessing BetterAt
  * via the Firebase-to-Supabase token bridge.
  */
 
@@ -281,7 +281,7 @@ export interface ExtractedTokens {
 
 /**
  * Extract auth tokens from URL parameters
- * Used when Dragon app embeds RegattaFlow in a WebView
+ * Used when Dragon app embeds BetterAt in a WebView
  * Supports both new session tokens and legacy bridge tokens
  *
  * @param url - The URL to parse
@@ -356,7 +356,7 @@ export function extractSessionTokensFromUrl(url: string): ExtractedTokens | null
 
 /**
  * Extract auth token from URL parameters (legacy compatibility)
- * Used when Dragon app embeds RegattaFlow in a WebView
+ * Used when Dragon app embeds BetterAt in a WebView
  *
  * @param url - The URL to parse
  * @returns The auth token if present, null otherwise
@@ -379,7 +379,7 @@ export function extractAuthTokenFromUrl(url: string): string | null {
 /**
  * Build URL with session tokens for WebView embedding
  *
- * @param baseUrl - The RegattaFlow URL to embed
+ * @param baseUrl - The BetterAt URL to embed
  * @param accessToken - The Supabase access token
  * @param refreshToken - The Supabase refresh token
  * @returns URL with auth token parameters
@@ -398,7 +398,7 @@ export function buildAuthenticatedUrlWithSession(
 /**
  * Build URL with auth token for WebView embedding (legacy)
  *
- * @param baseUrl - The RegattaFlow URL to embed
+ * @param baseUrl - The BetterAt URL to embed
  * @param bridgeToken - The bridge token from exchangeFirebaseToken
  * @returns URL with auth token parameter
  */
@@ -566,7 +566,7 @@ export function notifyAuthFailure(error: string): void {
 }
 
 /**
- * Request Dragon app to open RegattaFlow native app
+ * Request Dragon app to open BetterAt native app
  */
 export function requestOpenInNativeApp(path?: string): void {
   postMessageToParentApp({

@@ -183,7 +183,7 @@ export default function MembersScreen() {
 
   const handleInviteMembers = () => {
     void Linking.openURL(
-      'mailto:?subject=Join%20our%20club%20on%20RegattaFlow&body=We%20would%20love%20to%20have%20you%20join%20our%20club%20workspace%20on%20RegattaFlow.'
+      'mailto:?subject=Join%20our%20club%20on%20BetterAt&body=We%20would%20love%20to%20have%20you%20join%20our%20club%20workspace%20on%20BetterAt.'
     );
   };
 

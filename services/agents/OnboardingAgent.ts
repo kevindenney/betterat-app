@@ -14,7 +14,7 @@ export class OnboardingAgent extends BaseAgentService {
       model: 'claude-3-5-haiku-20241022',
       maxTokens: 4096,
       temperature: 0.7,
-      systemPrompt: `You are an expert sailing onboarding assistant for RegattaFlow. Your goal is to help sailors set up their profile by:
+      systemPrompt: `You are an expert sailing onboarding assistant for BetterAt. Your goal is to help sailors set up their profile by:
 
 1. Detecting their sailing location (GPS or manual search)
 2. Suggesting appropriate boat classes based on popularity at their venue

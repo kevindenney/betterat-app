@@ -20,7 +20,14 @@
  */
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
+import {
+  Keyboard,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
   Gesture,
@@ -61,6 +68,7 @@ import { resolveInterestVocab } from './interestVocab';
 import {
   ZOOM_LEVEL_SCOPE_LABELS,
   type TimelineDataset,
+  type TimelineStep,
   type ZoomLevel,
 } from './types';
 
@@ -174,6 +182,10 @@ interface TimelineZoomCanvasProps {
 
 // L2 (WEEK) is retired — merged into the L1 Step view. Pinch steps 1↔3↔4.
 const LEVELS: ZoomLevel[] = [1, 3, 4];
+
+function isBehindNowStep(step: TimelineStep): boolean {
+  return step.status === 'done' || step.status === 'reflected' || step.status === 'reflect';
+}
 
 // Pinch thresholds — release ≥ ZOOM_IN_SNAP commits a zoom-in (lower
 // level number); ≤ ZOOM_OUT_SNAP commits a zoom-out. The HINT_*
@@ -316,7 +328,19 @@ export function TimelineZoomCanvas({
   // Step level shows the global floating tab bar; reserve clearance so the
   // embedded capture composer + NowFloat sit above it instead of behind it.
   const tabBarClearance = Math.max(insets.bottom, 8) + FLOATING_TAB_BAR_HEIGHT + 16;
-  const chromeHideDistance = Platform.OS === 'android' ? 96 : 72;
+  const [chromeHeight, setChromeHeight] = useState(0);
+  const chromeHideFallback = Platform.OS === 'android' ? 96 : 72;
+  const chromeHideDistance = Math.ceil(
+    Math.max(chromeHeight, chromeHideFallback) + 8,
+  );
+  const handleChromeLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = event.nativeEvent.layout.height;
+    if (height > 0) {
+      setChromeHeight((current) => (
+        Math.abs(current - height) > 1 ? height : current
+      ));
+    }
+  }, []);
   // Same scroll that hides the top chrome also slides the bottom floating
   // tab bar away (shared value written on the UI thread, no re-renders).
   const { scrollHidden } = useTabBarVisibility();
@@ -324,6 +348,9 @@ export function TimelineZoomCanvas({
     hideDistance: chromeHideDistance,
     externalProgress: scrollHidden,
   });
+  const chromeCollapseStyle = useAnimatedStyle(() => ({
+    marginBottom: -scrollHidden.value * Math.max(chromeHeight, chromeHideFallback),
+  }));
   // Restore the tab bar when this surface unmounts (tab switch / pop) so a
   // mid-scroll hidden state doesn't leak into other screens.
   React.useEffect(() => {
@@ -469,49 +496,54 @@ export function TimelineZoomCanvas({
     () => focusedArc?.weeks.flatMap((w) => w.steps) ?? [],
     [focusedArc],
   );
+  const orderedArcSteps = useMemo(() => {
+    const behindNow = arcSteps.filter((s) => isBehindNowStep(s));
+    const ahead = arcSteps.filter((s) => !isBehindNowStep(s));
+    return [...behindNow, ...ahead];
+  }, [arcSteps]);
 
   const chromeSteps = level === 3 && selectedSeasonSteps.length > 0
     ? selectedSeasonSteps
-    : arcSteps;
+    : orderedArcSteps;
   const chromeFocusedStep =
     chromeSteps.find((s) => s.id === focusStepId) ??
     (level === 3 ? chromeSteps[0] : focusedStep);
 
   const swipeToNeighbor = useCallback(
     (direction: 'prev' | 'next') => {
-      if (arcSteps.length < 2) return;
-      const idx = arcSteps.findIndex((s) => s.id === focusStepId);
+      if (orderedArcSteps.length < 2) return;
+      const idx = orderedArcSteps.findIndex((s) => s.id === focusStepId);
       if (idx < 0) return;
       const nextIdx = direction === 'prev' ? idx - 1 : idx + 1;
-      if (nextIdx < 0 || nextIdx >= arcSteps.length) return;
-      setFocusStepId(arcSteps[nextIdx].id);
+      if (nextIdx < 0 || nextIdx >= orderedArcSteps.length) return;
+      setFocusStepId(orderedArcSteps[nextIdx].id);
     },
-    [arcSteps, focusStepId],
+    [orderedArcSteps, focusStepId],
   );
   const jumpToArcIndex = useCallback(
     (index: number) => {
-      const step = arcSteps[index];
+      const step = orderedArcSteps[index];
       if (!step) return;
       setFocusStepId(step.id);
       setLevel(1);
     },
-    [arcSteps],
+    [orderedArcSteps],
   );
 
   const focusedArcStepIdx = useMemo(
-    () => arcSteps.findIndex((s) => s.id === focusStepId),
-    [arcSteps, focusStepId],
+    () => orderedArcSteps.findIndex((s) => s.id === focusStepId),
+    [orderedArcSteps, focusStepId],
   );
-  const prevStep = focusedArcStepIdx > 0 ? arcSteps[focusedArcStepIdx - 1] : null;
+  const prevStep = focusedArcStepIdx > 0 ? orderedArcSteps[focusedArcStepIdx - 1] : null;
   const nextStep =
-    focusedArcStepIdx >= 0 && focusedArcStepIdx < arcSteps.length - 1
-      ? arcSteps[focusedArcStepIdx + 1]
+    focusedArcStepIdx >= 0 && focusedArcStepIdx < orderedArcSteps.length - 1
+      ? orderedArcSteps[focusedArcStepIdx + 1]
       : null;
   // NowFloat — the viewed step's relation to the canonical now-step. When the
   // now-step lives in a different arc, compare the arcs chronologically.
   const nowArcStepIdx = useMemo(
-    () => arcSteps.findIndex((s) => s.id === dataset.focusStepId),
-    [arcSteps, dataset.focusStepId],
+    () => orderedArcSteps.findIndex((s) => s.id === dataset.focusStepId),
+    [orderedArcSteps, dataset.focusStepId],
   );
   const nowArcIdx = arcIndexOfStep(dataset.focusStepId);
   const nowRelation: NowRelation =
@@ -547,7 +579,10 @@ export function TimelineZoomCanvas({
       <View style={styles.surface}>
         {hideInterestHeader ? (
           !select.enabled ? (
-            <Animated.View style={[styles.chromeLayer, chromeAnimStyle]}>
+            <Animated.View
+              style={[styles.chromeLayer, chromeAnimStyle, chromeCollapseStyle]}
+              onLayout={handleChromeLayout}
+            >
               {level === 1 || level === 3 ? (
                 <StepTaskBar
                   interestLabel={dataset.interest.label}
@@ -611,7 +646,7 @@ export function TimelineZoomCanvas({
                         if (fallback) setFocusStepId(fallback.id);
                         else setLevel(3);
                       }}
-                      allSteps={arcSteps}
+                      allSteps={orderedArcSteps}
                       onJumpToStep={(id) => setFocusStepId(id)}
                       hideStepSwitcher={hideInterestHeader}
                       // NowFloat hovers 20pt above the tab-bar clearance and is
@@ -728,7 +763,7 @@ export function TimelineZoomCanvas({
             relation={nowRelation}
             nowIndex={nowArcStepIdx}
             viewedIndex={Math.max(focusedArcStepIdx, 0)}
-            total={arcSteps.length}
+            total={orderedArcSteps.length}
             onJumpToIndex={jumpToArcIndex}
             onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
             onNext={nextStep ? () => swipeToNeighbor('next') : undefined}

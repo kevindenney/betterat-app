@@ -1224,7 +1224,7 @@ function RaceSummaryCardImpl({
         });
         const activityLabel = eventConfig.eventNoun || (isSailing ? 'Race' : 'Activity');
         const locationLabel = isSailing ? 'Venue' : 'Location';
-        const sourceLabel = isSailing ? 'Shared from RegattaFlow' : 'Shared from BetterAt Clinical';
+        const sourceLabel = isSailing ? 'Shared from BetterAt' : 'Shared from BetterAt Clinical';
         const locationValue = race.venue || 'TBD';
 
         const parts = [`${activityLabel}: ${race.name}`, `${activityLabel} date: ${dateStr}`];

@@ -25,6 +25,14 @@ describe('useProfileMenuData active membership filtering', () => {
     expect(isProfileMenuActiveMembership({status: 'verified', membership_status: 'rejected'})).toBe(false);
   });
 
+  it('rejects active memberships for archived organizations', () => {
+    expect(isProfileMenuActiveMembership({
+      status: 'active',
+      membership_status: 'active',
+      organization: {is_active: false},
+    })).toBe(false);
+  });
+
   it('uses the shared owner/admin/manager role helper for admin menu flags', () => {
     const source = read('hooks/useProfileMenuData.ts');
 

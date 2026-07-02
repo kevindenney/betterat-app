@@ -1,7 +1,7 @@
 /**
  * Sailwave Import Modal
  *
- * A modal component for importing Sailwave .BLW files into RegattaFlow.
+ * A modal component for importing Sailwave .BLW files into BetterAt.
  * Provides file selection, validation feedback, and import progress.
  */
 
@@ -453,4 +453,3 @@ const styles = StyleSheet.create({
 });
 
 export default SailwaveImportModal;
-

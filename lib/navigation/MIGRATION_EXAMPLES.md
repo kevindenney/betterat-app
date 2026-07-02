@@ -1,4 +1,4 @@
-# Migration Examples from RegattaFlow Codebase
+# Migration Examples from the Legacy Codebase
 
 Real examples from the codebase showing how to migrate to type-safe navigation.
 

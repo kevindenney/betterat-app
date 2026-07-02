@@ -1,6 +1,6 @@
 /**
  * Podcasts Landing Page
- * Features the RegattaFlow Podcast with episodes on local knowledge and racing insights
+ * Features the BetterAt Podcast with episodes on local knowledge and racing insights
  */
 
 import React from 'react';
@@ -72,7 +72,7 @@ export default function PodcastsPage() {
 
   const handleNotifyMe = () => {
     void Linking.openURL(
-      'mailto:podcast@regattaflow.com?subject=Podcast%20Notifications&body=Please%20notify%20me%20when%20new%20RegattaFlow%20podcast%20episodes%20are%20available.'
+      'mailto:info@better.at?subject=Podcast%20Notifications&body=Please%20notify%20me%20when%20new%20BetterAt%20podcast%20episodes%20are%20available.'
     );
   };
 
@@ -128,7 +128,7 @@ export default function PodcastsPage() {
           </View>
 
           <Text style={[styles.heroTitle, isDesktop && styles.heroTitleDesktop]}>
-            RegattaFlow Podcast
+            BetterAt Podcast
           </Text>
           <Text style={[styles.heroSubtitle, isDesktop && styles.heroSubtitleDesktop]}>
             Local knowledge, racing insights, and strategy discussions
@@ -277,7 +277,7 @@ export default function PodcastsPage() {
               About the Podcast
             </Text>
             <Text style={styles.aboutText}>
-              The RegattaFlow Podcast brings you expert insights on racing venues around the world.
+              The BetterAt Podcast brings you expert insights on racing venues around the world.
               From local knowledge to advanced tactics, we cover everything competitive sailors need
               to perform at their best.
             </Text>

@@ -145,12 +145,12 @@ export class TrackingService {
     }).join('\n');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="RegattaFlow" 
+<gpx version="1.1" creator="BetterAt"
      xmlns="http://www.topografix.com/GPX/1/1"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
   <metadata>
-    <name>${track.metadata?.name || 'RegattaFlow Track'}</name>
+    <name>${track.metadata?.name || 'BetterAt Track'}</name>
     <time>${new Date(track.startTime).toISOString()}</time>
   </metadata>
   <trk>
@@ -417,4 +417,3 @@ ${gpxPoints}
 }
 
 export default TrackingService;
-

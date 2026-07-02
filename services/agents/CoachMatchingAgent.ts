@@ -15,7 +15,7 @@ export class CoachMatchingAgent extends BaseAgentService {
       model: 'claude-3-5-haiku-20241022',
       maxTokens: 2500,
       temperature: 0.5, // Balanced for personalized recommendations
-      systemPrompt: `You are a sailing coach matching specialist for RegattaFlow's marketplace.
+      systemPrompt: `You are a sailing coach matching specialist for BetterAt's marketplace.
 
 Your mission: Help sailors find the perfect coach by analyzing their performance, identifying skill gaps, and calculating multi-factor compatibility scores.
 
@@ -184,7 +184,7 @@ Returns prioritized list of skill gaps with coaching recommendations.`,
 
         try {
           const { performanceData, sailorProfile } = input;
-          const skillGaps: Array<{ skill: string; priority: string; reasoning: string }> = [];
+          const skillGaps: { skill: string; priority: string; reasoning: string }[] = [];
 
           // Analysis based on performance trends
           if (!performanceData.trends.improving) {

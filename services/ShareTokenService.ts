@@ -125,12 +125,12 @@ export async function resolveShareToken(
 /**
  * Build the absolute `/share/<token>` URL for sharing externally.
  * On web uses `window.location.origin`; otherwise falls back to
- * EXPO_PUBLIC_API_URL or regattaflow.com.
+ * EXPO_PUBLIC_API_URL or better.at.
  */
 export function buildShareUrl(token: string): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin) {
     return `${window.location.origin}/share/${token}`;
   }
-  const base = process.env.EXPO_PUBLIC_API_URL || 'https://regattaflow.com';
+  const base = process.env.EXPO_PUBLIC_API_URL || 'https://better.at';
   return `${base.replace(/\/$/, '')}/share/${token}`;
 }

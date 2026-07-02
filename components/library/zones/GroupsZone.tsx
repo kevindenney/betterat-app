@@ -4,7 +4,7 @@
  * "Groups" is the generic, interest-agnostic name for the people-collective
  * primitive: a sailing "fleet", a reading "book club", a course "cohort" are
  * the same thing on different dials. This zone lists the groups the current
- * user belongs to and routes into the group hub (today: /(tabs)/fleet).
+ * user belongs to and routes into the group hub.
  *
  * Reuses the CanonicalOrgRow cell so a group reads visually like an org in
  * the ORGS stack — same square-mark column, name, and descriptor.
@@ -14,11 +14,13 @@ import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { IOS_COLORS, IOS_SPACING } from '@/lib/design-tokens-ios';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 import { useAuth } from '@/providers/AuthProvider';
 import { useInterest } from '@/providers/InterestProvider';
-import { useUserFleets } from '@/hooks/useFleetData';
 import {
+  useDiscoverableAffinityGroups,
   useUserAffinityGroups,
   type AffinityGroupKind,
   type UserAffinityGroup,
@@ -31,36 +33,24 @@ import {
   pickSquareMarkColor,
 } from '@/components/discover/canonical';
 import { CreateAffinityGroupSheet } from '@/components/library/groups/CreateAffinityGroupSheet';
-import type { FleetMembership } from '@/services/fleetService';
-
-/** Short role label for a group membership ("Owner" / "Captain" / "Member"). */
-export function groupRoleDescriptor(m: FleetMembership): string {
-  switch (m.role) {
-    case 'owner':
-      return 'Owner';
-    case 'captain':
-      return 'Captain';
-    case 'coach':
-      return 'Coach';
-    default:
-      return 'Member';
-  }
-}
+import { AffinityGroupService } from '@/services/AffinityGroupService';
+import { initialsForGroup } from './groupInitials';
 
 export function GroupsZone() {
   const { user } = useAuth();
   const { currentInterest } = useInterest();
+  const queryClient = useQueryClient();
   const [createGroupOpen, setCreateGroupOpen] = React.useState(false);
+  const [joiningId, setJoiningId] = React.useState<string | null>(null);
   const isSailRacing = currentInterest?.slug === 'sail-racing';
-  const { fleets, loading: fleetsLoading } = useUserFleets(user?.id);
   const { groups: affinityGroups, isLoading: affinityGroupsLoading } =
     useUserAffinityGroups(currentInterest?.slug);
+  const { groups: discoverableAffinityGroups, isLoading: discoverableGroupsLoading } =
+    useDiscoverableAffinityGroups(currentInterest?.slug, 8);
   const { cohorts: orgCohorts, isLoading: orgCohortsLoading } =
     useUserOrgCohorts(currentInterest?.slug);
-  const loading = isSailRacing ? fleetsLoading : affinityGroupsLoading || orgCohortsLoading;
-  const visibleFleets = isSailRacing ? fleets : [];
-  const visibleCohortRows = React.useMemo(() => {
-    if (isSailRacing) return [];
+  const loading = affinityGroupsLoading || orgCohortsLoading;
+  const visibleGroupRows = React.useMemo(() => {
     const seen = new Set<string>();
     const keyFor = (name: string, orgId?: string | null) =>
       `${name.trim().toLowerCase()}::${orgId ?? ''}`;
@@ -97,38 +87,53 @@ export function GroupsZone() {
     }
 
     return rows;
-  }, [isSailRacing, affinityGroups, orgCohorts]);
-  const hasGroups = visibleFleets.length > 0 || visibleCohortRows.length > 0;
+  }, [affinityGroups, orgCohorts]);
+  const hasGroups = visibleGroupRows.length > 0;
+  const joinedAffinityGroupIds = React.useMemo(
+    () => new Set(affinityGroups.map((g) => g.id)),
+    [affinityGroups],
+  );
+  const joinableAffinityGroups = React.useMemo(
+    () =>
+      discoverableAffinityGroups
+        .filter((group) => !joinedAffinityGroupIds.has(group.id))
+        .slice(0, 8),
+    [discoverableAffinityGroups, joinedAffinityGroupIds],
+  );
+  const hasJoinableGroups = joinableAffinityGroups.length > 0;
+
+  const handleJoinAffinityGroup = React.useCallback(
+    async (group: UserAffinityGroup) => {
+      if (!user?.id) {
+        showAlert('Sign in required', 'Sign in before joining a group.');
+        return;
+      }
+      setJoiningId(`affinity:${group.id}`);
+      try {
+        await AffinityGroupService.join({ groupId: group.id, userId: user.id });
+        await AffinityGroupService.seedFromBlueprint({ groupId: group.id, userId: user.id });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['user-affinity-groups'] }),
+          queryClient.invalidateQueries({ queryKey: ['discoverable-affinity-groups'] }),
+          queryClient.invalidateQueries({ queryKey: ['timeline-steps'] }),
+        ]);
+      } catch (error) {
+        showAlert(
+          'Could not join group',
+          error instanceof Error ? error.message : 'Please try again.',
+        );
+      } finally {
+        setJoiningId(null);
+      }
+    },
+    [user?.id, queryClient],
+  );
 
   // Discovery affordance — kept available whether or not the user already
   // belongs to groups, so "find more / start one" is reachable everywhere the
   // zone renders (notably web, which has no other fleet-discovery surface).
-  const discoveryActions = isSailRacing ? (
+  const discoveryActions = (
     <View style={styles.emptyActions}>
-      <Pressable
-        style={styles.primaryButton}
-        onPress={() => router.push('/(tabs)/fleet/select' as never)}
-      >
-        <Ionicons name="search" size={16} color="#FFFFFF" />
-        <Text style={styles.primaryButtonText}>Find a group to join</Text>
-      </Pressable>
-      <Pressable
-        style={styles.secondaryButton}
-        onPress={() => router.push('/(tabs)/fleet/create' as never)}
-      >
-        <Ionicons name="add" size={16} color={IOS_COLORS.systemBlue} />
-        <Text style={styles.secondaryButtonText}>Create a group</Text>
-      </Pressable>
-    </View>
-  ) : (
-    <View style={styles.emptyActions}>
-      <Pressable
-        style={styles.primaryButton}
-        onPress={() => router.push('/(tabs)/library?zone=all&segment=stacks' as never)}
-      >
-        <Ionicons name="search" size={16} color="#FFFFFF" />
-        <Text style={styles.primaryButtonText}>Find a group to join</Text>
-      </Pressable>
       <Pressable
         style={styles.secondaryButton}
         onPress={() => setCreateGroupOpen(true)}
@@ -159,11 +164,19 @@ export function GroupsZone() {
         <View style={styles.empty}>
           <Text style={styles.emptyText}>
             {isSailRacing
-              ? "You're not in any groups yet. Find one to join or start your own and it'll live here."
+              ? "You're not in any groups yet. Join one below or start your own and it'll live here."
               : currentInterest?.slug === 'nursing'
-                ? "You're not in any cohorts or peer groups yet. Find a group or add a study group and it'll live here."
+                ? "You're not in any cohorts or peer groups yet. Join one below or add a study group and it'll live here."
               : `Groups for ${currentInterest?.name ?? 'this interest'} will live here once you join or add one.`}
           </Text>
+          <DiscoverableGroupsSection
+            isSailRacing={isSailRacing}
+            loading={discoverableGroupsLoading}
+            affinityGroups={joinableAffinityGroups}
+            joiningId={joiningId}
+            currentInterestName={currentInterest?.name}
+            onJoinAffinityGroup={handleJoinAffinityGroup}
+          />
           {discoveryActions}
         </View>
         <CreateAffinityGroupSheet
@@ -185,39 +198,92 @@ export function GroupsZone() {
               : "The groups you're in — the people moving through the work with you."}
         </Text>
         <CanonicalList>
-          {isSailRacing
-            ? visibleFleets.map((m, idx) => (
-                <CanonicalOrgRow
-                  key={m.fleet.id}
-                  first={idx === 0}
-                  initials={initialsForName(m.fleet.name)}
-                  markColor={pickSquareMarkColor(m.fleet.id)}
-                  name={m.fleet.name}
-                  descriptor={[groupRoleDescriptor(m), compactOrgName(m.fleet.organization?.name)]
-                    .filter(Boolean)
-                    .join(' · ')}
-                  onPress={() => router.push('/(tabs)/fleet' as never)}
-                />
-              ))
-            : visibleCohortRows.map((group, idx) => (
-                <CanonicalOrgRow
-                  key={group.id}
-                  first={idx === 0}
-                  initials={initialsForName(group.initialsSource)}
-                  markColor={pickSquareMarkColor(group.id)}
-                  name={group.name}
-                  descriptor={group.descriptor}
-                  onPress={() => router.push(group.route as never)}
-                />
-              ))}
+          {visibleGroupRows.map((group, idx) => (
+            <CanonicalOrgRow
+              key={group.id}
+              first={idx === 0}
+              initials={initialsForGroup(group.initialsSource, group.name)}
+              markColor={pickSquareMarkColor(group.id)}
+              name={group.name}
+              descriptor={group.descriptor}
+              onPress={() => router.push(group.route as never)}
+            />
+          ))}
         </CanonicalList>
         <View style={styles.listActions}>{discoveryActions}</View>
+        <DiscoverableGroupsSection
+          isSailRacing={isSailRacing}
+          loading={discoverableGroupsLoading}
+          affinityGroups={joinableAffinityGroups}
+          joiningId={joiningId}
+          currentInterestName={currentInterest?.name}
+          onJoinAffinityGroup={handleJoinAffinityGroup}
+          compact={!hasJoinableGroups}
+        />
       </View>
       <CreateAffinityGroupSheet
         visible={createGroupOpen}
         onClose={() => setCreateGroupOpen(false)}
       />
     </>
+  );
+}
+
+function DiscoverableGroupsSection({
+  isSailRacing,
+  loading,
+  affinityGroups,
+  joiningId,
+  currentInterestName,
+  onJoinAffinityGroup,
+  compact,
+}: {
+  isSailRacing: boolean;
+  loading: boolean;
+  affinityGroups: UserAffinityGroup[];
+  joiningId: string | null;
+  currentInterestName?: string | null;
+  onJoinAffinityGroup: (group: UserAffinityGroup) => void;
+  compact?: boolean;
+}) {
+  const hasRows = affinityGroups.length > 0;
+  if (compact && !hasRows) return null;
+
+  return (
+    <View style={styles.discoverSection}>
+      <Text style={styles.sectionEyebrow}>Groups to join</Text>
+      {loading && !hasRows ? (
+        <View style={styles.discoverLoading}>
+          <ActivityIndicator size="small" color={IOS_COLORS.tertiaryLabel} />
+        </View>
+      ) : !hasRows ? (
+        <Text style={styles.emptyText}>
+          {isSailRacing
+            ? 'Open crews and fleets will show up here when available.'
+            : `Groups to join in ${currentInterestName ?? 'this interest'} will show up here when available.`}
+        </Text>
+      ) : (
+        <CanonicalList>
+          {affinityGroups.map((group, idx) => {
+            const busy = joiningId === `affinity:${group.id}`;
+            return (
+              <CanonicalOrgRow
+                key={group.id}
+                first={idx === 0}
+                initials={initialsForGroup(group.short_name, group.name)}
+                markColor={pickSquareMarkColor(group.id)}
+                name={group.name}
+                descriptor={descriptorForDiscoverableAffinityGroup(group)}
+                actionLabel={busy ? 'Joining' : 'Join'}
+                onPress={() => {
+                  if (!busy) onJoinAffinityGroup(group);
+                }}
+              />
+            );
+          })}
+        </CanonicalList>
+      )}
+    </View>
   );
 }
 
@@ -262,6 +328,11 @@ function descriptorForOrgCohort(cohort: UserOrgCohort): string {
   return [role, compactOrgName(cohort.org_name)].filter(Boolean).join(' · ');
 }
 
+function descriptorForDiscoverableAffinityGroup(group: UserAffinityGroup): string {
+  const org = compactOrgName(group.parent_org_name);
+  return [affinityGroupKindLabel(group.kind), org].filter(Boolean).join(' · ');
+}
+
 function compactOrgName(name?: string | null): string | null {
   if (!name) return null;
   if (/Royal Hong Kong Yacht Club/i.test(name)) return 'RHKYC';
@@ -292,26 +363,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: IOS_COLORS.secondaryLabel,
   },
+  discoverSection: {
+    marginTop: IOS_SPACING.lg,
+    gap: IOS_SPACING.sm,
+  },
+  discoverLoading: {
+    paddingVertical: IOS_SPACING.md,
+    alignItems: 'center',
+  },
+  sectionEyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: IOS_COLORS.secondaryLabel,
+  },
   emptyActions: {
     marginTop: IOS_SPACING.lg,
     gap: IOS_SPACING.sm,
   },
   listActions: {
     marginTop: IOS_SPACING.md,
-  },
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: IOS_COLORS.systemBlue,
-  },
-  primaryButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   secondaryButton: {
     flexDirection: 'row',

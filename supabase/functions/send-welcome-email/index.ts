@@ -6,7 +6,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const FROM_EMAIL = 'RegattaFlow <hello@regattaflow.io>';
+const FROM_EMAIL = Deno.env.get('FROM_EMAIL') || 'BetterAt <hello@better.at>';
 
 interface WelcomeEmailRequest {
   email: string;
@@ -59,7 +59,7 @@ serve(async (req) => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to RegattaFlow</title>
+  <title>Welcome to BetterAt</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 20px;">
@@ -70,7 +70,7 @@ serve(async (req) => {
           <tr>
             <td style="background: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%); padding: 40px 40px 30px; text-align: center;">
               <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">
-                🎉 Welcome to RegattaFlow!
+                🎉 Welcome to BetterAt!
               </h1>
               <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 16px;">
                 ${clubName} is ready to sail
@@ -85,7 +85,7 @@ serve(async (req) => {
                 ${greeting}! 👋
               </p>
               <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
-                Congratulations on setting up <strong>${clubName}</strong> on RegattaFlow! 
+                Congratulations on setting up <strong>${clubName}</strong> on BetterAt!
                 Your 30-day free trial is now active, giving you full access to all features.
               </p>
               
@@ -163,7 +163,7 @@ serve(async (req) => {
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
-                    <a href="https://app.regattaflow.io/events" 
+                    <a href="https://better.at/events"
                        style="display: inline-block; background-color: #0284c7; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
                       Go to Dashboard →
                     </a>
@@ -173,7 +173,7 @@ serve(async (req) => {
               
               <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 30px 0 0;">
                 Questions? Reply to this email or check out our 
-                <a href="https://regattaflow.io/docs" style="color: #0284c7;">documentation</a>.
+                <a href="https://better.at/docs" style="color: #0284c7;">documentation</a>.
               </p>
             </td>
           </tr>
@@ -182,10 +182,10 @@ serve(async (req) => {
           <tr>
             <td style="background-color: #f9fafb; padding: 24px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                © ${new Date().getFullYear()} RegattaFlow. All rights reserved.
+                © ${new Date().getFullYear()} BetterAt. All rights reserved.
               </p>
               <p style="color: #9ca3af; font-size: 12px; margin: 8px 0 0;">
-                You're receiving this because you created a club on RegattaFlow.
+                You're receiving this because you created a club on BetterAt.
               </p>
             </td>
           </tr>
@@ -207,7 +207,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [email],
-        subject: `🎉 Welcome to RegattaFlow, ${clubName}!`,
+        subject: `🎉 Welcome to BetterAt, ${clubName}!`,
         html: htmlContent,
       }),
     });
@@ -235,4 +235,3 @@ serve(async (req) => {
     );
   }
 });
-

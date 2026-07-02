@@ -19,6 +19,7 @@ import {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 interface UseScrollHideChromeOptions {
@@ -28,12 +29,19 @@ interface UseScrollHideChromeOptions {
   topDeadZone?: number;
   /** Px of downward scroll accumulation needed to trigger hide. Defaults to 8. */
   downAccumThreshold?: number;
+  /**
+   * Optional external 0→1 progress value driven in lockstep with the
+   * internal chrome-hide state. Lets a sibling surface (e.g. the bottom
+   * FloatingTabBar) react to the same scroll without its own handler.
+   */
+  externalProgress?: SharedValue<number>;
 }
 
 export function useScrollHideChrome({
   hideDistance = 56,
   topDeadZone = 24,
   downAccumThreshold = 8,
+  externalProgress,
 }: UseScrollHideChromeOptions = {}) {
   // 0 = visible, 1 = hidden. Drives translateY + opacity on the chrome.
   const hidden = useSharedValue(0);
@@ -41,6 +49,16 @@ export function useScrollHideChrome({
   // Accumulator so a single tiny down-tick doesn't immediately hide; we
   // wait for a sustained downward intent.
   const downAccum = useRef(0);
+
+  const setHidden = useCallback(
+    (target: 0 | 1, duration: number) => {
+      hidden.value = withTiming(target, { duration });
+      if (externalProgress) {
+        externalProgress.value = withTiming(target, { duration });
+      }
+    },
+    [hidden, externalProgress],
+  );
 
   const onScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -51,22 +69,22 @@ export function useScrollHideChrome({
       if (y < topDeadZone) {
         // Near the top — always show the chrome regardless of direction.
         downAccum.current = 0;
-        hidden.value = withTiming(0, { duration: 180 });
+        setHidden(0, 180);
         return;
       }
 
       if (dy > 0) {
         downAccum.current += dy;
         if (downAccum.current > downAccumThreshold) {
-          hidden.value = withTiming(1, { duration: 200 });
+          setHidden(1, 200);
         }
       } else if (dy < -2) {
         // Any meaningful upward gesture brings the chrome back.
         downAccum.current = 0;
-        hidden.value = withTiming(0, { duration: 180 });
+        setHidden(0, 180);
       }
     },
-    [hidden, topDeadZone, downAccumThreshold],
+    [setHidden, topDeadZone, downAccumThreshold],
   );
 
   const chromeAnimStyle = useAnimatedStyle(() => ({

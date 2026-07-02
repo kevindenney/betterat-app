@@ -47,6 +47,11 @@ const CURRENT_STEP = 5;
 
 type PaymentSetupStatus = 'not_started' | 'in_progress' | 'complete' | 'error';
 
+const getPublicAppUrl = () =>
+  Platform.OS === 'web' && typeof window !== 'undefined'
+    ? window.location.origin
+    : 'https://better.at';
+
 const CoachOnboardingPaymentSetup = () => {
   const router = useRouter();
   const { user } = useAuth();
@@ -148,11 +153,11 @@ const CoachOnboardingPaymentSetup = () => {
         throw new Error('Failed to get or create coach profile');
       }
 
-      const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://regattaflow.com';
+      const appUrl = getPublicAppUrl();
       const result = await StripeConnectService.startOnboarding(
         profileId,
-        `${appUrl}/(auth)/coach-onboarding-stripe-callback?fromPaymentSetup=true`,
-        `${appUrl}/(auth)/coach-onboarding-payment-setup`
+        `${appUrl}/coach-onboarding-stripe-callback?fromPaymentSetup=true`,
+        `${appUrl}/coach-onboarding-payment-setup`
       );
 
       if (!result.success || !result.url) {

@@ -1,4 +1,4 @@
-# RegattaFlow AI Agents
+# BetterAt AI Agents
 
 This directory contains autonomous AI agents powered by Anthropic's Claude SDK. These agents use tool-calling to orchestrate complex multi-step workflows.
 
@@ -237,4 +237,4 @@ console.log(data, error);
 
 - [Anthropic SDK Documentation](https://docs.anthropic.com/claude/reference/client-sdks)
 - [Supabase Edge Functions](https://supabase.com/docs/guides/functions)
-- [RegattaFlow Agent Architecture](../../../docs/ai-agent-architecture.md)
+- [BetterAt Agent Architecture](../../../docs/ai-agent-architecture.md)

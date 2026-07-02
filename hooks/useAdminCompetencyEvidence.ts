@@ -170,10 +170,42 @@ export function useAdminCompetencyEvidence(
     return m;
   }, [realCells]);
 
-  // If the RPC returned at least one cell, treat this org as real-data
-  // backed and stop pseudo-filling. Otherwise (empty/sandbox orgs) keep
-  // pseudo on so the demo surface stays believable.
-  const hasRealEvidence = realCells.length > 0;
+  // Site-independent coverage. admin_competency_evidence_counts is keyed by
+  // poi_id for the geographic heatmap, so it silently drops confirmed evidence
+  // from steps with no clinical site (self-reported / blueprint-pull practice —
+  // exactly what the unified-subscribe flow creates). This RPC answers the
+  // dean's real question — "is competency X being evidenced at all?" — and is
+  // always ≥ the site-keyed count, so the row totals only get more complete.
+  type CoverageRow = { competency_id: string; student_count: number };
+  const { data: coverageRows = [] } = useQuery({
+    queryKey: ['admin-competency-coverage', orgId, cohortId ?? null],
+    enabled: !!orgId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<CoverageRow[]> => {
+      const { data, error } = await supabase.rpc('admin_competency_coverage', {
+        p_org_id: orgId,
+        p_cohort_id: cohortId ?? null,
+      });
+      if (error) {
+        console.warn('[useAdminCompetencyEvidence] coverage RPC failed', error);
+        return [];
+      }
+      return (data ?? []) as CoverageRow[];
+    },
+  });
+
+  const coverageByComp = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const row of coverageRows) {
+      m.set(row.competency_id, row.student_count);
+    }
+    return m;
+  }, [coverageRows]);
+
+  // If either RPC returned a row, treat this org as real-data backed and stop
+  // pseudo-filling. Otherwise (empty/sandbox orgs) keep pseudo on so the demo
+  // surface stays believable.
+  const hasRealEvidence = realCells.length > 0 || coverageRows.length > 0;
 
   // Filter to "real" practice sites (skip sim_lab in evidence grid since
   // sim doesn't count as field evidence). Denylist — not an allowlist — so
@@ -230,9 +262,17 @@ export function useAdminCompetencyEvidence(
   const rowTotals = useMemo(() => {
     const m = new Map<string, { count: number; pct: number }>();
     for (const c of competencies) {
-      let count = 0;
-      for (const site of evidenceSites) {
-        count += evidence.get(`${c.id}::${site.id}`)?.count ?? 0;
+      // Prefer the site-independent coverage count — it includes site-less
+      // evidence the per-cell heatmap can't. Fall back to summing the cells
+      // (sandbox/pseudo path, or competencies the coverage RPC didn't return).
+      let count: number;
+      if (hasRealEvidence && coverageByComp.has(c.id)) {
+        count = coverageByComp.get(c.id) ?? 0;
+      } else {
+        count = 0;
+        for (const site of evidenceSites) {
+          count += evidence.get(`${c.id}::${site.id}`)?.count ?? 0;
+        }
       }
       // De-dup intuition: cap at cohortSize since each student can evidence
       // a competency once across any site
@@ -240,7 +280,7 @@ export function useAdminCompetencyEvidence(
       m.set(c.id, { count: capped, pct: cohortSize > 0 ? capped / cohortSize : 0 });
     }
     return m;
-  }, [competencies, evidenceSites, evidence, cohortSize]);
+  }, [competencies, evidenceSites, evidence, cohortSize, hasRealEvidence, coverageByComp]);
 
   const colTotals = useMemo(() => {
     const m = new Map<string, { count: number; pct: number }>();

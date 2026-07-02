@@ -1,7 +1,7 @@
 /**
  * Internationalization (i18n) Configuration
  *
- * Sets up react-i18next for multi-language support in RegattaFlow.
+ * Sets up react-i18next for multi-language support in BetterAt.
  * Supports automatic locale detection, language switching, and
  * European locale formats.
  *
@@ -517,4 +517,3 @@ export function isLocaleSupported(locale: string): locale is SupportedLocale {
 }
 
 export default i18n;
-

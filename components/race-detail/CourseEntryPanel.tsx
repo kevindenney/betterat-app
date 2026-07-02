@@ -1014,7 +1014,7 @@ export function CourseEntryPanel({
             <Text style={styles.visibilityHint}>
               {courseVisibility === 'private' && '🔒 Only you can see this course'}
               {courseVisibility === 'venue' && `📍 Visible to sailors at ${venueName || 'this venue'}`}
-              {courseVisibility === 'public' && '🌍 Visible to all RegattaFlow users'}
+              {courseVisibility === 'public' && '🌍 Visible to all BetterAt users'}
             </Text>
 
             {venueName && (
@@ -1637,4 +1637,3 @@ const styles = StyleSheet.create({
 });
 
 export default CourseEntryPanel;
-

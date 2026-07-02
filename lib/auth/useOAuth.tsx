@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 /**
- * OAuth Hook for RegattaFlow
+ * OAuth Hook for BetterAt
  * Provides Google and Apple authentication with proper React hooks integration
  */
 
@@ -29,7 +29,7 @@ interface OAuthConfig {
  */
 const getOAuthConfig = (provider: string): OAuthConfig => {
   const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'regattaflow',
+    scheme: 'betterat',
     path: 'auth',
   });
 
@@ -50,7 +50,7 @@ const getOAuthConfig = (provider: string): OAuthConfig => {
 
     case 'apple':
       return {
-        clientId: process.env.EXPO_PUBLIC_APPLE_CLIENT_ID || 'io.regattaflow.app',
+        clientId: process.env.EXPO_PUBLIC_APPLE_CLIENT_ID || 'com.betterat.app',
         redirectUri,
         scopes: ['name', 'email'],
       };

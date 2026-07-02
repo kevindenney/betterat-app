@@ -18,8 +18,16 @@
  * (every target was already reachable via the tabs or the toolbar).
  */
 
-import React, { useCallback, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -135,10 +143,13 @@ export function LibraryLanding({ conceptsBody, librarianSlot, onOpenInspiration 
   const toast = useToast();
   const [toolbarHeight, setToolbarHeight] = useState(0);
   const [addChooserOpen, setAddChooserOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [stepAddOpen, setStepAddOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [conceptEditorOpen, setConceptEditorOpen] = useState(false);
+  const searchInputRef = useRef<TextInput>(null);
   const isSailRacing = (currentInterest?.slug ?? '').toLowerCase() === 'sail-racing';
   // Sticky "added" set for the Interests stack so its Add chips stay
   // marked while the user is in the focused zone (mirrors discover.tsx).
@@ -170,6 +181,29 @@ export function LibraryLanding({ conceptsBody, librarianSlot, onOpenInspiration 
 
   const handleAdd = useCallback(() => {
     setAddChooserOpen(true);
+  }, []);
+
+  const handleSearchPress = useCallback(() => {
+    setSearchOpen(true);
+    setTimeout(() => searchInputRef.current?.focus(), 0);
+  }, []);
+
+  const handleSearchSubmit = useCallback(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+    router.push(`/search?q=${encodeURIComponent(trimmed)}` as never);
+  }, [searchQuery]);
+
+  const handleSearchClear = useCallback(() => {
+    setSearchQuery('');
+    if (searchOpen) {
+      searchInputRef.current?.focus();
+    }
+  }, [searchOpen]);
+
+  const handleSearchClose = useCallback(() => {
+    setSearchQuery('');
+    setSearchOpen(false);
   }, []);
 
   const addLabel = 'Add to library';
@@ -260,8 +294,9 @@ export function LibraryLanding({ conceptsBody, librarianSlot, onOpenInspiration 
           {
             icon: 'search-outline',
             sfSymbol: 'magnifyingglass',
-            label: 'Search library',
-            onPress: () => router.push('/search?context=library' as never),
+            label: 'Search BetterAt',
+            onPress: handleSearchPress,
+            isActive: searchOpen,
           },
           {
             icon: 'add-outline',
@@ -272,7 +307,46 @@ export function LibraryLanding({ conceptsBody, librarianSlot, onOpenInspiration 
         ]}
         onMeasuredHeight={setToolbarHeight}
         backgroundColor="rgba(242, 242, 247, 0.94)"
-      />
+      >
+        {searchOpen ? (
+          <View style={styles.toolbarSearchRow}>
+            <View style={styles.toolbarSearchInputWrap}>
+              <Ionicons name="search" size={16} color={IOS_COLORS.placeholderText} />
+              <TextInput
+                ref={searchInputRef}
+                style={styles.toolbarSearchInput}
+                placeholder="Search BetterAt"
+                placeholderTextColor={IOS_COLORS.placeholderText}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                onSubmitEditing={handleSearchSubmit}
+              />
+              {searchQuery.length > 0 ? (
+                <Pressable
+                  onPress={handleSearchClear}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                >
+                  <Ionicons name="close-circle" size={16} color={IOS_COLORS.systemGray2} />
+                </Pressable>
+              ) : null}
+            </View>
+            <Pressable
+              style={styles.toolbarSearchCancel}
+              onPress={handleSearchClose}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Close search"
+            >
+              <Text style={styles.toolbarSearchCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </TabScreenToolbar>
 
       {/* Full-bleed stack zones own their scroll, so the back-to-feed
           affordance floats below the toolbar instead of scrolling with
@@ -593,6 +667,41 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     borderRadius: 999,
     backgroundColor: 'rgba(242, 242, 247, 0.94)',
+  },
+  toolbarSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 8,
+  },
+  toolbarSearchInputWrap: {
+    flex: 1,
+    minWidth: 0,
+    height: 36,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: IOS_COLORS.tertiarySystemFill,
+  },
+  toolbarSearchInput: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 16,
+    color: IOS_COLORS.label,
+    paddingVertical: 0,
+  },
+  toolbarSearchCancel: {
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  toolbarSearchCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: IOS_COLORS.systemBlue,
   },
   addChooserBackdrop: {
     flex: 1,

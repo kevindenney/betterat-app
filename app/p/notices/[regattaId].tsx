@@ -1,6 +1,6 @@
 /**
  * Public Notices Page
- * Accessible without authentication - shareable link for non-RegattaFlow users
+ * Accessible without authentication - shareable link for non-BetterAt users
  * 
  * URL: /p/notices/[regattaId]
  */
@@ -216,7 +216,7 @@ export default function PublicNoticesPage() {
           style={styles.secondaryButton}
           onPress={() =>
             Linking.openURL(
-              `mailto:support@regattaflow.com?subject=${encodeURIComponent('Public Notices Unavailable')}&body=${encodeURIComponent(`Regatta: ${regattaId}\nError: ${error || 'Notices unavailable'}`)}`
+              `mailto:info@better.at?subject=${encodeURIComponent('Public Notices Unavailable')}&body=${encodeURIComponent(`Regatta: ${regattaId}\nError: ${error || 'Notices unavailable'}`)}`
             )
           }
         >
@@ -308,7 +308,7 @@ export default function PublicNoticesPage() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Pull down to refresh</Text>
-          <Text style={styles.footerBrand}>Powered by RegattaFlow</Text>
+          <Text style={styles.footerBrand}>Powered by BetterAt</Text>
         </View>
       </ScrollView>
     </View>

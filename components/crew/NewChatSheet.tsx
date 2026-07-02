@@ -223,7 +223,7 @@ export function NewChatSheet({
                 description="Message your racing crews"
                 onPress={() => {
                   handleClose();
-                  router.push('/(tabs)/crew');
+                  router.push('/crew');
                 }}
               />
             </View>

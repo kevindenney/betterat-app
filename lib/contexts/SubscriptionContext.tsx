@@ -1,6 +1,6 @@
 /**
  * Subscription Context
- * Marine-grade subscription state management for RegattaFlow
+ * Marine-grade subscription state management for BetterAt
  * Provides app-wide access to subscription status and purchase methods
  */
 
@@ -155,8 +155,8 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         // Show success feedback
         const product = products.find(p => p.id === productId);
         showAlert(
-          'Welcome to RegattaFlow Pro!',
-          `You now have access to ${product?.title || 'premium features'}. Start exploring advanced sailing features!`
+          'Welcome to BetterAt!',
+          `You now have access to ${product?.title || 'premium features'}. Start exploring your premium features.`
         );
       } else if (result.error && !result.error.includes('cancelled')) {
         // Show error for non-cancellation errors

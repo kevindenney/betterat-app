@@ -65,7 +65,7 @@ const SAILOR_WORKSPACE: DemoWorkspace = {
 const COACH_WORKSPACE: DemoWorkspace = {
   profile: {
     full_name: 'Demo Coach',
-    email: 'demo-coach@regattaflow.app',
+    email: 'demo-coach@betterat.app',
     user_type: 'coach',
     onboarding_step: 'demo_coach',
     onboarding_completed: true,
@@ -85,7 +85,7 @@ const COACH_WORKSPACE: DemoWorkspace = {
 const CLUB_WORKSPACE: DemoWorkspace = {
   profile: {
     full_name: 'Demo Club Manager',
-    email: 'demo-club@regattaflow.app',
+    email: 'demo-club@betterat.app',
     user_type: 'club',
     onboarding_step: 'demo_club',
     onboarding_completed: true,

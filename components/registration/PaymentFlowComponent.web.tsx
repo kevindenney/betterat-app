@@ -21,7 +21,7 @@ export function PaymentFlowComponent({ onSuccess, onCancel }: PaymentFlowProps) 
       <Pressable
         onPress={() =>
           Linking.openURL(
-            'mailto:support@regattaflow.com?subject=Web%20Payment%20Support&body=I%20need%20help%20completing%20registration%20payment%20on%20web.'
+            'mailto:info@better.at?subject=Web%20Payment%20Support&body=I%20need%20help%20completing%20registration%20payment%20on%20web.'
           )
         }
         style={{ borderWidth: 1, borderColor: '#d1d5db', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 12 }}
@@ -42,4 +42,3 @@ export function PaymentFlowComponent({ onSuccess, onCancel }: PaymentFlowProps) 
     </View>
   );
 }
-

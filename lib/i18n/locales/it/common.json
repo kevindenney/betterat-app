@@ -1,5 +1,5 @@
 {
-  "app_name": "RegattaFlow",
+  "app_name": "BetterAt",
   "loading": "Caricamento...",
   "error": "Errore",
   "success": "Successo",
@@ -49,4 +49,3 @@
     "fahrenheit": "°F"
   }
 }
-

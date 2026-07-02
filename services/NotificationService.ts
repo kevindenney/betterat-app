@@ -933,17 +933,25 @@ class NotificationServiceClass {
     stepId: string;
     stepTitle: string;
     reviewStatus: 'approved' | 'needs_revision';
+    reviewNote?: string;
+    suggestedNext?: string;
   }): Promise<string> {
     const verb = input.reviewStatus === 'approved' ? 'approved' : 'requested changes on';
+    const detail = input.reviewNote?.trim() || input.suggestedNext?.trim();
+    const body = detail
+      ? `${input.actorName} ${verb} "${input.stepTitle}": ${detail}`
+      : `${input.actorName} ${verb} "${input.stepTitle}"`;
     return this.createNotification(input.targetUserId, {
       type: 'step_reviewed',
       title: 'Step reviewed',
-      body: `${input.actorName} ${verb} "${input.stepTitle}"`,
+      body,
       actorId: input.actorId,
       data: {
         step_id: input.stepId,
         step_title: input.stepTitle,
         review_status: input.reviewStatus,
+        review_note: input.reviewNote?.trim() || null,
+        suggested_next: input.suggestedNext?.trim() || null,
       },
     });
   }

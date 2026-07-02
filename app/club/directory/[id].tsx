@@ -181,7 +181,7 @@ export default function GlobalClubDetailScreen() {
           {club.isClaimed && (
             <View style={styles.claimedBadge}>
               <Flag size={14} color={IOS_COLORS.systemBlue} />
-              <Text style={styles.claimedText}>On RegattaFlow</Text>
+              <Text style={styles.claimedText}>On BetterAt</Text>
             </View>
           )}
         </View>
@@ -295,7 +295,7 @@ export default function GlobalClubDetailScreen() {
           <View style={styles.claimExplanation}>
             <Text style={styles.claimExplanationTitle}>Are you a club administrator?</Text>
             <Text style={styles.claimExplanationText}>
-              Claim this club to manage it on RegattaFlow. You'll be able to create races,
+              Claim this club to manage it on BetterAt. You'll be able to create races,
               manage members, and publish results.
             </Text>
           </View>

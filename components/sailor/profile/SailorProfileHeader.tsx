@@ -72,11 +72,11 @@ export function SailorProfileHeader({
   const handleShare = async () => {
     try {
       triggerHaptic('selection');
-      const profileUrl = `https://regattaflow.app/profile/${profile.userId}`;
+      const profileUrl = `https://better.at/profile/${profile.userId}`;
       await Share.share({
-        message: `Check out ${profile.displayName} on RegattaFlow! ${profileUrl}`,
+        message: `Check out ${profile.displayName} on BetterAt! ${profileUrl}`,
         url: profileUrl,
-        title: `${profile.displayName} on RegattaFlow`,
+        title: `${profile.displayName} on BetterAt`,
       });
     } catch (error) {
       if ((error as Error).message !== 'User did not share') {

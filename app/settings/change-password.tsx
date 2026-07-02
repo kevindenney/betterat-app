@@ -10,7 +10,7 @@ import {
   Platform,
   StyleSheet,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { showAlert, showConfirm } from '@/lib/utils/crossPlatformAlert';
 import { Eye, EyeOff, Lock } from 'lucide-react-native';
@@ -18,9 +18,22 @@ import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/services/supabase';
 import { IOS_COLORS } from '@/lib/design-tokens-ios';
 
+const PASSWORD_RESET_RETURN_TO = '/settings/change-password?recovery=1';
+
+const getPasswordResetRedirectUrl = () => {
+  const origin = Platform.OS === 'web' && typeof window !== 'undefined'
+    ? window.location.origin
+    : 'https://better.at';
+  const callbackUrl = new URL('/callback', origin);
+  callbackUrl.searchParams.set('returnTo', PASSWORD_RESET_RETURN_TO);
+  return callbackUrl.toString();
+};
+
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const { recovery } = useLocalSearchParams<{ recovery?: string }>();
   const { user } = useAuth();
+  const isRecovery = recovery === '1';
   const [loading, setLoading] = React.useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
@@ -52,7 +65,7 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if ((!isRecovery && !currentPassword) || !newPassword || !confirmPassword) {
       showAlert('Error', 'All fields are required');
       return;
     }
@@ -68,7 +81,7 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    if (currentPassword === newPassword) {
+    if (!isRecovery && currentPassword === newPassword) {
       showAlert('Error', 'New password must be different from current password');
       return;
     }
@@ -76,14 +89,16 @@ export default function ChangePasswordScreen() {
     setLoading(true);
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user?.email || '',
-        password: currentPassword,
-      });
+      if (!isRecovery) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: user?.email || '',
+          password: currentPassword,
+        });
 
-      if (signInError) {
-        showAlert('Error', 'Current password is incorrect');
-        return;
+        if (signInError) {
+          showAlert('Error', 'Current password is incorrect');
+          return;
+        }
       }
 
       const { error } = await supabase.auth.updateUser({
@@ -93,7 +108,11 @@ export default function ChangePasswordScreen() {
       if (error) throw error;
 
       showAlert('Success', 'Your password has been changed successfully');
-      router.back();
+      if (isRecovery) {
+        router.replace('/(tabs)/settings');
+      } else {
+        router.back();
+      }
     } catch (error: any) {
       console.error('Error changing password:', error);
       showAlert('Error', error.message || 'Failed to change password');
@@ -151,34 +170,40 @@ export default function ChangePasswordScreen() {
             <Text style={styles.infoText}>
               • At least 8 characters long{'\n'}
               • Contains uppercase and lowercase letters{'\n'}
-              • Contains at least one number{'\n'}
-              • Different from current password
+              • Contains at least one number
+              {!isRecovery && (
+                <>
+                  {'\n'}• Different from current password
+                </>
+              )}
             </Text>
           </View>
         </View>
 
         <View style={styles.formCard}>
-          <View style={styles.field}>
-            <Text style={styles.label}>Current Password</Text>
-            <View style={styles.inputWrap}>
-              <TextInput
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                placeholder="Enter current password"
-                placeholderTextColor={IOS_COLORS.systemGray}
-                secureTextEntry={!showCurrentPassword}
-                style={styles.input}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
-                {showCurrentPassword ? (
-                  <EyeOff size={20} color={IOS_COLORS.systemGray} />
-                ) : (
-                  <Eye size={20} color={IOS_COLORS.systemGray} />
-                )}
-              </TouchableOpacity>
+          {!isRecovery && (
+            <View style={styles.field}>
+              <Text style={styles.label}>Current Password</Text>
+              <View style={styles.inputWrap}>
+                <TextInput
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  placeholder="Enter current password"
+                  placeholderTextColor={IOS_COLORS.systemGray}
+                  secureTextEntry={!showCurrentPassword}
+                  style={styles.input}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+                  {showCurrentPassword ? (
+                    <EyeOff size={20} color={IOS_COLORS.systemGray} />
+                  ) : (
+                    <Eye size={20} color={IOS_COLORS.systemGray} />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )}
 
           <View style={styles.field}>
             <Text style={styles.label}>New Password</Text>
@@ -243,36 +268,40 @@ export default function ChangePasswordScreen() {
             {loading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.submitText}>Change Password</Text>
+              <Text style={styles.submitText}>{isRecovery ? 'Reset Password' : 'Change Password'}</Text>
             )}
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          onPress={() => {
-      showConfirm(
-        'Reset Password',
-        'A password reset link will be sent to your email',
-        async () => {
-          try {
-            if (!user?.email) {
-              showAlert('Error', 'No email address is available for password reset');
-              return;
-            }
-            const { error } = await supabase.auth.resetPasswordForEmail(user.email);
-            if (error) throw error;
-            showAlert('Success', 'Password reset link sent to your email');
-          } catch (error) {
-            showAlert('Error', 'Failed to send reset link');
-                }
-              },
-              { confirmText: 'Send Link' }
-            );
-          }}
-          style={styles.forgotButton}
-        >
-          <Text style={styles.forgotText}>Forgot your current password?</Text>
-        </TouchableOpacity>
+        {!isRecovery && (
+          <TouchableOpacity
+            onPress={() => {
+              showConfirm(
+                'Reset Password',
+                'A password reset link will be sent to your email',
+                async () => {
+                  try {
+                    if (!user?.email) {
+                      showAlert('Error', 'No email address is available for password reset');
+                      return;
+                    }
+                    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                      redirectTo: getPasswordResetRedirectUrl(),
+                    });
+                    if (error) throw error;
+                    showAlert('Success', 'Password reset link sent to your email');
+                  } catch (error) {
+                    showAlert('Error', 'Failed to send reset link');
+                  }
+                },
+                { confirmText: 'Send Link' }
+              );
+            }}
+            style={styles.forgotButton}
+          >
+            <Text style={styles.forgotText}>Forgot your current password?</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

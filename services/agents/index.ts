@@ -1,6 +1,6 @@
 /**
  * Agent Services
- * Export all autonomous AI agents for RegattaFlow
+ * Export all autonomous AI agents for BetterAt
  */
 
 export { BaseAgentService } from './BaseAgentService';

@@ -23,10 +23,11 @@ export default function ForOrganizationsPage() {
 
   const handleScheduleDemo = () => {
     // Navigate to contact/demo page or open email
+    const url = 'mailto:info@better.at?subject=Schedule Demo Request';
     if (Platform.OS === 'web') {
-      window.location.href = 'mailto:demo@regattaflow.com?subject=Schedule Demo Request';
+      window.location.href = url;
     } else {
-      Linking.openURL('mailto:demo@regattaflow.com?subject=Schedule Demo Request');
+      Linking.openURL(url);
     }
   };
 
@@ -42,9 +43,9 @@ export default function ForOrganizationsPage() {
         <View style={styles.headerContent}>
           <View style={styles.logoContainer}>
             <View style={styles.logo}>
-              <Text style={styles.logoText}>RF</Text>
+              <Text style={styles.logoText}>BA</Text>
             </View>
-            <Text style={styles.brandName}>RegattaFlow</Text>
+            <Text style={styles.brandName}>BetterAt</Text>
           </View>
 
           {/* Desktop Navigation */}
@@ -409,7 +410,7 @@ export default function ForOrganizationsPage() {
                 <Ionicons name="quote" size={32} color="#4169E1" />
               </View>
               <Text style={styles.testimonialText}>
-                "RegattaFlow made us look incredibly professional. Participation doubled the following year."
+                "BetterAt made us look incredibly professional. Participation doubled the following year."
               </Text>
               <View style={styles.testimonialAuthor}>
                 <Text style={styles.authorName}>Emma Thompson</Text>
@@ -449,9 +450,9 @@ export default function ForOrganizationsPage() {
           <View style={styles.footerTop}>
             <View style={styles.footerBrand}>
               <View style={styles.logo}>
-                <Text style={styles.logoText}>RF</Text>
+                <Text style={styles.logoText}>BA</Text>
               </View>
-              <Text style={styles.brandName}>RegattaFlow</Text>
+              <Text style={styles.brandName}>BetterAt</Text>
             </View>
 
             <Text style={styles.footerTagline}>
@@ -502,7 +503,7 @@ export default function ForOrganizationsPage() {
 
           <View style={styles.footerBottom}>
             <Text style={styles.footerCopyright}>
-              © 2025 RegattaFlow. All rights reserved.
+              © 2025 BetterAt. All rights reserved.
             </Text>
             <View style={styles.footerSocial}>
               <TouchableOpacity style={styles.socialIcon}>

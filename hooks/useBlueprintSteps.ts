@@ -16,6 +16,19 @@ export interface BlueprintSubStep {
   text: string;
 }
 
+export interface BlueprintBeat {
+  timeLabel: string;
+  title: string;
+  body: string | null;
+}
+
+export interface BlueprintStepPlanMetadata {
+  why: string | null;
+  whenLabel: string | null;
+  whereLabel: string | null;
+  beats: BlueprintBeat[];
+}
+
 export interface BlueprintStepTemplate {
   id: string;
   blueprintId: string;
@@ -27,6 +40,8 @@ export interface BlueprintStepTemplate {
   subSteps: BlueprintSubStep[];
   preceptorRole: string | null;
   capabilityTags: string[];
+  capabilityCompetencyIds: string[];
+  planMetadata: BlueprintStepPlanMetadata;
 }
 
 type RpcRow = {
@@ -40,7 +55,66 @@ type RpcRow = {
   sub_steps: BlueprintSubStep[] | null;
   preceptor_role: string | null;
   capability_tags: string[] | null;
+  capability_competency_ids: string[] | null;
+  plan_metadata: Record<string, unknown> | null;
 };
+
+const STEP_SELECT_BASE =
+  'id, blueprint_id, sort_order, title, description, category, what_question, sub_steps, preceptor_role, capability_tags, plan_metadata';
+const STEP_SELECT_WITH_COMPETENCY_IDS = `${STEP_SELECT_BASE}, capability_competency_ids`;
+
+function isMissingCapabilityCompetencyColumn(error: { message?: string; details?: string } | null) {
+  const text = `${error?.message ?? ''} ${error?.details ?? ''}`;
+  return text.includes('capability_competency_ids');
+}
+
+function textOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function normalizeBeats(value: unknown): BlueprintBeat[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((beat) => {
+      if (!beat || typeof beat !== 'object') return null;
+      const row = beat as Record<string, unknown>;
+      const title = textOrNull(row.title);
+      if (!title) return null;
+      return {
+        timeLabel: textOrNull(row.timeLabel ?? row.time_label) ?? '',
+        title,
+        body: textOrNull(row.body),
+      };
+    })
+    .filter((beat): beat is BlueprintBeat => !!beat);
+}
+
+function normalizePlanMetadata(value: Record<string, unknown> | null): BlueprintStepPlanMetadata {
+  const meta = value ?? {};
+  return {
+    why: textOrNull(meta.why),
+    whenLabel: textOrNull(meta.whenLabel ?? meta.when_label),
+    whereLabel: textOrNull(meta.whereLabel ?? meta.where_label),
+    beats: normalizeBeats(meta.beats),
+  };
+}
+
+function serializePlanMetadata(input: Partial<BlueprintStepPlanMetadata>): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  if (input.why !== undefined) payload.why = input.why?.trim() || null;
+  if (input.whenLabel !== undefined) payload.when_label = input.whenLabel?.trim() || null;
+  if (input.whereLabel !== undefined) payload.where_label = input.whereLabel?.trim() || null;
+  if (input.beats !== undefined) {
+    payload.beats = input.beats
+      .map((beat) => ({
+        time_label: beat.timeLabel.trim(),
+        title: beat.title.trim(),
+        body: beat.body?.trim() || null,
+      }))
+      .filter((beat) => beat.title.length > 0);
+  }
+  return payload;
+}
 
 function normalize(r: RpcRow): BlueprintStepTemplate {
   return {
@@ -54,6 +128,8 @@ function normalize(r: RpcRow): BlueprintStepTemplate {
     subSteps: r.sub_steps ?? [],
     preceptorRole: r.preceptor_role,
     capabilityTags: r.capability_tags ?? [],
+    capabilityCompetencyIds: r.capability_competency_ids ?? [],
+    planMetadata: normalizePlanMetadata(r.plan_metadata),
   };
 }
 
@@ -80,14 +156,21 @@ export function useBlueprintSteps(blueprintId: string, orgId?: string | null) {
     enabled: !!blueprintId,
     staleTime: 30_000,
     queryFn: async (): Promise<BlueprintStepTemplate[]> => {
-      const { data, error } = await supabase
+      const request = supabase
         .from('blueprint_step_templates')
-        .select(
-          'id, blueprint_id, sort_order, title, description, category, what_question, sub_steps, preceptor_role, capability_tags',
-        )
+        .select(STEP_SELECT_WITH_COMPETENCY_IDS)
         .eq('blueprint_id', blueprintId)
         .order('sort_order', { ascending: true });
+      const { data, error } = await request;
       if (error) {
+        if (isMissingCapabilityCompetencyColumn(error)) {
+          const fallback = await supabase
+            .from('blueprint_step_templates')
+            .select(STEP_SELECT_BASE)
+            .eq('blueprint_id', blueprintId)
+            .order('sort_order', { ascending: true });
+          if (!fallback.error) return ((fallback.data ?? []) as RpcRow[]).map(normalize);
+        }
         console.warn('[useBlueprintSteps] query failed', error);
         return [];
       }
@@ -105,6 +188,8 @@ export function useBlueprintSteps(blueprintId: string, orgId?: string | null) {
       subSteps?: BlueprintSubStep[];
       preceptorRole?: string | null;
       capabilityTags?: string[];
+      capabilityCompetencyIds?: string[];
+      planMetadata?: Partial<BlueprintStepPlanMetadata>;
     }) => {
       const payload: Record<string, unknown> = {};
       if (input.title !== undefined) payload.title = input.title;
@@ -114,12 +199,34 @@ export function useBlueprintSteps(blueprintId: string, orgId?: string | null) {
       if (input.subSteps !== undefined) payload.sub_steps = input.subSteps;
       if (input.preceptorRole !== undefined) payload.preceptor_role = input.preceptorRole;
       if (input.capabilityTags !== undefined) payload.capability_tags = input.capabilityTags;
+      if (input.capabilityCompetencyIds !== undefined) {
+        payload.capability_competency_ids = input.capabilityCompetencyIds;
+      }
+      if (input.planMetadata !== undefined) {
+        const existing = steps.find((s) => s.id === input.id);
+        payload.plan_metadata = {
+          ...serializePlanMetadata(existing?.planMetadata ?? {}),
+          ...serializePlanMetadata(input.planMetadata),
+        };
+      }
 
       const { error } = await supabase
         .from('blueprint_step_templates')
         .update(payload)
         .eq('id', input.id);
-      if (error) throw error;
+      if (error) {
+        if (isMissingCapabilityCompetencyColumn(error) && 'capability_competency_ids' in payload) {
+          const retryPayload = { ...payload };
+          delete retryPayload.capability_competency_ids;
+          const retry = await supabase
+            .from('blueprint_step_templates')
+            .update(retryPayload)
+            .eq('id', input.id);
+          if (retry.error) throw retry.error;
+        } else {
+          throw error;
+        }
+      }
       const existing = steps.find((s) => s.id === input.id);
       return { input, existingTitle: existing?.title ?? null };
     },
@@ -139,14 +246,19 @@ export function useBlueprintSteps(blueprintId: string, orgId?: string | null) {
     mutationFn: async (input: { title: string; category?: StepCategory }) => {
       const maxOrder = steps[steps.length - 1]?.sortOrder ?? 0;
       const cleanTitle = input.title.trim() || 'Untitled step';
-      const { error } = await supabase.from('blueprint_step_templates').insert({
-        blueprint_id: blueprintId,
-        sort_order: maxOrder + 1,
-        title: cleanTitle,
-        category: input.category ?? 'other',
-      });
+      const { data, error } = await supabase
+        .from('blueprint_step_templates')
+        .insert({
+          blueprint_id: blueprintId,
+          sort_order: maxOrder + 1,
+          title: cleanTitle,
+          category: input.category ?? 'other',
+          plan_metadata: {},
+        })
+        .select('id')
+        .single();
       if (error) throw error;
-      return { title: cleanTitle };
+      return { id: data.id as string, title: cleanTitle };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
@@ -166,6 +278,7 @@ export function useBlueprintSteps(blueprintId: string, orgId?: string | null) {
         title: p.title.trim() || 'Untitled step',
         description: p.description,
         category: 'other' as StepCategory,
+        plan_metadata: {},
       }));
       const { error } = await supabase.from('blueprint_step_templates').insert(rows);
       if (error) throw error;

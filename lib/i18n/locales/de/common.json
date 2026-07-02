@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "RegattaFlow",
+    "name": "BetterAt",
     "tagline": "KI-gestützte Segel-Intelligenz"
   },
   "actions": {
@@ -89,4 +89,3 @@
     "leave": "Möchten Sie wirklich verlassen?"
   }
 }
-

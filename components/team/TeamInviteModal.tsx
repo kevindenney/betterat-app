@@ -75,7 +75,7 @@ export function TeamInviteModal({
   const handleShare = useCallback(async () => {
     if (!inviteCode) return;
 
-    const message = `Join my team "${teamName}" for our upcoming race!\n\nUse invite code: ${inviteCode}\n\nOr tap this link: ${inviteLink || `regattaflow://join-team?code=${inviteCode}`}`;
+    const message = `Join my team "${teamName}" for our upcoming race!\n\nUse invite code: ${inviteCode}\n\nOr tap this link: ${inviteLink || `betterat://join-team?code=${inviteCode}`}`;
     const title = `Join ${teamName}`;
 
     try {
@@ -229,7 +229,7 @@ export function TeamInviteModal({
             <View style={styles.instructionItem}>
               <Text style={styles.instructionNumber}>2</Text>
               <Text style={styles.instructionText}>
-                They enter the code in their RegattaFlow app
+                They enter the code in their BetterAt app
               </Text>
             </View>
             <View style={styles.instructionItem}>

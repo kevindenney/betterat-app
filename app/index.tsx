@@ -43,7 +43,9 @@ function forwardImplicitTokenHash(): boolean {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.location) return false;
   const hash = window.location.hash || '';
   if (!hash.startsWith('#') || !hash.includes('access_token=')) return false;
-  window.location.replace(`/callback${hash}`);
+  const callbackUrl = new URL('/callback', window.location.origin);
+  callbackUrl.hash = hash.slice(1);
+  window.location.replace(callbackUrl.toString());
   return true;
 }
 

@@ -6,11 +6,8 @@ import type { AffinityGroupKind } from '@/hooks/useUserAffinityGroups';
  * crew pods, practice groups).
  *
  * Groups are open-join: a viewer adds their own `active` `member` row and
- * is immediately in. There is no request/approve flow today (no
- * join-policy column, no admin roster UI) — the RLS policies in
- * `20260617200000_affinity_group_members_self_join_leave.sql` permit only
- * self, only role='member', only status='active'. Leader/coach roster
- * control of others stays a separate (future) admin policy.
+ * is immediately in. Admins manage other people through RPCs, because the
+ * self-only INSERT/DELETE policies prevent direct client-side row edits.
  *
  * The (group_id, user_id) primary key means a re-join after a soft
  * 'inactive' must be an UPDATE, not a fresh INSERT — leave() hard-deletes
@@ -50,8 +47,12 @@ export interface AffinityGroupRosterEntry {
   userId: string;
   name: string;
   avatarColor: string | null;
-  role: 'member' | 'leader' | 'coach';
+  role: AffinityGroupMemberRole;
 }
+
+// UI exposes Member/Admin. Admin is stored as the existing `leader` value;
+// `coach` remains here as a compatibility read for old rows/RPC policies.
+export type AffinityGroupMemberRole = 'member' | 'leader' | 'coach';
 
 interface RosterRow {
   user_id: string;
@@ -139,12 +140,36 @@ export class AffinityGroupService {
    * Add another person to a self-serve group as an active member. Routes
    * through the `add_affinity_group_member` SECURITY DEFINER RPC because
    * the self-only INSERT policy blocks inserting someone else's row. The
-   * caller must already be an active member of the group. Idempotent.
+   * caller must be a group admin. Idempotent.
    */
   static async addMember({ groupId, userId }: GroupMembershipArgs): Promise<void> {
     const { error } = await supabase.rpc('add_affinity_group_member', {
       p_group_id: groupId,
       p_user_id: userId,
+    });
+    if (error) throw error;
+  }
+
+  static async updateMemberRole({
+    groupId,
+    userId,
+    role,
+  }: GroupMembershipArgs & { role: AffinityGroupMemberRole }): Promise<void> {
+    const { error } = await supabase.rpc('manage_affinity_group_member', {
+      p_group_id: groupId,
+      p_user_id: userId,
+      p_action: 'set_role',
+      p_role: role,
+    });
+    if (error) throw error;
+  }
+
+  static async removeMember({ groupId, userId }: GroupMembershipArgs): Promise<void> {
+    const { error } = await supabase.rpc('manage_affinity_group_member', {
+      p_group_id: groupId,
+      p_user_id: userId,
+      p_action: 'remove',
+      p_role: null,
     });
     if (error) throw error;
   }
@@ -184,6 +209,13 @@ export class AffinityGroupService {
     if (error) throw error;
   }
 
+  static async resetMyGroupPlan(groupId: string): Promise<void> {
+    const { error } = await supabase.rpc('reset_my_affinity_group_plan', {
+      p_group_id: groupId,
+    });
+    if (error) throw error;
+  }
+
   /**
    * Member-gated roster with display name + avatar tint for the avatar stack.
    * Routes through the `affinity_group_roster` SECURITY DEFINER RPC because the
@@ -214,6 +246,7 @@ export class AffinityGroupService {
     goalLabel,
     affiliations,
     whatsappUrl,
+    telegramUrl,
   }: {
     groupId: string;
     goalAt?: string | null;
@@ -221,6 +254,8 @@ export class AffinityGroupService {
     affiliations?: AffinityGroupAffiliation[];
     /** undefined = leave unchanged; '' = clear; a value = set the link. */
     whatsappUrl?: string;
+    /** undefined = leave unchanged; '' = clear; a value = set the link. */
+    telegramUrl?: string;
   }): Promise<void> {
     const { error } = await supabase.rpc('set_affinity_group_meta', {
       p_group_id: groupId,
@@ -228,6 +263,7 @@ export class AffinityGroupService {
       p_goal_label: goalLabel ?? null,
       p_affiliations: affiliations ?? null,
       p_whatsapp_invite_url: whatsappUrl ?? null,
+      p_telegram_invite_url: telegramUrl ?? null,
     });
     if (error) throw error;
   }
@@ -352,6 +388,18 @@ export class AffinityGroupService {
     const groupId = typeof data === 'string' ? data : null;
     if (!groupId) throw new Error('This invite link is invalid or expired.');
     return groupId;
+  }
+
+  /**
+   * Soft-delete a self-serve group. The RPC is active-member gated and only
+   * allows peer-created groups (crew_pod / practice_group), not institutional
+   * class fleets or cohorts.
+   */
+  static async deleteSelfServeGroup(groupId: string): Promise<void> {
+    const { error } = await supabase.rpc('delete_self_serve_affinity_group', {
+      p_group_id: groupId,
+    });
+    if (error) throw error;
   }
 
   /**

@@ -28,6 +28,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBarVisibility } from './TabBarVisibilityContext';
 
 // Exported constants for layout calculations
 export const FLOATING_TAB_BAR_HEIGHT = 64;
@@ -154,6 +155,13 @@ export default function FloatingTabBar({
   const isTop = position === 'top';
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(1);
+  // Scroll-driven hide progress (0→1) written by the timeline scroll handler.
+  const { scrollHidden } = useTabBarVisibility();
+  // Distance the bar slides off-screen when fully hidden. Bottom slides down,
+  // top slides up. Matches the keyboard-hide distance below.
+  const scrollHideDistance = isTop
+    ? -(FLOATING_TAB_BAR_HEIGHT + 40)
+    : FLOATING_TAB_BAR_HEIGHT + 40;
 
   // Hide tab bar when keyboard is open
   useEffect(() => {
@@ -183,8 +191,12 @@ export default function FloatingTabBar({
   }, [translateY, opacity, isTop]);
 
   const containerAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-    opacity: opacity.value,
+    // Combine keyboard-hide (translateY/opacity) with scroll-hide so the bar
+    // stays off-screen whenever either source wants it gone.
+    transform: [
+      { translateY: translateY.value + scrollHidden.value * scrollHideDistance },
+    ],
+    opacity: opacity.value * (1 - scrollHidden.value),
   }));
 
   // Helper to check if a tab is active based on pathname

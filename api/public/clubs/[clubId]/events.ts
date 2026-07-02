@@ -151,7 +151,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Build base URL
     const baseUrl = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}` 
-      : process.env.EXPO_PUBLIC_API_URL || 'https://regattaflow.com';
+      : process.env.EXPO_PUBLIC_API_URL || 'https://better.at';
 
     const now = new Date();
 
@@ -243,4 +243,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
-

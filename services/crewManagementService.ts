@@ -291,7 +291,7 @@ class CrewManagementService {
   }
 
   /**
-   * Add a crew member from an existing RegattaFlow user (with user_id linking)
+   * Add a crew member from an existing BetterAt user (with user_id linking)
    */
   async addCrewMemberFromUser(
     sailorId: string,

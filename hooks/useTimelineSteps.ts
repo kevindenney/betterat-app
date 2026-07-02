@@ -252,6 +252,7 @@ export function useFoldStep() {
     mutationFn: ({ sourceStepId, targetStepId }) =>
       foldStepIntoStep(sourceStepId, targetStepId),
     onSuccess: (target, { sourceStepId }) => {
+      queryClient.setQueryData(KEYS.stepDetail(target.id), target);
       queryClient.invalidateQueries({ queryKey: ['timeline-steps'] });
       queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(sourceStepId) });
       queryClient.invalidateQueries({ queryKey: KEYS.stepDetail(target.id) });

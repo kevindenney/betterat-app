@@ -495,7 +495,7 @@ export interface GlobalRacingEvent {
   culturalEvents: CulturalEvent[];
   accommodationInfo?: string;
 
-  // RegattaFlow features
+  // BetterAt features
   documentParsingEnabled: boolean;
   aiStrategyAvailable: boolean;
   localKnowledgeLevel: 'expert' | 'good' | 'basic' | 'limited';

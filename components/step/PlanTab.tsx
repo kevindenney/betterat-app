@@ -405,14 +405,18 @@ export function PlanTab({
                 interestName={interestName}
                 stepCategory={stepCategory}
               />
-              <PlanWhereCard
-                location={planData.where_location}
-                readOnly={readOnly}
-                onChange={handleLocationChange}
-                interestSlug={interestSlug}
-                interestName={interestName}
-                stepCategory={stepCategory}
-              />
+              {/* A race's location is its racing area (set in the race header
+                  above), so the generic where card would be a duplicate. */}
+              {!isRace ? (
+                <PlanWhereCard
+                  location={planData.where_location}
+                  readOnly={readOnly}
+                  onChange={handleLocationChange}
+                  interestSlug={interestSlug}
+                  interestName={interestName}
+                  stepCategory={stepCategory}
+                />
+              ) : null}
               {/* Beats render on Plan as well as Do — the run-through
                   belongs in planning, and the same per-step beats are
                   surfaced live on Do for capture. Single shared dataset

@@ -11,6 +11,7 @@ import { buildHinge, decodeHingeId, type HingeDayEntry } from '@/services/HingeB
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { useInboxItems } from '@/hooks/useInboxItems';
 import { useInboxActions } from '@/hooks/useInboxActions';
+import { useUniversalPlus } from '@/components/capture';
 import type { InboxItem } from '@/components/practice/types';
 
 export default function HingeRoute() {
@@ -26,6 +27,7 @@ export default function HingeRoute() {
 
   const { data: inboxItems } = useInboxItems();
   const inboxActions = useInboxActions();
+  const universalPlus = useUniversalPlus();
 
   const decoded = id ? decodeHingeId(id) : null;
   const flagOn = FEATURE_FLAGS.PRACTICE_STEP_LOOP_IOS_REGISTER;
@@ -109,8 +111,8 @@ export default function HingeRoute() {
   );
 
   const handleAddNextStep = React.useCallback(() => {
-    router.push('/practice/create-wizard' as never);
-  }, []);
+    universalPlus.open();
+  }, [universalPlus]);
 
   if (!flagOn) {
     return (

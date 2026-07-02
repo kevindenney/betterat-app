@@ -2,7 +2,7 @@
  * Sailwave Integration Service
  *
  * High-level service for importing and exporting Sailwave .BLW files.
- * Handles the conversion between Sailwave data structures and RegattaFlow's
+ * Handles the conversion between Sailwave data structures and BetterAt's
  * database schema.
  */
 
@@ -311,7 +311,7 @@ export class SailwaveService {
   }> {
     const warnings: string[] = [];
     const errors: string[] = [];
-    const idMap = new Map<number, string>(); // Sailwave ID -> RegattaFlow ID
+    const idMap = new Map<number, string>(); // Sailwave ID -> BetterAt ID
     let count = 0;
     let skipped = 0;
 
@@ -368,7 +368,7 @@ export class SailwaveService {
   }> {
     const warnings: string[] = [];
     const errors: string[] = [];
-    const idMap = new Map<number, string>(); // Sailwave ID -> RegattaFlow ID
+    const idMap = new Map<number, string>(); // Sailwave ID -> BetterAt ID
     let count = 0;
     let skipped = 0;
 

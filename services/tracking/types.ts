@@ -276,7 +276,7 @@ export type TrackFileFormat =
   | 'kml' // Keyhole Markup Language
   | 'csv' // Generic CSV
   | 'nmea' // NMEA 0183 sentences
-  | 'json'; // RegattaFlow native
+  | 'json'; // BetterAt native
 
 export interface TrackImportResult {
   success: boolean;
@@ -330,4 +330,3 @@ export interface LiveTrackingConfig {
   updateInterval?: number; // ms
   trailLength?: number; // number of positions to keep
 }
-

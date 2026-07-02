@@ -1,7 +1,7 @@
 /**
  * Global Venue Database Service
  * Central repository for the 147+ major sailing venues worldwide
- * Core of RegattaFlow's "OnX Maps for Sailing" intelligence system
+ * Core of BetterAt's "OnX Maps for Sailing" intelligence system
  */
 
 import { SupabaseVenueService } from './SupabaseVenueService';
@@ -151,7 +151,7 @@ export class GlobalVenueDatabase {
    * Get nearby venues for circuit planning
    */
   getNearbyVenues(coordinates: Coordinates, maxDistance: number = 500): SailingVenue[] {
-    const nearby: Array<{venue: SailingVenue, distance: number}> = [];
+    const nearby: {venue: SailingVenue, distance: number}[] = [];
 
     for (const venue of this.venues.values()) {
       const distance = this.calculateDistance(coordinates, venue.coordinates);
@@ -173,7 +173,7 @@ export class GlobalVenueDatabase {
     totalVenues: number;
     venuesByType: Record<VenueType, number>;
     venuesByRegion: Record<string, number>;
-    topSailingCountries: Array<{country: string, count: number}>;
+    topSailingCountries: {country: string, count: number}[];
   } {
     const venuesByType: Record<VenueType, number> = {
       championship: 0,

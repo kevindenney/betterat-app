@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
@@ -32,6 +32,7 @@ import { getAdminVocabulary } from '@/lib/vocabulary';
 
 export type AdminNavKey =
   | 'overview'
+  | 'inbox'
   | 'people'
   | 'calendar'
   | 'cohorts'
@@ -74,6 +75,7 @@ export function AdminShell({ activeKey, accent = 'navy', primaryAction, children
   const programs = useAdminPrograms(orgId as string);
   const blueprints = useAdminOrgBlueprints(orgId as string);
   const calendar = useAdminCalendar(orgId as string);
+  const [showProfileMenu, setShowProfileMenu] = React.useState(false);
 
   // Only admins of *this* org may see the Studio chrome. Without this gate
   // any signed-in account that lands on a stale /admin/<orgId> URL (e.g. a
@@ -124,6 +126,15 @@ export function AdminShell({ activeKey, accent = 'navy', primaryAction, children
           label: 'Overview',
           active: activeKey === 'overview',
           onPress: () => goto('overview'),
+        },
+        {
+          key: 'inbox',
+          icon: 'file-tray-outline',
+          label: 'Inbox',
+          count: people.counts.pending || undefined,
+          countTone: people.counts.pending ? 'coral' : undefined,
+          active: activeKey === 'inbox',
+          onPress: () => goto('inbox'),
         },
         {
           key: 'people',
@@ -280,6 +291,15 @@ export function AdminShell({ activeKey, accent = 'navy', primaryAction, children
             onPress: () => goto('overview'),
           },
           {
+            key: 'inbox',
+            icon: 'file-tray-outline',
+            label: 'Inbox',
+            count: people.counts.pending || undefined,
+            countTone: people.counts.pending ? 'coral' : undefined,
+            active: activeKey === 'inbox',
+            onPress: () => goto('inbox'),
+          },
+          {
             key: 'cohorts',
             icon: 'school-outline',
             label: 'Cohorts',
@@ -314,15 +334,86 @@ export function AdminShell({ activeKey, accent = 'navy', primaryAction, children
           initials,
           statusLine: 'Administrator',
         }}
-        onUserCardPress={() =>
-          showConfirm('Sign out', `Sign out of ${displayName}?`, () => {
-            void signOut();
-          })
-        }
+        onUserCardPress={() => setShowProfileMenu(true)}
       >
         {children}
       </StudioShell>
+
+      {showProfileMenu ? (
+        <Pressable style={s.menuScrim} onPress={() => setShowProfileMenu(false)}>
+          <Pressable style={s.menuCard} onPress={(e) => e.stopPropagation?.()}>
+            <View style={s.menuHeader}>
+              <View style={[s.menuAvi, { backgroundColor: '#28406B' }]}>
+                <Text style={s.menuAviText}>{initials}</Text>
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.menuName} numberOfLines={1}>{displayName}</Text>
+                <Text style={s.menuSub} numberOfLines={1}>{user?.email ?? 'Administrator'}</Text>
+              </View>
+            </View>
+            <ProfileMenuRow
+              icon="swap-horizontal-outline"
+              label="Switch to my practice"
+              sub="Your own learning & doing"
+              onPress={() => {
+                setShowProfileMenu(false);
+                router.push('/(tabs)/practice' as any);
+              }}
+            />
+            <ProfileMenuRow
+              icon="person-circle-outline"
+              label="Account"
+              onPress={() => {
+                setShowProfileMenu(false);
+                router.push('/account' as any);
+              }}
+            />
+            <View style={s.menuDivider} />
+            <ProfileMenuRow
+              icon="log-out-outline"
+              label="Sign out"
+              destructive
+              onPress={() => {
+                setShowProfileMenu(false);
+                showConfirm('Sign out', `Sign out of ${displayName}?`, () => {
+                  void signOut();
+                });
+              }}
+            />
+          </Pressable>
+        </Pressable>
+      ) : null}
     </View>
+  );
+}
+
+function ProfileMenuRow({
+  icon,
+  label,
+  sub,
+  destructive,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  sub?: string;
+  destructive?: boolean;
+  onPress: () => void;
+}) {
+  const fg = destructive ? '#FF3B30' : '#1C1C1E';
+  return (
+    <Pressable
+      style={s.menuRow}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={18} color={destructive ? '#FF3B30' : 'rgba(60,60,67,0.6)'} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[s.menuRowLabel, { color: fg }]} numberOfLines={1}>{label}</Text>
+        {sub ? <Text style={s.menuRowSub} numberOfLines={1}>{sub}</Text> : null}
+      </View>
+    </Pressable>
   );
 }
 
@@ -346,6 +437,55 @@ const s = StyleSheet.create({
     backgroundColor: '#F2F2F7',
     ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),
   },
+  menuScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    padding: 14,
+    ...(Platform.OS === 'web' ? ({ position: 'fixed' } as any) : {}),
+  },
+  menuCard: {
+    width: 268,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.08)',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
+    marginBottom: 64,
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  menuAvi: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuAviText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  menuName: { fontSize: 14, fontWeight: '600', color: '#1C1C1E' },
+  menuSub: { fontSize: 12, color: 'rgba(60,60,67,0.55)', marginTop: 1 },
+  menuDivider: { height: 1, backgroundColor: 'rgba(60,60,67,0.08)', marginVertical: 4 },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  menuRowLabel: { fontSize: 14, fontWeight: '500' },
+  menuRowSub: { fontSize: 11.5, color: 'rgba(60,60,67,0.5)', marginTop: 1 },
   seatsLabel: {
     fontSize: 10,
     color: '#28406B',

@@ -36,6 +36,9 @@ interface CompetencyPickerModalProps {
    * useful tags that are not yet structured competencies.
    */
   suggestedCapabilities?: { id: string; label: string; source?: string }[];
+  /** Eyebrow shown above the suggested block. Defaults to a step-scoped label;
+      pass a program-framework label when the suggestions are org competencies. */
+  suggestedHeading?: string;
   selectedSuggestedLabels?: string[];
   onToggleSuggested?: (label: string) => void;
 }
@@ -47,6 +50,7 @@ export function CompetencyPickerModal({
   onToggle,
   interestId,
   suggestedCapabilities = [],
+  suggestedHeading = 'Suggested for this step',
   selectedSuggestedLabels = [],
   onToggleSuggested,
 }: CompetencyPickerModalProps) {
@@ -185,7 +189,7 @@ export function CompetencyPickerModal({
           <ScrollView style={s.list} showsVerticalScrollIndicator={false}>
             {filteredSuggestions.length > 0 && (
               <View style={s.suggestedBlock}>
-                <Text style={s.suggestedEye}>Suggested for this step</Text>
+                <Text style={s.suggestedEye}>{suggestedHeading}</Text>
                 {filteredSuggestions.map((sug) => {
                   const selected = selectedSuggestedSet.has(normalizeLabel(sug.label));
                   return (

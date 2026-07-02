@@ -1,6 +1,6 @@
 /**
  * Public Regatta Landing Page
- * Accessible without authentication - shareable link for non-RegattaFlow users
+ * Accessible without authentication - shareable link for non-BetterAt users
  * 
  * URL: /p/[regattaId]
  */
@@ -350,8 +350,8 @@ export default function PublicRegattaLanding() {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Powered by RegattaFlow</Text>
-        <TouchableOpacity onPress={() => Linking.openURL('https://regattaflow.com')}>
+        <Text style={styles.footerText}>Powered by BetterAt</Text>
+        <TouchableOpacity onPress={() => Linking.openURL('https://better.at')}>
           <Text style={styles.footerLink}>Get the app →</Text>
         </TouchableOpacity>
       </View>

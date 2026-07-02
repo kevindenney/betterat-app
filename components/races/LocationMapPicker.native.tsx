@@ -302,7 +302,7 @@ export function LocationMapPicker({
       `Platform: ${Platform.OS}\n` +
       `Maps module available: ${mapsAvailable ? 'yes' : 'no'}`
     );
-    const mailtoUrl = `mailto:support@regattaflow.com?subject=${subject}&body=${body}`;
+    const mailtoUrl = `mailto:info@better.at?subject=${subject}&body=${body}`;
     Linking.openURL(mailtoUrl).catch((error) => {
       logger.warn('Failed to open support email:', error);
     });

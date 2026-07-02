@@ -15,6 +15,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { fetchAssignedBlueprints } from '@/services/CohortBlueprintService';
 
 interface LibraryCounts {
   plans: number;
@@ -47,7 +48,14 @@ async function countSubscribedPlans(
     .eq('is_published', true);
   if (interestId) bpQuery = bpQuery.eq('interest_id', interestId);
   const { count } = await bpQuery;
-  return count ?? 0;
+  const legacyCount = count ?? 0;
+
+  // Plus institution-managed blueprints the student added (≥1 materialized
+  // step) — same source the Plans list's third branch surfaces, so the chip
+  // and the list agree.
+  const assigned = await fetchAssignedBlueprints(userId, interestId);
+  const assignedCount = assigned.filter((b) => b.adoptedSteps > 0).length;
+  return legacyCount + assignedCount;
 }
 
 export function useLibraryCounts(interestId?: string | null) {

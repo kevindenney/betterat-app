@@ -1,6 +1,6 @@
 /**
  * Public Schedule Page
- * Accessible without authentication - shareable link for non-RegattaFlow users
+ * Accessible without authentication - shareable link for non-BetterAt users
  * 
  * URL: /p/schedule/[regattaId]
  */
@@ -228,7 +228,7 @@ export default function PublicSchedulePage() {
           style={styles.secondaryButton}
           onPress={() =>
             Linking.openURL(
-              `mailto:support@regattaflow.com?subject=${encodeURIComponent('Public Schedule Unavailable')}&body=${encodeURIComponent(`Regatta: ${regattaId}\nError: ${error || 'Schedule unavailable'}`)}`
+              `mailto:info@better.at?subject=${encodeURIComponent('Public Schedule Unavailable')}&body=${encodeURIComponent(`Regatta: ${regattaId}\nError: ${error || 'Schedule unavailable'}`)}`
             )
           }
         >
@@ -392,7 +392,7 @@ export default function PublicSchedulePage() {
           <Text style={styles.footerText}>
             Last updated: {new Date(data.metadata.last_updated).toLocaleString()}
           </Text>
-          <Text style={styles.footerBrand}>Powered by RegattaFlow</Text>
+          <Text style={styles.footerBrand}>Powered by BetterAt</Text>
         </View>
       </ScrollView>
     </View>

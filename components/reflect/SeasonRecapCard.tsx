@@ -180,7 +180,7 @@ ${recap.venuesVisited} venues raced
 
 Top moment: ${recap.highlights[0]?.title} - ${recap.highlights[0]?.value}
 
-#RegattaFlow #Sailing #YearInReview`;
+#BetterAt #Sailing #YearInReview`;
 
     try {
       await Share.share({ message: shareText });

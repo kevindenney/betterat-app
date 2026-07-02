@@ -90,7 +90,7 @@ interface RouteWaypoint {
 interface ProhibitedArea {
   name: string;
   description?: string;
-  coordinates?: Array<{ lat: number; lng: number }>;
+  coordinates?: { lat: number; lng: number }[];
 }
 
 interface TideGate {
@@ -1170,7 +1170,7 @@ export function RouteBriefingWizard({
           <View style={styles.nativeMapPlaceholder}>
             <MapPin size={48} color={IOS_COLORS.gray} />
             <Text style={styles.nativeMapText}>Map editing available on web</Text>
-            <Text style={styles.nativeMapSubtext}>Open RegattaFlow in a browser to edit waypoints</Text>
+            <Text style={styles.nativeMapSubtext}>Open BetterAt in a browser to edit waypoints</Text>
           </View>
         )}
 

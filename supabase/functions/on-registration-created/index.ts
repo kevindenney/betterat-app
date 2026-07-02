@@ -9,7 +9,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const APP_URL = Deno.env.get('APP_URL') || 'https://app.regattaflow.com';
+const APP_URL = Deno.env.get('APP_URL') || 'https://better.at';
 
 interface WebhookPayload {
   type: 'INSERT';
@@ -335,7 +335,7 @@ function generateEmailHtml(data: any): string {
       <div class="footer">
         <p><strong>${data.club_name}</strong></p>
         ${data.club_website ? `<p><a href="${data.club_website}">${data.club_website.replace('https://', '')}</a></p>` : ''}
-        <p style="margin-top:16px;font-size:12px;">Powered by <a href="https://regattaflow.com">RegattaFlow</a></p>
+        <p style="margin-top:16px;font-size:12px;">Powered by <a href="https://better.at">BetterAt</a></p>
       </div>
     </div>
   </div>
@@ -376,6 +376,5 @@ Questions? ${data.club_email}
 
 ---
 ${data.club_name}
-Powered by RegattaFlow`;
+Powered by BetterAt`;
 }
-

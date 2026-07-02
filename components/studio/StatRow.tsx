@@ -12,7 +12,13 @@
  */
 
 import React, { Children } from 'react';
-import { View, StyleSheet, useWindowDimensions, type ViewStyle } from 'react-native';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  type ViewStyle,
+} from 'react-native';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { STUDIO_COMPACT_BREAKPOINT } from '@/components/studio/StudioShell';
 
@@ -20,16 +26,41 @@ export function StatRow({
   children,
   gap = 12,
   compactColumns = 2,
+  compactScroll = false,
   style,
 }: {
   children: React.ReactNode;
   gap?: number;
   compactColumns?: 1 | 2;
+  /**
+   * On phone, lay the cards out as a single horizontal-scroll strip of
+   * fixed-width chips instead of a wrapped grid. Best when there are 3+ stats
+   * that are individually low-priority (e.g. a mostly-empty KPI dashboard) —
+   * it reclaims the vertical fold for the content below.
+   */
+  compactScroll?: boolean;
   style?: ViewStyle | ViewStyle[];
 }) {
   const { width } = useWindowDimensions();
   const compact = FEATURE_FLAGS.ADMIN_PHONE_PARITY && width < STUDIO_COMPACT_BREAKPOINT;
   const items = Children.toArray(children);
+
+  if (compact && compactScroll) {
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={style as ViewStyle}
+        contentContainerStyle={[styles.scrollContent, { gap }]}
+      >
+        {items.map((child, i) => (
+          <View key={i} style={styles.cellChip}>
+            {child}
+          </View>
+        ))}
+      </ScrollView>
+    );
+  }
 
   const cellStyle: ViewStyle = compact
     ? compactColumns === 1
@@ -51,6 +82,7 @@ export function StatRow({
 const styles = StyleSheet.create({
   row: { flexDirection: 'row' },
   wrap: { flexWrap: 'wrap' },
+  scrollContent: { flexDirection: 'row', paddingRight: 4 },
   // Each cell is itself a row so a child card's `flex: 1` resolves against
   // the cell's WIDTH (its original contract) instead of collapsing its height.
   // ≥600pt — equal-width single row (original behavior).
@@ -59,4 +91,6 @@ const styles = StyleSheet.create({
   cellHalf: { flexBasis: '47%', flexGrow: 1, minWidth: 0, flexDirection: 'row' },
   // <600pt, 1-up — full width stack.
   cellFull: { flexBasis: '100%', minWidth: 0, flexDirection: 'row' },
+  // <600pt, horizontal strip — fixed-width chip the card's `flex: 1` fills.
+  cellChip: { width: 150, flexDirection: 'row' },
 });

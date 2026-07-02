@@ -2,7 +2,7 @@
  * useMarketplaceBlueprint — public detail read for a single
  * marketplace blueprint. Anonymously safe (the RPC is SECURITY DEFINER
  * + GRANT to anon). Returns the steps array only when the caller has
- * an active subscription, is the author, or is an org admin. Also
+ * an active subscription, is an author/co-author, or is an org admin. Also
  * exposes a useUpsertReview mutation gated to subscribers via RLS.
  */
 
@@ -31,7 +31,7 @@ export interface MarketplaceBlueprintDetail {
   authorName: string;
   authorBio: string | null;
   orgName: string | null;
-  stripePriceId: string;
+  stripePriceId: string | null;
   ratingAvg: number | null;
   ratingCount: number;
   activeSubscriberCount: number;
@@ -62,12 +62,15 @@ export interface MarketplaceSubscriptionState {
   currentPeriodEnd: string | null;
 }
 
+export type MarketplaceViewerRole = 'primary_author' | 'co_author' | 'org_admin' | 'subscriber' | null;
+
 export type DetailResult =
   | { ok: false; reason: 'not_found' | 'not_listed' }
   | {
       ok: true;
       blueprint: MarketplaceBlueprintDetail;
       hasAccess: boolean;
+      viewerRole: MarketplaceViewerRole;
       subscription: MarketplaceSubscriptionState | null;
       steps: MarketplaceBlueprintStep[];
       reviews: MarketplaceReview[];
@@ -88,12 +91,13 @@ interface RpcPayload {
     author_name: string;
     author_bio: string | null;
     org_name: string | null;
-    stripe_price_id: string;
+    stripe_price_id: string | null;
     rating_avg: number | string | null;
     rating_count: number;
     active_subscriber_count: number;
   };
   has_access?: boolean;
+  viewer_role?: MarketplaceViewerRole;
   subscription?: {
     id: string;
     status: 'active' | 'trialing';
@@ -168,6 +172,7 @@ export function useMarketplaceBlueprint(blueprintId: string | undefined) {
           activeSubscriberCount: p.blueprint.active_subscriber_count ?? 0,
         },
         hasAccess: !!p.has_access,
+        viewerRole: p.viewer_role ?? null,
         subscription: p.subscription
           ? {
               id: p.subscription.id,
@@ -213,18 +218,11 @@ export function useMarketplaceBlueprint(blueprintId: string | undefined) {
       if (!blueprintId) throw new Error('No blueprint');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Sign in to write a review');
-      const { error } = await supabase
-        .from('marketplace_blueprint_reviews')
-        .upsert(
-          {
-            blueprint_id: blueprintId,
-            reviewer_user_id: user.id,
-            rating: input.rating,
-            body: input.body,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'blueprint_id,reviewer_user_id' },
-        );
+      const { error } = await supabase.rpc('upsert_marketplace_blueprint_review', {
+        p_blueprint_id: blueprintId,
+        p_rating: input.rating,
+        p_body: input.body,
+      });
       if (error) throw error;
       return { ok: true };
     },

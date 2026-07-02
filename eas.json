@@ -17,15 +17,7 @@
     },
     "preview": {
       "distribution": "store",
-            "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}",
-        "EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY": "${EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY}",
-        "EXPO_PUBLIC_OPENWEATHERMAP_API_KEY": "${EXPO_PUBLIC_OPENWEATHERMAP_API_KEY}",
-        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "${EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID}",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "${EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID}",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "${EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID}",
+      "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "ios": {
@@ -49,14 +41,6 @@
     "production": {
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}",
-        "EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY": "${EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY}",
-        "EXPO_PUBLIC_OPENWEATHERMAP_API_KEY": "${EXPO_PUBLIC_OPENWEATHERMAP_API_KEY}",
-        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "${EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID}",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "${EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID}",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "${EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID}",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "ios": {
@@ -74,7 +58,7 @@
     "preview": {
       "ios": {
         "appleId": "kdenney@me.com",
-        "ascAppId": "6757738277",
+        "ascAppId": "6762532743",
         "appleTeamId": "67845JJJZJ"
       },
       "android": {
@@ -86,8 +70,11 @@
     "production": {
       "ios": {
         "appleId": "kdenney@me.com",
-        "ascAppId": "6757738277",
-        "appleTeamId": "67845JJJZJ"
+        "ascAppId": "6762532743",
+        "appleTeamId": "67845JJJZJ",
+        "ascApiKeyPath": "/Users/kdenney/.appstoreconnect/private_keys/AuthKey_B9GW6LC36M.p8",
+        "ascApiKeyId": "B9GW6LC36M",
+        "ascApiKeyIssuerId": "c0364ef0-3b34-40f7-b792-3400b83c64e4"
       },
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",

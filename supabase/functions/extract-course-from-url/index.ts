@@ -82,7 +82,7 @@ serve(async (req: Request) => {
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; RegattaFlow/1.0; Sailing Race Course Extractor)',
+          'User-Agent': 'Mozilla/5.0 (compatible; BetterAt/1.0; Sailing Race Course Extractor)',
           'Accept': 'text/html,text/plain,*/*',
         },
       });
@@ -199,4 +199,3 @@ serve(async (req: Request) => {
     );
   }
 });
-

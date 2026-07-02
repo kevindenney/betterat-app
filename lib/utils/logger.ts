@@ -1,5 +1,5 @@
 /**
- * Environment-aware logging utility for RegattaFlow
+ * Environment-aware logging utility for BetterAt
  *
  * Usage:
  *   const logger = createLogger('ComponentName');

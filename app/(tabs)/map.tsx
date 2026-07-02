@@ -238,7 +238,7 @@ export default function MapScreen() {
       <View style={styles.header}>
         <ThemedText type="title">
           {courseVisualizationMode ? 'Course Visualization' :
-           professionalMode ? 'RegattaFlow Professional' : 'RegattaFlow Standard'}
+           professionalMode ? 'BetterAt Professional' : 'BetterAt Standard'}
         </ThemedText>
         <View style={styles.modeToggle}>
           <TouchableOpacity

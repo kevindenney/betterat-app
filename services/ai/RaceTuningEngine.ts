@@ -613,7 +613,7 @@ ${JSON.stringify(payload, null, 2)}`;
    */
   private transformAIOnlyRecommendation(item: any): RaceTuningRecommendation {
     const guideTitle = item.guideTitle?.trim() || 'AI Rig Tuning Analysis';
-    const guideSource = item.guideSource?.trim() || 'RegattaFlow AI Rig Tuning Analyst';
+    const guideSource = item.guideSource?.trim() || 'BetterAt AI Rig Tuning Analyst';
     const guideId = item.guideId?.trim() || 'ai-generated-tuning';
 
     const settings = Array.isArray(item.settings)

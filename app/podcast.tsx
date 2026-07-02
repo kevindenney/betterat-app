@@ -29,7 +29,7 @@ export default function PodcastPage() {
           </View>
 
           <Text style={[styles.title, isDesktop && styles.titleDesktop]}>
-            RegattaFlow Podcast
+            BetterAt Podcast
           </Text>
 
           <Text style={[styles.subtitle, isDesktop && styles.subtitleDesktop]}>
@@ -46,7 +46,7 @@ export default function PodcastPage() {
             style={styles.secondaryButton}
             onPress={() =>
               Linking.openURL(
-                'mailto:podcast@regattaflow.com?subject=Podcast%20Notifications&body=Please%20notify%20me%20when%20RegattaFlow%20podcast%20episodes%20launch.'
+                'mailto:info@better.at?subject=Podcast%20Notifications&body=Please%20notify%20me%20when%20BetterAt%20podcast%20episodes%20launch.'
               )
             }
           >

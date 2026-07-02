@@ -10,6 +10,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { logAuditEvent } from '@/services/auditLog';
+import type { BlueprintCurrency } from '@/hooks/useStudioBlueprint';
 
 export type AccessMode = 'institutional' | 'independent';
 export type BillingCadence = 'monthly' | 'annual' | 'one_time';
@@ -19,6 +20,7 @@ export interface BlueprintPricing {
   accessMode: AccessMode;
   cohortScope: CohortScope;
   pricePerSeatCents: number | null;
+  currency: BlueprintCurrency;
   billingCadence: BillingCadence;
   authorPayoutPct: number;
   trialDays: number;
@@ -33,6 +35,7 @@ interface BlueprintPricingRow {
   access_mode: string;
   cohort_scope: string;
   price_per_seat_cents: number | null;
+  currency: string | null;
   billing_cadence: string | null;
   author_payout_pct: number | null;
   trial_days: number | null;
@@ -47,6 +50,14 @@ interface AssignedCohortRow {
   cohort: { id: string; name: string };
 }
 
+function normalizeCurrency(value: string | null | undefined): BlueprintCurrency {
+  const code = (value ?? '').toLowerCase();
+  if (code === 'hkd' || code === 'gbp' || code === 'eur' || code === 'aud' || code === 'cad' || code === 'sgd') {
+    return code;
+  }
+  return 'usd';
+}
+
 export function useBlueprintPricing(blueprintId: string, orgId?: string | null) {
   const queryClient = useQueryClient();
   const queryKey = ['blueprint-pricing', blueprintId];
@@ -56,6 +67,7 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
       accessMode: AccessMode;
       cohortScope: CohortScope;
       pricePerSeatCents: number | null;
+      currency: BlueprintCurrency;
       billingCadence: BillingCadence;
       authorPayoutPct: number;
       trialDays: number;
@@ -86,6 +98,12 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
         description: `Set billing cadence to ${patch.billingCadence}.`,
       };
     }
+    if (patch.currency !== undefined) {
+      return {
+        label: 'Changed listing currency',
+        description: `Set listing currency to ${patch.currency.toUpperCase()}.`,
+      };
+    }
     if (patch.authorPayoutPct !== undefined) {
       return {
         label: 'Changed author payout',
@@ -110,7 +128,7 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
         supabase
           .from('blueprints')
           .select(
-            'access_mode, cohort_scope, price_per_seat_cents, billing_cadence, author_payout_pct, trial_days, stripe_product_id, stripe_price_id, stripe_synced_at, stripe_sync_error',
+            'access_mode, cohort_scope, price_per_seat_cents, currency, billing_cadence, author_payout_pct, trial_days, stripe_product_id, stripe_price_id, stripe_synced_at, stripe_sync_error',
           )
           .eq('id', blueprintId)
           .maybeSingle(),
@@ -127,6 +145,7 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
         accessMode: (bp.access_mode as AccessMode) ?? 'institutional',
         cohortScope: (bp.cohort_scope as CohortScope) ?? 'specific',
         pricePerSeatCents: bp.price_per_seat_cents ?? null,
+        currency: normalizeCurrency(bp.currency),
         billingCadence: (bp.billing_cadence as BillingCadence) ?? 'monthly',
         authorPayoutPct: bp.author_payout_pct ?? 70,
         trialDays: bp.trial_days ?? 7,
@@ -144,6 +163,7 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
       accessMode: AccessMode;
       cohortScope: CohortScope;
       pricePerSeatCents: number | null;
+      currency: BlueprintCurrency;
       billingCadence: BillingCadence;
       authorPayoutPct: number;
       trialDays: number;
@@ -153,6 +173,7 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
       if (patch.cohortScope !== undefined) payload.cohort_scope = patch.cohortScope;
       if (patch.pricePerSeatCents !== undefined)
         payload.price_per_seat_cents = patch.pricePerSeatCents;
+      if (patch.currency !== undefined) payload.currency = patch.currency;
       if (patch.billingCadence !== undefined) payload.billing_cadence = patch.billingCadence;
       if (patch.authorPayoutPct !== undefined) payload.author_payout_pct = patch.authorPayoutPct;
       if (patch.trialDays !== undefined) payload.trial_days = patch.trialDays;
@@ -256,15 +277,36 @@ export function useBlueprintPricing(blueprintId: string, orgId?: string | null) 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/blueprint-stripe-sync`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ blueprint_id: blueprintId }),
-      });
-      const payload = await res.json().catch(() => ({}));
+      const runSync = async () => {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ blueprint_id: blueprintId }),
+        });
+        const payload = await res.json().catch(() => ({}));
+        return { res, payload };
+      };
+
+      let { res, payload } = await runSync();
+      const syncError = typeof payload?.error === 'string' ? payload.error : '';
+      if (!res.ok && /No such price/i.test(syncError)) {
+        const { error } = await supabase
+          .from('blueprints')
+          .update({ stripe_price_id: null, stripe_sync_error: null })
+          .eq('id', blueprintId);
+        if (error) throw error;
+        ({ res, payload } = await runSync());
+      } else if (!res.ok && /No such product/i.test(syncError)) {
+        const { error } = await supabase
+          .from('blueprints')
+          .update({ stripe_product_id: null, stripe_price_id: null, stripe_sync_error: null })
+          .eq('id', blueprintId);
+        if (error) throw error;
+        ({ res, payload } = await runSync());
+      }
       if (!res.ok) {
         throw new Error(payload?.error ?? 'Stripe sync failed');
       }

@@ -21,47 +21,10 @@ import {
   AffinityGroupService,
   type CreateSelfServeGroupArgs,
 } from '@/services/AffinityGroupService';
-import type { AffinityGroupKind } from '@/hooks/useUserAffinityGroups';
-
-type SelfServeGroupKind = Extract<AffinityGroupKind, 'crew_pod' | 'practice_group'>;
 
 interface CreateAffinityGroupSheetProps {
   visible: boolean;
   onClose: () => void;
-}
-
-const DEFAULT_GROUP_OPTIONS: {
-  value: SelfServeGroupKind;
-  label: string;
-  hint: string;
-}[] = [
-  {
-    value: 'practice_group',
-    label: 'Practice group',
-    hint: 'A peer group working on the same skills.',
-  },
-  {
-    value: 'crew_pod',
-    label: 'Crew',
-    hint: 'A small team that practices together.',
-  },
-];
-
-const NURSING_GROUP_OPTIONS: typeof DEFAULT_GROUP_OPTIONS = [
-  {
-    value: 'practice_group',
-    label: 'Study group',
-    hint: 'A peer-led group for study, labs, or clinical prep.',
-  },
-  {
-    value: 'crew_pod',
-    label: 'Clinical pod',
-    hint: 'A small peer group around shifts or placements.',
-  },
-];
-
-function optionsForInterest(interestSlug?: string | null) {
-  return interestSlug === 'nursing' ? NURSING_GROUP_OPTIONS : DEFAULT_GROUP_OPTIONS;
 }
 
 function placeholderForInterest(interestSlug?: string | null): string {
@@ -78,18 +41,15 @@ export function CreateAffinityGroupSheet({
   const { currentInterest } = useInterest();
   const queryClient = useQueryClient();
   const interestSlug = currentInterest?.slug;
-  const options = React.useMemo(() => optionsForInterest(interestSlug), [interestSlug]);
 
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
-  const [kind, setKind] = React.useState<SelfServeGroupKind>(options[0].value);
 
   React.useEffect(() => {
     if (!visible) return;
     setName('');
     setDescription('');
-    setKind(options[0].value);
-  }, [visible, options]);
+  }, [visible]);
 
   const createMutation = useMutation({
     mutationFn: (input: CreateSelfServeGroupArgs) =>
@@ -117,7 +77,6 @@ export function CreateAffinityGroupSheet({
     }
     createMutation.mutate({
       name,
-      kind,
       description,
       interestSlug,
     });
@@ -177,32 +136,6 @@ export function CreateAffinityGroupSheet({
               returnKeyType="next"
             />
 
-            <Text style={[styles.label, styles.sectionGap]}>What kind?</Text>
-            <View style={styles.kindList}>
-              {options.map((option) => {
-                const active = kind === option.value;
-                return (
-                  <Pressable
-                    key={option.value}
-                    style={[styles.kindRow, active && styles.kindRowActive]}
-                    onPress={() => setKind(option.value)}
-                  >
-                    <View style={styles.kindText}>
-                      <Text style={[styles.kindLabel, active && styles.kindLabelActive]}>
-                        {option.label}
-                      </Text>
-                      <Text style={styles.kindHint}>{option.hint}</Text>
-                    </View>
-                    <Ionicons
-                      name={active ? 'radio-button-on' : 'radio-button-off'}
-                      size={20}
-                      color={active ? IOS_COLORS.systemBlue : IOS_REGISTER.labelTertiary}
-                    />
-                  </Pressable>
-                );
-              })}
-            </View>
-
             <View style={styles.note}>
               <Ionicons
                 name="information-circle-outline"
@@ -210,7 +143,8 @@ export function CreateAffinityGroupSheet({
                 color={IOS_REGISTER.labelSecondary}
               />
               <Text style={styles.noteText}>
-                Official school cohorts are created by institution admins. This adds a peer-run group.
+                A peer-run group you can bring people into and work a plan through together.
+                Official school cohorts are created by institution admins.
               </Text>
             </View>
 
@@ -320,44 +254,6 @@ const styles = StyleSheet.create({
   inputMulti: {
     minHeight: 72,
     textAlignVertical: 'top',
-  },
-  kindList: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(60,60,67,0.16)',
-  },
-  kindRow: {
-    minHeight: 64,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(60,60,67,0.12)',
-  },
-  kindRowActive: {
-    backgroundColor: 'rgba(0,122,255,0.08)',
-  },
-  kindText: {
-    flex: 1,
-  },
-  kindLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: IOS_REGISTER.label,
-  },
-  kindLabelActive: {
-    color: IOS_COLORS.systemBlue,
-  },
-  kindHint: {
-    marginTop: 2,
-    fontSize: 13,
-    lineHeight: 17,
-    color: IOS_REGISTER.labelSecondary,
   },
   note: {
     marginTop: 14,

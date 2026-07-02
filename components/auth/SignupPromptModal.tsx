@@ -7,7 +7,7 @@
  * sailing-flavored when the user picked Design or Knitting.
  *
  * Visual style matches the BetterAt welcome flow (cream background, blue
- * accent, Manrope) — NOT the old dark slate RegattaFlow look.
+ * accent, Manrope) — not the old dark slate legacy look.
  */
 
 import React from 'react';

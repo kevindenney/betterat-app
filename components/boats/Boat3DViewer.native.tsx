@@ -68,7 +68,7 @@ export function Boat3DViewer({
     <View style={[styles.fallbackContainer, { width, height }]}>
       <Text style={styles.fallbackTitle}>3D Viewer available on web</Text>
       <Text style={styles.fallbackBody}>
-        Open RegattaFlow on a desktop browser to interact with the live 3D rig model.
+        Open BetterAt on a desktop browser to interact with the live 3D rig model.
       </Text>
       <Text style={styles.fallbackMetrics}>
         Shrouds: {tuning.shrouds}% • Backstay: {tuning.backstay}%

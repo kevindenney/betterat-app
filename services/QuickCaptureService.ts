@@ -13,7 +13,7 @@
 
 import { supabase } from './supabase';
 import { logger } from '@/lib/logger';
-import { createStep } from './TimelineStepService';
+import { createStep, placeStepBeforeFirstActive } from './TimelineStepService';
 import type { TimelineStepRecord, TimelineStepVisibility } from '@/types/timeline-steps';
 import type {
   MediaUpload,
@@ -230,41 +230,12 @@ async function uploadQuickCaptureImage(
   };
 }
 
-async function getOrderedTimelineSteps(
-  userId: string,
-  interestId: string,
-): Promise<TimelineStepRecord[]> {
-  const { data, error } = await supabase
-    .from('timeline_steps')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('interest_id', interestId)
-    .in('status', ['pending', 'in_progress', 'completed', 'settled'])
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    logger.error('Failed to load ordered timeline steps for quick capture', error);
-    throw error;
-  }
-
-  return (data ?? []) as TimelineStepRecord[];
-}
-
-// New captures append to the end of the sequence. Inserting them right
-// after the current step (the old behavior) wedged fresh steps into the
-// middle of the timeline, which read as misplacement on this
-// sequence-first surface. "Unscheduled" (starts_at null) keeps the step
-// ordered purely by sort_order rather than pinned to today's date bucket.
-async function resolveQuickCapturePlacement(userId: string, interestId: string) {
-  const steps = await getOrderedTimelineSteps(userId, interestId);
-  // Index-based append, not `last.sort_order + 1`. The timeline is
-  // contiguous-by-design (project_timeline_steps_sort_order_degenerate), so a
-  // single poisoned/degenerate sort_order must not propagate: deriving the next
-  // value from the max would inherit a huge outlier and strand every future
-  // step at the bottom past a giant gap. Positional length stays bounded.
+// New captures become the next active step. "Unscheduled" (starts_at null)
+// keeps the step ordered purely by sort_order rather than pinned to today's
+// date bucket.
+async function resolveQuickCapturePlacement() {
   return {
-    sortOrder: steps.length,
+    sortOrder: 0,
     startsAt: null as string | null,
   };
 }
@@ -280,7 +251,7 @@ export async function createDraftStep({
     throw new Error('Quick-capture content is empty.');
   }
 
-  const placement = await resolveQuickCapturePlacement(userId, interestId);
+  const placement = await resolveQuickCapturePlacement();
 
   // A flagged race carries its area/course choice as the canonical race_plan,
   // plus the display-only race_course_context chips the timeline + Atlas read.
@@ -333,6 +304,7 @@ export async function createDraftStep({
       ...(mediaUpload ? { act: { media_uploads: [mediaUpload] } } : {}),
     },
   });
+  await placeStepBeforeFirstActive(created);
 
   // Run-through beats from a worked example are the timed performance — they
   // live in step_beats, not plan.how_sub_steps, so they're inserted now that

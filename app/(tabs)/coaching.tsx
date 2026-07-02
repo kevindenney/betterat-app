@@ -610,7 +610,7 @@ export default function CoachingHubScreen() {
               <View style={styles.becomeCoachContent}>
                 <Text style={styles.becomeCoachTitle}>Share Your Expertise</Text>
                 <Text style={styles.becomeCoachDescription}>
-                  Turn your sailing knowledge into income. Coach sailors worldwide, set your own rates, and build your reputation on RegattaFlow.
+                  Turn your sailing knowledge into income. Coach sailors worldwide, set your own rates, and build your reputation on BetterAt.
                 </Text>
                 <TouchableOpacity
                   style={styles.becomeCoachButton}
@@ -863,7 +863,7 @@ function GuestCoachingView({
             <Ionicons name="trophy-outline" size={28} color={IOS_COLORS.blue} style={{ marginBottom: 12 }} />
             <Text style={styles.guestBecomeCoachTitle}>Are you a coach?</Text>
             <Text style={styles.guestBecomeCoachDescription}>
-              Share your expertise and earn money coaching sailors worldwide on RegattaFlow.
+              Share your expertise and earn money coaching sailors worldwide on BetterAt.
             </Text>
             <TouchableOpacity style={styles.guestBecomeCoachButton} onPress={onBecomeCoach}>
               <Text style={styles.guestBecomeCoachButtonText}>Become a Coach</Text>

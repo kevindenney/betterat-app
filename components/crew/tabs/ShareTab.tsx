@@ -143,13 +143,13 @@ export function ShareTab({
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       return `${window.location.origin}/join-race/${code}`;
     }
-    return `regattaflow://join-race?code=${code}`;
+    return `https://better.at/join-race/${code}`;
   }, []);
 
   const getShareMessage = useCallback((code: string) => {
     const url = getShareUrl(code);
     const raceText = raceName ? ` "${raceName}"` : '';
-    return `Join my race${raceText} on RegattaFlow!\n\nInvite code: ${code}\n\nOr tap: ${url}`;
+    return `Join my race${raceText} on BetterAt!\n\nInvite code: ${code}\n\nOr tap: ${url}`;
   }, [raceName, getShareUrl]);
 
   // ---------------------------------------------------------------------------
@@ -198,7 +198,7 @@ export function ShareTab({
         break;
 
       case 'email':
-        const emailSubject = raceName ? `Join my race: ${raceName}` : 'Join my race on RegattaFlow';
+        const emailSubject = raceName ? `Join my race: ${raceName}` : 'Join my race on BetterAt';
         const emailUrl = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(message)}`;
         try {
           await Linking.openURL(emailUrl);
@@ -226,7 +226,7 @@ export function ShareTab({
         }
         break;
     }
-  }, [inviteCode, createInvite, getShareMessage, getShareUrl, raceName]);
+  }, [inviteCode, createInvite, getShareMessage, raceName]);
 
   // ---------------------------------------------------------------------------
   // COLLABORATOR HANDLERS

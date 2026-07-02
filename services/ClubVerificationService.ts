@@ -91,7 +91,7 @@ export class ClubVerificationService {
       // Fetch the website HTML
       const response = await fetch(normalizedUrl, {
         headers: {
-          'User-Agent': 'RegattaFlow-Verifier/1.0',
+          'User-Agent': 'BetterAt-Verifier/1.0',
         },
       });
 

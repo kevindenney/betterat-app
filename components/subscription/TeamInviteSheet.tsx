@@ -97,7 +97,7 @@ export function TeamInviteSheet({
     const link = getInviteLink(currentInviteCode);
     try {
       await Share.share({
-        message: `Join my team on RegattaFlow! Use this link to join: ${link}`,
+        message: `Join my team on BetterAt! Use this link to join: ${link}`,
         url: Platform.OS === 'ios' ? link : undefined,
       });
     } catch (error) {
@@ -248,8 +248,8 @@ export function TeamInviteSheet({
 
 function getInviteLink(code: string): string {
   const baseUrl = Platform.OS === 'web'
-    ? (typeof window !== 'undefined' ? window.location.origin : 'https://regattaflow.com')
-    : 'https://regattaflow.com';
+    ? (typeof window !== 'undefined' ? window.location.origin : 'https://better.at')
+    : 'https://better.at';
   return `${baseUrl}/team-invite/${code}`;
 }
 

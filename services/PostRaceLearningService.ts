@@ -1062,7 +1062,7 @@ Return ONLY the suggestion text, no preamble.`;
         executionInsights,
       };
 
-      const prompt = `You are RegattaFlow's race learning analyst. Blend RegattaFlow Playbook theory with on-boat execution detail. You MUST respond with ONLY valid JSON - no explanatory text before or after the JSON object.
+      const prompt = `You are BetterAt's race learning analyst. Blend BetterAt Playbook theory with on-boat execution detail. You MUST respond with ONLY valid JSON - no explanatory text before or after the JSON object.
 
 Analyze the race data and return a JSON object with this exact structure:
 {

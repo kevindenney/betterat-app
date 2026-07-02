@@ -372,7 +372,7 @@ export class PublicPublishingService {
     baseUrl?: string;
     includeScript?: boolean;
   }): string {
-    const baseUrl = options?.baseUrl || 'https://regattaflow.com';
+    const baseUrl = options?.baseUrl || 'https://better.at';
     const includeScript = options?.includeScript ?? true;
 
     let code = `<div 
@@ -519,4 +519,3 @@ export class PublicPublishingService {
 }
 
 export default PublicPublishingService;
-

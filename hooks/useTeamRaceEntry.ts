@@ -100,7 +100,7 @@ export function useTeamRaceEntry({
   const inviteLink = useMemo(() => {
     if (!inviteCode) return null;
     // Use deep link format for mobile
-    return `regattaflow://join-team?code=${inviteCode}`;
+    return `betterat://join-team?code=${inviteCode}`;
   }, [inviteCode]);
 
   /**

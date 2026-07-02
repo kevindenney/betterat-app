@@ -297,7 +297,7 @@ async function fetchRegattaInfo(regattaId: string): Promise<PublicRegattaInfo | 
 
   const baseUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : process.env.EXPO_PUBLIC_API_URL || 'https://regattaflow.com';
+    : process.env.EXPO_PUBLIC_API_URL || 'https://better.at';
 
   return {
     id: regatta.id,

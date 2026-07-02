@@ -1,7 +1,7 @@
 /* eslint-disable no-console -- Deno edge function uses console.* for runtime diagnostics; no logger available */
 /**
  * Firebase Auth Bridge Edge Function
- * Exchanges Firebase ID token for RegattaFlow/Supabase session
+ * Exchanges Firebase ID token for BetterAt/Supabase session
  * Uses direct REST API calls to avoid supabase-js bundling issues
  */
 
@@ -12,7 +12,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Support multiple Firebase projects (RegattaFlow native + DragonWorlds integration)
+// Support multiple Firebase projects (BetterAt native + DragonWorlds integration)
 const FIREBASE_PROJECTS = [
   {
     projectId: Deno.env.get('FIREBASE_PROJECT_ID') || 'regattaflow-app',

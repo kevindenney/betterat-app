@@ -30,7 +30,7 @@ export interface Club {
   // Sailing specifics
   sailing_area: {
     name: string;
-    boundaries: Array<{ lat: number; lng: number }>;
+    boundaries: { lat: number; lng: number }[];
     hazards: string[];
     typical_conditions: string;
   };
@@ -41,7 +41,7 @@ export interface Club {
   club_type: 'yacht_club' | 'sailing_club' | 'racing_organization' | 'marina';
   facilities: string[];
 
-  // RegattaFlow integration
+  // BetterAt integration
   subscription_tier: 'free' | 'club_basic' | 'club_pro' | 'club_enterprise';
   subscription_status: 'active' | 'inactive' | 'trial';
   created_at: string;
@@ -87,13 +87,13 @@ export interface RaceEvent {
   // Course information
   race_course: {
     type: 'windward_leeward' | 'triangle' | 'olympic' | 'custom';
-    marks: Array<{
+    marks: {
       id: string;
       name: string;
       lat: number;
       lng: number;
       type: 'start' | 'windward' | 'leeward' | 'gate' | 'finish';
-    }>;
+    }[];
     instructions: string;
     safety_notes: string[];
   };

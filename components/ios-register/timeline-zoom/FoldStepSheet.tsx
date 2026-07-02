@@ -41,6 +41,7 @@ interface Props {
   visible: boolean;
   sourceTitle: string;
   targets: FoldTargetItem[];
+  pinnedTargets?: FoldTargetItem[];
   onSelect: (targetId: string) => void;
   onClose: () => void;
   busy?: boolean;
@@ -50,11 +51,14 @@ export function FoldStepSheet({
   visible,
   sourceTitle,
   targets,
+  pinnedTargets = [],
   onSelect,
   onClose,
   busy = false,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const hasEligibleTargets = targets.length > 0;
+  const hasPinnedTargets = pinnedTargets.length > 0;
 
   return (
     <Modal
@@ -89,7 +93,7 @@ export function FoldStepSheet({
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
-          {targets.length === 0 ? (
+          {!hasEligibleTargets ? (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>
                 No other steps in this interest to fold into yet.
@@ -153,6 +157,45 @@ export function FoldStepSheet({
               ))}
             </View>
           )}
+          {hasPinnedTargets ? (
+            <View style={styles.disabledGroup}>
+              <Text style={styles.disabledHeader}>Pinned here, not foldable</Text>
+              <Text style={styles.disabledHelp}>
+                These steps are visible from another interest. Move them into this interest before folding.
+              </Text>
+              <View style={styles.group}>
+                {pinnedTargets.map((item, idx) => (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.row,
+                      styles.disabledRow,
+                      idx > 0 && styles.rowDivider,
+                    ]}
+                  >
+                    <Ionicons
+                      name={item.isRace ? 'flag' : 'git-merge-outline'}
+                      size={18}
+                      color={IOS_REGISTER.labelTertiary}
+                    />
+                    <View style={styles.rowCopy}>
+                      <Text style={[styles.rowTitle, styles.disabledTitle]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      {item.whenLabel ? (
+                        <Text style={styles.rowWhen} numberOfLines={1}>
+                          {item.whenLabel}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={[styles.pill, styles.pillContext]}>
+                      <Text style={[styles.pillText, styles.pillContextText]}>PINNED</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
         </ScrollView>
 
         {busy ? (
@@ -232,6 +275,24 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_REGISTER.cardBg,
     overflow: 'hidden',
   },
+  disabledGroup: {
+    marginTop: 14,
+    gap: 7,
+  },
+  disabledHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    color: IOS_REGISTER.labelSecondary,
+    paddingHorizontal: 2,
+  },
+  disabledHelp: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: IOS_REGISTER.labelTertiary,
+    paddingHorizontal: 2,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -246,6 +307,9 @@ const styles = StyleSheet.create({
   rowPressed: {
     backgroundColor: 'rgba(0,122,255,0.08)',
   },
+  disabledRow: {
+    opacity: 0.7,
+  },
   rowCopy: {
     flex: 1,
     gap: 1,
@@ -254,6 +318,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: IOS_REGISTER.label,
     letterSpacing: -0.2,
+  },
+  disabledTitle: {
+    color: IOS_REGISTER.labelSecondary,
   },
   rowWhen: {
     fontSize: 12,

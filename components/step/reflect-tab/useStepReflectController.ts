@@ -23,7 +23,7 @@ import {
 import { suggestCapabilityTags } from '@/services/CapabilityTagService';
 import { extractInsightsFromStepReflection } from '@/services/AIMemoryService';
 import { useAIUsage } from '@/hooks/useAIUsage';
-import { useCompetenciesForInterest } from '@/hooks/useCompetencies';
+import { useCompetenciesForInterest, useOwnerOrgCompetencies } from '@/hooks/useCompetencies';
 import { dropInsight } from '@/services/QuickCaptureService';
 import { showAlert, showAlertWithButtons } from '@/lib/utils/crossPlatformAlert';
 import { addConceptTrailQuote, getStepConceptLinks } from '@/services/PlaybookService';
@@ -98,6 +98,9 @@ export interface Phase4ReflectViewProps {
   onAddCapability: () => void;
   capabilityPickerVisible: boolean;
   capabilityPickerInterestId: string | null;
+  /** Org competency framework (org_competencies) the program grades against —
+      surfaced at the top of the picker so the learner tags the right set. */
+  orgCompetencySuggestions: { id: string; label: string; source?: string }[];
   onCloseCapabilityPicker: () => void;
   onPickCompetency: (competencyId: string, title: string) => void;
   onPickCapabilityLabel: (label: string) => void;
@@ -421,6 +424,30 @@ export function useStepReflectController({
     () => new Map(interestCompetencies.map((c) => [c.id, c.title])),
     [interestCompetencies],
   );
+  // The program's own competency framework (org_competencies) — the exact set
+  // the org admin's rollup grades. Surface it in the picker so an institutional
+  // learner tags against it instead of guessing free-text labels.
+  const { data: orgCompetencies = [] } = useOwnerOrgCompetencies(
+    step?.user_id,
+    step?.interest_id,
+  );
+  const orgCompetencySuggestions = useMemo(
+    () =>
+      orgCompetencies.map((c) => {
+        const label = (c.fullLabel || c.shortLabel).trim();
+        const short = c.shortLabel.trim();
+        return {
+          id: `org:${c.id}`,
+          label: label || short || 'Competency',
+          source: short && short !== label ? short : undefined,
+        };
+      }),
+    [orgCompetencies],
+  );
+  const orgCompetencyNameById = useMemo(
+    () => new Map(orgCompetencies.map((c) => [c.id, c.fullLabel || c.shortLabel || c.id])),
+    [orgCompetencies],
+  );
   const seededCapabilities = useMemo(
     () =>
       buildCapabilityEvidenceRows({
@@ -428,8 +455,9 @@ export function useStepReflectController({
         act: actData,
         review: reviewData,
         competencyNameById,
+        orgCompetencyNameById,
       }),
-    [planData, actData, reviewData, competencyNameById],
+    [planData, actData, reviewData, competencyNameById, orgCompetencyNameById],
   );
   const capabilities = localCapabilities ?? seededCapabilities;
   const state: ReflectPhase4State =
@@ -817,6 +845,7 @@ export function useStepReflectController({
       onAddCapability,
       capabilityPickerVisible: showCapabilityPicker,
       capabilityPickerInterestId: step?.interest_id ?? currentInterest?.id ?? null,
+      orgCompetencySuggestions,
       onCloseCapabilityPicker: () => setShowCapabilityPicker(false),
       onPickCompetency,
       onPickCapabilityLabel,

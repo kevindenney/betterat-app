@@ -1149,7 +1149,7 @@ export default function ClubsScreen() {
     const locationLabel =
       selectedSnapshot.club.location ||
       selectedSnapshot.club.country ||
-      'RegattaFlow club';
+      'BetterAt club';
     const website = selectedSnapshot.club.website;
 
     return (
@@ -1170,7 +1170,7 @@ export default function ClubsScreen() {
             <Text style={styles.heroEyebrow}>{locationLabel}</Text>
             <Text style={styles.heroTitle}>{selectedSnapshot.club.name}</Text>
             <Text style={styles.heroTagline}>
-              {meta?.tagline || 'Connected via RegattaFlow'}
+              {meta?.tagline || 'Connected via BetterAt'}
             </Text>
             {statsToDisplay.length > 0 && (
               <View style={styles.heroStatsRow}>
@@ -1430,7 +1430,7 @@ export default function ClubsScreen() {
           <Text style={styles.subtitle}>
             {hasConnectedClub
               ? 'Stay in sync with your yacht club'
-              : 'Track clubs you sail with and invite them to RegattaFlow'}
+              : 'Track clubs you sail with and invite them to BetterAt'}
           </Text>
         </View>
 
@@ -1603,7 +1603,7 @@ export default function ClubsScreen() {
               <Text style={styles.emptyEmoji}>⛵</Text>
               <Text style={styles.emptyHeadline}>No connected clubs yet</Text>
               <Text style={styles.emptyCopy}>
-                Invite your club to RegattaFlow to unlock live race management, volunteer scheduling,
+                Invite your club to BetterAt to unlock live race management, volunteer scheduling,
                 and automated results.
               </Text>
               <View style={styles.emptyDiagnosticBadge}>
@@ -1703,7 +1703,7 @@ export default function ClubsScreen() {
             <View style={styles.emptyList}>
               <Text style={styles.emptyListText}>
                 Keep locker codes, reciprocal privileges, and travel plans here—even if the club
-                is not on RegattaFlow yet.
+                is not on BetterAt yet.
               </Text>
             </View>
           ) : (

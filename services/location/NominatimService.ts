@@ -28,7 +28,7 @@ export interface NominatimSearchOptions {
 
 export class NominatimService {
   private baseUrl = 'https://nominatim.openstreetmap.org';
-  private userAgent = 'RegattaFlow/1.0 (Sailing Race Management App)';
+  private userAgent = 'BetterAt/1.0 (Sailing Race Management App)';
   private requestQueue: Promise<any> = Promise.resolve();
 
   /**

@@ -157,8 +157,8 @@ export function SailorDiscoveryView({ toolbarOffset = 0, onScroll }: SailorDisco
               <Text style={sharedStyles.becomeCoachDescription}>
                 {isSailing
                   ? (seasonCount > 0
-                      ? `You\u2019ve been racing for ${seasonCount} season${seasonCount === 1 ? '' : 's'}. Share your knowledge\u00a0\u2014 become a RegattaFlow coach.`
-                      : 'Turn your sailing knowledge into income. Coach sailors worldwide, set your own rates, and build your reputation on RegattaFlow.')
+                      ? `You\u2019ve been racing for ${seasonCount} season${seasonCount === 1 ? '' : 's'}. Share your knowledge\u00a0\u2014 become a BetterAt coach.`
+                      : 'Turn your sailing knowledge into income. Coach sailors worldwide, set your own rates, and build your reputation on BetterAt.')
                   : interestSlug === 'nursing'
                     ? 'Help nursing students build confidence before clinical rotations. Share your expertise as a preceptor or NCLEX coach.'
                     : 'Turn your expertise into impact. Coach others, set your own rates, and build your reputation on BetterAt.'}

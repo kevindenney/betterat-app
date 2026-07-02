@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
       try {
         const urlResponse = await fetch(url, {
           headers: {
-            'User-Agent': 'RegattaFlow/1.0 (Document Extraction)',
+            'User-Agent': 'BetterAt/1.0 (Document Extraction)',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7',
           },
         });
@@ -1030,12 +1030,12 @@ Return ONLY the JSON object, no additional text.`;
       // Matches patterns like: "Races 5 & 6: Saturday 11 April 2026 (Port Shelter) max.2 1255hrs"
       // or: "Races 1 & 2: Saturday 27 September 2025 (Port Shelter) 2 1336hrs"
       const scheduleRegex = /Races?\s+(\d+(?:\s*[&,]\s*\d+)?)\s*:\s*\w+\s+(\d{1,2}\s+\w+\s+\d{4})\s*\(([^)]+)\)\s*(?:max\.?\s*)?(\d+)\s+(\d{3,4})hrs/gi;
-      const scheduleEntries: Array<{
+      const scheduleEntries: {
         raceNumbers: number[];
         date: string;
         venue: string;
         time: string;
-      }> = [];
+      }[] = [];
 
       let match;
       while ((match = scheduleRegex.exec(documentText)) !== null) {
