@@ -296,7 +296,10 @@ export default function MarketplaceBlueprintPage() {
   };
 
   const confirmCancel = () => {
-    if (!subscription || subscription.cancelAtPeriodEnd || cancel.isPending) return;
+    // Free blueprints have no paid renewal to cancel — the cancel edge function
+    // looks the id up in marketplace_subscriptions and 404s for a free
+    // (blueprint_subscriptions) row. Guard here as well as hiding the button.
+    if (!subscription || isFree || subscription.cancelAtPeriodEnd || cancel.isPending) return;
     const runCancel = () => {
       setError(null);
       setCancelNotice(null);
@@ -778,7 +781,7 @@ export default function MarketplaceBlueprintPage() {
                     <Ionicons name="person-circle-outline" size={14} color="#28406B" />
                     <Text style={s.btnSecondaryText}>Author profile</Text>
                   </Pressable>
-                  {subscription ? (
+                  {subscription && !isFree ? (
                     <Pressable
                       style={[s.btnSecondary, cancel.isPending && { opacity: 0.55 }]}
                       disabled={cancel.isPending || subscription.cancelAtPeriodEnd}

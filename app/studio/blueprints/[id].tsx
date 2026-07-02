@@ -277,6 +277,13 @@ export default function BlueprintEditorPage() {
       showAlert('Preview unavailable', 'Institution-managed blueprint previews are not wired yet.');
       return;
     }
+    // The marketplace page only serves 'live' blueprints (the RPC returns
+    // not_listed otherwise), so previewing a draft would dead-end on the
+    // "isn't listed" screen. Guide the author to publish first.
+    if (blueprint.status !== 'live') {
+      showAlert('Publish to preview', 'Publish this blueprint to see its public marketplace listing.');
+      return;
+    }
     router.push(`/marketplace/${blueprint.id}` as any);
   }
 
