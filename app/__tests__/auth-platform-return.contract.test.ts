@@ -85,10 +85,12 @@ describe('auth platform return and session handoff user flows', () => {
     expect(landingPage).toContain('window.location.replace(callbackUrl.toString());');
     expect(landingPage).toContain('const skeletonLockedOff = useRef(false);');
     expect(landingPage).toContain("AsyncStorage.getItem(PREFERRED_INTEREST_KEY)");
-    expect(landingPage).toContain("router.replace(cachedSlug ? '/(auth)/login' : '/welcome')");
+    expect(landingPage).toContain(
+      "router.replace(cachedSlug ? '/(auth)/login' : '/onboarding/value/pick-craft')",
+    );
     expect(landingPage).toContain('router.replace(getLastTabRoute(userProfile?.user_type ?? null));');
     expect(landingPage).toContain('return <DashboardSkeleton />;');
-    expect(landingPage).toContain('<NetflixLandingPage />');
+    expect(landingPage).toContain('<BreadthLandingPage />');
   });
 
   it('preserves protected deep links through AuthGate while allowing public marketing routes', () => {

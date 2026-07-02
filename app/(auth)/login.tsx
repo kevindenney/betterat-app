@@ -316,11 +316,14 @@ export default function Login() {
               testID="login-close-button"
               accessibilityRole="button"
               accessibilityLabel="Close sign in"
-              // Web has a real marketing landing at `/`; /welcome is the
-              // native fresh-install intro. Sending web visitors there
-              // dead-ends them (welcome → pick → protected tab → back to
-              // this login wall).
-              onPress={() => router.replace(Platform.OS === 'web' ? '/' : '/welcome')}
+              // Web has a real marketing landing at `/`; native closes into
+              // the value funnel (the shared pre-signup intro — /welcome is
+              // now just an alias for it).
+              onPress={() =>
+                router.replace(
+                  Platform.OS === 'web' ? '/' : '/onboarding/value/pick-craft',
+                )
+              }
               style={styles.closeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >

@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrandMark } from '@/components/BrandMark';
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { VALUE_STORY_CHIPS } from '@/lib/onboarding/valueStoryVocab';
 import { useInterest } from '@/providers/InterestProvider';
@@ -120,7 +121,10 @@ export default function PickCraftScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.eyebrow}>BETTERAT</Text>
+        <View style={styles.brandRow}>
+          <BrandMark size={28} />
+          <Text style={styles.brandWordmark}>BetterAt</Text>
+        </View>
         <Text style={styles.title}>What are you getting better at?</Text>
         <Text style={styles.subtitle}>
           One thing you’re working on. You can add more later.
@@ -187,12 +191,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 24,
   },
-  eyebrow: {
-    fontSize: 11,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginBottom: 14,
+  },
+  brandWordmark: {
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 1.2,
-    color: ACCENT,
-    marginBottom: 10,
+    letterSpacing: -0.2,
+    color: '#0B1A33',
   },
   title: {
     fontFamily: fontFamily.serif,

@@ -77,7 +77,9 @@ export default function LandingPage() {
     }
 
     // Signed-out cold-open. A fresh install (no cached interest) sees the
-    // guest-first welcome flow instead of the "Welcome back" login wall.
+    // pre-signup value funnel (pick your craft → the loop in that craft's
+    // vocabulary → create account) — the single first-run intro shared with
+    // the web landing's "Get started". /welcome redirects here too.
     //
     // A returning user who has signed out still has an interest cached. We
     // must NOT drop them onto a protected tab: AuthGate gates `(tabs)` behind
@@ -86,8 +88,10 @@ export default function LandingPage() {
     // → AuthGate → / → …). Send returning signed-out users to the login
     // screen instead — the same destination sign-out.tsx and AuthProvider use.
     AsyncStorage.getItem(PREFERRED_INTEREST_KEY)
-      .then((cachedSlug) => router.replace(cachedSlug ? '/(auth)/login' : '/welcome'))
-      .catch(() => router.replace('/welcome'));
+      .then((cachedSlug) =>
+        router.replace(cachedSlug ? '/(auth)/login' : '/onboarding/value/pick-craft'),
+      )
+      .catch(() => router.replace('/onboarding/value/pick-craft'));
   }, [isNative, ready, loading, isRedirecting, signedIn, userProfile, user]);
 
   // Web: check for persisted session hint (one-shot)

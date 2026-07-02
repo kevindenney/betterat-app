@@ -135,20 +135,18 @@ describe('account, settings, onboarding, and navigation contracts', () => {
   });
 
   it('keeps welcome and onboarding routes resumable and platform-neutral', () => {
-    const welcome = readSource('app/welcome/index.tsx');
+    const welcome = readSource('app/welcome.tsx');
     const onboardingIndex = readSource('app/onboarding/index.tsx');
     const chooseStart = readSource('app/onboarding/choose-start.tsx');
     const onboardingState = readSource('services/onboarding/OnboardingStateService.ts');
     const featureTour = readSource('services/onboarding/FeatureTourService.ts');
     const sailorSampleData = readSource('services/onboarding/SailorSampleDataService.ts');
 
-    expect(welcome).toContain("router.replace('/welcome/pick')");
-    expect(welcome).toContain("router.push('/welcome/how-it-works')");
-    expect(welcome).toContain("router.push('/(auth)/login' as any)");
-    expect(welcome).toContain("router.push('/(auth)/signup' as any)");
-    expect(welcome).toContain("ios: { fontFamily: 'Manrope-Bold' }");
-    expect(welcome).toContain("android: { fontFamily: 'Manrope-Bold' }");
-    expect(welcome).toContain("web: { fontFamily: 'Manrope, system-ui, sans-serif'");
+    // /welcome is a legacy alias for the value funnel. It must re-export the
+    // pick-craft screen (NOT navigate): <Redirect> during initial mount races
+    // the value stack's route resolution on web, and router.replace in an
+    // effect fires before the Root Layout mounts on cold load.
+    expect(welcome).toContain("export { default } from './onboarding/value/pick-craft';");
 
     expect(onboardingIndex).toContain('OnboardingStateService.getStartingRoute()');
     expect(onboardingIndex).toContain('router.replace(startingRoute as any)');
