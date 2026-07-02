@@ -30,7 +30,7 @@ import { useInterest } from '@/providers/InterestProvider';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import { SIDEBAR_PIN_BREAKPOINT, useWebDrawer } from '@/providers/WebDrawerProvider';
 import { StepAddSheet } from './StepAddSheet';
-import type { TimelineStep } from './types';
+import type { NowRelation, TimelineStep } from './types';
 
 const DONE_COLOR = '#16A34A';
 const NOW_COLOR = '#FF6B5A';
@@ -51,12 +51,23 @@ interface StepTaskBarProps {
   /** Arc the user is viewing — threaded to StepAddSheet's creation stamp. */
   viewedSeasonId?: string | null;
   /**
-   * The DONE/NOW/NEXT relation pill + minimap (a <NowStrip />), rendered
-   * inline after the step selector. Chrome belongs in this header band —
-   * floating it over the canvas kept occluding card text on web. Hidden on
-   * narrow windows where the bar has no room for it.
+   * Zoom level the bar fronts. The stepper is level-aware: step-subject at
+   * STEP (ordinal + relation + jump menu), arc-subject at ARC (arc name +
+   * context) — a "Step 1" chip must not leak onto an arc-scoped surface.
    */
-  nowStrip?: React.ReactNode;
+  level?: 1 | 3;
+  /**
+   * The viewed step's DONE/NOW/NEXT relation, rendered as a colored token
+   * inside the stepper pill. This replaces the retired floating NowFloat
+   * pill and its minimap — position lives with the rest of navigation.
+   */
+  relation?: NowRelation;
+  /** Prev/next step taps (web shows ‹ › beside the stepper; phones swipe). */
+  onPrev?: () => void;
+  onNext?: () => void;
+  /** ARC subject line — arc name + honest context ("wk 1 of 2 · 1/4 settled"). */
+  arcTitle?: string;
+  arcContext?: string;
 }
 
 export function StepTaskBar({
@@ -66,7 +77,12 @@ export function StepTaskBar({
   nowStepId,
   onJumpToStep,
   viewedSeasonId = null,
-  nowStrip,
+  level = 1,
+  relation,
+  onPrev,
+  onNext,
+  arcTitle,
+  arcContext,
 }: StepTaskBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -97,8 +113,29 @@ export function StepTaskBar({
     () => allSteps.findIndex((s) => s.id === focusedStep?.id),
     [allSteps, focusedStep?.id],
   );
-  const stepselLabel = focusedOrdinal >= 0 ? `Step ${focusedOrdinal + 1}` : '—';
   const canChoose = allSteps.length > 1;
+
+  // Phones (and cramped web windows) drop the word "Step" and the ‹ › taps —
+  // ordinal + total suffice, and swipe owns prev/next on touch.
+  const compact = Platform.OS !== 'web' || windowWidth < 700;
+  const stepperLabel =
+    focusedOrdinal >= 0
+      ? compact
+        ? `${focusedOrdinal + 1} of ${allSteps.length}`
+        : `Step ${focusedOrdinal + 1} of ${allSteps.length}`
+      : '—';
+  const showArrows = !compact && level === 1 && Boolean(onPrev || onNext);
+  const relColor =
+    relation === 'now' ? NOW_COLOR : relation === 'done' ? DONE_COLOR : IOS_COLORS.systemBlue;
+  const relLabel = relation
+    ? compact
+      ? relation.toUpperCase()
+      : relation === 'now'
+        ? '▸ NOW'
+        : relation === 'done'
+          ? '◂ DONE'
+          : '▸ NEXT'
+    : null;
 
   // The inline menu would be trapped in the chrome row's stacking context
   // (a 48px-tall, transformed parent), so on native it both paints under the
@@ -143,7 +180,6 @@ export function StepTaskBar({
               : 'queued';
     const dotColor =
       rel === 'done' ? DONE_COLOR : rel === 'now' ? NOW_COLOR : IOS_REGISTER.labelTertiary;
-    const isLast = i === allSteps.length - 1;
     return (
       <Pressable
         key={s.id}
@@ -153,7 +189,7 @@ export function StepTaskBar({
           if (s.id !== focusedStep?.id) onJumpToStep(s.id);
         }}
       >
-        <View style={[styles.smrow, isLast && styles.smrowLast]} pointerEvents="none">
+        <View style={styles.smrow} pointerEvents="none">
           <View style={[styles.smDot, { backgroundColor: dotColor }]} />
           <Text style={[styles.smLabel, rel === 'now' && { color: accentColor }]} numberOfLines={1}>
             {s.title}
@@ -172,15 +208,50 @@ export function StepTaskBar({
     );
   });
 
+  // The menu IS the minimap, at readable size: the same red NOW divider the
+  // ARC timeline draws separates done rows from queued ones (after the last
+  // row when everything is settled — NOW sits past the end), and the list
+  // ends with the plan-next idiom.
+  const nowDivider = (
+    <View key="now-divider" style={styles.menuNowDivider} pointerEvents="none">
+      <View style={styles.menuNowLine} />
+      <Text style={styles.menuNowLabel}>NOW</Text>
+      <View style={styles.menuNowLine} />
+    </View>
+  );
+  const entries: React.ReactNode[] = [];
+  rows.forEach((row, i) => {
+    if (nowStepId !== null && i === nowOrdinal) entries.push(nowDivider);
+    entries.push(row);
+  });
+  if (nowStepId === null && rows.length > 0) entries.push(nowDivider);
+  entries.push(
+    <Pressable
+      key="add-step"
+      style={({ pressed }) => (pressed ? styles.smrowPressed : undefined)}
+      onPress={() => {
+        setMenuOpen(false);
+        setAddOpen(true);
+      }}
+      accessibilityRole="button"
+      accessibilityLabel="Add a step"
+    >
+      <View style={[styles.smrow, styles.smrowLast]} pointerEvents="none">
+        <Ionicons name="add-circle-outline" size={16} color={IOS_REGISTER.accentUserAction} />
+        <Text style={styles.smAddLabel}>Add a step</Text>
+      </View>
+    </Pressable>,
+  );
+
   const menuBody = (
     <View style={styles.stepmenuCard}>
       <Text style={styles.smh}>JUMP TO STEP</Text>
       {allSteps.length > 8 ? (
         <ScrollView style={styles.smScroll} showsVerticalScrollIndicator={false}>
-          {rows}
+          {entries}
         </ScrollView>
       ) : (
-        rows
+        entries
       )}
     </View>
   );
@@ -208,28 +279,78 @@ export function StepTaskBar({
       {FEATURE_FLAGS.CONTEXT_SWITCHER_V1 ? (
         <View style={styles.contextCluster}>
           <ContextSwitcher />
-          <Pressable
-            ref={stepselRef}
-            onPress={openMenu}
-            disabled={!canChoose}
-            hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
-            style={styles.stepOnlyPill}
-            accessibilityRole="button"
-            accessibilityLabel={
-              focusedStep ? `${stepselLabel}. Tap to jump to another step.` : undefined
-            }
-          >
-            <Text style={styles.segStepText} numberOfLines={1}>
-              {stepselLabel}
-            </Text>
-            {canChoose ? (
-              <Ionicons
-                name={menuOpen ? 'chevron-up' : 'chevron-down'}
-                size={13}
-                color={IOS_REGISTER.labelTertiary}
-              />
-            ) : null}
-          </Pressable>
+          {level === 3 && arcTitle ? (
+            // ARC subject — arc name + honest context. A "Step 1" chip must
+            // not leak onto an arc-scoped surface. (Switching arcs stays on
+            // the L3 title switcher for now.)
+            <View
+              style={styles.stepOnlyPill}
+              accessibilityLabel={arcContext ? `${arcTitle}. ${arcContext}` : arcTitle}
+            >
+              <Text style={styles.segStepText} numberOfLines={1}>
+                <Text style={styles.arcTitleText}>{arcTitle}</Text>
+                {arcContext && !compact ? (
+                  <Text style={styles.arcContextText}>{'  '}{arcContext}</Text>
+                ) : null}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.stepperWrap}>
+              <Pressable
+                ref={stepselRef}
+                onPress={openMenu}
+                disabled={!canChoose}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+                style={styles.stepOnlyPill}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  focusedStep
+                    ? `${stepperLabel}${relation ? `, ${relation}` : ''}. Tap to jump to another step.`
+                    : undefined
+                }
+              >
+                <Text style={styles.segStepText} numberOfLines={1}>
+                  {stepperLabel}
+                </Text>
+                {relLabel ? (
+                  <View style={[styles.relToken, { backgroundColor: relColor }]}>
+                    <Text style={styles.relTokenText}>{relLabel}</Text>
+                  </View>
+                ) : null}
+                {canChoose ? (
+                  <Ionicons
+                    name={menuOpen ? 'chevron-up' : 'chevron-down'}
+                    size={13}
+                    color={IOS_REGISTER.labelTertiary}
+                  />
+                ) : null}
+              </Pressable>
+              {showArrows ? (
+                <View style={styles.stepArrows}>
+                  <Pressable
+                    onPress={onPrev}
+                    disabled={!onPrev}
+                    hitSlop={6}
+                    style={[styles.stepArrow, !onPrev && styles.stepArrowDisabled]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous step"
+                  >
+                    <Ionicons name="chevron-back" size={13} color={IOS_REGISTER.labelSecondary} />
+                  </Pressable>
+                  <Pressable
+                    onPress={onNext}
+                    disabled={!onNext}
+                    hitSlop={6}
+                    style={[styles.stepArrow, !onNext && styles.stepArrowDisabled]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Next step"
+                  >
+                    <Ionicons name="chevron-forward" size={13} color={IOS_REGISTER.labelSecondary} />
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+          )}
         </View>
       ) : (
         <View style={styles.intpill}>
@@ -262,11 +383,11 @@ export function StepTaskBar({
             style={styles.segStep}
             accessibilityRole="button"
             accessibilityLabel={
-              focusedStep ? `${stepselLabel}. Tap to jump to another step.` : undefined
+              focusedStep ? `${stepperLabel}. Tap to jump to another step.` : undefined
             }
           >
             <Text style={styles.segStepText} numberOfLines={1}>
-              {stepselLabel}
+              {stepperLabel}
             </Text>
             {canChoose ? (
               <Ionicons
@@ -278,10 +399,6 @@ export function StepTaskBar({
           </Pressable>
         </View>
       )}
-
-      {nowStrip && windowWidth >= 700 ? (
-        <View style={styles.nowStripWrap}>{nowStrip}</View>
-      ) : null}
 
       <View style={styles.icons}>
         <Pressable
@@ -418,6 +535,49 @@ const styles = StyleSheet.create({
     backgroundColor: IOS_REGISTER.cardBg,
     flexShrink: 0,
   },
+  stepperWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  },
+  relToken: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  relTokenText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: '#FFFFFF',
+  },
+  stepArrows: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  stepArrow: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: IOS_REGISTER.fillPill,
+  },
+  stepArrowDisabled: {
+    opacity: 0.35,
+  },
+  arcTitleText: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    color: IOS_REGISTER.label,
+  },
+  arcContextText: {
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: IOS_REGISTER.labelSecondary,
+  },
   intpill: {
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -486,13 +646,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: -0.2,
     color: IOS_REGISTER.labelSecondary,
-  },
-  // Sits between the step selector and the right-side icons; marginLeft
-  // pushes it off the selector, the icons' marginLeft:'auto' keeps it left-
-  // leaning so it reads as part of the interest → step → position breadcrumb.
-  nowStripWrap: {
-    marginLeft: 14,
-    flexShrink: 0,
   },
   icons: {
     flexDirection: 'row',
@@ -603,6 +756,30 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     color: IOS_REGISTER.labelTertiary,
+  },
+  smAddLabel: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: IOS_REGISTER.accentUserAction,
+  },
+  menuNowDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+  },
+  menuNowLine: {
+    flex: 1,
+    borderTopWidth: 1.5,
+    borderTopColor: NOW_COLOR,
+    opacity: 0.55,
+  },
+  menuNowLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    color: NOW_COLOR,
   },
 });
 

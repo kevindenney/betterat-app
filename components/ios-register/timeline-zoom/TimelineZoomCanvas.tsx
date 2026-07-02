@@ -56,7 +56,7 @@ import { InterestHeader } from './InterestHeader';
 import { StepTaskBar } from './StepTaskBar';
 import { StepAddSheet } from './StepAddSheet';
 import { useUniversalPlus } from '@/components/capture';
-import { NowFloat, NowStrip, type NowRelation } from './NowFloat';
+import type { NowRelation } from './types';
 import { L1StepView } from './L1StepView';
 import { L3SeasonView } from './L3SeasonView';
 import { L4YearsView } from './L4YearsView';
@@ -326,7 +326,7 @@ export function TimelineZoomCanvas({
   const periodNoun = resolveInterestVocab(dataset.interest.label).periodNoun;
   const insets = useSafeAreaInsets();
   // Step level shows the global floating tab bar; reserve clearance so the
-  // embedded capture composer + NowFloat sit above it instead of behind it.
+  // embedded capture composer sits above it instead of behind it.
   const tabBarClearance = Math.max(insets.bottom, 8) + FLOATING_TAB_BAR_HEIGHT + 16;
   const [chromeHeight, setChromeHeight] = useState(0);
   const chromeHideFallback = Platform.OS === 'android' ? 96 : 72;
@@ -520,15 +520,6 @@ export function TimelineZoomCanvas({
     },
     [orderedArcSteps, focusStepId],
   );
-  const jumpToArcIndex = useCallback(
-    (index: number) => {
-      const step = orderedArcSteps[index];
-      if (!step) return;
-      setFocusStepId(step.id);
-      setLevel(1);
-    },
-    [orderedArcSteps],
-  );
 
   const focusedArcStepIdx = useMemo(
     () => orderedArcSteps.findIndex((s) => s.id === focusStepId),
@@ -539,8 +530,9 @@ export function TimelineZoomCanvas({
     focusedArcStepIdx >= 0 && focusedArcStepIdx < orderedArcSteps.length - 1
       ? orderedArcSteps[focusedArcStepIdx + 1]
       : null;
-  // NowFloat — the viewed step's relation to the canonical now-step. When the
-  // now-step lives in a different arc, compare the arcs chronologically.
+  // The viewed step's relation to the canonical now-step (the stepper pill's
+  // DONE/NOW/NEXT token). When the now-step lives in a different arc, compare
+  // the arcs chronologically.
   // nowStepId is null when nothing is active: NOW then sits past the last
   // card, so every viewed step reads DONE and the minimap paints the full
   // run green with no tick (nowIndex past the end never matches a dot).
@@ -565,27 +557,20 @@ export function TimelineZoomCanvas({
             : focusedArcIdx < nowArcIdx
               ? 'done'
               : 'next';
-  const nowFloatIndex =
-    dataset.nowStepId == null ? orderedArcSteps.length : nowArcStepIdx;
 
-  // Where the DONE/NOW/NEXT strip lives. On web it belongs in the task bar's
-  // header band — floating it over the canvas kept landing on card text no
-  // matter which corner it docked in (focused card at center, prev card in
-  // the left gutter). Native keeps the bottom-center float (thumb-reachable,
-  // and the full-width card scrolls clear of it via bottomInset).
-  const showNowStrip = level === 1 && embedFullDetailAtL1 && !select.enabled && !!focusedStep;
-  const nowStripInTaskBar = showNowStrip && Platform.OS === 'web' && hideInterestHeader;
-  const nowStrip = showNowStrip ? (
-    <NowStrip
-      relation={nowRelation}
-      nowIndex={nowFloatIndex}
-      viewedIndex={Math.max(focusedArcStepIdx, 0)}
-      total={orderedArcSteps.length}
-      onJumpToIndex={jumpToArcIndex}
-      onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
-      onNext={nextStep ? () => swipeToNeighbor('next') : undefined}
-    />
-  ) : null;
+  // ARC subject line for the task bar — arc name + honest context. Position
+  // chrome is level-aware: a "Step 1" chip must not leak onto the arc surface.
+  const settledCount = orderedArcSteps.filter(
+    (s) => s.status === 'done' || s.status === 'reflected',
+  ).length;
+  const arcContextParts: string[] = [];
+  if (dataset.weekCounter) {
+    arcContextParts.push(`wk ${dataset.weekCounter.current} of ${dataset.weekCounter.total}`);
+  }
+  if (orderedArcSteps.length > 0) {
+    arcContextParts.push(`${settledCount}/${orderedArcSteps.length} settled`);
+  }
+  const arcContext = arcContextParts.join(' · ');
 
   // Compute the level the user is about to snap to, given direction +
   // current level. Returns null when at a boundary (can't go further).
@@ -617,7 +602,12 @@ export function TimelineZoomCanvas({
                   nowStepId={dataset.nowStepId}
                   onJumpToStep={(id) => setFocusStepId(id)}
                   viewedSeasonId={selectedSeason?.id ?? null}
-                  nowStrip={nowStripInTaskBar ? nowStrip : undefined}
+                  level={level === 3 ? 3 : 1}
+                  relation={level === 1 && focusedStep ? nowRelation : undefined}
+                  onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
+                  onNext={nextStep ? () => swipeToNeighbor('next') : undefined}
+                  arcTitle={selectedSeason?.title ?? undefined}
+                  arcContext={arcContext || undefined}
                 />
               ) : (
                 <AppChromeRow onPlusPress={() => setAddOpen(true)} />
@@ -677,10 +667,10 @@ export function TimelineZoomCanvas({
                       onJumpToStep={(id) => setFocusStepId(id)}
                       hideStepSwitcher={hideInterestHeader}
                       onAddStep={() => setAddOpen(true)}
-                      // NowFloat hovers 20pt above the tab-bar clearance and is
-                      // ~34pt tall — without this extra room the last element
-                      // (Move to Reflect CTA) stops behind the pager pill.
-                      bottomInset={embedFullDetailAtL1 ? tabBarClearance + 56 : 0}
+                      // The floating NOW pill is retired (relation lives in
+                      // the task bar's stepper), so the card only needs to
+                      // clear the tab bar itself.
+                      bottomInset={embedFullDetailAtL1 ? tabBarClearance : 0}
                     />
                   ) : (
                     <ZoomEmptyState
@@ -786,18 +776,10 @@ export function TimelineZoomCanvas({
           />
         )}
 
-        {showNowStrip && !nowStripInTaskBar ? (
-          <NowFloat
-            relation={nowRelation}
-            nowIndex={nowFloatIndex}
-            viewedIndex={Math.max(focusedArcStepIdx, 0)}
-            total={orderedArcSteps.length}
-            onJumpToIndex={jumpToArcIndex}
-            onPrev={prevStep ? () => swipeToNeighbor('prev') : undefined}
-            onNext={nextStep ? () => swipeToNeighbor('next') : undefined}
-            bottomOffset={tabBarClearance + 20}
-          />
-        ) : null}
+        {/* The floating DONE/NOW pill is retired on every platform — the
+            relation token lives inside the task bar's stepper, so nothing
+            floats over card content (it kept landing on readable text no
+            matter which corner it docked in, web and native alike). */}
         <StepAddSheet
           visible={addOpen}
           onClose={() => setAddOpen(false)}

@@ -28,6 +28,11 @@ export const ZOOM_LEVEL_SCOPE_LABELS: Record<ZoomLevel, string> = {
 };
 
 export type StepStatus = 'plan' | 'do' | 'reflect' | 'reflected' | 'done';
+
+/** The viewed step's relation to the canonical now-step: behind it (done),
+ *  on it (now), or ahead of it (next). Rendered as the colored token inside
+ *  the task bar's stepper pill. */
+export type NowRelation = 'done' | 'now' | 'next';
 export type StepOriginKind = 'mine' | 'shared' | 'blueprint';
 
 export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';

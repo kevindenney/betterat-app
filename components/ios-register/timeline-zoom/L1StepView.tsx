@@ -283,8 +283,8 @@ export function L1StepView({
     (allSteps?.length ?? 0) > 1 &&
     stepOrdinal > 0;
   // The merged Step view's relative DONE/NOW/NEXT indicator lives in the
-  // canvas-level NowFloat chrome (mockup #38 `.nowfloat`), not on the card —
-  // the card stays clean. isNowStep only drives the slim preview's accent bar.
+  // task bar's stepper pill, not on the card — the card stays clean.
+  // isNowStep only drives the slim preview's accent bar.
   // Keyed to nowStepId (canonical NOW), not focusStepId (landing card): a
   // settled step can be the landing card but must never wear the NOW accent.
   const isNowStep = step.id === dataset.nowStepId;
