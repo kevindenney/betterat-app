@@ -278,7 +278,7 @@ export default function EarningsScreen() {
     try {
       const result = await StripeConnectService.startOnboarding(coachId);
       if (result.success && result.url) {
-        if (typeof window !== 'undefined') {
+        if (Platform.OS === 'web') {
           window.location.href = result.url;
         } else {
           await Linking.openURL(result.url);

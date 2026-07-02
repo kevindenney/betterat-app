@@ -277,12 +277,16 @@ async function verifyAndroidPurchase(
     const GOOGLE_SERVICE_ACCOUNT = Deno.env.get('GOOGLE_PLAY_SERVICE_ACCOUNT');
     
     if (!GOOGLE_SERVICE_ACCOUNT) {
-      console.warn('Google Play service account not configured, using mock verification');
-      // In development, accept all purchases
+      // Fail closed. Previously this "mock" path returned verified:true for ANY
+      // purchase token, so any authenticated caller could POST a fake Android
+      // purchase and self-grant a paid tier. Real entitlements come from the
+      // RevenueCat webhook; without a configured Google Play service account there
+      // is no way to verify, so grant nothing.
+      console.error('Google Play service account not configured — rejecting Android purchase verification');
       return {
-        verified: true,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        data: { purchaseToken, productId, mock: true },
+        verified: false,
+        expiresAt: null,
+        data: { purchaseToken, productId, error: 'android_verification_unavailable' },
       };
     }
 

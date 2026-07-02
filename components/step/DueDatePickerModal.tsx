@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { showAlert } from '@/lib/utils/crossPlatformAlert';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -206,11 +207,17 @@ export function DueDatePickerModal({
 
   const handleSave = useCallback(() => {
     if (!draftDate) return;
-    setSaving(true);
-    // Build ISO datetime — use time if set, otherwise end of day
+    // Build ISO datetime — use time if set, otherwise end of day. The regex
+    // gate only checks digit shape, so a calendar-invalid value like
+    // 2026-13-01 still reaches here; guard before toISOString() throws.
     const timePart = draftTime || '23:59:59';
-    const iso = new Date(`${draftDate}T${timePart}`).toISOString();
-    onSelect(iso);
+    const parsed = new Date(`${draftDate}T${timePart}`);
+    if (Number.isNaN(parsed.getTime())) {
+      showAlert('Invalid date', 'Please enter a valid date as YYYY-MM-DD.');
+      return;
+    }
+    setSaving(true);
+    onSelect(parsed.toISOString());
   }, [draftDate, draftTime, onSelect]);
 
   const handleClear = useCallback(() => {

@@ -259,7 +259,7 @@ export class SubscriptionService {
 
       const { data, error } = await supabase
         .from('users')
-        .select('subscription_status, subscription_tier')
+        .select('subscription_status, subscription_tier, trial_ends_at')
         .eq('id', user.id)
         .single();
 
@@ -272,6 +272,16 @@ export class SubscriptionService {
         tier = 'individual';
       } else if (rawTier === 'pro' || rawTier === 'team' || rawTier === 'championship') {
         tier = 'pro';
+      }
+
+      // An expired reverse trial leaves subscription_tier on its trial grant while
+      // subscription_status stays 'trialing'. Don't let that stale value confer a
+      // paid tier once the trial window has passed — collapse it to free.
+      if (data.subscription_status === 'trialing') {
+        const trialLive = data.trial_ends_at && new Date(data.trial_ends_at) > new Date();
+        if (!trialLive) {
+          tier = 'free';
+        }
       }
 
       this.currentStatus = {

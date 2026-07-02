@@ -5,8 +5,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStepById, updateStepMetadata } from '@/services/TimelineStepService';
 import { logger } from '@/lib/logger';
+import { useToast } from '@/components/ui/AppToast';
 import type { TimelineStepRecord } from '@/types/timeline-steps';
 import type { StepMetadata } from '@/types/step-detail';
+
+// Thrown by the temp-id branch below for a benign skip (optimistic row not yet
+// persisted) — not a real save failure, so it must not surface an error toast.
+const TEMP_SKIP_MESSAGE = 'Skipped metadata patch against temp step id';
 
 // ---------------------------------------------------------------------------
 // Query keys
@@ -67,6 +72,7 @@ export function useStepDetail(stepId: string | undefined) {
 
 export function useUpdateStepMetadata(stepId: string | undefined) {
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   return useMutation<
     TimelineStepRecord,
@@ -87,7 +93,7 @@ export function useUpdateStepMetadata(stepId: string | undefined) {
         );
         if (!cached) {
           logger.warn('[useUpdateStepMetadata] temp-id patch with no cached row', stepId);
-          throw new Error('Skipped metadata patch against temp step id');
+          throw new Error(TEMP_SKIP_MESSAGE);
         }
         const merged: TimelineStepRecord = {
           ...cached,
@@ -109,6 +115,15 @@ export function useUpdateStepMetadata(stepId: string | undefined) {
       // Venue record surfaces review-note bodies from metadata, so a
       // metadata patch (review save) must refresh it.
       queryClient.invalidateQueries({ queryKey: ['venue-record'] });
+    },
+    onError: (error) => {
+      // These writes back debounced Plan auto-save and brain-dump captures, whose
+      // callers optimistically keep the typed text on screen. Without this, a
+      // failed save was completely silent and the user lost their edits on the
+      // next fetch. The temp-id skip is benign, so don't alarm on it.
+      if (error?.message === TEMP_SKIP_MESSAGE) return;
+      logger.error('[useUpdateStepMetadata] save failed', error);
+      toast.show("Couldn't save your changes — check your connection", 'error');
     },
   });
 }

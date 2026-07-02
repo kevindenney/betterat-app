@@ -11,8 +11,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { CrewFinderService, FollowedUserTimeline } from '@/services/CrewFinderService';
+import { invalidateFollowQueries } from '@/hooks/followInvalidations';
 import { createLogger } from '@/lib/utils/logger';
 
 const logger = createLogger('useFollowedTimelines');
@@ -227,6 +229,7 @@ export function useIsFollowing(targetUserId: string | null): {
   toggleFollow: () => Promise<void>;
 } {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const isMountedRef = useRef(true);
@@ -322,6 +325,10 @@ export function useIsFollowing(targetUserId: string | null): {
         }
         setIsFollowing(true);
       }
+      // Refresh every follows-derived reader (Watch feed, Library "Following"
+      // list + counts, discovery/suggestions). This hook only flipped local
+      // state before, so those surfaces went stale after a follow/unfollow.
+      invalidateFollowQueries(queryClient, targetUser);
     } catch (err) {
       logger.error('[useIsFollowing] Error toggling follow:', err);
     } finally {
@@ -334,7 +341,7 @@ export function useIsFollowing(targetUserId: string | null): {
       }
       setIsLoading(false);
     }
-  }, [userId, targetUserId, isFollowing]);
+  }, [userId, targetUserId, isFollowing, queryClient]);
 
   return { isFollowing, isLoading, toggleFollow };
 }

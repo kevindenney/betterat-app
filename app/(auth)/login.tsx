@@ -28,6 +28,17 @@ const cardShadowStyle: ViewStyle =
         shadowOffset: { width: 0, height: 6 },
       };
 
+const PASSWORD_RESET_RETURN_TO = '/settings/change-password?recovery=1';
+
+const getPasswordResetRedirectUrl = () => {
+  const origin = Platform.OS === 'web' && typeof window !== 'undefined'
+    ? window.location.origin
+    : 'https://better.at';
+  const callbackUrl = new URL('/callback', origin);
+  callbackUrl.searchParams.set('returnTo', PASSWORD_RESET_RETURN_TO);
+  return callbackUrl.toString();
+};
+
 // Helper to get user-friendly error messages
 const getAuthErrorMessage = (error: any): string => {
   const message = error?.message?.toLowerCase() || '';
@@ -186,6 +197,15 @@ export default function Login() {
   const onGoogleLogin = async () => {
     setErrorMessage(null);
     try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const oauthReturnTo =
+          returnTo && typeof returnTo === 'string' && returnTo.startsWith('/')
+            ? returnTo
+            : new URLSearchParams(window.location.search).get('returnTo');
+        if (oauthReturnTo && oauthReturnTo.startsWith('/')) {
+          window.sessionStorage.setItem('oauth_return_to', oauthReturnTo);
+        }
+      }
       await signInWithGoogle();
     } catch (e: any) {
       console.error('[LOGIN] Google sign in failed:', e);
@@ -201,6 +221,15 @@ export default function Login() {
   const onAppleLogin = async () => {
     setErrorMessage(null);
     try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const oauthReturnTo =
+          returnTo && typeof returnTo === 'string' && returnTo.startsWith('/')
+            ? returnTo
+            : new URLSearchParams(window.location.search).get('returnTo');
+        if (oauthReturnTo && oauthReturnTo.startsWith('/')) {
+          window.sessionStorage.setItem('oauth_return_to', oauthReturnTo);
+        }
+      }
       await signInWithApple();
     } catch (e: any) {
       console.error('[LOGIN] Apple sign in failed:', e);
@@ -232,7 +261,7 @@ export default function Login() {
       if (confirmed) {
         try {
           const { error } = await supabase.auth.resetPasswordForEmail(emailToReset, {
-            redirectTo: `${window.location.origin}/(auth)/reset-password`,
+            redirectTo: getPasswordResetRedirectUrl(),
           });
           if (error) throw error;
           setErrorMessage(null);
@@ -249,10 +278,17 @@ export default function Login() {
           `Send password reset link to ${email}?`,
           async () => {
             try {
-              await supabase.auth.resetPasswordForEmail(email);
+              // supabase-js returns errors in { error } rather than throwing, so
+              // a failed send (rate limit, SMTP outage) must be checked explicitly
+              // or the user gets a false "Success" and waits for an email that
+              // never arrives.
+              const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: getPasswordResetRedirectUrl(),
+              });
+              if (error) throw error;
               showAlert('Success', 'Password reset link sent to your email');
             } catch (error) {
-              showAlert('Error', 'Failed to send reset link');
+              showAlert('Error', error instanceof Error ? error.message : 'Failed to send reset link');
             }
           },
         );

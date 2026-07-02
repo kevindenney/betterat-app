@@ -63,11 +63,26 @@ serve(async (req: Request) => {
     }
 
     const body: PaymentIntentRequest = await req.json();
-    const { entryId, sessionId, amount, currency = 'usd', description, metadata = {} } = body;
+    const { entryId, sessionId } = body;
 
-    let paymentAmount = amount;
-    let paymentDescription = description || 'RegattaFlow Payment';
-    let paymentMetadata: Record<string, string> = { ...metadata, user_id: user.id };
+    // The amount, currency, and access-granting metadata are ALL derived
+    // server-side from a priced source row (a race entry or coaching session).
+    // Previously, a request with neither id fell back to a client-supplied
+    // `amount` + `metadata`, and the stripe-webhooks handler grants course /
+    // blueprint access purely from that metadata — so a caller could pay 50¢ for
+    // any paid course by crafting {amount:50, metadata:{type:'course_purchase',...}}.
+    // Reject any request that does not resolve to a server-priced source.
+    if (!entryId && !sessionId) {
+      return new Response(
+        JSON.stringify({ error: 'A valid entryId or sessionId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const currency = 'usd';
+    let paymentAmount: number | undefined;
+    let paymentDescription = 'BetterAt Payment';
+    let paymentMetadata: Record<string, string> = { user_id: user.id };
     let connectedAccountId: string | undefined;
     let applicationFeeAmount: number | undefined;
 
@@ -217,8 +232,7 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     console.error('Error creating payment intent:', error);
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     const isStripeError = error instanceof Stripe.errors.StripeError;
     
     return new Response(
@@ -233,4 +247,3 @@ serve(async (req: Request) => {
     );
   }
 });
-

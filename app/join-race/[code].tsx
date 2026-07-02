@@ -2,7 +2,7 @@
  * Join Race Screen
  *
  * Deep link handler for joining a race via invite code.
- * URL: regattaflow://join-race/ABCD1234 or /join-race/ABCD1234
+ * URL: betterat://join-race/ABCD1234, legacy regattaflow://join-race/ABCD1234, or /join-race/ABCD1234
  */
 
 import React, { useState, useEffect } from 'react';
@@ -72,22 +72,19 @@ export default function JoinRaceScreen() {
     setErrorMessage(null);
 
     try {
+      // joinByInviteCode resolves with { regattaId, collaboratorId } on success
+      // and throws on failure — there is no `success` field to check.
       const result = await RaceCollaborationService.joinByInviteCode(
         code,
         displayName.trim() || undefined,
         role.trim() || undefined
       );
 
-      if (result.success && result.regattaId) {
-        setStatus('success');
-        // Navigate to the race/regatta screen
-        setTimeout(() => {
-          router.replace(`/(tabs)/race/scrollable/${result.regattaId}`);
-        }, 500);
-      } else {
-        setStatus('error');
-        setErrorMessage(result.error || 'Failed to join race');
-      }
+      setStatus('success');
+      // Navigate to the race/regatta screen
+      setTimeout(() => {
+        router.replace(`/(tabs)/race/scrollable/${result.regattaId}`);
+      }, 500);
     } catch (error) {
       setStatus('error');
       setErrorMessage(

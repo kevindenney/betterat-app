@@ -511,6 +511,16 @@ export class SubscriptionService {
         tier = 'pro';
       }
 
+      // An expired reverse trial leaves subscription_tier on its trial grant while
+      // subscription_status stays 'trialing'. Don't let that stale value confer a
+      // paid tier once the trial window has passed — collapse it to free.
+      if (data.subscription_status === 'trialing') {
+        const trialLive = data.trial_ends_at && new Date(data.trial_ends_at) > new Date();
+        if (!trialLive) {
+          tier = 'free';
+        }
+      }
+
       this.currentStatus = {
         isActive: data.subscription_status === 'active',
         productId: data.subscription_tier || null,

@@ -1,8 +1,8 @@
 /**
- * /marketplace/[id] — marketplace blueprint detail.
+ * /marketplace/[id] — public blueprint detail.
  *
  * Anonymously browsable: header + price + author + Subscribe CTA.
- * When the viewer has access (active subscription, is the author, or
+ * When the viewer has access (active subscription, is an author/co-author, or
  * org admin), the Steps preview block also renders.
  */
 
@@ -17,14 +17,22 @@ import {
   Pressable,
   ActivityIndicator,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMarketplaceBlueprint } from '@/hooks/useMarketplaceBlueprint';
 import { useMarketplaceCheckout } from '@/hooks/useMarketplaceBlueprints';
+import { useMySubscriptions } from '@/hooks/useMySubscriptions';
+import { useBlueprintSubscribe } from '@/hooks/useBlueprintSubscribe';
+import {
+  addInstitutionalStepById,
+  addRemainingInstitutionalSteps,
+} from '@/services/BlueprintSubscribeService';
 import { WebMeta } from '@/components/marketplace/WebMeta';
 
 /** Lighten (amount > 0) or darken (amount < 0) a hex colour for the hero gradient. */
@@ -49,6 +57,7 @@ const CATEGORY_TONE: Record<string, { bg: string; fg: string; label: string }> =
 };
 
 function formatPrice(cents: number, cadence: 'monthly' | 'annual' | 'one_time'): string {
+  if (cents <= 0) return 'Free';
   const dollars = (cents / 100).toFixed(0);
   if (cadence === 'one_time') return `$${dollars}`;
   if (cadence === 'annual') return `$${dollars}/yr`;
@@ -77,10 +86,27 @@ export default function MarketplaceBlueprintPage() {
   const isCompact = width < 640;
   const { user, isGuest } = useAuth();
   const signedIn = !!user && !isGuest;
+  const queryClient = useQueryClient();
   const { result, loading, upsertReview, deleteReview } = useMarketplaceBlueprint(id);
   const checkout = useMarketplaceCheckout();
+  const freeSubscribe = useBlueprintSubscribe();
+  const { cancel } = useMySubscriptions();
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
+  const [cancelNotice, setCancelNotice] = React.useState<string | null>(null);
+  const [addingStepId, setAddingStepId] = React.useState<string | null>(null);
+  const [addingRemaining, setAddingRemaining] = React.useState(false);
+  const [optimisticStepIdsByTemplateId, setOptimisticStepIdsByTemplateId] = React.useState<
+    Record<string, string>
+  >({});
+  const [optimisticCopiedStepIds, setOptimisticCopiedStepIds] = React.useState<Set<string>>(
+    () => new Set(),
+  );
+
+  React.useEffect(() => {
+    setOptimisticCopiedStepIds(new Set());
+    setOptimisticStepIdsByTemplateId({});
+  }, [id]);
 
   if (loading || !result) {
     return (
@@ -99,25 +125,25 @@ export default function MarketplaceBlueprintPage() {
         </View>
         <Text style={s.h1}>
           {result.reason === 'not_listed'
-            ? "This blueprint isn't on the marketplace"
+            ? "This blueprint isn't listed"
             : 'Blueprint not found'}
         </Text>
         <Text style={s.copy}>
           {result.reason === 'not_listed'
-            ? 'Independent authors list their blueprints to Stripe before they appear here.'
-            : 'Check the link — or browse the marketplace for similar blueprints.'}
+            ? 'Independent authors publish and price blueprints before they appear in the Library.'
+            : 'Check the link, or browse Library for similar blueprints.'}
         </Text>
         <Pressable
           style={s.btnPrimary}
-          onPress={() => router.replace('/marketplace' as any)}
+          onPress={() => router.replace('/library' as any)}
         >
-          <Text style={s.btnPrimaryText}>Browse marketplace</Text>
+          <Text style={s.btnPrimaryText}>Browse blueprints</Text>
         </Pressable>
       </View>
     );
   }
 
-  const { blueprint, hasAccess, subscription, steps, reviews, myReview } = result;
+  const { blueprint, hasAccess, viewerRole, subscription, steps, reviews, myReview } = result;
 
   // The marketplace detail RPC has no interest accent column, so tint the hero
   // from the author's stable tone — an author's blueprints all read one colour.
@@ -150,10 +176,150 @@ export default function MarketplaceBlueprintPage() {
   ];
 
   const priceText = formatPrice(blueprint.pricePerSeatCents, blueprint.billingCadence);
+  const isFree = blueprint.pricePerSeatCents <= 0;
   const isFreeTrial = blueprint.trialDays > 0 && blueprint.billingCadence !== 'one_time';
-  const subscribeLabel = `Subscribe · ${priceText}`;
+  const showTrial = isFreeTrial && (!hasAccess || subscription?.status === 'trialing');
+  const subscribeLabel = isFree ? 'Subscribe free' : `Subscribe · ${priceText}`;
   const authorRole = blueprint.orgName ?? 'Independent author';
   const orgInitial = (blueprint.orgName?.trim()?.[0] ?? '•').toUpperCase();
+  const isPrimaryAuthor = viewerRole === 'primary_author' || (!!user?.id && blueprint.authorUserId === user.id);
+  const isCoAuthor = viewerRole === 'co_author';
+  const isAuthorSide = isPrimaryAuthor || isCoAuthor || viewerRole === 'org_admin';
+  const copiedTemplateIds = new Set(optimisticCopiedStepIds);
+  const stepIdsByTemplateId: Record<string, string> = { ...optimisticStepIdsByTemplateId };
+  for (const step of steps) {
+    if (step.buyerStepId) {
+      copiedTemplateIds.add(step.id);
+      stepIdsByTemplateId[step.id] = step.buyerStepId;
+    }
+  }
+  const firstBuyerStepId = steps.find((step) => step.buyerStepId)?.buyerStepId ?? null;
+  const nextBuyerStepId =
+    steps.find((step) => step.buyerStepId && step.buyerStatus !== 'completed')?.buyerStepId ??
+    firstBuyerStepId;
+  const remainingStepCount = subscription
+    ? steps.filter((step) => !copiedTemplateIds.has(step.id)).length
+    : 0;
+
+  const goToAuthor = () => {
+    if (blueprint.authorUserId) router.push(`/person/${blueprint.authorUserId}` as any);
+  };
+
+  const goToPracticeStep = (stepId: string) => {
+    router.push(`/practice?selected=${encodeURIComponent(stepId)}&level=1` as any);
+  };
+
+  const goToNextStep = () => {
+    if (nextBuyerStepId) {
+      goToPracticeStep(nextBuyerStepId);
+      return;
+    }
+    router.push('/practice' as any);
+  };
+
+  const invalidateTimelineCopies = () => {
+    void queryClient.invalidateQueries({ queryKey: ['marketplace-blueprint', blueprint.id] });
+    void queryClient.invalidateQueries({ queryKey: ['timeline-steps'], refetchType: 'all' });
+    void queryClient.invalidateQueries({ queryKey: ['library-plans'], refetchType: 'all' });
+    void queryClient.invalidateQueries({ queryKey: ['library-counts'], refetchType: 'all' });
+    void queryClient.invalidateQueries({ queryKey: ['library-zones-data'], refetchType: 'all' });
+  };
+
+  const handleAddStep = async (templateId: string, title: string, openAfterAdd = false) => {
+    const existingStepId = stepIdsByTemplateId[templateId];
+    if (existingStepId) {
+      goToPracticeStep(existingStepId);
+      return;
+    }
+    if (addingStepId !== null || addingRemaining) return;
+    if (!signedIn || !user?.id || !subscription) return;
+    setAddingStepId(templateId);
+    setError(null);
+    setCancelNotice(null);
+    try {
+      const result = await addInstitutionalStepById(user.id, blueprint.id, templateId, null);
+      const stepId = result.stepIdsByTemplateId[templateId] ?? result.firstStepId;
+      setOptimisticCopiedStepIds((prev) => {
+        const next = new Set(prev);
+        next.add(templateId);
+        return next;
+      });
+      if (stepId) {
+        setOptimisticStepIdsByTemplateId((prev) => ({ ...prev, [templateId]: stepId }));
+      }
+      invalidateTimelineCopies();
+      setCancelNotice(
+        result.count > 0
+          ? `Added "${title}" to your timeline.`
+          : `"${title}" is already in your timeline.`,
+      );
+      if (openAfterAdd && stepId) {
+        goToPracticeStep(stepId);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not add step');
+    } finally {
+      setAddingStepId(null);
+    }
+  };
+
+  const handleAddRemaining = async () => {
+    if (!signedIn || !user?.id || !subscription || remainingStepCount === 0) return;
+    setAddingRemaining(true);
+    setError(null);
+    setCancelNotice(null);
+    try {
+      const result = await addRemainingInstitutionalSteps(user.id, blueprint.id, null);
+      setOptimisticCopiedStepIds((prev) => {
+        const next = new Set(prev);
+        for (const step of steps) next.add(step.id);
+        return next;
+      });
+      setOptimisticStepIdsByTemplateId((prev) => ({
+        ...prev,
+        ...result.stepIdsByTemplateId,
+      }));
+      invalidateTimelineCopies();
+      setCancelNotice(
+        result.count > 0
+          ? `Added ${result.count} step${result.count === 1 ? '' : 's'} to your timeline.`
+          : 'All steps are already in your timeline.',
+      );
+      if (result.firstStepId) {
+        goToPracticeStep(result.firstStepId);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not add steps');
+    } finally {
+      setAddingRemaining(false);
+    }
+  };
+
+  const confirmCancel = () => {
+    if (!subscription || subscription.cancelAtPeriodEnd || cancel.isPending) return;
+    const runCancel = () => {
+      setError(null);
+      setCancelNotice(null);
+      cancel.mutate(subscription.id, {
+        onSuccess: () => {
+          setCancelNotice('Renewal canceled. You keep access through the current period.');
+          void queryClient.invalidateQueries({ queryKey: ['marketplace-blueprint', blueprint.id] });
+          void queryClient.invalidateQueries({ queryKey: ['library-plans'] });
+        },
+        onError: (err: unknown) => {
+          setError(err instanceof Error ? err.message : 'Cancel failed');
+        },
+      });
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('Cancel renewal for this blueprint subscription?')) runCancel();
+      return;
+    }
+    Alert.alert('Cancel renewal?', 'You keep access through the current billing period.', [
+      { text: 'Keep subscription', style: 'cancel' },
+      { text: 'Cancel renewal', style: 'destructive', onPress: runCancel },
+    ]);
+  };
 
   const handleSubscribe = () => {
     if (!signedIn) {
@@ -163,6 +329,28 @@ export default function MarketplaceBlueprintPage() {
     }
     setPending(true);
     setError(null);
+    if (isFree) {
+      freeSubscribe.mutate(
+        {
+          blueprintId: blueprint.id,
+          blueprintSystem: 'marketplace',
+          targetInterestId: null,
+          entryGranularity: 'first',
+        },
+        {
+          onSuccess: () => {
+            setPending(false);
+            void queryClient.invalidateQueries({ queryKey: ['marketplace-blueprint', blueprint.id] });
+            void queryClient.invalidateQueries({ queryKey: ['marketplace-blueprints'] });
+          },
+          onError: (err: unknown) => {
+            setPending(false);
+            setError(err instanceof Error ? err.message : 'Subscribe failed');
+          },
+        },
+      );
+      return;
+    }
     checkout.mutate(blueprint.id, {
       onSuccess: ({ url }) => {
         setPending(false);
@@ -185,11 +373,31 @@ export default function MarketplaceBlueprintPage() {
         <Text style={s.eyebrow}>
           {hasAccess ? 'Steps' : `${steps.length} steps · preview`}
         </Text>
-        <Text style={s.h2}>
-          {hasAccess
-            ? `What you'll work through · ${steps.length} step${steps.length === 1 ? '' : 's'}`
-            : "Here's the shape of the playbook"}
-        </Text>
+        <View style={s.stepsTitleRow}>
+          <Text style={[s.h2, { flex: 1 }]}>
+            {hasAccess
+              ? `What you'll work through · ${steps.length} step${steps.length === 1 ? '' : 's'}`
+              : "Here's the shape of the playbook"}
+          </Text>
+          {remainingStepCount > 1 ? (
+            <Pressable
+              style={[s.addRemainingBtn, addingRemaining && { opacity: 0.55 }]}
+              disabled={addingRemaining || addingStepId !== null}
+              onPress={handleAddRemaining}
+              accessibilityRole="button"
+              accessibilityLabel={`Add ${remainingStepCount} remaining steps to your timeline`}
+            >
+              {addingRemaining ? (
+                <ActivityIndicator size="small" color="#28406B" />
+              ) : (
+                <>
+                  <Ionicons name="add-circle-outline" size={13} color="#28406B" />
+                  <Text style={s.addRemainingText}>Add remaining</Text>
+                </>
+              )}
+            </Pressable>
+          ) : null}
+        </View>
       </View>
       {steps.length === 0 ? (
         <Text style={s.muted}>
@@ -202,6 +410,11 @@ export default function MarketplaceBlueprintPage() {
           {steps.map((step, idx) => {
             const tone = CATEGORY_TONE[step.category] ?? CATEGORY_TONE.other;
             const status = step.buyerStatus;
+            const isStepCopied = copiedTemplateIds.has(step.id);
+            const openStepId = stepIdsByTemplateId[step.id] ?? null;
+            const canOpenStep = hasAccess && !!openStepId;
+            const canInspectStep = hasAccess && !!subscription;
+            const canAddStep = hasAccess && !!subscription && !isStepCopied;
             const statusTone =
               status === 'completed'
                 ? { bg: 'rgba(30, 143, 71, 0.12)', fg: '#1E8F47', label: 'Done' }
@@ -211,9 +424,11 @@ export default function MarketplaceBlueprintPage() {
                     ? { bg: 'rgba(89, 100, 119, 0.12)', fg: '#596477', label: 'Skipped' }
                     : status === 'pending'
                       ? { bg: 'rgba(40, 64, 107, 0.08)', fg: '#28406B', label: 'In your timeline' }
+                      : isStepCopied
+                        ? { bg: 'rgba(40, 64, 107, 0.08)', fg: '#28406B', label: 'In your timeline' }
                       : null;
-            return (
-              <View key={step.id} style={s.stepRow}>
+            const stepContent = (
+              <>
                 <View style={[s.stepIndex, { backgroundColor: accent }]}>
                   <Text style={s.stepIndexText}>{idx + 1}</Text>
                 </View>
@@ -251,6 +466,48 @@ export default function MarketplaceBlueprintPage() {
                     style={{ marginTop: 8 }}
                   />
                 ) : null}
+                {canOpenStep ? (
+                  <Ionicons name="chevron-forward" size={16} color="rgba(60, 60, 67, 0.35)" />
+                ) : null}
+              </>
+            );
+            const rowAction = canOpenStep
+              ? () => goToPracticeStep(openStepId)
+              : canInspectStep
+                ? () => handleAddStep(step.id, step.title, true)
+                : null;
+            return (
+              <View key={step.id} style={s.stepRow}>
+                {rowAction ? (
+                  <Pressable
+                    style={({ pressed }) => [s.stepRowMain, pressed && { opacity: 0.82 }]}
+                    onPress={rowAction}
+                    accessibilityRole="button"
+                    accessibilityLabel={canOpenStep ? `Open ${step.title}` : `Add and open ${step.title}`}
+                  >
+                    {stepContent}
+                  </Pressable>
+                ) : (
+                  <View style={s.stepRowMain}>{stepContent}</View>
+                )}
+                {canAddStep ? (
+                  <Pressable
+                    style={[s.stepAddBtn, addingStepId === step.id && { opacity: 0.55 }]}
+                    disabled={addingStepId !== null || addingRemaining}
+                    onPress={() => handleAddStep(step.id, step.title)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add ${step.title} to your timeline`}
+                  >
+                    {addingStepId === step.id ? (
+                      <ActivityIndicator size="small" color="#28406B" />
+                    ) : (
+                      <>
+                        <Ionicons name="add" size={13} color="#28406B" />
+                        <Text style={s.stepAddBtnText}>Add</Text>
+                      </>
+                    )}
+                  </Pressable>
+                ) : null}
               </View>
             );
           })}
@@ -270,7 +527,7 @@ export default function MarketplaceBlueprintPage() {
   return (
     <ScrollView style={s.body} contentContainerStyle={s.scrollContent}>
       <WebMeta
-        title={`${blueprint.title} · BetterAt Marketplace`}
+        title={`${blueprint.title} · BetterAt Blueprint`}
         description={
           blueprint.description ??
           `${blueprint.title} — a step-by-step blueprint by ${blueprint.authorName}${
@@ -278,14 +535,14 @@ export default function MarketplaceBlueprintPage() {
           }.`
         }
         ogType="product"
-        url={typeof window !== 'undefined' ? window.location.href : undefined}
+        url={Platform.OS === 'web' ? window.location.href : undefined}
         priceAmount={blueprint.pricePerSeatCents / 100}
         priceCurrency="USD"
       />
 
-      <Pressable style={s.backRow} onPress={() => router.replace('/marketplace' as any)} hitSlop={8}>
+      <Pressable style={s.backRow} onPress={() => router.replace('/library' as any)} hitSlop={8}>
         <Ionicons name="chevron-back" size={15} color="#28406B" />
-        <Text style={s.backText}>Marketplace</Text>
+        <Text style={s.backText}>Library</Text>
       </Pressable>
 
       {/* Accent-tinted gradient hero — tinted from the author's tone */}
@@ -295,7 +552,7 @@ export default function MarketplaceBlueprintPage() {
         end={{ x: 1, y: 1 }}
         style={s.hero}
       >
-        <Text style={s.heroEyebrow}>Marketplace blueprint</Text>
+        <Text style={s.heroEyebrow}>Blueprint</Text>
         <Text style={[s.heroTitle, isCompact && { fontSize: 24, lineHeight: 30 }]}>
           {blueprint.title}
         </Text>
@@ -307,7 +564,7 @@ export default function MarketplaceBlueprintPage() {
               {steps.length} step{steps.length === 1 ? '' : 's'}
             </Text>
           </View>
-          {isFreeTrial ? (
+          {showTrial ? (
             <View style={s.heroMetaItem}>
               <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.9)" />
               <Text style={s.heroMetaText}>{blueprint.trialDays}-day trial</Text>
@@ -331,10 +588,11 @@ export default function MarketplaceBlueprintPage() {
           ) : null}
         </View>
 
-        {/* Plan → Do → Review → Discuss phase band */}
+        {/* Plan → Do → Review → Discuss status rail */}
         <View style={s.arc}>
           {phaseBand.map((ph) => (
-            <View key={ph.label} style={[s.phasePill, ph.on && s.phasePillOn]}>
+            <View key={ph.label} style={s.phasePill}>
+              <View style={[s.phaseDot, ph.on && s.phaseDotOn]} />
               <Text style={[s.phasePillText, ph.on && s.phasePillTextOn]}>{ph.label}</Text>
             </View>
           ))}
@@ -346,7 +604,7 @@ export default function MarketplaceBlueprintPage() {
         {blueprint.authorUserId ? (
           <Pressable
             style={s.provChip}
-            onPress={() => router.push(`/marketplace?author=${blueprint.authorUserId}` as any)}
+            onPress={goToAuthor}
           >
             <View style={[s.provAvatar, { backgroundColor: accent }]}>
               <Text style={s.provAvatarText}>{initialsFromName(blueprint.authorName)}</Text>
@@ -405,6 +663,13 @@ export default function MarketplaceBlueprintPage() {
                   : 'Subscribed'}
             </Text>
           </View>
+        ) : isAuthorSide ? (
+          <View style={[s.statusChip, { backgroundColor: 'rgba(40, 64, 107, 0.10)' }]}>
+            <Ionicons name="create-outline" size={12} color="#28406B" />
+            <Text style={[s.statusChipText, { color: '#28406B' }]}>
+              {isCoAuthor ? 'Co-author' : isPrimaryAuthor ? 'Author' : 'Admin access'}
+            </Text>
+          </View>
         ) : null}
       </View>
 
@@ -413,11 +678,29 @@ export default function MarketplaceBlueprintPage() {
         <View style={[s.side, isWide && s.sideWide]}>
           <View style={s.sideCard}>
             <View style={s.priceHeader}>
-              <Text style={[s.bigPrice, { color: accent }]}>{priceText}</Text>
+              <Text style={[s.bigPrice, { color: accent }]}>
+                {isAuthorSide && !subscription
+                  ? isCoAuthor
+                    ? 'Co-author access'
+                    : isPrimaryAuthor
+                      ? 'Author access'
+                      : 'Admin access'
+                  : priceText}
+              </Text>
               <Text style={s.accessLineText}>
-                {isFreeTrial
-                  ? `${blueprint.trialDays}-day free trial · cancel anytime`
-                  : 'Cancel anytime · 70% to author'}
+                {isAuthorSide && !subscription
+                  ? isCoAuthor
+                    ? "You're credited on this blueprint. Buyers subscribe; co-authors do not."
+                    : isPrimaryAuthor
+                      ? "This is your authored blueprint. Buyers subscribe; you don't."
+                      : 'You can inspect this marketplace listing as an organization admin.'
+                  : hasAccess
+                  ? subscription?.status === 'trialing'
+                    ? `${blueprint.trialDays}-day trial active · cancel anytime`
+                    : 'Subscribed · cancel anytime'
+                  : showTrial
+                    ? `${blueprint.trialDays}-day free trial · cancel anytime`
+                    : 'Cancel anytime · 70% to author'}
               </Text>
             </View>
 
@@ -427,17 +710,99 @@ export default function MarketplaceBlueprintPage() {
                 disabled={pending}
                 onPress={handleSubscribe}
               >
-                <Ionicons name={pending ? 'sync' : 'card-outline'} size={15} color="#FFFFFF" />
+                <Ionicons
+                  name={pending ? 'sync' : isFree ? 'add-circle-outline' : 'card-outline'}
+                  size={15}
+                  color="#FFFFFF"
+                />
                 <Text style={s.btnPrimaryText}>
-                  {pending ? 'Opening Stripe…' : signedIn ? subscribeLabel : 'Sign in to subscribe'}
+                  {pending
+                    ? isFree ? 'Subscribing…' : 'Opening Stripe…'
+                    : signedIn ? subscribeLabel : 'Sign in to subscribe'}
                 </Text>
               </Pressable>
             ) : (
-              <View style={s.haveAccessNote}>
-                <Ionicons name="checkmark-circle" size={15} color="#1E8F47" />
-                <Text style={s.haveAccessText}>
-                  You have access — the steps below are unlocked.
-                </Text>
+              <View style={s.accessActions}>
+                <View style={s.haveAccessNote}>
+                  <Ionicons name="checkmark-circle" size={15} color="#1E8F47" />
+                  <Text style={s.haveAccessText}>
+                    {isAuthorSide && !subscription
+                      ? isCoAuthor
+                        ? 'You are a co-author on this blueprint. Subscribers get copied steps when they subscribe.'
+                        : isPrimaryAuthor
+                          ? 'This is your blueprint preview. Subscribers get copied steps when they subscribe.'
+                          : 'You have admin access to inspect this marketplace listing.'
+                      : remainingStepCount > 0
+                        ? 'You have access. Add any step below, or open steps already copied to Practice.'
+                        : 'You have access. Open your copied steps in Practice.'}
+                  </Text>
+                </View>
+                <Pressable
+                  style={[
+                    s.btnPrimary,
+                    { backgroundColor: accent },
+                    addingRemaining && { opacity: 0.55 },
+                  ]}
+                  disabled={addingRemaining}
+                  onPress={
+                    isAuthorSide && !subscription
+                      ? () => router.push(`/studio/blueprints/${blueprint.id}` as any)
+                      : nextBuyerStepId || remainingStepCount === 0
+                        ? goToNextStep
+                        : handleAddRemaining
+                  }
+                >
+                  <Ionicons
+                    name={
+                      isAuthorSide && !subscription
+                        ? 'create-outline'
+                        : nextBuyerStepId || remainingStepCount === 0
+                          ? 'play-circle-outline'
+                          : 'add-circle-outline'
+                    }
+                    size={15}
+                    color="#FFFFFF"
+                  />
+                  <Text style={s.btnPrimaryText}>
+                    {isAuthorSide && !subscription
+                      ? isCoAuthor ? 'Open in Studio' : 'Edit in Studio'
+                      : nextBuyerStepId
+                        ? 'Open my next step'
+                        : remainingStepCount > 0
+                          ? addingRemaining ? 'Adding steps…' : 'Add steps to timeline'
+                          : 'Open Practice'}
+                  </Text>
+                </Pressable>
+                <View style={s.secondaryActions}>
+                  <Pressable style={s.btnSecondary} onPress={goToAuthor}>
+                    <Ionicons name="person-circle-outline" size={14} color="#28406B" />
+                    <Text style={s.btnSecondaryText}>Author profile</Text>
+                  </Pressable>
+                  {subscription ? (
+                    <Pressable
+                      style={[s.btnSecondary, cancel.isPending && { opacity: 0.55 }]}
+                      disabled={cancel.isPending || subscription.cancelAtPeriodEnd}
+                      onPress={confirmCancel}
+                    >
+                      <Ionicons name="card-outline" size={14} color="#28406B" />
+                      <Text style={s.btnSecondaryText}>
+                        {subscription.cancelAtPeriodEnd
+                          ? 'Renewal canceled'
+                          : cancel.isPending
+                            ? 'Canceling…'
+                            : 'Cancel renewal'}
+                      </Text>
+                    </Pressable>
+                  ) : isAuthorSide ? (
+                    <Pressable
+                      style={s.btnSecondary}
+                      onPress={() => router.push(`/studio/blueprints/${blueprint.id}` as any)}
+                    >
+                      <Ionicons name="create-outline" size={14} color="#28406B" />
+                      <Text style={s.btnSecondaryText}>{isCoAuthor ? 'Open in Studio' : 'Edit in Studio'}</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               </View>
             )}
 
@@ -448,8 +813,15 @@ export default function MarketplaceBlueprintPage() {
               </View>
             ) : null}
 
+            {cancelNotice ? (
+              <View style={s.noticeBox}>
+                <Ionicons name="checkmark-circle" size={14} color="#1E8F47" />
+                <Text style={s.noticeText}>{cancelNotice}</Text>
+              </View>
+            ) : null}
+
             <Text style={s.adoptHelper}>
-              Steps land on your own timeline — work them on shift, review when you&apos;re done.
+              Steps land on your own timeline. Your step visibility stays controlled from each step and your privacy settings.
             </Text>
           </View>
 
@@ -460,7 +832,7 @@ export default function MarketplaceBlueprintPage() {
                 <Text style={[s.glanceNum, { color: accent }]}>{steps.length}</Text>
                 <Text style={s.glanceLabel}>{steps.length === 1 ? 'step' : 'steps'}</Text>
               </View>
-              {isFreeTrial ? (
+              {showTrial ? (
                 <View style={s.glanceCell}>
                   <Text style={[s.glanceNum, { color: accent }]}>{blueprint.trialDays}</Text>
                   <Text style={s.glanceLabel}>day trial</Text>
@@ -500,6 +872,12 @@ export default function MarketplaceBlueprintPage() {
             <View style={s.authorBioBox}>
               <Text style={s.authorBioLabel}>About {blueprint.authorName}</Text>
               <Text style={s.authorBioText}>{blueprint.authorBio}</Text>
+              {blueprint.authorUserId ? (
+                <Pressable style={s.authorProfileLink} onPress={goToAuthor}>
+                  <Text style={s.authorProfileLinkText}>View public profile</Text>
+                  <Ionicons name="chevron-forward" size={13} color="#28406B" />
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -783,21 +1161,21 @@ const s = StyleSheet.create({
   heroMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   heroMetaText: { fontSize: 12.5, fontWeight: '600', color: 'rgba(255,255,255,0.92)' },
 
-  // Plan → Do → Review → Discuss band
+  // Plan → Do → Review → Discuss status rail
   arc: { flexDirection: 'row', gap: 7, marginTop: 16 },
   phasePill: {
     flex: 1,
-    paddingVertical: 9,
-    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 999,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  phasePillOn: {
-    backgroundColor: 'rgba(255,255,255,0.26)',
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
+  phaseDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.32)' },
+  phaseDotOn: { backgroundColor: '#FFFFFF' },
   phasePillText: {
     fontSize: 11,
     fontWeight: '800',
@@ -853,6 +1231,7 @@ const s = StyleSheet.create({
   priceHeader: { gap: 3 },
   bigPrice: { fontSize: 30, fontWeight: '800', letterSpacing: -0.6 },
   accessLineText: { fontSize: 12, color: 'rgba(60, 60, 67, 0.7)' },
+  accessActions: { gap: 10 },
   haveAccessNote: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -863,6 +1242,20 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(30, 143, 71, 0.08)',
   },
   haveAccessText: { flex: 1, fontSize: 12.5, color: '#1E8F47', fontWeight: '600' },
+  secondaryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  btnSecondary: {
+    flex: 1,
+    minWidth: 132,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(40, 64, 107, 0.08)',
+  },
+  btnSecondaryText: { color: '#28406B', fontSize: 12.5, fontWeight: '700' },
   adoptHelper: { fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)', lineHeight: 16 },
 
   glanceCard: {
@@ -902,6 +1295,8 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
   },
   authorBioText: { fontSize: 13, color: 'rgba(60, 60, 67, 0.85)', lineHeight: 19 },
+  authorProfileLink: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start', marginTop: 4 },
+  authorProfileLinkText: { fontSize: 12.5, fontWeight: '700', color: '#28406B' },
   copy: {
     fontSize: 13.5,
     lineHeight: 19,
@@ -957,6 +1352,16 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(192, 57, 43, 0.10)',
   },
   errorText: { flex: 1, fontSize: 12, color: '#C0392B' },
+  noticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(30, 143, 71, 0.10)',
+  },
+  noticeText: { flex: 1, fontSize: 12, color: '#1E8F47', fontWeight: '600' },
 
   stepsCard: {
     padding: 20,
@@ -967,6 +1372,23 @@ const s = StyleSheet.create({
     gap: 14,
   },
   stepsHead: { gap: 2 },
+  stepsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  addRemainingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(40, 64, 107, 0.08)',
+  },
+  addRemainingText: { color: '#28406B', fontSize: 11.5, fontWeight: '700' },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -974,6 +1396,12 @@ const s = StyleSheet.create({
     padding: 12,
     backgroundColor: '#F5F4EE',
     borderRadius: 10,
+  },
+  stepRowMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
   },
   stepIndex: {
     width: 28,
@@ -986,6 +1414,17 @@ const s = StyleSheet.create({
   stepIndexText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '700' },
   stepTitle: { fontSize: 13.5, fontWeight: '600', color: '#1C1C1E' },
   stepDescription: { fontSize: 12, color: 'rgba(60, 60, 67, 0.75)', lineHeight: 18 },
+  stepAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(40, 64, 107, 0.08)',
+  },
+  stepAddBtnText: { color: '#28406B', fontSize: 11.5, fontWeight: '700' },
   categoryChip: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,

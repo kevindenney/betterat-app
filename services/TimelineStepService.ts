@@ -470,7 +470,7 @@ async function resequenceIfChanged(orderedIds: string[]): Promise<void> {
   await resequenceTimelineSortOrders(orderedIds);
 }
 
-async function placeStepBeforeFirstActive(
+export async function placeStepBeforeFirstActive(
   step: Pick<TimelineStepRecord, 'id' | 'user_id' | 'interest_id'>,
 ): Promise<void> {
   const rows = await getOwnedInterestStepOrder(step.user_id, step.interest_id);
@@ -1321,8 +1321,10 @@ function generateShareToken(): string {
 }
 
 function getShareUrl(token: string): string {
-  const base =
-    typeof window !== 'undefined' ? window.location.origin : 'https://better.at';
+  // On native, RN defines `window` (= global) but `window.location` is
+  // undefined, so `typeof window` alone throws on `.origin`. Optional-chain the
+  // location and fall back to the canonical origin.
+  const base = (typeof window !== 'undefined' && window.location?.origin) || 'https://better.at';
   return `${base}/p/step/${token}`;
 }
 

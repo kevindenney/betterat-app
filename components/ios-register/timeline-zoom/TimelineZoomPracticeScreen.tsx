@@ -377,9 +377,19 @@ export function TimelineZoomPracticeScreen() {
   const queryClient = useQueryClient();
   const handleReorderStep = useCallback(
     (stepId: string, beforeStepId: string | null, afterStepId: string | null) => {
-      if (!steps.some((s) => s.id === stepId)) return;
+      // Only the viewer's own steps in THIS interest are resequenced. The timeline
+      // also carries cross-interest pinned steps (_pinned, owned by the viewer but
+      // homed elsewhere) and collaborator steps (other owners). The resequence RPC
+      // keys only on user_id, so including a pinned step would overwrite its
+      // home-interest sort_order — scrambling that interest's order.
+      const reorderable = steps.filter(
+        (s) => !(s as { _pinned?: boolean })._pinned
+          && s.user_id === user?.id
+          && s.interest_id === interestId,
+      );
+      if (!reorderable.some((s) => s.id === stepId)) return;
 
-      const ordered = [...steps]
+      const ordered = [...reorderable]
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((s) => s.id)
         .filter((id) => id !== stepId);
@@ -398,9 +408,9 @@ export function TimelineZoomPracticeScreen() {
       ordered.splice(insertAt, 0, stepId);
 
       const unchanged =
-        ordered.length === steps.length &&
+        ordered.length === reorderable.length &&
         ordered.every((id, i) => {
-          const s = steps.find((st) => st.id === id);
+          const s = reorderable.find((st) => st.id === id);
           return s?.sort_order === i;
         });
       if (unchanged) return;
@@ -414,7 +424,7 @@ export function TimelineZoomPracticeScreen() {
           showAlert('Could not reorder', 'The step order could not be saved. Please try again.');
         });
     },
-    [steps, queryClient],
+    [steps, queryClient, interestId, user?.id],
   );
 
   // Reorder-time status flip + placement. The L3 reorder list reports a drag

@@ -71,20 +71,12 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
   }, [user?.id]);
 
   const handleUploadDocument = useCallback(async () => {
-    // Debug mode - allow upload without authentication for testing
-    const debugMode = true;
-    const debugUserId = '51241049-02ed-4e31-b8c6-39af7c9d4d50';
-
-    if (!user?.id && !debugMode) {
-      if (typeof window !== 'undefined') {
-        window.alert('Please sign in to upload documents');
-      }
+    if (!user?.id) {
+      showAlert('Sign in required', 'Please sign in to upload documents.');
       return;
     }
 
-    const _userIdToUse = user?.id || debugUserId;
-
-    if (typeof window !== 'undefined') {
+    if (Platform.OS === 'web') {
       // Web-compatible alert for document type selection
       const documentTypes = [
         'Tides/Current Strategy (Perfect for your strategy book!)',
@@ -155,9 +147,11 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     category: 'tides_currents' | 'tactics' | 'rules' | 'weather',
     defaultTitle: string
   ) => {
-    // Use debug user ID if no real user
-    const debugUserId = '51241049-02ed-4e31-b8c6-39af7c9d4d50';
-    const userIdToUse = user?.id || debugUserId;
+    if (!user?.id) {
+      showAlert('Sign in required', 'Please sign in to upload documents.');
+      return;
+    }
+    const userIdToUse = user.id;
 
     setIsUploading(true);
     try {

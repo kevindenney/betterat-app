@@ -47,7 +47,7 @@ import { ReviewTab } from './ReviewTab';
 import { getReviewSections } from '@/lib/step/getReviewSections';
 // BrainDumpEntry now embedded in PlanTab
 import { AIStructureReview } from './AIStructureReview';
-import type { StepPlanData, StepActData as _StepActData, StepReviewData as _StepReviewData, StepMetadata, BrainDumpData, StepCollaborator as _StepCollaborator, AnyExtractedEntity, DateEnrichment, ExtractedPersonEntity, RacePlan } from '@/types/step-detail';
+import type { StepPlanData, StepActData as _StepActData, StepReviewData as _StepReviewData, StepMetadata, BrainDumpData, StepCollaborator as _StepCollaborator, AnyExtractedEntity, DateEnrichment, ExtractedPersonEntity, RacePlan, FoldedSourceRef } from '@/types/step-detail';
 import type { TimelineStepStatus } from '@/types/timeline-steps';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAIUsage } from '@/hooks/useAIUsage';
@@ -259,7 +259,7 @@ function formatTimingChip(startsAt: string | null | undefined, durationMinutes: 
 function deriveStatePill(
   status: TimelineStepStatus | undefined,
 ): { variant: StatePillVariant; label: string } {
-  if (status === 'completed') return { variant: 'complete', label: 'Complete' };
+  if (status === 'completed' || status === 'settled') return { variant: 'complete', label: 'Complete' };
   if (status === 'in_progress') {
     return { variant: 'live', label: 'Doing' };
   }
@@ -278,7 +278,8 @@ function derivePhaseState(
 function getDefaultTab(status?: TimelineStepStatus): TabValue {
   switch (status) {
     case 'in_progress': return 'act';
-    case 'completed': return 'review';
+    case 'completed':
+    case 'settled': return 'review';
     default: return 'plan';
   }
 }
@@ -623,6 +624,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const serverPlanData: StepPlanData = useMemo(() => metadata.plan ?? {}, [metadata.plan]);
   const actData = metadata.act ?? {};
   const reviewData = metadata.review ?? {};
+  const foldedSources = Array.isArray(metadata.folded_sources) ? metadata.folded_sources : [];
   const brainDumpData = metadata.brain_dump;
 
   // Brain dump state — unified with plan view (no separate phases)
@@ -1126,7 +1128,17 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
 
   const handleSetDueDate = useCallback((dateStr: string) => {
     if (!step || !isOwner) return;
-    const dueAt = dateStr ? new Date(dateStr + 'T23:59:59').toISOString() : null;
+    let dueAt: string | null = null;
+    if (dateStr) {
+      // dateStr comes from a free-text prompt — guard against unparseable input
+      // (e.g. "July 5", "2026-13-01") which would throw RangeError on toISOString().
+      const parsed = new Date(dateStr + 'T23:59:59');
+      if (Number.isNaN(parsed.getTime())) {
+        showAlert('Invalid date', 'Please enter the due date as YYYY-MM-DD.');
+        return;
+      }
+      dueAt = parsed.toISOString();
+    }
     queryClient.setQueryData(
       ['timeline-steps', 'detail', stepId],
       (old: any) => old ? { ...old, due_at: dueAt } : old,
@@ -1274,7 +1286,17 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
   const handleMoveStep = useCallback(
     async (target: MoveTarget) => {
       if (!step || !isOwner) return;
-      const ordered = viewerInterestSteps.map((s) => s.id);
+      // Resequence only the viewer's own steps homed in THIS interest. The
+      // timeline also carries cross-interest pinned steps (_pinned, homed
+      // elsewhere) and collaborator steps; the resequence RPC keys only on
+      // user_id, so including a pinned step would clobber its home-interest order.
+      const ordered = viewerInterestSteps
+        .filter(
+          (s) => !(s as { _pinned?: boolean })._pinned
+            && s.user_id === step.user_id
+            && s.interest_id === step.interest_id,
+        )
+        .map((s) => s.id);
       if (ordered.indexOf(step.id) < 0) {
         setMoveSheetOpen(false);
         return;
@@ -1330,7 +1352,11 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     const sameDay = (a: number, b: number) =>
       new Date(a).toDateString() === new Date(b).toDateString();
     const scored = viewerInterestSteps
-      .filter((s) => s.id !== step.id && s.status !== 'folded')
+      .filter((s) =>
+        s.id !== step.id &&
+        s.interest_id === step.interest_id &&
+        s.status !== 'folded'
+      )
       .map((s) => {
         const start = s.starts_at ? new Date(s.starts_at).getTime() : null;
         let score = 0;
@@ -1371,6 +1397,32 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         a.item.title.localeCompare(b.item.title),
     );
     return scored.map((s) => s.item);
+  }, [step, isOwner, viewerInterestSteps]);
+
+  const pinnedFoldTargetItems = useMemo<FoldTargetItem[]>(() => {
+    if (!step || !isOwner) return [];
+    return viewerInterestSteps
+      .filter((s) =>
+        s.id !== step.id &&
+        s.interest_id !== step.interest_id &&
+        s.status !== 'folded'
+      )
+      .map((s) => {
+        const start = s.starts_at ? new Date(s.starts_at).getTime() : null;
+        const whenLabel = start
+          ? new Date(start).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+            })
+          : undefined;
+        return {
+          id: s.id,
+          title: s.title ?? 'Untitled step',
+          isRace: Boolean(s.is_race),
+          isDone: s.status === 'settled' || s.status === 'completed',
+          whenLabel,
+        };
+      });
   }, [step, isOwner, viewerInterestSteps]);
 
   // Tombstone state — set only when this step has itself been folded away.
@@ -1827,6 +1879,12 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           sourceType={step.source_type}
           copiedFromUserId={step.copied_from_user_id}
           followUpToStepId={brainDumpData?.source_step_id ?? null}
+          institutionalBlueprintId={
+            metadata.source === 'institutional_blueprint' &&
+            typeof metadata.blueprint_id === 'string'
+              ? metadata.blueprint_id
+              : null
+          }
           variant="full"
         />
       ) : null}
@@ -2080,10 +2138,18 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           <Ionicons name="chevron-forward" size={14} color={STEP_COLORS.tertiaryLabel} />
         </Pressable>
       ) : null;
+    const foldedSourcesCard =
+      !isFolded && foldedSources.length > 0 ? (
+        <FoldedSourcesSummary
+          sources={foldedSources}
+          onOpenSource={(sourceId) => router.push(`/step/${sourceId}` as any)}
+        />
+      ) : null;
 
     const belowTitleRow = (detailInterestName || counterText || planName) ? (
       <>
         {foldedBanner}
+        {foldedSourcesCard}
         <View style={styles.belowTitleRow}>
           {detailInterestName ? (
             <View style={styles.belowInterestPill}>
@@ -2114,6 +2180,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
     ) : (
       <>
         {foldedBanner}
+        {foldedSourcesCard}
         <StepCombinatorsRow
           step={step}
           blueprintTitle={blueprintChrome?.blueprintTitle ?? null}
@@ -2223,7 +2290,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       }
       // A race is the anchor you fold *into*, so it never offers to fold itself
       // away; every other step can fold onto a canonical target when one exists.
-      if (!step.is_race && foldTargetItems.length > 0) {
+      if (!step.is_race && (foldTargetItems.length > 0 || pinnedFoldTargetItems.length > 0)) {
         menuActions.push({
           label: 'Fold into another step…',
           testID: 'step-action-fold',
@@ -2281,19 +2348,6 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
         onPress: () => {
           setMenuOpen(false);
           handleDeleteStep();
-        },
-      });
-    }
-    // Dev-only design-migration preview (renders the step with the iOS
-    // register kit at /race/ios/<id>). Hidden in production builds — most
-    // of that surface is still placeholder data.
-    if (__DEV__) {
-      menuActions.push({
-        label: 'Open in iOS preview',
-        icon: <Ionicons name="sparkles-outline" size={20} color={STEP_COLORS.label} />,
-        onPress: () => {
-          setMenuOpen(false);
-          router.push(`/race/ios/${step.id}` as any);
         },
       });
     }
@@ -2448,7 +2502,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           pill={hideStatePill ? undefined : <StatePill variant={pillSpec.variant} label={pillSpec.label} />}
           onMenuPress={() => setMenuOpen(true)}
           titleBlock={useIdentityDeck ? identityDeckEl : headerInner}
-          belowTitle={useIdentityDeck ? (<>{foldedBanner}{peerQuoteEl}</>) : belowTitleRow}
+          belowTitle={useIdentityDeck ? (<>{foldedBanner}{foldedSourcesCard}{peerQuoteEl}</>) : belowTitleRow}
           footer={peerActionFooter}
           phaseTabs={
             <PhaseTabs
@@ -2740,6 +2794,7 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
           visible={foldSheetOpen}
           sourceTitle={step.title ?? 'this step'}
           targets={foldTargetItems}
+          pinnedTargets={pinnedFoldTargetItems}
           onSelect={handleFoldInto}
           onClose={() => setFoldSheetOpen(false)}
           busy={foldBusy}
@@ -2769,6 +2824,65 @@ export function StepDetailContent({ stepId, readOnly: readOnlyProp, initialTab, 
       <View style={styles.tabContent}>{tabBodyJsx}</View>
     </View>
   );
+}
+
+function FoldedSourcesSummary({
+  sources,
+  onOpenSource,
+}: {
+  sources: FoldedSourceRef[];
+  onOpenSource: (sourceId: string) => void;
+}) {
+  if (sources.length === 0) return null;
+
+  return (
+    <View style={styles.foldedSourcesCard}>
+      <View style={styles.foldedSourcesHeader}>
+        <Ionicons name="git-merge-outline" size={15} color={STEP_COLORS.secondaryLabel} />
+        <Text style={styles.foldedSourcesTitle}>
+          Folded in {sources.length} {sources.length === 1 ? 'step' : 'steps'}
+        </Text>
+      </View>
+      {sources.slice(-3).map((source) => {
+        const count = formatFoldedSourceCount(source);
+        return (
+          <Pressable
+            key={source.step_id}
+            onPress={() => onOpenSource(source.step_id)}
+            style={({ pressed }) => [
+              styles.foldedSourceRow,
+              pressed && { opacity: 0.72 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`Open folded source ${source.title ?? 'step'}`}
+          >
+            <Text style={styles.foldedSourceName} numberOfLines={1}>
+              {source.title ?? 'Untitled step'}
+            </Text>
+            {count ? (
+              <Text style={styles.foldedSourceMeta} numberOfLines={1}>
+                {count}
+              </Text>
+            ) : null}
+            <Ionicons name="chevron-forward" size={14} color={STEP_COLORS.tertiaryLabel} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function formatFoldedSourceCount(source: FoldedSourceRef): string | null {
+  const counts = source.counts ?? {};
+  const captures =
+    (counts.observations ?? 0) +
+    (counts.media_uploads ?? 0) +
+    (counts.media_links ?? 0);
+  const sections = counts.sections ?? 0;
+  const parts: string[] = [];
+  if (captures > 0) parts.push(`${captures} ${captures === 1 ? 'capture' : 'captures'}`);
+  if (sections > 0) parts.push(`${sections} ${sections === 1 ? 'reflection' : 'reflections'}`);
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 const stepLoopShellStyles = StyleSheet.create({
@@ -3024,6 +3138,50 @@ const styles = StyleSheet.create({
   foldedBannerTarget: {
     fontWeight: '600',
     color: STEP_COLORS.label,
+  },
+  foldedSourcesCard: {
+    marginHorizontal: 14,
+    marginTop: 8,
+    marginBottom: 6,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: STEP_COLORS.border,
+    backgroundColor: STEP_COLORS.cardBg,
+    overflow: 'hidden',
+  },
+  foldedSourcesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 7,
+  },
+  foldedSourcesTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: STEP_COLORS.label,
+    letterSpacing: -0.1,
+  },
+  foldedSourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: STEP_COLORS.border,
+  },
+  foldedSourceName: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 13,
+    fontWeight: '600',
+    color: STEP_COLORS.label,
+  },
+  foldedSourceMeta: {
+    fontSize: 12,
+    color: STEP_COLORS.secondaryLabel,
   },
   belowInterestPill: {
     flexDirection: 'row',

@@ -545,7 +545,12 @@ function AuthGate() {
     // also need to round-trip through login so the post detail opens after
     // sign-in. The community screen redirects signed-out visitors to
     // `/(auth)/login?returnTo=...` itself.
-    const publicSegments = ['index', '(auth)', 'privacy', 'support', 'terms', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share', 'auth-welcome-ios', 'redeem', 'r', 'officiating', 'sports-photography', 'org', 'schools', 'marketplace', 'demo', 'profile'];
+    const publicSegments = ['index', '(auth)', 'privacy', 'support', 'terms', 'welcome', 'callback', 'blueprint', 'community', 'pricing', 'institutions', 'how-it-works', 'share', 'auth-welcome-ios', 'redeem', 'r', 'officiating', 'sports-photography', 'org', 'schools', 'marketplace', 'demo', 'profile',
+      // Public share + partner-embed surfaces: /p/* (public step/strategy/regatta
+      // pages — "no authentication required" per app/p/_layout.tsx), /embed/* iframes,
+      // and the marketing pages linked from the signed-out LandingNav. These render
+      // pre-login content; without them AuthGate bounces every shared link to /login.
+      'p', 'embed', 'coaches', 'podcast', 'podcasts', 'for-organizations', 'clubs'];
     // Interest landing pages are public marketing surfaces (InterestBrowserPage):
     // the dedicated per-interest folders plus the `[interest]` catch-all all
     // render pre-login content (orgs, plans from the marketplace catalog) for

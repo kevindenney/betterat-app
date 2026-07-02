@@ -102,12 +102,18 @@ export function useFeatureGate(): UseFeatureGateReturn {
     const subscriptionStatus = profile?.subscription_status;
     const trialEndsAt = profile?.trial_ends_at;
 
-    // Active reverse trial → treat as 'individual'
-    if (subscriptionStatus === 'trialing' && trialEndsAt) {
-      const expiresAt = new Date(trialEndsAt);
-      if (expiresAt > new Date()) {
+    // Reverse trial: a 'trialing' status means subscription_tier holds the trial
+    // grant ('individual'), not a purchased entitlement. Honor it only while the
+    // trial is live. Once trial_ends_at has passed (or is missing), the trial
+    // confers nothing — return 'free' WITHOUT falling through to the raw tier,
+    // which would otherwise leave every expired trial on 'individual' forever.
+    // The server-side cron (expire_due_reverse_trials) downgrades the row too;
+    // this guards the window before it runs and any malformed trialing rows.
+    if (subscriptionStatus === 'trialing') {
+      if (trialEndsAt && new Date(trialEndsAt) > new Date()) {
         return 'individual';
       }
+      return 'free';
     }
 
     // Check user profile for subscription tier

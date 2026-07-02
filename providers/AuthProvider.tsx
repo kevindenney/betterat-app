@@ -239,6 +239,11 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
 
   // Ref to track if initial auth check is in progress (prevents onAuthStateChange from racing with initializeAuth)
   const initialAuthInProgress = useRef(true)
+  // Tracks the last authenticated user id so we can flush the React Query cache on
+  // an account switch. Many query keys are not user-scoped, so switching accounts
+  // without an explicit sign-out (demo-persona magic-link mint, re-login) would
+  // otherwise serve the previous user's timeline / inbox / badge from cache.
+  const lastAuthedUserIdRef = useRef<string | null>(null)
   const readyRef = useRef(ready)
   const userProfileRef = useRef<any>(userProfile)
   const userTypeRef = useRef<UserType>(userType)
@@ -773,6 +778,9 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
 
         setSignedIn(!!session)
         setUser(authUser || null)
+        // Seed the account-switch tracker on cold-load restore (Supabase emits
+        // INITIAL_SESSION, not SIGNED_IN), so the first in-session switch is caught.
+        lastAuthedUserIdRef.current = authUser?.id ?? null
 
         // If no session, check if user has guest data (freemium mode)
         if (!session) {
@@ -919,6 +927,7 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
         setSignedIn(false)
         authDebugLog('🚪 [AUTH] Clearing user state...')
         setUser(null)
+        lastAuthedUserIdRef.current = null
         setIsGuest(false)
         authDebugLog('🚪 [AUTH] Clearing userProfile state...')
         setUserProfile(null)
@@ -955,6 +964,14 @@ export function AuthProvider({children}:{children: React.ReactNode}) {
 
       if (evt === 'SIGNED_IN' && session?.user?.id) {
         authDebugLog('🔔 [AUTH] SIGNED_IN event - fetching profile...')
+
+        // If a different account just signed in without an explicit sign-out
+        // (demo-persona mint, re-login), flush cached data from the prior user so
+        // non-user-scoped query keys don't leak their timeline/inbox/badge.
+        if (lastAuthedUserIdRef.current && lastAuthedUserIdRef.current !== session.user.id) {
+          queryClient.clear()
+        }
+        lastAuthedUserIdRef.current = session.user.id
 
         // Skip profile fetch if initial auth is still in progress - initializeAuth will handle it
         if (initialAuthInProgress.current) {

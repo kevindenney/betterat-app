@@ -71,45 +71,28 @@ const getApiBase = () => {
       return 'http://localhost:3000';
     }
   }
-  return process.env.EXPO_PUBLIC_API_URL || 'https://regattaflow.com';
+  return process.env.EXPO_PUBLIC_API_URL || 'https://better.at';
 };
 
 const API_BASE = getApiBase();
 
 /** Fetch step data directly from Supabase (fallback when API isn't available) */
 async function fetchStepFromSupabase(shareToken: string): Promise<StepData | null> {
-  const { data: step, error } = await supabase
-    .from('timeline_steps')
-    .select('*')
-    .eq('share_token', shareToken)
-    .eq('share_enabled', true)
-    .single();
+  // Read through a token-keyed SECURITY DEFINER RPC. A direct table read used to
+  // rely on an RLS policy that exposed every shared step (enumeration) and shipped
+  // raw metadata; the RPC returns only the sanitized fields for this one token.
+  const { data: step, error } = await supabase.rpc('get_shared_step', {
+    p_token: shareToken,
+  });
 
   if (error || !step) return null;
 
-  // Fetch creator
-  let creator: { display_name: string } | null = null;
-  if (step.user_id) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', step.user_id)
-      .single();
-    if (profile) {
-      creator = { display_name: profile.full_name || 'Anonymous' };
-    }
-  }
-
-  // Fetch interest
-  let interest: { name: string } | null = null;
-  if (step.interest_id) {
-    const { data: i } = await supabase
-      .from('interests')
-      .select('name')
-      .eq('id', step.interest_id)
-      .single();
-    if (i) interest = { name: i.name };
-  }
+  const creator: { display_name: string } | null = step.creator_name
+    ? { display_name: step.creator_name || 'Anonymous' }
+    : null;
+  const interest: { name: string } | null = step.interest_name
+    ? { name: step.interest_name }
+    : null;
 
   const metadata = (step.metadata || {}) as Record<string, any>;
   const planData = metadata.plan || {};
@@ -161,7 +144,7 @@ async function fetchStepFromSupabase(shareToken: string): Promise<StepData | nul
       capability_progress: reviewData.capability_progress || {},
     },
     created_at: step.created_at,
-    shared_at: step.public_shared_at,
+    shared_at: step.shared_at,
   };
 }
 
@@ -263,7 +246,7 @@ export default function PublicStepPage() {
           window.location?.hostname === '127.0.0.1')
           ? [
               `http://localhost:3000/api/public/steps/${token}`,
-              `https://regattaflow.com/api/public/steps/${token}`,
+              `https://better.at/api/public/steps/${token}`,
             ]
           : [`${API_BASE}/api/public/steps/${token}`];
 
@@ -559,7 +542,7 @@ export default function PublicStepPage() {
       {/* ── FOOTER ── */}
       <View style={styles.footer}>
         <Text style={styles.footerPowered}>Powered by BetterAt</Text>
-        <TouchableOpacity onPress={() => Linking.openURL('https://regattaflow.com')}>
+        <TouchableOpacity onPress={() => Linking.openURL('https://better.at')}>
           <Text style={styles.footerCta}>Start planning your practice →</Text>
         </TouchableOpacity>
       </View>

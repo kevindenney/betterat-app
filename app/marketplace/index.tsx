@@ -199,10 +199,10 @@ export default function MarketplacePage() {
       ]}
     >
       <WebMeta
-        title="Marketplace · BetterAt"
+        title="Blueprints · BetterAt"
         description="Practical step-by-step blueprints from independent authors. Subscribe monthly, cancel anytime, payouts route via Stripe Connect."
         ogType="website"
-        url={typeof window !== 'undefined' ? window.location.href : undefined}
+        url={Platform.OS === 'web' ? window.location.href : undefined}
       />
       {returnBanner ? (
         <View
@@ -243,7 +243,7 @@ export default function MarketplacePage() {
       ) : null}
 
       <View style={s.header}>
-        <Text style={s.eyebrow}>Marketplace</Text>
+        <Text style={s.eyebrow}>Blueprints</Text>
         {scopedAuthor ? (
           <>
             <Text style={[s.h1, isCompact && { fontSize: 22 }]}>
@@ -254,7 +254,7 @@ export default function MarketplacePage() {
                 onPress={() => router.replace('/marketplace' as any)}
                 hitSlop={6}
               >
-                <Text style={s.scopeBack}>← Browse all marketplace</Text>
+                <Text style={s.scopeBack}>← Browse all blueprints</Text>
               </Pressable>
               {scopedAuthor.orgName ? (
                 <Text style={s.scopeOrg}>· {scopedAuthor.orgName}</Text>
@@ -269,15 +269,15 @@ export default function MarketplacePage() {
         ) : scopedInterestName ? (
           <>
             <Text style={[s.h1, isCompact && { fontSize: 22 }]}>
-              {scopedInterestName} plans
+              {scopedInterestName} blueprints
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
               <Pressable onPress={() => router.replace('/marketplace' as any)} hitSlop={6}>
-                <Text style={s.scopeBack}>← Browse all plans</Text>
+                <Text style={s.scopeBack}>← Browse all blueprints</Text>
               </Pressable>
             </View>
             <Text style={s.lede}>
-              Subscribable step-by-step playbooks for {scopedInterestName.toLowerCase()}. Cancel
+              Subscribable step-by-step blueprints for {scopedInterestName.toLowerCase()}. Cancel
               anytime; payouts route via Stripe Connect.
             </Text>
           </>
@@ -430,7 +430,7 @@ export default function MarketplacePage() {
       {loading ? (
         <View style={s.loadingCard}>
           <ActivityIndicator color="#28406B" />
-          <Text style={s.loadingText}>Loading marketplace…</Text>
+          <Text style={s.loadingText}>Loading blueprints…</Text>
         </View>
       ) : filtered.length === 0 ? (
         <View style={s.emptyCard}>
@@ -441,12 +441,12 @@ export default function MarketplacePage() {
           />
           <Text style={s.emptyTitle}>
             {blueprints.length === 0
-              ? 'No marketplace blueprints yet'
+              ? 'No blueprints yet'
               : 'No matches for these filters'}
           </Text>
           <Text style={s.emptyCopy}>
             {blueprints.length === 0
-              ? 'Authors haven\'t listed any independent blueprints to Stripe yet. Check back soon — or, if you\'re an author, switch your blueprint to Independent and click "List on Stripe" in the Studio editor.'
+              ? 'Authors haven\'t published any independent blueprints yet. Check back soon — or, if you\'re an author, switch your blueprint to Independent in Studio.'
               : 'Try clearing the search or the Trial filter to see all blueprints again.'}
           </Text>
           {blueprints.length > 0 ? (
