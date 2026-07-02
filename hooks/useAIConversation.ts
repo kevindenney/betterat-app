@@ -66,18 +66,22 @@ export function useAIConversation(options: UseAIConversationOptions) {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const conversationIdRef = useRef<string | null>(null);
-  const initializedRef = useRef(false);
+  const initPromiseRef = useRef<Promise<void> | null>(null);
 
-  // Initialize or resume conversation
-  const initialize = useCallback(async () => {
-    if (!user?.id || !options.interestId || initializedRef.current) return;
-    initializedRef.current = true;
-    setIsInitializing(true);
+  // Initialize or resume the conversation. Memoizes its in-flight promise so a
+  // message sent before init resolves can await it (instead of being silently
+  // dropped), and clears the promise on failure so a later send retries rather
+  // than wedging the conversation forever.
+  const initialize = useCallback((): Promise<void> => {
+    if (!user?.id || !options.interestId) return Promise.resolve();
+    if (conversationIdRef.current) return Promise.resolve();
+    if (initPromiseRef.current) return initPromiseRef.current;
 
-    try {
+    const uid = user.id;
+    const doInit = async () => {
       // Try to resume existing active conversation
       const existing = await getActiveConversation(
-        user.id,
+        uid,
         options.interestId,
         options.contextType,
         options.contextId,
@@ -87,13 +91,12 @@ export function useAIConversation(options: UseAIConversationOptions) {
         setConversation(existing);
         setMessages(existing.messages);
         conversationIdRef.current = existing.id;
-        setIsInitializing(false);
         return;
       }
 
       // Create new conversation
       const newConv = await createConversation({
-        user_id: user.id,
+        user_id: user!.id,
         interest_id: options.interestId,
         context_type: options.contextType,
         context_id: options.contextId,
@@ -112,21 +115,45 @@ export function useAIConversation(options: UseAIConversationOptions) {
         setMessages([openingMsg]);
         await appendMessage(newConv.id, openingMsg).catch(() => {});
       }
-    } catch (err) {
-      console.error('Failed to initialize conversation:', err);
-    } finally {
-      setIsInitializing(false);
-    }
-  }, [user?.id, options.interestId, options.contextType, options.contextId, options.openingMessage]);
+    };
+
+    setIsInitializing(true);
+    const run = doInit()
+      .catch((err) => {
+        console.error('Failed to initialize conversation:', err);
+        initPromiseRef.current = null; // allow a later send to retry
+      })
+      .finally(() => {
+        setIsInitializing(false);
+      });
+    initPromiseRef.current = run;
+    return run;
+  }, [user, options.interestId, options.contextType, options.contextId, options.openingMessage]);
 
   useEffect(() => {
-    initialize();
+    void initialize();
   }, [initialize]);
 
   // Send a user message and get AI response
   const sendMessage = useCallback(
     async (text: string): Promise<string | null> => {
-      if (!conversationIdRef.current || !text.trim()) return null;
+      if (!text.trim()) return null;
+
+      // Init may still be in flight (or have failed) when the user hits send —
+      // the composer clears the input immediately, so a bare `return null` here
+      // would silently swallow their message. Wait for init, then re-check.
+      if (!conversationIdRef.current) {
+        await initialize();
+      }
+      if (!conversationIdRef.current) {
+        const errMsg: ConversationMessage = {
+          role: 'assistant',
+          content: "I couldn't start the conversation just now — please try sending that again.",
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errMsg]);
+        return null;
+      }
 
       // Soft paywall: free users get a monthly allowance of coach messages.
       // Surface the cap as a display-only assistant turn (this hook already
@@ -226,7 +253,7 @@ export function useAIConversation(options: UseAIConversationOptions) {
         setIsLoading(false);
       }
     },
-    [messages, options.systemPrompt, aiUsage],
+    [messages, options.systemPrompt, aiUsage, initialize],
   );
 
   // Complete the conversation and trigger insight extraction
