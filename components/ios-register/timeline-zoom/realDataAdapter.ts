@@ -2127,12 +2127,22 @@ export function mapToTimelineDataset({
     !user.id || s.user_id === user.id;
   const isActive = (s: TimelineStepRecord) =>
     s.status === 'in_progress' || s.status === 'pending';
-  const actualFocusId =
-    focusStepId ??
+  // Canonical NOW. Null when the arc has no active step — every NOW surface
+  // (L1 rail, NowFloat, task-bar dots, L4 node) treats null as "NOW sits past
+  // the last card", never re-flagging finished work as current.
+  const nowStepId =
     currentStepRecords.find((s) => isViewerStep(s) && isActive(s))?.id ??
     currentStepRecords.find(isActive)?.id ??
-    currentStepRecords[0]?.id ??
-    sorted[0]?.id ??
+    null;
+  // Landing card. With nothing active, land on the LAST (most recent) step —
+  // that's where the user left off, it sits adjacent to L1's "plan your next
+  // step" ghost card, and it keeps the elapsed-week analysis honest (a fully
+  // settled arc reads as its final week, not week 1).
+  const actualFocusId =
+    focusStepId ??
+    nowStepId ??
+    currentStepRecords[currentStepRecords.length - 1]?.id ??
+    sorted[sorted.length - 1]?.id ??
     '';
 
   const bucketGroups: TimelineStepRecord[][] = [];
@@ -2538,6 +2548,7 @@ export function mapToTimelineDataset({
     interest: { id: interestId ?? 'live', label: interestLabel, slug: interestSlug },
     user,
     focusStepId: actualFocusId,
+    nowStepId,
     currentSeasonId: seasonIdForSteps,
     stepCounter: actualFocusId
       ? {

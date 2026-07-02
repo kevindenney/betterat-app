@@ -129,6 +129,13 @@ interface L1StepViewProps {
    * meaningful in embedFullDetail mode.
    */
   bottomInset?: number;
+  /**
+   * Opens the add-step sheet. When the arc has no active step
+   * (dataset.nowStepId == null) the pager grows a ghost "plan your next
+   * step" card past the last real card — NOW lives on that gap, and this
+   * is its CTA. Omit to suppress the ghost (preview routes).
+   */
+  onAddStep?: () => void;
 }
 
 const PHASES = ['Plan', 'Do', 'Reflect', 'Discuss'] as const;
@@ -181,12 +188,20 @@ function PagerCard({
   cardBase,
   isFocused,
   isNow,
+  forceInteractive,
   children,
 }: {
   scrollX: SharedValue<number>;
   cardBase: number;
   isFocused: boolean;
   isNow?: boolean;
+  /**
+   * Unfocused cards normally swallow no touches (they overlap the focused
+   * card mid-swipe). The ghost "plan next step" card sits beyond the last
+   * real card with nothing behind it, so its CTA stays tappable even while
+   * it's only peeking (web shows neighbours at rest).
+   */
+  forceInteractive?: boolean;
   children: React.ReactNode;
 }) {
   const style = useAnimatedStyle(
@@ -201,7 +216,7 @@ function PagerCard({
         isNow && styles.pagerCardNow,
         style,
       ]}
-      pointerEvents={isFocused ? 'auto' : 'none'}
+      pointerEvents={isFocused || forceInteractive ? 'auto' : 'none'}
     >
       {isNow ? (
         <View style={styles.pagerNowRail} pointerEvents="none">
@@ -228,6 +243,7 @@ export function L1StepView({
   onJumpToStep,
   hideStepSwitcher,
   bottomInset,
+  onAddStep,
 }: L1StepViewProps) {
   const hasPrev = prevStep != null;
   const hasNext = nextStep != null;
@@ -244,7 +260,9 @@ export function L1StepView({
   // The merged Step view's relative DONE/NOW/NEXT indicator lives in the
   // canvas-level NowFloat chrome (mockup #38 `.nowfloat`), not on the card —
   // the card stays clean. isNowStep only drives the slim preview's accent bar.
-  const isNowStep = step.id === dataset.focusStepId;
+  // Keyed to nowStepId (canonical NOW), not focusStepId (landing card): a
+  // settled step can be the landing card but must never wear the NOW accent.
+  const isNowStep = step.id === dataset.nowStepId;
   const [hostWidth, setHostWidth] = useState(SCREEN_WIDTH);
   const swipeStridePx =
     Platform.OS === 'web'
@@ -265,22 +283,48 @@ export function L1StepView({
   const focusedIndex = steps.findIndex((s) => s.id === step.id);
   const useList = focusedIndex >= 0;
   const lastIndex = steps.length - 1;
-  const canPrev = useList ? focusedIndex > 0 : hasPrev;
-  const canNext = useList ? focusedIndex < lastIndex : hasNext;
 
-  // Keep scrollX pinned to the focused card's rest position. On a committed
-  // swipe the gesture has already animated scrollX to exactly this value, so
-  // this write is a no-op (no jump); on an external jump (picker / task bar)
-  // or a width change (web resize) it snaps the lane to re-center instantly.
-  const lastFocusRef = useRef<number | null>(null);
+  // NOW past the end. When the arc has no active step (nowStepId == null),
+  // every real card is settled, so the pager grows a ghost "plan your next
+  // step" card one stride past the last card. The red NOW rail rides the
+  // ghost — the gap after finished work — never a settled card. The ghost is
+  // swipeable like a real card; focus on it is local state because the parent
+  // only tracks real step ids.
+  const hasGhost = Boolean(
+    embedFullDetail && useList && steps.length > 0 && dataset.nowStepId == null && onAddStep,
+  );
+  const ghostIndex = steps.length;
+  const [ghostFocused, setGhostFocused] = useState(false);
+  // An external focus jump (picker / task bar) exits the ghost.
+  const prevFocusedIndexRef = useRef(focusedIndex);
+  if (prevFocusedIndexRef.current !== focusedIndex) {
+    prevFocusedIndexRef.current = focusedIndex;
+    if (ghostFocused) setGhostFocused(false);
+  }
+  const onGhost = hasGhost && ghostFocused;
+
+  const canPrev = onGhost ? true : useList ? focusedIndex > 0 : hasPrev;
+  const canNext = onGhost
+    ? false
+    : useList
+      ? focusedIndex < lastIndex || (hasGhost && focusedIndex === lastIndex)
+      : hasNext;
+
+  // Keep scrollX pinned to the focused card's rest position (the ghost's slot
+  // when it holds focus). On a committed swipe the gesture has already
+  // animated scrollX to exactly this value, so this write is a no-op (no
+  // jump); on an external jump (picker / task bar) or a width change (web
+  // resize) it snaps the lane to re-center instantly.
+  const pinIndex = onGhost ? ghostIndex : focusedIndex;
+  const lastPinRef = useRef<number | null>(null);
   const lastStrideRef = useRef<number | null>(null);
   if (
     embedFullDetail &&
     useList &&
-    (lastFocusRef.current !== focusedIndex || lastStrideRef.current !== swipeStridePx)
+    (lastPinRef.current !== pinIndex || lastStrideRef.current !== swipeStridePx)
   ) {
-    scrollX.value = focusedIndex * swipeStridePx;
-    lastFocusRef.current = focusedIndex;
+    scrollX.value = pinIndex * swipeStridePx;
+    lastPinRef.current = pinIndex;
     lastStrideRef.current = swipeStridePx;
   }
 
@@ -292,10 +336,20 @@ export function L1StepView({
   const fireSwipe = useCallback(
     (direction: 'prev' | 'next') => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      // Ghost transitions are local — the parent's focused step id doesn't
+      // change when the user swipes onto or off the plan-next ghost.
+      if (direction === 'next' && hasGhost && !ghostFocused && focusedIndex === lastIndex) {
+        setGhostFocused(true);
+        return;
+      }
+      if (direction === 'prev' && ghostFocused) {
+        setGhostFocused(false);
+        return;
+      }
       if (direction === 'prev') onSwipePrev?.();
       else onSwipeNext?.();
     },
-    [onSwipePrev, onSwipeNext],
+    [onSwipePrev, onSwipeNext, hasGhost, ghostFocused, focusedIndex, lastIndex],
   );
 
   const fireLightHaptic = useCallback(() => {
@@ -374,16 +428,16 @@ export function L1StepView({
         ) : null}
         <GestureDetector gesture={swipeGesture}>
           <View style={styles.embedGestureLayer}>
-            {(useList ? buildWindow(steps, focusedIndex) : [{ step, index: 0 }]).map(
+            {(useList ? buildWindow(steps, pinIndex) : [{ step, index: 0 }]).map(
               ({ step: cardStep, index }) => {
-                const isFocused = cardStep.id === step.id;
+                const isFocused = !onGhost && cardStep.id === step.id;
                 return (
                   <PagerCard
                     key={cardStep.id}
                     scrollX={scrollX}
                     cardBase={index * swipeStridePx}
                     isFocused={isFocused}
-                    isNow={cardStep.id === dataset.focusStepId}
+                    isNow={cardStep.id === dataset.nowStepId}
                   >
                     <EmbeddedStepCard
                       step={cardStep}
@@ -395,6 +449,21 @@ export function L1StepView({
                 );
               },
             )}
+            {hasGhost && ghostIndex - pinIndex <= PAGER_WINDOW ? (
+              <PagerCard
+                key="ghost-plan-next"
+                scrollX={scrollX}
+                cardBase={ghostIndex * swipeStridePx}
+                isFocused={onGhost}
+                isNow
+                forceInteractive
+              >
+                <PlanNextStepCard
+                  interestLabel={dataset.interest.label}
+                  onAddStep={onAddStep!}
+                />
+              </PagerCard>
+            ) : null}
           </View>
         </GestureDetector>
         {showStepSwitcher && allSteps ? (
@@ -634,6 +703,43 @@ function EmbeddedStepCard({
   );
 }
 
+/**
+ * The ghost card one stride past the last real card, shown only when the arc
+ * has no active step (dataset.nowStepId == null). It IS the timeline's NOW in
+ * that state: everything behind it is settled, so the honest thing at the
+ * cursor is an invitation to plan the next step — not a red flag on work
+ * that's already been reviewed.
+ */
+function PlanNextStepCard({
+  interestLabel,
+  onAddStep,
+}: {
+  interestLabel: string;
+  onAddStep: () => void;
+}) {
+  return (
+    <View style={styles.ghostHost}>
+      <View style={styles.ghostIconWrap}>
+        <Ionicons name="flag-outline" size={26} color={NOW_COLOR} />
+      </View>
+      <Text style={styles.ghostTitle}>All settled here</Text>
+      <Text style={styles.ghostBody}>
+        Every {interestLabel} step behind this point is done and reviewed.
+        Your next rep starts here.
+      </Text>
+      <Pressable
+        style={({ pressed }) => [styles.ghostCta, pressed && styles.ghostCtaPressed]}
+        onPress={onAddStep}
+        accessibilityRole="button"
+        accessibilityLabel="Plan your next step"
+      >
+        <Ionicons name="add" size={16} color="#FFFFFF" />
+        <Text style={styles.ghostCtaText}>Plan your next step</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function PeerQuoteBlock({ quote }: { quote: NonNullable<TimelineStep['peerQuote']> }) {
   return (
     <View style={styles.peerQuoteBlock}>
@@ -774,6 +880,52 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1,
     color: '#FFFFFF',
+  },
+  ghostHost: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  ghostIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 107, 90, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  ghostTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    color: IOS_REGISTER.label,
+    marginBottom: 6,
+  },
+  ghostBody: {
+    fontSize: 14,
+    lineHeight: 19,
+    color: IOS_REGISTER.labelSecondary,
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  ghostCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: IOS_REGISTER.accentUserAction,
+  },
+  ghostCtaPressed: {
+    opacity: 0.7,
+  },
+  ghostCtaText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   // Adjacent-step silhouettes — edge + corner + shadow only, no content.
   // Sit behind the main card; the user reads them as "more here".

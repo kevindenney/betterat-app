@@ -43,8 +43,10 @@ interface StepTaskBarProps {
   focusedStep?: TimelineStep | null;
   /** Ordered sibling steps — the jump menu + done/now/queued markers. */
   allSteps: TimelineStep[];
-  /** Canonical "now" step id — anchors the done/now/queued split. */
-  nowStepId: string;
+  /** Canonical "now" step id — anchors the done/now/queued split. Null
+   *  means nothing is active (NOW sits past the end): every row reads done,
+   *  no row wears the now dot. */
+  nowStepId: string | null;
   onJumpToStep: (stepId: string) => void;
   /** Arc the user is viewing — threaded to StepAddSheet's creation stamp. */
   viewedSeasonId?: string | null;
@@ -118,14 +120,19 @@ export function StepTaskBar({
   };
 
   const rows = allSteps.map((s, i) => {
+    // nowStepId === null → the arc is fully settled, every row is done.
+    // nowOrdinal < 0 with a non-null id → now lives in another arc; these
+    // rows are neither behind nor on it, so they stay queued.
     const rel: 'done' | 'now' | 'queued' =
-      nowOrdinal < 0
-        ? 'queued'
-        : i < nowOrdinal
-          ? 'done'
-          : i === nowOrdinal
-            ? 'now'
-            : 'queued';
+      nowStepId === null
+        ? 'done'
+        : nowOrdinal < 0
+          ? 'queued'
+          : i < nowOrdinal
+            ? 'done'
+            : i === nowOrdinal
+              ? 'now'
+              : 'queued';
     const dotColor =
       rel === 'done' ? DONE_COLOR : rel === 'now' ? NOW_COLOR : IOS_REGISTER.labelTertiary;
     const isLast = i === allSteps.length - 1;

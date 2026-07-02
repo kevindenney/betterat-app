@@ -447,6 +447,15 @@ export interface TimelineDataset {
   user: { initials: string; color: string };
   /** Step ID that the L1 view focuses on by default. */
   focusStepId: string;
+  /**
+   * The canonical NOW step — the viewer's first active (in-progress/pending)
+   * step in the current arc. NOW is a cursor in the sequence, never a
+   * property of finished work: when every step is settled it is `null`,
+   * meaning NOW sits past the last card (surfaces should invite planning the
+   * next step there, not flag a completed one). Distinct from `focusStepId`,
+   * which is only "which card to land on" and may be a settled step.
+   */
+  nowStepId: string | null;
   /** Season ID containing the focused step. */
   currentSeasonId: string;
   /** Used in L1 header — "Step 27 of 41". */

@@ -354,7 +354,10 @@ export function L4YearsView({
       if (steps.length > 0) seasonKeys.push({ title: season.title, color });
       steps.forEach((step, j) => {
         seasonByStep.set(step.id, step.seasonId ?? season.id);
-        const isNow = step.id === dataset.focusStepId;
+        // Canonical NOW only (nowStepId is null when nothing is active) —
+        // a settled landing step must not read NOW; the progressCount
+        // fallback below already renders the fully-finished thread.
+        const isNow = dataset.nowStepId != null && step.id === dataset.nowStepId;
         const isMilestone = milestoneSet.has(step.title.trim().toLowerCase());
         const firstOfSeason = j === 0;
         const label = isNow
@@ -387,7 +390,7 @@ export function L4YearsView({
       progressCount = done;
     }
     return { nodes, progressCount, seasonByStep, seasonKeys };
-  }, [dataset.seasons, dataset.focusStepId, interestVocab]);
+  }, [dataset.seasons, dataset.nowStepId, interestVocab]);
 
   return (
     <ScrollView

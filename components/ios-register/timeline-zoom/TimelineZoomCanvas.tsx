@@ -541,25 +541,32 @@ export function TimelineZoomCanvas({
       : null;
   // NowFloat — the viewed step's relation to the canonical now-step. When the
   // now-step lives in a different arc, compare the arcs chronologically.
+  // nowStepId is null when nothing is active: NOW then sits past the last
+  // card, so every viewed step reads DONE and the minimap paints the full
+  // run green with no tick (nowIndex past the end never matches a dot).
   const nowArcStepIdx = useMemo(
-    () => orderedArcSteps.findIndex((s) => s.id === dataset.focusStepId),
-    [orderedArcSteps, dataset.focusStepId],
+    () => orderedArcSteps.findIndex((s) => s.id === dataset.nowStepId),
+    [orderedArcSteps, dataset.nowStepId],
   );
-  const nowArcIdx = arcIndexOfStep(dataset.focusStepId);
+  const nowArcIdx = dataset.nowStepId ? arcIndexOfStep(dataset.nowStepId) : -1;
   const nowRelation: NowRelation =
-    focusedArcStepIdx < 0
-      ? 'now'
-      : nowArcStepIdx >= 0
-        ? focusedArcStepIdx === nowArcStepIdx
-          ? 'now'
-          : focusedArcStepIdx < nowArcStepIdx
-            ? 'done'
-            : 'next'
-        : nowArcIdx < 0 || focusedArcIdx === nowArcIdx
-          ? 'now'
-          : focusedArcIdx < nowArcIdx
-            ? 'done'
-            : 'next';
+    dataset.nowStepId == null
+      ? 'done'
+      : focusedArcStepIdx < 0
+        ? 'now'
+        : nowArcStepIdx >= 0
+          ? focusedArcStepIdx === nowArcStepIdx
+            ? 'now'
+            : focusedArcStepIdx < nowArcStepIdx
+              ? 'done'
+              : 'next'
+          : nowArcIdx < 0 || focusedArcIdx === nowArcIdx
+            ? 'now'
+            : focusedArcIdx < nowArcIdx
+              ? 'done'
+              : 'next';
+  const nowFloatIndex =
+    dataset.nowStepId == null ? orderedArcSteps.length : nowArcStepIdx;
 
   // Compute the level the user is about to snap to, given direction +
   // current level. Returns null when at a boundary (can't go further).
@@ -588,7 +595,7 @@ export function TimelineZoomCanvas({
                   interestLabel={dataset.interest.label}
                   focusedStep={chromeFocusedStep}
                   allSteps={chromeSteps}
-                  nowStepId={dataset.focusStepId}
+                  nowStepId={dataset.nowStepId}
                   onJumpToStep={(id) => setFocusStepId(id)}
                   viewedSeasonId={selectedSeason?.id ?? null}
                 />
@@ -649,6 +656,7 @@ export function TimelineZoomCanvas({
                       allSteps={orderedArcSteps}
                       onJumpToStep={(id) => setFocusStepId(id)}
                       hideStepSwitcher={hideInterestHeader}
+                      onAddStep={() => setAddOpen(true)}
                       // NowFloat hovers 20pt above the tab-bar clearance and is
                       // ~34pt tall — without this extra room the last element
                       // (Move to Reflect CTA) stops behind the pager pill.
@@ -761,7 +769,7 @@ export function TimelineZoomCanvas({
         {level === 1 && embedFullDetailAtL1 && !select.enabled && focusedStep ? (
           <NowFloat
             relation={nowRelation}
-            nowIndex={nowArcStepIdx}
+            nowIndex={nowFloatIndex}
             viewedIndex={Math.max(focusedArcStepIdx, 0)}
             total={orderedArcSteps.length}
             onJumpToIndex={jumpToArcIndex}

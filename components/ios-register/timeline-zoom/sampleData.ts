@@ -473,6 +473,7 @@ export const SAMPLE_DATASET: TimelineDataset = {
   interest: { id: 'nursing', label: 'Nursing' },
   user: { initials: 'ES', color: '#7BA0C4' },
   focusStepId: 's-w7-wed',
+  nowStepId: 's-w7-wed',
   currentSeasonId: 'spring26',
   stepCounter: { current: 27, total: 41 },
   weekCounter: { current: 7, total: 14 },
