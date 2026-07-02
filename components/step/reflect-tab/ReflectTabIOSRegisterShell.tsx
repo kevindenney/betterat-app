@@ -252,6 +252,15 @@ export function ReflectTabIOSRegisterShell({
             value={field.value}
             seedSuggestion={field.seedSuggestion}
             seedLabel={scaffoldedReview ? '✨' : undefined}
+            // One AI surface at a time: while the capture-draft banner is
+            // visible, seeds fold to a one-line hint. SynthesisPrompt hides
+            // itself at 0 captures — mirror that so seeds don't fold behind
+            // a banner that isn't actually rendered.
+            seedCollapsed={
+              !scaffoldedReview &&
+              view.synthesisState !== 'dismissed' &&
+              view.capturesCount > 0
+            }
             isLast={index === view.fields.length - 1}
             isDrafted={field.isDrafted}
             readOnly={view.readOnly}

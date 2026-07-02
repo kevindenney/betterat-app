@@ -22,6 +22,7 @@
  */
 
 import type { StepPlanData, StepCollaborator, StepReviewData, StepActData } from '@/types/step-detail';
+import { isDefaultStepTitle, stepTitleFromText } from '@/lib/utils/stepTitle';
 import type { Season } from '@/types/season';
 import type { TimelineStepRecord, TimelineStepStatus } from '@/types/timeline-steps';
 import { CAPABILITY_PALETTE } from './sampleData';
@@ -538,6 +539,7 @@ function recordToStep(
   weekId: string,
   blueprintsById?: Map<string, BlueprintLookup>,
   viewerUserId?: string | null,
+  interestLabel?: string,
 ): TimelineStep {
   const cap = deriveCapability(rec.category);
   const scheduleAnchor = resolveScheduleAnchor(rec);
@@ -639,7 +641,16 @@ function recordToStep(
   // Titles are single-line. Some seed/capture rows appended "When: …\nWhere: …"
   // metadata into the title with newlines; keep only the first line so the L1
   // headline (and L3/L4 node labels) don't render that junk in big serif.
-  const cleanTitle = (rec.title || 'Untitled step').split('\n')[0].trim() || 'Untitled step';
+  const rawTitle = (rec.title || 'Untitled step').split('\n')[0].trim() || 'Untitled step';
+  // Display-only vernacular: a default name ("Golf 1", "Step 3") tells the
+  // reader nothing, so timeline surfaces show the plan's own words instead.
+  // The stored title is untouched — the editable detail header still shows it.
+  const planWhat =
+    typeof plan?.what_will_you_do === 'string' ? plan.what_will_you_do.trim() : '';
+  const cleanTitle =
+    planWhat && isDefaultStepTitle(rawTitle, interestLabel)
+      ? stepTitleFromText(planWhat)
+      : rawTitle;
 
   return {
     id: rec.id,
@@ -2173,7 +2184,7 @@ export function mapToTimelineDataset({
       number,
       dateRange: range,
       isCurrent: bucketIdx === currentBucketIdx,
-      steps: bucketRecs.map((r) => recordToStep(r, seasonIdForSteps, id, blueprintsById, user.id)),
+      steps: bucketRecs.map((r) => recordToStep(r, seasonIdForSteps, id, blueprintsById, user.id, interestLabel)),
     };
   });
 
@@ -2480,7 +2491,7 @@ export function mapToTimelineDataset({
         // the lane reads as fully elapsed.
         isCurrent: bucketIdx === laneGroups.length - 1,
         steps: bucketRecs.map((r) =>
-          recordToStep(r, s.id, id, blueprintsById, user.id),
+          recordToStep(r, s.id, id, blueprintsById, user.id, interestLabel),
         ),
       };
     });

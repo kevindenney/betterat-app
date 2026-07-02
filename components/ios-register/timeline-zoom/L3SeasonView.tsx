@@ -737,7 +737,9 @@ export function L3SeasonView({
                 label="Reflections"
                 headline={
                   pauseWeeks.length > 0
-                    ? `Paused ${pauseWeeks.map((w) => `wk ${w}`).join(' · ')}`
+                    ? // Say what kind of pause — bare "Paused wk 1" read as
+                      // the app reporting an error, not a reflection habit.
+                      `Paused to reflect · ${pauseWeeks.map((w) => `wk ${w}`).join(' · ')}`
                     : `No pauses yet this ${interestVocab.periodNoun}`
                 }
               >

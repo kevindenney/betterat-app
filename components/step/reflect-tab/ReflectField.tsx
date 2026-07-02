@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   GRAY_5,
@@ -22,6 +22,13 @@ export interface ReflectFieldProps {
   readOnly?: boolean;
   seedSuggestion?: string;
   seedLabel?: string;
+  /**
+   * One AI surface at a time: while the capture-draft banner is on screen,
+   * seed cards fold to a one-line "Seed available" link (tap to unfold this
+   * one). Dismissing or using the banner unfolds every seed. Author
+   * feedback is human, not AI — it never collapses.
+   */
+  seedCollapsed?: boolean;
   isLast?: boolean;
   onUseSeed?: () => void;
   onMarkAsConceptSeed?: () => void;
@@ -39,17 +46,32 @@ export function ReflectField({
   readOnly,
   seedSuggestion,
   seedLabel,
+  seedCollapsed,
   isLast,
   onUseSeed,
   onMarkAsConceptSeed,
 }: ReflectFieldProps) {
-  const showSeed = Boolean(seedSuggestion?.trim()) && !value.trim() && !readOnly;
+  const hasSeed = Boolean(seedSuggestion?.trim()) && !value.trim() && !readOnly;
+  const [seedUnfolded, setSeedUnfolded] = useState(false);
+  const showSeed = hasSeed && (!seedCollapsed || seedUnfolded);
+  const showSeedHint = hasSeed && !showSeed;
   return (
     <View style={[styles.section, isLast && styles.sectionLast]}>
       <View style={styles.questionRow}>
         {index ? <Text style={styles.questionIndex}>{index}</Text> : null}
         <Text style={styles.question}>{qEye}</Text>
       </View>
+      {showSeedHint ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Show suggested answer for ${qEye}`}
+          onPress={() => setSeedUnfolded(true)}
+          hitSlop={6}
+          style={styles.seedHint}
+        >
+          <Text style={styles.seedHintText}>✷ Seed available</Text>
+        </Pressable>
+      ) : null}
       {showSeed ? (
         <View style={styles.seedCard}>
           <Text style={styles.seedText}>
@@ -168,6 +190,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: IOS_PURPLE,
+  },
+  seedHint: {
+    marginLeft: 25,
+    alignSelf: 'flex-start',
+  },
+  seedHintText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: IOS_PURPLE,
+    opacity: 0.75,
   },
   draftLabel: {
     fontSize: 11,
