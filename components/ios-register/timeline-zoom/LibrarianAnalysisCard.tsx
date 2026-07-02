@@ -19,7 +19,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { IOS_REGISTER } from '@/lib/design-tokens-ios';
 import { fontFamily } from '@/lib/design-tokens-editorial';
-import { ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
+import { ZOOM_RAIL_CONTENT_DODGE } from './ZoomLevelPicker';
 import type {
   LifetimeQuant,
   QuantCapabilityStat,
@@ -459,9 +459,11 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     paddingLeft: 12,
     // Keep all card content (header toggle + right-aligned data) clear of the
-    // floating ALL/ARC/STEP zoom rail, which overlays the card's right edge at
-    // any scroll position. marginRight is 16, so subtract it from the reserve.
-    paddingRight: ZOOM_RAIL_RESERVED_WIDTH - 16,
+    // floating ALL/ARC/STEP zoom rail on native, where it overlays the card's
+    // right edge at any scroll position (marginRight is 16, so subtract it
+    // from the reserve). On web the canvas reserves the rail's lane, so this
+    // collapses to the base 12pt padding matching paddingLeft.
+    paddingRight: Math.max(12, ZOOM_RAIL_CONTENT_DODGE - 16),
     paddingTop: 9,
     paddingBottom: 10,
     shadowColor: '#7B3FB0',

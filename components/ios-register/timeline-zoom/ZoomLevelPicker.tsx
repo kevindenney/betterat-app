@@ -70,6 +70,15 @@ const DEFAULT_RIGHT_OFFSET = 10;
 export const ZOOM_RAIL_RESERVED_WIDTH =
   SEGMENT_SIZE + RAIL_PADDING * 2 + DEFAULT_RIGHT_OFFSET + 8;
 
+/** Per-component dodge for content that would otherwise sit under the
+ *  floating rail. Native keeps the Apple-Photos hover: the rail floats over
+ *  edge-to-edge content and full-bleed pieces subtract this locally. On web
+ *  the canvas reserves the rail's whole lane at the level stage instead
+ *  (mouse users kept finding interactive controls hidden under the rail),
+ *  so local dodges collapse to 0. */
+export const ZOOM_RAIL_CONTENT_DODGE =
+  Platform.OS === 'web' ? 0 : ZOOM_RAIL_RESERVED_WIDTH;
+
 function LevelGlyph({ level, color }: { level: ZoomLevel; color: string }) {
   switch (level) {
     case 1:

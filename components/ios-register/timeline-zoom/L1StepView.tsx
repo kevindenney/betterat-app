@@ -37,7 +37,6 @@ import { fontFamily } from '@/lib/design-tokens-editorial';
 import { resolveDoTabInterestKind } from '@/lib/interest-config';
 import { StepDetailContent } from '@/components/step/StepDetailContent';
 import { PickerListSheet } from './PickerListSheet';
-import { ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
 import type { StepStatus, TimelineDataset, TimelineStep } from './types';
 
 // The embedded StepDetailContent loads its own step record async, so on first
@@ -880,15 +879,12 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 4,
   },
+  // The zoom rail's lane is reserved once at the canvas level stage on web
+  // (see TimelineZoomCanvas levelStage), so the pager lane inherits a width
+  // that already ends before the rail.
   embedGestureLayer: {
     flex: 1,
     position: 'relative',
-    ...Platform.select({
-      // Reserve the zoom rail's lane on web so the peeking next card ends
-      // before the rail instead of running underneath its tap targets.
-      web: { marginRight: ZOOM_RAIL_RESERVED_WIDTH },
-      default: {},
-    }),
   },
   pagerCardBody: {
     flex: 1,

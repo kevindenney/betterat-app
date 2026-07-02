@@ -52,7 +52,7 @@ import { LibrarianAnalysisCard } from './LibrarianAnalysisCard';
 import { SeasonLibrarianPrompt } from './SeasonLibrarianPrompt';
 import { SeasonHeaderChips } from './SeasonHeaderChips';
 import { PickerListSheet } from './PickerListSheet';
-import { ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
+import { ZOOM_RAIL_CONTENT_DODGE } from './ZoomLevelPicker';
 import { resolveInterestVocab } from './interestVocab';
 import {
   anchorIconName,
@@ -659,7 +659,7 @@ export function L3SeasonView({
                         label: m.label,
                         color: m.capabilityColor,
                       }))}
-                      width={Math.max(0, w - (ZOOM_RAIL_RESERVED_WIDTH - 16))}
+                      width={Math.max(0, w - Math.max(0, ZOOM_RAIL_CONTENT_DODGE - 16))}
                       height={188}
                       isolatedCapabilityId={activeThread?.id ?? null}
                       showBandLabels={false}
@@ -750,7 +750,7 @@ export function L3SeasonView({
                           density={density}
                           totalWeeks={totalWeeks}
                           currentWeekNumber={currentWeek}
-                          width={Math.max(0, w - (ZOOM_RAIL_RESERVED_WIDTH - 16))}
+                          width={Math.max(0, w - Math.max(0, ZOOM_RAIL_CONTENT_DODGE - 16))}
                           height={16}
                         />
                       </View>
@@ -824,7 +824,7 @@ export function L3SeasonView({
                       peers={analysis.peers}
                       totalWeeks={totalWeeks}
                       currentWeekNumber={currentWeek}
-                      width={Math.max(0, w - (ZOOM_RAIL_RESERVED_WIDTH - 16))}
+                      width={Math.max(0, w - Math.max(0, ZOOM_RAIL_CONTENT_DODGE - 16))}
                       compact={analysis.peers.length <= 3}
                       showLegend={false}
                       peerSharedFleets={fleetCohort?.peerToFleets}

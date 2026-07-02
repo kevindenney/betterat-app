@@ -63,7 +63,7 @@ import { L4YearsView } from './L4YearsView';
 import { ZoomEmptyState } from './EmptyStates';
 import { SelectActionBar } from './SelectActionBar';
 import { useSelectMode } from './useSelectMode';
-import { ZoomLevelPicker } from './ZoomLevelPicker';
+import { ZoomLevelPicker, ZOOM_RAIL_RESERVED_WIDTH } from './ZoomLevelPicker';
 import { resolveInterestVocab } from './interestVocab';
 import {
   ZOOM_LEVEL_SCOPE_LABELS,
@@ -850,14 +850,22 @@ const styles = StyleSheet.create({
   canvas: {
     flex: 1,
     // The ZoomLevelPicker is an absolutely-positioned sibling that floats OVER
-    // the surface (Apple Photos style) at every level — we deliberately do NOT
-    // reserve a gutter for it, so content goes edge-to-edge and the rail hovers.
+    // the surface (Apple Photos style). On native we deliberately do NOT
+    // reserve a gutter for it — content goes edge-to-edge and the rail hovers,
+    // with full-bleed pieces dodging locally (ZOOM_RAIL_CONTENT_DODGE).
   },
   canvasInner: {
     flex: 1,
   },
   levelStage: {
     flex: 1,
+    ...Platform.select({
+      // On web every level reserves the rail's lane instead: L3/L4 rows put
+      // interactive controls (Select, Edit) at their right edge, exactly
+      // where the rail hovers, and mouse users can't reach through it.
+      web: { marginRight: ZOOM_RAIL_RESERVED_WIDTH },
+      default: {},
+    }),
   },
   hintPillWrap: {
     position: 'absolute',
