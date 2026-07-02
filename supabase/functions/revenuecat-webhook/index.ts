@@ -34,6 +34,9 @@ interface RevenueCatEvent {
   store?: string;
   environment?: string;
   transaction_id?: string;
+  // TRANSFER events carry these instead of a single app_user_id.
+  transferred_from?: string[] | null;
+  transferred_to?: string[] | null;
 }
 
 interface RevenueCatWebhookBody {
@@ -97,6 +100,38 @@ serve(async (req: Request) => {
     // RevenueCat sends a TEST event when you save the webhook — ack it.
     if (event.type === 'TEST') {
       return new Response(JSON.stringify({ ok: true, test: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // TRANSFER moves entitlements between app_user_ids (e.g. Restore Purchases on
+    // a second account). It carries transferred_from/to, not app_user_id — so it
+    // used to hit the "Missing app_user_id" 400 and nothing updated, leaving the
+    // source account with a stale premium tier (double-entitlement). Revoke the
+    // entitlement from the source users; the destination receives its state via
+    // the entitlement events RevenueCat sends alongside/after the transfer.
+    if (event.type === 'TRANSFER') {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const fromIds = (event.transferred_from ?? []).filter(Boolean);
+      if (fromIds.length > 0) {
+        const { error: transferErr } = await supabase
+          .from('users')
+          .update({
+            subscription_status: 'expired',
+            subscription_tier: 'free',
+            subscription_updated_at: new Date().toISOString(),
+          })
+          .in('id', fromIds);
+        if (transferErr) {
+          console.error('revenuecat-webhook: TRANSFER downgrade failed', transferErr);
+          return new Response(JSON.stringify({ error: 'Failed to process transfer' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      }
+      return new Response(JSON.stringify({ ok: true, transfer: true, revoked: fromIds.length }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });

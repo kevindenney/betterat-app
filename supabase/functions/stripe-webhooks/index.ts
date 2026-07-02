@@ -275,6 +275,19 @@ serve(async (req: Request) => {
     });
   } catch (error) {
     console.error('Webhook error:', error);
+    // The event was recorded as processed before the handler ran (concurrency
+    // gate). Since processing failed, remove that record so Stripe's retry
+    // reprocesses instead of being skipped as a duplicate — otherwise a paid
+    // customer could stay un-upgraded permanently.
+    if (event?.id) {
+      const { error: cleanupError } = await supabase
+        .from('stripe_webhook_events')
+        .delete()
+        .eq('event_id', event.id);
+      if (cleanupError) {
+        console.error('Failed to roll back webhook event record (retry will be skipped):', cleanupError);
+      }
+    }
     return new Response(
       JSON.stringify({ error: 'Webhook handler failed' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
