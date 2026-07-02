@@ -22,6 +22,7 @@ export interface StepBlueprintChromeData {
   blueprintSlug: string | null;
   blueprintTitle: string;
   blueprintShortName: string;
+  authorUserId: string;
   authorName: string | null;
   stepNumber: number | null;
   totalSteps: number;
@@ -141,6 +142,7 @@ export function useStepBlueprintChrome(stepId: string | null | undefined) {
         blueprintSlug: blueprintRow.slug,
         blueprintTitle: blueprintRow.title,
         blueprintShortName: shortNameFor(blueprintRow.title),
+        authorUserId: blueprintRow.user_id,
         authorName,
         stepNumber,
         totalSteps,
