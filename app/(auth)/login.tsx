@@ -316,7 +316,11 @@ export default function Login() {
               testID="login-close-button"
               accessibilityRole="button"
               accessibilityLabel="Close sign in"
-              onPress={() => router.replace('/welcome')}
+              // Web has a real marketing landing at `/`; /welcome is the
+              // native fresh-install intro. Sending web visitors there
+              // dead-ends them (welcome → pick → protected tab → back to
+              // this login wall).
+              onPress={() => router.replace(Platform.OS === 'web' ? '/' : '/welcome')}
               style={styles.closeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >

@@ -14,6 +14,7 @@ import { router } from 'expo-router';
 
 import { InterestSelectionContent } from '@/components/onboarding/InterestSelection';
 import { BrandMark } from '@/components/BrandMark';
+import { useAuth } from '@/providers/AuthProvider';
 
 const BRAND_DARK = '#0B1A33';
 
@@ -27,6 +28,8 @@ function BrandPill() {
 }
 
 export default function WelcomePickScreen() {
+  const { signedIn } = useAuth();
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
       <InterestSelectionContent
@@ -39,7 +42,17 @@ export default function WelcomePickScreen() {
             router.replace('/welcome');
           }
         }}
-        onComplete={() => router.replace('/(tabs)/races')}
+        // A signed-out visitor finishing the welcome flow is a NEW user: send
+        // them to create an account. Replacing into a protected tab bounces
+        // them off AuthGate onto the "Welcome back" sign-in wall — wrong
+        // register, and it loops (login × → welcome → pick → login …).
+        onComplete={() =>
+          router.replace(
+            signedIn
+              ? '/(tabs)/races'
+              : ('/(auth)/signup?returnTo=%2F(tabs)%2Fraces' as never),
+          )
+        }
         headerSlot={<BrandPill />}
       />
     </SafeAreaView>
