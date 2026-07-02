@@ -62,6 +62,13 @@ export function useIsDesktop(): boolean {
   return Platform.OS === 'web' && width >= DESKTOP_BREAKPOINT;
 }
 
+// Reanimated entering animations don't run on react-native-web — elements
+// stay stuck at their pre-enter opacity 0, which left the title + CTA column
+// invisible on desktop web. Skip entering on web; native keeps the motion.
+const enterFadeIn = Platform.OS === 'web' ? undefined : FadeIn.delay(400).duration(400);
+const enterTitle = Platform.OS === 'web' ? undefined : FadeInDown.delay(200).duration(400).springify();
+const enterSubtitle = Platform.OS === 'web' ? undefined : FadeInDown.delay(300).duration(400).springify();
+
 export function ValueScreen({
   title,
   subtitle,
@@ -93,7 +100,7 @@ export function ValueScreen({
       duration: 400,
       easing: Easing.out(Easing.ease),
     });
-  }, []);
+  }, [illustrationOpacity, illustrationScale]);
 
   const illustrationStyle = useAnimatedStyle(() => ({
     transform: [{ scale: illustrationScale.value }],
@@ -131,7 +138,7 @@ export function ValueScreen({
   // Actions component (shared between layouts)
   const Actions = (
     <Animated.View
-      entering={FadeIn.delay(400).duration(400)}
+      entering={enterFadeIn}
       style={[styles.actionsContainer, isDesktop && styles.actionsContainerDesktop]}
     >
       <TouchableOpacity
@@ -182,14 +189,14 @@ export function ValueScreen({
               <View style={styles.desktopRightColumn}>
                 <View style={styles.textContainerDesktop}>
                   <Animated.Text
-                    entering={FadeInDown.delay(200).duration(400).springify()}
+                    entering={enterTitle}
                     style={[styles.title, styles.titleDesktop]}
                   >
                     {title}
                   </Animated.Text>
 
                   <Animated.Text
-                    entering={FadeInDown.delay(300).duration(400).springify()}
+                    entering={enterSubtitle}
                     style={[styles.subtitle, styles.subtitleDesktop]}
                   >
                     {subtitle}
@@ -208,14 +215,14 @@ export function ValueScreen({
 
               <View style={styles.textContainer}>
                 <Animated.Text
-                  entering={FadeInDown.delay(200).duration(400).springify()}
+                  entering={enterTitle}
                   style={styles.title}
                 >
                   {title}
                 </Animated.Text>
 
                 <Animated.Text
-                  entering={FadeInDown.delay(300).duration(400).springify()}
+                  entering={enterSubtitle}
                   style={styles.subtitle}
                 >
                   {subtitle}

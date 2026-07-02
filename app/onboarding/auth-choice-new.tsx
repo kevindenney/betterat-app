@@ -4,7 +4,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
@@ -40,6 +40,11 @@ const GoogleLogo = () => (
 
 export default function AuthChoiceNewScreen() {
   const router = useRouter();
+  // Craft picked in the value funnel — forwarded so signup skips straight to
+  // the persona step with the interest pre-selected (it also lives in the
+  // onboarding_interest_slug AsyncStorage key for the social-auth paths).
+  const params = useLocalSearchParams<{ interest?: string }>();
+  const interest = typeof params.interest === 'string' ? params.interest : undefined;
   const { enterGuestMode } = useAuth();
   const [isLoading, setIsLoading] = useState<'apple' | 'google' | 'guest' | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(Platform.OS === 'ios');
@@ -104,7 +109,11 @@ export default function AuthChoiceNewScreen() {
   };
 
   const handleEmailSignUp = () => {
-    router.push('/(auth)/signup');
+    router.push(
+      interest
+        ? (`/(auth)/signup?interest=${interest}` as never)
+        : ('/(auth)/signup' as never),
+    );
   };
 
   const handleSignIn = () => {

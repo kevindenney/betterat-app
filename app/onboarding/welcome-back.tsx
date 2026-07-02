@@ -106,8 +106,8 @@ export default function WelcomeBackScreen() {
   };
 
   const handleCreateAccount = () => {
-    // New users go through full value showcase
-    router.replace('/onboarding/value/track-races');
+    // New users pick their craft, then see the value story in its vocabulary
+    router.replace('/onboarding/value/pick-craft');
   };
 
   // Personalized greeting
