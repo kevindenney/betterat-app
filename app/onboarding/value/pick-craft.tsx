@@ -8,7 +8,7 @@
  * steps. "I'll decide later" keeps the guest path alive with universal copy.
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -17,13 +17,90 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fontFamily } from '@/lib/design-tokens-editorial';
 import { VALUE_STORY_CHIPS } from '@/lib/onboarding/valueStoryVocab';
+import { useInterest } from '@/providers/InterestProvider';
 
 const ACCENT = '#007AFF';
+
+// The chip register is emoji-first; Interest rows carry Ionicons names, so
+// map the catalog slugs by hand and fall back to a neutral spark.
+const EMOJI_BY_SLUG: Record<string, string> = {
+  nursing: '🩺',
+  'global-health': '🌍',
+  drawing: '✏️',
+  design: '🎨',
+  knitting: '🧶',
+  'fiber-arts': '🪡',
+  'painting-printing': '🖌️',
+  'sail-racing': '⛵️',
+  golf: '⛳️',
+  'health-and-fitness': '💪',
+  fitness: '🏋️',
+  running: '🏃',
+  'lifelong-learning': '📚',
+  'self-mastery': '🧭',
+  'college-career-planning': '🎓',
+  'lac-craft-business': '🪔',
+  'food-processing': '🫙',
+  'textile-weaving': '🧵',
+  'regenerative-agriculture': '🌱',
+  entrepreneur: '💼',
+  gardening: '🥕',
+  painting: '🖼️',
+  tailoring: '✂️',
+};
+const FALLBACK_EMOJI = '✨';
+
+interface ChipItem {
+  slug: string;
+  label: string;
+  emoji: string;
+}
+
+interface ChipSection {
+  key: string;
+  title: string | null;
+  chips: ChipItem[];
+}
 
 export default function PickCraftScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<string | null>(null);
+  const { groupedInterests } = useInterest();
+
+  // Full catalog grouped by domain — the same list the in-app interest
+  // picker shows. Until it loads (or if it fails), fall back to the seven
+  // curated story chips so the funnel never renders empty.
+  const sections = useMemo<ChipSection[]>(() => {
+    const grouped = groupedInterests
+      .map((group) => ({
+        key: group.domain.slug,
+        title: group.domain.name,
+        // Pre-signup surface: official catalog only — user-proposed
+        // interests (someone's "Team Racing" proposal) don't belong on
+        // the marketing funnel.
+        chips: group.interests
+          .filter((i) => i.type === 'official')
+          .map((i) => ({
+            slug: i.slug,
+            label: i.name,
+            emoji: EMOJI_BY_SLUG[i.slug] ?? FALLBACK_EMOJI,
+          })),
+      }))
+      .filter((s) => s.chips.length > 0);
+    if (grouped.length > 0) return grouped;
+    return [
+      {
+        key: 'fallback',
+        title: null,
+        chips: VALUE_STORY_CHIPS.map((story) => ({
+          slug: story.slug,
+          label: story.chipLabel,
+          emoji: story.emoji,
+        })),
+      },
+    ];
+  }, [groupedInterests]);
 
   const continueWith = async (slug: string | null) => {
     if (slug) {
@@ -49,26 +126,33 @@ export default function PickCraftScreen() {
           One thing you’re working on. You can add more later.
         </Text>
 
-        <View style={styles.chips}>
-          {VALUE_STORY_CHIPS.map((story) => {
-            const active = selected === story.slug;
-            return (
-              <Pressable
-                key={story.slug}
-                onPress={() => setSelected(active ? null : story.slug)}
-                style={[styles.chip, active && styles.chipSelected]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={story.chipLabel}
-              >
-                <Text style={styles.chipEmoji}>{story.emoji}</Text>
-                <Text style={[styles.chipLabel, active && styles.chipLabelSelected]}>
-                  {story.chipLabel}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {sections.map((section) => (
+          <View key={section.key} style={styles.section}>
+            {section.title ? (
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+            ) : null}
+            <View style={styles.chips}>
+              {section.chips.map((chip) => {
+                const active = selected === chip.slug;
+                return (
+                  <Pressable
+                    key={chip.slug}
+                    onPress={() => setSelected(active ? null : chip.slug)}
+                    style={[styles.chip, active && styles.chipSelected]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={chip.label}
+                  >
+                    <Text style={styles.chipEmoji}>{chip.emoji}</Text>
+                    <Text style={[styles.chipLabel, active && styles.chipLabelSelected]}>
+                      {chip.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ))}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
@@ -123,6 +207,17 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: 'rgba(60,60,67,0.6)',
     marginBottom: 24,
+  },
+  section: {
+    marginBottom: 22,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    color: 'rgba(60,60,67,0.45)',
+    marginBottom: 10,
   },
   chips: {
     flexDirection: 'row',

@@ -190,7 +190,14 @@ export const VALUE_STORY_CHIPS: ValueStoryVocab[] = [
   STORIES.running,
 ];
 
+// Catalog slugs without a bespoke story borrow the closest one so the
+// loop/people screens keep concrete copy instead of the generic fallback.
+const STORY_ALIASES: Record<string, string> = {
+  'lac-craft-business': 'entrepreneur',
+  'health-and-fitness': 'running',
+};
+
 export function resolveValueStory(slug?: string | null): ValueStoryVocab {
   if (!slug) return DEFAULT_STORY;
-  return STORIES[slug] ?? DEFAULT_STORY;
+  return STORIES[slug] ?? STORIES[STORY_ALIASES[slug] ?? ''] ?? DEFAULT_STORY;
 }
